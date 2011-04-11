@@ -2683,7 +2683,9 @@ EOF
 	    (##sys#intern-symbol tok) )
 	  
 	  (define (build-keyword tok)
-	    (##sys#intern-symbol (##sys#string-append kwprefix tok)) )
+	    (if (eq? 0 (##sys#size tok))
+		(##sys#read-error port "empty keyword")
+		(##sys#intern-symbol (##sys#string-append kwprefix tok)) ))
 
           ; now have the state to make a decision.
           (set! reserved-characters
@@ -3097,7 +3099,8 @@ EOF
 				      (eq? c #\.) )
 				  (not (##sys#string->number str)) )
 				 ((and (eq? c #\#)
-				       (not (eq? #\% (##core#inline "C_subchar" str 1))))
+				       (or (not (eq? #\% (##core#inline "C_subchar" str 1)))
+					   (eq? #\: (##core#inline "C_subchar" str 1))))
 				  #f)
 				 ((specialchar? c) #f)
 				 (else #t) ) )
