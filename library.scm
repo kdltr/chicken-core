@@ -2268,7 +2268,6 @@ EOF
 (define keyword-style (make-parameter #:suffix))
 (define parentheses-synonyms (make-parameter #t))
 (define symbol-escape (make-parameter #t))
-
 (define current-read-table (make-parameter (##sys#make-structure 'read-table #f #f #f)))
 
 (define ##sys#read-warning
@@ -2295,9 +2294,14 @@ EOF
        args) ) ) )
 
 (define ##sys#read
-  (let ([reverse reverse]
-	[string-append string-append]
-	[kwprefix (string (integer->char 0))])
+  (let ((reverse reverse)
+	(string-append string-append)
+	(keyword-style keyword-style)
+	(case-sensitive case-sensitive)
+	(parantheses-synonyms parantheses-synonyms)
+	(symbol-escape symbol-escape)
+	(current-read-table current-read-table)
+	(kwprefix (string (integer->char 0))))
     (lambda (port infohandler)
       (let ([csp (case-sensitive)]
 	    [ksp (keyword-style)]
@@ -2470,7 +2474,7 @@ EOF
 					 (let* ((tok (##sys#string-append "." (r-token)))
 						(n (and (char-numeric? c2) 
 							(##sys#string->number tok)))
-						(val (or n (resolve-symbol tok))) 
+						(val (or n (build-symbol tok))) 
 						(node (cons val '())) )
 					   (if first 
 					       (##sys#setslot last 1 node)
@@ -2507,7 +2511,7 @@ EOF
 			      "cannot represent exact fraction - coerced to flonum" tok) )
 			   val]
 			  [radix (##sys#read-error port "illegal number syntax" tok)]
-			  [else (resolve-symbol tok)] ) ) ) ) )
+			  [else (build-symbol tok)] ) ) ) ) )
 
 	  (define (r-number-with-exactness radix)
 	    (cond [(char=? #\# (##sys#peek-char-0 port))
@@ -2562,40 +2566,49 @@ EOF
 	    (r-token) )
 	  
 	  (define (r-symbol)
-	    (let ((s (resolve-symbol (r-xtoken))))
-	      (info 'symbol-info s (##sys#port-line port)) ) )
+	    (r-xtoken
+	     (lambda (str kw)
+	       (let ((s (if kw (build-keyword str) (build-symbol str))))
+		 (info 'symbol-info s (##sys#port-line port)) ) )))
 
-	  (define (r-xtoken)
-	    (let loop ((lst '()))
-	      (let ((c (##sys#peek-char-0 port)))
-		(cond ((or (eof-object? c) 
-			   (char-whitespace? c)
-			   (memq c terminating-characters))
-		       (##sys#reverse-list->string lst))
-		      (else
-		       (let ((c (##sys#read-char-0 port)))
-			 (case (and sep c)
-			   ((#\|) 
-			    (let ((part (r-string #\|)))
-			      (string-append
-			       (##sys#reverse-list->string lst)
-			       part
-			       (loop '()))))
-			   ((#\newline)
-			    (##sys#read-warning
-			     port "escaped symbol syntax spans multiple lines"
-			     (##sys#reverse-list->string lst))
-			    (loop (cons #\newline lst)))
-			   ((#\\)
-			    (let ((c (##sys#read-char-0 port)))
-			      (if (eof-object? c)
-				  (##sys#read-error
-				   port
-				   "unexpected end of file while reading escaped character")
-				  (loop (cons c lst)))))
-			   (else 
-			    (loop 
-			     (cons (if csp c (char-downcase c)) lst))))))))))
+	  (define (r-xtoken k)
+	    (let ((pkw #f))
+	      (let loop ((lst '()) (skw #f))
+		(let ((c (##sys#peek-char-0 port)))
+		  (cond ((or (eof-object? c) 
+			     (char-whitespace? c)
+			     (memq c terminating-characters))
+			 (if (and skw (eq? ksp #:suffix))
+			     (k (##sys#reverse-list->string (cdr lst)) #t)
+			     (k (##sys#reverse-list->string lst) pkw)))
+			(else
+			 (let ((c (##sys#read-char-0 port)))
+			   (case (and sep c)
+			     ((#\|) 
+			      (let ((part (r-string #\|)))
+				(loop (append (reverse (##sys#string->list part)) lst)
+				      #f)))
+			     ((#\newline)
+			      (##sys#read-warning
+			       port "escaped symbol syntax spans multiple lines"
+			       (##sys#reverse-list->string lst))
+			      (loop (cons #\newline lst) #f))
+			     ((#\:)
+			      (cond ((and (null? lst) (eq? ksp #:prefix))
+				     (set! pkw #t)
+				     (loop '() #f))
+				    (else (loop (cons #\: lst) #t))))
+			     ((#\\)
+			      (let ((c (##sys#read-char-0 port)))
+				(if (eof-object? c)
+				    (##sys#read-error
+				     port
+				     "unexpected end of file while reading escaped character")
+				    (loop (cons c lst) #f))))
+			     (else 
+			      (loop 
+			       (cons (if csp c (char-downcase c)) lst)
+			       #f))))))))))
 	  
 	  (define (r-char)
 	    ;; Code contributed by Alex Shinn
@@ -2611,7 +2624,8 @@ EOF
 				       (n0 (fxand (fxshr c0 4) 3))
 				       (n (fx+ 2 (fxand (fxior n0 (fxshr n0 1)) (fx- n0 1))))
 				       ((fx= len n))
-				       (res (fx+ (fxshl (fxand c0 (fx- (fxshl 1 (fx- 8 n)) 1)) 6)
+				       (res (fx+ (fxshl (fxand c0 (fx- (fxshl 1 (fx- 8 n)) 1))
+							6)
 						 (fxand (char->integer 
 							 (##core#inline "C_subchar" tk 1)) 
 							#b111111))))
@@ -2667,25 +2681,14 @@ EOF
 			 (##sys#substring tok (fx+ i 1) toklen)) ) ]
 		      [else (loop (fx+ i 1))] ) ) ) )
 
-	  (define (resolve-symbol tok)
-	    (let ([len (##sys#size tok)])
-	      (cond [(and (fx> len 1)
-			  (or (and (eq? ksp #:prefix)
-				   (char=? #\: (##core#inline "C_subchar" tok 0)) 
-				   (##sys#substring tok 1 len) )
-			      (and (eq? ksp #:suffix) 
-				   (char=? #\: (##core#inline "C_subchar" tok (fx- len 1)))
-				   (##sys#substring tok 0 (fx- len 1)) ) ) )
-		     => build-keyword]	; ugh
-		    [else (build-symbol tok)])))
-
 	  (define (build-symbol tok)
 	    (##sys#intern-symbol tok) )
 	  
 	  (define (build-keyword tok)
-	    (if (eq? 0 (##sys#size tok))
-		(##sys#read-error port "empty keyword")
-		(##sys#intern-symbol (##sys#string-append kwprefix tok)) ))
+	    (##sys#intern-symbol
+	     (if (eq? 0 (##sys#size tok))
+		 ":"
+		 (##sys#string-append kwprefix tok)) ))
 
           ; now have the state to make a decision.
           (set! reserved-characters
@@ -2787,7 +2790,10 @@ EOF
 					  (else (list 'location (readrec)) ))))
 				 ((#\:) 
 				  (##sys#read-char-0 port)
-				  (build-keyword (r-token)) )
+				  (let ((tok (r-token)))
+				    (if (eq? 0 (##sys#size tok))
+					(##sys#read-error port "empty keyword")
+					(build-keyword tok))))
 				 ((#\%)
 				  (build-symbol (##sys#string-append "#" (r-token))) )
 				 ((#\+)
@@ -3023,7 +3029,9 @@ EOF
 (define ##sys#print-exit (make-parameter #f))
 
 (define ##sys#print
-  (let ([string-append string-append])
+  (let ((string-append string-append)
+	(case-sensitive case-sensitive)
+	(keyword-style keyword-style))
     (lambda (x readable port)
       (##sys#check-port-mode port #f)
       (let ([csp (case-sensitive)]
@@ -3086,7 +3094,8 @@ EOF
 	    (cond ((eq? len 0) #f)
 		  ((eq? len 1)
 		   (let ((c (##core#inline "C_subchar" str 0)))
-		     (cond ((or (eq? #\. c) (eq? #\# c) (eq? #\; c) (eq? #\, c) (eq? #\| c)) #f)
+		     (cond ((or (eq? #\. c) (eq? #\# c) (eq? #\; c) (eq? #\, c) (eq? #\| c))
+			    #f)
 			   ((char-numeric? c) #f)
 			   (else #t))))
 		  (else
@@ -3098,15 +3107,18 @@ EOF
 				      (eq? c #\-)
 				      (eq? c #\.) )
 				  (not (##sys#string->number str)) )
+				 ((eq? c #\:) (not (eq? ksp #:prefix)))
 				 ((and (eq? c #\#)
-				       (or (not (eq? #\% (##core#inline "C_subchar" str 1)))
-					   (eq? #\: (##core#inline "C_subchar" str 1))))
+				       (not (eq? #\% (##core#inline "C_subchar" str 1))))
 				  #f)
 				 ((specialchar? c) #f)
 				 (else #t) ) )
 			 (let ((c (##core#inline "C_subchar" str i)))
 			   (and (or csp (not (char-upper-case? c)))
 				(not (specialchar? c))
+				(or (not (eq? c #\:))
+				    (fx< i (fx- len 1))
+				    (not (eq? ksp #:suffix)))
 				(loop (fx- i 1)) ) ) ) ) ) ) ) )
 
 	(let out ([x x])

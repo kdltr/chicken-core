@@ -113,10 +113,6 @@
 (assert (string=? "abcxyzdef" (symbol->string '|abc|xyz|def|)))
 (assert (string=? "abc|def" (symbol->string '|abc\|def|)))
 (assert (string=? "abc|def" (symbol->string '|abc\|def|)))
-(assert (string=? "abc" (symbol->string '|abc:|))) ; keyword
-(assert (string=? "abc" (symbol->string '|abc|:))) ; keyword
-(assert (string=? ":abc" (symbol->string ':|abc|)))
-(assert (string=? ":abc" (symbol->string '|:abc|)))
 (assert (string=? "abc" (symbol->string 'abc)))
 (assert (string=? "a c" (symbol->string 'a\ c)))
 (assert (string=? "aBc" (symbol->string 'aBc)))
@@ -125,6 +121,46 @@
   (assert (string=? "abc" (symbol->string (with-input-from-string "aBc" read))))
   (assert (string=? "aBc" (symbol->string (with-input-from-string "|aBc|" read))))
   (assert (string=? "aBc" (symbol->string (with-input-from-string "a\\Bc" read)))))
+
+
+;;; keywords
+
+(parameterize ((keyword-style #:suffix))
+  (assert (string=? "abc:" (symbol->string (with-input-from-string "|abc:|" read))))
+  (assert (string=? "abc" (symbol->string (with-input-from-string "|abc|:" read))))) ; keyword
+
+(parameterize ((keyword-style #:prefix))
+  (assert (string=? "abc" (symbol->string (with-input-from-string ":|abc|" read))))
+  (assert (string=? ":abc" (symbol->string (with-input-from-string "|:abc|" read)))))
+
+(assert (eq? '|#:| (string->symbol "#:")))
+(assert-fail (with-input-from-string "#:" read)) ; empty keyword
+(assert (eq? '|#:| (with-input-from-string (with-output-to-string (cut write '|#:|)) read)))
+
+(parameterize ((keyword-style #:suffix))
+  (assert (keyword? (with-input-from-string "abc:" read)))
+  (assert (keyword? (with-input-from-string "|abc|:" read)))
+  (assert (not (keyword? (with-input-from-string "abc:||" read))))
+  (assert (not (keyword? (with-input-from-string "abc\\:" read))))
+  (assert (not (keyword? (with-input-from-string "abc|:|" read))))
+  (assert (not (keyword? (with-input-from-string "|abc:|" read)))))
+
+(parameterize ((keyword-style #:prefix))
+  (assert (keyword? (with-input-from-string ":abc" read)))
+  (assert (keyword? (with-input-from-string ":|abc|" read)))
+  (assert (keyword? (with-input-from-string "||:abc" read))) ;XXX should be not
+  (assert (not (keyword? (with-input-from-string "\\:abc" read))))
+  (assert (not (keyword? (with-input-from-string "|:|abc" read))))
+  (assert (not (keyword? (with-input-from-string "|:abc|" read)))))
+
+(parameterize ((keyword-style #f))
+  (assert (not (keyword? (with-input-from-string ":abc" read))))
+  (assert (not (keyword? (with-input-from-string ":abc:" read))))
+  (assert (not (keyword? (with-input-from-string "abc:" read)))))
+
+(assert (string=? ":" (symbol->string (with-input-from-string ":" read))))
+(assert (string=? ":" (symbol->string (with-input-from-string ":||" read))))
+(assert-fail (with-input-from-string "#:" read))
 
 
 ;;; setters
