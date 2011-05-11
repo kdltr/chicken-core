@@ -1656,7 +1656,7 @@ C_regparm double C_fcall C_milliseconds(void)
     struct timeval tv;
 
     if(C_gettimeofday(&tv, NULL) == -1) return 0;
-    else return (tv.tv_sec - C_startup_time_seconds) * 1000 + tv.tv_usec / 1000;
+    else return ((double)tv.tv_sec - C_startup_time_seconds) * 1000.0 + tv.tv_usec / 1000;
 #endif
 }
 
