@@ -1249,7 +1249,7 @@
     (case type
       ((scheme-object) "(")
       ((char unsigned-char) "C_character_code((C_word)")
-      ((byte int unsigned-int unsigned-int32 unsigned-byte) "C_unfix(")
+      ((byte int int32 unsigned-int unsigned-int32 unsigned-byte) "C_unfix(")
       ((short) "C_unfix(")
       ((unsigned-short) "(unsigned short)C_unfix(")
       ((unsigned-long) "C_num_to_unsigned_long(")
