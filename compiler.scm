@@ -1122,14 +1122,16 @@
 			((##core#foreign-callback-wrapper)
 			 (let-values ([(args lam) (split-at (cdr x) 4)])
 			   (let* ([lam (car lam)]
-				  [name (cadr (first args))]
+				  [raw-c-name (cadr (first args))]
+                                  [name (##sys#alias-global-hook raw-c-name #t dest)]
 				  [rtype (cadr (third args))]
 				  [atypes (cadr (fourth args))]
 				  [vars (second lam)] )
-			     (if (valid-c-identifier? name)
-				 (set! callback-names (cons name callback-names))
+			     (if (valid-c-identifier? raw-c-name)
+				 (set! callback-names
+				   (cons (cons raw-c-name name) callback-names))
 				 (quit "name `~S' of external definition is not a valid C identifier"
-				       name) )
+				       raw-c-name) )
 			     (when (or (not (proper-list? vars)) 
 				       (not (proper-list? atypes))
 				       (not (= (length vars) (length atypes))) )
@@ -1204,7 +1206,7 @@
 					    e se #f #f h) ) ]
 				     [(assq sym external-to-pointer) 
 				      => (lambda (a) (walk (cdr a) e se #f #f h)) ]
-				     [(memq sym callback-names)
+				     [(assq sym callback-names)
 				      `(##core#inline_ref (,(symbol->string sym) c-pointer)) ]
 				     [else 
 				      (walk 
@@ -2024,7 +2026,7 @@
 				  #t]
 				 [else #f] ) )
 			 vars) )
-		      (cond [(and has (not (memq sym callback-names)))
+		      (cond [(and has (not (rassoc sym callback-names eq?)))
 			     (put! db (first lparams) 'has-unused-parameters #t) ]
 			    [rest
 			     (set! explicitly-consed (cons rest explicitly-consed))

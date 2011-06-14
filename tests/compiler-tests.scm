@@ -138,6 +138,25 @@
    "print_foo(\"bar\");"))
 
 
+;; Unused arguments in foreign callback wrappers are not optimized away (#584)
+(module bla (foo)
+
+(import chicken scheme foreign)
+
+(define-external
+  (blabla (int a) (c-string b) (int c) (int d) (c-string e) (int f))
+  int
+  f)
+
+(define (foo) ((foreign-safe-lambda* int () "C_return(blabla(1, \"2\", 3, 4, \"5\", 6));")))
+
+(assert (location blabla))
+)
+
+(import bla)
+(assert (= (foo) 6))
+
+
 ;;; compiler-syntax for map/for-each must be careful when the
 ;   operator may have side-effects (currently only lambda exprs and symbols
 ;   are allowed)
