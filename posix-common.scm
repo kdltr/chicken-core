@@ -194,6 +194,7 @@ EOF
 (define (file-type file #!optional link (err #t))
   (and (##sys#stat file link err 'file-type)
        (select (foreign-value "C_stat_type" unsigned-int)
+	 ((S_IFREG) 'regular-file)
 	 ((S_IFLNK) 'symbolic-link)
 	 ((S_IFDIR) 'directory)
 	 ((S_IFCHR) 'character-device)
