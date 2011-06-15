@@ -36,19 +36,19 @@ Nicolas Pelletier, Derrell Piper, Carlos Pita, Robin Lee Powell, Alan
 Post, "Pupeno", Davide Puricelli, "presto", Doug Quale, Imran Rafique,
 Eric Raible, Ivan Raikov, Joel Reymont, Chris Roberts, Eric Rochester,
 Paul Romanchenko, Andreas Rottman, David Rush, Lars Rustemeier, Daniel
-Sadilek, "Sandro", Oskar Schirmer, Burton Samograd, Aleksej Saushev,
-Reed Sheridan, Ronald Schroeder, Spencer Schumann, Ivan Shcheklein,
-Alex Shinn, Ivan Shmakov, "Shmul", Tony Sidaway, Jeffrey B. Siegal,
-Andrey Sidorenko, Michele Simionato, Iruata Souza, Volker Stolz, Jon
-Strait, Dorai Sitaram, Robert Skeels, Jason Songhurst, Clifford Stein,
-David Steiner, Sunnan, Zbigniew Szadkowski, Rick Taube, Nathan Thern,
-Mike Thomas, Minh Thu, Christian Tismer, Andre van Tonder, John Tobey,
-Henrik Tramberend, Vladimir Tsichevsky, Neil van Dyke, Sam Varner,
-Taylor Venable, Sander Vesik, Jaques Vidrine, Panagiotis Vossos, Shawn
-Wagner, Peter Wang, Ed Watkeys, Brad Watson, Thomas Weidner, Goeran
-Weinholt, Matthew Welland, Drake Wilson, Joerg Wittenberger, Peter
-Wright, Mark Wutka, Richard Zidlicky and Houman Zolfaghari for
-bug-fixes, tips and suggestions.
+Sadilek, Otavio Salvador, Burton Samograd, "Sandro", Aleksej Saushev,
+Oskar Schirmer, Reed Sheridan, Ronald Schroeder, Spencer Schumann,
+Ivan Shcheklein, Alex Shinn, Ivan Shmakov, "Shmul", Tony Sidaway,
+Jeffrey B. Siegal, Andrey Sidorenko, Michele Simionato, Iruata Souza,
+Volker Stolz, Jon Strait, Dorai Sitaram, Robert Skeels, Jason
+Songhurst, Clifford Stein, David Steiner, Sunnan, Zbigniew Szadkowski,
+Rick Taube, Nathan Thern, Mike Thomas, Minh Thu, Christian Tismer,
+Andre van Tonder, John Tobey, Henrik Tramberend, Vladimir Tsichevsky,
+Neil van Dyke, Sam Varner, Taylor Venable, Sander Vesik, Jaques
+Vidrine, Panagiotis Vossos, Shawn Wagner, Peter Wang, Ed Watkeys, Brad
+Watson, Thomas Weidner, Goeran Weinholt, Matthew Welland, Drake
+Wilson, Joerg Wittenberger, Peter Wright, Mark Wutka, Richard Zidlicky
+and Houman Zolfaghari for bug-fixes, tips and suggestions.
 
 CHICKEN uses the "irregex" regular expression package written by Alex Shinn.
 
