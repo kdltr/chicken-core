@@ -50,6 +50,7 @@
 (test "a/b" (normalize-pathname "a/b/c/d/../.." 'unix))
 (test "a/b/" (normalize-pathname "a/b/c/d/../../" 'unix))
 (test "../../foo" (normalize-pathname "../../foo" 'unix))
+(test "c:\\." (normalize-pathname "c:\\" 'windows))
 
 (define home (get-environment-variable "HOME"))
 

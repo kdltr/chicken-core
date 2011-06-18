@@ -361,9 +361,12 @@ EOF
 		   (when (fx> i prev)
 		     (set! parts (addpart (##sys#substring path prev i) parts)))
 		   (if (null? parts)
-		       (if abspath
-		           (##sys#string-append (string sep) ".")
-		           (##sys#string-append "." (string sep)) )
+		       (let ((r (if abspath
+				    (##sys#string-append (string sep) ".")
+				    (##sys#string-append "." (string sep)) )))
+			 (if drive
+			     (##sys#string-append drive r)
+			     r))
 		       (let ((out (open-output-string))
 			     (parts (reverse parts)))
 			 (display (car parts) out)
