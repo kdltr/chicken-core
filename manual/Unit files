@@ -30,14 +30,10 @@ For any component that is not contained in {{PATHNAME}}, {{#f}} is returned.
 <procedure>(make-pathname DIRECTORY FILENAME [EXTENSION])</procedure><br>
 <procedure>(make-absolute-pathname DIRECTORY FILENAME [EXTENSION])</procedure>
 
-Returns a string that names the file with the
-components {{DIRECTORY, FILENAME}} and (optionally)
-{{EXTENSION}} with {{SEPARATOR}} being the directory separation indicator
-(usually {{/}} on UNIX systems and {{\}} on Windows, defaulting to whatever
-platform this is running on). 
-{{DIRECTORY}} can be {{#f}} (meaning no
-directory component), a string or a list of strings. {{FILENAME}}
-and {{EXTENSION}} should be strings or {{#f}}.
+Returns a string that names the file with the components {{DIRECTORY,
+FILENAME}} and (optionally) {{EXTENSION}}.  {{DIRECTORY}} can be
+{{#f}} (meaning no directory component), a string or a list of
+strings. {{FILENAME}} and {{EXTENSION}} should be strings or {{#f}}.
 {{make-absolute-pathname}} returns always an absolute pathname.
 
 ==== pathname-directory
