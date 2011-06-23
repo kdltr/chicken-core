@@ -69,6 +69,12 @@
   '("100000" "1012" "200" "112" "52" "44" "40" "35" "32" "2A" "28" "26" "24" "22" "20")))
 
 
+;; string->number conversion
+
+(assert (= 255 (string->number "ff" 16)))
+(assert (not (string->number "fg" 16)))
+
+
 ;; fp-math
 
 (assert (= (sin 42.0) (fpsin 42.0)))

@@ -7349,7 +7349,7 @@ static int from_n_nary(C_char *str, int base, double *r)
     else if(c >= '0' + base) {
       if(base < 10) return 0;
       else if(c < 'a') return 0;
-      else if(c >= 'a' + base) return 0;
+      else if(c >= 'a' + base - 10) return 0;
       else n = n * base + c - 'a' + 10;
     }
     else n = n * base + c - '0';
