@@ -1,0 +1,24 @@
+4.7.0.x stability branch
+
+Changes in 4.7.0.1:
+
+  (Imported from 4.7.1)
+
+ab2055d give read-error on empty #: keyword syntax, escape #: properly, when converted to symbol (still doesn't handle |#:| properly, due to #332)
+bf74435 printer/reader shadow I/O parameters to avoid error in error when a parameter is bound to an incorrect value or non-procedure; fixed inconsistencies with keywords and escapes in symbol names. perhaps.
+85ce78b postpone inlining for procedures with explicit-rest argument merging
+eda3186 properly cast math in C_milliseconds to avoid integer overflow
+0f385bb added support for missing int32 type in c-backend
+ef22968 default target library name for cross-chicken is libchicken (suggested by Otavio Salvador)
+972d399 tried to make make-pathname more sensible (thanks to Jim Ursetto)
+7b147cf Fix posix#file-type on Windows by testing for regular file first
+ae2b9b6 fixed dropping of device name for windows flavor of normalize-pathname (reported by Jim)
+e39865f applied patch by sjamaan to fix #584; store both raw and aliased name in callback-names list
+e03847a immediate non-null argument to list-tail resulted in crashing type-check (reported by Sven Hartrumpf)
+d28e16a string->number accepted out-of-range characters for base > 10
+
+  (Already applied in 4.7.0)
+
+cf5393c fixed incorrect rewrites for fxeven?/fxodd?
+a2857f1 fixed incorrect rewrite-rules for fp-rounding operators
+197fb6f proper check in extended llist (thanks to sjamaan)
