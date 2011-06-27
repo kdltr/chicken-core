@@ -260,7 +260,10 @@
 	      ipath) )
     (when (and outfile filename (string=? outfile filename))
       (quit "source- and output-filename are the same") )
-    (set! uses-units (map string->symbol (collect-options 'uses)))
+    (set! uses-units
+      (append-map
+       (lambda (u) (map string->symbol (string-split u ", ")))
+       (collect-options 'uses)))
     (when (memq 'keep-shadowed-macros options)
       (set! undefine-shadowed-macros #f) )
     (when (memq 'no-argc-checks options)
@@ -286,7 +289,7 @@
     ;; Handle feature options:
     (for-each 
      register-feature!
-     (append-map (cut string-split <> ",") (collect-options 'feature)))
+     (append-map (cut string-split <> ", ") (collect-options 'feature)))
     (for-each 
      unregister-feature!
      (append-map (cut string-split <> ",") (collect-options 'no-feature)))
