@@ -1,6 +1,12 @@
 4.7.0.x stability branch
 
-Changes in 4.7.0.1:
+Changes in 4.7.0.1-st:
+
+  (Already applied in 4.7.0)
+
+cf5393c fixed incorrect rewrites for fxeven?/fxodd?
+a2857f1 fixed incorrect rewrite-rules for fp-rounding operators
+197fb6f proper check in extended llist (thanks to sjamaan)
 
   (Imported from 4.7.1)
 
@@ -15,10 +21,17 @@ ef22968 default target library name for cross-chicken is libchicken (suggested b
 ae2b9b6 fixed dropping of device name for windows flavor of normalize-pathname (reported by Jim)
 e39865f applied patch by sjamaan to fix #584; store both raw and aliased name in callback-names list
 e03847a immediate non-null argument to list-tail resulted in crashing type-check (reported by Sven Hartrumpf)
+
+  (Imported from 4.7.2)
+
 d28e16a string->number accepted out-of-range characters for base > 10
 
-  (Already applied in 4.7.0)
+-------------------
 
-cf5393c fixed incorrect rewrites for fxeven?/fxodd?
-a2857f1 fixed incorrect rewrite-rules for fp-rounding operators
-197fb6f proper check in extended llist (thanks to sjamaan)
+Changes in HEAD:
+
+  (Imported from 4.7.3)
+
+a548805 -uses didn't split option-argument as documented (thanks to Santosh Rajan)
+
+
