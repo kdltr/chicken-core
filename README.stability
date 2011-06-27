@@ -1,0 +1,24 @@
+chicken-core-stability
+
+A fork of the Chicken Scheme core (http://code.call-cc.org) which aims to
+backport certain useful bugfixes and features from the master branch
+to "stable" versions.
+
+A stability or maintenance branch is branched off a tagged release
+version and named like
+
+  stability/4.7.0
+
+Reasonably safe changes from master are cherry-picked or merged into this
+branch.  Maintenance branches may also sprout from development snapshot
+versions that are considered suitable for general use.
+
+Releases for stability/4.7.0 are tagged like
+
+  4.7.0.x-st
+
+for example, 4.7.0.1-st, and version.scm is updated to this value prior
+to tagging.
+
+
+See NEWS.stability for a list of applied changes.
