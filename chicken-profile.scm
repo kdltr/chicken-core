@@ -184,26 +184,30 @@ EOF
   (print "reading `" file "' ...\n")
   (let* ([data0 (with-input-from-file file read-profile)]
 	 [max-t (fold (lambda (t result)
-			(max (third t) result))
+			(+ (third t) result))
 		      0
 		      data0)]
 	 [data (sort (map
-		      (lambda (t) (append t (let ((c (second t))
-						  (t (third t)))
-					      (list (or (and c (> c 0) (/ t c))
-							0)
-						    (or (and (> max-t 0) (* (/ t max-t) 100))
-							0)
-						    ))))
+		      (lambda (t)
+			(append
+			 t
+			 (let ((c (second t))
+			       (t (third t)))
+			   (list (or (and c (> c 0) (/ t c))
+				     0)
+				 (or (and (> max-t 0) (* (/ t max-t) 100))
+				     0)
+				 ))))
 		      data0)
                      sort-by)])
     (if (< 0 top (length data))
 	(set! data (take data top)))
     (set! data (map (lambda (entry)
+		      (pp entry)
 		      (let ([c (second entry)]
 			    [t (third entry)]
-			    [a (cadddr entry)]
-			    [p (list-ref entry 4)] )
+			    [a (fourth entry)]
+			    [p (fifth entry)] )
 			(list (##sys#symbol->qualified-string (first entry))
 			      (if (not c) "overflow" (number->string c))
 			      (format-real (/ t 1000) seconds-digits)
