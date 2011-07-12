@@ -226,6 +226,7 @@
   (test-assert (not (irregex-search '(: "ab" (~ any)) "abc")))
   (test-assert (not (irregex-search '("") "abc")))
   (test-assert (not (irregex-search '(: "ab" ("")) "abc")))
+  (test-assert (not (irregex-search '(: (+ print) white) "abc")))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
