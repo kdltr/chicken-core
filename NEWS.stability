@@ -28,10 +28,17 @@ d28e16a string->number accepted out-of-range characters for base > 10
 
 -------------------
 
-Changes in HEAD:
+Changes in 4.7.0.2-st:
 
   (Imported from 4.7.3)
 
 a548805 -uses didn't split option-argument as documented (thanks to Santosh Rajan)
+fbb0c7f fixed percentage calculation in chicken-profile (thanks to megane) (cherry picked from commit 9663b2ea0eee0fc95c1f16d9491c1adab762498a)
+27e2e62 Apply upstream irregex changesets 65f3099f0aa6 and 4b9d8131ca52 (fixes the 'help my irregex is half-matched' part of #636.  Still doesn't explain why sometimes the input does get rejected on some machines) (cherry picked from commit 7d0520e145bc251abe2499af8149ff271ede6b29)
+9cf44ac Change port procedures which try to read or write (or access the underlying descriptor) to not just check their arguments for being a port, but also check that the port is still open. (cherry picked from commit 93517411bfad107871a11cdc4ecc1a9a12079290)
+edd411c add isinf definition for Solaris - thanks to Claude Marinier (cherry picked from commit 23fad30a3f02fcb949b8ca853bdda43c74abdb41)
 
+-------------------
+
+Changes in HEAD:
 
