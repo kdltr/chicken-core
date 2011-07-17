@@ -1757,7 +1757,7 @@ EOF
 	(##sys#error 'set-buffering-mode! "cannot set buffering mode" port mode size) ) ) ) )
 
 (define (terminal-port? port)
-  (##sys#check-port port 'terminal-port?)
+  (##sys#check-port* port 'terminal-port?)
   (let ([fp (##sys#peek-unsigned-integer port 0)])
     (and (not (eq? 0 fp)) (##core#inline "C_tty_portp" port) ) ) )
 

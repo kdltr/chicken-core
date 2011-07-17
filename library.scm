@@ -3015,11 +3015,13 @@ EOF
   (for-each (cut ##sys#print <> #f ##sys#standard-output) lst) )
  
 (define (print . args)
+  (##sys#check-port* ##sys#standard-output 'print)
   (*print-each args)
   (##sys#write-char-0 #\newline ##sys#standard-output) 
   (void) )
 
 (define (print* . args)
+  (##sys#check-port* ##sys#standard-output 'print)
   (*print-each args)
   (##sys#flush-output ##sys#standard-output)
   (void) )
@@ -3695,7 +3697,7 @@ EOF
 (define (print-call-chain #!optional (port ##sys#standard-output) (start 0)
 				     (thread ##sys#current-thread)
 				     (header "\n\tCall history:\n") )
-  (##sys#check-port port 'print-call-chain)
+  (##sys#check-port* port 'print-call-chain)
   (##sys#check-exact start 'print-call-chain)
   (##sys#check-string header 'print-call-chain)
   (let ((ct (##sys#get-call-chain start thread)))

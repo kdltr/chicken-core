@@ -629,7 +629,7 @@ EOF
 	(error '##sys#tcp-port->fileno "argument does not appear to be a TCP port" p))))
 
 (define (tcp-addresses p)
-  (##sys#check-port p 'tcp-addresses)
+  (##sys#check-port* p 'tcp-addresses)
   (let ((fd (##sys#tcp-port->fileno p)))
     (values 
      (or (##net#getsockname fd)
@@ -642,7 +642,7 @@ EOF
 	  (##sys#string-append "cannot compute remote address - " strerror) p) ) ) ) )
 
 (define (tcp-port-numbers p)
-  (##sys#check-port p 'tcp-port-numbers)
+  (##sys#check-port* p 'tcp-port-numbers)
   (let ((fd (##sys#tcp-port->fileno p)))
     (values
      (or (##net#getsockport fd)
@@ -665,7 +665,7 @@ EOF
     port) )
 
 (define (tcp-abandon-port p)
-  (##sys#check-port p 'tcp-abandon-port)
+  (##sys#check-port* p 'tcp-abandon-port)
   (##sys#setislot
    (##sys#port-data p)
    (if (##sys#slot p 1) 1 2)

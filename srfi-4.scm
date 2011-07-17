@@ -638,7 +638,7 @@ EOF
 (define (write-u8vector v #!optional (port ##sys#standard-output) (from 0)
 			(to (u8vector-length v)))
   (##sys#check-structure v 'u8vector 'write-u8vector)
-  (##sys#check-port port 'write-u8vector)
+  (##sys#check-port* port 'write-u8vector)
   (do ((i from (fx+ i 1)))
       ((fx>= i to))
     (##sys#write-char-0 
@@ -646,7 +646,7 @@ EOF
      port) ) )
 
 (define (read-u8vector! n dest #!optional (port ##sys#standard-input) (start 0))
-  (##sys#check-port port 'read-u8vector!)
+  (##sys#check-port* port 'read-u8vector!)
   (##sys#check-exact start 'read-u8vector!)
   (##sys#check-structure dest 'u8vector 'read-u8vector!)
   (let ((dest (##sys#slot dest 1)))
@@ -666,7 +666,7 @@ EOF
 	 (##core#inline "C_substring_copy" str str2 0 n 0)
 	 str2) ) )
     (lambda (#!optional n (p ##sys#standard-input))
-      (##sys#check-port p 'read-u8vector)
+      (##sys#check-port* p 'read-u8vector)
       (cond (n (##sys#check-exact n 'read-u8vector)
 	       (let* ((str (##sys#allocate-vector n #t #f #t))
 		      (n2 (##sys#read-string! n str p 0)) )
