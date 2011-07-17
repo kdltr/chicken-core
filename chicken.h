@@ -87,6 +87,10 @@
 # define C_NONUNIX
 #endif
 
+#if defined(__sun__) && defined(__svr4__)
+# define C_SOLARIS
+#endif
+
 
 /* Headers */
 
@@ -345,6 +349,20 @@ void *alloca ();
 #define ___s32              C_s32
 #define ___u64              C_u64
 #define ___s64              C_s64
+
+
+#if defined(C_SOLARIS) && !defined(isinf)
+# define isinf(x) \
+     (sizeof (x) == sizeof (long double) ? isinf_ld (x) \
+      : sizeof (x) == sizeof (double) ? isinf_d (x) \
+      : isinf_f (x))
+static inline int isinf_f  (float       x)
+{ return !isnan (x) && isnan (x - x); }
+static inline int isinf_d  (double      x)
+{ return !isnan (x) && isnan (x - x); }
+static inline int isinf_ld (long double x)
+{ return !isnan (x) && isnan (x - x); }
+#endif
 
 
 /* Constants: */
