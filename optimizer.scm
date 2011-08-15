@@ -74,7 +74,9 @@
 	  [(if ##core#cond ##core#switch)
 	   (scan (first subs) e)
 	   (touch)
-	   (scan-each (cdr subs) e)]
+	   (scan (first subs) e)
+	   (set! previous '())
+	   (scan (second subs) e)]
 
 	  [(let)
 	   (scan-each (butlast subs) e)
