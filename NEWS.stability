@@ -42,3 +42,4 @@ edd411c add isinf definition for Solaris - thanks to Claude Marinier (cherry pic
 
 Changes in HEAD:
 
+d253fe0 clear list of previous assignments in toplevel-assignment-removal for each branch in conditional (found by Paul Colby and Mario Domenench Goulart) (cherry-picked from commit ac8f2daddf4be1b6650ad48da14f3034bb5e310e)
