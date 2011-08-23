@@ -2409,8 +2409,12 @@ EOF
 		       ((#\\ #\' #\" #\|)
 			(loop (##sys#read-char-0 port) (cons c lst)))
 		       (else
-			(cond ((char-numeric? c)
-			       (let ((ch (integer->char (r-usequence "" 2 8))))
+			(cond ((and (char-numeric? c)
+				    (char>=? c #\0)
+				    (char<=? c #\7))
+			       (let ((ch (integer->char 
+					  (fx+ (fx* (fx- (char->integer c) 48) 64)
+					       (r-usequence "" 2 8)))))
 				 (loop (##sys#read-char-0 port) (cons ch lst)) ))
 			      (else
 			       (##sys#read-warning 
