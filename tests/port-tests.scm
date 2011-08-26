@@ -115,21 +115,27 @@ EOF
                           (printf "FAIL [ ~S ]\n" output)))
                ((exn i/o file) (printf "OK\n") okay))))))))
 
-(define proc (process-fork (lambda () (tcp-accept (tcp-listen 8080)))))
+(cond-expand
+  ((not windows)
 
-(on-exit (lambda () (handle-exceptions exn #f (process-signal proc))))
+   (define proc (process-fork (lambda () (tcp-accept (tcp-listen 8080)))))
 
-(print "\n\nProcedures check on TCP ports being closed\n")
+   (on-exit (lambda () (handle-exceptions exn #f (process-signal proc))))
 
-(receive (in out)
-  (let lp ()
-    (condition-case (tcp-connect "localhost" 8080)
-      ((exn i/o net) (lp))))
-  (close-output-port out)
-  (close-input-port in)
-  (check (tcp-addresses in))
-  (check (tcp-port-numbers in))
-  (check (tcp-abandon-port in)))        ; Not sure about abandon-port
+   (print "\n\nProcedures check on TCP ports being closed\n")
+
+   (receive (in out)
+       (let lp ()
+	 (condition-case (tcp-connect "localhost" 8080)
+	   ((exn i/o net) (lp))))
+     (close-output-port out)
+     (close-input-port in)
+     (check (tcp-addresses in))
+     (check (tcp-port-numbers in))
+     (check (tcp-abandon-port in)))	; Not sure about abandon-port
+
+   )
+  (else))
 
 (print "\n\nProcedures check on output ports being closed\n")
 
