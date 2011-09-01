@@ -40,6 +40,14 @@ edd411c add isinf definition for Solaris - thanks to Claude Marinier (cherry pic
 
 -------------------
 
-Changes in HEAD:
+Changes in 4.7.0.3-st:
+
+  (Imported from 4.7.4)
 
 d253fe0 clear list of previous assignments in toplevel-assignment-removal for each branch in conditional (found by Paul Colby and Mario Domenench Goulart) (cherry-picked from commit ac8f2daddf4be1b6650ad48da14f3034bb5e310e)
+8f79a10 fixed bug in reading of octal escape in string literal (cherry picked from commit 2a685174ce60bccc529c2ca217ca1b24c53a0adc)
+
+-------------------
+
+Changes in HEAD:
+
