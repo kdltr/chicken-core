@@ -139,7 +139,9 @@ EOF
 
 (print "\n\nProcedures check on output ports being closed\n")
 
-(call-with-output-file "/dev/null"
+(with-output-to-file "empty-file" void)
+
+(call-with-output-file "empty-file"
   (lambda (out)
     (close-output-port out)
     (check (write '(foo) out))
@@ -147,40 +149,47 @@ EOF
     (check "print-call-chain" (begin (print-call-chain out) (void)))
     (check (print-error-message (make-property-condition 'exn 'message "foo") out))
     (check "print" (with-output-to-port out
-                     (lambda () (print "foo"))))
+		     (lambda () (print "foo"))))
     (check "print*" (with-output-to-port out
-                      (lambda () (print* "foo"))))
+		      (lambda () (print* "foo"))))
     (check (display "foo" out))
-    (check (terminal-port? out)) ; Calls isatty() on C_SCHEME_FALSE?
+    (check (terminal-port? out))   ; Calls isatty() on C_SCHEME_FALSE?
     (check (newline out))
     (check (write-char #\x out))
     (check (write-line "foo" out))
     (check (write-u8vector '#u8(1 2 3) out))
-    (check (port->fileno out))
+    ;;(check (port->fileno in))
     (check (flush-output out))
-    (check (file-test-lock out))
-    (check (file-lock out))
-    (check (file-lock/blocking out))
+
+    #+(not windows) 
+    (begin
+      (check (file-test-lock out))
+      (check (file-lock out))
+      (check (file-lock/blocking out)))
+
     (check (write-byte 120 out))
     (check (write-string "foo" #f out))))
 
 (print "\n\nProcedures check on input ports being closed\n")
-(call-with-input-file "/dev/zero"
+(call-with-input-file "empty-file"
   (lambda (in)
     (close-input-port in)
     (check (read in))
     (check (read-char in))
     (check (char-ready? in))
     (check (peek-char in))
-    (check (port->fileno in))
-    (check (terminal-port? in)) ; Calls isatty() on C_SCHEME_FALSE?
+    ;;(check (port->fileno in))
+    (check (terminal-port? in))	   ; Calls isatty() on C_SCHEME_FALSE?
     (check (read-line in 5))
     (check (read-u8vector 5 in))
     (check "read-u8vector!" (let ((dest (make-u8vector 5)))
                               (read-u8vector! 5 dest in)))
-    (check (file-test-lock in))
-    (check (file-lock in))
-    (check (file-lock/blocking in))
+    #+(not windows) 
+    (begin
+      (check (file-test-lock in))
+      (check (file-lock in))
+      (check (file-lock/blocking in)))
+
     (check (read-byte in))
     (check (read-token (constantly #t) in))
     (check (read-string 10 in))
