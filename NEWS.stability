@@ -51,3 +51,5 @@ d253fe0 clear list of previous assignments in toplevel-assignment-removal for ea
 
 Changes in HEAD:
 
+e1792b8 disable part of port-tests that does process-fork for windows (cherry picked from commit 2c380be9e24eb8f6dda148647435d8c1e421fe68)
+6097b12 disabled check for failed port->fileno in port tests (cherry picked from commit 586d998c928abb4a7c4ca964ecedc80a58f81ed0) (minus: moved some fd-related stuff into posix-common)
