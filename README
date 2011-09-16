@@ -350,29 +350,59 @@
 
 	Mac OS X:
 
-	  - For Mac OS X, Chicken requires libdl, for loading compiled
-	    code dynamically. This library is available on Mac OS X 10.4
-	    (Tiger) by default. For older versions you can find it here:
+	  - On 10.7, Chicken will hang and use 100% CPU when you try to
+            run or install it, due to an incompatibility with the LLVM
+            version of gcc (which became the default in 10.7).
 
-	      http://www.opendarwin.org/projects/dlcompat
+            To fix this, compile with plain gcc:
 
-	  - On Mac OS X, Chicken and its eggs can be built as universal 
-	    binaries which will work on either Intel or PowerPC.
-	    To build on Tiger (10.4):
+	      make PLATFORM=macosx C_COMPILER=gcc-4.2
 
+	  - On 10.6, Chicken may incorrectly select a 32-bit build
+	    environment when it should be building 64-bit, resulting in a
+	    build error.  This occurs when you have a 32-bit kernel and a
+	    64-bit gcc (that is, on Core 2 Duo systems running 10.6 Desktop).
+	    If this bites you, you'll get the following error or similar:
+
+	      apply-hack.x86.S:35:suffix or operands invalid for `call'
+
+	    As a workaround, manually force the build into 64-bit mode:
+
+	      make PLATFORM=macosx ARCH=x86-64
+
+	  - Chicken will normally select a 32-bit or 64-bit build
+	    automatically when you use the normal build step:
+
+	      make PLATFORM=macosx
+
+	    Specifically, the defaults are:
+
+	      10.4: 32-bit
+	      10.5: 32-bit
+	      10.6: 64-bit (32-bit on original Core Duo, circa early 2006)
+	      10.7: 64-bit
+
+	    On 10.5, you can optionally build in 64-bit mode on machines
+	    released in late 2006 or later (i.e. with a Core 2 Duo or Xeon
+	    CPU), by specifying ARCH=x86-64:
+
+	      make PLATFORM=macosx ARCH=x86-64
+
+	  - Universal binaries: On 10.4 and 10.5 only, Chicken and its eggs
+	    can be built as universal binaries which will work on either
+	    Intel or PowerPC.  Most users will not want to do this.
+
+	    For 10.4 universal build:
 	      make PLATFORM=macosx ARCH=universal
 
-	    On Leopard (10.5), an extra step is required before `make',
-	    and you must be sure to use GCC 4.0:
-
+	    For 10.5 universal build:
 	      export MACOSX_DEPLOYMENT_TARGET=10.4
 	      make C_COMPILER=gcc-4.0 PLATFORM=macosx ARCH=universal
 
-	  - On Mac OS X, Chicken can be built in 64-bit mode on Intel
-	    Core 2 Duo systems--basically, most recent machines.  The default
-	    is 32-bit mode.  To enable 64-bit mode, invoke `make' thusly:
+	    For 10.6 and later, universal builds are not supported.
 
-	      make PLATFORM=macosx ARCH=x86-64
+	  - On 10.3 and earlier, you must first install `dlcompat'
+	    which can be found at http://distfiles.macports.org/dlcompat/.
 
    	Windows:
 
