@@ -51,3 +51,5 @@ d253fe0 clear list of previous assignments in toplevel-assignment-removal for ea
 
 Changes in HEAD:
 
+8908ac1 Update the README with improved OS X build instructions.
+c04f321 C_TARGET_INCLUDE_HOME fix for cygwin
