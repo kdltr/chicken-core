@@ -1190,27 +1190,23 @@ EOF
 
 (define with-input-from-pipe
   (lambda (cmd thunk . mode)
-    (let ([old ##sys#standard-input]
-	  [p (apply open-input-pipe cmd mode)] )
-      (set! ##sys#standard-input p)
-      (##sys#call-with-values
-       thunk
-       (lambda results
-	 (close-input-pipe p)
-	 (set! ##sys#standard-input old)
-	 (apply values results) ) ) ) ) )
+    (let ([p (apply open-input-pipe cmd mode)])
+      (fluid-let ((##sys#standard-input p))
+	(##sys#call-with-values
+	 thunk
+	 (lambda results
+	   (close-input-pipe p)
+	   (apply values results) ) ) ) ) ) )
 
 (define with-output-to-pipe
   (lambda (cmd thunk . mode)
-    (let ([old ##sys#standard-output]
-	  [p (apply open-output-pipe cmd mode)] )
-      (set! ##sys#standard-output p)
-      (##sys#call-with-values
-       thunk
-       (lambda results
-	 (close-output-pipe p)
-	 (set! ##sys#standard-output old)
-	 (apply values results) ) ) ) ) )
+    (let ([p (apply open-output-pipe cmd mode)])
+      (fluid-let ((##sys#standard-output p))
+	(##sys#call-with-values
+	 thunk
+	 (lambda results
+	   (close-output-pipe p)
+	   (apply values results) ) ) ) ) ) )
 
 
 ;;; Pipe primitive:

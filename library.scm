@@ -1930,27 +1930,23 @@ EOF
   (let ((open-input-file open-input-file)
 	(close-input-port close-input-port) )
     (lambda (str thunk . mode)
-      (let ((old ##sys#standard-input)
-	    (file (apply open-input-file str mode)) )
-	(set! ##sys#standard-input file)
-	(##sys#call-with-values thunk
-	  (lambda results
-	    (close-input-port file)
-	    (set! ##sys#standard-input old)
-	    (apply ##sys#values results) ) ) ) ) ) )
+      (let ((file (apply open-input-file str mode)))
+	(fluid-let ((##sys#standard-input file))
+	  (##sys#call-with-values thunk
+	    (lambda results
+	      (close-input-port file)
+	      (apply ##sys#values results) ) ) ) ) ) ) )
 
 (define with-output-to-file 
   (let ((open-output-file open-output-file)
 	(close-output-port close-output-port) ) 
     (lambda (str thunk . mode)
-      (let ((old ##sys#standard-output)
-	    (file (apply open-output-file str mode)) )
-	(set! ##sys#standard-output file)
-	(##sys#call-with-values thunk
-	  (lambda results
-	    (close-output-port file)
-	    (set! ##sys#standard-output old)
-	    (apply ##sys#values results) ) ) ) ) ) )
+      (let ((file (apply open-output-file str mode)))
+	(fluid-let ((##sys#standard-output file))
+	  (##sys#call-with-values thunk
+	    (lambda results
+	      (close-output-port file)
+	      (apply ##sys#values results) ) ) ) ) ) ) )
 
 (define (file-exists? name)
   (##sys#check-string name 'file-exists?)
