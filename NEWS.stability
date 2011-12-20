@@ -49,7 +49,7 @@ d253fe0 clear list of previous assignments in toplevel-assignment-removal for ea
 
 -------------------
 
-Changes in HEAD:
+Changes in 4.7.0.4-st:
 
   (Imported from 4.7.4)
 
@@ -58,3 +58,8 @@ c04f321 C_TARGET_INCLUDE_HOME fix for cygwin
 e1792b8 disable part of port-tests that does process-fork for windows (cherry picked from commit 2c380be9e24eb8f6dda148647435d8c1e421fe68)
 6097b12 disabled check for failed port->fileno in port tests (cherry picked from commit 586d998c928abb4a7c4ca964ecedc80a58f81ed0) (minus: moved some fd-related stuff into posix-common)
 8fce7f8 Ensure current-{input,output}-port are properly restored on exception. (cherry picked from commit 5ae71ecd)
+
+-------------------
+
+Changes in HEAD:
+
