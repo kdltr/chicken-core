@@ -5,6 +5,8 @@ INSTALL
 LICENSE
 NEWS
 README
+NEWS.stability
+README.stability
 config-arch.sh
 identify-branch.sh
 banner.scm
