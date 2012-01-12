@@ -7080,7 +7080,7 @@ void allocate_vector_2(void *dummy)
 void C_ccall C_string_to_symbol(C_word c, C_word closure, C_word k, C_word string)
 {
   int len, key;
-  C_word s, *a = C_alloc(6);	/* 6 <=> 1 bucket (pair) + 1 symbol */
+  C_word s, *a = C_alloc(C_SIZEOF_SYMBOL + C_SIZEOF_BUCKET);
   C_char *name;
 
   if(c != 3) C_bad_argc(c, 3);
