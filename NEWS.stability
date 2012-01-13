@@ -66,3 +66,5 @@ Changes in HEAD:
   (Imported from 4.7.4)
 
 385245c Ensure we C_alloc enough stack space in C_string_to_symbol. (cherry picked from commit 38ca6fd52b7)
+746caa9 escape single-char symbol if it is a special character (fixes #772) (cherry picked from commit 6d8290e3a8e2fc31dee901234cc7376e3ff3f528)
+2231b3c Fix stack alloc size in C_callback (cherry picked from commit a471d9567c197565838257e278443fc231c267c1)
