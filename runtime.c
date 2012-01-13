@@ -1745,7 +1745,7 @@ C_word C_fcall C_callback(C_word closure, int argc)
 {
   jmp_buf prev;
   C_word 
-    *a = C_alloc(2),
+    *a = C_alloc(3),
     k = C_closure(&a, 2, (C_word)callback_return_continuation, C_SCHEME_FALSE);
   int old = chicken_is_running;
 
