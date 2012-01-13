@@ -930,7 +930,17 @@ extern double trunc(double);
 #define C_pick(n)                  (C_temporary_stack[ n ])
 #define C_drop(n)                  (C_temporary_stack += (n))
 #define C_alloc(n)                 ((C_word *)C_alloca((n) * sizeof(C_word)))
-#define C_stack_pointer            ((C_word *)C_alloca(0))
+#if defined (__llvm__) && defined (__GNUC__)
+# if defined (__i386__)
+#  define C_stack_pointer ({C_word *sp; __asm__ __volatile__("movl %%esp,%0":"=r"(sp):);sp;})
+# elif defined (__x86_64__)
+#  define C_stack_pointer ({C_word *sp; __asm__ __volatile__("movq %%rsp,%0":"=r"(sp):);sp;})
+# else
+#  define C_stack_pointer ((C_word *)C_alloca(1))
+# endif
+#else
+# define C_stack_pointer ((C_word *)C_alloca(0))
+#endif
 #define C_stack_pointer_test       ((C_word *)C_alloca(1))
 #define C_demand_2(n)              (((C_word *)C_fromspace_top + (n)) < (C_word *)C_fromspace_limit)
 #define C_fix(n)                   (((C_word)(n) << C_FIXNUM_SHIFT) | C_FIXNUM_BIT)
