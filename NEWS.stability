@@ -63,3 +63,6 @@ e1792b8 disable part of port-tests that does process-fork for windows (cherry pi
 
 Changes in HEAD:
 
+  (Imported from 4.7.4)
+
+385245c Ensure we C_alloc enough stack space in C_string_to_symbol. (cherry picked from commit 38ca6fd52b7)
