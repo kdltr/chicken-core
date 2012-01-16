@@ -669,7 +669,11 @@ static inline int isinf_ld (long double x)
 typedef struct C_block_struct
 {
   C_header header;
+#if (__STDC_VERSION__ >= 199901L)
+  C_word data[];
+#else
   C_word data[ 1 ];
+#endif
 } C_SCHEME_BLOCK;
 
 typedef struct C_symbol_table_struct
