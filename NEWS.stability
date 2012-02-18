@@ -61,7 +61,7 @@ e1792b8 disable part of port-tests that does process-fork for windows (cherry pi
 
 -------------------
 
-Changes in HEAD:
+Changes in 4.7.0.5-st:
 
   (Imported from 4.7.4)
 
@@ -75,3 +75,8 @@ c8cd62b Update README notes on LLVM hang and ARCH for OS X 10.7. (cherry picked 
 
 38bca30 Use C_stack_pointer instead of C_alloc(0) when generating foreign callback stubs
 55bce3a Make C_stack_pointer work with LLVM backend
+
+-------------------
+
+Changes in HEAD:
+
