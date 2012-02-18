@@ -70,3 +70,8 @@ Changes in HEAD:
 2231b3c Fix stack alloc size in C_callback (cherry picked from commit a471d9567c197565838257e278443fc231c267c1)
 66911a3 Use flexible array member in C99 mode; silences clang array bounds warnings [#778]
 c8cd62b Update README notes on LLVM hang and ARCH for OS X 10.7. (cherry picked from commit 1b60ad2e7a1ba2065421b1173aab3f3270601ed4)
+
+  (Imported from 4.7.5)
+
+38bca30 Use C_stack_pointer instead of C_alloc(0) when generating foreign callback stubs
+55bce3a Make C_stack_pointer work with LLVM backend
