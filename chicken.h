@@ -1122,7 +1122,7 @@ extern double trunc(double);
 						  C_unfix(end1) - C_unfix(start1) ), C_SCHEME_UNDEFINED)
 #define C_words(n)                      C_fix(C_bytestowords(C_unfix(n)))
 #define C_bytes(n)                      C_fix(C_wordstobytes(C_unfix(n)))
-#define C_random_fixnum(n)              C_fix((int)(((double)rand())/(RAND_MAX + 1.0) * C_unfix(n)))
+#define C_random_fixnum(n)              C_fix((C_word)(((double)rand())/(RAND_MAX + 1.0) * C_unfix(n)))
 #define C_randomize(n)                  (srand(C_unfix(n)), C_SCHEME_UNDEFINED)
 #define C_block_size(x)                 C_fix(C_header_size(x))
 #define C_pointer_address(x)            ((C_byte *)C_block_item((x), 0))
