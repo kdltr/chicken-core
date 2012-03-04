@@ -80,3 +80,4 @@ c8cd62b Update README notes on LLVM hang and ARCH for OS X 10.7. (cherry picked 
 
 Changes in HEAD:
 
+ab8b1a3 Fix cast in C_random_fixnum so it doesn't cause overflow and truncation on amd64 for large arguments like most-positive-fixnum (as used in hash-tables)
