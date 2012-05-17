@@ -603,6 +603,7 @@ EOF
 		  (##sys#thread-block-for-i/o! ##sys#current-thread s #:all)
 		  (yield)
 		  (when (##sys#slot ##sys#current-thread 13)
+		    (##net#close s)
 		    (##sys#signal-hook
 		     #:network-timeout-error
 		     'tcp-connect
