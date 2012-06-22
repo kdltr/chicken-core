@@ -309,35 +309,24 @@ EOF
   (##sys#setislot t 4 #f)
   (##sys#add-to-ready-queue t) )
 
-(define ##sys#default-exception-handler
-  (let ([print-error-message print-error-message]
-	[display display]
-	[print-call-chain print-call-chain]
-	[open-output-string open-output-string]
-	[get-output-string get-output-string] )
-    (lambda (arg)
-      (let ([ct ##sys#current-thread])
-	(dbg "exception: " ct " -> " 
-	     (if (##sys#structure? arg 'condition) (##sys#slot arg 2) arg))
-	(cond [(foreign-value "C_abort_on_thread_exceptions" bool)
-	       (let* ([pt ##sys#primordial-thread]
-		      [ptx (##sys#slot pt 1)] )
-		 (##sys#setslot 
-		  pt 1 
-		  (lambda ()
-		    (##sys#signal arg)
-		    (ptx) ) )
-		 (##sys#thread-unblock! pt) ) ]
-	      [##sys#warnings-enabled
-	       (let ([o (open-output-string)])
-		 (display "Warning (" o)
-		 (display ct o)
-		 (display ")" o)
-		 (print-error-message arg ##sys#standard-error (get-output-string o))
-		 (print-call-chain ##sys#standard-error 0 ct) ) ] )
-	(##sys#setslot ct 7 arg)
-	(##sys#thread-kill! ct 'terminated)
-	(##sys#schedule) ) ) ) )
+(define (##sys#default-exception-handler arg)
+  (let ([ct ##sys#current-thread])
+    (dbg "exception: " ct " -> " 
+	 (if (##sys#structure? arg 'condition) (##sys#slot arg 2) arg))
+    (cond ((foreign-value "C_abort_on_thread_exceptions" bool)
+	   (let* ([pt ##sys#primordial-thread]
+		  [ptx (##sys#slot pt 1)] )
+	     (##sys#setslot 
+	      pt 1 
+	      (lambda ()
+		(##sys#signal arg)
+		(ptx) ) )
+	     (##sys#thread-unblock! pt) ) )
+	  (else
+	   (##sys#show-exception-warning arg "in thread" ct)))
+    (##sys#setslot ct 7 arg)
+    (##sys#thread-kill! ct 'terminated)
+    (##sys#schedule) ) )
 
 
 ;;; `select()'-based blocking:

@@ -175,6 +175,7 @@ tests/dwindtst.expected
 tests/callback-tests.scm
 tests/reader-tests.scm
 tests/pp-test.scm
+tests/finalizer-error-test.scm
 tests/reverser/reverser.meta
 tests/reverser/reverser.setup
 tests/reverser/reverser.scm

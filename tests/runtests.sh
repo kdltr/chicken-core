@@ -264,8 +264,8 @@ $compile symbolgc-tests.scm
 
 echo "======================================== finalizer tests ..."
 $interpret -s test-finalizers.scm
-
-echo "======================================== finalizer tests (2) ..."
+$compile finalizer-error-test.scm
+./a.out
 $compile test-finalizers-2.scm
 ./a.out
 

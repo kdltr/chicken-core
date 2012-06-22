@@ -4497,8 +4497,10 @@ EOF
 	  (do ([i 0 (fx+ i 1)])
 	      ((fx>= i c))
 	    (let ([i2 (fx+ 1 (fx* i 2))])
-	      ((##sys#slot ##sys#pending-finalizers (fx+ i2 1))
-	       (##sys#slot ##sys#pending-finalizers i2)) ) )
+	      (handle-exceptions ex
+		  (##sys#show-exception-warning ex "in finalizer" #f)
+		((##sys#slot ##sys#pending-finalizers (fx+ i2 1))
+		 (##sys#slot ##sys#pending-finalizers i2)) ) ))
 	  (vector-fill! ##sys#pending-finalizers (##core#undefined))
 	  (##sys#setislot ##sys#pending-finalizers 0 0) 
 	  (set! working #f) ) )
@@ -4634,6 +4636,30 @@ EOF
 	      [else
 	       (display ": uncaught exception: " port)
 	       (writeargs (list ex) port) ] ) ) ) ) )
+
+
+;;; Show exception message and backtrace as warning
+;;; (used for threads and finalizers)
+
+(define ##sys#show-exception-warning
+  (let ((print-error-message print-error-message)
+	(display display)
+	(write-char write-char)
+	(print-call-chain print-call-chain)
+	(open-output-string open-output-string)
+	(get-output-string get-output-string) )
+    (lambda (exn cause #!optional (thread ##sys#current-thread))
+      (when ##sys#warnings-enabled
+	(let ((o (open-output-string)))
+	  (display "Warning" o)
+	  (when thread
+	    (display " (" o)
+	    (display thread o)
+	    (write-char #\) o))
+	  (display ": " o)
+	  (display cause o)
+	  (print-error-message exn ##sys#standard-error (get-output-string o))
+	  (print-call-chain ##sys#standard-error 0 thread) ) ))))
 
 
 ;;; We need this here so `location' works:
