@@ -4469,7 +4469,7 @@ EOF
 
 (define set-finalizer! 
   (lambda (x y)
-    (when (fx> (##sys#fudge 26) _max_pending_finalizers)
+    (when (fx>= (##sys#fudge 26) _max_pending_finalizers)
       (if (##core#inline "C_resize_pending_finalizers" (fx* 2 _max_pending_finalizers))
 	  (begin
 	    (set! ##sys#pending-finalizers (##sys#grow-vector ##sys#pending-finalizers
