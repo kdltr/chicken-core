@@ -83,3 +83,6 @@ Changes in HEAD:
 ab8b1a3 Fix cast in C_random_fixnum so it doesn't cause overflow and truncation on amd64 for large arguments like most-positive-fixnum (as used in hash-tables)
 ca47614 tcp-connect must close socket on connection timeout [thanks to Jörg Wittenberger] (cherry picked from commit 897684c785e9c50a7b2a615f2963511c9aba23ef)
 8f3051f Ensure that srfi-13 string= and its string-comparison friends return booleans on success
+70d90bc Exceptions signalled by code that executes in finalizers will now be caught and do not propagate upwards into arbitrary user code.
+a77ae51 Fix finalizer size check: if it's bigger, we're already using one slot beyond the vector (cherry picked from commit af50ab32216c3e644587eea44bac12bbca4185bc)
+46bd6d4 Add finalizer test, which was accidentally left out of commit 8a6d9a46185f4ae0498792840a5ebda659eaed61 (cherry picked from commit a9bd42146f2debc6f651123488d7e6a870ce3ab0)
