@@ -87,3 +87,4 @@ ca47614 tcp-connect must close socket on connection timeout [thanks to Jörg Wit
 a77ae51 Fix finalizer size check: if it's bigger, we're already using one slot beyond the vector (cherry picked from commit af50ab32216c3e644587eea44bac12bbca4185bc)
 46bd6d4 Add finalizer test, which was accidentally left out of commit 8a6d9a46185f4ae0498792840a5ebda659eaed61 (cherry picked from commit a9bd42146f2debc6f651123488d7e6a870ce3ab0)
 186b26b Avoid using / in xsubstring and string-xcopy!, since srfi-13 is compiled with (declare (fixnum))
+2b4c7d6 Add tests for SRFI-13 (adapted from Gauche) and update LICENSE
