@@ -1,3 +1,98 @@
+4.7.0.6
+
+The stability (-st) branch is now the official branch for point
+releases, so the -st suffix has been retired.
+
+- Security fixes
+  - on 64-bit machines the "random" procedure no longer truncates result
+    values (which caused very nonrandom results for very large values).
+    Note that random shouldn't be used for security-critical code.
+- Core libraries
+  - tcp-connect now closes socket on connection timeout
+    [thanks to Jörg Wittenberger].
+  - Ensure srfi-13 string comparison returns a boolean, fix bugs in
+    xsubstring and string-xcopy!, and add a test suite.
+  - Fix off-by-one error in pending finalizer code which could lead to crash.
+  - Exceptions signalled by code that executes in finalizers will now
+    be caught and do not propagate upwards into arbitrary user code.
+
+4.7.0.5-st
+
+- Build system
+  - LLVM gcc and clang can now be used to compile the system.  Previously,
+    building with LLVM produced binaries that would hang and use 100% CPU.
+    Fixes compatibility with OS X 10.6 and later.
+- Core libraries
+  - symbols with a single-char print-name were not always properly escaped
+    when printed readably (#772)
+
+4.7.0.4-st
+
+- Core libraries
+  - "with-input-from-file", "with-output-to-file", "with-input-from-pipe" and
+    "with-output-to-pipe" now properly restore the standard input/output
+    ports in case the body thunk escapes
+- Build system
+  - Fixes for port tests
+  - C_TARGET_INCLUDE_HOME fix for cygwin
+
+4.7.0.3-st
+
+- Core libraries
+  - fixed bug in reading of octal escape in string literal
+- Compiler
+  - fixed erroneous optimization of toplevel assignments in the presence
+    of conditionals (found by Paul Colby and Mario Domenench Goulart).
+    For example, this had printed "undefined" and now prints "good":
+      (define A #t)
+      (define B 'undefined)
+      (if A
+          (set! B 'good)
+          (set! B 'bad))
+      (print B)
+
+4.7.0.2-st
+
+- Core libraries
+  - port-procedures now check correctly for argument-ports being open
+    (thanks to Peter Bex)
+  - fixed irregex overlapping charsets problem (#636)
+- Runtime system
+  - fixed handling of "inf" floating-point predicate for Solaris
+    (thanks to Claude Marinier)
+- Core tools
+  - "chicken-profile"
+    - fixed broken percentage calculation (thanks to "megane")
+- Compiler
+  - the "-uses" option handles whitespace in unit lists given on the
+    command line (thanks to Santosh Rajan)
+
+4.7.0.1-st
+
+- Build system
+  - The default target library name for an installation configured for cross-
+    compilation is now "libchicken" and independent on any particular
+    setting of PROGRAM_PREFIX/PROGRAM_SUFFIX (thanks to Otavio Salvador)
+- Compiler
+  - Fixed incorrect optimization rules for some fp-rounding and fixnum operators
+  - Unused arguments in callback wrappers were incorrectly optimized away (#584)
+- Core libraries
+  - Fixed bugs in "make-pathname" and "normalize-pathname" (thanks to Jim Ursetto)
+  - The reader is now more consistent when parsing symbol- and keyword names
+    that are fully or partially escaped (thanks to Kon Lovett)
+  - Fixed a bug in the Windows implementation of "file-type" (thanks to
+    Jim Ursetto)
+  - Fixed a bug in the implementation of "current-milliseconds" that could
+    result in integer-overflow
+  - Fixed an incorrect type-check in "list-ref" (thanks to Sven Hartrumpf)
+  - Fixed bug in "string->number" that caused out-of-range characters to
+    be accepted for base > 10 (thanks to Jim Ursetto)
+- Foreign function interface
+  - "int32" was not properly detected as a valid foreign type (thanks
+    to Jim Ursetto)
+- Syntax expander
+  - Fixed a bug in the processing of extended lambda-lists (thanks to Peter Bex)
+
 4.7.0
 
 - Build system
