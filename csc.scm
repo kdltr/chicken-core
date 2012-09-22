@@ -276,6 +276,9 @@
 		 "\"")) )
 	 (else
 	  (list (conc "-L\"" library-dir "\""))))
+   (if (eq? (software-version) 'freebsd)
+       (list "-z origin")
+       '())
    (cond ((get-environment-variable "CHICKEN_C_LIBRARY_PATH") => 
 	  (lambda (path) 
 	    (map (cut string-append "-L\"" <> "\"") (string-split path ":;"))))
