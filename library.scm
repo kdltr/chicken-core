@@ -106,6 +106,8 @@ fast_read_string_from_file(C_word dest, C_word port, C_word len, C_word pos)
   char * buf = ((char *)C_data_pointer (dest) + C_unfix (pos));
   C_FILEPTR fp = C_port_file (port);
 
+  if(feof(fp)) return C_SCHEME_END_OF_FILE;
+
   size_t m = fread (buf, sizeof (char), n, fp);
 
   if(m == EOF && errno == EINTR) {
@@ -114,7 +116,6 @@ fast_read_string_from_file(C_word dest, C_word port, C_word len, C_word pos)
   }
   else if (m < n) {
     if (feof (fp)) {
-      clearerr (fp);
       if (0 == m)
 	return C_SCHEME_END_OF_FILE;
     } else if (ferror (fp)) {
