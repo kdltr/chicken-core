@@ -76,15 +76,16 @@ fast_read_line_from_file(C_word str, C_word port, C_word size) {
   char *buf = C_c_string(str);
   C_FILEPTR fp = C_port_file(port);
 
-  if ((c = C_getc(fp)) == EOF)
-    return errno == EINTR ? C_fix(-1) : C_SCHEME_END_OF_FILE;
+  if ((c = C_getc(fp)) == EOF) {
+    return (errno == EINTR && !feof(fp)) ? C_fix(-1) : C_SCHEME_END_OF_FILE;
+  }
 
   C_ungetc(c, fp);
 
   for (i = 0; i < n; i++) {
     c = C_getc(fp);
 
-    if(c == EOF && errno == EINTR) {
+    if(c == EOF && errno == EINTR && !feof(fp)) {
       clearerr(fp);
       return C_fix(-(i + 1));
     }
@@ -110,7 +111,7 @@ fast_read_string_from_file(C_word dest, C_word port, C_word len, C_word pos)
 
   size_t m = fread (buf, sizeof (char), n, fp);
 
-  if(m == EOF && errno == EINTR) {
+  if(m == EOF && errno == EINTR && !feof(fp)) {
     clearerr(fp);
     return C_fix(-1);
   }
@@ -1811,7 +1812,10 @@ EOF
 			 (let ((n (fx- (fxneg n) 1)))
 			   (##sys#dispatch-interrupt
 			    (lambda ()
-			      (loop len limit buffer result f)))))
+			      (loop len limit buffer
+				    (##sys#string-append
+				     result (##sys#substring buffer 0 n))
+				    #t)))))
 			[f (##sys#setislot p 4 (fx+ (##sys#slot p 4) 1))
 			   (##sys#string-append result (##sys#substring buffer 0 n))]
 			[else

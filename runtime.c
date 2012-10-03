@@ -3971,7 +3971,7 @@ C_regparm C_word C_fcall C_read_char(C_word port)
   int c = C_getc(C_port_file(port));
 
   if(c == EOF) {
-    if(errno == EINTR) return C_fix(-1);
+    if(errno == EINTR && !feof(C_port_file(port))) return C_fix(-1);
     /* Found here:
        http://mail.python.org/pipermail/python-bugs-list/2002-July/012579.html */
 #if defined(_WIN32) && !defined(__CYGWIN__)
@@ -3990,7 +3990,7 @@ C_regparm C_word C_fcall C_peek_char(C_word port)
   int c = C_getc(fp);
 
   if(c == EOF) {
-    if(errno == EINTR) return C_fix(-1);
+    if(errno == EINTR && !feof(C_port_file(port))) return C_fix(-1);
     /* see above */
 #if defined(_WIN32) && !defined(__CYGWIN__)
     else if(GetLastError() == ERROR_OPERATION_ABORTED) return C_fix(-1);
