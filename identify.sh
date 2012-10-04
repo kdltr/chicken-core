@@ -28,13 +28,13 @@ if test -d "$1/.git"; then
 	"master") branchname="";;
 	"release") branchname="";;
     esac
-    if test "${rev0}" \!= "${rev}"; then
+    if test "x${rev0}" \!= "x${rev}"; then
 	echo ${rev} >buildid
     fi
-    if test "${branchname0}" \!= "${branchname}"; then
+    if test "x${branchname0}" \!= "x${branchname}"; then
 	echo ${branchname} >buildbranch
     fi
-    if test "${tag0}" \!= "${tag}"; then
+    if test "x${tag0}" \!= "x${tag}"; then
 	echo ${tag} >buildtag.h
     fi
 fi
