@@ -41,4 +41,10 @@ return n;}
   (set-cdr! x x)
   (assert (not (list? x))))
 
+;(define (some-proc x y) (if (string->number y) (set-cdr! x x) x))
+;(assert (null? (some-proc (list) "invalid number syntax")))
+
+(assert (null? (the (or undefined *) (list))))
+
+
 )

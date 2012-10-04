@@ -783,9 +783,10 @@
 (enable-warnings (#(procedure #:clean) enable-warnings (#!optional *) *))
 
 (equal=? (#(procedure #:clean) equal=? (* *) boolean)
-	 (((or fixnum symbol char eof null undefined) *) (eq? #(1) #(2)))
-	 ((* (or fixnum symbol char eof null undefined)) (eq? #(1) #(2)))
-	 (((or float number) (or float number)) (= #(1) #(2))))
+	 ((fixnum fixnum) (eq? #(1) #(2)))
+	 (((or symbol char eof null) *) (eq? #(1) #(2)))
+	 ((* (or symbol char eof null undefined)) (eq? #(1) #(2)))
+	 (((or float fixnum number) (or float fixnum number)) (= #(1) #(2))))
 
 (er-macro-transformer
  (#(procedure #:clean #:enforce) 

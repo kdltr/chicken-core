@@ -1035,6 +1035,9 @@
 		    #t)
 		   (else #f))))
 	  ((eq? t1 '*))
+	  ((eq? t2 '*) (and (not exact) (not all)))
+	  ((eq? t1 'undefined) #f)
+	  ((eq? t2 'undefined) #f)
 	  ((and (pair? t1) (eq? 'not (car t1)))
 	   (fluid-let ((exact #f)
 		       (all #f))
@@ -1067,7 +1070,6 @@
 	   (match1 (third t1) t2)) ; assumes typeenv has already been extracted
 	  ((and (pair? t2) (eq? 'forall (car t2)))
 	   (match1 t1 (third t2))) ; assumes typeenv has already been extracted
-	  ((eq? t2 '*) (and (not exact) (not all)))
 	  ((eq? t1 'noreturn) (not exact))
 	  ((eq? t2 'noreturn) (not exact))
 	  ((eq? t1 'number) 
