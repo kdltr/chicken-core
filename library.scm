@@ -77,7 +77,12 @@ fast_read_line_from_file(C_word str, C_word port, C_word size) {
   C_FILEPTR fp = C_port_file(port);
 
   if ((c = C_getc(fp)) == EOF) {
-    return (errno == EINTR && !feof(fp)) ? C_fix(-1) : C_SCHEME_END_OF_FILE;
+    if (ferror(fp)) {
+      clearerr(fp);
+      return C_fix(-1);
+    } else { /* feof (fp) */
+      return C_SCHEME_END_OF_FILE;
+    }
   }
 
   C_ungetc(c, fp);
@@ -85,7 +90,7 @@ fast_read_line_from_file(C_word str, C_word port, C_word size) {
   for (i = 0; i < n; i++) {
     c = C_getc(fp);
 
-    if(c == EOF && errno == EINTR && !feof(fp)) {
+    if(c == EOF && ferror(fp)) {
       clearerr(fp);
       return C_fix(-(i + 1));
     }
@@ -111,11 +116,7 @@ fast_read_string_from_file(C_word dest, C_word port, C_word len, C_word pos)
 
   size_t m = fread (buf, sizeof (char), n, fp);
 
-  if(m == EOF && errno == EINTR && !feof(fp)) {
-    clearerr(fp);
-    return C_fix(-1);
-  }
-  else if (m < n) {
+  if (m < n) {
     if (feof (fp)) {
       if (0 == m)
 	return C_SCHEME_END_OF_FILE;
@@ -1752,15 +1753,29 @@ EOF
   (vector (lambda (p)			; read-char
 	    (let loop ()
 	      (let ((c (##core#inline "C_read_char" p)))
-		(if (eq? -1 c)		; EINTR
-		    (##sys#dispatch-interrupt loop)
-		    c))))
+		(cond
+		 ((eq? -1 c)
+		  (##sys#update-errno)
+		  (if (eq? (errno) (foreign-value "EINTR" int))
+		      (##sys#dispatch-interrupt loop)
+		      (##sys#signal-hook
+		       #:file-error 'read-char
+		       (##sys#string-append "cannot read from port - " strerror)
+		       p)))
+		 (else c)))))
 	  (lambda (p)			; peek-char
 	    (let loop ()
 	      (let ((c (##core#inline "C_peek_char" p)))
-		(if (eq? -1 c)		; EINTR
-		    (##sys#dispatch-interrupt loop)
-		    c))))
+		(cond
+		 ((eq? -1 c)
+		  (##sys#update-errno)
+		  (if (eq? (errno) (foreign-value "EINTR" int))
+		      (##sys#dispatch-interrupt loop)
+		      (##sys#signal-hook
+		       #:file-error 'peek-char
+		       (##sys#string-append "cannot read from port - " strerror)
+		       p)))
+		 (else c)))))
 	  (lambda (p c)			; write-char
 	    (##core#inline "C_display_char" p c) )
 	  (lambda (p s)			; write-string
@@ -1778,22 +1793,28 @@ EOF
 		(cond [(or (not len)	      ; error returns EOF
 			   (eof-object? len)) ; EOF returns 0 bytes read
 		       act]
-		      ((fx< len 0)	; EINTR
-		       (let ((len (fx< (fxneg len) 1)))
-			 (##sys#dispatch-interrupt
-			  (lambda () 
-			    (loop (fx- rem len) (fx+ act len) (fx+ start len))))))
+		      ((fx< len 0)
+		       (##sys#update-errno)
+		       (if (eq? (errno) (foreign-value "EINTR" int))
+			   (let ((len (fx< (fxneg len) 1)))
+			     (##sys#dispatch-interrupt
+			      (lambda () 
+				(loop (fx- rem len) (fx+ act len) (fx+ start len)))))
+			   (##sys#signal-hook
+			    #:file-error 'read-string!
+			    (##sys#string-append "cannot read from port - " strerror)
+			    p n dest start)))
 		      [(fx< len rem)
 		       (loop (fx- rem len) (fx+ act len) (fx+ start len))]
 		      [else
 		       (fx+ act len) ] ) )))
-	  (lambda (p limit)		; read-line
-	    (if limit (##sys#check-exact limit 'read-line))
+	  (lambda (p rlimit)		; read-line
+	    (if rlimit (##sys#check-exact rlimit 'read-line))
 	    (let ((sblen read-line-buffer-initial-size))
 	      (unless (##sys#slot p 12)
 		(##sys#setslot p 12 (##sys#make-string sblen)))
 	      (let loop ([len sblen]
-			 [limit (or limit maximal-string-length)]   ; guaranteed fixnum?
+			 [limit (or rlimit maximal-string-length)]   ; guaranteed fixnum?
 			 [buffer (##sys#slot p 12)]
 			 [result ""]
 			 [f #f])
@@ -1808,14 +1829,20 @@ EOF
 				   (##sys#make-string (fx* len 2))
 				   (##sys#string-append result buffer)
 				   #t)) ]
-			((fx< n 0)	; EINTR
-			 (let ((n (fx- (fxneg n) 1)))
-			   (##sys#dispatch-interrupt
-			    (lambda ()
-			      (loop len limit buffer
-				    (##sys#string-append
-				     result (##sys#substring buffer 0 n))
-				    #t)))))
+			((fx< n 0)
+			 (##sys#update-errno)
+			 (if (eq? (errno) (foreign-value "EINTR" int))
+			     (let ((n (fx- (fxneg n) 1)))
+			       (##sys#dispatch-interrupt
+				(lambda ()
+				  (loop len limit buffer
+					(##sys#string-append
+					 result (##sys#substring buffer 0 n))
+					#t))))
+			     (##sys#signal-hook
+			      #:file-error 'read-line
+			      (##sys#string-append "cannot read from port - " strerror)
+			      p rlimit)))
 			[f (##sys#setislot p 4 (fx+ (##sys#slot p 4) 1))
 			   (##sys#string-append result (##sys#substring buffer 0 n))]
 			[else
