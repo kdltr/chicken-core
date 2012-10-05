@@ -165,8 +165,8 @@ files in {{FILELIST}} to executable (for installing shell-scripts).
 A convenience procedure that combines the compilation and installation of 
 a simple single-file extension. This is roughly equivalent to:
 
-  (compile -s -O2 -d1 ID.scm -j ID)
-  (compile -s -O2 -d0 ID.import.scm)
+  (compile -s -O3 -d1 ID.scm -j ID)
+  (compile -s -O3 -d0 ID.import.scm)
   
   (install-extension
    'ID
