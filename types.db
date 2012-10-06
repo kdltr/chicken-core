@@ -1720,7 +1720,7 @@
 (set-signal-handler! (#(procedure #:clean #:enforce) set-signal-handler! (fixnum (or boolean (procedure (fixnum) . *))) undefined))
 (set-signal-mask! (#(procedure #:clean #:enforce) set-signal-mask! ((list-of fixnum)) undefined))
 (setenv (#(procedure #:clean #:enforce) setenv (string string) undefined))
-(signal-handler (#(procedure #:clean #:enforce) signal-handler (fixnum) (procedure (fixnum) . *)))
+(signal-handler (#(procedure #:clean #:enforce) signal-handler (fixnum) (or boolean (procedure (fixnum) . *))))
 (signal-mask (#(procedure #:clean) signal-mask () fixnum))
 (signal-mask! (#(procedure #:clean #:enforce) signal-mask! (fixnum) undefined))
 (signal-masked? (#(procedure #:clean #:enforce) signal-masked? (fixnum) boolean))
