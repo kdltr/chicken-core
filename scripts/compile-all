@@ -16,6 +16,6 @@ for x in library eval data-structures ports files extras lolevel utils tcp srfi-
     $compiler $x.scm $library_options -output-file /tmp/xxx.c "$@"
 done
 
-for x in chicken batch-driver compiler optimizer compiler-syntax scrutinizer unboxing support c-platform c-backend; do
+for x in chicken batch-driver compiler optimizer compiler-syntax scrutinizer support c-platform c-backend; do
     $compiler $x.scm $compiler_options -output-file /tmp/xxx.c "$@"
 done
