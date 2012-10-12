@@ -54,6 +54,16 @@ if not exist scrutiny-2.expected copy /Y scrutiny-2.out scrutiny-2.expected
 fc /w scrutiny-2.expected scrutiny-2.out
 if errorlevel 1 exit /b 1
 
+%compile% scrutiny-tests-3.scm -specialize -block -ignore-repository -types %TYPESDB%
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+
+%compile% scrutiny-tests-strict.scm -strict-types -specialize -ignore-repository -types %TYPESDB%
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+
 echo ======================================== specialization tests ...
 del /f /q foo.types foo.import.*
 %compile% specialization-test-1.scm -emit-type-file foo.types -specialize -debug ox -emit-import-library foo
