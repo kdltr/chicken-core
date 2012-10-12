@@ -732,8 +732,9 @@ EOF
 	  	(set! rest (cdr rest)) ]
 	       [(-host) #f]
 	       [(-) 
-		(set! target-filename (make-pathname #f "a" executable-extension))
-		(set! scheme-files (append scheme-files '("-")))]
+		(set! scheme-files (append scheme-files '("-")))
+		(unless target-filename
+		  (set! target-filename (make-pathname #f "a" executable-extension)))]
 	       [else
 		(when (eq? s '-to-stdout) 
 		  (set! to-stdout #t)
