@@ -612,7 +612,7 @@
 			       (run (,*ranlib-command* ,(shellpath to)) ) ))
 			   (if (deployment-mode)
 			       f
-			       (or (target-prefix f) to))))
+			       (or (target-prefix to) to))))
 		       files) ) )
       (write-info id dests (supply-version info #f)) ) ) )
 
