@@ -4299,19 +4299,19 @@ C_regparm C_word C_fcall C_establish_signal_handler(C_word signum, C_word reason
 {
   int sig = C_unfix(signum);
 #if defined(HAVE_SIGACTION)
-  struct sigaction new;
+  struct sigaction newsig;
 
-  new.sa_flags = 0;
-  sigemptyset(&new.sa_mask);
+  newsig.sa_flags = 0;
+  sigemptyset(&newsig.sa_mask);
 #endif
 
   if(reason == C_SCHEME_FALSE) C_signal(sig, SIG_IGN);
   else {
     signal_mapping_table[ sig ] = C_unfix(reason);
 #if defined(HAVE_SIGACTION)
-    sigaddset(&new.sa_mask, sig);
-    new.sa_handler = global_signal_handler;
-    C_sigaction(sig, &new, NULL);
+    sigaddset(&newsig.sa_mask, sig);
+    newsig.sa_handler = global_signal_handler;
+    C_sigaction(sig, &newsig, NULL);
 #else
     C_signal(sig, global_signal_handler);
 #endif
@@ -8295,7 +8295,7 @@ void dload_2(void *dummy)
 
 void C_ccall C_become(C_word c, C_word closure, C_word k, C_word table)
 {
-  C_word tp, x, old, new, i, *p;
+  C_word tp, x, old, neu, i, *p;
 
   i = forwarding_table_size;
   p = forwarding_table;
@@ -8303,7 +8303,7 @@ void C_ccall C_become(C_word c, C_word closure, C_word k, C_word table)
   for(tp = table; tp != C_SCHEME_END_OF_LIST; tp = C_u_i_cdr(tp)) {
     x = C_u_i_car(tp);
     old = C_u_i_car(x);
-    new = C_u_i_cdr(x);
+    neu = C_u_i_cdr(x);
 
     if(i == 0) {
       if((forwarding_table = (C_word *)realloc(forwarding_table, (forwarding_table_size + 1) * 4 * sizeof(C_word))) == NULL)
@@ -8315,7 +8315,7 @@ void C_ccall C_become(C_word c, C_word closure, C_word k, C_word table)
     }
 
     *(p++) = old;
-    *(p++) = new;
+    *(p++) = neu;
     --i;
   }
 
