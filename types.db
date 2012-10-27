@@ -1532,7 +1532,7 @@
 
 ;; posix
 
-(_exit (procedure _exit (fixnum) noreturn))
+(_exit (procedure _exit (#!optional fixnum) noreturn))
 (call-with-input-pipe (#(procedure #:enforce) call-with-input-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
 (call-with-output-pipe (#(procedure #:enforce) call-with-output-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
 (change-directory (#(procedure #:clean #:enforce) change-directory (string) string))
