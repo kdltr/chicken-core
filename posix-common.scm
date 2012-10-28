@@ -275,7 +275,12 @@ EOF
 (define port->fileno
   (lambda (port)
     (##sys#check-open-port port 'port->fileno)
-    (cond [(eq? 'socket (##sys#slot port 7)) (##sys#tcp-port->fileno port)]
+    (cond [(eq? 'socket (##sys#slot port 7))
+	   ;; Extract socket-FD from the port's "data" object - this is identical
+	   ;; to "##sys#tcp-port->fileno" in the tcp unit (tcp.scm). We code it in
+	   ;; this low-level manner to avoid depend on code defined there.
+	   ;; Peter agrees with that. I think. Have a nice day.
+	   (##sys#slot (##sys#port-data port) 0) ]
           [(not (zero? (##sys#peek-unsigned-integer port 0)))
            (let ([fd (##core#inline "C_C_fileno" port)])
              (when (fx< fd 0)
