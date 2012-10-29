@@ -278,9 +278,9 @@ typedef struct lf_list_struct
 
 typedef struct weak_table_entry_struct
 {
-  C_word item,
-         container;
-} WEAK_TABLE_ENTRY;
+  C_word item,			/* item weakly held (symbol) */
+         container;		/* object holding reference to symbol, lowest 3 bits are */
+} WEAK_TABLE_ENTRY;		/*   also used as a counter, saturated at 2 or more */
 
 typedef struct finalizer_node_struct
 {
@@ -2862,16 +2862,16 @@ C_regparm void C_fcall C_reclaim(void *trampoline, void *proc)
 
       for(i = 0; i < WEAK_TABLE_SIZE; ++i, ++wep)
 	if(wep->item != 0) { 
-	  if((wep->container & WEAK_COUNTER_MAX) == 0 && 
-	     is_fptr((item = C_block_header(wep->item)))) {
-	    item = fptr_to_ptr(item);
+	  if((wep->container & WEAK_COUNTER_MAX) == 0 && /* counter saturated? (more than 1) */
+	     is_fptr((item = C_block_header(wep->item)))) { /* and forwarded/collected */
+	    item = fptr_to_ptr(item);			    /* recover obj from forwarding ptr */
 	    container = wep->container & ~WEAK_COUNTER_MASK;
 
 	    if(C_header_bits(item) == C_SYMBOL_TYPE && 
 	       C_block_item(item, 0) == C_SCHEME_UNBOUND &&
 	       C_block_item(item, 2) == C_SCHEME_END_OF_LIST) {
 	      ++weakn;
-	      C_set_block_item(container, 0, C_SCHEME_UNDEFINED);
+	      C_set_block_item(container, 0, C_SCHEME_UNDEFINED); /* clear reference to item */
 	    }
 	  }
 
@@ -3018,8 +3018,8 @@ C_regparm void C_fcall really_mark(C_word *x)
     p->header = ptr_to_fptr((C_uword)p2);
     C_memcpy(p2->data, p->data, bytes);
   }
-  else {
-    /* Increase counter if weakly held item: */
+  else { /* (major GC) */
+    /* Increase counter (saturated at 2) if weakly held item (someone pointed to this object): */
     if(C_enable_gcweak && (wep = lookup_weak_table_entry(val, 0)) != NULL) {
       if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
     }
