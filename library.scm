@@ -4863,69 +4863,6 @@ EOF
 	  obj) ] ) )
 
 
-;;; Importing from other namespaces:
-;
-; Some of these should go. Are they used anywhere?
-
-(define ##sys#find-symbol 
-  (foreign-lambda scheme-object "C_find_symbol" scheme-object c-pointer) )
-
-(define ##sys#find-symbol-table
-  (foreign-lambda c-pointer "C_find_symbol_table" c-string) )
-
-(define ##sys#import
-  (let ([enum-syms! (foreign-lambda scheme-object "C_enumerate_symbols" c-pointer scheme-object)])
-    (lambda (ns	 . more)
-      (let-optionals more ([syms '()] [prefix #f])
-	(let ([prefix
-	       (and prefix
-		    (cond [(symbol? prefix) (##sys#slot prefix 1)]
-			  [(string? prefix) prefix]
-			  [else (##sys#signal-hook #:type-error "bad argument type - invalid prefix" prefix)] ) ) ] )
-	  (let ([nsp (##sys#find-symbol-table (##sys#make-c-string (##sys#slot ns 1) 'import))])
-	    (define (copy s str)
-	      (let ([s2 (##sys#intern-symbol
-			 (if prefix
-			     (##sys#string-append prefix str)
-			     str) ) ] )
-		(##sys#setslot s2 0 (##sys#slot s 0)) ) )
-	    (unless nsp (##sys#error "undefined namespace" ns))
-	    (if (null? syms)
-		(let ([it (cons -1 '())])
-		  (let loop ()
-		    (let ([s (enum-syms! nsp it)])
-		      (when s 
-			(copy s (##sys#slot s 1))
-			(loop) ) ) ) )
-		(for-each
-		 (lambda (ss)
-		   (let ([old #f]
-			 [new #f] )
-		     (if (and (pair? ss) (pair? (##sys#slot ss 1)))
-			 (begin
-			   (set! old (##sys#slot ss 0))
-			   (set! new (##sys#slot (##sys#slot ss 1) 0)) )
-			 (begin
-			   (set! old ss)
-			   (set! new ss) ) )
-		     (let* ([str (##sys#slot old 1)]
-			    [s (##sys#find-symbol str nsp)] )
-		       (unless s
-			 (##sys#error "symbol not exported from namespace" ss ns) )
-		       (copy s (##sys#slot new 1)) ) ) )
-		 syms) ) ) ) ) ) ) )
-
-(define (##sys#namespace-ref ns sym . default)
-  (let ([s (##sys#find-symbol 
-	    (cond [(symbol? sym) (##sys#slot sym 1)]
-		  [(string? sym) sym]
-		  [else (##sys#signal-hook #:type-error "bad argument type - not a valid import name" sym)] ) 
-	    (##sys#find-symbol-table (##sys#make-c-string (##sys#slot ns 1) '##sys#namespace-ref)) ) ] )
-    (cond [s (##core#inline "C_retrieve" s)]
-	  [(pair? default) (car default)]
-	  [else (##sys#error "symbol not exported from namespace" sym ns)] ) ) )
-
-
 ;;; More memory info
 
 (define (memory-statistics)
