@@ -350,7 +350,10 @@
    (##sys#er-transformer
     (lambda (form r c)
       (##sys#check-syntax 'define-values form '(_ #(variable 0) _))
-      (for-each (cut ##sys#register-export <> (##sys#current-module)) (cadr form))
+      (for-each (lambda (nm)
+                  (let ((name (##sys#get nm '##core#macro-alias nm)))
+                    (##sys#register-export name (##sys#current-module))))
+                (cadr form))
       `(,(r 'set!-values) ,@(cdr form))))))
 
 (##sys#extend-macro-environment

@@ -1055,3 +1055,27 @@ take
 
 (import rename-builtins)
 (assert (eq? '* (strip-syntax-on-*)))
+
+;; #944: macro-renamed defines mismatch with the names recorded in module
+;;       definitions, causing the module to be unresolvable.
+
+(module foo ()
+  (import chicken scheme)
+  (define-syntax bar
+    (syntax-rules ()
+      ((_) (begin (define req 1) (display req) (newline)))))
+  (bar))
+
+;; The fix for the above bug causes the req to be defined at toplevel,
+;; unhygienically.  The test below should probably be enabled and this
+;; behavior fixed.  R5RS seems to allow the current behavior though (?),
+;; and some Schemes (at least Gauche) behave the same way.  I think it's
+;; broken, since it's unhygienic.
+#;(module foo ()
+  (import chicken scheme)
+  (define req 1)
+  (define-syntax bar
+    (syntax-rules ()
+      ((_) (begin (define req 2) (display req) (newline)))))
+  (bar)
+  (assert (eq? req 1)))
