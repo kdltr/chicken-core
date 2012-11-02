@@ -181,7 +181,7 @@
 		    (##core#undefined)
 		    (##sys#error 
 		     ,msg 
-		     ,@(if (fx> (length msg-and-args) 1)
+		     ,@(if (pair? msg-and-args)
 			   (cdr msg-and-args)
 			   `((##core#quote ,(##sys#strip-syntax exp)))))))))))
 
