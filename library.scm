@@ -117,16 +117,10 @@ fast_read_string_from_file(C_word dest, C_word port, C_word len, C_word pos)
   size_t m = fread (buf, sizeof (char), n, fp);
 
   if (m < n) {
-    if (feof (fp)) {
-      if (0 == m)
-	return C_SCHEME_END_OF_FILE;
-    } else if (ferror (fp)) {
-      if (0 == m) {
-	return C_SCHEME_FALSE;
-      } else {
-	clearerr (fp);
-      }
-    }
+    if (ferror(fp)) /* Report to Scheme, which may retry, so clear errors */
+      clearerr(fp);
+    else if (feof(fp) && 0 == m) /* eof but m > 0? Return data first, below */
+      return C_SCHEME_END_OF_FILE; /* Calling again will get us here */
   }
 
   return C_fix (m);
@@ -1790,9 +1784,8 @@ EOF
 	  (lambda (p n dest start)		; read-string!
 	    (let loop ([rem (or n (fx- (##sys#size dest) start))] [act 0] [start start])
 	      (let ([len (##core#inline "fast_read_string_from_file" dest p rem start)])
-		(cond [(or (not len)	      ; error returns EOF
-			   (eof-object? len)) ; EOF returns 0 bytes read
-		       act]
+		(cond ((eof-object? len) ; EOF returns 0 bytes read
+		       act)
 		      ((fx< len 0)
 		       (##sys#update-errno)
 		       (if (eq? (errno) (foreign-value "EINTR" int))
@@ -1804,10 +1797,10 @@ EOF
 			    #:file-error 'read-string!
 			    (##sys#string-append "cannot read from port - " strerror)
 			    p n dest start)))
-		      [(fx< len rem)
-		       (loop (fx- rem len) (fx+ act len) (fx+ start len))]
-		      [else
-		       (fx+ act len) ] ) )))
+		      ((fx< len rem)
+		       (loop (fx- rem len) (fx+ act len) (fx+ start len)))
+		      (else
+		       (fx+ act len) ) ) )))
 	  (lambda (p rlimit)		; read-line
 	    (if rlimit (##sys#check-exact rlimit 'read-line))
 	    (let ((sblen read-line-buffer-initial-size))
