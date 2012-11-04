@@ -47,9 +47,11 @@
     (printf "[debug|~a] ~a~?~%" d-depth (make-string d-depth #\space) fstr args)) )
 
 (define dd d)
+(define ddd d)
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 (define-syntax dd (syntax-rules () ((_ . _) (void))))
+(define-syntax ddd (syntax-rules () ((_ . _) (void))))
 
 
 ;;; Walk node tree, keeping type and binding information
@@ -984,6 +986,8 @@
 	  ((eq? '* results1))
 	  ((eq? '* results2) (not exact))
 	  ((null? results2) #f)
+	  ((and (memq (car results1) '(undefined noreturn))
+		(memq (car results2) '(undefined noreturn))))
 	  ((match1 (car results1) (car results2)) 
 	   (match-results (cdr results1) (cdr results2)))
 	  (else #f)))
@@ -1149,9 +1153,18 @@
 	  ((and (pair? t1) (eq? 'list-of (car t1)))
 	   (or (eq? 'null t2)
 	       (and (pair? t2)
-		    (memq (car t2) '(pair list))
-		    (let ((ct2 (canonicalize-list-of-type t2)))
-		      (and ct2 (match1 t1 ct2))))))
+		    (case (car t2)
+		      ((list)
+		       (let ((t1 (second t1)))
+			 (over-all-instantiations
+			  (cdr t2)
+			  typeenv
+			  #t
+			  (lambda (t) (match1 t1 t)))))
+		      ((pair)
+		       (let ((ct2 (canonicalize-list-of-type t2)))
+			 (and ct2 (match1 t1 ct2))))
+		      (else #f)))))
 	  ((and (pair? t1) (eq? 'list (car t1)))
 	   (and (pair? t2)
 		(case (car t2)
@@ -1160,15 +1173,20 @@
 			(match1 (second t1) (second t2))
 			(match1 t1 (third t2))))
 		  ((list-of)
-		   (and (not exact) (not all)			
-			(let ((ct2 (canonicalize-list-of-type t2)))
-			  (and ct2 (match1 t1 ct2)))))
+		   (and (not exact) 
+			(not all)
+			(let ((t2 (second t2)))
+			  (over-all-instantiations
+			   (cdr t1)
+			   typeenv 
+			   #t
+			   (lambda (t) (match1 t t2))))))
 		  (else #f))))
 	  ((and (pair? t2) (eq? 'list-of (car t2)))
 	   (and (not exact)		;XXX also check "all"?
 		(or (eq? 'null t1)
 		    (and (pair? t1)
-			 (memq (car t1) '(pair list))
+			 (eq? 'pair (car t1)) ; list-of already handled above
 			 (let ((ct1 (canonicalize-list-of-type t1)))
 			   (and ct1 (match1 ct1 t2)))))))
 	  ((and (pair? t2) (eq? 'list (car t2)))
@@ -1178,20 +1196,27 @@
 		   (and (pair? (cdr t2))
 			(match1 (second t1) (second t2))
 			(match1 (third t1) t2)))
-		  ((list-of)
-		   (and (not exact) (not all)
-			(let ((ct1 (canonicalize-list-of-type t1)))
-			  (and ct1 (match1 ct1 t2)))))
+		  ;; t1 = list-of already handled above
 		  (else #f))))
 	  ((and (pair? t1) (eq? 'vector (car t1)))
 	   (and (not exact) (not all)
 		(pair? t2)
 		(eq? 'vector-of (car t2))
-		(match1 (simplify-type `(or ,@(cdr t1))) (second t2))))
+		(let ((t2 (second t2)))
+		  (over-all-instantiations
+		   (cdr t1)
+		   typeenv
+		   #t
+		   (lambda (t) (match1 t t2))))))
 	  ((and (pair? t2) (eq? 'vector (car t2)))
 	   (and (pair? t1)
 		(eq? 'vector-of (car t1))
-		(match1 (second t1) (simplify-type `(or ,@(cdr t2))))))
+		(let ((t1 (second t1)))
+		  (over-all-instantiations
+		   (cdr t2)
+		   typeenv 
+		   #t
+		   (lambda (t) (match1 t1 t))))))
 	  (else #f)))
 
   (let ((m (match1 t1 t2)))
@@ -2259,7 +2284,7 @@
 
     ;; restore trail and collect instantiations
     (define (restore)
-      ;;(dd "restoring, trail: ~s, te: ~s" trail typeenv) ;XXX remove
+      (ddd "restoring, trail: ~s, te: ~s" trail typeenv)
       (let ((is '()))
 	(do ((tr trail (cdr tr)))
 	    ((eq? tr trail0)
@@ -2270,7 +2295,7 @@
 		    (car tr)
 		    (resolve (car tr) typeenv)
 		    is))
-	  ;; (dd "  restoring ~a, insts: ~s" (car tr) insts) ;XXX remove
+	  (ddd "  restoring ~a, insts: ~s" (car tr) insts)
 	  (let ((a (assq (car tr) typeenv)))
 	    (set-car! (cdr a) #f)))))
 
@@ -2288,10 +2313,10 @@
 				   (else #f)))
 			   insts)))
 		       vars)))
-	;;(dd "  collected: ~s" all)	;XXX remove
+	(ddd "  collected: ~s" all)
 	all))
 
-    ;;(dd " over-all-instantiations: ~s exact=~a" tlist exact) ;XXX remove
+    (ddd " over-all-instantiations: ~s exact=~a" tlist exact)
     ;; process all tlist elements
     (let loop ((ts tlist) (ok #f))
       (cond ((null? ts)

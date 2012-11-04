@@ -646,6 +646,8 @@
 	       (walk (car subs)) ) )
 	((##core#the)
 	 `(the ,(first params) ,(walk (first subs))))
+	((##core#the/result)
+	 (walk (first subs)))
 	((##core#typecase)
 	 `(compiler-typecase
 	   ,(walk (first subs))

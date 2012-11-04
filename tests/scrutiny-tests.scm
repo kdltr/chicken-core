@@ -147,3 +147,12 @@
 (: another-deprecated-procedure (deprecated replacement-procedure))
 (define (another-deprecated-procedure x) (+ x x))
 (another-deprecated-procedure 2)
+
+;; Needed to use "over-all-instantiations" or matching "vector"/"list" type
+;; with "vector-of"/"list-of" type (reported by megane)
+(: apply1 (forall (a b) (procedure ((procedure (#!rest a) b) (list-of a)) b)))
+
+(define (apply1 f args)
+  (apply f args))
+
+(apply1 + (list 'a 2 3)) ; <- no type warning

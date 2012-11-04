@@ -363,6 +363,7 @@ $compile symbolgc-tests.scm
 echo "======================================== finalizer tests ..."
 $interpret -s test-finalizers.scm
 $compile finalizer-error-test.scm
+echo "expect an error message here:"
 ./a.out -:hg101
 $compile test-finalizers-2.scm
 ./a.out

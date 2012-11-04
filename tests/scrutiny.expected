@@ -34,7 +34,7 @@ Warning: at toplevel:
   (scrutiny-tests.scm:25) in procedure call to `+', expected argument #2 of type `number', but was given an argument of type `symbol'
 
 Warning: at toplevel:
-  assignment of value of type `fixnum' to toplevel variable `car' does not match declared type `(forall (a148) (procedure car ((pair a148 *)) a148))'
+  assignment of value of type `fixnum' to toplevel variable `car' does not match declared type `(forall (a157) (procedure car ((pair a157 *)) a157))'
 
 Warning: at toplevel:
   expected in `let' binding of `g8' a single result, but were given 2 results
@@ -98,5 +98,8 @@ Warning: at toplevel:
 
 Warning: at toplevel:
   use of deprecated library procedure `another-deprecated-procedure' - consider using `replacement-procedure' instead
+
+Warning: at toplevel:
+  (scrutiny-tests.scm:158) in procedure call to `apply1', expected argument #2 of type `(list-of number)', but was given an argument of type `(list symbol fixnum fixnum)'
 
 Warning: redefinition of standard binding: car
