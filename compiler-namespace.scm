@@ -43,7 +43,7 @@
  c-ify-string
  callback-names
  call-info
- canonicalize-list-of-type
+ canonicalize-list-type
  canonicalize-begin-body
  canonicalize-expression
  check-and-open-input-file

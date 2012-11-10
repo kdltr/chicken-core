@@ -1124,7 +1124,7 @@
 		(pair? t2)
 		(case (car t2)
 		  ((list-of)
-		   (let ((ct1 (canonicalize-list-of-type t1)))
+		   (let ((ct1 (canonicalize-list-type t1)))
 		     (if ct1
 			 (match1 ct1 t2)
 			 #t)))		; inexact match
@@ -1139,7 +1139,7 @@
 	   (and (pair? t1)
 		(case (car t1)
 		  ((list-of)
-		   (let ((ct2 (canonicalize-list-of-type t2)))
+		   (let ((ct2 (canonicalize-list-type t2)))
 		     (if ct2
 			 (match1 t1 ct2)
 			 (and (not exact) (not all)))))	; inexact mode: ok
@@ -1162,7 +1162,7 @@
 			  #t
 			  (lambda (t) (match1 t1 t)))))
 		      ((pair)
-		       (let ((ct2 (canonicalize-list-of-type t2)))
+		       (let ((ct2 (canonicalize-list-type t2)))
 			 (and ct2 (match1 t1 ct2))))
 		      (else #f)))))
 	  ((and (pair? t1) (eq? 'list (car t1)))
@@ -1187,7 +1187,7 @@
 		(or (eq? 'null t1)
 		    (and (pair? t1)
 			 (eq? 'pair (car t1)) ; list-of already handled above
-			 (let ((ct1 (canonicalize-list-of-type t1)))
+			 (let ((ct1 (canonicalize-list-type t1)))
 			   (and ct1 (match1 ct1 t2)))))))
 	  ((and (pair? t2) (eq? 'list (car t2)))
 	   (and (pair? t1)
@@ -1343,7 +1343,7 @@
 		     (if (and (eq? '* tcar) (eq? '* tcdr))
 			 'pair
 			 (let ((t `(pair ,tcar ,tcdr)))
-			   (or (canonicalize-list-of-type t)
+			   (or (canonicalize-list-type t)
 			       t)))))
 		  ((vector-of)
 		   (let ((t2 (simplify (second t))))
@@ -2154,26 +2154,24 @@
 ;
 ; - returns #f if not possibly matchable with "list-of"
 
-(define (canonicalize-list-of-type t)
+(define (canonicalize-list-type t)
   (cond ((not (pair? t)) t)
 	((eq? 'pair (car t))
 	 (let ((tcar (second t))
 	       (tcdr (third t)))
 	   (let rec ((tr tcdr) (ts (list tcar)))
 	     (cond ((eq? 'null tr)
-		    `(list-of ,(simplify-type `(or ,@ts))))
+		    `(list ,@(reverse ts)))
 		   ((eq? 'list tr) tr)
 		   ((and (pair? tr) (eq? 'pair (first tr)))
 		    (rec (third tr) (cons (second tr) ts)))
 		   ((and (pair? tr) (eq? 'list (first tr)))
-		    `(list-of ,(simplify-type `(or ,@ts ,@(cdr tr)))))
+		    `(list ,@(reverse ts) ,@(cdr tr)))
 		   ((and (pair? tr) (eq? 'list-of (first tr)))
-		    `(list-of 
+		    `(list-of
 		      ,(simplify-type
 			`(or ,@(reverse ts) ,@(cdr tr)))))
 		   (else #f)))))
-	((eq? 'list (car t)) 
-	 `(list-of ,(simplify-type `(or ,@(cdr t)))))
 	(else t)))
 
 
