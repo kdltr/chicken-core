@@ -102,4 +102,7 @@ Warning: at toplevel:
 Warning: at toplevel:
   (scrutiny-tests.scm:158) in procedure call to `apply1', expected argument #2 of type `(list-of number)', but was given an argument of type `(list symbol fixnum fixnum)'
 
+Warning: at toplevel:
+  (scrutiny-tests.scm:159) in procedure call to `apply1', expected argument #2 of type `(list-of number)', but was given an argument of type `(list symbol fixnum fixnum)'
+
 Warning: redefinition of standard binding: car
