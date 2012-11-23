@@ -2856,7 +2856,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, void *proc)
 
     if(C_enable_gcweak) {
       /* Check entries in weak item table and recover items ref'd only
-      * once, which are unbound symbols and have empty property-lists: */
+         once, which are unbound symbols and have empty property-lists: */
       weakn = 0;
       wep = weak_item_table;
 
