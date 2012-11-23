@@ -465,8 +465,6 @@ endif
 # build versioning
 
 ifdef WINDOWS_SHELL
-.PHONY: buildbranch buildid
-
 buildtag.h:
 	echo #define C_BUILD_TAG "$(BUILD_TAG)" >$@
 buildbranch:
