@@ -27,10 +27,14 @@
 ;; performance tuning, but you can only go so far while staying
 ;; portable.  AND-LET*, SRFI-9 records and custom macros would've been
 ;; nice.
+;;
+;; Version 1.0 will be released as a portable R7RS library.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; History
 ;;
+;; 0.9.1: 2012/11/27 - various accumulated bugfixes
+;; 0.9.0: 2012/06/03 - Using tags for match extraction from Peter Bex.
 ;; 0.8.3: 2011/12/18 - various accumulated bugfixes
 ;; 0.8.2: 2010/08/28 - (...)? submatch extraction fix and alternate
 ;;                     named submatches from Peter Bex
@@ -3756,7 +3760,12 @@
                       (lp (+ end 1) acc)
                       (let ((acc (kons i m acc)))
                         (irregex-reset-matches! matches)
-                        (lp end acc))))))))))
+                        ;; no need to continue looping if this is a
+                        ;; searcher - it's already consumed the only
+                        ;; available match
+                        (if (flag-set? (irregex-flags irx) ~searcher?)
+                            (finish end acc)
+                            (lp end acc)))))))))))
 
 (define (irregex-fold irx kons . args)
   (if (not (procedure? kons)) (%irregex-error 'irregex-fold "not a procedure" kons))
@@ -3787,7 +3796,12 @@
                           (lp end-src (+ end-index 1) acc))
                       (let ((acc (kons start i m acc)))
                         (irregex-reset-matches! matches)
-                        (lp end-src end-index acc))))))))))
+                        ;; no need to continue looping if this is a
+                        ;; searcher - it's already consumed the only
+                        ;; available match
+                        (if (flag-set? (irregex-flags irx) ~searcher?)
+                            (finish end-src end-index acc)
+                            (lp end-src end-index acc)))))))))))
 
 (define (irregex-fold/chunked irx kons . args)
   (if (not (procedure? kons)) (%irregex-error 'irregex-fold/chunked "not a procedure" kons))
