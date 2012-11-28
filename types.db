@@ -1357,7 +1357,7 @@
 (irregex-replace/all (#(procedure #:enforce) irregex-replace/all (* string #!rest) string))
 (irregex-reset-matches! (procedure irregex-reset-matches! (*) *))
 (irregex-search (#(procedure #:enforce) irregex-search (* string #!optional fixnum fixnum) *))
-(irregex-search/matches (#(procedure #:enforce) irregex-search/matches (* string fixnum fixnum *) *))
+(irregex-search/matches (#(procedure #:enforce) irregex-search/matches (* string * fixnum fixnum *) *))
 (irregex-split (#(procedure #:enforce) irregex-split (* string #!optional fixnum fixnum) list))
 (irregex-search/chunked (#(procedure #:enforce) irregex-search/chunked (* procedure * #!optional fixnum fixnum *) *))
 (irregex-match-valid-index? 
