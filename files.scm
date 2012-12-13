@@ -198,7 +198,8 @@ EOF
       (##sys#check-string ext loc)
       (string-append
        dir
-       (if (and (fx>= (##sys#size file) 1)
+       (if (and (fx>= (##sys#size dir) 1)
+		(fx>= (##sys#size file) 1)
 		(*char-pds? (##core#inline "C_subchar" file 0)))
 	   (##sys#substring file 1 (##sys#size file))
 	   file)
