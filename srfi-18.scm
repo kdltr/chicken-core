@@ -323,20 +323,20 @@
        (lambda (return)
 	 (let ([waiting (##sys#slot mutex 3)]
 	       [limit (and timeout (compute-time-limit timeout 'mutex-unlock!))] )
-	   (##sys#setislot mutex 4 #f)
-	   (##sys#setislot mutex 5 #f)
+	   (##sys#setislot mutex 4 #f)	; abandoned
+	   (##sys#setislot mutex 5 #f)	; blocked
 	   (let ((t (##sys#slot mutex 2)))
 	     (when t
-	       (##sys#setslot t 8 (##sys#delq mutex (##sys#slot t 8)))))
+	       (##sys#setslot t 8 (##sys#delq mutex (##sys#slot t 8))))) ; unown from owner
 	   (when cvar
 	     (##sys#setslot cvar 2 (##sys#append (##sys#slot cvar 2) (##sys#list ct)))
-	     (##sys#setslot ct 11 cvar)
+	     (##sys#setslot ct 11 cvar)	; block object
 	     (cond (limit
 		    (##sys#setslot 
 		     ct 1
 		     (lambda () 
 		       (##sys#setslot cvar 2 (##sys#delq ct (##sys#slot cvar 2)))
-		       (##sys#setslot ct 11 #f)
+		       (##sys#setslot ct 11 #f) ; block object
 		       (if (##sys#slot ct 13) ; unblocked by timeout
 			   (return #f)
 			   (begin
