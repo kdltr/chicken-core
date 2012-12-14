@@ -1263,8 +1263,10 @@ has a different signature:
 
   (find-files DIRECTORY [TEST [ACTION [SEED [LIMIT]]]])
 
-The old signature is still supported in CHICKEN 4.6 for compatibility reasons, but is
-deprecated.
+The old signature was supported until CHICKEN 4.7.3 for compatibility reasons,
+at which point it became invalid.  The optional arguments are ignored 
+and use their default values, and no warning is issued.  One symptom is
+that your {{TEST}} does not work, returning every file.
 
 === Getting the hostname and system information
 
