@@ -3717,6 +3717,7 @@ EOF
 (when (##sys#fudge 24) (set! ##sys#features (cons #:dload ##sys#features)))
 (when (##sys#fudge 28) (set! ##sys#features (cons #:ptables ##sys#features)))
 (when (##sys#fudge 39) (set! ##sys#features (cons #:cross-chicken ##sys#features)))
+(when (##sys#fudge 3) (set! ##sys#features (cons #:64bit ##sys#features)))
 
 (set! ##sys#features
   (let ((major (##sys#string-append "chicken-" (##sys#number->string (##sys#fudge 41)))))
