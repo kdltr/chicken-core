@@ -4338,8 +4338,8 @@ EOF
 (define (##sys#foreign-integer-argument x) (##core#inline "C_i_foreign_integer_argumentp" x))
 (define (##sys#foreign-integer64-argument x) (##core#inline "C_i_foreign_integer64_argumentp" x))
 
-(define (##sys#foreign-unsigned-integer64-argument x)
-  (##core#inline "C_i_foreign_unsigned_integer64_argumentp" x))
+(define (##sys#foreign-unsigned-integer-argument x)
+  (##core#inline "C_i_foreign_unsigned_integer_argumentp" x))
 
 (define (##sys#foreign-unsigned-integer64-argument x)
   (##core#inline "C_i_foreign_unsigned_integer64_argumentp" x))
