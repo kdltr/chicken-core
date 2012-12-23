@@ -5774,8 +5774,11 @@ C_regparm C_word C_fcall C_i_foreign_unsigned_integer64_argumentp(C_word x)
 
   if((x & C_FIXNUM_BIT) != 0) return x;
 
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG)
-    return C_flonum_magnitude(x);
+  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
+    m = C_flonum_magnitude(x);
+
+    if(m >= 0 && m <= C_UWORD_MAX) return x;
+  }
 
   barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
   return C_SCHEME_UNDEFINED;
