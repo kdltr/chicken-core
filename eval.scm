@@ -1077,7 +1077,8 @@
 	      (let loop ([libs libs])
 		(cond [(null? libs) #f]
 		      [(##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top)
-		       (unless (memq id ##sys#features) (set! ##sys#features (cons id ##sys#features)))
+		       (unless (memq id ##sys#features)
+			 (set! ##sys#features (cons id ##sys#features)))
 		       #t]
 		      [else (loop (##sys#slot libs 1))] ) ) ) ) ) ) ) )
 
