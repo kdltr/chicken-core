@@ -658,7 +658,7 @@ EOF
 	    [(procedure? x)
 	     (let ([len (##sys#size x)])
 	       (descseq 
-		(sprintf "procedure with code pointer ~X" (##sys#peek-unsigned-integer x 0))
+		(sprintf "procedure with code pointer ~0xX" (##sys#peek-unsigned-integer x 0))
 		##sys#size ##sys#slot 1) ) ]
 	    [(port? x)
 	     (fprintf out
