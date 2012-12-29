@@ -276,7 +276,7 @@
 		 "\"")) )
 	 (else
 	  (list (conc "-L\"" library-dir "\""))))
-   (if (eq? (software-version) 'freebsd)
+   (if (and deployed (eq? (software-version) 'freebsd))
        (list "-z origin")
        '())
    (cond ((get-environment-variable "CHICKEN_C_LIBRARY_PATH") => 
@@ -484,8 +484,9 @@ Usage: #{csc} FILENAME | OPTION ...
     -host                          compile for host when configured for
                                     cross-compiling
     -private-repository            load extensions from executable path
-    -deployed                      compile support file to be used from a deployed 
-                                    executable
+    -deployed                      link support file to be used from a deployed 
+                                    executable (sets `rpath' accordingly, if supported
+                                    on this platform)
     -no-elevation                  embed manifest on Windows to supress elevation
                                     warnings for programs named `install' or `setup'
 
