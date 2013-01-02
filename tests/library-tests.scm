@@ -421,3 +421,9 @@
 ;;; message checks for invalid strings
 
 (assert-fail (##sys#message "123\x00456"))
+
+;;; vector procedures
+
+(assert (equal? '#(2 3) (subvector '#(1 2 3) 1)))
+(assert (equal? '#(2)   (subvector '#(1 2 3) 1 2)))
+(assert (equal? '#()    (subvector '#(1 2 3) 1 1)))
