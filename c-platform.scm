@@ -1,6 +1,6 @@
 ;;;; c-platform.scm - Platform specific parameters and definitions
 ;
-; Copyright (c) 2008-2012, The Chicken Team
+; Copyright (c) 2008-2013, The Chicken Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;

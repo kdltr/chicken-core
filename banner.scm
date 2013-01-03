@@ -4,8 +4,8 @@
 (define-constant +product+ "CHICKEN")
 
 (define-constant +banner+ #<<EOF
-(c)2008-2012 The Chicken Team
-(c)2000-2007 Felix L. Winkelmann
+(c) 2008-2013, The Chicken Team
+(c) 2000-2007, Felix L. Winkelmann
 
 EOF
 )
