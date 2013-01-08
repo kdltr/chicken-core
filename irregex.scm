@@ -235,7 +235,7 @@
        (vector-set! (##sys#slot m 1) (+ 4 (* t 2)) chunk)
        (vector-set! (##sys#slot m 1) (+ 5 (* t 2)) index)))))
 
-(declare (unused bit-and))
+(declare (unused %irregex-error))
 (define-compiler-syntax %irregex-error
   (syntax-rules ()
     ((_ args ...)
