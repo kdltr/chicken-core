@@ -1808,14 +1808,17 @@ EOF
 
 (define (##sys#process-wait pid nohang)
   (let* ([res (##core#inline "C_waitpid" pid (if nohang _wnohang 0))]
-         [norm (##core#inline "C_WIFEXITED" _wait-status)] )
-    (values
-      res
-      norm
-      (cond [norm (##core#inline "C_WEXITSTATUS" _wait-status)]
-            [(##core#inline "C_WIFSIGNALED" _wait-status)
-              (##core#inline "C_WTERMSIG" _wait-status)]
-            [else (##core#inline "C_WSTOPSIG" _wait-status)] ) ) ) )
+	 [norm (##core#inline "C_WIFEXITED" _wait-status)] )
+    (if (and (fx= res -1) (fx= _errno _eintr))
+	(##sys#dispatch-interrupt
+         (lambda () (##sys#process-wait pid nohang)))
+	(values
+	 res
+	 norm
+	 (cond [norm (##core#inline "C_WEXITSTATUS" _wait-status)]
+	       [(##core#inline "C_WIFSIGNALED" _wait-status)
+		(##core#inline "C_WTERMSIG" _wait-status)]
+	       [else (##core#inline "C_WSTOPSIG" _wait-status)] ) )) ) )
 
 (define parent-process-id (foreign-lambda int "C_getppid"))
 
