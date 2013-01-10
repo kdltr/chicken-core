@@ -1,3 +1,40 @@
+4.8.0.1
+
+- Security fixes
+  - Use POSIX poll() on systems where available.  This avoids a design flaw
+    in select(); it supports no more than FD_SETSIZE descriptors.
+
+- Core libraries
+  - Fixed EINTR handling in process-wait and when reading from file ports.
+  - Bugfix for irregex (#686).  Note: although irregex.scm now says version
+    0.9.2, the version is actually 0.8.3 plus a few backported patches.
+  - Fixed problem in "make-pathname" that returned an absolute path if given
+    a relative one without a directory argument.
+  - On 64-bit systems the feature identifier "64bit" is registered.
+
+- Compiler
+  - Fixed various bugs in the type database.
+  - Bugfixes and improvements in the scrutinizer.
+  - In the flow-analysis pass, type-matching of combinations of
+    "list"/"list-of" types has been made more reliable.
+
+- Syntax expander
+  - Make macro-renamed defines in begin bodies (inside modules)
+    visible to later forms. (#944).
+
+- Runtime system
+  - Fixed incorrect code in the foreign argument conversion for
+    "unsigned-integer64" (#955).
+
+- Core tools
+  - The runtime linker path for compiled executables was not set correctly
+    on FreeBSD systems.
+  - Fix install-extension breakage when the second arg contains pairs (SRC DST).
+
+- Build system
+  - Prevent rebuilding of buildversion.scm on every make(1) on Windows.
+
+
 4.8.0
 
 - Security fixes

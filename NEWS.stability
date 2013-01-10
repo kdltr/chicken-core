@@ -1,0 +1,57 @@
+Chicken stability/4.8.0 branch log
+
+-----------------------------------
+
+Changes in HEAD:
+
+c363679 csc.scm: add "-z origin" to linker options in FreeBSD
+846b4c7 pass "-z origin" to freebsd linker only if "-deployed" is given; explained -deployed somewhat (csc help output). (cherry picked from commit 8ed1ff65f31628b215b435dfd03d6f1ee3ae4b0b)
+9c57928 Do not clear eof-status of input port when reading from file-port.
+fadcd29 After calling getc() and getting back EOF, properly check feof() before checking errno; if errno is not cleared we'd get in an endless loop on an interrupted system call. These are quite rare, that's why this wasn't noticed before. Also copy the bit already read when looping, after receiving EINTR in read-line
+d006a10 Fix handling of EINTR in process-wait by retrying. Add combined test for this and the getc() EINTR handling bug
+d3cd229 Convert (errno == EINTR && !feof(fp)) checks into ferror(fp) checks, and put the errno dispatching code into Scheme, raising an exception on anything but EINTR
+ea526c4 Simplify and fix fast_read_string_from_file so it will correctly keep reading when interrupted after having read 0 bytes (by always clearing errors)
+cac0695 scrutinizer and types.db fixes by sjamaan
+22cc113 Fixed scrutiny db type entry for signal-handler: it will return #f when no handler was installed
+6c60639 added missing tests (cherry picked from commit c67b2bc55d4fc3eb145110634f8cf528e1b6ad40)
+f56b935 fixed incorrect signature of _exit in types.db (cherry picked from commit 7cc25c4756558b47e0e695700a7a8217f0c74a14)
+d166969 Forgot to add this.  Let's just blame git (cherry picked from commit 877429b9fabe17ad052d9158327b9d6a49ba630c)
+13a4fa9 Scrutinizer fixes.
+097d3dc Improve type-matching for list-like types.
+6bbb477 Add regression test for #952 (cherry picked from commit 33c484028ff76bad3143296a31077bd5d038f95a)
+bc2b19f das auge isst ja schliesslich mit... (cherry picked from commit 04ef9ef5401d25e40e61f96aeb2f4ccd473a4772)
+519c32d small fix in identify.sh, originally by Mario
+98aa2f3 removed obsolete file from helper script (cherry picked from commit 1c6f37c00ffd043fe187f6b5a73d589d780bcada)
+5df7430 Copy-propagation of global that refers to intrinsic
+9a33859 respect -output-file option when compiling from stdin
+5bb2219 new is a C++ keyword (cherry picked from commit 8181fe9b6a29a40dcffbe3389a8f7bd04564c445)
+03fc4b9 added missing Types.html to manifest (reported by megane) (cherry picked from commit 1ae287896160a006ea648b1234a20553f28d618d)
+9f97300 remove implicit dependency on tcp.scm from posix-common.scm (cherry picked from commit bc09c5580b3dbd76810bc4cd26c89e0d455c24fd)
+7081e16 Fix TO argument check in subvector procedure
+6761916 handle case in make-pathname when the directory-argument is #f and the file-argument begins with a path separator (reported by kon)
+7d197ba register feature-identifier 64bit when running on a 64-bit CPU (suggested by Kon Lovett) (cherry picked from commit 6f95195f4840fe8e1342356b648036713a59e93e)
+0449a08 Fix #944 by making the behvior of macro-renamed definitions inside modules similar to the behavior at toplevel; they unhygienically introduce identifiers
+260d2ed assert: only add form as argument to error if no message is given (cherry picked from commit b5472d45310ebb1838d6b2b0534bcf31d5857a8a)
+9a72c4a install-extension fix for when the second arg contains pairs (SOURCE DEST)
+090b293 do not make buildid and buildbranch .PHONY on Windows, or buildversion.scm needs to be recompiled on every make(1) invocation (cherry picked from commit 27e6458716b7078f8ade4d6d8ef0f5d6a8203eb1)
+11428f2 standard-extension uses -O3, not -O2, which can make a big difference (cherry picked from commit a1b972dfe1d9cc238b5fcddc577d357c355d3bbe)
+6a18bff comments (cherry picked from commit 20b7d9ef62480b43a64e04b7381d9cf62e6823a7)
+f6ffc83 removed obsolete definitions (cherry picked from commit 42c6071ada87135a3eca87defd2af061ff1a21b7)
+0808756 trivial change (cherry picked from commit 9b0fac688337d292bb96965bf7c45bd3a74ff2c2)
+01a9cee some comments (cherry picked from commit f016cd78979654ef43d7dbd90b0e96382274a1b4)
+e9d6f86 manual: Note find-files old signature style was made invalid after 4.7.3 (cherry picked from commit 564285c33e7a1451084e0ba809d6efd29ae2dab1)
+07fb1e8 trivial change in describe-output (cherry picked from commit af7cc16b0f5986c758958b3b5d73885ad2f4217c)
+125c16a trivial formatting change (cherry picked from commit 4223b30426c257f3192d780b7d5e4de3a919dcfd)
+67fc382 Irregex: Remove bogus pair? checks; they were testing the wrong bit of the list, and sre-sequence will already return 'epsilon when the passed list is empty (upstream changeset 4f257a9c3576)
+3bff307 Mark all unused procedures (or replaced by compiler-macro) in irregex to get rid of compile-time warnings
+49f9fc1 Irregex: make %irregex-error unused, correcting typo in 84e997b97
+ce3a853 Irregex: Ensure 'bos is matched only once in irregex/fold; this fixes #686 and updates irregex to 0.9.1 (upstream changesets a6444839100c through 1741bbf14d3e)
+272ea56 Irregex: Fixing folds on conditional begin patterns which aren't treated as searchers. This is the final fix for #686 and synchronizes with upstream version 0.9.2 (upstream changesets 01058fc79a16 and fad713187dbb)
+f1c5a07 bugfix for unsigned-integer64 type check (cherry picked from commit 52c69531d586a39c51f3acc636596c65e181622e)
+c966a29 Bugfix for foreign-argument-check routine for 64-bit unsigned longs. The function returned a raw floating-point value (coerced to C_word) instead of the original number.
+994d57e Change one of the duplicated ##sys#foreign-unsigned-integer64-argument definitions to ##sys#foreign-unsigned-integer-argument (copy/paste mistake?) (cherry picked from commit 1117e01239b1181b0d6ee66d998eb1e83dbd8285)
+21c0a93 Add regression test for #955 (cherry picked from commit bbbbc0be8fb56a1c2e6dc2e37a4d582c780da518)
+333ba47 disable integer64 test on 32-bit platforms (cherry picked from commit eb9c5c6a07e423381f56c38b1756127370555d3c)
+48c68ac Update copyright year to 2013. This time I used a slightly modified version of last year's oneliner, to catch banner.scm and README as well:
+8943eb0 Fix select() buffer overrun vulnerability by using POSIX poll() on systems that support it, leaving only those few systems vulnerable that don't (ie, only Windows).
+
