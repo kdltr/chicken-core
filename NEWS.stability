@@ -2,7 +2,7 @@ Chicken stability/4.8.0 branch log
 
 -----------------------------------
 
-Changes in HEAD:
+Changes in 4.8.0.1:
 
 c363679 csc.scm: add "-z origin" to linker options in FreeBSD
 846b4c7 pass "-z origin" to freebsd linker only if "-deployed" is given; explained -deployed somewhat (csc help output). (cherry picked from commit 8ed1ff65f31628b215b435dfd03d6f1ee3ae4b0b)
