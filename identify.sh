@@ -6,7 +6,7 @@
 
 
 # make sure file exists anyway, since branchname is a special case
-if test \! -e "buildbranch"; then
+if test \! -f "buildbranch"; then
     touch buildbranch
 fi
 
