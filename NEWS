@@ -1,8 +1,8 @@
 4.8.0.1
 
 - Security fixes
-  - Use POSIX poll() on systems where available.  This avoids a design flaw
-    in select(); it supports no more than FD_SETSIZE descriptors.
+  - CVE-2012-6122: Use POSIX poll() on systems where available.  This avoids a
+    design flaw in select(); it supports no more than FD_SETSIZE descriptors.
 
 - Core libraries
   - Fixed EINTR handling in process-wait and when reading from file ports.
@@ -38,15 +38,16 @@
 4.8.0
 
 - Security fixes
-  - improved hash table collision resistance and added randomization
-    to prevent malicious external causes of collisions.  All SRFI-69
-    procedures accept extra arguments to control randomization for
-    testing/debugging.
-  - on 64-bit machines the "random" procedure no longer truncates result
-    values (which caused very nonrandom results for very large values).
-    Note that random shouldn't be used for security-critical code.
-  - Added checks for embedded '\0' characters in strings passed to some
-    C functions on a lower level than Chicken's FFI.
+  - CVE-2012-6125: Improved hash table collision resistance and added
+    randomization to prevent malicious external causes of collisions.
+    All SRFI-69 procedures accept extra arguments to control randomization
+    for testing/debugging.
+  - CVE-2012-6124: On 64-bit machines the "random" procedure no longer
+    truncates result values (which caused very nonrandom results for very
+    large values). Note that random shouldn't be used for
+    security-critical code.
+  - CVE-2012-6123: Added checks for embedded '\0' characters in strings
+    passed to some C functions on a lower level than Chicken's FFI.
 
 - Build system
   - version information has been moved into a separate unit to make the
