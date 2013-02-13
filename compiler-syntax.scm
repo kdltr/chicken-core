@@ -246,7 +246,7 @@
 				  (let* ([fstr (next)]
 					 [lst (next)] )
 				    (push `(##sys#apply ,%fprintf ,%out ,fstr ,lst))))
-				 ((#\~) (push `(,write-char #\~ ,%out)))
+				 ((#\~) (push `(,%write-char #\~ ,%out)))
 				 ((#\% #\N) (push `(,%write-char #\newline ,%out)))
 				 (else
 				  (if (char-whitespace? dchar)
