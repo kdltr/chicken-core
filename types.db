@@ -1166,7 +1166,7 @@
 (flip (#(procedure #:clean #:enforce) flip ((procedure (* *) . *)) (procedure (* *) . *)))
 (identity (forall (a) (#(procedure #:pure) identity (a) a)))
 (intersperse (#(procedure #:clean #:enforce) intersperse (list *) list))
-(join (#(procedure #:clean #:enforce) join (list list) list))
+(join (#(procedure #:clean #:enforce) join ((list-of list) #!optional list) list))
 (list->queue (#(procedure #:clean #:enforce) list->queue (list) (struct queue)))
 (list-of? (#(procedure #:clean #:enforce) list-of? ((procedure (*) *)) (procedure (list) boolean)))
 (make-queue (#(procedure #:pure) make-queue () (struct queue)))
