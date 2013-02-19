@@ -57,7 +57,7 @@ c966a29 Bugfix for foreign-argument-check routine for 64-bit unsigned longs. The
 
 -----------------------------------
 
-Changes in HEAD:
+Changes in 4.8.0.2:
 
 56c4389 Use test -f instead of test -e in identify.sh, as the sh(1) variant of Solaris doesn't support -f.
 e6a3869 added missing library (-lrt) for nanosleep calls (#970)
