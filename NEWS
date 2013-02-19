@@ -1,3 +1,18 @@
+4.8.0.2
+
+ - Interpreter
+    - Fix regression in ,d for procedures, which resulted in an sprintf error.
+
+ - Compiler
+    - Fix rewriting of newlines (~~) in printf.
+
+ - Runtime
+    - Allow > 4GB heap on 64-bit systems (#974).
+    - Added missing library (-lrt) on Solaris for nanosleep calls (#970).
+
+ - Build system
+    - Use test -f instead of test -e in identify.sh to placate Solaris.
+
 4.8.0.1
 
 - Security fixes

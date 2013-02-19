@@ -55,3 +55,14 @@ c966a29 Bugfix for foreign-argument-check routine for 64-bit unsigned longs. The
 48c68ac Update copyright year to 2013. This time I used a slightly modified version of last year's oneliner, to catch banner.scm and README as well:
 8943eb0 Fix select() buffer overrun vulnerability by using POSIX poll() on systems that support it, leaving only those few systems vulnerable that don't (ie, only Windows).
 
+-----------------------------------
+
+Changes in HEAD:
+
+56c4389 Use test -f instead of test -e in identify.sh, as the sh(1) variant of Solaris doesn't support -f.
+e6a3869 added missing library (-lrt) for nanosleep calls (#970)
+783dfed Add CVE identifiers to the security issues in the NEWS file
+85d1471 Make heap_size size_t instead of uint, permitting > 4GB heap on 64-bit systems (#974)
+d469240 Fix rewriting of (printf "~~").
+f04025c trivial change to describe-output not so trivial after all
+
