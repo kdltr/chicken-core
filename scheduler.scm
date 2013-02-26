@@ -85,8 +85,8 @@ C_inline int C_fd_ready(int fd, int pos, int what) {
   return(C_fdset_set[pos].revents & what);
 }
 
-#define C_fd_input_ready(fd,pos)  C_mk_bool(C_fd_ready(C_unfix(fd), C_unfix(pos),POLLIN))
-#define C_fd_output_ready(fd,pos)  C_mk_bool(C_fd_ready(C_unfix(fd), C_unfix(pos),POLLOUT))
+#define C_fd_input_ready(fd,pos)  C_mk_bool(C_fd_ready(C_unfix(fd), C_unfix(pos),POLLIN|POLLERR|POLLHUP|POLLNVAL))
+#define C_fd_output_ready(fd,pos)  C_mk_bool(C_fd_ready(C_unfix(fd), C_unfix(pos),POLLOUT|POLLERR|POLLHUP|POLLNVAL))
 
 C_inline int C_ready_fds_timeout(int to, double tm) {
   return poll(C_fdset_set, C_fdset_nfds, to ? (int)tm : -1);
