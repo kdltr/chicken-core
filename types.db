@@ -2237,7 +2237,7 @@
 (make-mutex (#(procedure #:clean) make-mutex (#!optional *) (struct mutex)))
 (make-thread (#(procedure #:clean #:enforce) make-thread ((procedure () . *) #!optional *) (struct thread)))
 (milliseconds->time deprecated)
-(mutex-lock! (#(procedure #:clean #:enforce) mutex-lock! ((struct mutex) #!optional * (struct thread)) boolean))
+(mutex-lock! (#(procedure #:clean #:enforce) mutex-lock! ((struct mutex) #!optional * (or boolean (struct thread))) boolean))
 
 (mutex-name (#(procedure #:clean #:enforce) mutex-name ((struct mutex)) *)
 	    (((struct mutex)) (##sys#slot #(1) '1)))
