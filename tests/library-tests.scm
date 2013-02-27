@@ -232,19 +232,13 @@
 (assert (not (fpinteger? 2.3)))
 (assert (fpinteger? 1.0))
 
-;; string->symbol
-
-;; by Jim Ursetto
-(assert 
- (eq? '|3|
-      (with-input-from-string
-	  (with-output-to-string
-	    (lambda ()
-	      (write (string->symbol "3"))))
-	read)))
-
-
 ;;; escaped symbol syntax
+
+(define (rw-invariant? x)   ;; by Jim Ursetto
+  (eq? x (with-input-from-string
+             (with-output-to-string
+               (lambda () (write x)))
+           read)))
 
 (assert (string=? "abc" (symbol->string '|abc|)))
 (assert (string=? "abcdef" (symbol->string '|abc||def|)))
@@ -254,6 +248,11 @@
 (assert (string=? "abc" (symbol->string 'abc)))
 (assert (string=? "a c" (symbol->string 'a\ c)))
 (assert (string=? "aBc" (symbol->string 'aBc)))
+
+(assert (string=? "a\\b" (symbol->string '|a\\b|)))
+(assert (rw-invariant? '|a\\b|))
+(assert (string=? "3" (symbol->string '|3|)))
+(assert (rw-invariant? '|3|))
 
 (parameterize ((case-sensitive #f))
   (assert (string=? "abc" (symbol->string (with-input-from-string "aBc" read))))
