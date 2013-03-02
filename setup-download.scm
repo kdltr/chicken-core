@@ -44,7 +44,7 @@
   (define-constant +default-tcp-connect-timeout+ 30000) ; 30 seconds
   (define-constant +default-tcp-read/write-timeout+ 30000) ; 30 seconds
 
-  (define-constant +url-regex+ "(http://)?([^/:]+)(:([^:/]+))?(/.+)")
+  (define-constant +url-regex+ "(http://)?([^/:]+)(:([^:/]+))?(/.*)?")
 
   (tcp-connect-timeout +default-tcp-connect-timeout+)
   (tcp-read-timeout +default-tcp-read/write-timeout+)
@@ -226,7 +226,8 @@
 	     (or (string->number port)
 		 (error "not a valid port" port)))
 	   80)
-       (if m (irregex-match-substring m 5) "/")) ) )
+       (or (and m (irregex-match-substring m 5))
+           "/"))))
 
   (define (locate-egg/http egg url #!optional version destination tests
 			   proxy-host proxy-port proxy-user-pass)
