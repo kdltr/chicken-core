@@ -1,3 +1,8 @@
+4.8.0.3
+
+ - Core tools
+   - chicken-install transports now parses ports on URIs with empty paths
+
 4.8.0.2
 
  - Interpreter
