@@ -66,3 +66,13 @@ e6a3869 added missing library (-lrt) for nanosleep calls (#970)
 d469240 Fix rewriting of (printf "~~").
 f04025c trivial change to describe-output not so trivial after all
 
+-----------------------------------
+
+Changes in HEAD:
+
+25ac9d2 When checking whether an FD is ready for input or output, also check for special situations (error, device/FIFO/pipe hangup and invalid FD) in the poll() implementation of the scheduler. This fixes a CPU consumption bug in waiting for process-ports on Linux (thanks to Mario Goulart for finding the bug).
+102cb03 escape single backslash in symbols when printing
+5467518 fixed types.db entry for join - contributed J. Altfas
+c55423b Fix mutex-lock! type signature (thanks to Joerg Wittenberger for reporting this bug)
+a09308b Test r/w invariance for symbols containing escaped backslash
+

@@ -1,3 +1,13 @@
+4.8.0.3
+
+ - Runtime
+    - Avoid high CPU usage when waiting for child process I/O with poll().
+      Affects at least Linux and Solaris.
+    - Escape single backslash in printed symbols.
+
+ - Type system
+    - Fixed types.db entry for join and mutex-lock!
+
 4.8.0.2
 
  - Interpreter
