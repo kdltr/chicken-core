@@ -1015,13 +1015,11 @@ EOF
 			  (cons (cadr p) (loop (cddr p)))) ) ]
 		[else '()] ) ) )
       (define (loadinit)
-	(let ([fn (##sys#string-append "./" init-file)])
-	  (if (file-exists? fn)
-	      (load fn)
-	      (let* ([prefix (chop-separator (or (get-environment-variable "HOME") "."))]
-		     [fn (string-append prefix "/" init-file)] )
-		(when (file-exists? fn) 
-		  (load fn) ) ) ) ) )
+	(and-let* ((home (get-environment-variable "HOME"))
+		   ((not (string=? home ""))))
+	  (let ((fn (string-append (chop-separator home) "/" init-file)))
+	    (when (file-exists? fn)
+		  (load fn) ) ) ) )
       (define (evalstring str #!optional (rec (lambda _ (void))))
 	(let ((in (open-input-string str)))
 	  (do ([x (read in) (read in)])
