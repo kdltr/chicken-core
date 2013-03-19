@@ -1,9 +1,3 @@
-4.8.0.4
-
-- Security fixes
-  - ./.csirc is no longer loaded from the current directory upon startup of csi,
-    which could lead to untrusted code execution. (thanks to Florian Zumbiehl)
-
 4.8.0.3
 
  - Runtime
