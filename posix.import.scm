@@ -120,6 +120,7 @@
    file-stat
    file-test-lock
    file-truncate
+   file-type
    file-unlock
    file-write
    file-write-access?
