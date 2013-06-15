@@ -319,7 +319,11 @@ C_TLS long
 C_TLS C_byte 
   *C_fromspace_top,
   *C_fromspace_limit;
+#ifdef HAVE_SIGSETJMP
+C_TLS sigjmp_buf C_restart;
+#else
 C_TLS jmp_buf C_restart;
+#endif
 C_TLS void *C_restart_address;
 C_TLS int C_entry_point_status;
 C_TLS int (*C_gc_mutation_hook)(C_word *slot, C_word val);
@@ -424,7 +428,11 @@ static C_TLS unsigned int
   mutation_count,
   stack_size;
 static C_TLS int chicken_is_initialized;
+#ifdef HAVE_SIGSETJMP
+static C_TLS sigjmp_buf gc_restart;
+#else
 static C_TLS jmp_buf gc_restart;
+#endif
 static C_TLS double
   timer_start_ms,
   gc_ms,
@@ -1795,7 +1803,7 @@ C_word C_fcall C_callback(C_word closure, int argc)
   if(old && C_block_item(callback_continuation_stack_symbol, 0) == C_SCHEME_END_OF_LIST)
     panic(C_text("callback invoked in non-safe context"));
 
-  C_memcpy(&prev, &C_restart, sizeof(jmp_buf));
+  C_memcpy(&prev, &C_restart, sizeof(C_restart));
   callback_returned_flag = 0;       
   chicken_is_running = 1;
 
@@ -1803,7 +1811,7 @@ C_word C_fcall C_callback(C_word closure, int argc)
 
   if(!callback_returned_flag) (C_restart_trampoline)(C_restart_address);
   else {
-    C_memcpy(&C_restart, &prev, sizeof(jmp_buf));
+    C_memcpy(&C_restart, &prev, sizeof(C_restart));
     callback_returned_flag = 0;
   }
  

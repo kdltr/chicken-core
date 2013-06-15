@@ -1528,7 +1528,11 @@ C_varextern C_TLS long
 C_varextern C_TLS C_byte
   *C_fromspace_top,
   *C_fromspace_limit;
+#ifdef HAVE_SIGSETJMP
+C_varextern C_TLS sigjmp_buf C_restart;
+#else
 C_varextern C_TLS jmp_buf C_restart;
+#endif
 C_varextern C_TLS void *C_restart_address;
 C_varextern C_TLS int C_entry_point_status;
 C_varextern C_TLS int C_gui_mode;
