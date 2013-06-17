@@ -1794,7 +1794,11 @@ C_word C_fcall C_restore_callback_continuation2(int level)
 
 C_word C_fcall C_callback(C_word closure, int argc)
 {
+#ifdef HAVE_SIGSETJMP
+  sigjmp_buf prev;                                                                                                                                      
+#else                                                                                                                                                   
   jmp_buf prev;
+#endif
   C_word 
     *a = C_alloc(3),
     k = C_closure(&a, 2, (C_word)callback_return_continuation, C_SCHEME_FALSE);
