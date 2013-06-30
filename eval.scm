@@ -804,12 +804,15 @@
 (define (##sys#eval/meta form)
   (let ((oldcm (##sys#current-module))
 	(oldme (##sys#macro-environment))
+	(oldce (##sys#current-environment))
 	(mme (##sys#meta-macro-environment))
+	(cme (##sys#current-meta-environment))
 	(aee (##sys#active-eval-environment)))
     (dynamic-wind
 	(lambda () 
 	  (##sys#current-module #f)
 	  (##sys#macro-environment mme)
+	  (##sys#current-environment cme)
 	  (##sys#active-eval-environment ##sys#current-meta-environment))
 	(lambda ()
 	  ((##sys#compile-to-closure
@@ -820,6 +823,8 @@
 	(lambda ()
 	  (##sys#active-eval-environment aee)
 	  (##sys#current-module oldcm)
+	  (##sys#current-meta-environment (##sys#current-environment))
+	  (##sys#current-environment oldce)
 	  (##sys#meta-macro-environment (##sys#macro-environment))
 	  (##sys#macro-environment oldme)))))
 

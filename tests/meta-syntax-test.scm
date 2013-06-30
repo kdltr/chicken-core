@@ -20,3 +20,12 @@
      (lambda (e r c)
        (call-it-123 list)))))
 
+(module foo-usage (foo-user)
+  (import chicken scheme)
+  (begin-for-syntax (import (prefix foo foo:)))
+  (define-syntax testing
+    (er-macro-transformer
+     (lambda (x r c)
+       `(,(r 'quote) ,@(foo:bar 1 2)))))
+  (define (foo-user)
+    (testing)))
