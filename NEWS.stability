@@ -80,7 +80,7 @@ cf1e850 Add chicken-install fix to NEWS
 
 -----------------------------------
 
-Changes in HEAD:
+Changes in 4.8.0.4:
 
 add0d56 csi: fix untrusted code execution by (load)ing ./.csirc
 d8dbe51 Revert "csi: fix untrusted code execution by (load)ing ./.csirc"
