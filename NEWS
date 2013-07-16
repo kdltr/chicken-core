@@ -1,30 +1,44 @@
+4.8.0.4
+
+- Runtime
+  - Ensure correct type is used for sigsetjmp(3) buffer.  This fixes,
+    for example, a bus error in 32-bit OS X builds (#1021).
+
+- Core libraries
+  - Export file-type from the posix unit.
+
+- Build system
+  - Use inexact comparison for flonum tests, as there is sometimes a
+    miniscule difference between trig functions computed by libc and
+    those precalculated by gcc.
+
 4.8.0.3
 
- - Runtime
-    - Avoid high CPU usage when waiting for child process I/O with poll().
-      Affects at least Linux and Solaris.
-    - Escape single backslash in printed symbols.
+- Runtime
+  - Avoid high CPU usage when waiting for child process I/O with poll().
+    Affects at least Linux and Solaris.
+  - Escape single backslash in printed symbols.
 
- - Type system
-    - Fixed types.db entry for join and mutex-lock!
+- Type system
+  - Fixed types.db entry for join and mutex-lock!
 
- - Core tools
-   - chicken-install transports now parses ports on URIs with empty paths
+- Core tools
+ - chicken-install transports now parses ports on URIs with empty paths
 
 4.8.0.2
 
- - Interpreter
-    - Fix regression in ,d for procedures, which resulted in an sprintf error.
+- Interpreter
+  - Fix regression in ,d for procedures, which resulted in an sprintf error.
 
- - Compiler
-    - Fix rewriting of newlines (~~) in printf.
+- Compiler
+  - Fix rewriting of newlines (~~) in printf.
 
- - Runtime
-    - Allow > 4GB heap on 64-bit systems (#974).
-    - Added missing library (-lrt) on Solaris for nanosleep calls (#970).
+- Runtime
+  - Allow > 4GB heap on 64-bit systems (#974).
+  - Added missing library (-lrt) on Solaris for nanosleep calls (#970).
 
- - Build system
-    - Use test -f instead of test -e in identify.sh to placate Solaris.
+- Build system
+  - Use test -f instead of test -e in identify.sh to placate Solaris.
 
 4.8.0.1
 

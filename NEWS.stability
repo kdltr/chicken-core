@@ -78,3 +78,14 @@ a09308b Test r/w invariance for symbols containing escaped backslash
 c08d44d setup-download: fix +url-regex+ and deconstruct-url to match urls with path=/ or no path when port number is provided
 cf1e850 Add chicken-install fix to NEWS
 
+-----------------------------------
+
+Changes in HEAD:
+
+add0d56 csi: fix untrusted code execution by (load)ing ./.csirc
+d8dbe51 Revert "csi: fix untrusted code execution by (load)ing ./.csirc"
+8d66730 posix: Add file-type to list of exported identifiers
+d071505 Use inexact comparison for flonum tests.
+75237ac If sigsetjmp(3) is used, "gc_restart" must be of the correct type.
+b39ebad Additional jmpbuf fix (cherry picked from commit 4e24ed510dd202850257fe63745796b9f639f86b)
+
