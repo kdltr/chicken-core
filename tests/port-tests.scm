@@ -1,5 +1,8 @@
 (require-extension srfi-1 ports utils srfi-4 extras tcp posix)
 
+(include "test.scm")
+(test-begin)
+
 (define-syntax assert-error
   (syntax-rules ()
     ((_ expr) 
@@ -224,3 +227,49 @@ EOF
 
 (print "\nEmbedded NUL bytes in filenames are rejected\n")
 (assert-error (with-output-to-file "embedded\x00null-byte" void))
+
+(test-group "read-string!"
+  (let ((in (open-input-string "1234567890"))
+        (buf (make-string 5)))
+    (test-equal "read-string! won't read past buffer if given #f"
+                (read-string! #f buf in)
+                5)
+    (test-equal "read-string! reads the requested bytes with #f"
+                buf
+                "12345")
+    (test-equal "read-string! won't read past buffer if given #f and offset"
+                (read-string! #f buf in 3)
+                2)
+    (test-equal "read-string! reads the requested bytes with #f and offset"
+                buf
+                "12367")
+    (test-equal "read-string! reads until the end correctly"
+                (read-string! #f buf in)
+                3)
+    (test-equal "read-string! leaves the buffer's tail intact"
+                buf
+                "89067"))
+  (let ((in (open-input-string "1234567890"))
+        (buf (make-string 5)))
+    (test-equal "read-string! won't read past buffer if given size"
+                (read-string! 10 buf in)
+                5)
+    (test-equal "read-string! reads the requested bytes with buffer size"
+                buf
+                "12345")
+    (test-equal "read-string! won't read past buffer if given size and offset"
+                (read-string! 10 buf in 3)
+                2)
+    (test-equal "read-string! reads the requested bytes with buffer size and offset"
+                buf
+                "12367")
+    (test-equal "read-string! reads until the end correctly with buffer size"
+                (read-string! 10 buf in)
+                3)
+    (test-equal "read-string! leaves the buffer's tail intact"
+                buf
+                "89067")))
+
+;;;
+
+(test-end)
