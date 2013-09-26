@@ -89,3 +89,9 @@ d071505 Use inexact comparison for flonum tests.
 75237ac If sigsetjmp(3) is used, "gc_restart" must be of the correct type.
 b39ebad Additional jmpbuf fix (cherry picked from commit 4e24ed510dd202850257fe63745796b9f639f86b)
 
+-----------------------------------
+
+Changes in HEAD:
+
+b618af1 Read no more than the buffer length when a length of #f is passed in
+
