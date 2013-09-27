@@ -1,6 +1,7 @@
 4.8.0.5
 - Security fixes
-  - read-string! no longer reads beyond its buffer when length is #f.
+  - CVE-2013-4385: read-string! no longer reads beyond its buffer when
+    length is #f.
 
 4.8.0.4
 
