@@ -727,7 +727,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   current_module_handle = NULL;
   callback_continuation_level = 0;
   gc_ms = 0;
-  C_randomize(time(NULL));
+  (void)C_randomize(C_fix(time(NULL)));
   return 1;
 }
 
