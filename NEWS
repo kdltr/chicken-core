@@ -2,6 +2,7 @@
 - Security fixes
   - CVE-2013-4385: read-string! no longer reads beyond its buffer when
     length is #f.
+  - poll() is also used on cygwin by enabling the fix for CVE-2012-6122
 
 4.8.0.4
 
