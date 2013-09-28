@@ -95,6 +95,7 @@ chicken-config.h: chicken-defaults.h
 	echo "#define HAVE_LONG_LONG 1" >>$@
 	echo "#define HAVE_MEMMOVE 1" >>$@
 	echo "#define HAVE_MEMORY_H 1" >>$@
+	echo "#define HAVE_POSIX_POLL 1" >>$@
 	echo "#define HAVE_SIGACTION 1" >>$@
 	echo "#define HAVE_STDINT_H 1" >>$@
 	echo "#define HAVE_STDLIB_H 1" >>$@
