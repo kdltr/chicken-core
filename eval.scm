@@ -983,7 +983,7 @@
 		    (lambda () #f)
 		    (lambda ()
 		      (let ((c1 (peek-char in)))
-			(when (char=? c1 (integer->char 127))
+			(when (eq? c1 (integer->char 127))
 			  (##sys#error 
 			   'load 
 			   (##sys#string-append 
@@ -1591,7 +1591,7 @@
 		(##sys#read-prompt-hook)
 		(let ([exp ((or ##sys#repl-read-hook read))])
 		  (unless (eof-object? exp)
-		    (when (char=? #\newline (##sys#peek-char-0 ##sys#standard-input))
+		    (when (eq? #\newline (##sys#peek-char-0 ##sys#standard-input))
 		      (##sys#read-char-0 ##sys#standard-input) )
 		    (##sys#clear-trace-buffer)
 		    (set! ##sys#unbound-in-eval '())

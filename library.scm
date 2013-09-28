@@ -1457,10 +1457,18 @@ EOF
 
 (let ((char-downcase char-downcase))
   (set! char-ci=? (lambda (x y) (eq? (char-downcase x) (char-downcase y))))
-  (set! char-ci>? (lambda (x y) (fx> (char-downcase x) (char-downcase y))))
-  (set! char-ci<? (lambda (x y) (fx< (char-downcase x) (char-downcase y))))
-  (set! char-ci>=? (lambda (x y) (fx>= (char-downcase x) (char-downcase y))))
-  (set! char-ci<=? (lambda (x y) (fx<= (char-downcase x) (char-downcase y)))) )
+  (set! char-ci>? (lambda (x y)
+		    (##core#inline "C_i_char_greaterp"
+				   (char-downcase x) (char-downcase y))))
+  (set! char-ci<? (lambda (x y)
+		    (##core#inline "C_i_char_lessp"
+				   (char-downcase x) (char-downcase y))))
+  (set! char-ci>=? (lambda (x y)
+		     (##core#inline "C_i_char_greater_or_equal_p"
+				    (char-downcase x) (char-downcase y))))
+  (set! char-ci<=? (lambda (x y)
+		     (##core#inline "C_i_char_less_or_equal_p"
+				    (char-downcase x) (char-downcase y)))) )
 
 (define (char-upper-case? c)
   (##sys#check-char c 'char-upper-case?)
@@ -2633,7 +2641,7 @@ EOF
 			      (else (build-symbol tok)) ) ) ) ) ) ))
 
 	  (define (r-number-with-exactness radix)
-	    (cond [(char=? #\# (##sys#peek-char-0 port))
+	    (cond [(eq? #\# (##sys#peek-char-0 port))
 		   (##sys#read-char-0 port)
 		   (let ([c2 (##sys#read-char-0 port)])
 		     (cond [(eof-object? c2) 
@@ -2647,7 +2655,7 @@ EOF
 		  [else (r-number radix #f)] ) )
 	  
 	  (define (r-number-with-radix exactness)
-	    (cond [(char=? #\# (##sys#peek-char-0 port))
+	    (cond [(eq? #\# (##sys#peek-char-0 port))
 		   (##sys#read-char-0 port)
 		   (let ([c2 (##sys#read-char-0 port)])
 		     (cond [(eof-object? c2) (##sys#read-error port "unexpected end of numeric literal")]
@@ -2809,7 +2817,7 @@ EOF
 		 ":"
 		 (##sys#string-append kwprefix tok)) ))
 
-          ; now have the state to make a decision.
+          ;; now have the state to make a decision.
           (set! reserved-characters
 	        (if psp
 	            (if sep
@@ -2822,13 +2830,14 @@ EOF
 	  (r-spaces)
 	  (let* ((c (##sys#peek-char-0 port))
 		 (srst (##sys#slot crt 1))
-		 (h (and srst (##sys#slot srst (char->integer c)) ) ) )
+		 (h (and (not (eof-object? c)) srst
+			 (##sys#slot srst (char->integer c)) ) ) )
 	    (if h
-	        ;then handled by read-table entry
+                ;; then handled by read-table entry
 		(##sys#call-with-values
 		 (lambda () (h c port))
 		 (lambda xs (if (null? xs) (readrec) (car xs))))
-		;otherwise chicken extended r5rs syntax
+		;; otherwise chicken extended r5rs syntax
 		(case c
 		  ((#\')
 		   (##sys#read-char-0 port)
@@ -2845,101 +2854,112 @@ EOF
 		  ((#\#)
 		   (##sys#read-char-0 port)
 		   (let ((dchar (##sys#peek-char-0 port)))
-		     (if (char-numeric? dchar)
-			 (let* ((n (string->number (r-digits)))
-				(dchar (##sys#peek-char-0 port))
-				(spdrst (##sys#slot crt 3)) 
-				(h (and spdrst (##sys#slot spdrst (char->integer dchar)) ) ) )
-	                         ;#<num> handled by parameterized # read-table entry?
-			   (cond (h (##sys#call-with-values
-				     (lambda () (h dchar port n))
-				     (lambda xs (if (null? xs) (readrec) (car xs)))))
-			         ;#<num>?
-				 ((or (eq? dchar #\)) (char-whitespace? dchar)) 
-				  (##sys#sharp-number-hook port n))
-				 (else (##sys#read-error
-					port
-					"invalid parameterized read syntax" 
-					dchar n) ) ) )
-			 (let* ((sdrst (##sys#slot crt 2))
-				(h (and sdrst (##sys#slot sdrst (char->integer dchar)) ) ) )
-			   (if h
-	                       ;then handled by # read-table entry
-			       (##sys#call-with-values
-				(lambda () (h dchar port))
-				(lambda xs (if (null? xs) (readrec) (car xs))))
-                	       ;otherwise chicken extended r5rs syntax
-			       (case (char-downcase dchar)
-				 ((#\x) (##sys#read-char-0 port) (r-number-with-exactness 16))
-				 ((#\d) (##sys#read-char-0 port) (r-number-with-exactness 10))
-				 ((#\o) (##sys#read-char-0 port) (r-number-with-exactness 8))
-				 ((#\b) (##sys#read-char-0 port) (r-number-with-exactness 2))
-				 ((#\i) (##sys#read-char-0 port) (r-number-with-radix 'i))
-				 ((#\e) (##sys#read-char-0 port) (r-number-with-radix 'e))
-				 ((#\c)
-				  (##sys#read-char-0 port)
-				  (let ([c (##sys#read-char-0 port)])
-				    (fluid-let ([csp 
-						 (cond [(eof-object? c)
-							(##sys#read-error port "unexpected end of input while reading `#c...' sequence")]
-						       [(eq? c #\i) #f]
-						       [(eq? c #\s) #t]
-						       [else (##sys#read-error port "invalid case specifier in `#c...' sequence" c)] ) ] )
-				      (readrec) ) ) )
-				 ((#\() (r-vector))
-				 ((#\\) (##sys#read-char-0 port) (r-char))
-				 ((#\|)
-				  (##sys#read-char-0 port)
-				  (r-comment) (readrec) )
-				 ((#\#) 
-				  (##sys#read-char-0 port)
-				  (r-ext-symbol) )
-				 ((#\;) 
-				  (##sys#read-char-0 port)
-				  (readrec) (readrec) )
-				 ((#\`) 
-				  (##sys#read-char-0 port)
-				  (list 'quasisyntax (readrec)) )
-				 ((#\$)
-				  (##sys#read-char-0 port)
-				  (let ((c (##sys#peek-char-0 port)))
-				    (cond ((char=? c #\{)
-					   (##sys#read-char-0 port)
-					   (##sys#read-bytevector-literal port))
-					  (else (list 'location (readrec)) ))))
-				 ((#\:) 
-				  (##sys#read-char-0 port)
-				  (let ((tok (r-token)))
-				    (if (eq? 0 (##sys#size tok))
-					(##sys#read-error port "empty keyword")
-					(build-keyword tok))))
-				 ((#\%)
-				  (build-symbol (##sys#string-append "#" (r-token))) )
-				 ((#\+)
-				  (##sys#read-char-0 port)
-				  (let ((tst (readrec)))
-				    (list 'cond-expand (list tst (readrec)) '(else)) ) )
-				 ((#\!)
-				  (##sys#read-char-0 port)
-				  (let ((c (##sys#peek-char-0 port)))
-				    (cond ((or (char-whitespace? c) (char=? #\/ c))
-					   (skip-to-eol)
-					   (readrec) )
-					  (else
-					   (let ([tok (r-token)])
-					     (cond [(string=? "eof" tok) #!eof]
-						   [(member tok '("optional" "rest" "key"))
-						    (build-symbol (##sys#string-append "#!" tok)) ]
-						   [else 
-						    (let ((a (assq (string->symbol tok) read-marks)))
-						      (if a
-							  ((##sys#slot a 1) port)
-							  (##sys#read-error
-							   port
-							   "invalid `#!' token" tok) ) ) ] ) ) ) ) ) )
-				 (else
-				  (##sys#call-with-values (lambda () (##sys#user-read-hook dchar port))
-							  (lambda xs (if (null? xs) (readrec) (car xs)))) ) ) ) ) ) ) )
+		     (cond
+		      ((eof-object? dchar)
+		       (##sys#read-error
+			port "unexpected end of input after reading #-sign"))
+		      ((char-numeric? dchar)
+		       (let* ((n (string->number (r-digits)))
+			      (dchar2 (##sys#peek-char-0 port))
+			      (spdrst (##sys#slot crt 3))
+			      (h (and (char? dchar2) spdrst
+				      (##sys#slot spdrst (char->integer dchar2)) ) ) )
+			 ;; #<num> handled by parameterized # read-table entry?
+			 (cond ((eof-object? dchar2)
+                                (##sys#read-error
+                                 port "unexpected end of input after reading"
+                                 c n))
+                               (h (##sys#call-with-values
+				   (lambda () (h dchar2 port n))
+				   (lambda xs (if (null? xs) (readrec) (car xs)))))
+                               ;; #<num>?
+			       ((or (eq? dchar2 #\)) (char-whitespace? dchar2))
+				(##sys#sharp-number-hook port n))
+			       (else (##sys#read-char-0 port) ; Consume it first
+				     (##sys#read-error
+				      port
+				      "invalid parameterized read syntax"
+				      c n dchar2) ) ) ))
+		      (else (let* ((sdrst (##sys#slot crt 2))
+				   (h (and sdrst (##sys#slot sdrst (char->integer dchar)) ) ) )
+			      (if h
+                                  ;; then handled by # read-table entry
+				  (##sys#call-with-values
+				   (lambda () (h dchar port))
+				   (lambda xs (if (null? xs) (readrec) (car xs))))
+                                  ;; otherwise chicken extended r5rs syntax
+				  (case (char-downcase dchar)
+				    ((#\x) (##sys#read-char-0 port) (r-number-with-exactness 16))
+				    ((#\d) (##sys#read-char-0 port) (r-number-with-exactness 10))
+				    ((#\o) (##sys#read-char-0 port) (r-number-with-exactness 8))
+				    ((#\b) (##sys#read-char-0 port) (r-number-with-exactness 2))
+				    ((#\i) (##sys#read-char-0 port) (r-number-with-radix 'i))
+				    ((#\e) (##sys#read-char-0 port) (r-number-with-radix 'e))
+				    ((#\c)
+				     (##sys#read-char-0 port)
+				     (let ([c (##sys#read-char-0 port)])
+				       (fluid-let ([csp
+						    (cond [(eof-object? c)
+							   (##sys#read-error port "unexpected end of input while reading `#c...' sequence")]
+							  [(eq? c #\i) #f]
+							  [(eq? c #\s) #t]
+							  [else (##sys#read-error port "invalid case specifier in `#c...' sequence" c)] ) ] )
+					 (readrec) ) ) )
+				    ((#\() (r-vector))
+				    ((#\\) (##sys#read-char-0 port) (r-char))
+				    ((#\|)
+				     (##sys#read-char-0 port)
+				     (r-comment) (readrec) )
+				    ((#\#)
+				     (##sys#read-char-0 port)
+				     (r-ext-symbol) )
+				    ((#\;)
+				     (##sys#read-char-0 port)
+				     (readrec) (readrec) )
+				    ((#\`)
+				     (##sys#read-char-0 port)
+				     (list 'quasisyntax (readrec)) )
+				    ((#\$)
+				     (##sys#read-char-0 port)
+				     (let ((c (##sys#peek-char-0 port)))
+				       (cond ((char=? c #\{)
+					      (##sys#read-char-0 port)
+					      (##sys#read-bytevector-literal port))
+					     (else (list 'location (readrec)) ))))
+				    ((#\:)
+				     (##sys#read-char-0 port)
+				     (let ((tok (r-token)))
+				       (if (eq? 0 (##sys#size tok))
+					   (##sys#read-error port "empty keyword")
+					   (build-keyword tok))))
+				    ((#\%)
+				     (build-symbol (##sys#string-append "#" (r-token))) )
+				    ((#\+)
+				     (##sys#read-char-0 port)
+				     (let ((tst (readrec)))
+				       (list 'cond-expand (list tst (readrec)) '(else)) ) )
+				    ((#\!)
+				     (##sys#read-char-0 port)
+				     (let ((c (##sys#peek-char-0 port)))
+				       (cond ((and (char? c)
+						   (or (char-whitespace? c) (char=? #\/ c)))
+					      (skip-to-eol)
+					      (readrec) )
+					     (else
+					      (let ([tok (r-token)])
+						(cond [(string=? "eof" tok) #!eof]
+						      [(member tok '("optional" "rest" "key"))
+						       (build-symbol (##sys#string-append "#!" tok)) ]
+						      [else
+						       (let ((a (assq (string->symbol tok) read-marks)))
+							 (if a
+							     ((##sys#slot a 1) port)
+							     (##sys#read-error
+							      port
+							      "invalid `#!' token" tok) ) ) ] ) ) ) ) ) )
+				    (else
+				     (##sys#call-with-values (lambda () (##sys#user-read-hook dchar port))
+							     (lambda xs (if (null? xs) (readrec) (car xs)))) ) ) ) )) ) ) )
 		  ((#\() (r-list #\( #\)))
 		  ((#\)) (##sys#read-char-0 port) (container c))
 		  ((#\") (##sys#read-char-0 port) (r-string #\"))
