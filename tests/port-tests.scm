@@ -231,6 +231,9 @@ EOF
 (test-group "read-string!"
   (let ((in (open-input-string "1234567890"))
         (buf (make-string 5)))
+    (test-equal "peek-char won't influence the result of read-string!"
+                (peek-char in)
+                #\1)
     (test-equal "read-string! won't read past buffer if given #f"
                 (read-string! #f buf in)
                 5)
@@ -248,6 +251,11 @@ EOF
                 3)
     (test-equal "read-string! leaves the buffer's tail intact"
                 buf
+                "89067")
+    (test-equal "after peek-char at EOF, read-string! doesn't mutate the buffer"
+                (begin (peek-char in)
+                       (read-string! #f buf in)
+                       buf)
                 "89067"))
   (let ((in (open-input-string "1234567890"))
         (buf (make-string 5)))
@@ -267,6 +275,12 @@ EOF
                 (read-string! 10 buf in)
                 3)
     (test-equal "read-string! leaves the buffer's tail intact"
+                buf
+                "89067")
+    (test-equal "read-string! at EOF reads nothing"
+                (read-string! 10 buf in)
+                0)
+    (test-equal "read-string! at EOF doesn't mutate the buffer"
                 buf
                 "89067")))
 

@@ -148,9 +148,6 @@
 (define (##sys#read-string! n dest port start)
   (cond ((eq? n 0) 0)
 	(else
-	 (when (##sys#slot port 6)	; peeked?
-	   (##core#inline "C_setsubchar" dest start (##sys#read-char-0 port))
-	   (set! start (fx+ start 1)) )
 	 (let ((rdstring (##sys#slot (##sys#slot port 2) 7)))
            (if rdstring
 	       (let loop ((start start) (n n) (m 0))
