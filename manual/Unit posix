@@ -598,10 +598,11 @@ exact integers) using the {{chown()}} system call.
 
 ==== file-creation-mode
 
-<procedure>(file-creation-mode MODE)</procedure>
+<procedure>(file-creation-mode [MODE])</procedure>
 
 Returns the initial file permissions used for newly created files
-(as with {{umask(2)}}. You can set the mode by executing
+(as with {{umask(2)}}).  If {{MODE}} is supplied, the mode is
+changed to this value.  You can set the mode by executing
 
   (set! (file-creation-mode) MODE)
 

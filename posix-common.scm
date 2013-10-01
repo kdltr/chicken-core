@@ -437,9 +437,9 @@ EOF
   (getter-with-setter
    (lambda (#!optional um)
      (when um (##sys#check-exact um 'file-creation-mode))
-     (let ((um2 (##core#inline "C_umask" um)))
-       (unless um (##core#inline "C_umask" um2)
-       um2)))
+     (let ((um2 (##core#inline "C_umask" (or um 0))))
+       (unless um (##core#inline "C_umask" um2)) ; restore
+       um2))
    (lambda (um)
      (##sys#check-exact um 'file-creation-mode)
      (##core#inline "C_umask" um))
