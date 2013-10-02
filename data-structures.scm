@@ -866,7 +866,8 @@
 	   ((eq? (##sys#slot lst 1) '()) lst)
 	 (if (or (not (##core#inline "C_blockp" lst))
 		 (not (##core#inline "C_pairp" lst)) )
-	     (##sys#error-not-a-proper-list lst0 'list->queue) ) ) ) ) )
+	     (##sys#error-not-a-proper-list lst0 'list->queue) ) ) )
+   (##sys#length lst0)) )
 
 
 ; (queue-push-back! queue item)
