@@ -96,4 +96,10 @@ Changes in HEAD:
 b618af1 Read no more than the buffer length when a length of #f is passed in
 ea7ec63 Add CVE-2013-4385 identifier to NEWS
 8ffbb3a Add HAVE_POSIX_POLL to cygwin Makefile.
+da051ce A few fixes for file-creation-mode.
+b0a29aa Fix CHICKEN_initialize's call to C_randomize (which expects a boxed fixnum)
+c08df83 Fix several subtle problems in the reader caused by calling char=? on EOF
+2c5acbc Cherry-pick assert-error from 9247cec393084 to data-structures-tests.scm
+8ff9dff Fix data corruption problem in list->queue and add a set of tests for queues.
+307821e Fix read-string! behaviour after peeking at EOF & add regression test.
 

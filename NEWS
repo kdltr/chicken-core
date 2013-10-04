@@ -1,8 +1,20 @@
 4.8.0.5
+
 - Security fixes
   - CVE-2013-4385: read-string! no longer reads beyond its buffer when
     length is #f.
   - poll() is also used on cygwin by enabling the fix for CVE-2012-6122
+  - file-creation-mode now passes a valid value to umask when its argument 
+    is omitted.  (Also ensure it always returns the old umask value.)
+  - Fix a data corruption problem in list->queue.
+
+- Core libraries
+  - read-string! behaves correctly in presence of EOF.
+  - Several subtle problems in the reader in the presence of EOF are fixed.
+  - Use poll() instead of select() on cygwin.
+
+- Runtime
+  - Fix an issue on initial seed of the random number generator.
 
 4.8.0.4
 
