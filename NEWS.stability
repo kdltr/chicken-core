@@ -91,7 +91,7 @@ b39ebad Additional jmpbuf fix (cherry picked from commit 4e24ed510dd202850257fe6
 
 -----------------------------------
 
-Changes in HEAD:
+Changes in 4.8.0.5:
 
 b618af1 Read no more than the buffer length when a length of #f is passed in
 ea7ec63 Add CVE-2013-4385 identifier to NEWS
