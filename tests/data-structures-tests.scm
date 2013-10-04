@@ -2,6 +2,11 @@
 
 (use data-structures)
 
+(define-syntax assert-error
+  (syntax-rules ()
+    ((_ expr)
+     (assert (handle-exceptions _ #t expr #f)))))
+
 (let ((alist '((foo . 123) ("bar" . "baz"))))
   (alist-update! 'foo 999 alist)
   (assert (= (alist-ref 'foo alist) 999))
@@ -37,3 +42,10 @@
 (assert (> 0 (string-compare3-ci "foo\x00A" "foo\x00b")))
 (assert (< 0 (string-compare3-ci "foo\x00b" "foo\x00a")))
 (assert (< 0 (string-compare3-ci "foo\x00b" "foo\x00A")))
+
+;; topological-sort
+
+(assert (equal? '() (topological-sort '() eq?)))
+(assert (equal? '(a b c d) (topological-sort '((a b) (b c) (c d)) eq?)))
+(assert (equal? '(c d a b) (topological-sort '((a b) (c d)) eq?)))
+;; (assert-error (topological-sort '((a b) (b a)) eq?))   ;; We don't support cycle detection yet
