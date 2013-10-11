@@ -265,6 +265,7 @@
        (lambda (return)
 	 (let ([ct ##sys#current-thread])
 	   (define (switch)
+             (dbg ct " sleeping on mutex " (mutex-name mutex))
 	     (##sys#setslot mutex 3 (##sys#append (##sys#slot mutex 3) (list ct)))
 	     (##sys#schedule) )
 	   (define (check)
@@ -272,7 +273,7 @@
 	       (return
 		(##sys#signal
 		 (##sys#make-structure 'condition '(abandoned-mutex-exception) '()))) ) )
-	   (dbg ct ": locking " mutex)
+	   (dbg ct ": locking " (mutex-name mutex))
 	   (cond [(not (##sys#slot mutex 5))
 		  (if (and threadsup (not thread))
 		      (begin

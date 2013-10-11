@@ -360,7 +360,7 @@ EOF
 
 (define (##sys#thread-basic-unblock! t)
   (dbg "unblocking: " t)
-  (##sys#setislot t 11 #f)		; (FD . RWFLAGS)
+  (##sys#setislot t 11 #f)		; (FD . RWFLAGS) | #<MUTEX> | #<THREAD>
   (##sys#setislot t 4 #f)
   (##sys#add-to-ready-queue t) )
 
@@ -396,7 +396,8 @@ EOF
 	(for-each
 	 (lambda (t)
 	   (let ((p (##sys#slot t 11)))
-	     (fdset-set fd (cdr p))))
+             (when (pair? p) ; (FD . RWFLAGS)? (can also be mutex or thread)
+               (fdset-set fd (cdr p)))))
 	 (cdar lst))
 	(loop (cdr lst))))))
 
