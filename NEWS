@@ -1,3 +1,8 @@
+4.8.0.6
+
+- Runtime system
+  - The scheduler won't poll() on non-FD objects upon which threads are blocked.
+
 4.8.0.5
 
 - Security fixes
