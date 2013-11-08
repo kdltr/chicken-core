@@ -30,6 +30,7 @@
    call-with-input-pipe
    call-with-output-pipe
    change-directory
+   change-directory*
    change-file-mode
    change-file-owner
    close-input-pipe
