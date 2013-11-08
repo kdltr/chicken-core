@@ -3,6 +3,9 @@
 - Runtime system
   - The scheduler won't poll() on non-FD objects upon which threads are blocked.
 
+- Core libraries
+  - Export file-type from the posix unit (thanks to Alan Post).
+
 4.8.0.5
 
 - Security fixes

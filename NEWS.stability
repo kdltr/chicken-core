@@ -108,4 +108,5 @@ c08df83 Fix several subtle problems in the reader caused by calling char=? on EO
 Changes in HEAD:
 
 4220c65 Fix #1058: never add mutex objects to FD lists in the scheduler (causes panics!)
+e9f5314 Add change-directory* to the POSIX export list (thanks to Alan Post)
 
