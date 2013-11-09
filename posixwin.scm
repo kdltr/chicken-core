@@ -1402,7 +1402,10 @@ EOF
 
 (define (unsetenv var)
   (##sys#check-string var 'unsetenv)
-  (##core#inline "C_putenv" (##sys#make-c-string var 'unsetenv))
+  ;; Windows does not support unsetenv, but it can be faked with setenv to ""
+  (##core#inline "C_setenv"
+                 (##sys#make-c-string var 'setenv)
+                 (##sys#make-c-string ""))
   (##core#undefined) )
 
 (define get-environment-variables

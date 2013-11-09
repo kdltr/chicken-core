@@ -5,6 +5,7 @@
 
 - Core libraries
   - Export file-type from the posix unit (thanks to Alan Post).
+  - unsetenv has been fixed on Windows
 
 4.8.0.5
 
