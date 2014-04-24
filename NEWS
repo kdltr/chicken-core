@@ -6,6 +6,8 @@
 - Core libraries
   - Export file-type from the posix unit (thanks to Alan Post).
   - unsetenv has been fixed on Windows
+  - Make meta-evaluation actually take place in the meta environment.
+    Fixes a bug noticed by Sandra Snan.
 
 4.8.0.5
 
