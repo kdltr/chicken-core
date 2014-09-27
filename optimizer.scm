@@ -1526,8 +1526,11 @@
 	   ;; Transform call-sites:
 	   (for-each
 	    (lambda (site)
-	      (let* ([n (cdr site)]
-		     [nsubs (node-subexpressions n)] )
+	      (let* ((n (cdr site))
+		     (nsubs (node-subexpressions n))
+		     (params (node-parameters n))
+		     (debug-info (and (pair? (cdr params))
+				      (second params))))
 		(unless (= argc (length (cdr nsubs)))
 		  (quit
 		   "known procedure called with wrong number of arguments: `~A'"
@@ -1537,7 +1540,7 @@
 		 (list (second nsubs)
 		       (make-node
 			'##core#direct_call
-			(list #t #f id allocated)
+			(list #t debug-info id allocated)
 			(cons (car nsubs) (cddr nsubs)) ) ) ) ) )
 	    (lset-difference (lambda (s1 s2) (eq? (cdr s1) (cdr s2))) sites ksites) )
 
