@@ -223,8 +223,11 @@
 	(dumpnodes #f)
 	(start-time #f)
 	(upap #f)
-	(wrap-module (memq 'module options))
-	(ssize (or (memq 'nursery options) (memq 'stack-size options))) )
+	(ssize (or (memq 'nursery options) (memq 'stack-size options)))
+	(module-name
+	 (cond ((memq 'module options) => option-arg)
+	       ((memq 'main-module options) "main")
+	       (else #f))))
 
     (define (cputime) (current-milliseconds))
 
@@ -567,11 +570,11 @@
 	   ;; Canonicalize s-expressions
 	   (let* ((exps0 (map canonicalize-expression
 			      (let ((forms (append initforms forms)))
-				(if wrap-module
-				    `((##core#module main () 
-						     (import scheme chicken)
-						     ,@forms))
-				    forms))))
+				(if (not module-name)
+				    forms
+				    `((##core#module
+				       ,(string->symbol module-name) ()
+				       ,@forms))))))
 		  (exps (append
 			 (map (lambda (ic) `(set! ,(cdr ic) ',(car ic))) immutable-constants)
 			 (map (lambda (n) `(##core#callunit ,n)) used-units)

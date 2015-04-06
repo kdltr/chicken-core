@@ -147,12 +147,12 @@
     -check-syntax -case-insensitive -shared -compile-syntax -no-lambda-info
     -dynamic -disable-stack-overflow-checks -local
     -emit-external-prototypes-first -inline -release 
-    -scrutinize				; OBSOLETE
+    -main-module
     -analyze-only -keep-shadowed-macros -inline-global -ignore-repository
     -no-symbol-escape -no-parentheses-synonyms -r5rs-syntax
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
     -emit-all-import-libraries -setup-mode -no-elevation -no-module-registration
-    -no-procedure-checks-for-usual-bindings -module
+    -no-procedure-checks-for-usual-bindings
     -specialize -strict-types -clustering -lfa2
     -no-procedure-checks-for-toplevel-bindings))
 
@@ -164,13 +164,14 @@
     -feature -debug-level 
     -consult-inline-file
     -emit-import-library
+    -module
     -no-feature))
 
 (define-constant shortcuts
   '((-h "-help")
     (-s "-shared")
-    (-S "-scrutinize")			; OBSOLETE
-    (-M "-module")
+    (-m "-module")
+    (-M "-main-module")
     (|-P| "-check-syntax")
     (-f "-fixnum-arithmetic")
     (|-D| "-feature")
@@ -359,7 +360,8 @@ Usage: #{csc} FILENAME | OPTION ...
     -J -emit-all-import-libraries  emit import-libraries for all defined modules
     -no-module-registration        do not generate module registration code
     -no-compiler-syntax            disable expansion of compiler-macros
-    -M -module                     wrap compiled code into implicit module
+    -m -module NAME                wrap compiled code in a module
+    -M -main-module                wrap compiled code in a module called "main"
 
   Translation options:
 

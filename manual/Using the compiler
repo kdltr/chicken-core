@@ -40,7 +40,7 @@ the source text should be read from standard input.
 
      -debug-level 0             is equivalent to -no-trace -no-lambda-info
      -debug-level 1             is equivalent to -no-trace
-     -debug-level 2             is equivalent to -scrutinize
+     -debug-level 2             is the default behaviour
 
 ; -disable-interrupts : Equivalent to the {{(disable-interrupts)}} declaration. No interrupt-checks are generated for compiled programs.
 
@@ -90,7 +90,9 @@ the source text should be read from standard input.
 
 ; -lfa2 : Does an additional lightweight flow-analysis pass on the fully optimized program to remove more type checks.
 
-; -module : wraps the compiled code in an implicit module named {{main}}, importing the {{scheme}} and {{chicken}} modules.
+; -main-module : wraps the compiled code in an implicit module named {{main}}, importing the {{scheme}} and {{chicken}} modules.
+
+; -module NAME : wraps the compiled code in an implicit module of the given {{NAME}}, importing the {{scheme}} and {{chicken}} modules.
 
 ; -no-argc-checks : disable argument count checks
 

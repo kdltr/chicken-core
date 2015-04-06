@@ -54,7 +54,7 @@ echo ======================================== scrutiny tests ...
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile% scrutiny-tests.scm -A -scrutinize -verbose 2>scrutiny.out
+%compile% scrutiny-tests.scm -A -verbose 2>scrutiny.out
 if errorlevel 1 exit /b 1
 
 rem this is sensitive to gensym-names, so make it optional
@@ -63,7 +63,7 @@ if not exist scrutiny.expected copy /Y scrutiny.out scrutiny.expected
 fc /w scrutiny.expected scrutiny.out
 if errorlevel 1 exit /b 1
 
-%compile% scrutiny-tests-2.scm -A -scrutinize -analyze-only -verbose 2>scrutiny-2.out
+%compile% scrutiny-tests-2.scm -A -verbose 2>scrutiny-2.out
 if errorlevel 1 exit /b 1
 
 if not exist scrutiny-2.expected copy /Y scrutiny-2.out scrutiny-2.expected
@@ -330,6 +330,18 @@ echo ======================================== module tests ...
 if errorlevel 1 exit /b 1
 %interpret% -include-path %TEST_DIR%/.. -s module-tests-2.scm
 if errorlevel 1 exit /b 1
+
+echo ======================================== module tests (command line options) ...
+set module="test"
+%compile% test.scm -w -A -j %module% -module %module%
+if errorlevel 1 exit /b 1
+%compile% test.scm -w -A -j main -main-module
+if errorlevel 1 exit /b 1
+%interpret% -e "(import %module%)"
+if errorlevel 1 exit /b 1
+%interpret% -e "(import main)"
+if errorlevel 1 exit /b 1
+del /f /q %module%.import.scm main.import.scm
 
 echo ======================================== module tests (compiled) ...
 %compile% module-tests-compiled.scm

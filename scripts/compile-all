@@ -5,9 +5,9 @@
 set -e
 set -x
 
-compiler_options="-optimize-level 2 -include-path . -include-path ./ -inline -ignore-repository -feature chicken-bootstrap -feature debugbuild -scrutinize -types ./types.db -verbose  -no-lambda-info -local -specialize"
+compiler_options="-optimize-level 2 -include-path . -include-path ./ -inline -ignore-repository -feature chicken-bootstrap -feature debugbuild -types ./types.db -verbose  -no-lambda-info -local -specialize"
 
-library_options="-optimize-level 2 -include-path . -include-path ./ -inline -ignore-repository -feature chicken-bootstrap -feature debugbuild -scrutinize -types ./types.db -verbose  -explicit-use -no-trace -specialize"
+library_options="-optimize-level 2 -include-path . -include-path ./ -inline -ignore-repository -feature chicken-bootstrap -feature debugbuild -types ./types.db -verbose  -explicit-use -no-trace -specialize"
 
 compiler="$1"
 shift
