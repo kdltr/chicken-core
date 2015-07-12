@@ -77,8 +77,13 @@
 (define-foreign-variable uses-soname? bool "C_USES_SONAME")
 (define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
 
+;; Core units under the "chicken" module namespace.
+(define ##sys#core-chicken-modules
+  '(eval extras lolevel utils files tcp irregex posix data-structures ports))
+
+;; Core units outside the "chicken" module namespace.
 (define ##sys#core-library-modules
-  '(eval extras lolevel utils files tcp irregex posix srfi-4 data-structures ports))
+  `(srfi-4 . ,##sys#core-chicken-modules))
 
 (define ##sys#core-syntax-modules
   '(chicken-syntax chicken-ffi-syntax))
@@ -1298,12 +1303,26 @@
 	  ,@(if (and imp? (or (not builtin?) (##sys#current-module)))
 		`((import ,id))		;XXX make hygienic
 		'())))
+
+      ;; 1 => "srfi-1"
       (define (srfi-id n)
 	(if (fixnum? n)
 	    (##sys#intern-symbol
 	     (##sys#string-append "srfi-" (##sys#number->string n)))
 	    (##sys#syntax-error-hook 'require-extension "invalid SRFI number" n)))
-      (define (doit id impid)
+
+      ;; (foo bar baz) => "foo.bar.baz"
+      (define (library-id lib)
+	(define (library-part->string id)
+	  (cond ((symbol? id) (##sys#symbol->string id))
+		((number? id) (##sys#number->string id))
+		((##sys#error "invalid extension specifier" lib))))
+	(do ((lib (cdr lib) (cdr lib))
+	     (str (library-part->string (car lib))
+		  (string-append str "." (library-part->string (car lib)))))
+	    ((null? lib) (##sys#intern-symbol str))))
+
+      (define (doit id #!optional (impid id))
 	(cond ((or (memq id builtin-features)
 		   (and comp? (memq id builtin-features/compiled)))
 	       (values (impform '(##core#undefined) impid #t) #t id))
@@ -1376,7 +1395,7 @@
 			`(##core#begin
 			  ,@(map (lambda (n)
 				   (let ((rid (srfi-id n)))
-				     (let-values (((exp f2 _) (doit rid rid)))
+				     (let-values (((exp f2 _) (doit rid)))
 				       (set! f (or f f2))
 				       exp)))
 				 (cdr id)))))
@@ -1388,10 +1407,16 @@
 			  (doit (srfi-id (cadr id2)) id)
 			  (follow (cadr id2)))
 		      (doit id2 id))))
-	       (else (##sys#error "invalid extension specifier" id) ) ) )
+	       ((chicken)
+		(if (memq (cadr id) ##sys#core-chicken-modules)
+		    (doit (cadr id) (library-id id))
+		    (doit (library-id id))))
+	       (else
+		(doit (library-id id)))))
 	    ((symbol? id)
-	     (doit id id))
-	    (else (##sys#error "invalid extension specifier" id) ) ) )))
+	     (doit id))
+	    (else
+	     (##sys#error "invalid extension specifier" id))))))
 
 
 ;;; Convert string into valid C-identifier:
