@@ -2817,20 +2817,6 @@ C_regparm C_word C_fcall C_taggedmpointer_or_false(C_word **ptr, C_word tag, voi
 }
 
 
-C_regparm C_word C_fcall C_swigmpointer(C_word **ptr, void *mp, void *sdata)
-{
-  C_word 
-    *p = *ptr,
-    *p0 = p;
-
-  *(p++) = C_SWIG_POINTER_TAG;
-  *((void **)p) = mp;
-  *((void **)p + 1) = sdata;
-  *ptr = p + 2;
-  return (C_word)p0;
-}
-
-
 C_word C_vector(C_word **ptr, int n, ...)
 {
   va_list v;
@@ -6944,20 +6930,17 @@ C_regparm C_word C_fcall C_i_foreign_symbol_argumentp(C_word x)
 
 C_regparm C_word C_fcall C_i_foreign_pointer_argumentp(C_word x)
 {
-  if(C_immediatep(x) || 
-     (C_header_bits(x) != C_SWIG_POINTER_TYPE &&
-      (C_header_bits(x) & C_SPECIALBLOCK_BIT) == 0) )
+  if(C_immediatep(x) || (C_header_bits(x) & C_SPECIALBLOCK_BIT) == 0)
     barf(C_BAD_ARGUMENT_TYPE_NO_POINTER_ERROR, NULL, x);
 
   return x;
 }
 
 
+/* TODO: Is this used? */
 C_regparm C_word C_fcall C_i_foreign_scheme_or_c_pointer_argumentp(C_word x)
 {
-  if(C_immediatep(x) || 
-     (C_header_bits(x) != C_SWIG_POINTER_TYPE &&
-      (C_header_bits(x) & C_SPECIALBLOCK_BIT) == 0) )
+  if(C_immediatep(x) || (C_header_bits(x) & C_SPECIALBLOCK_BIT) == 0)
     barf(C_BAD_ARGUMENT_TYPE_NO_POINTER_ERROR, NULL, x);
 
   return x;
@@ -12903,7 +12886,6 @@ dump_heap_state_2(void *dummy)
       case C_POINTER_TYPE: C_fprintf(C_stderr,        C_text("pointer        ")); break;
       case C_LOCATIVE_TYPE: C_fprintf(C_stderr,       C_text("locative       ")); break;
       case C_TAGGED_POINTER_TYPE: C_fprintf(C_stderr, C_text("tagged pointer ")); break;
-      case C_SWIG_POINTER_TYPE: C_fprintf(C_stderr,   C_text("swig pointer   ")); break;
       case C_LAMBDA_INFO_TYPE: C_fprintf(C_stderr,    C_text("lambda info    ")); break;
       case C_BUCKET_TYPE: C_fprintf(C_stderr,         C_text("bucket         ")); break;
       case C_VECTOR_TYPE: C_fprintf(C_stderr,         C_text("vector         ")); break;

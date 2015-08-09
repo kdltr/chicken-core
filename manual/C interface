@@ -261,12 +261,6 @@ Is {{x}} a C pointer object?  Only accepts non-immediate objects.
 
 Is {{x}} a tagged pointer object?  Only accepts non-immediate objects.
 
-===== C_swigpointerp
-
- [C macro] C_word C_swigpointerp(C_word x)
-
-Is {{x}} a SWIG pointer object?  Only accepts non-immediate objects.
-
 ===== C_anypointerp
 
  [C macro] C_word C_anypointerp(C_word x)

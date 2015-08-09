@@ -464,7 +464,7 @@ static inline int isinf_ld (long double x)
 # define C_POINTER_TYPE           (0x0900000000000000L | C_SPECIALBLOCK_BIT)
 # define C_LOCATIVE_TYPE          (0x0a00000000000000L | C_SPECIALBLOCK_BIT)
 # define C_TAGGED_POINTER_TYPE    (0x0b00000000000000L | C_SPECIALBLOCK_BIT)
-# define C_SWIG_POINTER_TYPE      (0x0c00000000000000L | C_SPECIALBLOCK_BIT)
+/*       unused                   (0x0c00000000000000L ...) */
 # define C_LAMBDA_INFO_TYPE       (0x0d00000000000000L | C_BYTEBLOCK_BIT)
 /*       unused                   (0x0e00000000000000L ...) */
 # define C_BUCKET_TYPE            (0x0f00000000000000L)
@@ -494,7 +494,7 @@ static inline int isinf_ld (long double x)
 # define C_POINTER_TYPE           (0x09000000 | C_SPECIALBLOCK_BIT)
 # define C_LOCATIVE_TYPE          (0x0a000000 | C_SPECIALBLOCK_BIT)
 # define C_TAGGED_POINTER_TYPE    (0x0b000000 | C_SPECIALBLOCK_BIT)
-# define C_SWIG_POINTER_TYPE      (0x0c000000 | C_SPECIALBLOCK_BIT)
+/*       unused                   (0x0c000000 ...) */
 # define C_LAMBDA_INFO_TYPE       (0x0d000000 | C_BYTEBLOCK_BIT)
 /*       unused                   (0x0e000000 ...) */
 # define C_BUCKET_TYPE            (0x0f000000)
@@ -514,7 +514,6 @@ static inline int isinf_ld (long double x)
 #endif
 #define C_SIZEOF_POINTER          2
 #define C_SIZEOF_TAGGED_POINTER   3
-#define C_SIZEOF_SWIG_POINTER     3
 #define C_SIZEOF_VECTOR(n)        ((n) + 1)
 #define C_SIZEOF_BUCKET           3
 #define C_SIZEOF_LOCATIVE         5
@@ -534,7 +533,6 @@ static inline int isinf_ld (long double x)
 #define C_POINTER_TAG             (C_POINTER_TYPE | (C_SIZEOF_POINTER - 1))
 #define C_LOCATIVE_TAG            (C_LOCATIVE_TYPE | (C_SIZEOF_LOCATIVE - 1))
 #define C_TAGGED_POINTER_TAG      (C_TAGGED_POINTER_TYPE | (C_SIZEOF_TAGGED_POINTER - 1))
-#define C_SWIG_POINTER_TAG        (C_SWIG_POINTER_TYPE | (C_wordstobytes(C_SIZEOF_SWIG_POINTER - 1)))
 #define C_SYMBOL_TAG              (C_SYMBOL_TYPE | (C_SIZEOF_SYMBOL - 1))
 #define C_FLONUM_TAG              (C_FLONUM_TYPE | sizeof(double))
 #define C_STRUCTURE3_TAG          (C_STRUCTURE_TYPE | 3)
@@ -1251,9 +1249,8 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 #define C_nfixnump(x)             C_mk_nbool((x) & C_FIXNUM_BIT)
 #define C_pointerp(x)             C_mk_bool(C_block_header(x) == C_POINTER_TAG)
 #define C_taggedpointerp(x)       C_mk_bool(C_block_header(x) == C_TAGGED_POINTER_TAG)
-#define C_swigpointerp(x)         C_mk_bool(C_block_header(x) == C_SWIG_POINTER_TAG)
 #define C_lambdainfop(x)          C_mk_bool(C_header_bits(x) == C_LAMBDA_INFO_TYPE)
-#define C_anypointerp(x)          C_mk_bool(C_block_header(x) == C_POINTER_TAG || C_block_header(x) == C_TAGGED_POINTER_TAG || C_block_header(x) == C_SWIG_POINTER_TAG)
+#define C_anypointerp(x)          C_mk_bool(C_block_header(x) == C_POINTER_TAG || C_block_header(x) == C_TAGGED_POINTER_TAG)
 #define C_specialp(x)             C_mk_bool(C_header_bits(x) & C_SPECIALBLOCK_BIT)
 #define C_byteblockp(x)           C_mk_bool(C_header_bits(x) & C_BYTEBLOCK_BIT)
 #define C_anyp(x)                 C_SCHEME_TRUE
@@ -1885,7 +1882,6 @@ C_fctexport C_word C_fcall C_mpointer(C_word **ptr, void *mp) C_regparm;
 C_fctexport C_word C_fcall C_mpointer_or_false(C_word **ptr, void *mp) C_regparm;
 C_fctexport C_word C_fcall C_taggedmpointer(C_word **ptr, C_word tag, void *mp) C_regparm;
 C_fctexport C_word C_fcall C_taggedmpointer_or_false(C_word **ptr, C_word tag, void *mp) C_regparm;
-C_fctexport C_word C_fcall C_swigmpointer(C_word **ptr, void *mp, void *sdata) C_regparm;
 C_fctexport C_word C_vector(C_word **ptr, int n, ...);
 C_fctexport C_word C_structure(C_word **ptr, int n, ...);
 C_fctexport C_word C_fcall C_mutate_slot(C_word *slot, C_word val) C_regparm;
@@ -3234,7 +3230,6 @@ C_inline C_word C_i_safe_pointerp(C_word x)
 
   switch(C_block_header(x)) {
   case C_POINTER_TAG:
-  case C_SWIG_POINTER_TAG:
   case C_TAGGED_POINTER_TAG:
     return C_SCHEME_TRUE;
   }

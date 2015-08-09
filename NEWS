@@ -18,6 +18,7 @@
     These are now available as eggs.
   - Added the `executable-pathname` procedure for retrieving a path to
     the currently-running executable.
+  - Removed all support for SWIG.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

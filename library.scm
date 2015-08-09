@@ -4381,19 +4381,16 @@ EOF
 (define ##sys#pointer->string
   (let ((string-append string-append))
     (lambda (x)
-      (cond ((##core#inline "C_taggedpointerp" x)
-	     (string-append 
-	      "#<tagged pointer "
-	      (##sys#print-to-string 
-	       (let ((tag (##sys#slot x 1)))
-		 (list (if (pair? tag) (car tag) tag) ) ) )
-	      " "
-	      (##sys#number->string (##sys#pointer->address x) 16)
-	      ">") )
-	    ((##core#inline "C_swigpointerp" x)
-	     (string-append "#<SWIG pointer 0x" (##sys#number->string (##sys#pointer->address x) 16) ">") )
-	    (else
-	     (string-append "#<pointer 0x" (##sys#number->string (##sys#pointer->address x) 16) ">") ) ) ) ) )
+      (if (##core#inline "C_taggedpointerp" x)
+	  (string-append
+	   "#<tagged pointer "
+	   (##sys#print-to-string
+	    (let ((tag (##sys#slot x 1)))
+	      (list (if (pair? tag) (car tag) tag) ) ) )
+	   " "
+	   (##sys#number->string (##sys#pointer->address x) 16)
+	   ">")
+	  (string-append "#<pointer 0x" (##sys#number->string (##sys#pointer->address x) 16) ">") ) ) ) )
 
 
 ;;; Platform configuration inquiry:
