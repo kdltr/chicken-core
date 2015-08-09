@@ -338,7 +338,7 @@ EOF
 				[xn (eval n)] )
 			   (dump xe xn) ) )
 			((r) (report))
-			((q) (##sys#quit-hook))
+			((q) (quit))
 			((l)
 			 (let ((fns (string-split (read-line))))
 			   (for-each load fns)
@@ -1103,10 +1103,7 @@ EOF
       (do ([args args (cdr args)])
 	  ((null? args)
 	   (unless batch 
-	     (call/cc
-	      (lambda (k)
-		(set! ##sys#quit-hook (lambda _ (k #f)))
-		(repl csi-eval)))
+	     (repl csi-eval)
 	     (##sys#write-char-0 #\newline ##sys#standard-output) ) )
 	(let* ((arg (car args)))
 	  (cond ((member arg simple-options))
