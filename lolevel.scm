@@ -45,11 +45,13 @@ EOF
    object->pointer object-become! object-copy pointer+ pointer->address
    pointer->object pointer-f32-ref pointer-f32-set! pointer-f64-ref
    pointer-f64-set! pointer-like? pointer-s16-ref pointer-s16-set!
-   pointer-s32-ref pointer-s32-set! pointer-s8-ref pointer-s8-set!
-   pointer-tag pointer-u16-ref pointer-u16-set! pointer-u32-ref
-   pointer-u32-set! pointer-u8-ref pointer-u8-set! pointer-vector
-   pointer-vector-fill! pointer-vector-length pointer-vector-ref
-   pointer-vector-set! pointer-vector? pointer=? pointer? procedure-data
+   pointer-s32-ref pointer-s32-set! pointer-s64-ref pointer-s64-set!
+   pointer-s8-ref pointer-s8-set! pointer-tag pointer-u16-ref
+   pointer-u16-set! pointer-u32-ref pointer-u32-set!
+   pointer-u64-ref pointer-u64-set! pointer-u8-ref pointer-u8-set!
+   pointer-vector pointer-vector-fill! pointer-vector-length
+   pointer-vector-ref pointer-vector-set! pointer-vector?
+   pointer=? pointer? procedure-data
    record->vector record-instance-length record-instance-slot
    record-instance-slot-set! record-instance-type record-instance?
    set-procedure-data! tag-pointer tagged-pointer? vector-like?)
