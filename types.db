@@ -193,7 +193,7 @@
        (##core#inline "C_u_i_memq" #(1) #(2))))
 
 (member (forall (a b) (#(procedure #:clean #:foldable) member
-		       (a (list-of b) #!optional (procedure (b a) *)) ; sic
+		       (a (list-of b))
 		       (or false (list-of b))))
 	((* null) (let ((#(tmp) #(1))) '#f))
 	(((or symbol procedure immediate) list)
@@ -217,7 +217,7 @@
        (##core#inline "C_u_i_assq" #(1) #(2))))
 
 (assoc (forall (a b c) (#(procedure #:clean #:foldable) assoc
-                       (a (list-of (pair b c)) #!optional (procedure (b a) *)) ; sic
+                       (a (list-of (pair b c)))
                        (or false (pair b c))))
        ((* null) (let ((#(tmp) #(1))) '#f))
        (((or symbol procedure immediate) (list-of pair))
@@ -677,7 +677,7 @@
 (string->list (#(procedure #:clean #:enforce) string->list (string) (list-of char)))
 (list->string (#(procedure #:clean #:enforce) list->string ((list-of char)) string))
 (substring (#(procedure #:clean #:enforce) substring (string fixnum #!optional fixnum) string))
-;(string-fill! (#(procedure #:clean #:enforce) string-fill! (string char) string)) - s.a.
+(string-fill! (#(procedure #:enforce) string-fill! (string char) string))
 (string (#(procedure #:clean #:enforce) string (#!rest char) string))
 
 (vector? (#(procedure #:pure #:predicate vector) vector? (*) boolean))
@@ -1441,6 +1441,7 @@
 
 (chicken.data-structures#o (#(procedure #:clean #:enforce) chicken.data-structures#o (#!rest (procedure (*) *)) (procedure (*) *)))
 
+;; TODO: Should this accept a test procedure?
 (chicken.data-structures#rassoc (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#rassoc (* (list-of pair) #!optional (procedure (* *) *)) *))
 (chicken.data-structures#reverse-string-append (#(procedure #:clean #:enforce) chicken.data-structures#reverse-string-append ((list-of string)) string))
 

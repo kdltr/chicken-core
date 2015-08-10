@@ -270,6 +270,7 @@
 	(##sys#slot item 1)
 	default) ) )
 
+;; TODO: Make inlineable in C without "tst", to be more like assoc?
 (define (rassoc x lst . tst)
   (##sys#check-list lst 'rassoc)
   (let ([tst (if (pair? tst) (car tst) eqv?)])
