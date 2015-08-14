@@ -602,12 +602,9 @@
 	(values name name vexp sexp iexp)))
     (define (import-spec spec)
       (cond ((symbol? spec) (import-name spec))
-	    ((or (not (list? spec)) (< (length spec) 2))
-	     (##sys#syntax-error-hook loc "invalid import specification" spec))
+	    ((null? (cdr spec)) (import-name (car spec))) ; single library component
 	    ((and (c %srfi (car spec)) (fixnum? (cadr spec)) (null? (cddr spec))) ; only one number
-	     (import-name 
-	      (##sys#intern-symbol
-	       (##sys#string-append "srfi-" (##sys#number->string (cadr spec))))))
+	     (import-name (##sys#srfi-id (cadr spec))))
 	    (else
 	     (let ((head (car spec))
 		   (imports (cddr spec)))
@@ -686,7 +683,8 @@
 			      (##sys#string-append (tostr pref) (##sys#symbol->string (car imp))))
 			     (cdr imp) ) )
 			  (values name `(,head ,form ,pref) (map ren impv) (map ren imps) impi)))
-		       (else (##sys#syntax-error-hook loc "invalid import specification" spec))))))))
+		       (else
+			(import-name (##sys#library-id spec)))))))))
     (##sys#check-syntax loc x '(_ . #(_ 1)))
     (let ((cm (##sys#current-module)))
       (for-each
