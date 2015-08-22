@@ -7137,7 +7137,7 @@ void C_ccall C_apply(C_word c, C_word *av)
     k = av[ 1 ],
     fn = av[ 2 ];
   int i, n = c - 3;
-  int m = n;    
+  int m = n - 1;    
   C_word x, skip, *ptr;
 
   if(c < 4) C_bad_min_argc(c, 4);
@@ -7150,8 +7150,8 @@ void C_ccall C_apply(C_word c, C_word *av)
   *(ptr++) = k;
 
   if(n > 1) {
-    C_memcpy(ptr, av + 3, (n - 1) * sizeof(C_word));
-    ptr += n - 1;
+    C_memcpy(ptr, av + 3, m * sizeof(C_word));
+    ptr += m;
   }
 
   x = av[ c - 1 ];
@@ -7170,7 +7170,7 @@ void C_ccall C_apply(C_word c, C_word *av)
   }
 
   C_temporary_stack = C_temporary_stack_bottom;
-  ((C_proc)(void *)C_block_item(fn, 0))(m + 1, C_temporary_stack_limit);
+  ((C_proc)(void *)C_block_item(fn, 0))(m + 2, C_temporary_stack_limit);
 }
 
 
