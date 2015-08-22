@@ -1298,8 +1298,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_copy_pointer(from, to)        (C_set_block_item(to, 0, C_block_item(from, 0)), C_SCHEME_UNDEFINED)
 #define C_pointer_to_object(ptr)        C_block_item(ptr, 0)
 
-#define C_direct_return(dk, x)          (C_kontinue(dk, x), C_SCHEME_UNDEFINED)
-
 #ifdef C_SIXTY_FOUR
 # define C_poke_integer_32(x, i, n)     (((C_s32 *)C_data_pointer(x))[ C_unfix(i) ] = C_unfix(n), C_SCHEME_UNDEFINED)
 #else
