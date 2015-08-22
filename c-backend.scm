@@ -251,9 +251,10 @@
 		     (gen #t "C_trace(\"" (slashify name-str) "\");")
 		     (gen #t "/* " (uncommentify name-str) " */") ) )
 	       (cond ((eq? '##core#proc (node-class fn))
+		      (gen #\{)
 		      (push-args args i "0")
 		      (let ([fpars (node-parameters fn)])
-			(gen #t (first fpars) #\( nf ",av2);") ))
+			(gen #t (first fpars) #\( nf ",av2);}") ))
 		     (call-id
 		      (cond ((and (eq? call-id (lambda-literal-id ll))
 				  (lambda-literal-looping ll) )
@@ -281,10 +282,11 @@
 				    (expr-args args i)
 				    (gen ");") )
 				   (else
+				    (gen #\{)
 				    (push-args args i (and (not empty-closure) (string-append "t" (number->string nc))))
 				    (gen #t call-id #\()
 				    (unless customizable (gen nf #\,))
-				    (gen "av2);") ) ) )))
+				    (gen "av2);}") ) ) )))
 		     ((and (eq? '##core#global (node-class fn))
 			   (not unsafe) 
 			   (not no-procedure-checks)
@@ -294,7 +296,7 @@
 			     (safe (second gparams)) 
 			     (block (third gparams)) 
 			     (carg #f))
-			(gen #t "C_proc tp=(C_proc)")
+			(gen #t "{C_proc tp=(C_proc)")
 			(cond (no-global-procedure-checks
 			       (set! carg
 				 (if block
@@ -317,17 +319,17 @@
 			       (gen "C_fast_retrieve_symbol_proc(lf[" index "])") ))
 			(gen #\;)
 			(push-args args i carg)
-			(gen #t "tp(" nf ",av2);")))
+			(gen #t "tp(" nf ",av2);}")))
 		     (else
 		      (gen #t #\t nc #\=)
 		      (expr fn i)
-		      (gen #\;)
+		      (gen ";{")
 		      (push-args args i (string-append "t" (number->string nc)))
 		      (gen #t "((C_proc)")
 		      (if (or unsafe no-procedure-checks (first params))
 			  (gen "(void*)(*((C_word*)t" nc "+1))")
 			  (gen "C_fast_retrieve_proc(t" nc ")") )
-		      (gen ")(" nf ",av2);") ) ) ) )
+		      (gen ")(" nf ",av2);}") ) ) ) )
 	  
 	    ((##core#recurse) 
 	     (let* ([n (length subs)]
@@ -379,8 +381,9 @@
 	     ;;  one unused variable:
 	     (let* ((n (length subs))
 		    (nf (+ n 1)) )
+	       (gen #\{)
 	       (push-args subs i "C_SCHEME_UNDEFINED")
-	       (gen #t "C_" (first params) "_toplevel(" nf ",av2);")))
+	       (gen #t "C_" (first params) "_toplevel(" nf ",av2);}")))
 
 	    ((##core#return)
 	     (gen #t "return(")
@@ -472,7 +475,7 @@
       (define (push-args args i selfarg)
 	(let ((n (length args)))
 	  (gen #t "C_word av2[" (+ n (if selfarg 1 0)) "];")
-	  (when selfarg (gen #t "av[0]=" selfarg ";"))
+	  (when selfarg (gen #t "av2[0]=" selfarg ";"))
 	  (do ((j (if selfarg 1 0) (add1 j))
 	       (args args (cdr args)))
 	      ((null? args))
@@ -792,7 +795,7 @@
 		  (let ([ldemand (foldl (lambda (n lit) (+ n (literal-size lit))) 0 literals)]
 			[llen (length literals)] )
 		    (gen #t "C_word *a;"
-			 #t "if(toplevel_initialized) { C_kontinue(t1,C_SCHEME_UNDEFINED); }"
+			 #t "if(toplevel_initialized) {C_kontinue(t1,C_SCHEME_UNDEFINED);}"
 			 #t "else C_toplevel_entry(C_text(\"" topname "\"));")
 		    (when disable-stack-overflow-checking
 		      (gen #t "C_disable_overflow_check=1;") )
@@ -805,16 +808,17 @@
 		    (gen #t "C_check_nursery_minimum(" demand ");"
 			 #t "if(!C_demand(" demand ")){"
 			 #t "C_save_and_reclaim((void*)C_toplevel, c, av);}"
-			 #t "toplevel_initialized=1;")
-		    (gen #t "if(!C_demand_2(" ldemand ")){"
+			 #t "toplevel_initialized=1;"
+			 #t "if(!C_demand_2(" ldemand ")){"
 			 #t "C_save(t1);"
 			 #t "C_rereclaim2(" ldemand "*sizeof(C_word), 1);"
-			 #t "t1=C_restore;}")
-		    (gen #t "a=C_alloc(" demand ");")
+			 #t "t1=C_restore;}"
+			 #t "a=C_alloc(" demand ");")
 		    (when (not (zero? llen))
 		      (gen #t "C_initialize_lf(lf," llen ");")
 		      (literal-frame)
-		      (gen #t "C_register_lf2(lf," llen ",create_ptable());") ) ) ]
+		      (gen #t "C_register_lf2(lf," llen ",create_ptable());"
+			   #t #\{) ) ) ]
 		 [rest
 		  (gen #t "C_word *a;")
 		  (when (and (not unsafe) (not no-argc-checks) (> n 2) (not empty-closure))
@@ -832,37 +836,37 @@
 			 (unless direct (gen #t "C_word *a;"))
 			 (when (and direct (not unsafe) (not disable-stack-overflow-checking))
 			   (gen #t "C_stack_overflow_check;") )
-			 (when looping (gen #t "loop:")) ] )
+			 (when looping (gen #t "loop:"))])
 		  (when (and external (not unsafe) (not no-argc-checks) (not customizable))
 		    ;; (not customizable) implies empty-closure
 		    (if (eq? rest-mode 'none)
 			(when (> n 2) (gen #t "if(c<" n ") C_bad_min_argc_2(c," n ",t0);"))
 			(gen #t "if(c!=" n ") C_bad_argc_2(c," n ",t0);") ) )
-		  (when (and (not direct) (or external (> demand 0)))
-		    (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-		    (if (and looping (> demand 0))
-			(gen #t "if(!C_stack_probe(a)){")
-			(gen #t "if(!C_stack_probe(&a)){") ) ) ] )
-	   (when (and (not (eq? 'toplevel id))
-		      (not direct)
-		      (or rest external (> demand 0)) )
-	     (cond [rest
-		    (gen #t "C_safe_and_reclaim((void*)" id ",c,av);"
-			 #t "else{"
-			 #t "a=C_alloc((c-" n ")*3);")
-		    (gen #t "t" n "=C_build_rest(a," n ",av);")
-		    (do ([i (+ n 1) (+ i 1)]
-			 [j temps (- j 1)] )
-			((zero? j))
-		      (gen #t "C_word t" i #\;) )
-		    (when (> demand 0) (gen #t "C_word *a=C_alloc(" demand ");")) ]
-		   [else 
-		    (cond ((and customizable (> nec 0))
-			   (gen #t "C_save_and_reclaim_args((void *)tr" id #\, nec #\,)
-			   (apply gen arglist)
-			   (gen ")};"))
-			  (else
-			   (gen "C_save_and_reclaim((void *)" id #\, n ",av);}")))]))
+		  (cond ((and (not direct) (or external (> demand 0)))
+			 (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
+			 (if (and looping (> demand 0))
+			     (gen #t "if(!C_stack_probe(a)){")
+			     (gen #t "if(!C_stack_probe(&a)){") ) )
+			(else (gen #\{)))])
+	   (cond ((and (not (eq? 'toplevel id))
+		       (not direct)
+		       (or rest external (> demand 0)) )
+		  (cond [rest
+			 (gen #t "C_save_and_reclaim((void*)" id ",c,av);}"
+			      #t "a=C_alloc((c-" n ")*3+" demand ");")
+			 (gen #t "t" n "=C_build_rest(a," n ",av);")
+			 (do ([i (+ n 1) (+ i 1)]
+			      [j temps (- j 1)] )
+			     ((zero? j))
+			   (gen #t "C_word t" i #\;) )]
+			[else 
+			 (cond ((and customizable (> nec 0))
+				(gen #t "C_save_and_reclaim_args((void *)tr" id #\, nec #\,)
+				(apply gen arglist)
+				(gen ");}"))
+			       (else
+				(gen "C_save_and_reclaim((void *)" id #\, n ",av);}")))]))
+		 (else (gen #\})))
 	   (expression
 	    (lambda-literal-body ll)
 	    (if rest
