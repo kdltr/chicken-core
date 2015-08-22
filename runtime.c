@@ -4063,7 +4063,7 @@ void handle_interrupt(void *trampoline)
   n = C_temporary_stack_bottom - C_temporary_stack;
   p = C_alloc(C_SIZEOF_VECTOR(2) + C_SIZEOF_VECTOR(n));
   proc = (C_word)p;
-  *(p++) = C_VECTOR_TYPE | C_BYTEBLOCK_BIT | (1 * sizeof(C_word));
+  *(p++) = C_VECTOR_TYPE | C_BYTEBLOCK_BIT | sizeof(C_word);
   *(p++) = (C_word)trampoline;
   state = (C_word)p;
   *(p++) = C_VECTOR_TYPE | (n + 1);
@@ -7199,11 +7199,12 @@ void C_ccall call_cc_wrapper(C_word c, C_word *av)
   C_word
     closure = av[ 0 ],
     /* av[ 1 ] is current k and ignored */
-    result = av[ 2 ],
+    result,
     k = C_block_item(closure, 1);
 
   if(c != 3) C_bad_argc(c, 3);
 
+  result = av[ 2 ];
   C_kontinue(k, result);
 }
 
@@ -7273,15 +7274,18 @@ void C_ccall C_apply_values(C_word c, C_word *av)
   C_word
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    lst = av[ 2 ],
+    lst,
     n;
 
   if(c != 3) C_bad_argc(c, 3);
 
+  lst = av[ 2 ];
+
   /* Check continuation wether it receives multiple values: */
   if(C_block_item(k, 0) == (C_word)values_continuation) {
-    C_word *av2;
-    C_word *ptr = C_temporary_stack_limit;
+    C_word 
+      *av2,
+      *ptr = C_temporary_stack_limit;
 
     for(n = 0; !C_immediatep(lst) && C_block_header(lst) == C_PAIR_TAG; ++n) {
       *(ptr++) = C_u_i_car(lst);
