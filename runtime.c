@@ -7162,7 +7162,7 @@ void C_ccall C_apply(C_word c, C_word *av)
   for(skip = x; !C_immediatep(skip) && C_block_header(skip) == C_PAIR_TAG; skip = C_u_i_cdr(skip)) {
     x = C_u_i_car(skip);
     
-    if(C_temporary_stack < C_temporary_stack_limit)
+    if(ptr >= C_temporary_stack_bottom)
       barf(C_TOO_MANY_PARAMETERS_ERROR, "apply");
 
     *(ptr++) = x;
