@@ -1350,7 +1350,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 #ifdef HAVE_STATEMENT_EXPRESSIONS
 # define C_a_i(a, n)                    ({C_word *tmp = *a; *a += (n); tmp;})
-# define C_a_i_cons(a, n, car, cdr)     ({C_word tmp = (C_word)(*a); (*a)[0] = C_PAIR_TYPE | 2; *a += 3; \
+# define C_a_i_cons(a, n, car, cdr)     ({C_word tmp = (C_word)(*a); (*a)[0] = C_PAIR_TYPE | 2; *a += C_SIZEOF_PAIR; \
                                           C_set_block_item(tmp, 0, car); C_set_block_item(tmp, 1, cdr); tmp;})
 #else
 # define C_a_i_cons(a, n, car, cdr)     C_a_pair(a, car, cdr)
