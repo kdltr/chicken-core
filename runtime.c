@@ -7296,19 +7296,29 @@ void C_ccall C_apply_values(C_word c, C_word *av)
     av2 = C_alloc(n + 1);
     av2[ 0 ] = k;
     C_memcpy(av2 + 1, C_temporary_stack_limit, n * sizeof(C_word));
-    C_do_apply(n, av2);
+    C_do_apply(n + 1, av2);
   }
   
-  if(C_immediatep(lst) || (C_block_header(lst) == C_PAIR_TAG && C_u_i_cdr(lst) == C_SCHEME_END_OF_LIST)) {
+  if(C_immediatep(lst)) {
 #ifdef RELAX_MULTIVAL_CHECK
-    if(C_immediatep(lst)) n = C_SCHEME_UNDEFINED;
-    else n = C_u_i_car(lst);
+    n = C_SCHEME_UNDEFINED;
 #else
     barf(C_CONTINUATION_CANT_RECEIVE_VALUES_ERROR, "values", k);
 #endif
   }
-  else n = C_u_i_car(lst);
-
+  else if(C_block_header(lst) == C_PAIR_TAG) {
+    if(C_u_i_cdr(lst) == C_SCHEME_END_OF_LIST)
+      n = C_u_i_car(lst);
+    else {
+#ifdef RELAX_MULTIVAL_CHECK
+      n = C_u_i_car(lst);
+#else
+      barf(C_CONTINUATION_CANT_RECEIVE_VALUES_ERROR, "values", k);
+#endif
+    }
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "apply", lst);
+  
   C_kontinue(k, n);
 }
 
