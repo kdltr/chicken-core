@@ -853,8 +853,8 @@
 		       (or rest external (> demand 0)) )
 		  (cond [rest
 			 (gen #t "C_save_and_reclaim((void*)" id ",c,av);}"
-			      #t "a=C_alloc((c-" n ")*3+" demand ");")
-			 (gen #t "t" n "=C_build_rest(a," n ",av);")
+			      #t "a=C_alloc((c-" n ")*C_SIZEOF_PAIR+" demand ");")
+			 (gen #t "t" n "=C_build_rest(&a,c," n ",av);")
 			 (do ([i (+ n 1) (+ i 1)]
 			      [j temps (- j 1)] )
 			     ((zero? j))
