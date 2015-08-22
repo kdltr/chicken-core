@@ -11351,26 +11351,13 @@ static void bignum_to_str_2(C_word c, C_word *av)
 
 void C_ccall C_make_structure(C_word c, C_word *av)
 {
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    type = av[ 2 ],
-    *p;
-  int i;
+  if(!C_demand(c - 1)) {
+    C_temporary_stack = C_temporary_stack_bottom - (c - 1);
+    C_memcpy(C_temporary_stack, av + 1, (c - 1) * sizeof(C_word));
+    C_reclaim((void *)make_structure_2, c - 1);
+  }
 
-  av += 2;
-
-  for(i = c - 3; i--; C_save(*(av++)));
-
-  C_save(type);
-  C_save(k);
-
-  if(!C_demand(c - 1)) 
-    C_reclaim((void *)make_structure_2, c);
-
-  p = C_temporary_stack;
-  C_temporary_stack = C_temporary_stack_bottom;
-  make_structure_2(0, p);
+  make_structure_2(c - 1, av + 1);
 }
 
 
@@ -11386,11 +11373,10 @@ void C_ccall make_structure_2(C_word c, C_word *av)
 
   *(s++) = C_STRUCTURE_TYPE | (size + 1);
   *(s++) = type;
-  s += size;
   av += 2;
 
   while(size--)
-    *(--s) = *(av++);
+    *(s++) = *(av++);
 
   C_kontinue(k, s0);
 }
