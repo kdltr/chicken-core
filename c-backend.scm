@@ -275,10 +275,16 @@
 			       (gen #t #\t nc #\=)
 			       (expr fn i)
 			       (gen #\;) )
-			     (push-args args i (and (not empty-closure) (string-append "t" (number->string nc))))
-			     (gen #t call-id #\()
-			     (unless customizable (gen nf #\,))
-			     (gen "av);") ) ) )
+			     (cond (customizable
+				    (gen #t call-id #\()
+				    (unless empty-closure (gen #\t nc #\,))
+				    (expr-args args i)
+				    (gen ");") )
+				   (else
+				    (push-args args i (and (not empty-closure) (string-append "t" (number->string nc))))
+				    (gen #t call-id #\()
+				    (unless customizable (gen nf #\,))
+				    (gen "av);") ) ) )))
 		     ((and (eq? '##core#global (node-class fn))
 			   (not unsafe) 
 			   (not no-procedure-checks)
@@ -288,8 +294,7 @@
 			     (safe (second gparams)) 
 			     (block (third gparams)) 
 			     (carg #f))
-			(push-args args i #f)
-			(gen #tr "((C_proc)")
+			(gen #t "C_proc tp=(C_proc)")
 			(cond (no-global-procedure-checks
 			       (set! carg
 				 (if block
@@ -301,8 +306,7 @@
 			       (if safe
 				   (gen "C_fast_retrieve_proc(" carg ")")
 				   (gen "C_retrieve2_symbol_proc(" carg "," 
-					(c-ify-string (##sys#symbol->qualified-string
-						       (fourth gparams))) #\)) ) )
+					(c-ify-string (##sys#symbol->qualified-string (fourth gparams))) #\)) ) )
 			      (safe
 			       (set! carg 
 				 (string-append "*((C_word*)lf[" (number->string index) "]+1)"))
@@ -311,17 +315,19 @@
 			       (set! carg 
 				 (string-append "*((C_word*)lf[" (number->string index) "]+1)"))
 			       (gen "C_fast_retrieve_symbol_proc(lf[" index "])") ))
-			(gen ")(" nf #\, carg ",av);")))
+			(gen #\;)
+			(push-args args i carg)
+			(gen #t "tp(" nf ",av);")))
 		     (else
 		      (gen #t #\t nc #\=)
 		      (expr fn i)
 		      (gen #\;)
-		      (push-args args i #f)
+		      (push-args args i (string-append "t" (number->string nc)))
 		      (gen #t "((C_proc)")
 		      (if (or unsafe no-procedure-checks (first params))
 			  (gen "(void*)(*((C_word*)t" nc "+1))")
 			  (gen "C_fast_retrieve_proc(t" nc ")") )
-		      (gen ")(" nf ",t" nc ",av);") ) ) ) )
+		      (gen ")(" nf ",av);") ) ) ) )
 	  
 	    ((##core#recurse) 
 	     (let* ([n (length subs)]
@@ -463,15 +469,15 @@
 	    (expr (car xs) i)
 	    (loop (cdr xs)))))
 
-      (define (push-args args i karg)
+      (define (push-args args i selfarg)
 	(let ((n (length args)))
-	  (gen #t "C_word av[" n "];")
-	  (when karg (gen #t "av[0]=" karg ";"))
-	  (do ((j 0 (add1 j))
+	  (gen #t "C_word av[" (+ n (if selfarg 1 0)) "];")
+	  (when selfarg (gen #t "av[0]=" selfarg ";"))
+	  (do ((j (if selfarg 1 0) (add1 j))
 	       (args args (cdr args)))
 	      ((null? args))
 	    (gen #t "av[" j "]=")
-	    (expr (car xs) i)
+	    (expr (car args) i)
 	    (gen ";"))))
 
       (expr node temps) )
@@ -586,8 +592,9 @@
 	     (when (and direct (not (zero? allocated)))
 	       (gen "C_word *a")
 	       (when (pair? varlist) (gen #\,)) )
-	     (when (or customizable direct)
-	       (apply gen varlist))
+	     (if (or customizable direct)
+		 (apply gen varlist)
+		 (gen "C_word *av"))
 	     (gen #\))
 	     ;;(when customizable (gen " C_c_regparm"))
 	     (unless direct (gen " C_noret"))
@@ -760,7 +767,9 @@
 	   (when (and direct (not (zero? demand))) 
 	     (gen "C_word *a")
 	     (when (pair? varlist) (gen #\,)) )
-	   (when (or customizable direct) (apply gen varlist))
+	   (if (or customizable direct)
+	       (apply gen varlist)
+	       (gen "C_word *av"))
 	   (gen "){")
 	   (when (eq? rest-mode 'none) (set! rest #f))
 	   (gen #t "C_word tmp;")
@@ -795,8 +804,7 @@
 			(gen #t "C_resize_stack(" target-stack-size ");") ) )
 		    (gen #t "C_check_nursery_minimum(" demand ");"
 			 #t "if(!C_demand(" demand ")){"
-			 #t "C_save(t1);"
-			 #t "C_reclaim((void*)toplevel);}"
+			 #t "C_save_and_reclaim((void*)toplevel, c, av);}"
 			 #t "toplevel_initialized=1;")
 		    (gen #t "if(!C_demand_2(" ldemand ")){"
 			 #t "C_save(t1);"
@@ -854,11 +862,12 @@
 		      (gen #t "C_word t" i #\;) )
 		    (when (> demand 0) (gen #t "C_word *a=C_alloc(" demand ");")) ]
 		   [else 
-		    (cond ((and customizable (> nec 0)) 
+		    (cond ((and customizable (> nec 0))
 			   (gen #t "C_save_and_reclaim_args((void *)tr" id "," nec ",")
-			   (apply gen arglist) )
+			   (apply gen arglist)
+			   (gen ")};"))
 			  (else
-			   (gen "C_save_and_reclaim((void *)" id ",av);")))]))
+			   (gen "C_save_and_reclaim((void *)" id "," n ",av);}")))]))
 	   (expression
 	    (lambda-literal-body ll)
 	    (if rest
