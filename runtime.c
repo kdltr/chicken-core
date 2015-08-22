@@ -9940,7 +9940,7 @@ void C_ccall C_allocate_vector(C_word c, C_word *av)
   align8 = av[ 5 ];
   n = C_unfix(size);
 
-  if(n > C_HEADER_SIZE_MASK)
+  if(n > C_HEADER_SIZE_MASK || n < 0)
     barf(C_OUT_OF_RANGE_ERROR, NULL, size, C_fix(C_HEADER_SIZE_MASK));
 
   if(!C_truep(bvecf)) bytes = C_wordstobytes(n) + sizeof(C_word);
