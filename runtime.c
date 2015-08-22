@@ -4759,8 +4759,8 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_SCHEME_FALSE;
 #endif
 
-  case C_fix(40):		/* assembly stub for "apply" available? */
-    return C_SCHEME_FALSE;
+  case C_fix(40):		/* many arguments supported? */
+    return C_SCHEME_TRUE;
 
   case C_fix(41):		/* major CHICKEN version */
     return C_fix(C_MAJOR_VERSION);
