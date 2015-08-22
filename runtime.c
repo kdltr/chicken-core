@@ -7147,15 +7147,18 @@ void C_ccall C_apply(C_word c, C_word *av)
     ++m;
   }
 
-  C_temporary_stack -= n;
+  if(c > 4) {
+    C_temporary_stack -= n - 1;
 
-  if(C_temporary_stack < C_temporary_stack_limit)
-    barf(C_TOO_MANY_PARAMETERS_ERROR, "apply");
+    if(C_temporary_stack < C_temporary_stack_limit)
+      barf(C_TOO_MANY_PARAMETERS_ERROR, "apply");
 
-  C_memcpy(C_temporary_stack, av + 3, n * sizeof(C_word));
-  --m;
+    C_memcpy(C_temporary_stack, av + 3, n * sizeof(C_word));
+  }
 
-  ((C_proc)(void *)C_block_item(fn, 0))(m, C_temporary_stack);
+  C_save(k);
+  C_save(fn);
+  ((C_proc)(void *)C_block_item(fn, 0))(m + 1, C_temporary_stack);
 }
 
 
