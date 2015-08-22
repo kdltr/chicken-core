@@ -806,7 +806,7 @@
 			(gen #t "C_resize_stack(" target-stack-size ");") ) )
 		    (gen #t "C_check_nursery_minimum(" demand ");"
 			 #t "if(!C_demand(" demand ")){"
-			 #t "C_save_and_reclaim((void*)C_toplevel,c,av);}"
+			 #t "C_save_and_reclaim((void*)C_" topname ",c,av);}"
 			 #t "toplevel_initialized=1;"
 			 #t "if(!C_demand_2(" ldemand ")){"
 			 #t "C_save(t1);"
