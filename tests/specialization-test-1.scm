@@ -49,11 +49,12 @@ return n;}
 ;; Ensure a foreign-primitive returning multiple values with C_values()
 ;; isn't specialized to a single result.
 (let ((result (receive ((foreign-primitive ()
-			  "C_values(4,"
-			  "         C_SCHEME_UNDEFINED,"
-			  "         C_k,"
-			  "         C_fix(1),"
-			  "         C_fix(2));")))))
+			  "C_word av[ 4 ];"
+			  "av[ 0 ] = C_SCHEME_UNDEFINED;"
+			  "av[ 1 ] = C_k;"
+			  "av[ 2 ] = C_fix(1);"
+			  "av[ 3 ] = C_fix(2);"
+			  "C_values(4, av);")))))
   (assert (equal? '(1 2) result)))
 
 ;; dropped conditional branch is ignored
