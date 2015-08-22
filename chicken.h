@@ -2163,7 +2163,7 @@ C_fctexport  int  CHICKEN_eval_string(char * str,C_word *result);
 C_fctexport  int  CHICKEN_eval(C_word exp,C_word *result);
 C_fctexport  int  CHICKEN_yield();
 
-C_fctexport void C_default_5fstub_toplevel(C_word c,C_word d,C_word k) C_noret;
+C_fctexport C_cpsproc(C_default_5fstub_toplevel);
 
 
 /* Inline functions: */

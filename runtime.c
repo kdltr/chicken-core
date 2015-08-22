@@ -581,7 +581,7 @@ static C_regparm void bignum_destructive_divide_normalized(C_word big_u, C_word 
 static C_PTABLE_ENTRY *create_initial_ptable();
 
 #if !defined(NO_DLOAD2) && (defined(HAVE_DLFCN_H) || defined(HAVE_DL_H) || (defined(HAVE_LOADLIBRARY) && defined(HAVE_GETPROCADDRESS)))
-static void dload_2(void *dummy) C_noret;
+static void C_ccall dload_2(C_word, C_word *) C_noret;
 #endif
 
 static void
@@ -7191,13 +7191,13 @@ void C_ccall call_cc_wrapper(C_word c, C_word *av)
 {
   C_word
     closure = av[ 0 ],
-    /* av[ 1 ] is k and ignored */
+    /* av[ 1 ] is current k and ignored */
     result = av[ 2 ],
-    cont = C_block_item(closure,1);
+    k = C_block_item(closure, 1);
 
   if(c != 3) C_bad_argc(c, 3);
 
-  C_kontinue(cont, result);
+  C_kontinue(k, result);
 }
 
 
@@ -7205,16 +7205,14 @@ void C_ccall call_cc_values_wrapper(C_word c, C_word *av)
 {
   C_word
     closure = av[ 0 ],
-    cont = C_block_item(closure,1),
+    /* av[ 1 ] is current k and ignored */
+    k = C_block_item(closure, 1),
     x1,
     n = c;
   
-  av[ 0 ] = cont;               /* reuse av */
-
-  if(c > 2) --n;
-  else av[ 1 ] = C_SCHEME_UNBOUND;
-
-  C_do_apply(n - 2, av);
+  av[ 0 ] = k;               /* reuse av */
+  C_memmove(av + 1, av + 2, (n - 1) * sizeof(C_word));
+  C_do_apply(n - 1, av);
 }
 
 
@@ -7245,8 +7243,8 @@ void C_ccall C_values(C_word c, C_word *av)
   /* Check continuation whether it receives multiple values: */
   if(C_block_item(k, 0) == (C_word)values_continuation) {
     av[ 0 ] = k;                /* reuse av */
-    av[ 1 ] = C_SCHEME_UNBOUND; /* unbound value marks direct invocation */
-    C_do_apply(n - 2, av);
+    C_memmove(av + 2, av + 1, (c - 1) * sizeof(C_word));
+    C_do_apply(c - 1, av);
   }
   
   if(c != 3) {
@@ -7276,17 +7274,17 @@ void C_ccall C_apply_values(C_word c, C_word *av)
   /* Check continuation wether it receives multiple values: */
   if(C_block_item(k, 0) == (C_word)values_continuation) {
     C_word *av2;
+    C_word *ptr = C_temporary_stack_limit;
 
     for(n = 0; !C_immediatep(lst) && C_block_header(lst) == C_PAIR_TAG; ++n) {
-      C_save(C_u_i_car(lst));
+      *(ptr++) = C_u_i_car(lst);
       lst = C_u_i_cdr(lst);
     }
 
     /* copy into new array */
-    av2 = C_alloc(n + 2);
+    av2 = C_alloc(n + 1);
     av2[ 0 ] = k;
-    av2[ 1 ] = C_SCHEME_UNBOUND; /* unbound value marks direct invocation */
-    C_memcpy(av2 + 2, C_temporary_stack, n * sizeof(C_word));
+    C_memcpy(av2 + 1, C_temporary_stack_limit, n * sizeof(C_word));
     C_do_apply(n, av2);
   }
   
@@ -7325,7 +7323,7 @@ void C_ccall C_call_with_values(C_word c, C_word *av)
   kk = C_closure(&a, 3, (C_word)values_continuation, kont, k);
   av[ 0 ] = thunk;              /* reuse av */
   av[ 1 ] = kk;
-  C_do_apply(0, av);
+  C_do_apply(2, av);
 }
 
 
@@ -7342,7 +7340,7 @@ void C_ccall C_u_call_with_values(C_word c, C_word *av)
   kk = C_closure(&a, 3, (C_word)values_continuation, kont, k);
   av[ 0 ] = thunk;              /* reuse av */
   av[ 1 ] = kk;
-  C_do_apply(0, av);
+  C_do_apply(2, av);
 }
 
 
@@ -7352,25 +7350,12 @@ void C_ccall values_continuation(C_word c, C_word *av)
     closure = av[ 0 ],
     kont = C_block_item(closure, 1),
     k = C_block_item(closure, 2),
-    n = c,
-    arg0 = av[ 1 ],
-    *av2;
+    *av2 = C_alloc(c + 1);
 
-  if(arg0 == C_SCHEME_UNBOUND) { /* This continuation was called by 'values'... */
-    av[ 0 ] = kont;              /* reuse av */
-    av[ 1 ] = k;
-    av2 = av;
-  }
-  else {			/* This continuation was captured and called explicity... */
-    av2 = C_alloc(n + 2);
-    ++n;
-    --c;
-    av2[ 0 ] = kont;
-    av2[ 1 ] = k;
-    C_memcpy(av2 + 2, av + 2, (n - 2) * sizeof(C_word));
-  }
-
-  C_do_apply(n - 2, av2);
+  av2[ 0 ] = kont;
+  av2[ 1 ] = k;
+  C_memcpy(av2 + 2, av + 1, (c - 1) * sizeof(C_word));
+  C_do_apply(c + 1, av2);
 }
 
 static C_word rat_times_integer(C_word **ptr, C_word rat, C_word i)
@@ -11813,7 +11798,7 @@ void C_ccall C_dload(C_word c, C_word *av)
 #if !defined(NO_DLOAD2) && defined(HAVE_DL_H) && !defined(DLOAD_2_DEFINED)
 # ifdef __hpux__
 #  define DLOAD_2_DEFINED
-void dload_2(void *dummy)
+void C_ccall dload_2(C_word c, C_word *av0)
 {
   void *handle, *p;
   C_word
@@ -11865,7 +11850,7 @@ void dload_2(void *dummy)
 #if !defined(NO_DLOAD2) && defined(HAVE_DLFCN_H) && !defined(DLOAD_2_DEFINED)
 # ifndef __hpux__
 #  define DLOAD_2_DEFINED
-void dload_2(void *dummy)
+void C_ccall dload_2(C_word c, C_word *av0)
 {
   void *handle, *p, *p2;
   C_word 
@@ -11903,7 +11888,7 @@ void dload_2(void *dummy)
 
       av[ 0 ] = C_SCHEME_UNDEFINED;
       av[ 1 ] = k;
-      ((C_proc)p)(2, *av); /* doesn't return */
+      ((C_proc)p)(2, av); /* doesn't return */
     }
 
     C_dlclose(handle);
@@ -11918,7 +11903,7 @@ void dload_2(void *dummy)
 
 #if !defined(NO_DLOAD2) && (defined(HAVE_LOADLIBRARY) && defined(HAVE_GETPROCADDRESS)) && !defined(DLOAD_2_DEFINED)
 # define DLOAD_2_DEFINED
-void dload_2(void *dummy)
+void C_ccall dload_2(C_word c, C_word *av0)
 {
   HINSTANCE handle;
   FARPROC p = NULL, p2;
