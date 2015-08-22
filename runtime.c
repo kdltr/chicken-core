@@ -669,6 +669,7 @@ void parse_argv(C_char *cmds)
 
 int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
 {
+  C_SCHEME_BLOCK *k0;
   int i;
 #ifdef HAVE_SIGACTION
   struct sigaction sa;
@@ -832,6 +833,14 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   callback_continuation_level = 0;
   gc_ms = 0;
   (void)C_randomize(C_fix(time(NULL)));
+  
+  /* create k to invoke code for system-startup: */
+  k0 = (C_SCHEME_BLOCK *)C_align((C_word)C_fromspace_top);
+  C_fromspace_top += C_align(2 * sizeof(C_word));
+  k0->header = C_CLOSURE_TYPE | 1;
+  C_set_block_item(k0, 0, (C_word)termination_continuation);
+  C_save(k0);
+  C_save(C_SCHEME_UNDEFINED);
   return 1;
 }
 
