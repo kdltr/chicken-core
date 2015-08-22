@@ -2406,21 +2406,25 @@ C_regparm int C_fcall C_in_scratchspacep(C_word x)
 
 /* Cons the rest-aguments together: */
 
-C_regparm C_word C_fcall C_build_rest(C_word *ptr, C_word n, C_word *av)
+C_regparm C_word C_fcall C_build_rest(C_word **ptr, C_word c, C_word n, C_word *av)
 {
-  C_word x = C_SCHEME_END_OF_LIST;
+  C_word
+    x = C_SCHEME_END_OF_LIST,
+    *p = *ptr;
   C_SCHEME_BLOCK *node;
-  av += n;
 
-  while(--n) {
-    node = (C_SCHEME_BLOCK *)ptr;
-    ptr += 3;
+  av += c;
+
+  while(--c >= n) {
+    node = (C_SCHEME_BLOCK *)p;
+    p += 3;
     node->header = C_PAIR_TYPE | (C_SIZEOF_PAIR - 1);
     node->data[ 0 ] = *(--av);
     node->data[ 1 ] = x;
     x = (C_word)node;
   }
 
+  *ptr = p;
   return x;
 }
 

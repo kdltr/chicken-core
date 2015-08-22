@@ -1789,7 +1789,7 @@ C_fctexport C_word C_fcall C_h_intern(C_word *slot, int len, C_char *str) C_regp
 C_fctexport C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_intern2(C_word **ptr, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_intern3(C_word **ptr, C_char *str, C_word value) C_regparm;
-C_fctexport C_word C_fcall C_build_rest(C_word *ptr, C_word n, C_word *av) C_regparm;
+C_fctexport C_word C_fcall C_build_rest(C_word **ptr, C_word c, C_word n, C_word *av) C_regparm;
 C_fctexport void C_bad_memory(void) C_noret;
 C_fctexport void C_bad_memory_2(void) C_noret;
 C_fctexport void C_bad_argc(int c, int n) C_noret;
