@@ -280,8 +280,6 @@ static C_TLS int timezone;
 
 typedef C_regparm C_word C_fcall (*integer_plusmin_op) (C_word **ptr, C_word n, C_word x, C_word y);
 
-typedef void (*TOPLEVEL)(C_word c, C_word self, C_word k) C_noret;
-
 typedef struct lf_list_struct
 {
   C_word *lf;
@@ -504,10 +502,9 @@ static void try_extended_number(char *ext_proc_name, C_word c, C_word k, ...) C_
 static void panic(C_char *msg) C_noret;
 static void usual_panic(C_char *msg) C_noret;
 static void horror(C_char *msg) C_noret;
-static void C_fcall initial_trampoline(void *proc) C_regparm C_noret;
 static void C_fcall really_mark(C_word *x) C_regparm;
 static WEAK_TABLE_ENTRY *C_fcall lookup_weak_table_entry(C_word item, C_word container) C_regparm;
-static C_cpsproc(values_continuation);
+static C_cpsproc(values_continuation) C_noret;
 static C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stable);
 static C_regparm int C_fcall C_in_new_heapp(C_word x);
 static C_regparm C_word bignum_times_bignum_unsigned(C_word **ptr, C_word x, C_word y, C_word negp);
@@ -543,29 +540,30 @@ static C_word C_fcall convert_string_to_number(C_char *str, int radix, C_word *f
 static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
 /* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
 static C_word C_fcall maybe_inexact_to_exact(C_word n) C_regparm;
+static void C_fcall mark_system_globals(void) C_regparm;
 static void C_fcall remark_system_globals(void) C_regparm;
 static void C_fcall really_remark(C_word *x) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
 static void C_fcall update_locative_table(int mode) C_regparm;
 static LF_LIST *find_module_handle(C_char *name);
 
-static C_cpsproc(call_cc_wrapper);
-static C_cpsproc(call_cc_values_wrapper);
-static C_cpsproc(gc_2);
-static C_cpsproc(allocate_vector_2);
-static C_cpsproc(make_structure_2);
-static C_cpsproc(generic_trampoline);
-static C_cpsproc(handle_interrupt);
-static C_cpsproc(callback_trampoline);
-static C_cpsproc(callback_return_continuation);
-static C_cpsproc(become_2);
-static C_cpsproc(copy_closure_2);
-static C_cpsproc(dump_heap_state_2);
-static C_cpsproc(sigsegv_trampoline);
-static C_cpsproc(sigill_trampoline);
-static C_cpsproc(sigfpe_trampoline);
-static C_cpsproc(sigbus_trampoline);
-static C_cpsproc(bignum_to_str_2);
+static C_cpsproc(call_cc_wrapper) C_noret;
+static C_cpsproc(call_cc_values_wrapper) C_noret;
+static C_cpsproc(gc_2) C_noret;
+static C_cpsproc(allocate_vector_2) C_noret;
+static C_cpsproc(make_structure_2) C_noret;
+static C_cpsproc(generic_trampoline) C_noret;
+static void handle_interrupt(void *trampoline) C_noret;
+static C_cpsproc(callback_return_continuation) C_noret;
+static C_cpsproc(termination_continuation) C_noret;
+static C_cpsproc(become_2) C_noret;
+static C_cpsproc(copy_closure_2) C_noret;
+static C_cpsproc(dump_heap_state_2) C_noret;
+static C_cpsproc(sigsegv_trampoline) C_noret;
+static C_cpsproc(sigill_trampoline) C_noret;
+static C_cpsproc(sigfpe_trampoline) C_noret;
+static C_cpsproc(sigbus_trampoline) C_noret;
+static C_cpsproc(bignum_to_str_2) C_noret;
 
 static C_word allocate_tmp_bignum(C_word size, C_word negp, C_word initp);
 static C_word allocate_scratch_bignum(C_word **ptr, C_word size, C_word negp, C_word initp);
@@ -1512,19 +1510,6 @@ C_word CHICKEN_continue(C_word k)
 }
 
 
-/* Trampoline called at system startup: */
-
-C_regparm void C_fcall initial_trampoline(void *proc)
-{
-  TOPLEVEL top = (TOPLEVEL)proc;
-  C_word closure = (C_word)C_alloc(C_SIZEOF_CLOSURE(1));
-
-  ((C_SCHEME_BLOCK *)closure)->header = C_CLOSURE_TYPE | 1;
-  C_set_block_item(closure, 0, (C_word)termination_continuation);
-  (top)(2, C_SCHEME_UNDEFINED, closure);
-}
-
-
 /* The final continuation: */
 
 void C_ccall termination_continuation(C_word c, C_word *av)
@@ -1591,6 +1576,7 @@ void barf(int code, char *loc, ...)
   C_word err = error_hook_symbol;
   int c, i;
   va_list v;
+  C_word *av; 
 
   C_dbg_hook(C_SCHEME_UNDEFINED);
 
@@ -1873,26 +1859,27 @@ void barf(int code, char *loc, ...)
 
   default: panic(C_text("illegal internal error code"));
   }
+
+  av = C_alloc(c + 4);
   
   if(!C_immediatep(err)) {
-    C_save(C_fix(code));
+    av[ 0 ] = err;
+    /* No continuation is passed: '##sys#error-hook' may not return: */
+    av[ 1 ] = C_SCHEME_UNDEFINED;
+    av[ 2 ] = C_fix(code);
     
     if(loc != NULL)
-      C_save(intern0(loc));
+      av[ 3 ] = intern0(loc);
     else {
-      C_save(error_location);
+      av[ 3 ] = error_location;
       error_location = C_SCHEME_FALSE;
     }
-    
-    va_start(v, loc);
-    i = c;
 
-    while(i--)
-      C_save(va_arg(v, C_word));
+    for(i = 0; i < c; ++i)
+      av[ i + 4 ] = va_arg(v, C_word);
 
     va_end(v);
-    /* No continuation is passed: '##sys#error-hook' may not return: */
-    C_do_apply(c + 2, err, C_SCHEME_UNDEFINED); 
+    C_apply(c + 4, av);
   }
   else panic(msg);
 }
@@ -2039,13 +2026,14 @@ C_word C_fcall C_restore_callback_continuation2(int level)
 C_word C_fcall C_callback(C_word closure, int argc)
 {
 #ifdef HAVE_SIGSETJMP
-  sigjmp_buf prev;                                                                                                                                      
-#else                                                                                                                                                   
+  sigjmp_buf prev;
+#else
   jmp_buf prev;
 #endif
   C_word 
     *a = C_alloc(C_SIZEOF_CLOSURE(2)),
-    k = C_closure(&a, 2, (C_word)callback_return_continuation, C_SCHEME_FALSE);
+    k = C_closure(&a, 2, (C_word)callback_return_continuation, C_SCHEME_FALSE),
+    *av;
   int old = chicken_is_running;
 
   if(old && C_block_item(callback_continuation_stack_symbol, 0) == C_SCHEME_END_OF_LIST)
@@ -2054,16 +2042,21 @@ C_word C_fcall C_callback(C_word closure, int argc)
   C_memcpy(&prev, &C_restart, sizeof(C_restart));
   callback_returned_flag = 0;       
   chicken_is_running = 1;
-
+  av = C_alloc(argc + 2);
+  av[ 0 ] = closure;
+  av[ 1 ] = k;
+  C_memcpy(av + 2, C_temporary_stack, (argc - 2) * sizeof(C_word));
+  
 #ifdef HAVE_SIGSETJMP
-  if(!C_sigsetjmp(C_restart, 0)) C_do_apply(argc, closure, k);
+  if(!C_sigsetjmp(C_restart, 0)) C_apply(argc, av);
 #else
-  if(!C_setjmp(C_restart)) C_do_apply(argc, closure, k);
+  if(!C_setjmp(C_restart)) C_do_apply(argc, av);
 #endif
 
   serious_signal_occurred = 0;
 
-  if(!callback_returned_flag) (C_restart_trampoline)(C_restart_c);
+  if(!callback_returned_flag) 
+    ((C_proc)C_restart_trampoline)(C_restart_c, C_temporary_stack);
   else {
     C_memcpy(&C_restart, &prev, sizeof(C_restart));
     callback_returned_flag = 0;
@@ -4049,7 +4042,7 @@ void handle_interrupt(void *trampoline)
   /* Build vector with context information: */
   n = C_temporary_stack_bottom - C_temporary_stack;
   p = C_alloc(C_SIZEOF_VECTOR(2) + C_SIZEOF_VECTOR(n));
-  x = (C_word)p;
+  proc = (C_word)p;
   *(p++) = C_VECTOR_TYPE | C_BYTEBLOCK_BIT | (1 * sizeof(C_word));
   *(p++) = (C_word)trampoline;
   state = (C_word)p;
@@ -4065,7 +4058,7 @@ void handle_interrupt(void *trampoline)
   reason = C_fix(pending_interrupts[ --pending_interrupts_count ]);
   proc = C_block_item(interrupt_hook_symbol, 0);
 
-  if(C_immediatep(x))
+  if(C_immediatep(proc))
     panic(C_text("`##sys#interrupt-hook' is not defined"));
 
   c = C_cpu_milliseconds() - interrupt_time;
@@ -4432,8 +4425,9 @@ C_regparm C_word C_fcall C_start_timer(void)
 
 void C_ccall C_stop_timer(C_word c, C_word *av)
 {
-  C_word closure = av[ 0 ];
-  C_word k = av[ 1 ];
+  C_word 
+    closure = av[ 0 ],
+    k = av[ 1 ];
   double t0 = C_cpu_milliseconds() - timer_start_ms;
   C_word 
     ab[ WORDS_PER_FLONUM * 2 + C_SIZEOF_VECTOR(6) ],
@@ -4441,7 +4435,7 @@ void C_ccall C_stop_timer(C_word c, C_word *av)
     elapsed = C_flonum(&a, t0 / 1000.0),
     gc_time = C_flonum(&a, gc_ms / 1000.0),
     info;
-
+  
   info = C_vector(&a, 6, elapsed, gc_time, C_fix(mutation_count),
                   C_fix(tracked_mutation_count), C_fix(gc_count_1_total),
 		  C_fix(gc_count_2));
@@ -7142,7 +7136,7 @@ void C_ccall C_apply(C_word c, C_word *av)
 
   C_temporary_stack -= n;
 
-  if(C_temporary_stack < C_temprary_stack_limit)
+  if(C_temporary_stack < C_temporary_stack_limit)
     barf(C_TOO_MANY_PARAMETERS_ERROR, "apply");
 
   C_memcpy(C_temporary_stack, av + 3, n * sizeof(C_word));
@@ -7160,20 +7154,20 @@ void C_ccall C_call_cc(C_word c, C_word *av)
   C_word *a = C_alloc(C_SIZEOF_CLOSURE(2));
   C_word wrapper;
   void *pr = (void *)C_block_item(cont,0);
-  C_word av[ 3 ];
-
+  C_word av2[ 3 ];
+  
   if(C_immediatep(cont) || C_header_bits(cont) != C_CLOSURE_TYPE)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "call-with-current-continuation", cont);
-
+  
   /* Check for values-continuation: */
   if(C_block_item(k, 0) == (C_word)values_continuation)
     wrapper = C_closure(&a, 2, (C_word)call_cc_values_wrapper, k);
   else wrapper = C_closure(&a, 2, (C_word)call_cc_wrapper, k);
-
-  av[ 0 ] = cont;
-  av[ 1 ] = k;
-  av[ 2 ] = wrapper;
-  ((C_proc)pr)(3, av);
+  
+  av2[ 0 ] = cont;
+  av2[ 1 ] = k;
+  av2[ 2 ] = wrapper;
+  ((C_proc)pr)(3, av2);
 }
 
 
@@ -7199,12 +7193,12 @@ void C_ccall call_cc_values_wrapper(C_word c, C_word *av)
     x1,
     n = c;
   
-  av[ 0 ] = cont;
+  av[ 0 ] = cont;               /* reuse av */
 
   if(c > 2) --n;
   else av[ 1 ] = C_SCHEME_UNBOUND;
 
-  C_apply(n - 2, av2);
+  C_apply(n - 2, av);
 }
 
 
@@ -7249,7 +7243,6 @@ void C_ccall C_values(C_word c, C_word *av)
   }
   else n = av[ 2 ];
 
-  va_end(v);
   C_kontinue(k, n);
 }
 
@@ -8866,7 +8859,7 @@ void C_ccall C_quotient_and_remainder(C_word c, C_word *av)
 {
   C_word ab[C_SIZEOF_FIX_BIGNUM*4+C_SIZEOF_FLONUM*2], *a = ab,
     nx = C_SCHEME_FALSE, ny = C_SCHEME_FALSE,
-    q, r, k, x, y,
+    q, r, k, x, y;
 
   if (c != 4) C_bad_argc_2(c, 4, av[ 0 ]);
 
@@ -8926,7 +8919,7 @@ void C_ccall C_u_integer_quotient_and_remainder(C_word c, C_word *av)
 {
   C_word ab[C_SIZEOF_FIX_BIGNUM*2], *a = ab, q, r;
 
-  if (y == C_fix(0)) C_div_by_zero_error("quotient&remainder");
+  if (av[ 3 ] == C_fix(0)) C_div_by_zero_error("quotient&remainder");
 
   integer_divrem(&a, av[ 2 ], av[ 3 ], &q, &r);
 
@@ -9584,7 +9577,7 @@ void C_ccall C_nequalp(C_word c, C_word *av)
   C_word x, y, result = C_SCHEME_TRUE;
 
   c -= 2;
-  va += 2;
+  av += 2;
   if (c == 0) C_kontinue(k, result);
   x = *(av++);
 
@@ -9836,7 +9829,7 @@ void C_ccall C_gc(C_word c, C_word *av)
 
   if(size && !C_heap_size_is_fixed) {
     C_rereclaim2(size, 0);
-    gc_2(NULL);
+    gc_2(0, NULL);
   }
   else if(f) C_fromspace_top = C_fromspace_limit;
 
@@ -9904,7 +9897,7 @@ void C_ccall C_allocate_vector(C_word c, C_word *av)
     k = av[ 1 ],
     size, bvecf, init, align8,
     bytes,
-    n = C_unfix(size);
+    n;
 
   if(c != 6) C_bad_argc(c, 6);
 
@@ -9912,6 +9905,7 @@ void C_ccall C_allocate_vector(C_word c, C_word *av)
   bvecf = av[ 3 ];
   init = av[ 4 ];
   align8 = av[ 5 ];
+  n = C_unfix(size);
 
   if(n > C_HEADER_SIZE_MASK)
     barf(C_OUT_OF_RANGE_ERROR, NULL, size, C_fix(C_HEADER_SIZE_MASK));
@@ -9938,7 +9932,7 @@ void C_ccall C_allocate_vector(C_word c, C_word *av)
   }
 
   C_save(C_SCHEME_FALSE);
-  allocate_vector_2(NULL);
+  allocate_vector_2(0, NULL);
 }
 
 
@@ -11072,6 +11066,7 @@ void C_ccall C_number_to_string(C_word c, C_word *av)
   } else if (C_truep(C_bignump(num))) {
     C_integer_to_string(c, av); /* reuse av */
   } else {
+    C_word k = av[ 1 ];
     try_extended_number("\003sysextended-number->string", 3, k, num, radix);
   }
 }
@@ -11337,7 +11332,7 @@ void C_ccall C_make_structure(C_word c, C_word *av)
   if(!C_demand(c - 1)) 
     C_reclaim((void *)make_structure_2, c);
 
-  make_structure_2(NULL);
+  make_structure_2(0, NULL);
 }
 
 
@@ -11346,7 +11341,7 @@ void C_ccall make_structure_2(C_word c, C_word *av)
   C_word
     k = C_restore,
     type = C_restore,
-    size = C_rest_count(0),
+    size = c - 2,
     *a = C_alloc(C_SIZEOF_STRUCTURE(size+1)),
     *s = a,
     s0 = (C_word)s;
@@ -11421,7 +11416,7 @@ void C_ccall C_ensure_heap_reserve(C_word c, C_word *av)
   if(!C_demand(C_bytestowords(C_unfix(n))))
     C_reclaim((void *)generic_trampoline, c);
 
-  generic_trampoline(NULL);
+  generic_trampoline(0, NULL);
 }
 
 
@@ -11788,7 +11783,7 @@ void C_ccall C_dload(C_word c, C_word *av)
 #if !defined(NO_DLOAD2) && (defined(HAVE_DLFCN_H) || defined(HAVE_DL_H) || (defined(HAVE_LOADLIBRARY) && defined(HAVE_GETPROCADDRESS)))
   /* Force minor GC: otherwise the lf may contain pointers to stack-data
      (stack allocated interned symbols, for example) */
-  C_save_and_reclaim((void *)dload_2, NULL, 3, k, name, entry);
+  C_save_and_reclaim_args((void *)dload_2, 3, k, name, entry);
 #endif
 
   C_kontinue(k, C_SCHEME_FALSE);
@@ -11805,9 +11800,11 @@ void C_ccall C_dload(C_word c, C_word *av)
 void dload_2(void *dummy)
 {
   void *handle, *p;
-  C_word entry = C_restore,
-         name = C_restore,
-         k = C_restore;
+  C_word
+    entry = C_restore,
+    name = C_restore,
+    k = C_restore,
+    av[ 2 ];
   C_char *mname = (C_char *)C_data_pointer(name);
 
   /*
@@ -11832,7 +11829,9 @@ void dload_2(void *dummy)
 	      current_module_name, (C_uword)current_module_handle);
       }
 
-      ((C_proc2)p)(2, C_SCHEME_UNDEFINED, k);
+      av[ 0 ] = C_SCHEME_UNDEFINED;
+      av[ 1 ] = k;
+      ((C_proc)p)(2, av);       /* doesn't return */
     } else {
       C_dlerror = (char *) C_strerror(errno);
       shl_unload(shl_handle);
@@ -11856,7 +11855,8 @@ void dload_2(void *dummy)
   C_word 
     entry = C_restore,
     name = C_restore,
-    k = C_restore;
+    k = C_restore,
+    av[ 2 ];
   C_char *topname = (C_char *)C_data_pointer(entry);
   C_char *mname = (C_char *)C_data_pointer(name);
   C_char *tmp;
@@ -11885,7 +11885,9 @@ void dload_2(void *dummy)
 	      current_module_name, (C_uword)current_module_handle);
       }
 
-      ((C_proc2)p)(2, C_SCHEME_UNDEFINED, k); /* doesn't return */
+      av[ 0 ] = C_SCHEME_UNDEFINED;
+      av[ 1 ] = k;
+      ((C_proc)p)(2, *av); /* doesn't return */
     }
 
     C_dlclose(handle);
@@ -11907,7 +11909,8 @@ void dload_2(void *dummy)
   C_word
     entry = C_restore,
     name = C_restore,
-    k = C_restore;
+    k = C_restore,
+    av[ 2 ];
   C_char *topname = (C_char *)C_data_pointer(entry);
   C_char *mname = (C_char *)C_data_pointer(name);
 
@@ -11930,7 +11933,9 @@ void dload_2(void *dummy)
 	      current_module_name, (C_uword)current_module_handle);
       }
 
-      ((C_proc2)p)(2, C_SCHEME_UNDEFINED, k);
+      av[ 0 ] = C_SCHEME_UNDEFINED;
+      av[ 1 ] = k;
+      ((C_proc)p)(2, av);       /* doesn't return */
     }
     else FreeLibrary(handle);
   }
@@ -11973,7 +11978,7 @@ void C_ccall C_become(C_word c, C_word *av)
 
   *p = 0;
   C_fromspace_top = C_fromspace_limit;
-  C_save_and_reclaim((void *)become_2, NULL, 1, k);
+  C_save_and_reclaim_args((void *)become_2, 1, k);
 }
 
 
@@ -12066,11 +12071,14 @@ void C_ccall C_locative_ref(C_word c, C_word *av)
   C_word
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    loc = av[ 2 ],
-    *av2, *ptr, val;
+    loc,
+    *av2,
+    *ptr, val;
   C_alloc_flonum;
 
   if(c != 3) C_bad_argc(c, 3);
+
+  loc = av[ 2 ];
 
   if(C_immediatep(loc) || C_block_header(loc) != C_LOCATIVE_TAG)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-set!", loc);
@@ -12312,16 +12320,17 @@ void C_ccall C_copy_closure(C_word c, C_word *av)
     proc = av[ 2 ];
   int n = C_header_size(proc);
 
-  if(!C_demand(n + 1)) C_save_and_reclaim((void *)copy_closure_2, NULL, 2, proc, k);
+  if(!C_demand(n + 1)) 
+    C_save_and_reclaim_args((void *)copy_closure_2, 2, proc, k);
   else {
     C_save(proc);
     C_save(k);
-    copy_closure_2(NULL);
+    copy_closure_2(0, NULL);
   }
 }
 
 
-static void C_ccall  copy_closure_2(C_word c, C_word *av)
+static void C_ccall copy_closure_2(C_word c, C_word *av)
 {
   C_word 
     k = C_restore,
@@ -12346,10 +12355,14 @@ void C_ccall C_call_with_cthulhu(C_word c, C_word *av)
     /* closure = av[ 0 ] */
     k = av[ 1 ],
     proc = av[ 2 ],
-    *a = C_alloc(C_SIZEOF_CLOSURE(1));
+    *a = C_alloc(C_SIZEOF_CLOSURE(1)),
+    av2[ 4 ];
   
-  k = C_closure(&a, 1, (C_word)termination_continuation);
-  C_apply(4, C_SCHEME_UNDEFINED, k, proc, C_SCHEME_END_OF_LIST);
+  av2[ 0 ] = C_SCHEME_UNDEFINED;
+  av2[ 1 ] = C_closure(&a, 1, (C_word)termination_continuation); /* k */
+  av2[ 2 ] = proc;
+  av2[ 3 ] = C_SCHEME_END_OF_LIST;
+  C_apply(4, av2);
 }
 
 
