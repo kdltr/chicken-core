@@ -1872,6 +1872,7 @@ void barf(int code, char *loc, ...)
   av = C_alloc(c + 4);
   
   if(!C_immediatep(err)) {
+    va_start(v, loc);
     av[ 0 ] = err;
     /* No continuation is passed: '##sys#error-hook' may not return: */
     av[ 1 ] = C_SCHEME_UNDEFINED;
@@ -1888,7 +1889,7 @@ void barf(int code, char *loc, ...)
       av[ i + 4 ] = va_arg(v, C_word);
 
     va_end(v);
-    C_apply(c + 4, av);
+    C_do_apply(c + 4, av);
   }
   else panic(msg);
 }
@@ -2057,7 +2058,7 @@ C_word C_fcall C_callback(C_word closure, int argc)
   C_memcpy(av + 2, C_temporary_stack, (argc - 2) * sizeof(C_word));
   
 #ifdef HAVE_SIGSETJMP
-  if(!C_sigsetjmp(C_restart, 0)) C_apply(argc, av);
+  if(!C_sigsetjmp(C_restart, 0)) C_do_apply(argc, av);
 #else
   if(!C_setjmp(C_restart)) C_do_apply(argc, av);
 #endif
@@ -4081,8 +4082,8 @@ void handle_interrupt(void *trampoline)
   av[ 0 ] = proc;
   av[ 1 ] = C_SCHEME_UNDEFINED;
   av[ 2 ] = reason;
-  av[ 2 ] = state;
-  C_apply(3, av);
+  av[ 3 ] = state;
+  C_do_apply(4, av);
 }
 
 
@@ -7119,17 +7120,26 @@ C_regparm C_word C_fcall C_i_null_pointerp(C_word x)
 
 void C_ccall C_apply(C_word c, C_word *av)
 {
-  C_word closure = av[ 0 ];
-  C_word k = av[ 1 ];
-  C_word fn = av[ 2 ];
+  C_word
+    /* closure = av[ 0 ] */
+    k = av[ 1 ],
+    fn = av[ 2 ];
   int i, n = c - 3;
   int m = n;    
-  C_word x, skip;
+  C_word x, skip, *ptr;
 
   if(c < 4) C_bad_min_argc(c, 4);
 
-  if(C_immediatep(fn) || C_header_bits(fn) != C_CLOSURE_TYPE) {
+  if(C_immediatep(fn) || C_header_bits(fn) != C_CLOSURE_TYPE)
     barf(C_NOT_A_CLOSURE_ERROR, "apply", fn);
+
+  ptr = C_temporary_stack_limit;
+  *(ptr++) = fn;
+  *(ptr++) = k;
+
+  if(n > 1) {
+    C_memcpy(ptr, av + 3, (n - 1) * sizeof(C_word));
+    ptr += n - 1;
   }
 
   x = av[ c - 1 ];
@@ -7143,32 +7153,22 @@ void C_ccall C_apply(C_word c, C_word *av)
     if(C_temporary_stack < C_temporary_stack_limit)
       barf(C_TOO_MANY_PARAMETERS_ERROR, "apply");
 
-    C_save(x);
+    *(ptr++) = x;
     ++m;
   }
 
-  if(c > 4) {
-    C_temporary_stack -= n - 1;
-
-    if(C_temporary_stack < C_temporary_stack_limit)
-      barf(C_TOO_MANY_PARAMETERS_ERROR, "apply");
-
-    C_memcpy(C_temporary_stack, av + 3, n * sizeof(C_word));
-  }
-
-  C_save(k);
-  C_save(fn);
-  ((C_proc)(void *)C_block_item(fn, 0))(m + 1, C_temporary_stack);
+  ((C_proc)(void *)C_block_item(fn, 0))(m + 1, C_temporary_stack_limit);
 }
 
 
 void C_ccall C_call_cc(C_word c, C_word *av)
 {
-  C_word closure = av[ 0 ];
-  C_word k = av[ 1 ];
-  C_word cont = av[ 2 ];
-  C_word *a = C_alloc(C_SIZEOF_CLOSURE(2));
-  C_word wrapper;
+  C_word
+    /* closure = av[ 0 ] */
+    k = av[ 1 ],
+    cont = av[ 2 ],
+    *a = C_alloc(C_SIZEOF_CLOSURE(2)),
+    wrapper;
   void *pr = (void *)C_block_item(cont,0);
   C_word av2[ 3 ];
   
@@ -7214,7 +7214,7 @@ void C_ccall call_cc_values_wrapper(C_word c, C_word *av)
   if(c > 2) --n;
   else av[ 1 ] = C_SCHEME_UNBOUND;
 
-  C_apply(n - 2, av);
+  C_do_apply(n - 2, av);
 }
 
 
@@ -7246,7 +7246,7 @@ void C_ccall C_values(C_word c, C_word *av)
   if(C_block_item(k, 0) == (C_word)values_continuation) {
     av[ 0 ] = k;                /* reuse av */
     av[ 1 ] = C_SCHEME_UNBOUND; /* unbound value marks direct invocation */
-    C_apply(n - 2, av);
+    C_do_apply(n - 2, av);
   }
   
   if(c != 3) {
@@ -7287,7 +7287,7 @@ void C_ccall C_apply_values(C_word c, C_word *av)
     av2[ 0 ] = k;
     av2[ 1 ] = C_SCHEME_UNBOUND; /* unbound value marks direct invocation */
     C_memcpy(av2 + 2, C_temporary_stack, n * sizeof(C_word));
-    C_apply(n, av2);
+    C_do_apply(n, av2);
   }
   
   if(C_immediatep(lst) || (C_block_header(lst) == C_PAIR_TAG && C_u_i_cdr(lst) == C_SCHEME_END_OF_LIST)) {
@@ -7325,7 +7325,7 @@ void C_ccall C_call_with_values(C_word c, C_word *av)
   kk = C_closure(&a, 3, (C_word)values_continuation, kont, k);
   av[ 0 ] = thunk;              /* reuse av */
   av[ 1 ] = kk;
-  C_apply(0, av);
+  C_do_apply(0, av);
 }
 
 
@@ -7342,7 +7342,7 @@ void C_ccall C_u_call_with_values(C_word c, C_word *av)
   kk = C_closure(&a, 3, (C_word)values_continuation, kont, k);
   av[ 0 ] = thunk;              /* reuse av */
   av[ 1 ] = kk;
-  C_apply(0, av);
+  C_do_apply(0, av);
 }
 
 
@@ -7370,7 +7370,7 @@ void C_ccall values_continuation(C_word c, C_word *av)
     C_memcpy(av2 + 2, av + 2, (n - 2) * sizeof(C_word));
   }
 
-  C_apply(n - 2, av2);
+  C_do_apply(n - 2, av2);
 }
 
 static C_word rat_times_integer(C_word **ptr, C_word rat, C_word i)
@@ -12378,7 +12378,7 @@ void C_ccall C_call_with_cthulhu(C_word c, C_word *av)
   av2[ 1 ] = C_closure(&a, 1, (C_word)termination_continuation); /* k */
   av2[ 2 ] = proc;
   av2[ 3 ] = C_SCHEME_END_OF_LIST;
-  C_apply(4, av2);
+  C_do_apply(4, av2);
 }
 
 
