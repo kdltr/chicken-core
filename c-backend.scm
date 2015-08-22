@@ -806,18 +806,18 @@
 			(gen #t "C_resize_stack(" target-stack-size ");") ) )
 		    (gen #t "C_check_nursery_minimum(" demand ");"
 			 #t "if(!C_demand(" demand ")){"
-			 #t "C_save_and_reclaim((void*)C_toplevel, c, av);}"
+			 #t "C_save_and_reclaim((void*)C_toplevel,c,av);}"
 			 #t "toplevel_initialized=1;"
 			 #t "if(!C_demand_2(" ldemand ")){"
 			 #t "C_save(t1);"
-			 #t "C_rereclaim2(" ldemand "*sizeof(C_word), 1);"
+			 #t "C_rereclaim2(" ldemand "*sizeof(C_word),1);"
 			 #t "t1=C_restore;}"
 			 #t "a=C_alloc(" demand ");")
 		    (when (not (zero? llen))
 		      (gen #t "C_initialize_lf(lf," llen ");")
 		      (literal-frame)
-		      (gen #t "C_register_lf2(lf," llen ",create_ptable());"
-			   #t #\{) ) ) ]
+		      (gen #t "C_register_lf2(lf," llen ",create_ptable());"))
+		    (gen #\{) ) ]
 		 [rest
 		  (gen #t "C_word *a;")
 		  (when (and (not unsafe) (not no-argc-checks) (> n 2) (not empty-closure))
