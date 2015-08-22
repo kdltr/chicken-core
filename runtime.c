@@ -3117,10 +3117,12 @@ void C_save_and_reclaim(void *trampoline, int n, C_word *av)
 void C_save_and_reclaim_args(void *trampoline, int n, ...)
 {
   va_list v;
+  int i;
   
   va_start(v, n);
 
-  while(n--) C_save(va_arg(v, C_word));
+  for(i = 0; i < n; ++i)
+    C_save(va_arg(v, C_word));
 
   va_end(v);
   C_reclaim(trampoline, n);
