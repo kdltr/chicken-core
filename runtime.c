@@ -2060,13 +2060,13 @@ C_word C_fcall C_callback(C_word closure, int argc)
   av[ 0 ] = closure;
   av[ 1 ] = k;
   /*XXX is the order of arguments an issue? */
-  C_memcpy(av + 2, C_temporary_stack, (argc - 2) * sizeof(C_word));
+  C_memcpy(av + 2, C_temporary_stack, argc * sizeof(C_word));
   C_temporary_stack = C_temporary_stack_bottom;
   
 #ifdef HAVE_SIGSETJMP
-  if(!C_sigsetjmp(C_restart, 0)) C_do_apply(argc, av);
+  if(!C_sigsetjmp(C_restart, 0)) C_do_apply(argc + 2, av);
 #else
-  if(!C_setjmp(C_restart)) C_do_apply(argc, av);
+  if(!C_setjmp(C_restart)) C_do_apply(argc + 2, av);
 #endif
 
   serious_signal_occurred = 0;
