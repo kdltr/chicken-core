@@ -1091,8 +1091,8 @@
 	  (lambda (v t)
 	    (gen #t "x=" (foreign-result-conversion t "a") v ");"
 		 #t "C_save(x);") )
-	  vlist 
-	  argtypes)
+	  (reverse vlist)
+	  (reverse argtypes))
 	 (unless (eq? 'void rtype)
 	   (gen #t "return " (foreign-argument-conversion rtype)) )
 	 (gen "C_callback_wrapper((void *)" id #\, n #\))
