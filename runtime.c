@@ -7314,12 +7314,15 @@ void C_ccall C_call_with_values(C_word c, C_word *av)
   C_word
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    thunk = av[ 2 ],
-    kont = av[ 3 ],
+    thunk,
+    kont,
     *a = C_alloc(C_SIZEOF_CLOSURE(3)),
     kk;
 
   if(c != 4) C_bad_argc(c, 4);
+
+  thunk = av[ 2 ];
+  kont = av[ 3 ];
 
   if(C_immediatep(thunk) || C_header_bits(thunk) != C_CLOSURE_TYPE)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "call-with-values", thunk);
