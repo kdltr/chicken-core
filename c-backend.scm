@@ -253,7 +253,7 @@
 	       (cond ((eq? '##core#proc (node-class fn))
 		      (push-args args i "0")
 		      (let ([fpars (node-parameters fn)])
-			(gen #t (first fpars) #\( nf ",av);") ))
+			(gen #t (first fpars) #\( nf ",av2);") ))
 		     (call-id
 		      (cond ((and (eq? call-id (lambda-literal-id ll))
 				  (lambda-literal-looping ll) )
@@ -284,7 +284,7 @@
 				    (push-args args i (and (not empty-closure) (string-append "t" (number->string nc))))
 				    (gen #t call-id #\()
 				    (unless customizable (gen nf #\,))
-				    (gen "av);") ) ) )))
+				    (gen "av2);") ) ) )))
 		     ((and (eq? '##core#global (node-class fn))
 			   (not unsafe) 
 			   (not no-procedure-checks)
@@ -317,7 +317,7 @@
 			       (gen "C_fast_retrieve_symbol_proc(lf[" index "])") ))
 			(gen #\;)
 			(push-args args i carg)
-			(gen #t "tp(" nf ",av);")))
+			(gen #t "tp(" nf ",av2);")))
 		     (else
 		      (gen #t #\t nc #\=)
 		      (expr fn i)
@@ -327,7 +327,7 @@
 		      (if (or unsafe no-procedure-checks (first params))
 			  (gen "(void*)(*((C_word*)t" nc "+1))")
 			  (gen "C_fast_retrieve_proc(t" nc ")") )
-		      (gen ")(" nf ",av);") ) ) ) )
+		      (gen ")(" nf ",av2);") ) ) ) )
 	  
 	    ((##core#recurse) 
 	     (let* ([n (length subs)]
@@ -471,12 +471,12 @@
 
       (define (push-args args i selfarg)
 	(let ((n (length args)))
-	  (gen #t "C_word av[" (+ n (if selfarg 1 0)) "];")
+	  (gen #t "C_word av2[" (+ n (if selfarg 1 0)) "];")
 	  (when selfarg (gen #t "av[0]=" selfarg ";"))
 	  (do ((j (if selfarg 1 0) (add1 j))
 	       (args args (cdr args)))
 	      ((null? args))
-	    (gen #t "av[" j "]=")
+	    (gen #t "av2[" j "]=")
 	    (expr (car args) i)
 	    (gen ";"))))
 
@@ -816,12 +816,7 @@
 		      (literal-frame)
 		      (gen #t "C_register_lf2(lf," llen ",create_ptable());") ) ) ]
 		 [rest
-		  (gen #t "C_word *a,c2=c;")
-		  (gen #t "C_save_rest(")
-		  (if (> n 0)
-		      (gen #\t (- n 1))
-		      (gen "c") )
-		  (gen ",c2," n ");")
+		  (gen #t "C_word *a;")
 		  (when (and (not unsafe) (not no-argc-checks) (> n 2) (not empty-closure))
 		    (gen #t "if(c<" n ") C_bad_min_argc_2(c," n ",t0);") )
 		  (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
@@ -852,10 +847,10 @@
 		      (not direct)
 		      (or rest external (> demand 0)) )
 	     (cond [rest
-		    (gen #t "C_reclaim((void*)" id ");"
+		    (gen #t "C_safe_and_reclaim((void*)" id ",c,av);"
 			 #t "else{"
 			 #t "a=C_alloc((c-" n ")*3);")
-		    (gen #t "t" n "=C_restore_rest(a,C_rest_count(0));")
+		    (gen #t "t" n "=C_build_rest(a," n ",av);")
 		    (do ([i (+ n 1) (+ i 1)]
 			 [j temps (- j 1)] )
 			((zero? j))
@@ -863,11 +858,11 @@
 		    (when (> demand 0) (gen #t "C_word *a=C_alloc(" demand ");")) ]
 		   [else 
 		    (cond ((and customizable (> nec 0))
-			   (gen #t "C_save_and_reclaim_args((void *)tr" id "," nec ",")
+			   (gen #t "C_save_and_reclaim_args((void *)tr" id #\, nec #\,)
 			   (apply gen arglist)
 			   (gen ")};"))
 			  (else
-			   (gen "C_save_and_reclaim((void *)" id "," n ",av);}")))]))
+			   (gen "C_save_and_reclaim((void *)" id #\, n ",av);}")))]))
 	   (expression
 	    (lambda-literal-body ll)
 	    (if rest
