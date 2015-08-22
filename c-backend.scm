@@ -991,11 +991,11 @@
 	      "(x))); goto C_ret; C_cblockend"))
        (cond (cps
 	      (gen #t "C_noret_decl(" id ")"
-		   #t "static void C_ccall " id "(C_word C_c,C_word C_av){"
-		   #t "C_word C_buf=C_av[0];")
-	      (do ((i 1 (add1 i)))
+		   #t "static void C_ccall " id "(C_word C_c,C_word *C_av){"
+		   #t "C_word C_k=C_av[1],C_buf=C_av[2];")
+	      (do ((i 0 (add1 i)))
 		  ((>= i n))
-		(gen #t "C_word C_a" i "=C-av[" i "];")))
+		(gen #t "C_word C_a" i "=C_av[" (+ i 3) "];")))
 	     (else
 	      (gen #t "C_regparm static C_word C_fcall " id #\()
 	      (apply gen (intersperse (cons "C_word C_buf" (make-variable-list n "C_a")) #\,))
