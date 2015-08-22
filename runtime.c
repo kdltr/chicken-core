@@ -11487,13 +11487,12 @@ void C_ccall C_context_switch(C_word c, C_word *av)
 {
   C_word
     /* closure = av[ 0 ] */
-    k = av[ 1 ],
     state = av[ 2 ],
     n = C_header_size(state) - 1,
     adrs = C_block_item(state, 0);
   C_proc tp = (C_proc)C_block_item(adrs,0);
 
-  tp(n, (C_word *)state + 1);
+  tp(n, (C_word *)state + 2);
 }
 
 
