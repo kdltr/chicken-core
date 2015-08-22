@@ -616,11 +616,10 @@
 	    [nsrv '()] )
 
 	(define (restore n)
-	  (do ((i (- n 1) (- i 1))
-	       (j 0 (+ j 1)) )
-	      ((negative? i))
-	    (gen #t "C_word t" i "=C_pick(" j ");") ) 
-	  (gen #t "C_adjust_stack(-" n ");") )
+	  (do ((i 0 (add1 i))
+	       (j (sub1 n) (sub1 j)))
+	      ((>= i n))
+	    (gen #t "C_word t" i "=av[" j "];")))
 
 	(##sys#hash-table-for-each
 	 (lambda (id ll)
