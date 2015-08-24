@@ -29,6 +29,9 @@
 
 4.10.1
 
+- Core libraries
+  - try-compile from setup-api cleans up temporary output files (#1213).
+
 - Runtime system:
   - The calling convention of CPS procedures has been changed to
     use "argument vectors" instead of C calling convention.
