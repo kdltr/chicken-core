@@ -27,6 +27,14 @@
   - The core units have been converted to modules under the "chicken"
     namespace.
 
+4.10.1
+
+- Runtime system:
+  - The calling convention of CPS procedures has been changed to
+    use "argument vectors" instead of C calling convention.
+  - Apply hack is no longer used; the limitation of 128 arguments
+    has been lifted for platforms which had no apply hack.
+
 4.10.0
 
 - Security fixes
