@@ -42,7 +42,7 @@ repository, then build the libraries and necessary development files:
 This will build CHICKEN and install it in {{~/target}}, which we use
 as a temporary place to store the target files. A few things to note:
 
-* {{ARCH}} is empty, since we don't want the build process to detect the architecture (since the target-architecture is likely to be different) and there is no {{apply-hack.<ARCH>.S}} file corresponding to arm at the moment.  If you know the right string to represent target architecture (see {{C_PLATFORM_TYPE}} in {{chicken.h}} for the supported options), you can set {{ARCH}} with that value.  Notice, however, that the apply-hack is not supported for all those architectures (at the moment, only for {{ppc.darwin}}, {{ppc.sysv}}, {{x86}} and {{x86-64}}).
+* {{ARCH}} is empty, since we don't want the build process to detect the architecture (since the target-architecture is likely to be different).  If you know the right string to represent target architecture (see {{C_PLATFORM_TYPE}} in {{chicken.h}} for the supported options), you can set {{ARCH}} with that value.
 * {{PREFIX}} gives the prefix ''on the target system'', under which the
 libraries will finally be installed. In this case it will be {{/usr/lib}}.
 
