@@ -36,7 +36,6 @@ XCODE_TOOLPATH ?= $(XCODE_DEVELOPER)/usr/bin
 # for simulator:  XCODE_SDK ?= $(XCODE_DEVELOPER)/Platforms/iPhoneSimulator.platform/Developer/SDKs/ipHoneSimulator7.0.sdk
 XCODE_SDK ?= $(XCODE_DEVELOPER)/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS7.0.sdk
 STATICBUILD = 1
-HACKED_APPLY =
 
 # options
 

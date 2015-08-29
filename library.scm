@@ -2339,7 +2339,6 @@ EOF
 (define ##sys#call-with-current-continuation (##core#primitive "C_call_cc"))
 (define (##sys#call-with-direct-continuation k) (##core#app k (##core#inline "C_direct_continuation" #f)))
 (define ##sys#call-with-cthulhu (##core#primitive "C_call_with_cthulhu"))
-(define (##sys#direct-return dk x) (##core#inline "C_direct_return" dk x))
 (define values (##core#primitive "C_values"))
 (define call-with-values (##core#primitive "C_call_with_values"))
 (define ##sys#call-with-values call-with-values)

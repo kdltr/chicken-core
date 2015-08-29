@@ -213,7 +213,7 @@
     ##sys#check-open-port
     ##sys#check-char ##sys#check-vector ##sys#check-byte-vector ##sys#list ##sys#cons
     ##sys#call-with-values ##sys#flonum-in-fixnum-range? 
-    ##sys#fudge ##sys#immediate? ##sys#direct-return ##sys#context-switch
+    ##sys#fudge ##sys#immediate? ##sys#context-switch
     ##sys#make-structure ##sys#apply ##sys#apply-values ##sys#continuation-graft
     ##sys#bytevector? ##sys#make-vector ##sys#setter ##sys#car ##sys#cdr ##sys#pair?
     ##sys#eq? ##sys#list? ##sys#vector? ##sys#eqv? ##sys#get-keyword
@@ -342,11 +342,10 @@
   (rewrite '##sys#apply 8 rewrite-apply) )
 
 (let ()
-  (define (rewrite-c..r op iop1 iop2 index)
+  (define (rewrite-c..r op iop1 iop2)
     (rewrite
      op 8
      (lambda (db classargs cont callargs)
-       ;; (<op> <rest-vector>) -> (##core#inline "C_i_vector_ref"/"C_slot" <rest-vector> (quote <index>))
        ;; (<op> <x>) -> (##core#inline <iop1> <x>) [safe]
        ;; (<op> <x>) -> (##core#inline <iop2> <x>) [unsafe]
        (and (= (length callargs) 1)
@@ -357,24 +356,16 @@
 		  '##core#call (list #t)
 		  (list
 		   cont
-		   (cond ((and (eq? '##core#variable (node-class arg))
-			       (eq? 'vector (db-get db (first (node-parameters arg)) 'rest-parameter)) )
-			  (make-node
-			   '##core#inline 
-			   (if unsafe
-			       '("C_slot")
-			       '("C_i_vector_ref") )
-			   (list arg (qnode index)) ) )
-			 ((and unsafe iop2) (make-node '##core#inline (list iop2) callargs))
-			 (iop1 (make-node '##core#inline (list iop1) callargs))
-			 (else (return #f)) ) ) ) ) ) ) ) ) ) )
+		   (cond [(and unsafe iop2) (make-node '##core#inline (list iop2) callargs)]
+			 [iop1 (make-node '##core#inline (list iop1) callargs)]
+			 [else (return #f)] ) ) ) ) ) ) ) ) ) )
 
-  (rewrite-c..r 'car "C_i_car" "C_u_i_car" 0)
-  (rewrite-c..r '##sys#car "C_i_car" "C_u_i_car" 0)
-  (rewrite-c..r '##sys#cdr "C_i_cdr" "C_u_i_cdr" 0)
-  (rewrite-c..r 'cadr "C_i_cadr" "C_u_i_cadr" 1)
-  (rewrite-c..r 'caddr "C_i_caddr" "C_u_i_caddr" 2)
-  (rewrite-c..r 'cadddr "C_i_cadddr" "C_u_i_cadddr" 3))
+  (rewrite-c..r 'car "C_i_car" "C_u_i_car")
+  (rewrite-c..r '##sys#car "C_i_car" "C_u_i_car")
+  (rewrite-c..r '##sys#cdr "C_i_cdr" "C_u_i_cdr")
+  (rewrite-c..r 'cadr "C_i_cadr" "C_u_i_cadr")
+  (rewrite-c..r 'caddr "C_i_caddr" "C_u_i_caddr")
+  (rewrite-c..r 'cadddr "C_i_cadddr" "C_u_i_cadddr") )
 
 (let ([rvalues
        (lambda (db classargs cont callargs)
@@ -844,7 +835,6 @@
 (rewrite '##sys#foreign-pointer-argument 17 1 "C_i_foreign_pointer_argumentp")
 (rewrite '##sys#foreign-ranged-integer-argument 17 2 "C_i_foreign_ranged_integer_argumentp")
 (rewrite '##sys#foreign-unsigned-ranged-integer-argument 17 2 "C_i_foreign_unsigned_ranged_integer_argumentp")
-(rewrite '##sys#direct-return 17 2 "C_direct_return")
 
 (rewrite 'blob-size 2 1 "C_block_size" #f)
 

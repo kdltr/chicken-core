@@ -95,9 +95,6 @@ endif
 ifdef SYMBOLGC
 	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
 endif
-ifneq ($(HACKED_APPLY),)
-	echo "#define C_HACKED_APPLY" >>$@
-endif
 	cat chicken-defaults.h >>$@
 
 include $(SRCDIR)/rules.make

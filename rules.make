@@ -180,13 +180,6 @@ endef
 $(foreach obj, $(COMPILER_OBJECTS_1),\
           $(eval $(call declare-static-compiler-object,$(obj))))
 
-# assembler objects
-
-ifneq ($(HACKED_APPLY),)
-$(APPLY_HACK_OBJECT): $(SRCDIR)apply-hack.$(ARCH)$(ASM)
-	$(ASSEMBLER) $(ASSEMBLER_OPTIONS) $(ASSEMBLER_COMPILE_OPTION) $< $(ASSEMBLER_OUTPUT)
-endif
-
 # program objects
 
 define declare-utility-program-object
@@ -224,24 +217,24 @@ $(foreach obj, $(ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1),\
 
 libs: $(TARGETLIBS)
 
-lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(SO): $(LIBCHICKEN_SHARED_OBJECTS) $(APPLY_HACK_OBJECT)
+lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(SO): $(LIBCHICKEN_SHARED_OBJECTS)
 	$(LINKER) $(LINKER_OPTIONS) $(LINKER_LINK_SHARED_LIBRARY_OPTIONS) $(LIBCHICKEN_SO_LINKER_OPTIONS) \
 	  $(LINKER_OUTPUT) $^ $(LIBCHICKEN_SO_LIBRARIES)
 ifdef USES_SONAME
 	ln -sf $(LIBCHICKEN_SO_FILE) $(LIBCHICKEN_SO_FILE).$(BINARYVERSION)
 endif
 
-cyg$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)-0.dll: $(LIBCHICKEN_SHARED_OBJECTS) $(APPLY_HACK_OBJECT)
+cyg$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)-0.dll: $(LIBCHICKEN_SHARED_OBJECTS)
 	$(LINKER) -shared -o $(LIBCHICKEN_SO_FILE) -Wl,--dll -Wl,--add-stdcall-alias \
 	    -Wl,--enable-stdcall-fixup -Wl,--warn-unresolved-symbols \
 	    -Wl,--dll-search-prefix=cyg -Wl,--allow-multiple-definition \
 	    -Wl,--allow-shlib-undefined \
 	    -Wl,--out-implib=libchicken.dll.a -Wl,--export-all-symbols \
 	    -Wl,--enable-auto-import \
-	    -Wl,--whole-archive $(LIBCHICKEN_SHARED_OBJECTS) $(APPLY_HACK_OBJECT) \
+	    -Wl,--whole-archive $(LIBCHICKEN_SHARED_OBJECTS) \
 	    -Wl,--no-whole-archive $(LIBCHICKEN_SO_LIBRARIES)
 
-lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A): $(APPLY_HACK_OBJECT) $(LIBCHICKEN_STATIC_OBJECTS)
+lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A): $(LIBCHICKEN_STATIC_OBJECTS)
 	$(LIBRARIAN) $(LIBRARIAN_OPTIONS) $(LIBRARIAN_OUTPUT) $^
 
 # import libraries and extensions
@@ -859,7 +852,7 @@ bench: $(CHICKEN_SHARED_EXECUTABLE) $(CSI_SHARED_EXECUTABLE) $(CSC_PROGRAM)$(EXE
 boot-chicken:
 	"$(MAKE)" PLATFORM=$(PLATFORM) PREFIX=/nowhere CONFIG= \
 	  CHICKEN=$(CHICKEN) PROGRAM_SUFFIX=-boot-stage1 STATICBUILD=1 \
-	  C_COMPILER_OPTIMIZATION_OPTIONS="$(C_COMPILER_OPTIMIZATION_OPTIONS)" C_HACKED_APPLY= BUILDING_CHICKEN_BOOT=1 \
+	  C_COMPILER_OPTIMIZATION_OPTIONS="$(C_COMPILER_OPTIMIZATION_OPTIONS)" BUILDING_CHICKEN_BOOT=1 \
 	  confclean chicken-boot-stage1$(EXE)
 	"$(MAKE)" PLATFORM=$(PLATFORM) PREFIX=/nowhere CONFIG= \
 	  CHICKEN=.$(SEP)chicken-boot-stage1$(EXE) PROGRAM_SUFFIX=-boot \

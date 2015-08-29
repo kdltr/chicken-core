@@ -224,16 +224,6 @@ ASM ?= .S
 POSIXFILE ?= posixunix
 CHICKEN_CONFIG_H = chicken-config.h
 
-ifneq ($(ARCH),)
-HACKED_APPLY ?= 1
-APPLY_HACK_SRC ?= apply-hack.$(ARCH)$(ASM)
-APPLY_HACK_OBJECT ?= apply-hack.$(ARCH)$(O)
-endif
-
-ifeq ($(HACKED_APPLY),)
-APPLY_HACK_OBJECT =
-endif
-
 # bootstrapping compiler
 
 CHICKEN ?= chicken$(EXE)
