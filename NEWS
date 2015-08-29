@@ -32,6 +32,11 @@
 - Runtime system:
   - The calling convention of CPS procedures has been changed to
     use "argument vectors" instead of C calling convention.
+  - The C API of C_values(), C_do_apply() and how to invoke CPS
+    functions has changed.  The C_procN() macros have disappeared.
+    The manual example in "Accessing external objects" for C_values
+    has been updated.  See also the "numbers" egg for examples on
+    how to support pre- and post-4.10.1 CHICKENs simultaneously.
   - Apply hack is no longer used; the limitation of 128 arguments
     has been lifted for platforms which had no apply hack.
   - Increased the "binary compatibility version" to 8.
