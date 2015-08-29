@@ -27,7 +27,7 @@
   - The core units have been converted to modules under the "chicken"
     namespace.
 
-4.9.1
+4.10.0
 
 - Security fixes
   - CVE-2014-6310: Use POSIX poll() on Android platform to avoid
@@ -113,6 +113,9 @@
   - Type hinting for foreign-primitives now allows returning multiple
     values when no return type has been specified.
 
+- Compiler
+  - Fixed an off by one allocation problem in generated C code for (list ...).
+
 - Build system
   - MANDIR was renamed to MAN1DIR and TOPMANDIR was renamed to MANDIR
      in order to comply with standard Makefile practice in UNIX.
@@ -130,7 +133,6 @@
        retrieval (or the egg doesn't exist), the egg's directory is
        now properly cleaned up (#1109, thanks to Alex Charlton)
   - "chicken"
-    - The compiler option -no-parentheses-synonyms has been fixed.
     - The -r5rs-syntax option did nothing; this has been fixed.
 
 4.9.0
