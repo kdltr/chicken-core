@@ -34,6 +34,7 @@
     use "argument vectors" instead of C calling convention.
   - Apply hack is no longer used; the limitation of 128 arguments
     has been lifted for platforms which had no apply hack.
+  - Increased the "binary compatibility version" to 8.
 
 4.10.0
 

@@ -282,7 +282,7 @@
 	|       `-- chicken.h
 	|-- lib
 	|   |-- chicken
-	|   |   `-- 7
+	|   |   `-- 8
 	|   |       |-- chicken.import.so
 	|   |       |-- chicken.data-structures.import.so
 	|   |       |-- chicken.eval.import.so
@@ -307,8 +307,8 @@
 	|   |-- libchicken.a
 	|   |-- libchicken.dll.a                      (Windows)
 	|   |-- libchicken.dylib                      (Macintosh)
-	|   |-- libchicken.so -> libchicken.so.7      (Unix)
-	|   `-- libchicken.so.7			      (Unix)
+	|   |-- libchicken.so -> libchicken.so.8      (Unix)
+	|   `-- libchicken.so.8			      (Unix)
 	`-- share
 	    |-- chicken
 	    |   |-- doc
