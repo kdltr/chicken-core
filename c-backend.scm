@@ -473,8 +473,22 @@
 	    (loop (cdr xs)))))
 
       (define (push-args args i selfarg)
-	(let ((n (length args)))
-	  (gen #t "C_word av2[" (+ n (if selfarg 1 0)) "];")
+	(let* ((n (length args))
+	       (avl (+ n (if selfarg 1 0)))
+	       (caller-has-av? (not (or (lambda-literal-customizable ll)
+					(lambda-literal-direct ll)))))
+	  ;; Try to re-use argvector from current function if it is
+	  ;; large enough.  push-args gets used only for functions in
+	  ;; CPS context, so callee never returns to current function.
+	  ;; And even so, av[] is already copied into temporaries.
+	  (cond (caller-has-av?
+		 (gen #t "C_word *av2;")
+		 (gen #t "if(c >= " avl ") {")
+		 (gen #t "  av2=av; /* Re-use our own argvector */")
+		 (gen #t "} else {")
+		 (gen #t "  av2=C_alloc(" avl ");")
+		 (gen #t "}"))
+		(else (gen #t "C_word av2[" avl "];")))
 	  (when selfarg (gen #t "av2[0]=" selfarg ";"))
 	  (do ((j (if selfarg 1 0) (add1 j))
 	       (args args (cdr args)))

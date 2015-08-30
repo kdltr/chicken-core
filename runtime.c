@@ -3107,7 +3107,7 @@ void C_save_and_reclaim(void *trampoline, int n, C_word *av)
 {
   if(C_temporary_stack != av) { /* used in apply */
     C_temporary_stack = C_temporary_stack_bottom - n;
-    C_memcpy(C_temporary_stack, av, n * sizeof(C_word));
+    C_memmove(C_temporary_stack, av, n * sizeof(C_word));
   }
 
   C_reclaim(trampoline, n);
