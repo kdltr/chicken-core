@@ -7257,7 +7257,7 @@ void C_ccall C_values(C_word c, C_word *av)
   /* Check continuation whether it receives multiple values: */
   if(C_block_item(k, 0) == (C_word)values_continuation) {
     av[ 0 ] = k;                /* reuse av */
-    C_memmove(av + 1, av + 2, (c - 1) * sizeof(C_word));
+    C_memmove(av + 1, av + 2, (c - 2) * sizeof(C_word));
     C_do_apply(c - 1, av);
   }
   
