@@ -39,8 +39,7 @@
      valid-compiler-options valid-compiler-options-with-argument
 
      ;; For consumption by c-backend *only*
-     target-include-file words-per-flonum
-     parameter-limit small-parameter-limit)
+     target-include-file words-per-flonum)
 
 (import chicken scheme
 	chicken.data-structures
@@ -78,8 +77,6 @@
 
 (define units-used-by-default '(library eval chicken-syntax))
 (define words-per-flonum 4)
-(define parameter-limit 1024)
-(define small-parameter-limit 128)
 
 (eq-inline-operator "C_eqp")
 (membership-test-operators

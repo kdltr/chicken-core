@@ -557,58 +557,44 @@
 	    (gen "};")))))
   
     (define (prototypes)
-      (let ([large-signatures '()])
-	(gen #t)
-	(##sys#hash-table-for-each
-	 (lambda (id ll)
-	   (let* ([n (lambda-literal-argument-count ll)]
-		  [customizable (lambda-literal-customizable ll)] 
-		  [empty-closure (and customizable (zero? (lambda-literal-closure-size ll)))]
-		  [varlist (intersperse (make-variable-list (if empty-closure (sub1 n) n) "t") #\,)]
-		  [rest (lambda-literal-rest-argument ll)]
-		  [rest-mode (lambda-literal-rest-argument-mode ll)]
-		  [direct (lambda-literal-direct ll)] 
-		  [allocated (lambda-literal-allocated ll)] )
-	     (when (>= n small-parameter-limit)
-	       (set! large-signatures (lset-adjoin/eq? large-signatures (add1 n))))
-	     (gen #t)
-	     (for-each
-	      (lambda (s) 
-		(when (>= s small-parameter-limit)
-		  (set! large-signatures (lset-adjoin/eq? large-signatures (add1 s)))))
-	      (lambda-literal-callee-signatures ll) )
-	     (cond [(not (eq? 'toplevel id))
-		    (gen "C_noret_decl(" id ")" #t)
-		    (gen "static ")
-		    (gen (if direct "C_word " "void "))
-		    (if customizable
-			(gen "C_fcall ")
-			(gen "C_ccall ") )
-		    (gen id) ]
-		   [else
-		    (let ((uname (if unit-name (string-append unit-name "_toplevel") "toplevel")))
-		      (gen "C_noret_decl(C_" uname ")" #t) ;XXX what's this for?
-		      (gen "C_externexport void C_ccall ")
-		      (gen "C_" uname) ) ] )
-	     (gen #\()
-	     (unless customizable (gen "C_word c,"))
-	     (when (and direct (not (zero? allocated)))
-	       (gen "C_word *a")
-	       (when (pair? varlist) (gen #\,)) )
-	     (if (or customizable direct)
-		 (apply gen varlist)
-		 (gen "C_word *av"))
-	     (gen #\))
-	     ;;(when customizable (gen " C_c_regparm"))
-	     (unless direct (gen " C_noret"))
-	     (gen #\;) ))
-	 lambda-table) 
-	(for-each
-	 (lambda (s)
-	   (gen #t "typedef void (*C_proc" s ")(C_word")
-	   (for-each gen (make-list s ",C_word"))
-	   (gen ") C_noret;") )
-	 large-signatures) ) )
+      (gen #t)
+      (##sys#hash-table-for-each
+       (lambda (id ll)
+	 (let* ((n (lambda-literal-argument-count ll))
+		(customizable (lambda-literal-customizable ll))
+		(empty-closure (and customizable (zero? (lambda-literal-closure-size ll))))
+		(varlist (intersperse (make-variable-list (if empty-closure (sub1 n) n) "t") #\,))
+		(rest (lambda-literal-rest-argument ll))
+		(rest-mode (lambda-literal-rest-argument-mode ll))
+		(direct (lambda-literal-direct ll))
+		(allocated (lambda-literal-allocated ll)) )
+	   (gen #t)
+	   (cond ((not (eq? 'toplevel id))
+		  (gen "C_noret_decl(" id ")" #t)
+		  (gen "static ")
+		  (gen (if direct "C_word " "void "))
+		  (if customizable
+		      (gen "C_fcall ")
+		      (gen "C_ccall ") )
+		  (gen id) )
+		 (else
+		  (let ((uname (if unit-name (string-append unit-name "_toplevel") "toplevel")))
+		    (gen "C_noret_decl(C_" uname ")" #t) ;XXX what's this for?
+		    (gen "C_externexport void C_ccall ")
+		    (gen "C_" uname) ) ) )
+	   (gen #\()
+	   (unless customizable (gen "C_word c,"))
+	   (when (and direct (not (zero? allocated)))
+	     (gen "C_word *a")
+	     (when (pair? varlist) (gen #\,)) )
+	   (if (or customizable direct)
+	       (apply gen varlist)
+	       (gen "C_word *av"))
+	   (gen #\))
+	   ;;(when customizable (gen " C_c_regparm"))
+	   (unless direct (gen " C_noret"))
+	   (gen #\;) ))
+       lambda-table) )
   
     (define (trampolines)
       (let ([ns '()]
