@@ -27,6 +27,11 @@
   - The core units have been converted to modules under the "chicken"
     namespace.
 
+4.10.2
+
+- Platform support
+  - CHICKEN now supports the Linux X32 ABI (thanks to Sven Hartrumpf).
+
 4.10.1
 
 - Core libraries

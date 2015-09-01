@@ -50,6 +50,13 @@ LIBRARIES = -lm -ldl
 NEEDS_RELINKING = yes
 USES_SONAME = yes
 
+# architectures
+
+ifeq ($(ARCH),x32)
+C_COMPILER_OPTIONS += -mx32
+LINKER_OPTIONS += -mx32
+endif
+
 # special files
 
 CHICKEN_CONFIG_H = chicken-config.h

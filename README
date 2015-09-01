@@ -410,6 +410,9 @@
 
         Linux:
 
+	  - If you want to build Linux binaries which use the "X32 ABI",
+	    you can pass ARCH=x32 on the Make command line.
+
 	  - Some old Linux distributions ship with a buggy version of
 	    the GNU C compiler (2.96). If the system is configured for
 	    kernel recompilation, then an alternative GCC version is
