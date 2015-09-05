@@ -7150,7 +7150,7 @@ void C_ccall C_apply(C_word c, C_word *av)
   *(ptr++) = k;
 
   if(n > 1) {
-    C_memcpy(ptr, av + 3, m * sizeof(C_word));
+    C_memmove(ptr, av + 3, m * sizeof(C_word));
     ptr += m;
   }
 
@@ -11353,7 +11353,7 @@ void C_ccall C_make_structure(C_word c, C_word *av)
 {
   if(!C_demand(c - 1)) {
     C_temporary_stack = C_temporary_stack_bottom - (c - 1);
-    C_memcpy(C_temporary_stack, av + 1, (c - 1) * sizeof(C_word));
+    C_memmove(C_temporary_stack, av + 1, (c - 1) * sizeof(C_word));
     C_reclaim((void *)make_structure_2, c - 1);
   }
 
