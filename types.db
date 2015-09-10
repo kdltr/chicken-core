@@ -664,10 +664,10 @@
 	       ((string) (##sys#size #(1))))
 
 (string-ref (#(procedure #:clean #:enforce #:foldable) string-ref (string fixnum) char)
-	    ((string fixnum) (##core#inline "C_subchar" #(1) #(2))))
+	    ((string fixnum) (##core#inline "C_i_string_ref" #(1) #(2))))
 
 (string-set! (#(procedure #:enforce) string-set! (string fixnum char) undefined)
-	     ((string fixnum char) (##core#inline "C_setsubchar" #(1) #(2) #(3))))
+	     ((string fixnum char) (##core#inline "C_i_string_set" #(1) #(2) #(3))))
 
 (string-append (#(procedure #:clean #:enforce) string-append (#!rest string) string)
 	       ((string string) (##sys#string-append #(1) #(2))))
@@ -1685,19 +1685,7 @@
 (chicken.lolevel#make-record-instance (#(procedure #:clean) chicken.lolevel#make-record-instance (symbol #!rest) *))
 (chicken.lolevel#make-weak-locative (#(procedure #:clean #:enforce) chicken.lolevel#make-weak-locative (* #!optional fixnum) locative))
 
-(chicken.lolevel#move-memory! (#(procedure #:enforce) chicken.lolevel#move-memory! (* * #!optional fixnum fixnum fixnum) *)
-	      ((pointer pointer fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) '0 '0))
-	      ((pointer pointer fixnum fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) '0 #(4)))
-	      ((pointer pointer fixnum fixnum fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) #(5) #(4)))
-	      ((locative locative fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) '0 '0))
-	      ((locative locative fixnum fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) '0 #(4)))
-	      ((locative locative fixnum fixnum fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) #(5) #(4))))
+(chicken.lolevel#move-memory! (#(procedure #:enforce) chicken.lolevel#move-memory! (* * #!optional fixnum fixnum fixnum) *))
 
 (chicken.lolevel#mutate-procedure!
  (#(procedure #:enforce) chicken.lolevel#mutate-procedure! (procedure (procedure (procedure) . *)) procedure))

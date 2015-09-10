@@ -29,6 +29,11 @@
 
 4.10.2
 
+- Security fixes
+  - Specialisation rules for string-{ref,set!}, bit-set?
+    and move-memory no longer use unchecked C functions which could
+    result in undefined behaviour, including buffer overruns (#1216).
+
 - Platform support
   - CHICKEN now supports the Linux X32 ABI (thanks to Sven Hartrumpf).
 
