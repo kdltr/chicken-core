@@ -45,22 +45,25 @@
 
   (define +default-repository-files+
     ;;XXX keep this up-to-date!
-    '("setup-api.so" "setup-api.import.so"
-      "setup-download.so" "setup-download.import.so"
-      "chicken.import.so"
-      "chicken.data-structures.import.so"
+    '("chicken.data-structures.import.so"
+      "chicken.eval.import.so"
+      "chicken.expand.import.so"
       "chicken.extras.import.so"
       "chicken.files.import.so"
       "chicken.foreign.import.so"
+      "chicken.import.so"
       "chicken.irregex.import.so"
       "chicken.lolevel.import.so"
       "chicken.ports.import.so"
       "chicken.posix.import.so"
       "chicken.tcp.import.so"
       "chicken.utils.import.so"
-      "srfi-1.import.so"
-      "srfi-4.import.so"
       "csi.import.so"
+      "setup-api.import.so"
+      "setup-api.so"
+      "setup-download.so"
+      "setup-download.import.so"
+      "srfi-4.import.so"
       "types.db"))
 
   (define-constant +defaults-version+ 1)
