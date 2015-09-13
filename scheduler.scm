@@ -48,18 +48,20 @@
 /* TODO: Winsock select() only works for sockets */
 # include <winsock2.h>
 /* Beware: winsock2.h must come BEFORE windows.h */
-# define C_msleep(n)     (Sleep(C_unfix(n)), C_SCHEME_TRUE)
+# define C_msleep(n)   (Sleep((DWORD)C_num_to_uint64(n)), C_SCHEME_TRUE)
 #else
 # include <sys/time.h>
 static C_word C_msleep(C_word ms);
 C_word C_msleep(C_word ms) {
 #ifdef __CYGWIN__
-  if(usleep(C_unfix(ms) * 1000) == -1) return C_SCHEME_FALSE;
+  if(usleep((useconds_t)C_num_to_uint64(ms) * 1000) == -1) return C_SCHEME_FALSE;
 #else
   struct timespec ts;
-  unsigned long mss = C_unfix(ms);
-  ts.tv_sec = mss / 1000;
-  ts.tv_nsec = (mss % 1000) * 1000000;
+  C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab,
+         sec = C_s_a_u_i_integer_quotient(&a, 2, ms, C_fix(1000)),
+         msec = C_s_a_u_i_integer_remainder(&a, 2, ms, C_fix(1000));
+  ts.tv_sec = (time_t)C_num_to_uint64(sec);
+  ts.tv_nsec = (long)C_unfix(msec) * 1000000;
   
   if(nanosleep(&ts, NULL) == -1) return C_SCHEME_FALSE;
 #endif
@@ -202,7 +204,8 @@ EOF
 			    (when (and (null? ready-queue-head)
 				       (null? ##sys#fd-list) 
 				       (pair? ##sys#timeout-list))
-			      (let ((tmo1 (caar ##sys#timeout-list)))
+			      (let* ((tmo1 (caar ##sys#timeout-list))
+				     (tmo1 (inexact->exact (round tmo1))))
 				(set! eintr
 				  (and (not (##core#inline 
 					     "C_msleep" 
