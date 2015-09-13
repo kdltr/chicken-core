@@ -715,8 +715,8 @@
 
 (rewrite 'cons 16 2 "C_a_i_cons" #t 3)
 (rewrite '##sys#cons 16 2 "C_a_i_cons" #t 3)
-(rewrite 'list 16 #f "C_a_i_list" #t '(1 3) #t)
-(rewrite '##sys#list 16 #f "C_a_i_list" #t '(1 3))
+(rewrite 'list 16 #f "C_a_i_list" #t '(0 3) #t)
+(rewrite '##sys#list 16 #f "C_a_i_list" #t '(0 3))
 (rewrite 'vector 16 #f "C_a_i_vector" #t #t #t)
 (rewrite '##sys#vector 16 #f "C_a_i_vector" #t #t)
 (rewrite '##sys#make-structure 16 #f "C_a_i_record" #t #t #t)
