@@ -71,7 +71,8 @@ EOF
    list->f32vector list->f64vector list->s16vector list->s32vector
    list->s8vector list->u16vector list->u32vector list->u8vector
    make-f32vector make-f64vector make-s16vector make-s32vector
-   make-s8vector make-u16vector make-u32vector make-u8vector
+   make-s64vector make-s8vector make-u16vector make-u32vector
+   make-u64vector make-u8vector
    number-vector? read-u8vector read-u8vector! release-number-vector
    subf32vector subf64vector subs16vector subs32vector subs64vector
    subs8vector subu16vector subu8vector subu32vector subu64vector
