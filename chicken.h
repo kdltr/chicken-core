@@ -1206,6 +1206,8 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_u_fixnum_difference(n1, n2)   ((n1) - (n2) + C_FIXNUM_BIT)
 #define C_fixnum_difference(n1, n2)     (C_u_fixnum_difference(n1, n2) | C_FIXNUM_BIT)
 #define C_u_fixnum_divide(n1, n2)       (C_fix(C_unfix(n1) / C_unfix(n2)))
+/* XXX TODO OBSOLETE: These 4 can be removed after recompiling c-platform.scm */
+#define C_u_fixnum_modulo(n1, n2)       (C_fix(C_unfix(n1) % C_unfix(n2)))
 #define C_u_fixnum_and(n1, n2)          ((n1) & (n2))
 #define C_fixnum_and(n1, n2)            (C_u_fixnum_and(n1, n2) | C_FIXNUM_BIT)
 #define C_u_fixnum_or(n1, n2)           ((n1) | (n2))
