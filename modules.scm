@@ -382,6 +382,10 @@
      (lambda (nexp)
        (set-car! (cdr nexp) (merge-se (or (cadr nexp) '()) senv)))
      nexps)
+    (set-module-saved-environments!
+     mod
+     (cons (merge-se (##sys#current-environment) vexports sexps)
+	   (##sys#macro-environment)))
     (set! ##sys#module-table (cons (cons name mod) ##sys#module-table)) 
     mod))
 
