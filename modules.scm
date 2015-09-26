@@ -586,7 +586,7 @@
     (define (resolve sym)
       (or (lookup sym '()) sym))	;XXX really empty se?
     (define (warn msg mod id)
-      (##sys#warn (sprintf msg mod id)))
+      (##sys#warn (string-append msg " in module `" (symbol->string mod) "'") id))
     (define (tostr x)
       (cond ((string? x) x)
 	    ((keyword? x) (##sys#string-append (##sys#symbol->string x) ":")) ; hack
@@ -619,7 +619,7 @@
 			    (cond ((null? ids)
 				   (for-each
 				    (lambda (id)
-				      (warn "imported identifier doesn't exist in module ~s: ~s" name id))
+				      (warn "imported identifier doesn't exist" name id))
 				    missing)
 				   (values name `(,head ,form ,@imports) v s impi))
 				  ((assq (car ids) impv) =>
@@ -639,7 +639,7 @@
 				     (cond ((null? imps)
 					    (for-each
 					     (lambda (id)
-					       (warn "excluded identifier doesn't exist in module ~s: ~s" name id))
+					       (warn "excluded identifier doesn't exist" name id))
 					     ids)
 					    (values name `(,head ,form ,@imports) v s impi))
 					   ((memq (caar imps) ids) =>
@@ -660,7 +660,7 @@
 				   (cond ((null? imps)
 					  (for-each
 					   (lambda (id)
-					     (warn "renamed identifier doesn't exist in module ~s: ~s" name id))
+					     (warn "renamed identifier doesn't exist" name id))
 					   (map car ids))
 					  (values name `(,head ,form ,@imports) v s impi))
 					 ((assq (caar imps) ids) =>
