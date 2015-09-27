@@ -452,10 +452,13 @@
 			     (when (and (eq? (software-version) 'macosx)
 					(equal? (cadr static) from) 
 					(equal? (pathname-extension to) "a"))
-			       (run (,*ranlib-command* ,(shellpath to)) ) ))
-			   (if (deployment-mode)
-			       f
-			       (or (target-prefix to) to))))
+				   (run (,*ranlib-command* ,(shellpath to)) ) ))
+			   (cond ((deployment-mode) f)
+				 ((and (not (equal? (destination-prefix) (runtime-prefix))))
+				  ;; we did not append a prefix already
+				  (target-prefix to))
+				 ;; There's been destination-prefix added before
+				 (else to))))
 		       files) ) )
       (write-info id dests (supply-version info #f)) ) ) )
 
