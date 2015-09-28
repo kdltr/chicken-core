@@ -401,6 +401,8 @@ EOF
 	(for-each
 	 (lambda (t)
 	   (let ((p (##sys#slot t 11)))
+	     ;; XXX: This should never be false, because otherwise the
+	     ;; thread is not supposed to be on ##sys#fd-list!
 	     (when (pair? p) ; (FD . RWFLAGS)? (can also be mutex or thread)
 	       (let ((i/o (cdr p)))
 		 (case i/o
@@ -415,8 +417,9 @@ EOF
 		    (panic
 		     (sprintf "create-fdset: invalid i/o direction: ~S (fd = ~S)" i/o fd))))))))
 	 (cdar lst))
-	(when (or input output)
-	  ((foreign-lambda void "C_fdset_add" int bool bool) fd input output))
+	;; Our position in fd-list must match fdset array position, so
+	;; always add an fdset entry, even if input & output are #f.
+	((foreign-lambda void "C_fdset_add" int bool bool) fd input output)
 	(loop (cdr lst))))))
 
 (define (fdset-test inf outf i/o)
