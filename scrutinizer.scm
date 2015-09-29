@@ -299,8 +299,8 @@
 	   (pp (fragment x))))))
 
     (define (get-specializations name)
-      (let* ((a (variable-mark name '##compiler#specializations))
-	     (b (variable-mark name '##compiler#local-specializations))
+      (let* ((a (variable-mark name '##compiler#local-specializations))
+	     (b (variable-mark name '##compiler#specializations))
 	     (c (append (or a '()) (or b '()))))
 	(and (pair? c) c)))
 
@@ -369,8 +369,7 @@
 		       (cond ((and (fx= 1 nargs) 
 				   (variable-mark pn '##compiler#predicate)) =>
 				   (lambda (pt)
-				     (cond ((match-argument-types
-					     (list pt) (cdr actualtypes) typeenv #f #t)
+				     (cond ((match-argument-types (list pt) (cdr actualtypes) typeenv)
 					    (report-notice
 					     loc
 					     (sprintf 
@@ -383,8 +382,7 @@
 					      (set! op (list pn pt))))
 					   ((begin
 					      (trail-restore trail0 typeenv)
-					      (match-argument-types
-					       (list `(not ,pt)) (cdr actualtypes) typeenv #f #t))
+					      (match-argument-types (list `(not ,pt)) (cdr actualtypes) typeenv))
 					    (report-notice
 					     loc
 					     (sprintf 
@@ -405,9 +403,7 @@
 					      (tenv2 (append
 						      (append-map type-typeenv stype)
 						      typeenv)))
-					 (cond ((match-argument-types
-						 stype (cdr actualtypes) tenv2
-						 #t)
+					 (cond ((match-argument-types stype (cdr actualtypes) tenv2)
 						(set! op (cons pn (car spec)))
 						(set! typeenv tenv2)
 						(let* ((r2 (and (pair? (cddr spec))
@@ -914,10 +910,9 @@
 
 ;;; Type-matching
 ;
-; - "exact" means: first argument must match second one exactly
 ; - "all" means: all elements in `or'-types in second argument must match
 
-(define (match-types t1 t2 typeenv #!optional exact all)
+(define (match-types t1 t2 typeenv #!optional all)
 
   (define (match-args args1 args2)
     (d "match args: ~s <-> ~s" args1 args2)
@@ -940,7 +935,7 @@
 	    ((match1 (car args1) (car args2))
 	     (loop (cdr args1) (cdr args2) opt1 opt2))
 	    (else #f))))
-  
+
   (define (match-rest rtype args opt)	;XXX currently ignores `opt'
     (let-values (((head tail) (span (lambda (x) (not (eq? '#!rest x))) args)))
       (and (every			
@@ -954,11 +949,9 @@
     (memq a '(#!rest #!optional)))
 
   (define (match-results results1 results2)
-    (cond ((null? results1) 
-	   (or (null? results2)
-	       (and (not exact) (eq? '* results2))))
-	  ((eq? '* results1))
-	  ((eq? '* results2) (not exact))
+    (cond ((eq? '* results1))
+	  ((eq? '* results2) (not all))
+	  ((null? results1) (null? results2))
 	  ((null? results2) #f)
 	  ((and (memq (car results1) '(undefined noreturn))
 		(memq (car results2) '(undefined noreturn))))
@@ -967,8 +960,7 @@
 	  (else #f)))
 
   (define (rawmatch1 t1 t2)
-    (fluid-let ((exact #f)
-		(all #f))
+    (fluid-let ((all #f))
       (match1 t1 t2)))
 
   (define (every-match1 lst1 lst2)
@@ -1019,18 +1011,16 @@
 		    #t)
 		   (else #f))))
 	  ((eq? t1 '*))
-	  ((eq? t2 '*) (and (not exact) (not all)))
+	  ((eq? t2 '*) (not all))
 	  ((eq? t1 'undefined) #f)
 	  ((eq? t2 'undefined) #f)
 	  ((and (pair? t1) (eq? 'not (car t1)))
-	   (fluid-let ((exact #f)
-		       (all #f))
-	     (let* ((trail0 trail)
-		    (m (match1 (cadr t1) t2)))
-	       (trail-restore trail0 typeenv)
-	       (not m))))
+	   (let* ((trail0 trail)
+		  (m (rawmatch1 (cadr t1) t2)))
+	     (trail-restore trail0 typeenv)
+	     (not m)))
 	  ((and (pair? t2) (eq? 'not (car t2)))
-	   (and (not exact)
+	   (and (not all)
 		(let* ((trail0 trail)
 		       (m (match1 t1 (cadr t2))))
 		  (trail-restore trail0 typeenv)
@@ -1040,8 +1030,8 @@
 	  ((and (pair? t2) (eq? 'or (car t2)))
 	   (over-all-instantiations
 	    (cdr t2)
-	    typeenv 
-	    (or exact all)
+	    typeenv
+	    all
 	    (lambda (t) (match1 t1 t))))
 	  ;; s.a.
 	  ((and (pair? t1) (eq? 'or (car t1))) 
@@ -1054,45 +1044,30 @@
 	   (match1 (third t1) t2)) ; assumes typeenv has already been extracted
 	  ((and (pair? t2) (eq? 'forall (car t2)))
 	   (match1 t1 (third t2))) ; assumes typeenv has already been extracted
-	  ((eq? t1 'noreturn) (not exact))
-	  ((eq? t2 'noreturn) (not exact))
-	  ((eq? t1 'boolean)
-	   (and (not exact)
-		(match1 '(or true false) t2)))
-	  ((eq? t2 'boolean)
-	   (and (not exact)
-		(match1 t1 '(or true false))))
-	  ((eq? t1 'integer) 
-	   (and (not exact)
-		(match1 '(or fixnum bignum) t2)))
-	  ((eq? t1 'number) 
-	   (and (not exact)
-		(match1 '(or fixnum float bignum ratnum cplxnum) t2)))
-	  ((eq? t2 'integer)
-	   (and (not exact)
-		(match1 t1 '(or fixnum bignum))))
-	  ((eq? t2 'number)
-	   (and (not exact)
-		(match1 t1 '(or fixnum float bignum ratnum cplxnum))))
-	  ((eq? 'procedure t1)
-	   (and (pair? t2)
-		(eq? 'procedure (car t2))))
-	  ((eq? 'procedure t2) 
-	   (and (not exact)
-		(pair? t1)
-		(eq? 'procedure (car t1))))
+	  ((eq? t1 'noreturn))
+	  ((eq? t2 'noreturn))
+	  ((eq? t1 'boolean) (match1 '(or true false) t2))
+	  ((eq? t2 'boolean) (match1 t1 '(or true false)))
+	  ((eq? t1 'integer) (match1 '(or fixnum bignum) t2))
+	  ((eq? t2 'integer) (match1 t1 '(or fixnum bignum)))
+	  ((eq? t1 'number) (match1 '(or fixnum float bignum ratnum cplxnum) t2))
+	  ((eq? t2 'number) (match1 t1 '(or fixnum float bignum ratnum cplxnum)))
 	  ((eq? t1 'pair) (match1 '(pair * *) t2))
 	  ((eq? t2 'pair) (match1 t1 '(pair * *)))
 	  ((eq? t1 'list) (match1 '(list-of *) t2))
 	  ((eq? t2 'list) (match1 t1 '(list-of *)))
 	  ((eq? t1 'vector) (match1 '(vector-of *) t2))
 	  ((eq? t2 'vector) (match1 t1 '(vector-of *)))
+	  ((eq? 'procedure t1)
+	   (and (pair? t2) (eq? 'procedure (car t2))))
+	  ((eq? 'procedure t2)
+	   (and (not all)
+		(pair? t1) (eq? 'procedure (car t1))))
 	  ((eq? t1 'null)
-	   (and (not exact) (not all)
+	   (and (not all)
 		(pair? t2) (eq? 'list-of (car t2))))
 	  ((eq? t2 'null)
-	   (and (not exact)
-		(pair? t1) (eq? 'list-of (car t1))))
+	   (and (pair? t1) (eq? 'list-of (car t1))))
 	  ((and (pair? t1) (pair? t2) (eq? (car t1) (car t2)))
 	   (case (car t1)
 	     ((procedure)
@@ -1113,8 +1088,7 @@
 	   (and (pair? t2)
 		(case (car t2)
 		  ((list-of)
-		   (and (not exact)
-			(not all)
+		   (and (not all)
 			(match1 (second t1) (second t2))
 			(match1 (third t1) t2)))
 		  ((list)
@@ -1129,7 +1103,7 @@
 	   (and (pair? t1)
 		(case (car t1)
 		  ((list-of)
-		   (and (not exact)
+		   (and (not all)
 			(match1 (second t1) (second t2))
 			(match1 t1 (third t2))))
 		  ((list)
@@ -1140,61 +1114,46 @@
 				    `(list ,@(cddr t1)))
 				(third t2))))
 		  (else #f))))
-	  ((and (pair? t1) (eq? 'list-of (car t1)))
-	   (or (eq? 'null t2)
-	       (and (pair? t2)
-		    (case (car t2)
-		      ((list)
-		       (let ((t1 (second t1)))
-			 (over-all-instantiations
-			  (cdr t2)
-			  typeenv
-			  #t
-			  (lambda (t) (match1 t1 t)))))
-		      (else #f)))))
 	  ((and (pair? t1) (eq? 'list (car t1)))
-	   (and (pair? t2)
-		(case (car t2)
-		  ((list-of)
-		   (and (not exact) 
-			(not all)
-			(let ((t2 (second t2)))
-			  (over-all-instantiations
-			   (cdr t1)
-			   typeenv 
-			   #t
-			   (lambda (t) (match1 t t2))))))
-		  (else #f))))
+	   (and (not all)
+		(pair? t2) (eq? 'list-of (car t2))
+		(over-all-instantiations
+		 (cdr t1)
+		 typeenv
+		 #t
+		 (cute match1 <> (second t2)))))
+	  ((and (pair? t1) (eq? 'list-of (car t1)))
+	   (and (pair? t2) (eq? 'list (car t2))
+		(over-all-instantiations
+		 (cdr t2)
+		 typeenv
+		 #t
+		 (cute match1 (second t1) <>))))
 	  ((and (pair? t1) (eq? 'vector (car t1)))
-	   (and (not exact) (not all)
-		(pair? t2)
-		(eq? 'vector-of (car t2))
-		(let ((t2 (second t2)))
-		  (over-all-instantiations
-		   (cdr t1)
-		   typeenv
-		   #t
-		   (lambda (t) (match1 t t2))))))
-	  ((and (pair? t2) (eq? 'vector (car t2)))
-	   (and (pair? t1)
-		(eq? 'vector-of (car t1))
-		(let ((t1 (second t1)))
-		  (over-all-instantiations
-		   (cdr t2)
-		   typeenv 
-		   #t
-		   (lambda (t) (match1 t1 t))))))
+	   (and (not all)
+		(pair? t2) (eq? 'vector-of (car t2))
+		(over-all-instantiations
+		 (cdr t1)
+		 typeenv
+		 #t
+		 (cute match1 <> (second t2)))))
+	  ((and (pair? t1) (eq? 'vector-of (car t1)))
+	   (and (pair? t2) (eq? 'vector (car t2))
+		(over-all-instantiations
+		 (cdr t2)
+		 typeenv
+		 #t
+		 (cute match1 (second t1) <>))))
 	  (else #f)))
 
   (let ((m (match1 t1 t2)))
-    (dd "    match~a~a ~a <-> ~a -> ~a  te: ~s" 
-	(if exact " (exact)" "") 
+    (dd "    match~a ~a <-> ~a -> ~a  te: ~s"
 	(if all " (all)" "") 
 	t1 t2 m typeenv)
     m))
 
 
-(define (match-argument-types typelist atypes typeenv #!optional exact all)
+(define (match-argument-types typelist atypes typeenv)
   ;; this doesn't need optional: it is only used for predicate- and specialization
   ;; matching
   (let loop ((tl typelist) (atypes atypes))
@@ -1204,9 +1163,9 @@
 	  ((eq? (car tl) '#!rest)
 	   (every 
 	    (lambda (at)
-	      (match-types (cadr tl) at typeenv exact all))
+	      (match-types (cadr tl) at typeenv #t))
 	    atypes))
-	  ((match-types (car tl) (car atypes) typeenv exact all)
+	  ((match-types (car tl) (car atypes) typeenv #t)
 	   (loop (cdr tl) (cdr atypes)))
 	  (else #f))))
 

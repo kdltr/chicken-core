@@ -61,4 +61,15 @@ return n;}
 (compiler-typecase (if #t 'a "a")
   (symbol 1))
 
+;; specializations are prioritized by order of appearance
+(: abc (* -> boolean))
+(define (abc x) #f)
+(define-specialization (abc (x number)) #t)
+(define-specialization (abc (x fixnum)) #f)
+(assert (abc 1))
+
+;; user-defined specializations take precedence over built-ins
+(define-specialization (+) 1)
+(assert (= (+) 1))
+
 )

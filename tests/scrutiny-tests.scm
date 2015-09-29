@@ -198,3 +198,12 @@
   (if (char-or-string? x)
       (symbol? x)   ; should report with x = (or char string)
       (string? x))) ; should report with x = symbol
+
+;; list- and pair-type argument matching
+
+(let ((f (the (pair -> *) _))) (f (list)))        ; warning
+(let ((f (the (pair -> *) _))) (f (make-list x))) ; no warning
+(let ((f (the (null -> *) _))) (f (list 1)))      ; warning
+(let ((f (the (null -> *) _))) (f (make-list x))) ; no warning
+(let ((f (the (list -> *) _))) (f (cons 1 2)))    ; warning
+(let ((f (the (list -> *) _))) (f (cons 1 x)))    ; no warning
