@@ -48,6 +48,32 @@
 #define C_rnd_fix()		(C_fix(rand()))
 <#
 
+;;; Runtime support module
+
+(module chicken.core (srfi-id library-id)
+
+(import scheme chicken)
+
+;; 1 => srfi-1
+(define (srfi-id n)
+  (if (fixnum? n)
+      (##sys#intern-symbol
+       (##sys#string-append "srfi-" (##sys#number->string n)))
+      (##sys#syntax-error-hook 'require-extension "invalid SRFI number" n)))
+
+;; (foo bar baz) => foo.bar.baz
+(define (library-id lib)
+  (define (library-part->string id)
+    (cond ((symbol? id) (##sys#symbol->string id))
+	  ((number? id) (##sys#number->string id))
+	  (else (##sys#error "invalid extension specifier" lib))))
+  (do ((lib (cdr lib) (cdr lib))
+       (str (library-part->string (car lib))
+	    (string-append str "." (library-part->string (car lib)))))
+      ((null? lib) (##sys#intern-symbol str))))
+
+) ; chicken.core
+
 (module chicken.eval
   (chicken-home define-reader-ctor dynamic-load-libraries
    eval eval-handler extension-information
@@ -60,7 +86,8 @@
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment))
 (import chicken)
 
-(import chicken.expand
+(import chicken.core
+	chicken.expand
 	chicken.foreign)
 
 (include "common-declarations.scm")
@@ -1294,24 +1321,6 @@
 		 '() )
 	     (loop1 (cdr ids)) ) ) ) ) ) )
 
-;; 1 => srfi-1
-(define (##sys#srfi-id n)
-  (if (fixnum? n)
-      (##sys#intern-symbol
-       (##sys#string-append "srfi-" (##sys#number->string n)))
-      (##sys#syntax-error-hook 'require-extension "invalid SRFI number" n)))
-
-;; (foo bar baz) => foo.bar.baz
-(define (##sys#library-id lib)
-  (define (library-part->string id)
-    (cond ((symbol? id) (##sys#symbol->string id))
-	  ((number? id) (##sys#number->string id))
-	  ((##sys#error "invalid extension specifier" lib))))
-  (do ((lib (cdr lib) (cdr lib))
-       (str (library-part->string (car lib))
-	    (string-append str "." (library-part->string (car lib)))))
-      ((null? lib) (##sys#intern-symbol str))))
-
 (define ##sys#do-the-right-thing
   (let ((vector->list vector->list))
     (lambda (id comp? imp? #!optional (add-req void))
@@ -1393,7 +1402,7 @@
 		       (exp
 			`(##core#begin
 			  ,@(map (lambda (n)
-				   (let ((rid (##sys#srfi-id n)))
+				   (let ((rid (srfi-id n)))
 				     (let-values (((exp f2 _) (doit rid)))
 				       (set! f (or f f2))
 				       exp)))
@@ -1403,15 +1412,15 @@
 		(let follow ((id2 id))
 		  (if (and (pair? id2) (pair? (cdr id2)))
 		      (if (and (eq? 'srfi (car id2)) (null? (cddr id2))) ; only allow one number
-			  (doit (##sys#srfi-id (cadr id2)) id)
+			  (doit (srfi-id (cadr id2)) id)
 			  (follow (cadr id2)))
 		      (doit id2 id))))
 	       ((chicken)
 		(if (memq (cadr id) ##sys#core-chicken-modules)
-		    (doit (cadr id) (##sys#library-id id))
-		    (doit (##sys#library-id id))))
+		    (doit (cadr id) (library-id id))
+		    (doit (library-id id))))
 	       (else
-		(doit (##sys#library-id id)))))
+		(doit (library-id id)))))
 	    ((symbol? id)
 	     (doit id))
 	    (else
