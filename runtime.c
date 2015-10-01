@@ -1499,8 +1499,10 @@ C_word CHICKEN_run(void *toplevel)
   serious_signal_occurred = 0;
 
   if(!return_to_host) {
-    C_word *p = C_temporary_stack;
+    int argcount = C_temporary_stack_bottom - C_temporary_stack;
+    C_word *p = C_alloc(argcount);
 
+    C_memcpy(p, C_temporary_stack, argcount * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
   }
@@ -2118,7 +2120,7 @@ C_word C_fcall C_callback_wrapper(void *proc, int argc)
     *a = C_alloc(C_SIZEOF_CLOSURE(1)),
     closure = C_closure(&a, 1, (C_word)proc),
     result;
-  
+
   result = C_callback(closure, argc);
   assert(C_temporary_stack == C_temporary_stack_bottom);
   return result;
@@ -3105,11 +3107,14 @@ C_regparm C_word C_fcall C_mutate_scratch_slot(C_word *slot, C_word val)
 
 void C_save_and_reclaim(void *trampoline, int n, C_word *av)
 {
-  if(C_temporary_stack != av) { /* used in apply */
-    C_temporary_stack = C_temporary_stack_bottom - n;
-    C_memmove(C_temporary_stack, av, n * sizeof(C_word));
-  }
+  assert(av > C_temporary_stack_bottom || av < C_temporary_stack_limit);
+  assert(C_temporary_stack == C_temporary_stack_bottom);
 
+  C_temporary_stack = C_temporary_stack_bottom - n;
+
+  assert(C_temporary_stack >= C_temporary_stack_limit);
+
+  C_memmove(C_temporary_stack, av, n * sizeof(C_word));
   C_reclaim(trampoline, n);
 }
 
@@ -3234,6 +3239,8 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     for(msp = mutation_stack_bottom; msp < mutation_stack_top; ++msp)
       mark(*msp);
   }
+
+  assert(C_temporary_stack >= C_temporary_stack_limit);
 
   /* Clear the mutated slot stack: */
   mutation_stack_top = mutation_stack_bottom;
@@ -7136,41 +7143,41 @@ void C_ccall C_apply(C_word c, C_word *av)
     /* closure = av[ 0 ] */
     k = av[ 1 ],
     fn = av[ 2 ];
-  int i, n = c - 3;
-  int m = n - 1;    
-  C_word x, skip, *ptr;
+  int av2_size, i, n = c - 3;
+  int non_list_args = n - 1;
+  C_word lst, *ptr, *av2;
 
   if(c < 4) C_bad_min_argc(c, 4);
 
   if(C_immediatep(fn) || C_header_bits(fn) != C_CLOSURE_TYPE)
     barf(C_NOT_A_CLOSURE_ERROR, "apply", fn);
 
-  ptr = C_temporary_stack_limit;
+  lst = av[ c - 1 ];
+  if(lst != C_SCHEME_END_OF_LIST && (C_immediatep(lst) || C_block_header(lst) != C_PAIR_TAG))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "apply", lst);
+
+  av2_size = 2 + non_list_args + C_unfix(C_u_i_length(lst));
+
+  if(!C_demand(av2_size))
+    C_save_and_reclaim((void *)C_apply, c, av);
+
+  av2 = ptr = C_alloc(av2_size);
   *(ptr++) = fn;
   *(ptr++) = k;
 
-  if(n > 1) {
-    C_memmove(ptr, av + 3, m * sizeof(C_word));
-    ptr += m;
+  if(non_list_args > 0) {
+    C_memcpy(ptr, av + 3, non_list_args * sizeof(C_word));
+    ptr += non_list_args;
   }
 
-  x = av[ c - 1 ];
-
-  if(x != C_SCHEME_END_OF_LIST && (C_immediatep(x) || C_block_header(x) != C_PAIR_TAG))
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "apply", x);
-
-  for(skip = x; !C_immediatep(skip) && C_block_header(skip) == C_PAIR_TAG; skip = C_u_i_cdr(skip)) {
-    x = C_u_i_car(skip);
-    
-    if(ptr >= C_temporary_stack_bottom)
-      barf(C_TOO_MANY_PARAMETERS_ERROR, "apply");
-
-    *(ptr++) = x;
-    ++m;
+  while(!C_immediatep(lst) && C_block_header(lst) == C_PAIR_TAG) {
+    *(ptr++) = C_u_i_car(lst);
+    lst = C_u_i_cdr(lst);
   }
 
-  C_temporary_stack = C_temporary_stack_bottom;
-  ((C_proc)(void *)C_block_item(fn, 0))(m + 2, C_temporary_stack_limit);
+  assert((ptr - av2) == av2_size);
+
+  ((C_proc)(void *)C_block_item(fn, 0))(av2_size, av2);
 }
 
 
@@ -7287,22 +7294,27 @@ void C_ccall C_apply_values(C_word c, C_word *av)
 
   lst = av[ 2 ];
 
+  if(lst != C_SCHEME_END_OF_LIST && (C_immediatep(lst) || C_block_header(lst) != C_PAIR_TAG))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "apply", lst);
+
   /* Check continuation wether it receives multiple values: */
   if(C_block_item(k, 0) == (C_word)values_continuation) {
-    C_word 
-      *av2,
-      *ptr = C_temporary_stack_limit;
+    C_word *av2, *ptr;
 
-    for(n = 0; !C_immediatep(lst) && C_block_header(lst) == C_PAIR_TAG; ++n) {
+    n = C_unfix(C_u_i_length(lst)) + 1;
+
+    if (!C_demand(n))
+      C_save_and_reclaim((void *)C_apply_values, c, av);
+
+    av2 = C_alloc(n + 1);
+    av2[ 0 ] = k;
+    ptr = av2 + 1;
+    while(!C_immediatep(lst) && C_block_header(lst) == C_PAIR_TAG) {
       *(ptr++) = C_u_i_car(lst);
       lst = C_u_i_cdr(lst);
     }
 
-    /* copy into new array */
-    av2 = C_alloc(n + 1);
-    av2[ 0 ] = k;
-    C_memcpy(av2 + 1, C_temporary_stack_limit, n * sizeof(C_word));
-    C_do_apply(n + 1, av2);
+    C_do_apply(n, av2);
   }
   
   if(C_immediatep(lst)) {
@@ -11352,6 +11364,7 @@ static void bignum_to_str_2(C_word c, C_word *av)
 void C_ccall C_make_structure(C_word c, C_word *av)
 {
   if(!C_demand(c - 1)) {
+    assert(C_temporary_stack == C_temporary_stack_bottom);
     C_temporary_stack = C_temporary_stack_bottom - (c - 1);
     C_memmove(C_temporary_stack, av + 1, (c - 1) * sizeof(C_word));
     C_reclaim((void *)make_structure_2, c - 1);
