@@ -551,7 +551,6 @@ static C_cpsproc(call_cc_wrapper) C_noret;
 static C_cpsproc(call_cc_values_wrapper) C_noret;
 static C_cpsproc(gc_2) C_noret;
 static C_cpsproc(allocate_vector_2) C_noret;
-static C_cpsproc(make_structure_2) C_noret;
 static C_cpsproc(generic_trampoline) C_noret;
 static void handle_interrupt(void *trampoline) C_noret;
 static C_cpsproc(callback_return_continuation) C_noret;
@@ -11363,30 +11362,21 @@ static void bignum_to_str_2(C_word c, C_word *av)
 
 void C_ccall C_make_structure(C_word c, C_word *av)
 {
-  if(!C_demand(c - 1)) {
-    assert(C_temporary_stack == C_temporary_stack_bottom);
-    C_temporary_stack = C_temporary_stack_bottom - (c - 1);
-    C_memmove(C_temporary_stack, av + 1, (c - 1) * sizeof(C_word));
-    C_reclaim((void *)make_structure_2, c - 1);
-  }
-
-  make_structure_2(c - 1, av + 1);
-}
-
-
-void C_ccall make_structure_2(C_word c, C_word *av)
-{
   C_word
-    k = av[ 0 ],
-    type = av[ 1 ],
-    size = c - 2,
-    *a = C_alloc(C_SIZEOF_STRUCTURE(size+1)),
-    *s = a,
-    s0 = (C_word)s;
+    /* closure = av[ 0 ] */
+    k = av[ 1 ],
+    type = av[ 2 ],
+    size = c - 3,
+    *s, s0;
 
+  if(!C_demand(size + 2))
+    C_save_and_reclaim((void *)C_make_structure, c, av);
+
+  s = C_alloc(C_SIZEOF_STRUCTURE(size + 1)),
+  s0 = (C_word)s;
   *(s++) = C_STRUCTURE_TYPE | (size + 1);
   *(s++) = type;
-  av += 2;
+  av += 3;
 
   while(size--)
     *(s++) = *(av++);
