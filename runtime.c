@@ -7286,8 +7286,7 @@ void C_ccall C_apply_values(C_word c, C_word *av)
   C_word
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    lst,
-    n;
+    lst, len, n;
 
   if(c != 3) C_bad_argc(c, 3);
 
@@ -7296,16 +7295,17 @@ void C_ccall C_apply_values(C_word c, C_word *av)
   if(lst != C_SCHEME_END_OF_LIST && (C_immediatep(lst) || C_block_header(lst) != C_PAIR_TAG))
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "apply", lst);
 
-  /* Check continuation wether it receives multiple values: */
+  /* Check whether continuation receives multiple values: */
   if(C_block_item(k, 0) == (C_word)values_continuation) {
     C_word *av2, *ptr;
 
-    n = C_unfix(C_u_i_length(lst)) + 1;
+    len = C_unfix(C_u_i_length(lst));
+    n = len + 1;
 
     if (!C_demand(n))
       C_save_and_reclaim((void *)C_apply_values, c, av);
 
-    av2 = C_alloc(n + 1);
+    av2 = C_alloc(n);
     av2[ 0 ] = k;
     ptr = av2 + 1;
     while(!C_immediatep(lst) && C_block_header(lst) == C_PAIR_TAG) {
