@@ -7144,7 +7144,7 @@ void C_ccall C_apply(C_word c, C_word *av)
     fn = av[ 2 ];
   int av2_size, i, n = c - 3;
   int non_list_args = n - 1;
-  C_word lst, *ptr, *av2;
+  C_word lst, len, *ptr, *av2;
 
   if(c < 4) C_bad_min_argc(c, 4);
 
@@ -7155,7 +7155,8 @@ void C_ccall C_apply(C_word c, C_word *av)
   if(lst != C_SCHEME_END_OF_LIST && (C_immediatep(lst) || C_block_header(lst) != C_PAIR_TAG))
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "apply", lst);
 
-  av2_size = 2 + non_list_args + C_unfix(C_u_i_length(lst));
+  len = C_unfix(C_u_i_length(lst));
+  av2_size = 2 + non_list_args + len;
 
   if(!C_demand(av2_size))
     C_save_and_reclaim((void *)C_apply, c, av);
@@ -7169,7 +7170,7 @@ void C_ccall C_apply(C_word c, C_word *av)
     ptr += non_list_args;
   }
 
-  while(!C_immediatep(lst) && C_block_header(lst) == C_PAIR_TAG) {
+  while(len--) {
     *(ptr++) = C_u_i_car(lst);
     lst = C_u_i_cdr(lst);
   }
@@ -7308,7 +7309,7 @@ void C_ccall C_apply_values(C_word c, C_word *av)
     av2 = C_alloc(n);
     av2[ 0 ] = k;
     ptr = av2 + 1;
-    while(!C_immediatep(lst) && C_block_header(lst) == C_PAIR_TAG) {
+    while(len--) {
       *(ptr++) = C_u_i_car(lst);
       lst = C_u_i_cdr(lst);
     }
