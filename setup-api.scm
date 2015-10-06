@@ -454,7 +454,7 @@
 					(equal? (pathname-extension to) "a"))
 				   (run (,*ranlib-command* ,(shellpath to)) ) ))
 			   (cond ((deployment-mode) f)
-				 ((and (not (equal? (destination-prefix) (runtime-prefix))))
+				 ((not (equal? (destination-prefix) (runtime-prefix)))
 				  ;; we did not append a prefix already
 				  (target-prefix to))
 				 ;; There's been destination-prefix added before
