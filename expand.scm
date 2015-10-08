@@ -1442,11 +1442,11 @@
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    (let ((len (length x)))
-      (##sys#check-syntax 'module x '(_ symbol _ . #(_ 0)))
+    (##sys#check-syntax 'module x '(_ _ _ . #(_ 0)))
+    (let ((len (length x))
+	  (name (chicken.core#library-id (cadr x))))
       (cond ((and (fx>= len 4) (c (r '=) (caddr x)))
 	     (let* ((x (chicken.expand#strip-syntax x))
-		    (name (cadr x))
 		    (app (cadddr x)))
 	       (cond ((symbol? app)
 		      (cond ((fx> len 4)
@@ -1487,7 +1487,7 @@
 		    (##sys#validate-exports
 		     (chicken.expand#strip-syntax (caddr x)) 'module)))
 	       `(##core#module 
-		 ,(cadr x)
+		 ,name
 		 ,(if (eq? '* exports)
 		      #t 
 		      exports)

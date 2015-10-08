@@ -66,11 +66,15 @@
   (define (library-part->string id)
     (cond ((symbol? id) (##sys#symbol->string id))
 	  ((number? id) (##sys#number->string id))
-	  (else (##sys#error "invalid extension specifier" lib))))
-  (do ((lib (cdr lib) (cdr lib))
-       (str (library-part->string (car lib))
-	    (string-append str "." (library-part->string (car lib)))))
-      ((null? lib) (##sys#intern-symbol str))))
+	  (else (##sys#error "invalid library specifier" lib))))
+  (cond
+    ((symbol? lib) lib)
+    ((list? lib)
+     (do ((lib (cdr lib) (cdr lib))
+	  (str (library-part->string (car lib))
+	       (string-append str "." (library-part->string (car lib)))))
+	 ((null? lib) (##sys#intern-symbol str))))
+    (else (##sys#error "invalid library specifier" lib))))
 
 ) ; chicken.core
 
