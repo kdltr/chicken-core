@@ -29,7 +29,7 @@
 
 (declare
   (unit expand)
-  (uses extras)
+  (uses extras internal)
   (disable-interrupts)
   (fixnum)
   (not inline ##sys#syntax-error-hook ##sys#compiler-syntax-hook
@@ -1444,7 +1444,7 @@
   (lambda (x r c)
     (##sys#check-syntax 'module x '(_ _ _ . #(_ 0)))
     (let ((len (length x))
-	  (name (chicken.core#library-id (cadr x))))
+	  (name (chicken.internal#library-id (cadr x))))
       (cond ((and (fx>= len 4) (c (r '=) (caddr x)))
 	     (let* ((x (chicken.expand#strip-syntax x))
 		    (app (cadddr x)))

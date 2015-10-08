@@ -37,7 +37,7 @@ SETUP_API_OBJECTS_1 = setup-api setup-download
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
        library eval data-structures ports files extras lolevel utils tcp srfi-4 \
-       $(POSIXFILE) irregex scheduler \
+       $(POSIXFILE) internal irregex scheduler \
        profiler stub expand modules chicken-syntax chicken-ffi-syntax build-version
 LIBCHICKEN_OBJECTS_1 = $(LIBCHICKEN_SCHEME_OBJECTS_1) runtime
 LIBCHICKEN_SHARED_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=$(O))
@@ -662,7 +662,8 @@ extras.c: extras.scm \
 		chicken.data-structures.import.scm
 eval.c: eval.scm \
 		chicken.expand.import.scm \
-		chicken.foreign.import.scm
+		chicken.foreign.import.scm \
+		chicken.internal.import.scm
 files.c: files.scm \
 		chicken.data-structures.import.scm \
 		chicken.extras.import.scm \
@@ -691,8 +692,10 @@ bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTION
 
 library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib)
+internal.c: $(SRCDIR)internal.scm
+	$(bootstrap-lib) -emit-import-library chicken.internal
 eval.c: $(SRCDIR)eval.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
-	$(bootstrap-lib) -emit-import-library chicken.eval -emit-import-library chicken.core
+	$(bootstrap-lib) -emit-import-library chicken.eval
 expand.c: $(SRCDIR)expand.scm $(SRCDIR)synrules.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.expand
 modules.c: $(SRCDIR)modules.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm

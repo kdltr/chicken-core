@@ -41,6 +41,7 @@ for x in setup-api.so setup-api.import.so setup-download.so \
       chicken.ports.import.so chicken.utils.import.so chicken.files.import.so \
       chicken.posix.import.so \
       chicken.extras.import.so \
+      chicken.internal.import.so \
       chicken.irregex.import.so \
       chicken.tcp.import.so \
       chicken.foreign.import.so \

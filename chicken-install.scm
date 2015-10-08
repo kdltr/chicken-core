@@ -52,6 +52,7 @@
       "chicken.files.import.so"
       "chicken.foreign.import.so"
       "chicken.import.so"
+      "chicken.internal.import.so"
       "chicken.irregex.import.so"
       "chicken.lolevel.import.so"
       "chicken.ports.import.so"

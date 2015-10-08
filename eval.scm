@@ -27,7 +27,7 @@
 
 (declare
   (unit eval)
-  (uses expand modules)
+  (uses expand internal modules)
   (not inline ##sys#repl-read-hook ##sys#repl-print-hook 
        ##sys#read-prompt-hook ##sys#alias-global-hook ##sys#user-read-hook
        ##sys#syntax-error-hook))
@@ -48,36 +48,6 @@
 #define C_rnd_fix()		(C_fix(rand()))
 <#
 
-;;; Runtime support module
-
-(module chicken.core (srfi-id library-id)
-
-(import scheme chicken)
-
-;; 1 => srfi-1
-(define (srfi-id n)
-  (if (fixnum? n)
-      (##sys#intern-symbol
-       (##sys#string-append "srfi-" (##sys#number->string n)))
-      (##sys#syntax-error-hook 'require-extension "invalid SRFI number" n)))
-
-;; (foo bar baz) => foo.bar.baz
-(define (library-id lib)
-  (define (library-part->string id)
-    (cond ((symbol? id) (##sys#symbol->string id))
-	  ((number? id) (##sys#number->string id))
-	  (else (##sys#error "invalid library specifier" lib))))
-  (cond
-    ((symbol? lib) lib)
-    ((list? lib)
-     (do ((lib (cdr lib) (cdr lib))
-	  (str (library-part->string (car lib))
-	       (string-append str "." (library-part->string (car lib)))))
-	 ((null? lib) (##sys#intern-symbol str))))
-    (else (##sys#error "invalid library specifier" lib))))
-
-) ; chicken.core
-
 (module chicken.eval
   (chicken-home define-reader-ctor dynamic-load-libraries
    eval eval-handler extension-information
@@ -90,7 +60,7 @@
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment))
 (import chicken)
 
-(import chicken.core
+(import chicken.internal
 	chicken.expand
 	chicken.foreign)
 

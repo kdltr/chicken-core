@@ -26,7 +26,7 @@
 
 (declare
   (unit modules)
-  (uses eval expand)
+  (uses eval expand internal)
   (disable-interrupts)
   (fixnum)
   (hide lookup merge-se module-indirect-exports)
@@ -125,7 +125,7 @@
     (thunk)))
 
 (define (##sys#resolve-module-name name loc)
-  (let loop ((n name) (done '()))
+  (let loop ((n (chicken.internal#library-id name)) (done '()))
     (cond ((assq n (##sys#module-alias-environment)) =>
 	   (lambda (a)
 	     (let ((n2 (cdr a)))
@@ -604,7 +604,7 @@
       (cond ((symbol? spec) (import-name spec))
 	    ((null? (cdr spec)) (import-name (car spec))) ; single library component
 	    ((and (c %srfi (car spec)) (fixnum? (cadr spec)) (null? (cddr spec))) ; only one number
-	     (import-name (chicken.core#srfi-id (cadr spec))))
+	     (import-name (chicken.internal#srfi-id (cadr spec))))
 	    (else
 	     (let ((head (car spec))
 		   (imports (cddr spec)))
@@ -687,7 +687,7 @@
 			     (cdr imp) ) )
 			  (values name `(,head ,form ,pref) (map ren impv) (map ren imps) impi))))
 		     (else
-		      (import-name (chicken.core#library-id spec))))))))
+		      (import-name (chicken.internal#library-id spec))))))))
     (##sys#check-syntax loc x '(_ . #(_ 1)))
     (let ((cm (##sys#current-module)))
       (for-each
