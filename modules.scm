@@ -608,9 +608,9 @@
 	    (else
 	     (let ((head (car spec))
 		   (imports (cddr spec)))
-	       (let-values (((name form impv imps impi) (import-spec (cadr spec))))
-		 (cond ((c %only head)
-			(##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
+	       (cond ((c %only head)
+		      (##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
+		      (let-values (((name form impv imps impi) (import-spec (cadr spec))))
 			(let ((ids (map resolve imports)))
 			  (let loop ((ids ids) (v '()) (s '()) (missing '()))
 			    (cond ((null? ids)
@@ -626,9 +626,10 @@
 				   (lambda (a)
 				     (loop (cdr ids) v (cons a s) missing)))
 				  (else
-				   (loop (cdr ids) v s (cons (car ids) missing)))))))
-		       ((c %except head)
-			(##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
+				   (loop (cdr ids) v s (cons (car ids) missing))))))))
+		     ((c %except head)
+		      (##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
+		      (let-values (((name form impv imps impi) (import-spec (cadr spec))))
 			(let ((ids (map resolve imports)))
 			  (let loop ((impv impv) (v '()) (ids imports))
 			    (cond ((null? impv)
@@ -648,9 +649,10 @@
 				   (lambda (id)
 				     (loop (cdr impv) v (delete (car id) ids eq?))))
 				  (else
-				   (loop (cdr impv) (cons (car impv) v) ids))))))
-		       ((c %rename head)
-			(##sys#check-syntax loc spec '(_ _ . #((symbol symbol) 0)))
+				   (loop (cdr impv) (cons (car impv) v) ids)))))))
+		     ((c %rename head)
+		      (##sys#check-syntax loc spec '(_ _ . #((symbol symbol) 0)))
+		      (let-values (((name form impv imps impi) (import-spec (cadr spec))))
 			(let loop ((impv impv) (v '()) (ids imports))
 			  (cond ((null? impv)
 				 (let loop ((imps imps) (s '()) (ids ids))
@@ -673,18 +675,19 @@
 					 (cons (cons (cadr a) (cdar impv)) v)
 					 (delete a ids eq?))))
 				(else
-				 (loop (cdr impv) (cons (car impv) v) ids)))))
-		       ((c %prefix head)
-			(##sys#check-syntax loc spec '(_ _ _))
+				 (loop (cdr impv) (cons (car impv) v) ids))))))
+		     ((c %prefix head)
+		      (##sys#check-syntax loc spec '(_ _ _))
+		      (let-values (((name form impv imps impi) (import-spec (cadr spec))))
 			(let ((pref (caddr spec)))
 			  (define (ren imp)
 			    (cons 
 			     (##sys#string->symbol 
 			      (##sys#string-append (tostr pref) (##sys#symbol->string (car imp))))
 			     (cdr imp) ) )
-			  (values name `(,head ,form ,pref) (map ren impv) (map ren imps) impi)))
-		       (else
-			(import-name (chicken.core#library-id spec)))))))))
+			  (values name `(,head ,form ,pref) (map ren impv) (map ren imps) impi))))
+		     (else
+		      (import-name (chicken.core#library-id spec))))))))
     (##sys#check-syntax loc x '(_ . #(_ 1)))
     (let ((cm (##sys#current-module)))
       (for-each
