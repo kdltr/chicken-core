@@ -43,8 +43,8 @@ CHICKEN's module system has the following features:
 <macro>(module NAME (EXPORT ...) BODY ...)</macro>
 <macro>(module NAME (EXPORT ...) FILENAME)</macro>
 <macro>(module NAME * BODY ...)</macro>
-<macro>(module NAME1 = NAME2 [BODY ...])</macro>
 <macro>(module NAME = (FUNCTORNAME MODULENAME1 ...))</macro>
+<macro>(module NAME = FUNCTORNAME BODY ...)</macro>
 
 Defines a module with the name {{NAME}}, a set of exported bindings
 and a contained sequence of toplevel expressions that are evaluated in
@@ -79,15 +79,12 @@ like {{(include FILENAME)}}.
 {{(module NAME = (FUNCTORNAME MODULENAME1 ...))}} instantiates
 a ''functor'' (see below for information about functors).
 
-The syntax {{(module NAME1 = NAME2)}} defines an alias {{NAME1}} for
-the module {{NAME2}}, so {{NAME1}} can be used in place of {{NAME2}}
-in all forms that accept module names. Module aliases defined inside a
-module are local to that module. If followed by a module body, then
-this is a special form of ''functor instantiation''.
+{{(module NAME = FUNCTORNAME BODY ...)}} is a special form of
+''functor instantiation'' where the {{BODY}} implements a module
+satisfying a single functor argument to {{FUNCTORNAME}}.
 
 Nested modules, modules not at toplevel (i.e. local modules) or
-mutually recursive modules are not supported. As an exception
-module alias definitions are allowed inside a module definition.
+mutually recursive modules are not supported.
 
 When compiled, the module information, including exported macros
 is stored in the generated binary and available when loading
@@ -265,7 +262,7 @@ available:
  [module] r4rs
  [module] r5rs
 
-Exports the definitions given in R4RS or R5RS. {{r5rs}} is a module alias
+Exports the definitions given in R4RS or R5RS. {{r5rs}} is an alias
 for {{scheme}}.
 
  [module] chicken

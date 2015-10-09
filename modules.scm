@@ -840,9 +840,9 @@
 			'()
 			(let ((p (car fas)))
 			  (if (pair? (car p)) ; has default argument?
-			      (let ((alias (caar p))
-				    (mname (cadar p))
-				    (exps (cdr p)))
+			      (let ((exps (cdr p))
+				    (alias (caar p))
+				    (mname (chicken.internal#library-id (cadar p))))
 				(##sys#match-functor-argument alias name mname exps fname)
 				(cons (list alias mname) (loop2 (cdr fas))))
 			      ;; no default argument, we have too few argument modules
@@ -853,10 +853,10 @@
 		  ;; otherwise match provided argument to functor argument
 		  (let* ((p (car fas))
 			 (p1 (car p))
+			 (exps (cdr p))
 			 (def? (pair? p1))
 			 (alias (if def? (car p1) p1))
-			 (mname (car as))
-			 (exps (cdr p)))
+			 (mname (chicken.internal#library-id (car as))))
 		    (##sys#match-functor-argument alias name mname exps fname)
 		    (cons (list alias mname)
 			  (loop (cdr as) (cdr fas)))))))

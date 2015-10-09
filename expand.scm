@@ -1448,38 +1448,34 @@
       (cond ((and (fx>= len 4) (c (r '=) (caddr x)))
 	     (let* ((x (chicken.expand#strip-syntax x))
 		    (app (cadddr x)))
-	       (cond ((symbol? app)
-		      (cond ((fx> len 4)
-			     ;; feature suggested by syn:
-			     ;;
-			     ;; (module NAME = FUNCTORNAME BODY ...)
-			     ;; ~>
-			     ;; (begin
-			     ;;   (module _NAME * BODY ...)
-			     ;;   (module NAME = (FUNCTORNAME _NAME)))
-			     ;;
-			     ;; - the use of "_NAME" is a bit stupid, but it must be
-			     ;;   externally visible to generate an import library from
-			     ;;   and compiling "NAME" separately may need an import-lib
-			     ;;   for stuff in "BODY" (say, syntax needed by syntax exported
-			     ;;   from the functor, or something like this...)
-			     (let ((mtmp (string->symbol 
-					  (##sys#string-append 
-					   "_"
-					   (symbol->string name))))
-				   (%module (r 'module)))
-			       `(##core#begin
-				 (,%module ,mtmp * ,@(cddddr x))
-				 (,%module ,name = (,app ,mtmp)))))
-			    (else
-			     (##sys#register-module-alias name app)
-			     '(##core#undefined))))
+	       (cond ((fx> len 4)
+		      ;; feature suggested by syn:
+		      ;;
+		      ;; (module NAME = FUNCTORNAME BODY ...)
+		      ;; ~>
+		      ;; (begin
+		      ;;   (module _NAME * BODY ...)
+		      ;;   (module NAME = (FUNCTORNAME _NAME)))
+		      ;;
+		      ;; - the use of "_NAME" is a bit stupid, but it must be
+		      ;;   externally visible to generate an import library from
+		      ;;   and compiling "NAME" separately may need an import-lib
+		      ;;   for stuff in "BODY" (say, syntax needed by syntax exported
+		      ;;   from the functor, or something like this...)
+		      (let ((mtmp (string->symbol
+				   (##sys#string-append
+				    "_"
+				    (symbol->string name))))
+			    (%module (r 'module)))
+			`(##core#begin
+			  (,%module ,mtmp * ,@(cddddr x))
+			  (,%module ,name = (,app ,mtmp)))))
 		     (else
 		      (##sys#check-syntax 
-		       'module x '(_ symbol _ (symbol . #(_ 0))))
+		       'module x '(_ _ _ (_ . #(_ 0))))
 		      (##sys#instantiate-functor
 		       name
-		       (car app)	; functor name
+		       (chicken.internal#library-id (car app))
 		       (cdr app))))))	; functor arguments
 	    (else
 	     ;;XXX use module name in "loc" argument?

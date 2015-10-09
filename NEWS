@@ -28,6 +28,7 @@
     program's (macro) namespace anymore.
   - The core units have been converted to modules under the "chicken"
     namespace.
+  - Added support for list-style library names.
 
 4.10.2
 

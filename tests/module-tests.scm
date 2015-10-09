@@ -197,7 +197,8 @@
  'abc (abc))
 
 (module m17 (a) (import scheme) (define a 1))
-(module m18 = m17)
+(begin-for-syntax ; XXX workaround for missing module alias functionality
+  (##sys#register-module-alias 'm18 'm17))
 (module m19 (a) (import scheme) (define a 2))
 
 (test-equal
@@ -212,7 +213,8 @@
  "local module alias scope"
  (module m21 ()
    (import scheme)
-   (module m18 = m19)
+   (begin-for-syntax ; XXX s.a.
+     (##sys#register-module-alias 'm18 'm19))
    (import m18)
    a)
  2)
@@ -297,6 +299,22 @@
    (import m30)
    (m29-baz))
  'foo)
+
+;; list-style library names
+
+(test-assert
+ (module (m33 a) *
+   (import (scheme))
+   (define (foo) 'ok)))
+
+(test-assert
+ (module (m33 b) ()
+   (import (scheme) (m33 a))
+   (eq? (foo) 'ok)))
+
+(test-assert (import (prefix (m33 a) m33/a/)))
+(test-assert (eq? (m33/a/foo) 'ok))
+(test-assert (module-environment '(m33 a)))
 
 ;; Ensure that the modules system is simply an aliasing mechanism:
 ;; Module instantion does not create multiple variable copies.
