@@ -42,17 +42,17 @@ Warning: at toplevel:
   (scrutiny-tests.scm:29) in procedure call to `+', expected argument #2 of type `number', but was given an argument of type `symbol'
 
 Warning: at toplevel:
-  assignment of value of type `fixnum' to toplevel variable `car' does not match declared type `(forall (a200) (procedure car ((pair a200 *)) a200))'
+  assignment of value of type `fixnum' to toplevel variable `car' does not match declared type `(forall (a196) (procedure car ((pair a196 *)) a196))'
 
 Warning: at toplevel:
-  expected in `let' binding of `g20' a single result, but were given 2 results
+  expected in `let' binding of `g18' a single result, but were given 2 results
 
 Warning: at toplevel:
-  in procedure call to `g20', expected a value of type `(procedure () *)', but was given a value of type `fixnum'
+  in procedure call to `g18', expected a value of type `(procedure () *)', but was given a value of type `fixnum'
 
 Note: in toplevel procedure `foo':
   expected value of type boolean in conditional but were given a value of type
-  `(procedure bar42 () *)' which is always true:
+  `(procedure bar40 () *)' which is always true:
 
 (if bar 3 (##core#undefined))
 

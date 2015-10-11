@@ -222,8 +222,8 @@
     (cond ((or (eq? x 'chicken)
                (equal? x "chicken")
                (let ((xs (->string x)))
-		 (or (member xs ##sys#core-library-modules)
-		     (member xs ##sys#core-syntax-modules))))
+		 (or (member xs ##sys#core-library-units)
+		     (member xs ##sys#core-syntax-units))))
            (chicken-version) )
           ((extension-information x) =>
            (lambda (info)

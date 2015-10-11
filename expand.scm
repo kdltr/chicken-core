@@ -106,7 +106,6 @@
 	alias) ) )
 
 (define (strip-syntax exp)
- ;; if se is given, retain bound vars
  (let ((seen '()))
    (let walk ((x exp))
      (cond ((assq x seen) => cdr)

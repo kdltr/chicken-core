@@ -78,15 +78,22 @@
 (define-foreign-variable uses-soname? bool "C_USES_SONAME")
 (define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
 
-;; Core units under the "chicken" module namespace.
-(define ##sys#core-chicken-modules
-  '(eval extras lolevel utils files tcp irregex posix data-structures ports))
+(define-constant core-chicken-modules
+  '((chicken.data-structures . data-structures)
+    (chicken.eval . eval)
+    (chicken.extras . extras)
+    (chicken.files . files)
+    (chicken.irregex . irregex)
+    (chicken.lolevel . lolevel)
+    (chicken.ports . ports)
+    (chicken.posix . posix)
+    (chicken.tcp . tcp)
+    (chicken.utils . utils)))
 
-;; Core units outside the "chicken" module namespace.
-(define ##sys#core-library-modules
-  `(srfi-4 . ,##sys#core-chicken-modules))
+(define ##sys#core-library-units
+  `(srfi-4 . ,(map cdr core-chicken-modules)))
 
-(define ##sys#core-syntax-modules
+(define ##sys#core-syntax-units
   '(chicken-syntax chicken-ffi-syntax))
 
 (define ##sys#explicit-library-modules '())
@@ -1231,8 +1238,8 @@
 	    (else (##sys#check-symbol id loc)) )
       (let ([p (##sys#canonicalize-extension-path id loc)])
 	(cond ((member p ##sys#loaded-extensions))
-	      ((or (memq id ##sys#core-library-modules)
-		   (memq id ##sys#core-syntax-modules))
+	      ((or (memq id ##sys#core-library-units)
+		   (memq id ##sys#core-syntax-units))
 	       (or (##sys#load-library-0 id #f)
 		   (and err?
 			(##sys#error loc "cannot load core library" id))))
@@ -1297,7 +1304,7 @@
 
 (define ##sys#do-the-right-thing
   (let ((vector->list vector->list))
-    (lambda (id comp? imp? #!optional (add-req void))
+    (lambda (spec comp? imp? #!optional (add-req void))
       (define (impform x id builtin?)
 	`(##core#begin
 	  ,x
@@ -1310,7 +1317,7 @@
 	       (values (impform '(##core#undefined) impid #t) #t id))
 	      ((and (not comp?) (##sys#feature? id))
 	       (values (impform '(##core#undefined) impid #f) #t id))
-	      ((memq id ##sys#core-library-modules)
+	      ((memq id ##sys#core-library-units)
 	       (values
 		(impform
 		 (if comp?
@@ -1318,7 +1325,7 @@
 		     `(##sys#load-library ',id #f) )
 		 impid #f)
 		#t id) )
-	      ((memq id ##sys#core-syntax-modules)
+	      ((memq id ##sys#core-syntax-units)
 	       (values
 		(impform
 		 (if comp?
@@ -1369,36 +1376,21 @@
 			  `(##sys#require ',id) 
 			  impid #f)
 			 #f id)))))))
-      (cond ((and (pair? id) (symbol? (car id)))
-	     (case (car id)
-	       ((srfi)
-		(let* ((f #f)
-		       (exp
-			`(##core#begin
-			  ,@(map (lambda (n)
-				   (let ((rid (srfi-id n)))
-				     (let-values (((exp f2 _) (doit rid)))
-				       (set! f (or f f2))
-				       exp)))
-				 (cdr id)))))
-		  (values exp f id)))	;XXX `id' not fully correct
-	       ((rename except only prefix)
-		(let follow ((id2 id))
-		  (if (and (pair? id2) (pair? (cdr id2)))
-		      (if (and (eq? 'srfi (car id2)) (null? (cddr id2))) ; only allow one number
-			  (doit (srfi-id (cadr id2)) id)
-			  (follow (cadr id2)))
-		      (doit id2 id))))
-	       ((chicken)
-		(if (memq (cadr id) ##sys#core-chicken-modules)
-		    (doit (cadr id) (library-id id))
-		    (doit (library-id id))))
-	       (else
-		(doit (library-id id)))))
-	    ((symbol? id)
-	     (doit id))
-	    (else
-	     (##sys#error "invalid extension specifier" id))))))
+      (let loop ((id spec))
+	(cond ((assq id core-chicken-modules) =>
+	       (lambda (lib) (doit (cdr lib) spec)))
+	      ((symbol? id)
+	       (doit (library-id id) spec))
+	      ((pair? id)
+	       (case (car id)
+		 ((rename except only prefix)
+		  (if (pair? (cdr id))
+		      (loop (cadr id))
+		      (loop (library-id id))))
+		 (else
+		  (loop (library-id id)))))
+	      (else
+	       (##sys#error "invalid extension specifier" id)))))))
 
 
 ;;; Convert string into valid C-identifier:

@@ -30,28 +30,41 @@
   (fixnum))
 
 (module chicken.internal
-  (srfi-id library-id)
+  (library-id valid-library-specifier?)
 
 (import scheme chicken)
 
-(define (srfi-id n)
-  (if (fixnum? n)
-      (##sys#intern-symbol
-       (##sys#string-append "srfi-" (##sys#number->string n)))
-      (##sys#error "invalid SRFI number" n)))
+(include "mini-srfi-1.scm")
+
+(define (valid-library-specifier? x)
+  (or (symbol? x)
+      (and (list? x)
+	   (not (null? x))
+	   (every (lambda (x) (or (symbol? x) (fixnum? x))) x))))
 
 (define (library-id lib)
-  (define (library-part->string id)
-    (cond ((symbol? id) (##sys#symbol->string id))
-	  ((number? id) (##sys#number->string id))
-	  (else (##sys#error "invalid library specifier" lib))))
+  (define (fail)
+    (##sys#error "invalid library specifier" lib))
+  (define (srfi? x)
+    (and (pair? (cdr x))
+	 (null? (cddr x))
+	 (eq? 'srfi (car x))
+	 (fixnum? (cadr x))))
+  (define (library-part->string x)
+    (cond ((symbol? x) (##sys#symbol->string x))
+	  ((fixnum? x) (##sys#number->string x))
+	  (else (fail))))
   (cond
     ((symbol? lib) lib)
-    ((list? lib)
-     (do ((lib (cdr lib) (cdr lib))
+    ((not (pair? lib)) (fail))
+    ((srfi? lib)
+     (##sys#intern-symbol
+      (##sys#string-append "srfi-" (##sys#number->string (cadr lib)))))
+    (else
+     (do ((lst (cdr lib) (cdr lst))
 	  (str (library-part->string (car lib))
-	       (string-append str "." (library-part->string (car lib)))))
-	 ((null? lib) (##sys#intern-symbol str))))
-    (else (##sys#error "invalid library specifier" lib))))
+	       (string-append str "." (library-part->string (car lst)))))
+	 ((null? lst)
+	  (##sys#intern-symbol str))))))
 
 ) ; chicken.internal
