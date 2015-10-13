@@ -46,9 +46,12 @@ CHICKEN's module system has the following features:
 <macro>(module NAME = (FUNCTORNAME MODULENAME1 ...))</macro>
 <macro>(module NAME = FUNCTORNAME BODY ...)</macro>
 
-Defines a module with the name {{NAME}}, a set of exported bindings
-and a contained sequence of toplevel expressions that are evaluated in
-an empty syntactical environment. 
+Defines a module with the name {{NAME}}, a set of exported bindings and
+a contained sequence of toplevel expressions that are evaluated in an
+empty syntactical environment.
+
+{{NAME}} and {{FUNCTORNAME}} should be symbols or lists of symbols and
+integers, where {{(foo bar baz)}} is equivalent to {{foo.bar.baz}}.
 
 {{(EXPORT ...)}} should be an export-specification which holds a list
 of identifiers to be exported from the module and which should be
@@ -126,7 +129,7 @@ Importing a module does not load or link it - this is a separate
 operation from importing its bindings.
 
 {{IMPORT}} may be a module name or an ''import specifier'', where a
-module name is either a symbol or a list of the form {{(srfi N)}}.
+module name is either a symbol or a list of symbols and integers.
 An {{IMPORT}} defines a set of bindings that are to be made visible
 in the current scope.
 
