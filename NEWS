@@ -37,6 +37,9 @@
 - Platform support
   - CHICKEN now supports the Linux X32 ABI (thanks to Sven Hartrumpf).
 
+- Runtime system:
+  - Compiled programs with large literals won't crash on startup (#1221).
+
 4.10.1
 
 - Core libraries

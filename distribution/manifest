@@ -98,6 +98,7 @@ tests/clustering-tests.scm
 tests/data-structures-tests.scm
 tests/environment-tests.scm
 tests/gobble.scm
+tests/heap-literal-stress-test.scm
 tests/test-optional.scm
 tests/arithmetic-test.scm
 tests/arithmetic-test.32.expected

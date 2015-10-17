@@ -3660,7 +3660,7 @@ static void remark(C_word *x) { \
 
 /* Do a major GC into a freshly allocated heap: */
 
-C_regparm void C_fcall C_rereclaim2(C_uword size, int double_plus)
+C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 {
   int i, j;
   C_uword count, n, bytes;
@@ -3679,7 +3679,17 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int double_plus)
 
   if(C_pre_gc_hook != NULL) C_pre_gc_hook(GC_REALLOC);
 
-  if(double_plus) size = heap_size * 2 + size;
+  /*
+   * Normally, size is "absolute": it indicates the desired size of
+   * the entire new heap.  With relative_resize, size is a demanded
+   * increase of the heap, so we'll have to add it.  This calculation
+   * doubles the current heap size because heap_size is already both
+   * halves.  We add size*2 because we'll eventually divide the size
+   * by 2 for both halves.  We also add stack_size*2 because all the
+   * nursery data is also copied to the heap on GC, and the requested
+   * memory "size" must be available after the GC.
+   */
+  if(relative_resize) size = (heap_size + size + stack_size) * 2;
 
   if(size < MINIMAL_HEAP_SIZE) size = MINIMAL_HEAP_SIZE;
 

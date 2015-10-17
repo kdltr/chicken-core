@@ -1821,7 +1821,7 @@ C_fctexport C_word C_fcall C_migrate_buffer_object(C_word **ptr, C_word *start, 
 C_fctexport void C_fcall C_reclaim(void *trampoline, C_word c) C_regparm C_noret;
 C_fctexport void C_save_and_reclaim(void *trampoline, int n, C_word *av) C_noret;
 C_fctexport void C_save_and_reclaim_args(void *trampoline, int n, ...) C_noret;
-C_fctexport void C_fcall C_rereclaim2(C_uword size, int double_plus) C_regparm;
+C_fctexport void C_fcall C_rereclaim2(C_uword size, int relative_resize) C_regparm;
 C_fctexport void C_unbound_variable(C_word sym);
 C_fctexport C_word C_fcall C_retrieve2(C_word val, char *name) C_regparm;
 C_fctexport void *C_fcall C_retrieve2_symbol_proc(C_word val, char *name) C_regparm;

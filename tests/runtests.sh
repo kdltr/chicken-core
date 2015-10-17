@@ -373,6 +373,13 @@ for s in 100000 120000 200000 250000 300000 350000 400000 450000 500000; do
     ../chicken -ignore-repository ../utils.scm -:s$s -output-file tmp.c -include-path ${TEST_DIR}/..
 done
 
+echo "======================================== heap literal stress test ..."
+$compile heap-literal-stress-test.scm
+for s in 100000 120000 200000 250000 300000 350000 400000 450000 500000; do
+  echo "  $s"
+  ./a.out -:d -:g -:hi$s
+done
+
 echo "======================================== symbol-GC tests ..."
 $compile symbolgc-tests.scm
 # Currently disabled, because this may leave 1 symbol unreclaimed.
