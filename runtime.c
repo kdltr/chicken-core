@@ -3627,6 +3627,11 @@ C_regparm void C_fcall really_mark(C_word *x)
     bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
 
     if(((C_byte *)p2 + bytes + sizeof(C_word)) > tospace_limit) {
+      /* Detect impossibilities before GC_REALLOC to preserve state: */
+      if (C_in_stackp((C_word)p) && bytes > stack_size)
+        panic(C_text("Detected corrupted data in stack"));
+      if (C_in_heapp((C_word)p) && bytes > (heap_size / 2))
+        panic(C_text("Detected corrupted data in heap"));
       if(C_heap_size_is_fixed)
 	panic(C_text("out of memory - heap full"));
       
