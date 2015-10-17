@@ -790,7 +790,7 @@
 		  (lambda (ubt)
 		    (gen #t (utype (cdr ubt)) #\space (car ubt) #\;))
 		  ubtemps)))
-	   (cond [(eq? 'toplevel id) 
+	   (cond ((eq? 'toplevel id)
 		  (let ([ldemand (foldl (lambda (n lit) (+ n (literal-size lit))) 0 literals)]
 			[llen (length literals)] )
 		    (gen #t "C_word *a;"
@@ -817,14 +817,14 @@
 		      (gen #t "C_initialize_lf(lf," llen ");")
 		      (literal-frame)
 		      (gen #t "C_register_lf2(lf," llen ",create_ptable());"))
-		    (gen #\{) ) ]
-		 [rest
+		    (gen #\{)))
+		 (rest
 		  (gen #t "C_word *a;")
 		  (when (and (not unsafe) (not no-argc-checks) (> n 2) (not empty-closure))
 		    (gen #t "if(c<" n ") C_bad_min_argc_2(c," n ",t0);") )
 		  (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-		  (gen #t "if(!C_demand(c*C_SIZEOF_PAIR+" demand ")){") ]
-		 [else
+		  (gen #t "if(!C_demand((c-" n ")*C_SIZEOF_PAIR +" demand ")){"))
+		 (else
 		  (cond [(and (not direct) (> demand 0))
 			 (if looping
 			     (gen #t "C_word *a;"
@@ -846,7 +846,7 @@
 			 (if (and looping (> demand 0))
 			     (gen #t "if(!C_stack_probe(a)){")
 			     (gen #t "if(!C_stack_probe(&a)){") ) )
-			(else (gen #\{)))])
+			(else (gen #\{)))))
 	   (cond ((and (not (eq? 'toplevel id))
 		       (not direct)
 		       (or rest external (> demand 0)) )
