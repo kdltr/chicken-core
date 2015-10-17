@@ -655,7 +655,7 @@
 	    ((string? lit) 0)		; statically allocated
 	    ((bignum? lit) 3)		; internal vector statically allocated
 	    ((flonum? lit) words-per-flonum)
-	    ((symbol? lit) 10)          ; size of symbol, and possibly a bucket
+	    ((symbol? lit) 7)           ; size of symbol, and possibly a bucket
 	    ((pair? lit) (+ 3 (literal-size (car lit)) (literal-size (cdr lit))))
 	    ((vector? lit)
 	     (+ 1 (vector-length lit)
