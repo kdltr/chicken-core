@@ -11528,10 +11528,17 @@ void C_ccall C_context_switch(C_word c, C_word *av)
     /* closure = av[ 0 ] */
     state = av[ 2 ],
     n = C_header_size(state) - 1,
-    adrs = C_block_item(state, 0);
+    adrs = C_block_item(state, 0),
+    *av2;
   C_proc tp = (C_proc)C_block_item(adrs,0);
 
-  tp(n, (C_word *)state + 2);
+  /* Copy argvector because it may be mutated in-place.  The state
+   * vector should not be re-invoked(?), but it can be kept alive
+   * during GC, so the mutated argvector/state slots may turn stale.
+   */
+  av2 = C_alloc(n);
+  C_memcpy(av2, (C_word *)state + 2, n * sizeof(C_word));
+  tp(n, av2);
 }
 
 
