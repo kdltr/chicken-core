@@ -40,6 +40,12 @@
 - Runtime system:
   - Compiled programs with large literals won't crash on startup (#1221).
 
+- Compiler:
+  - Specializations on implicit "or" types like "number" or "boolean" now
+     work, removing the requirement for the inferred types to match
+     declared types exactly.  Specializations are matched from first to
+     last to resolve ambiguities (#1214).
+
 4.10.1
 
 - Core libraries
