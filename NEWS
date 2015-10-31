@@ -24,6 +24,8 @@
   - The default error handler now truncates very long condition
     messages (thanks to Lemonboy).
   - Weak symbol GC (-:w) no longer drops random symbols (#1173).
+  - The number of arguments to procedures, both via "apply" and direct
+    invocation, are now limited only by the C stack size (#1098).
 
 - Syntax expander
   - DSSSL lambda lists have improved hygiene, so they don't need

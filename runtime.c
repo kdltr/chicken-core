@@ -162,7 +162,7 @@ static C_TLS int timezone;
 #define WEAK_COUNTER_MASK              3
 #define WEAK_COUNTER_MAX               2
 
-#define TEMPORARY_STACK_SIZE	       4096
+#define DEFAULT_TEMPORARY_STACK_SIZE   1024
 #define STRING_BUFFER_SIZE             4096
 #define DEFAULT_MUTATION_STACK_SIZE    1024
 #define PROFILE_TABLE_SIZE             1024
@@ -398,7 +398,9 @@ static C_TLS C_byte
 static C_TLS C_uword
   heapspace1_size,
   heapspace2_size,
-  heap_size;
+  heap_size,
+  temporary_stack_size,
+  fixed_temporary_stack_size = 0;
 static C_TLS C_char 
   buffer[ STRING_BUFFER_SIZE ],
   *private_repository = NULL,
@@ -671,10 +673,11 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   C_set_or_change_heap_size(heap ? heap : DEFAULT_HEAP_SIZE, 0);
 
   /* Allocate temporary stack: */
-  if((C_temporary_stack_limit = (C_word *)C_malloc(TEMPORARY_STACK_SIZE * sizeof(C_word))) == NULL)
+  temporary_stack_size = fixed_temporary_stack_size ? fixed_temporary_stack_size : DEFAULT_TEMPORARY_STACK_SIZE;
+  if((C_temporary_stack_limit = (C_word *)C_malloc(temporary_stack_size * sizeof(C_word))) == NULL)
     return 0;
   
-  C_temporary_stack_bottom = C_temporary_stack_limit + TEMPORARY_STACK_SIZE;
+  C_temporary_stack_bottom = C_temporary_stack_limit + temporary_stack_size;
   C_temporary_stack = C_temporary_stack_bottom;
   
   /* Allocate mutation stack: */
@@ -1308,6 +1311,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:B              sound bell on major GC\n"
 		 " -:G              force GUI mode\n"
 		 " -:aSIZE          set trace-buffer/call-chain size\n"
+		 " -:ASIZE          set fixed temporary stack size\n"
 		 " -:H              dump heap state on exit\n"
 		 " -:S              do not handle segfaults or other serious conditions\n"
 		 "\n  SIZE may have a `k' (`K'), `m' (`M') or `g' (`G') suffix, meaning size\n"
@@ -1367,6 +1371,10 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 
 	case 'a':
 	  C_trace_buffer_size = arg_val(ptr);
+	  goto next;
+
+	case 'A':
+	  fixed_temporary_stack_size = arg_val(ptr);
 	  goto next;
 
 	case 't':
@@ -1616,11 +1624,6 @@ void barf(int code, char *loc, ...)
   case C_UNBOUND_VARIABLE_ERROR:
     msg = C_text("unbound variable");
     c = 1;
-    break;
-
-  case C_TOO_MANY_PARAMETERS_ERROR:
-    msg = C_text("parameter limit exceeded");
-    c = 0;
     break;
 
   case C_OUT_OF_MEMORY_ERROR:
@@ -2426,14 +2429,6 @@ void C_stack_overflow_with_msg(C_char *msg)
   barf(C_STACK_OVERFLOW_ERROR, NULL);
 }
 
-void C_temp_stack_overflow(void)
-{
-  /* Just raise a "too many parameters" error; it isn't very useful to
-     show a different message here. */
-  barf(C_TOO_MANY_PARAMETERS_ERROR, NULL);
-}
-
-
 void C_unbound_error(C_word sym)
 {
   barf(C_UNBOUND_VARIABLE_ERROR, NULL, sym);
@@ -2771,7 +2766,7 @@ C_mutate_slot(C_word *slot, C_word val)
     bytes = newmssize * sizeof(C_word *);
 
     if(debug_mode) 
-      C_dbg(C_text("debug"), C_text("resizing mutation-stack from %uk to %uk ...\n"),
+      C_dbg(C_text("debug"), C_text("resizing mutation stack from %uk to %uk ...\n"),
 	    (mssize * sizeof(C_word *)) / 1024, bytes / 1024);
 
     mutation_stack_bottom = (C_word **)realloc(mutation_stack_bottom, bytes);
@@ -2794,8 +2789,35 @@ C_mutate_slot(C_word *slot, C_word val)
 
 void C_save_and_reclaim(void *trampoline, int n, C_word *av)
 {
+  C_word new_size = nmax(1UL << (int)ceil(log2(n)), DEFAULT_TEMPORARY_STACK_SIZE);
+
   assert(av > C_temporary_stack_bottom || av < C_temporary_stack_limit);
   assert(C_temporary_stack == C_temporary_stack_bottom);
+
+  /* Don't *immediately* slam back to default size */
+  if (new_size < temporary_stack_size)
+    new_size = temporary_stack_size >> 1;
+
+  if (new_size != temporary_stack_size) {
+
+    if(fixed_temporary_stack_size)
+      panic(C_text("fixed temporary stack overflow (\"apply\" called with too many arguments?)"));
+
+    if(debug_mode) {
+      C_dbg(C_text("debug"), C_text("resizing temporary stack dynamically from " UWORD_COUNT_FORMAT_STRING "k to " UWORD_COUNT_FORMAT_STRING "k ...\n"),
+            C_wordstobytes(temporary_stack_size) / 1024,
+            C_wordstobytes(new_size) / 1024);
+    }
+
+    C_free(C_temporary_stack_limit);
+
+    if((C_temporary_stack_limit = (C_word *)C_malloc(new_size * sizeof(C_word))) == NULL)
+      panic(C_text("out of memory - could not resize temporary stack"));
+
+    C_temporary_stack_bottom = C_temporary_stack_limit + new_size;
+    C_temporary_stack = C_temporary_stack_bottom;
+    temporary_stack_size = new_size;
+  }
 
   C_temporary_stack = C_temporary_stack_bottom - n;
 
@@ -4556,7 +4578,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(C_getpid());
 
   case C_fix(34):		/* effective maximum for procedure arguments */
-    return C_fix(TEMPORARY_STACK_SIZE);
+    return C_fix(stack_size / 2); /* An educated guess :) */
 
   case C_fix(35):		/* unused */
     /* used to be apply-hook indicator */

@@ -146,6 +146,13 @@ echo "======================================== runtime tests ..."
 $interpret -s apply-test.scm
 $compile apply-test.scm
 ./a.out
+if ./a.out -:A10k; then
+    echo "apply test with limited temp stack didn't fail"
+    exit 1
+else
+    echo "apply test with limited temp stack failed as it should."
+fi
+
 $compile test-gc-hooks.scm
 ./a.out
 
