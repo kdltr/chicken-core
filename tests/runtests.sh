@@ -287,10 +287,8 @@ $interpret -include-path ${TEST_DIR}/.. -s module-tests-2.scm
 echo "======================================== module tests (command line options) ..."
 module="test-$(date +%s)"
 $compile test.scm -A -w -j "$module" -module "$module"
-$compile test.scm -A -w -j main -main-module
 $interpret -e "(import $module)"
-$interpret -e "(import main)"
-rm -f "$module.import.scm" main.import.scm
+rm -f "$module.import.scm"
 
 echo "======================================== module tests (compiled) ..."
 $compile module-tests-compiled.scm

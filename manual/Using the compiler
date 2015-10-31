@@ -90,8 +90,6 @@ the source text should be read from standard input.
 
 ; -lfa2 : Does an additional lightweight flow-analysis pass on the fully optimized program to remove more type checks.
 
-; -main-module : wraps the compiled code in an implicit module named {{main}}, importing the {{scheme}} and {{chicken}} modules.
-
 ; -module NAME : wraps the compiled code in an implicit module of the given {{NAME}}, importing the {{scheme}} and {{chicken}} modules.
 
 ; -no-argc-checks : disable argument count checks

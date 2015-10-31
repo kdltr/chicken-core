@@ -95,7 +95,7 @@
     compile-syntax tag-pointers accumulate-profile
     disable-stack-overflow-checks raw specialize
     emit-external-prototypes-first release local inline-global
-    analyze-only dynamic main-module
+    analyze-only dynamic
     no-argc-checks no-procedure-checks no-parentheses-synonyms
     no-procedure-checks-for-toplevel-bindings
     no-bound-checks no-procedure-checks-for-usual-bindings no-compiler-syntax

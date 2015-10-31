@@ -1654,7 +1654,6 @@ Usage: chicken FILENAME OPTION ...
     -no-module-registration      do not generate module registration code
     -no-compiler-syntax          disable expansion of compiler-macros
     -module NAME                 wrap compiled code in a module
-    -main-module                 wrap compiled code in a module called "main"
 
   Translation options:
 

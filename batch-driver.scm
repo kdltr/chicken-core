@@ -225,9 +225,8 @@
 	(upap #f)
 	(ssize (or (memq 'nursery options) (memq 'stack-size options)))
 	(module-name
-	 (cond ((memq 'module options) => option-arg)
-	       ((memq 'main-module options) "main")
-	       (else #f))))
+	 (and-let* ((m (memq 'module options)))
+	   (option-arg m))))
 
     (define (cputime) (current-milliseconds))
 

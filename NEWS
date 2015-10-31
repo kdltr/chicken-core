@@ -10,8 +10,7 @@
 - Compiler
   - Fixed an off by one allocation problem in generated C code for (list ...).
   - The "-scrutinize" compiler option has been removed.
-  - The "-module" compiler option (aliased as "-m") now expects a module
-    name, with the new "-main-module" (or "-M") option defaulting to "main".
+  - The "-module" compiler option (aliased as "-m") now expects a module name.
 
 - Core libraries
   - Removed support for memory-mapped files (posix), queues (data-structures),

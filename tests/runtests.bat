@@ -335,13 +335,9 @@ echo ======================================== module tests (command line options
 set module="test"
 %compile% test.scm -w -A -j %module% -module %module%
 if errorlevel 1 exit /b 1
-%compile% test.scm -w -A -j main -main-module
-if errorlevel 1 exit /b 1
 %interpret% -e "(import %module%)"
 if errorlevel 1 exit /b 1
-%interpret% -e "(import main)"
-if errorlevel 1 exit /b 1
-del /f /q %module%.import.scm main.import.scm
+del /f /q %module%.import.scm
 
 echo ======================================== module tests (compiled) ...
 %compile% module-tests-compiled.scm

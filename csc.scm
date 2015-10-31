@@ -147,7 +147,6 @@
     -check-syntax -case-insensitive -shared -compile-syntax -no-lambda-info
     -dynamic -disable-stack-overflow-checks -local
     -emit-external-prototypes-first -inline -release 
-    -main-module
     -analyze-only -keep-shadowed-macros -inline-global -ignore-repository
     -no-symbol-escape -no-parentheses-synonyms -r5rs-syntax
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
@@ -171,7 +170,6 @@
   '((-h "-help")
     (-s "-shared")
     (-m "-module")
-    (-M "-main-module")
     (|-P| "-check-syntax")
     (-f "-fixnum-arithmetic")
     (|-D| "-feature")
@@ -361,7 +359,6 @@ Usage: #{csc} FILENAME | OPTION ...
     -no-module-registration        do not generate module registration code
     -no-compiler-syntax            disable expansion of compiler-macros
     -m -module NAME                wrap compiled code in a module
-    -M -main-module                wrap compiled code in a module called "main"
 
   Translation options:
 
