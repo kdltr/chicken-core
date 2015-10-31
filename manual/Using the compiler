@@ -196,6 +196,8 @@ compiler itself) accept a small set of runtime options:
 
 ; {{-:aNUMBER}} : Specifies the length of the buffer for recording a trace of the last invoked procedures. Defaults to 16.
 
+; {{-:ANUMBER}} : Specifies fixed "temporary stack" size. This is used mostly for {{apply}}. If you supply a zero size (the default), the stack will be dynamically reallocated as needed.
+
 ; {{-:b}} : Enter a read-eval-print-loop when an error is encountered.
 
 ; {{-:B}} : Sounds a bell (ASCII 7) on every major garbage collection.

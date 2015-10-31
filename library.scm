@@ -4878,7 +4878,7 @@ EOF
 		(if fn (list fn) '()))))
 	((3) (apply ##sys#signal-hook #:type-error loc "bad argument type" args))
 	((4) (apply ##sys#signal-hook #:runtime-error loc "unbound variable" args))
-	((5) (apply ##sys#signal-hook #:limit-error loc "parameter limit exceeded" args))
+	;; ((5) ...unused...)
 	((6) (apply ##sys#signal-hook #:limit-error loc "out of memory" args))
 	((7) (apply ##sys#signal-hook #:arithmetic-error loc "division by zero" args))
 	((8) (apply ##sys#signal-hook #:bounds-error loc "out of range" args))

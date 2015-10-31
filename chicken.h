@@ -638,7 +638,7 @@ static inline int isinf_ld (long double x)
 #define C_BAD_MINIMUM_ARGUMENT_COUNT_ERROR            2
 #define C_BAD_ARGUMENT_TYPE_ERROR                     3
 #define C_UNBOUND_VARIABLE_ERROR                      4
-#define C_TOO_MANY_PARAMETERS_ERROR                   5
+/* Unused:                                            5 */
 #define C_OUT_OF_MEMORY_ERROR                         6
 #define C_DIVISION_BY_ZERO_ERROR                      7
 #define C_OUT_OF_RANGE_ERROR                          8
@@ -1848,7 +1848,6 @@ C_fctexport void C_bad_min_argc(int c, int n) C_noret;
 C_fctexport void C_bad_argc_2(int c, int n, C_word closure) C_noret;
 C_fctexport void C_bad_min_argc_2(int c, int n, C_word closure) C_noret;
 C_fctexport void C_stack_overflow(void) C_noret;
-C_fctexport void C_temp_stack_overflow(void) C_noret;
 C_fctexport void C_unbound_error(C_word sym) C_noret;
 C_fctexport void C_no_closure_error(C_word x) C_noret;
 C_fctexport void C_div_by_zero_error(char *loc) C_noret;
