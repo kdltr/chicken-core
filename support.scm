@@ -1653,7 +1653,7 @@ Usage: chicken FILENAME OPTION ...
     -emit-all-import-libraries   emit import-libraries for all defined modules
     -no-module-registration      do not generate module registration code
     -no-compiler-syntax          disable expansion of compiler-macros
-    -module                      wrap compiled code into implicit module
+    -module NAME                 wrap compiled code in a module
 
   Translation options:
 

@@ -37,6 +37,7 @@
 
 (import chicken.compiler.batch-driver 
 	chicken.compiler.c-platform
+	chicken.compiler.support
 	chicken.data-structures
 	chicken.utils)
 
@@ -138,12 +139,12 @@
 			       options) ) ) ) )
 		 (loop (cdr rest)) ) )
 	      ((eq? 'debug-level o)
-	       (let ((level (string->number (car rest))))
-		 (case level
-		   ((0) (set! options (cons* 'no-lambda-info 'no-trace options)))
-		   ((1) (set! options (cons 'no-trace options)))
-		   (else (set! options (cons 'scrutinize options))))
-		 (loop (cdr rest)) ) )
+	       (case (string->number (car rest))
+		 ((0) (set! options (cons* 'no-lambda-info 'no-trace options)))
+		 ((1) (set! options (cons 'no-trace options)))
+		 ((2)) ; default behaviour
+		 (else (quit-compiling "invalid debug level: ~a" (car rest))))
+	       (loop (cdr rest)))
 	      ((memq o valid-compiler-options) (loop rest))
 	      ((memq o valid-compiler-options-with-argument)
 	       (if (pair? rest)

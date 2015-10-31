@@ -95,10 +95,9 @@
     compile-syntax tag-pointers accumulate-profile
     disable-stack-overflow-checks raw specialize
     emit-external-prototypes-first release local inline-global
-    analyze-only dynamic 
-    scrutinize 				; OBSOLETE
+    analyze-only dynamic
     no-argc-checks no-procedure-checks no-parentheses-synonyms
-    no-procedure-checks-for-toplevel-bindings module
+    no-procedure-checks-for-toplevel-bindings
     no-bound-checks no-procedure-checks-for-usual-bindings no-compiler-syntax
     no-parentheses-synonyms no-symbol-escape r5rs-syntax emit-all-import-libraries
     strict-types clustering lfa2
@@ -106,8 +105,8 @@
 
 (define valid-compiler-options-with-argument
   '(debug 
-    output-file include-path heap-size stack-size unit uses keyword-style require-extension 
-    inline-limit profile-name 
+    output-file include-path heap-size stack-size unit uses module
+    keyword-style require-extension inline-limit profile-name
     prelude postlude prologue epilogue nursery extend feature no-feature types
     emit-import-library emit-inline-file static-extension consult-inline-file
     emit-type-file
