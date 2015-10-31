@@ -2288,8 +2288,10 @@
 
 
 ;;; perform check over all typevar instantiations
+;
+; If "all" is #t all types in tlist must match, if #f then one or more.
 
-(define (over-all-instantiations tlist typeenv exact process)
+(define (over-all-instantiations tlist typeenv all process)
   (let ((insts '())
 	(anyinst #f)
 	(trail0 trail))
@@ -2321,14 +2323,14 @@
 			   (lambda (inst)
 			     (cond ((assq var inst) => cdr)
 				   ;;XXX is the following correct in all cases?
-				   (exact '*)
+				   (all '*)
 				   (else #f)))
 			   insts)))
 		       vars)))
 	(ddd "  collected: ~s" all)
 	all))
 
-    (ddd " over-all-instantiations: ~s exact=~a" tlist exact)
+    (ddd " over-all-instantiations: ~s all: ~a" tlist all)
     ;; process all tlist elements
     (let loop ((ts (delete-duplicates tlist eq?))
 	       (ok #f))
@@ -2345,7 +2347,7 @@
 	    ((process (car ts))
 	     (restore)
 	     (loop (cdr ts) #t))
-	    (exact 
+	    (all
 	     (restore)
 	     #f)
 	    (else 
