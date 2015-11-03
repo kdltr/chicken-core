@@ -56,7 +56,8 @@
 	  (else (fail))))
   (cond
     ((symbol? lib) lib)
-    ((not (pair? lib)) (fail))
+    ((null? lib) (fail))
+    ((not (list? lib)) (fail))
     ((srfi? lib)
      (##sys#intern-symbol
       (##sys#string-append "srfi-" (##sys#number->string (cadr lib)))))
