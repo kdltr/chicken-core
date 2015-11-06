@@ -183,22 +183,6 @@
       (##sys#for-each (lambda (bucket) (p (##sys#slot bucket 0) (##sys#slot bucket 1)))
 		      (##sys#slot ht i) ) ) ) )
 
-(define ##sys#hash-table-location
-  (let ([unbound (##sys#slot '##sys#arbitrary-unbound-symbol 0)])
-    (lambda (ht key addp)
-      (let* ([k (##sys#hash-symbol key (##sys#size ht))]
-	     [bucket0 (##sys#slot ht k)] )
-	(let loop ([bucket bucket0])
-	  (if (null? bucket)
-	      (and addp
-		   (let ([p (vector key unbound #t)])
-		     (##sys#setslot ht k (cons p bucket0))
-		     p) )
-	      (let ([b (##sys#slot bucket 0)])
-		(if (eq? key (##sys#slot b 0))
-		    b
-		    (loop (##sys#slot bucket 1)) ) ) ) ) ) ) ) )
-
 (define (##sys#hash-table-size ht)
   (let loop ((len (##sys#size ht)) (bkt 0) (size 0))
     (if (fx= bkt len)
