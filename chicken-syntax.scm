@@ -1138,7 +1138,7 @@
  'functor '()
  (##sys#er-transformer
   (lambda (x r c)
-    (##sys#check-syntax 'functor x '(_ (symbol . #((_ _) 0)) _ . _))
+    (##sys#check-syntax 'functor x '(_ (_ . #((_ _) 0)) _ . _))
     (let* ((x (chicken.expand#strip-syntax x))
 	   (head (cadr x))
 	   (name (car head))
@@ -1147,7 +1147,7 @@
 	   (body (cdddr x))
 	   (registration
 	    `(##sys#register-functor
-	      ',name
+	      ',(chicken.internal#library-id name)
 	      ',(map (lambda (arg)
 		       (let ((argname (car arg))
 			     (exps (##sys#validate-exports (cadr arg) 'functor)))
@@ -1155,14 +1155,14 @@
 				     (and (list? argname)
 					  (= 2 (length argname))
 					  (symbol? (car argname))
-					  (symbol? (cadr argname))))
+					  (chicken.internal#valid-library-specifier? (cadr argname))))
 			   (##sys#syntax-error-hook "invalid functor argument" name arg))
 			 (cons argname exps)))
 		     args)
 	      ',(##sys#validate-exports exps 'functor)
 	      ',body)))
       `(##core#module
-	,name
+	,(chicken.internal#library-id name)
 	#t
 	(import scheme chicken)
 	(begin-for-syntax ,registration))))))
@@ -1239,20 +1239,17 @@
 			(##sys#put! 
 			 gname '##compiler#local-specializations
 			 (##sys#append
+			  (##sys#get gname '##compiler#local-specializations '())
 			  (list
 			   (cons atypes
 				 (if (and rtypes (pair? rtypes))
 				     (list
 				      (map (cut chicken.compiler.scrutinizer#check-and-validate-type
-					     <>
-					     'define-specialization)
+						<>
+						'define-specialization)
 					   rtypes)
 				      spec)
-				     (list spec))))
-			  (or (chicken.compiler.support#variable-mark
-			       gname
-			       '##compiler#local-specializations)
-			      '())))
+				     (list spec))))))
 			`(##core#begin
 			  (##core#declare (inline ,alias) (hide ,alias))
 			  (,%define (,alias ,@anames)

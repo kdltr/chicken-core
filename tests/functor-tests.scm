@@ -1,7 +1,7 @@
 ;;;; functor-tests.scm
 
 
-(use data-structures extras)
+(use data-structures extras ports)
 
 
 (include "test.scm")
@@ -100,6 +100,35 @@
 
 ;;XXX shows (""), which looks wrong:
 (pp (show 8 (search next-char '())))	;XXX assert
+
+;; list-style library names
+
+(functor ((double printer) ((P (chicken)) (print))) (print-twice)
+  (import (scheme) P)
+  (define (print-twice x) (print x) (print x)))
+
+(module (noop printer) *
+  (import (only (scheme) define) (only (chicken) void))
+  (define print void))
+
+(module (2x print) = ((double printer)))
+
+(module (2x noop) = ((double printer) (noop printer)))
+
+(module (2x write) = (double printer)
+  (reexport (rename (scheme) (write print))))
+
+(define output
+  (with-output-to-string
+   (lambda ()
+     (import (2x print))
+     (print-twice #\a)
+     (import (2x noop))
+     (print-twice #\a)
+     (import (2x write))
+     (print-twice #\a))))
+
+(test-equal "double printer" output "a\na\n#\\a#\\a")
 
 ;; Test for errors
 

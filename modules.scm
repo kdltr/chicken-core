@@ -26,11 +26,13 @@
 
 (declare
   (unit modules)
-  (uses eval expand)
+  (uses eval expand internal)
   (disable-interrupts)
   (fixnum)
-  (hide lookup merge-se module-indirect-exports)
-  (not inline ##sys#alias-global-hook))
+  (not inline ##sys#alias-global-hook)
+  (hide check-for-redef find-export find-module/import-library
+	mark-imported-symbols match-functor-argument merge-se
+	module-indirect-exports module-rename register-undefined))
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")
@@ -55,13 +57,6 @@
 
 
 ;;; Support definitions
-
-;; duplicates code in the hope of being inlined
-(define (lookup id se)
-  (cond ((##core#inline "C_u_i_assq" id se) => cdr)
-	((getp id '##core#macro-alias))
-	(else #f)))
-
 
 ;;; low-level module support
 
@@ -125,7 +120,7 @@
     (thunk)))
 
 (define (##sys#resolve-module-name name loc)
-  (let loop ((n name) (done '()))
+  (let loop ((n (chicken.internal#library-id name)) (done '()))
     (cond ((assq n (##sys#module-alias-environment)) =>
 	   (lambda (a)
 	     (let ((n2 (cdr a)))
@@ -185,10 +180,10 @@
 (define (##sys#register-export sym mod)
   (when mod
     (let ((exp (or (eq? #t (module-export-list mod))
-		   (##sys#find-export sym mod #t)))
+		   (find-export sym mod #t)))
 	  (ulist (module-undefined-list mod)))
       (##sys#toplevel-definition-hook	; in compiler, hides unexported bindings
-       (##sys#module-rename sym (module-name mod)) 
+       (module-rename sym (module-name mod))
        mod exp #f)
       (and-let* ((a (assq sym ulist)))
 	(set-module-undefined-list! mod (delete a ulist eq?)))
@@ -204,7 +199,7 @@
 (define (##sys#register-syntax-export sym mod val)
   (when mod
     (let ((exp (or (eq? #t (module-export-list mod))
-		   (##sys#find-export sym mod #t)))
+		   (find-export sym mod #t)))
 	  (ulist (module-undefined-list mod))
 	  (mname (module-name mod)))
       (when (assq sym ulist)	    
@@ -220,7 +215,7 @@
        mod
        (cons (cons sym val) (module-defined-syntax-list mod))))))
 
-(define (##sys#register-undefined sym mod where)
+(define (register-undefined sym mod where)
   (when mod
     (let ((ul (module-undefined-list mod)))
       (cond ((assq sym ul) =>
@@ -237,7 +232,7 @@
     (set! ##sys#module-table (cons (cons name mod) ##sys#module-table))
     mod) )
 
-(define (##sys#mark-imported-symbols se)
+(define (mark-imported-symbols se)
   (for-each
    (lambda (imp)
      (when (and (symbol? (cdr imp)) (not (eq? (car imp) (cdr imp))))
@@ -275,7 +270,7 @@
 			    (cons 
 			     (cons 
 			      (car iexports)
-			      (or (cdr a) (##sys#module-rename (car iexports) mname)))
+			      (or (cdr a) (module-rename (car iexports) mname)))
 			     (loop2 (cdr iexports)))))
 			 ((assq (car iexports) (##sys#current-environment)) =>
 			  (lambda (a)	; imported in current env.
@@ -368,7 +363,7 @@
 		(##sys#macro-environment)
 		(##sys#current-environment)
 		iexps vexports sexps nexps)))
-    (##sys#mark-imported-symbols iexps)
+    (mark-imported-symbols iexps)
     (for-each
      (lambda (sexp)
        (set-car! (cdr sexp) (merge-se (or (cadr sexp) '()) senv)))
@@ -423,7 +418,7 @@
     (set! ##sys#module-table (cons (cons name mod) ##sys#module-table)) 
     mod))
 
-(define (##sys#find-export sym mod indirect)
+(define (find-export sym mod indirect)
   (let ((exports (module-export-list mod)))
     (let loop ((xl (if (eq? #t exports) (module-exist-list mod) exports)))
       (cond ((null? xl) #f)
@@ -450,7 +445,7 @@
 		  (merge-se (module-sexports mod) sdlist)
 		  (let loop ((me (##sys#macro-environment)))
 		    (cond ((null? me) '())
-			  ((##sys#find-export (caar me) mod #f)
+			  ((find-export (caar me) mod #f)
 			   (cons (car me) (loop (cdr me))))
 			  (else (loop (cdr me)))))))
 	     (vexports
@@ -480,7 +475,7 @@
 					     "' has not been defined")
 					    id)
 					   #f)
-					  (else (##sys#module-rename id name)))))))
+					  (else (module-rename id name)))))))
 			   (loop (cdr xl)))))))))
 	(for-each
 	 (lambda (u)
@@ -526,7 +521,7 @@
 			(##sys#macro-environment) 
 			(##sys#current-environment) 
 			iexports vexports sexports sdlist)))
-	  (##sys#mark-imported-symbols iexports)
+	  (mark-imported-symbols iexports)
 	  (for-each
 	   (lambda (m)
 	     (let ((se (merge-se (cadr m) new-se))) ;XXX needed?
@@ -555,8 +550,8 @@
 
 ;;; Import-expansion
 
-(define (##sys#find-module/import-library mname loc)
-  (let* ((mname (##sys#resolve-module-name mname loc))
+(define (find-module/import-library lib loc)
+  (let* ((mname (##sys#resolve-module-name lib loc))
 	 (mod (##sys#find-module mname #f loc)))
     (unless mod
       (let* ((il (##sys#find-extension
@@ -581,10 +576,7 @@
   (let ((%only (r 'only))
 	(%rename (r 'rename))
 	(%except (r 'except))
-	(%prefix (r 'prefix))
-	(%srfi (r 'srfi)))
-    (define (resolve sym)
-      (or (lookup sym '()) sym))	;XXX really empty se?
+	(%prefix (r 'prefix)))
     (define (warn msg mod id)
       (##sys#warn (string-append msg " in module `" (symbol->string mod) "'") id))
     (define (tostr x)
@@ -594,67 +586,66 @@
 	    ((number? x) (number->string x))
 	    (else (##sys#syntax-error-hook loc "invalid prefix" ))))
     (define (import-name spec)
-      (let* ((mod (##sys#find-module/import-library (chicken.expand#strip-syntax spec) 'import))
+      (let* ((mod (find-module/import-library spec 'import))
 	     (vexp (module-vexports mod))
 	     (sexp (module-sexports mod))
 	     (iexp (module-iexports mod))
 	     (name (module-name mod)))
 	(values name name vexp sexp iexp)))
     (define (import-spec spec)
-      (cond ((symbol? spec) (import-name spec))
-	    ((or (not (list? spec)) (< (length spec) 2))
-	     (##sys#syntax-error-hook loc "invalid import specification" spec))
-	    ((and (c %srfi (car spec)) (fixnum? (cadr spec)) (null? (cddr spec))) ; only one number
-	     (import-name 
-	      (##sys#intern-symbol
-	       (##sys#string-append "srfi-" (##sys#number->string (cadr spec))))))
-	    (else
-	     (let ((head (car spec))
-		   (imports (cddr spec)))
-	       (let-values (((name form impv imps impi) (import-spec (cadr spec))))
-		 (cond ((c %only head)
-			(##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
-			(let ((ids (map resolve imports)))
-			  (let loop ((ids ids) (v '()) (s '()) (missing '()))
-			    (cond ((null? ids)
-				   (for-each
-				    (lambda (id)
-				      (warn "imported identifier doesn't exist" name id))
-				    missing)
-				   (values name `(,head ,form ,@imports) v s impi))
-				  ((assq (car ids) impv) =>
-				   (lambda (a)
-				     (loop (cdr ids) (cons a v) s missing)))
-				  ((assq (car ids) imps) =>
-				   (lambda (a)
-				     (loop (cdr ids) v (cons a s) missing)))
-				  (else
-				   (loop (cdr ids) v s (cons (car ids) missing)))))))
-		       ((c %except head)
-			(##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
-			(let ((ids (map resolve imports)))
-			  (let loop ((impv impv) (v '()) (ids imports))
-			    (cond ((null? impv)
-				   (let loop ((imps imps) (s '()) (ids ids))
-				     (cond ((null? imps)
-					    (for-each
-					     (lambda (id)
-					       (warn "excluded identifier doesn't exist" name id))
-					     ids)
-					    (values name `(,head ,form ,@imports) v s impi))
-					   ((memq (caar imps) ids) =>
-					    (lambda (id)
-					      (loop (cdr imps) s (delete (car id) ids eq?))))
-					   (else
-					    (loop (cdr imps) (cons (car imps) s) ids)))))
-				  ((memq (caar impv) ids) =>
-				   (lambda (id)
-				     (loop (cdr impv) v (delete (car id) ids eq?))))
-				  (else
-				   (loop (cdr impv) (cons (car impv) v) ids))))))
-		       ((c %rename head)
-			(##sys#check-syntax loc spec '(_ _ . #((symbol symbol) 0)))
+      (cond ((symbol? spec)
+	     (import-name (chicken.expand#strip-syntax spec)))
+	    ((not (pair? spec))
+             (##sys#syntax-error-hook loc "invalid import specification" spec))
+            (else
+	     (let ((head (car spec)))
+	       (cond ((c %only head)
+		      (##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
+		      (let-values (((name form impv imps impi) (import-spec (cadr spec)))
+				   ((imports) (chicken.expand#strip-syntax (cddr spec))))
+			(let loop ((ids imports) (v '()) (s '()) (missing '()))
+			  (cond ((null? ids)
+				 (for-each
+				  (lambda (id)
+				    (warn "imported identifier doesn't exist" name id))
+				  missing)
+				 (values name `(,head ,form ,@imports) v s impi))
+				((assq (car ids) impv) =>
+				 (lambda (a)
+				   (loop (cdr ids) (cons a v) s missing)))
+				((assq (car ids) imps) =>
+				 (lambda (a)
+				   (loop (cdr ids) v (cons a s) missing)))
+				(else
+				 (loop (cdr ids) v s (cons (car ids) missing)))))))
+		     ((c %except head)
+		      (##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
+		      (let-values (((name form impv imps impi) (import-spec (cadr spec)))
+				   ((imports) (chicken.expand#strip-syntax (cddr spec))))
 			(let loop ((impv impv) (v '()) (ids imports))
+			  (cond ((null? impv)
+				 (let loop ((imps imps) (s '()) (ids ids))
+				   (cond ((null? imps)
+					  (for-each
+					   (lambda (id)
+					     (warn "excluded identifier doesn't exist" name id))
+					   ids)
+					  (values name `(,head ,form ,@imports) v s impi))
+					 ((memq (caar imps) ids) =>
+					  (lambda (id)
+					    (loop (cdr imps) s (delete (car id) ids eq?))))
+					 (else
+					  (loop (cdr imps) (cons (car imps) s) ids)))))
+				((memq (caar impv) ids) =>
+				 (lambda (id)
+				   (loop (cdr impv) v (delete (car id) ids eq?))))
+				(else
+				 (loop (cdr impv) (cons (car impv) v) ids))))))
+		     ((c %rename head)
+		      (##sys#check-syntax loc spec '(_ _ . #((symbol symbol) 0)))
+		      (let-values (((name form impv imps impi) (import-spec (cadr spec)))
+				   ((renames) (chicken.expand#strip-syntax (cddr spec))))
+			(let loop ((impv impv) (v '()) (ids renames))
 			  (cond ((null? impv)
 				 (let loop ((imps imps) (s '()) (ids ids))
 				   (cond ((null? imps)
@@ -662,7 +653,7 @@
 					   (lambda (id)
 					     (warn "renamed identifier doesn't exist" name id))
 					   (map car ids))
-					  (values name `(,head ,form ,@imports) v s impi))
+					  (values name `(,head ,form ,@renames) v s impi))
 					 ((assq (caar imps) ids) =>
 					  (lambda (a)
 					    (loop (cdr imps)
@@ -676,17 +667,19 @@
 					 (cons (cons (cadr a) (cdar impv)) v)
 					 (delete a ids eq?))))
 				(else
-				 (loop (cdr impv) (cons (car impv) v) ids)))))
-		       ((c %prefix head)
-			(##sys#check-syntax loc spec '(_ _ _))
-			(let ((pref (caddr spec)))
-			  (define (ren imp)
-			    (cons 
-			     (##sys#string->symbol 
-			      (##sys#string-append (tostr pref) (##sys#symbol->string (car imp))))
-			     (cdr imp) ) )
-			  (values name `(,head ,form ,pref) (map ren impv) (map ren imps) impi)))
-		       (else (##sys#syntax-error-hook loc "invalid import specification" spec))))))))
+				 (loop (cdr impv) (cons (car impv) v) ids))))))
+		     ((c %prefix head)
+		      (##sys#check-syntax loc spec '(_ _ _))
+		      (let-values (((name form impv imps impi) (import-spec (cadr spec)))
+				   ((prefix) (chicken.expand#strip-syntax (caddr spec))))
+			(define (rename imp)
+			  (cons
+			   (##sys#string->symbol
+			    (##sys#string-append (tostr prefix) (##sys#symbol->string (car imp))))
+			   (cdr imp)))
+			(values name `(,head ,form ,prefix) (map rename impv) (map rename imps) impi)))
+		     (else
+		      (import-name (chicken.expand#strip-syntax spec))))))))
     (##sys#check-syntax loc x '(_ . #(_ 1)))
     (let ((cm (##sys#current-module)))
       (for-each
@@ -703,7 +696,7 @@
 	   (dd `(IMPORT: ,loc))
 	   (dd `(V: ,(if cm (module-name cm) '<toplevel>) ,(map-se vsv)))
 	   (dd `(S: ,(if cm (module-name cm) '<toplevel>) ,(map-se vss)))
-	   (##sys#mark-imported-symbols vsv) ; mark imports as ##core#aliased
+	   (mark-imported-symbols vsv) ; mark imports as ##core#aliased
 	   (for-each
 	    (lambda (imp)
 	      (and-let* ((id (car imp))
@@ -746,7 +739,7 @@
        (cdr x))
       '(##core#undefined))))
 
-(define (##sys#module-rename sym prefix)
+(define (module-rename sym prefix)
   (##sys#string->symbol
    (string-append
     (##sys#slot prefix 1)
@@ -759,8 +752,8 @@
 	   (lambda (mod)
 	     (dm "(ALIAS) global alias " sym " in " (module-name mod))
 	     (unless assign 
-	       (##sys#register-undefined sym mod where))
-	     (##sys#module-rename sym (module-name mod))))
+	       (register-undefined sym mod where))
+	     (module-rename sym (module-name mod))))
 	  (else sym)))
   (cond ((##sys#qualified-symbol? sym) sym)
 	((getp sym '##core#primitive) =>
@@ -778,10 +771,6 @@
 		 (mrename sym)
 		 (or (getp sym2 '##core#primitive) sym2)))))
 	(else (mrename sym))))
-
-(define (##sys#register-interface name exps)
-  ;; expects exps to be stripped and validated
-  (putp name '##core#interface exps))
 
 (define (##sys#validate-exports exps loc)
   ;; expects "exps" to be stripped
@@ -839,10 +828,10 @@
 			'()
 			(let ((p (car fas)))
 			  (if (pair? (car p)) ; has default argument?
-			      (let ((alias (caar p))
-				    (mname (cadar p))
-				    (exps (cdr p)))
-				(##sys#match-functor-argument alias name mname exps fname)
+			      (let ((exps (cdr p))
+				    (alias (caar p))
+				    (mname (chicken.internal#library-id (cadar p))))
+				(match-functor-argument alias name mname exps fname)
 				(cons (list alias mname) (loop2 (cdr fas))))
 			      ;; no default argument, we have too few argument modules
 			      (merr))))))
@@ -852,11 +841,11 @@
 		  ;; otherwise match provided argument to functor argument
 		  (let* ((p (car fas))
 			 (p1 (car p))
+			 (exps (cdr p))
 			 (def? (pair? p1))
 			 (alias (if def? (car p1) p1))
-			 (mname (car as))
-			 (exps (cdr p)))
-		    (##sys#match-functor-argument alias name mname exps fname)
+			 (mname (chicken.internal#library-id (car as))))
+		    (match-functor-argument alias name mname exps fname)
 		    (cons (list alias mname)
 			  (loop (cdr as) (cdr fas)))))))
 	(##core#module
@@ -864,7 +853,7 @@
 	 ,(if (eq? '* exports) #t exports)
 	 ,@body)))))
 
-(define (##sys#match-functor-argument alias name mname exps fname)
+(define (match-functor-argument alias name mname exps fname)
   (let ((mod (##sys#find-module (##sys#resolve-module-name mname 'module) #t 'module)))
     (unless (eq? exps '*)
       (let ((missing '()))
@@ -951,6 +940,6 @@
 (register-feature! 'module-environments)
 
 (define (module-environment mname #!optional (ename mname))
-  (let* ((mod (##sys#find-module/import-library mname 'module-environment))
+  (let* ((mod (find-module/import-library mname 'module-environment))
 	 (saved (module-saved-environments mod)))
     (##sys#make-structure 'environment ename (car saved) #t)))

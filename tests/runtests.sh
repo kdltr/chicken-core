@@ -41,6 +41,7 @@ for x in setup-api.so setup-api.import.so setup-download.so \
       chicken.ports.import.so chicken.utils.import.so chicken.files.import.so \
       chicken.posix.import.so \
       chicken.extras.import.so \
+      chicken.internal.import.so \
       chicken.irregex.import.so \
       chicken.tcp.import.so \
       chicken.foreign.import.so \
@@ -96,7 +97,7 @@ $CHICKEN_PROFILE TEST.profile
 echo "======================================== scrutiny tests ..."
 $compile typematch-tests.scm -specialize -w
 ./a.out
-$compile scrutiny-tests.scm -A -scrutinize 2>scrutiny.out -verbose
+$compile scrutiny-tests.scm -A 2>scrutiny.out -verbose
 
 # this is sensitive to gensym-names, so make it optional
 if test \! -f scrutiny.expected; then
@@ -105,7 +106,7 @@ fi
 
 diff $DIFF_OPTS scrutiny.expected scrutiny.out
 
-$compile scrutiny-tests-2.scm -A -scrutinize -analyze-only 2>scrutiny-2.out -verbose
+$compile scrutiny-tests-2.scm -A 2>scrutiny-2.out -verbose
 
 # this is sensitive to gensym-names, so make it optional
 if test \! -f scrutiny-2.expected; then
@@ -283,6 +284,12 @@ $interpret -i -s r7rs-tests.scm
 echo "======================================== module tests ..."
 $interpret -include-path ${TEST_DIR}/.. -s module-tests.scm
 $interpret -include-path ${TEST_DIR}/.. -s module-tests-2.scm
+
+echo "======================================== module tests (command line options) ..."
+module="test-$(date +%s)"
+$compile test.scm -A -w -j "$module" -module "$module"
+$interpret -e "(import $module)"
+rm -f "$module.import.scm"
 
 echo "======================================== module tests (compiled) ..."
 $compile module-tests-compiled.scm

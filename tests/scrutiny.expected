@@ -42,17 +42,17 @@ Warning: at toplevel:
   (scrutiny-tests.scm:29) in procedure call to `+', expected argument #2 of type `number', but was given an argument of type `symbol'
 
 Warning: at toplevel:
-  assignment of value of type `fixnum' to toplevel variable `car' does not match declared type `(forall (a188) (procedure car ((pair a188 *)) a188))'
+  assignment of value of type `fixnum' to toplevel variable `car' does not match declared type `(forall (a196) (procedure car ((pair a196 *)) a196))'
 
 Warning: at toplevel:
-  expected in `let' binding of `g20' a single result, but were given 2 results
+  expected in `let' binding of `g18' a single result, but were given 2 results
 
 Warning: at toplevel:
-  in procedure call to `g20', expected a value of type `(procedure () *)', but was given a value of type `fixnum'
+  in procedure call to `g18', expected a value of type `(procedure () *)', but was given a value of type `fixnum'
 
 Note: in toplevel procedure `foo':
   expected value of type boolean in conditional but were given a value of type
-  `(procedure bar42 () *)' which is always true:
+  `(procedure bar40 () *)' which is always true:
 
 (if bar 3 (##core#undefined))
 
@@ -148,5 +148,14 @@ Note: at toplevel:
 Note: at toplevel:
   (scrutiny-tests.scm:200) in procedure call to `string?', the predicate is called with an argument of type
   `symbol' and will always return false
+
+Warning: at toplevel:
+  (scrutiny-tests.scm:204) in procedure call to `f', expected argument #1 of type `pair', but was given an argument of type `null'
+
+Warning: at toplevel:
+  (scrutiny-tests.scm:206) in procedure call to `f', expected argument #1 of type `null', but was given an argument of type `(list fixnum)'
+
+Warning: at toplevel:
+  (scrutiny-tests.scm:208) in procedure call to `f', expected argument #1 of type `list', but was given an argument of type `(pair fixnum fixnum)'
 
 Warning: redefinition of standard binding: car

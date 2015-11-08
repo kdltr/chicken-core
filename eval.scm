@@ -27,7 +27,7 @@
 
 (declare
   (unit eval)
-  (uses expand modules)
+  (uses expand internal modules)
   (not inline ##sys#repl-read-hook ##sys#repl-print-hook 
        ##sys#read-prompt-hook ##sys#alias-global-hook ##sys#user-read-hook
        ##sys#syntax-error-hook))
@@ -60,7 +60,8 @@
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment))
 (import chicken)
 
-(import chicken.expand
+(import chicken.internal
+	chicken.expand
 	chicken.foreign)
 
 (include "common-declarations.scm")
@@ -77,16 +78,25 @@
 (define-foreign-variable uses-soname? bool "C_USES_SONAME")
 (define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
 
-(define ##sys#core-library-modules
-  '(eval extras lolevel utils files tcp irregex posix srfi-4 data-structures ports))
+(define-constant core-chicken-modules
+  '((chicken.data-structures . data-structures)
+    (chicken.eval . eval)
+    (chicken.extras . extras)
+    (chicken.files . files)
+    (chicken.irregex . irregex)
+    (chicken.lolevel . lolevel)
+    (chicken.ports . ports)
+    (chicken.posix . posix)
+    (chicken.tcp . tcp)
+    (chicken.utils . utils)))
 
-(define ##sys#core-syntax-modules
+(define ##sys#core-library-units
+  `(srfi-4 . ,(map cdr core-chicken-modules)))
+
+(define ##sys#core-syntax-units
   '(chicken-syntax chicken-ffi-syntax))
 
 (define ##sys#explicit-library-modules '())
-
-(define default-dynamic-load-libraries
-  `(,(string-append "lib" install-lib-name)))
 
 (define-constant cygwin-default-dynamic-load-libraries '("cygchicken-0"))
 (define-constant macosx-load-library-extension ".dylib")
@@ -110,7 +120,12 @@
 (define-constant builtin-features/compiled
   '(srfi-8 srfi-9 srfi-11 srfi-15 srfi-16 srfi-17 srfi-26) )
 
-(define ##sys#chicken-prefix
+(define default-dynamic-load-libraries
+  (case (build-platform)
+    ((cygwin) cygwin-default-dynamic-load-libraries)
+    (else `(,(string-append "lib" install-lib-name)))))
+
+(define chicken-prefix
   (let ((prefix (and-let* ((p (get-environment-variable prefix-environment-variable)))
 		  (##sys#string-append 
 		   p
@@ -123,8 +138,7 @@
 ;;; System settings
 
 (define (chicken-home)
-  (or (##sys#chicken-prefix "share/chicken")
-      installation-home) )
+  (or (chicken-prefix "share/chicken") installation-home))
 
 
 ;;; Lo-level hashtable support:
@@ -193,7 +207,7 @@
 
 ;;; Compile lambda to closure:
 
-(define (##sys#eval-decorator p ll h cntr)
+(define (eval-decorator p ll h cntr)
   (##sys#decorate-lambda
    p 
    (lambda (x) (and (not (##sys#immediate? x)) (##core#inline "C_lambdainfop" x)))
@@ -258,7 +272,7 @@
 	   ##sys#current-thread) ) )
 	
       (define (decorate p ll h cntr)
-	(##sys#eval-decorator p ll h cntr) )
+	(eval-decorator p ll h cntr))
 
       (define (compile x e h tf cntr se)
 	(cond ((keyword? x) (lambda v x))
@@ -706,7 +720,7 @@
 			  (let ([ids (map (lambda (x) (##sys#eval/meta x))
 					  (cdr x))])
 			    (apply ##sys#require ids)
-			    (let ([rs (##sys#lookup-runtime-requirements ids)])
+			    (let ((rs (lookup-runtime-requirements ids)))
 			      (compile
 			       (if (null? rs)
 				   '(##core#undefined)
@@ -879,12 +893,8 @@
 	     (else
 	      ((##sys#compile-to-closure x '() se #f #f #f) '() ) ) ) ) )))
 
-(define ##sys#eval-handler eval-handler)
-
 (define (eval x . env)
-  (apply (##sys#eval-handler) 
-	 x
-	 env) )
+  (apply (eval-handler) x env))
 
 
 ;;; Setting properties dynamically scoped
@@ -1061,7 +1071,7 @@
 (define (load-noisily filename #!key (evaluator #f) (time #f) (printer #f))
   (load/internal filename evaluator #t time printer))
 
-(define ##sys#load-library-extension 	; this is crude...
+(define load-library-extension ; this is crude...
   (cond [(eq? (software-type) 'windows) windows-load-library-extension]
 	[(eq? (software-version) 'macosx) macosx-load-library-extension]
 	[(and (eq? (software-version) 'hpux) 
@@ -1070,28 +1080,23 @@
 
 (define ##sys#load-dynamic-extension default-load-library-extension)
 
-(define ##sys#default-dynamic-load-libraries 
-  (case (build-platform)
-    ((cygwin) cygwin-default-dynamic-load-libraries)
-    (else default-dynamic-load-libraries) ) )
-
 (define dynamic-load-libraries 
   (let ((ext
 	 (if uses-soname?
 	     (string-append
-	      ##sys#load-library-extension
+	      load-library-extension
 	      "." 
 	      (number->string binary-version))
-	     ##sys#load-library-extension)))
+	     load-library-extension)))
     (define complete
       (cut ##sys#string-append <> ext))
     (make-parameter
-     (map complete ##sys#default-dynamic-load-libraries)
+     (map complete default-dynamic-load-libraries)
      (lambda (x)
        (##sys#check-list x)
        x) ) ) )
 
-(define ##sys#load-library-0
+(define load-library-0
   (let ([string-append string-append]
 	[display display] )
     (lambda (uname lib)
@@ -1100,7 +1105,7 @@
 	    (let ([libs
 		   (if lib
 		       (##sys#list lib)
-		       (cons (##sys#string-append (##sys#slot uname 1) ##sys#load-library-extension)
+		       (cons (##sys#string-append (##sys#slot uname 1) load-library-extension)
 			     (dynamic-load-libraries) ) ) ]
 		  [top 
 		   (##sys#make-c-string
@@ -1120,13 +1125,13 @@
 		       #t]
 		      [else (loop (##sys#slot libs 1))] ) ) ) ) ) ) ) )
 
-(define ##sys#load-library
+(define load-library
   (lambda (uname . lib)
     (##sys#check-symbol uname 'load-library)
-    (or (##sys#load-library-0 uname (and (pair? lib) (car lib)))
+    (or (load-library-0 uname (and (pair? lib) (car lib)))
 	(##sys#error 'load-library "unable to load library" uname _dlerror) ) ) )
 
-(define load-library ##sys#load-library)
+(define ##sys#load-library load-library)
 
 (define ##sys#include-forms-from-file
   (let ((with-input-from-file with-input-from-file)
@@ -1180,7 +1185,7 @@
 	 (if (##sys#fudge 22)		; private repository?
 	     (foreign-value "C_private_repository_path()" c-string)
 	     (or (get-environment-variable repository-environment-variable)
-		 (##sys#chicken-prefix 
+		 (chicken-prefix
 		  (##sys#string-append 
 		   "lib/chicken/"
 		   (##sys#number->string (##sys#fudge 42))) )
@@ -1216,25 +1221,25 @@
 		 (or (check pa)
 		     (loop (##sys#slot paths 1)) ) ) ) ) ) ) ))
 
-(define ##sys#loaded-extensions '())
+(define loaded-extensions '())
 
-(define ##sys#load-extension
+(define load-extension
   (let ((string->symbol string->symbol))
     (lambda (id loc #!optional (err? #t))
       (cond ((string? id) (set! id (string->symbol id)))
 	    (else (##sys#check-symbol id loc)) )
       (let ([p (##sys#canonicalize-extension-path id loc)])
-	(cond ((member p ##sys#loaded-extensions))
-	      ((or (memq id ##sys#core-library-modules)
-		   (memq id ##sys#core-syntax-modules))
-	       (or (##sys#load-library-0 id #f)
+	(cond ((member p loaded-extensions))
+	      ((or (memq id ##sys#core-library-units)
+		   (memq id ##sys#core-syntax-units))
+	       (or (load-library-0 id #f)
 		   (and err?
 			(##sys#error loc "cannot load core library" id))))
 	      (else
 	       (let ([id2 (##sys#find-extension p #f)])
 		 (cond (id2
 			(load/internal id2 #f)
-			(set! ##sys#loaded-extensions (cons p ##sys#loaded-extensions)) 
+			(set! loaded-extensions (cons p loaded-extensions))
 			#t)
 		       (err? (##sys#error loc "cannot load extension" id))
 		       (else #f) ) ) ) ) ) ) ) )
@@ -1244,23 +1249,21 @@
    (lambda (id)
      (##sys#check-symbol id 'provide)
      (let ([p (##sys#canonicalize-extension-path id 'provide)])
-       (set! ##sys#loaded-extensions (cons p ##sys#loaded-extensions)) ) ) 
+       (set! loaded-extensions (cons p loaded-extensions))))
    ids) )
 
 (define ##sys#provide provide)
 
 (define (provided? id)
-  (and (member (##sys#canonicalize-extension-path id 'provided?) ##sys#loaded-extensions) 
+  (and (member (##sys#canonicalize-extension-path id 'provided?) loaded-extensions)
        #t) )
 
-(define ##sys#provided? provided?)
-
 (define (require . ids)
-  (for-each (cut ##sys#load-extension <> 'require) ids))
+  (for-each (cut load-extension <> 'require) ids))
 
 (define ##sys#require require)
 
-(define ##sys#extension-information
+(define extension-information/internal
   (let ([with-input-from-file with-input-from-file]
 	[string-append string-append]
 	[read read] )
@@ -1273,9 +1276,9 @@
 		(else #f) ) ) ) ) ))
 
 (define (extension-information ext)
-  (##sys#extension-information ext 'extension-information) )
+  (extension-information/internal ext 'extension-information))
 
-(define ##sys#lookup-runtime-requirements 
+(define lookup-runtime-requirements
   (let ([with-input-from-file with-input-from-file]
 	[read read] )
     (lambda (ids)
@@ -1283,33 +1286,28 @@
 	(if (null? ids)
 	    '()
 	    (append
-	     (or (and-let* ([info (##sys#extension-information (car ids) #f)]
-			    [a (assq 'require-at-runtime info)] )
+	     (or (and-let* ((info (extension-information/internal (car ids) #f))
+			    (a (assq 'require-at-runtime info)))
 		   (cdr a) )
 		 '() )
 	     (loop1 (cdr ids)) ) ) ) ) ) )
 
 (define ##sys#do-the-right-thing
   (let ((vector->list vector->list))
-    (lambda (id comp? imp? #!optional (add-req void))
+    (lambda (spec comp? imp? #!optional (add-req void))
       (define (impform x id builtin?)
 	`(##core#begin
 	  ,x
 	  ,@(if (and imp? (or (not builtin?) (##sys#current-module)))
 		`((import ,id))		;XXX make hygienic
 		'())))
-      (define (srfi-id n)
-	(if (fixnum? n)
-	    (##sys#intern-symbol
-	     (##sys#string-append "srfi-" (##sys#number->string n)))
-	    (##sys#syntax-error-hook 'require-extension "invalid SRFI number" n)))
-      (define (doit id impid)
+      (define (doit id #!optional (impid id))
 	(cond ((or (memq id builtin-features)
 		   (and comp? (memq id builtin-features/compiled)))
 	       (values (impform '(##core#undefined) impid #t) #t id))
 	      ((and (not comp?) (##sys#feature? id))
 	       (values (impform '(##core#undefined) impid #f) #t id))
-	      ((memq id ##sys#core-library-modules)
+	      ((memq id ##sys#core-library-units)
 	       (values
 		(impform
 		 (if comp?
@@ -1317,7 +1315,7 @@
 		     `(##sys#load-library ',id #f) )
 		 impid #f)
 		#t id) )
-	      ((memq id ##sys#core-syntax-modules)
+	      ((memq id ##sys#core-syntax-units)
 	       (values
 		(impform
 		 (if comp?
@@ -1326,7 +1324,7 @@
 		 impid #t)
 		#t id) )
 	      ((memq id ##sys#explicit-library-modules)
-	       (let* ((info (##sys#extension-information id 'require-extension))
+	       (let* ((info (extension-information/internal id 'require-extension))
 		      (nr (and info (assq 'import-only info)))
 		      (s (and info (assq 'syntax info))))
 		 (values
@@ -1341,7 +1339,7 @@
 		      impid #f))
 		  #t id) ) )
 	      (else
-	       (let ((info (##sys#extension-information id 'require-extension)))
+	       (let ((info (extension-information/internal id 'require-extension)))
 		 (cond (info
 			(let ((s (assq 'syntax info))
 			      (nr (assq 'import-only info))
@@ -1368,30 +1366,21 @@
 			  `(##sys#require ',id) 
 			  impid #f)
 			 #f id)))))))
-      (cond ((and (pair? id) (symbol? (car id)))
-	     (case (car id)
-	       ((srfi)
-		(let* ((f #f)
-		       (exp
-			`(##core#begin
-			  ,@(map (lambda (n)
-				   (let ((rid (srfi-id n)))
-				     (let-values (((exp f2 _) (doit rid rid)))
-				       (set! f (or f f2))
-				       exp)))
-				 (cdr id)))))
-		  (values exp f id)))	;XXX `id' not fully correct
-	       ((rename except only prefix)
-		(let follow ((id2 id))
-		  (if (and (pair? id2) (pair? (cdr id2)))
-		      (if (and (eq? 'srfi (car id2)) (null? (cddr id2))) ; only allow one number
-			  (doit (srfi-id (cadr id2)) id)
-			  (follow (cadr id2)))
-		      (doit id2 id))))
-	       (else (##sys#error "invalid extension specifier" id) ) ) )
-	    ((symbol? id)
-	     (doit id id))
-	    (else (##sys#error "invalid extension specifier" id) ) ) )))
+      (let loop ((id spec))
+	(cond ((assq id core-chicken-modules) =>
+	       (lambda (lib) (doit (cdr lib) spec)))
+	      ((symbol? id)
+	       (doit (library-id id) spec))
+	      ((pair? id)
+	       (case (car id)
+		 ((rename except only prefix)
+		  (if (pair? (cdr id))
+		      (loop (cadr id))
+		      (loop (library-id id))))
+		 (else
+		  (loop (library-id id)))))
+	      (else
+	       (##sys#error "invalid extension specifier" id)))))))
 
 
 ;;; Convert string into valid C-identifier:
@@ -1661,11 +1650,11 @@
 
 ;;; SRFI-10:
 
-(define ##sys#sharp-comma-reader-ctors (make-vector 301 '()))
+(define sharp-comma-reader-ctors (make-vector 301 '()))
 
 (define (define-reader-ctor spec proc)
   (##sys#check-symbol spec 'define-reader-ctor)
-  (##sys#hash-table-set! ##sys#sharp-comma-reader-ctors spec proc) )
+  (##sys#hash-table-set! sharp-comma-reader-ctors spec proc))
 
 (set! ##sys#user-read-hook
   (let ((old ##sys#user-read-hook)
@@ -1681,7 +1670,7 @@
 		   (let ([spec (##sys#slot exp 0)])
 		     (if (not (symbol? spec))
 			 (err) 
-			 (let ((ctor (##sys#hash-table-ref ##sys#sharp-comma-reader-ctors spec)))
+			 (let ((ctor (##sys#hash-table-ref sharp-comma-reader-ctors spec)))
 			   (if ctor
 			       (apply ctor (##sys#slot exp 1))
 			       (##sys#read-error port "undefined sharp-comma constructor" spec) ) ) ) ) ) ) )

@@ -79,7 +79,7 @@ Notes:
 
 A parameter that holds a list of default options that should be given
 to {{csc}} after invocation of the {{compile-file}} procedure. 
-The initial default options are {{-scrutinize -O2 -d2}}.
+The initial default options are {{-O2 -d2}}.
 
 === Scanning through an input port
 
