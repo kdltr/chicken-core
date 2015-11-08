@@ -954,7 +954,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 # define C_fputs                    fputs
 # define C_fputc                    fputc
 # define C_putchar                  putchar
-# if (defined getc_unlocked || _POSIX_C_SOURCE >= 199506L)
+# if (defined getc_unlocked || _POSIX_C_SOURCE >= 199506L) && !defined(__MINGW32__)
 #  define C_getc                    getc_unlocked
 # else
 #  define C_getc                    getc
