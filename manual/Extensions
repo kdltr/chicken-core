@@ -171,7 +171,7 @@ a simple single-file extension. This is roughly equivalent to:
   (install-extension
    'ID
    '("ID.so" "ID.import.so")
-   '((version 0.1)
+   '((version VERSION)
      ... `INFO' ...
      ))
 
