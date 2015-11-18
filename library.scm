@@ -3042,7 +3042,8 @@ EOF
   ((##sys#slot (##sys#slot port 2) 6) port) ) ; char-ready?
 
 (define (read-char #!optional (port ##sys#standard-input))
-  (##sys#read-char/port port) )
+  (##sys#check-input-port port #t 'read-char)
+  (##sys#read-char-0 port))
 
 (define (##sys#read-char-0 p)
   (let ([c (if (##sys#slot p 6)
