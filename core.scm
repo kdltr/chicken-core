@@ -91,7 +91,7 @@
 ;   ##compiler#pure -> BOOL                                 referentially transparent
 ;   ##compiler#clean -> BOOL                                does not modify local state
 ;   ##compiler#type -> TYPE
-;   ##compiler#declared-type -> BOOL
+;   ##compiler#declared-type -> 'from-db | 'local | 'implicit
 
 ; - Source language:
 ;
@@ -1659,7 +1659,7 @@
 					 (symbol? (cadr type)))
 				(set-car! (cdr type) name))
 			      (mark-variable name '##compiler#type type)
-			      (mark-variable name '##compiler#declared-type)
+			      (mark-variable name '##compiler#declared-type 'local)
 			      (when pure
 				(mark-variable name '##compiler#pure #t))
 			      (when pred

@@ -126,7 +126,7 @@ rm -f foo.types foo.import.*
 $compile specialization-test-1.scm -emit-type-file foo.types -specialize \
   -debug ox -emit-import-library foo
 ./a.out
-$compile specialization-test-2.scm -types foo.types -specialize -debug ox
+$compile specialization-test-2.scm -types foo.types -types specialization-test-2.types -specialize -debug ox
 ./a.out
 rm -f foo.types foo.import.*
 

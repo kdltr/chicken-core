@@ -86,7 +86,7 @@ del /f /q foo.types foo.import.*
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile% specialization-test-2.scm -types foo.types -specialize -debug ox
+%compile% specialization-test-2.scm -types foo.types -types specialization-test-2.types -specialize -debug ox
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1

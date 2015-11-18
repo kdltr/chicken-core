@@ -88,7 +88,7 @@
 ; global symbol properties:
 ;
 ;   ##compiler#type            ->  TYPESPEC
-;   ##compiler#declared-type   ->  BOOL
+;   ##compiler#declared-type   ->  'from-db | 'local | 'implicit
 ;   ##compiler#predicate       ->  TYPESPEC
 ;   ##compiler#specializations ->  (SPECIALIZATION ...)
 ;   ##compiler#local-specializations ->  (SPECIALIZATION ...)
@@ -649,7 +649,7 @@
 			      ;; [2] sets property, but lambda has already been walked,
 			      ;; so no type-checks are generated (see also [1], above)
 			      ;; note that implicit declarations are not enforcing
-			      (mark-variable var '##compiler#declared-type)
+			      (mark-variable var '##compiler#declared-type 'implicit)
 			      (mark-variable var '##compiler#type rt))))))
 		    (when b
 		      (cond ((eq? 'undefined (cdr b)) (set-cdr! b rt))
@@ -1803,6 +1803,7 @@
 		    "type-definition `~a' for toplevel binding `~a' conflicts with previously loaded type `~a'"
 		  name new old)))
 	     (mark-variable name '##compiler#type t)
+	     (mark-variable name '##compiler#declared-type 'from-db)
 	     (when specs
 	       (install-specializations name specs)))))
        (read-file dbfile))
@@ -1816,7 +1817,8 @@
       (##sys#hash-table-for-each
        (lambda (sym plist)
 	 (when (and (variable-visible? sym block-compilation)
-		    (variable-mark sym '##compiler#declared-type))
+		    (memq (variable-mark sym '##compiler#declared-type)
+			  '(local implicit)))
 	   (let ((specs (or (variable-mark sym '##compiler#specializations) '()))
 		 (type (variable-mark sym '##compiler#type))
 		 (pred (variable-mark sym '##compiler#predicate))
