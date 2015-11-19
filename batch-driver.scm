@@ -587,6 +587,13 @@
 			     '() )
 			 '((##core#undefined))) ) )
 
+	     (unless (null? import-libraries)
+	       (quit "No module definition found for import libraries to emit: ~A"
+		     ;; ~S would be confusing: separate with a comma
+		     (string-intersperse
+		      (map (lambda (il) (->string (car il)))
+			   import-libraries) ", ")))
+
 	     (when (pair? compiler-syntax-statistics)
 	       (with-debugging-output
 		'S

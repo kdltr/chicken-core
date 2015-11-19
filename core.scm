@@ -967,6 +967,10 @@
 							    (lambda (il)
 							      (when enable-module-registration
 								(emit-import-lib name il))
+							      ;; Remove from list
+							      ;; to avoid error
+							      (set! import-libraries
+								(delete il import-libraries))
 							      (values
 							       (reverse xs)
 							       '((##core#undefined)))))
