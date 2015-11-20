@@ -618,12 +618,17 @@
 
 (char? (#(procedure #:pure #:predicate char) char? (*) boolean))
 
-;; we could rewrite these, but this is done by the optimizer anyway (safe)
-(char=? (#(procedure #:clean #:enforce #:foldable) char=? (char char) boolean))
-(char>? (#(procedure #:clean #:enforce #:foldable) char>? (char char) boolean))
-(char<? (#(procedure #:clean #:enforce #:foldable) char<? (char char) boolean))
-(char>=? (#(procedure #:clean #:enforce #:foldable) char>=? (char char) boolean))
-(char<=? (#(procedure #:clean #:enforce #:foldable) char<=? (char char) boolean))
+;; safe rewrites are already done by the optimizer
+(char=? (#(procedure #:clean #:enforce #:foldable) char=? (char char) boolean)
+        ((char char) (##core#inline "C_u_i_char_equalp" #(1) #(2))))
+(char>? (#(procedure #:clean #:enforce #:foldable) char>? (char char) boolean)
+        ((char char) (##core#inline "C_u_i_char_greaterp" #(1) #(2))))
+(char<? (#(procedure #:clean #:enforce #:foldable) char<? (char char) boolean)
+        ((char char) (##core#inline "C_u_i_char_lessp" #(1) #(2))))
+(char>=? (#(procedure #:clean #:enforce #:foldable) char>=? (char char) boolean)
+         ((char char) (##core#inline "C_u_i_char_greater_or_equal_p" #(1) #(2))))
+(char<=? (#(procedure #:clean #:enforce #:foldable) char<=? (char char) boolean)
+         ((char char) (##core#inline "C_u_i_char_less_or_equal_p" #(1) #(2))))
 
 (char-ci=? (#(procedure #:clean #:enforce #:foldable) char-ci=? (char char) boolean))
 (char-ci<? (#(procedure #:clean #:enforce #:foldable) char-ci<? (char char) boolean))

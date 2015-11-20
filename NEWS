@@ -50,6 +50,7 @@
      work, removing the requirement for the inferred types to match
      declared types exactly.  Specializations are matched from first to
      last to resolve ambiguities (#1214).
+  - Compiler rewrites for char{<,>,<=,>=,=}? are now safe (#1122).
 
 4.10.1
 

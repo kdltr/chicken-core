@@ -2201,30 +2201,11 @@ EOF
   (##sys#check-fixnum n 'integer->char)
   (##core#inline "C_make_character" (##core#inline "C_unfix" n)) )
 
-(define (char=? c1 c2)
-  (##sys#check-char c1 'char=?)
-  (##sys#check-char c2 'char=?)
-  (##core#inline "C_i_char_equalp" c1 c2) )
-
-(define (char>? c1 c2)
-  (##sys#check-char c1 'char>?)
-  (##sys#check-char c2 'char>?)
-  (##core#inline "C_i_char_greaterp" c1 c2) )
-
-(define (char<? c1 c2)
-  (##sys#check-char c1 'char<?)
-  (##sys#check-char c2 'char<?)
-  (##core#inline "C_i_char_lessp" c1 c2) )
-
-(define (char>=? c1 c2)
-  (##sys#check-char c1 'char>=?)
-  (##sys#check-char c2 'char>=?)
-  (##core#inline "C_i_char_greater_or_equal_p" c1 c2) )
-
-(define (char<=? c1 c2)
-  (##sys#check-char c1 'char<=?)
-  (##sys#check-char c2 'char<=?)
-  (##core#inline "C_i_char_less_or_equal_p" c1 c2) )
+(define (char=? c1 c2) (##core#inline "C_i_char_equalp" c1 c2))
+(define (char>? c1 c2) (##core#inline "C_i_char_greaterp" c1 c2))
+(define (char<? c1 c2) (##core#inline "C_i_char_lessp" c1 c2))
+(define (char>=? c1 c2) (##core#inline "C_i_char_greater_or_equal_p" c1 c2))
+(define (char<=? c1 c2) (##core#inline "C_i_char_less_or_equal_p" c1 c2))
 
 (define (char-upcase c)
   (##sys#check-char c 'char-upcase)
@@ -2243,16 +2224,16 @@ EOF
 (let ((char-downcase char-downcase))
   (set! char-ci=? (lambda (x y) (eq? (char-downcase x) (char-downcase y))))
   (set! char-ci>? (lambda (x y)
-		    (##core#inline "C_i_char_greaterp"
+		    (##core#inline "C_u_i_char_greaterp"
 				   (char-downcase x) (char-downcase y))))
   (set! char-ci<? (lambda (x y)
-		    (##core#inline "C_i_char_lessp"
+		    (##core#inline "C_u_i_char_lessp"
 				   (char-downcase x) (char-downcase y))))
   (set! char-ci>=? (lambda (x y)
-		     (##core#inline "C_i_char_greater_or_equal_p"
+		     (##core#inline "C_u_i_char_greater_or_equal_p"
 				    (char-downcase x) (char-downcase y))))
   (set! char-ci<=? (lambda (x y)
-		     (##core#inline "C_i_char_less_or_equal_p"
+		     (##core#inline "C_u_i_char_less_or_equal_p"
 				    (char-downcase x) (char-downcase y)))) )
 
 (define (char-upper-case? c)
