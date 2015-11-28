@@ -307,6 +307,8 @@
 			   (else
 			    (set! version v)))
 		     (open-input-string ln))))
+		((irregex-match "^[ ]*\\(error .*\\)[ ]*$" ln)
+		 (open-input-string ln)) ; get-files deals with errors
 		((irregex-match '(* ("\x09\x0a\x0b\x0c\x0d\x20\xa0")) ln)
 		 (skip)) ; Blank line.
 		(else
