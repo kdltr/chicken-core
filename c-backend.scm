@@ -65,8 +65,7 @@
    (intersperse lst #\space) ) )
 
 ;; Hacky procedures to make certain names more suitable for use in C.
-;; TODO: Slashify should probably be changed to convert \ into \\?
-(define (slashify s) (string-translate (->string s) "\\" "/"))
+(define (backslashify s) (string-translate (->string s) "\\" "\\\\"))
 (define (uncommentify s) (string-translate* (->string s) '(("*/" . "*_/"))))
 
 ;;; Generate target code:
@@ -248,7 +247,7 @@
 		    (fn (car subs)) )
 	       (when name
 		 (if emit-trace-info
-		     (gen #t "C_trace(\"" (slashify name-str) "\");")
+		     (gen #t "C_trace(\"" (backslashify name-str) "\");")
 		     (gen #t "/* " (uncommentify name-str) " */") ) )
 	       (cond ((eq? '##core#proc (node-class fn))
 		      (gen #\{)
