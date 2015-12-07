@@ -353,6 +353,7 @@ C_TLS void (*C_gc_trace_hook)(C_word *var, int mode);
 C_TLS void (*C_panic_hook)(C_char *msg) = NULL;
 C_TLS void (*C_pre_gc_hook)(int mode) = NULL;
 C_TLS void (*C_post_gc_hook)(int mode, C_long ms) = NULL;
+C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc, int cln) = NULL;
 
 C_TLS int
   C_gui_mode = 0,
@@ -368,6 +369,7 @@ C_TLS int
   C_heap_size_is_fixed,
   C_trace_buffer_size = DEFAULT_TRACE_BUFFER_SIZE,
   C_max_pending_finalizers = C_DEFAULT_MAX_PENDING_FINALIZERS,
+  C_debugging = 0,
   C_main_argc;
 C_TLS C_uword 
   C_heap_growth,
@@ -844,6 +846,21 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
 }
 
 
+void *C_get_statistics(void) {
+  static void *stats[ 8 ];
+
+  stats[ 0 ] = fromspace_start;
+  stats[ 1 ] = C_fromspace_limit;
+  stats[ 2 ] = C_scratchspace_start;
+  stats[ 3 ] = C_scratchspace_limit;
+  stats[ 4 ] = C_stack_limit;
+  stats[ 5 ] = stack_bottom;
+  stats[ 6 ] = C_fromspace_top;
+  stats[ 7 ] = C_scratchspace_top;
+  return stats;
+}
+
+
 static C_PTABLE_ENTRY *create_initial_ptable()
 {
   /* IMPORTANT: hardcoded table size -
@@ -1060,11 +1077,14 @@ C_regparm C_SYMBOL_TABLE *C_find_symbol_table(char *name)
 
 C_regparm C_word C_find_symbol(C_word str, C_SYMBOL_TABLE *stable)
 {
-  char *sptr = C_c_string(str);
-  int 
-    len = C_header_size(str),
-    key = hash_string(len, sptr, stable->size, stable->rand, 0);
+  C_char *sptr = C_c_string(str);
+  int len = C_header_size(str);
+  int key;
   C_word s;
+
+  if(stable == NULL) stable = symbol_table;
+
+  key = hash_string(len, sptr, stable->size, stable->rand, 0);
 
   if(C_truep(s = lookup(key, len, sptr, stable))) return s;
   else return C_SCHEME_FALSE;
@@ -3166,11 +3186,18 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
   volatile int finalizers_checked;
   FINALIZER_NODE *flist;
   TRACE_INFO *tinfo;
+  C_DEBUG_INFO cell;
 
   /* assert(C_timer_interrupt_counter >= 0); */
 
   if(pending_interrupts_count > 0 && C_interrupts_enabled)
     handle_interrupt(trampoline);
+
+  cell.enabled = 0;
+  cell.event = C_DEBUG_GC;
+  cell.loc = "<runtime>";
+  cell.val = "GC_MINOR";
+  C_debugger(&cell, 0, NULL);
 
   /* Note: the mode argument will always be GC_MINOR or GC_REALLOC. */
   if(C_pre_gc_hook != NULL) C_pre_gc_hook(GC_MINOR);
@@ -3199,6 +3226,8 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     tgc = C_cpu_milliseconds();
 
     if(gc_mode == GC_REALLOC) {
+      cell.val = "GC_REALLOC";
+      C_debugger(&cell, 0, NULL);
       C_rereclaim2(percentage(heap_size, C_heap_growth), 0);
       gc_mode = GC_MAJOR;
       count = (C_uword)tospace_top - (C_uword)tospace_start;
@@ -3207,6 +3236,8 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
     heap_scan_top = (C_byte *)C_align((C_uword)tospace_top);    
     gc_mode = GC_MAJOR;
+    cell.val = "GC_MAJOR";
+    C_debugger(&cell, 0, NULL);
 
     /* Mark items in forwarding table: */
     for(p = forwarding_table; *p != 0; p += 2) {
@@ -4801,6 +4832,9 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
 
   case C_fix(43):		/* minor CHICKEN version */
     return C_fix(C_MINOR_VERSION);
+
+  case C_fix(44):  /* whether debugger is active */
+    return C_mk_bool(C_debugging);
 
   default: return C_SCHEME_UNDEFINED;
   }

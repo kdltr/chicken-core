@@ -152,7 +152,7 @@
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
     -emit-all-import-libraries -setup-mode -no-elevation -no-module-registration
     -no-procedure-checks-for-usual-bindings
-    -specialize -strict-types -clustering -lfa2
+    -specialize -strict-types -clustering -lfa2 -debug-info
     -no-procedure-checks-for-toplevel-bindings))
 
 (define-constant complex-options
@@ -370,9 +370,11 @@ Usage: #{csc} FILENAME | OPTION ...
   Debugging options:
 
     -w  -no-warnings               disable warnings
-    -d0 -d1 -d2 -debug-level NUMBER
+    -d0 -d1 -d2 -d3 -debug-level NUMBER
                                    set level of available debugging information
     -no-trace                      disable rudimentary debugging information
+    -debug-info                    enable debug-information in compiled code for use
+                                    with an external debugger
     -profile                       executable emits profiling information 
     -accumulate-profile            executable emits profiling information in
                                     append mode
@@ -690,6 +692,7 @@ EOF
 	       [(|-d0|) (set! rest (cons* "-debug-level" "0" rest))]
 	       [(|-d1|) (set! rest (cons* "-debug-level" "1" rest))]
 	       [(|-d2|) (set! rest (cons* "-debug-level" "2" rest))]
+	       [(|-d3|) (set! rest (cons* "-debug-level" "3" rest))]
 	       [(-dry-run) 
 		(set! verbose #t)
 		(set! dry-run #t)]

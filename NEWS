@@ -54,6 +54,10 @@
   - When requesting to emit import libraries that don't exist, the
      compiler now gives an error instead of quietly continuing (#1188).
 
+- Tools
+  - A debugger is now available, known as "feathers", which allows
+    basic source-level debugging of compiled Scheme code.
+
 - Core libraries
   - Irregex has been updated to 0.9.4, which fixes severe performance
     problems with {n,m} repeating patterns (thanks to Caolan McMahon).

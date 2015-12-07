@@ -547,6 +547,8 @@
 		   (map walk (cddr x)) ) ) )
 	       ((##core#inline ##core#callunit) 
 		(make-node (car x) (list (cadr x)) (map walk (cddr x))) )
+	       ((##core#debug-event) ; 2nd argument is provided by canonicalization phase
+		(make-node (car x) (cdr x) '()))
 	       ((##core#proc)
 		(make-node '##core#proc (list (cadr x) #t) '()) )
 	       ((set! ##core#set!)
@@ -1670,6 +1672,8 @@ Usage: chicken FILENAME OPTION ...
     -no-warnings                 disable warnings
     -debug-level NUMBER          set level of available debugging information
     -no-trace                    disable tracing information
+    -debug-info                  enable debug-information in compiled code for use
+                                  with an external debugger
     -profile                     executable emits profiling information 
     -profile-name FILENAME       name of the generated profile information file
     -accumulate-profile          executable emits profiling information in

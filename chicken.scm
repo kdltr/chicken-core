@@ -143,6 +143,7 @@
 		 ((0) (set! options (cons* 'no-lambda-info 'no-trace options)))
 		 ((1) (set! options (cons 'no-trace options)))
 		 ((2)) ; default behaviour
+		 ((3) (set! options (cons 'debug-info options)))
 		 (else (quit-compiling "invalid debug level: ~a" (car rest))))
 	       (loop (cdr rest)))
 	      ((memq o valid-compiler-options) (loop rest))

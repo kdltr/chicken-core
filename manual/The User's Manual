@@ -18,6 +18,8 @@ This is the manual for CHICKEN Scheme, version 4.9.1
 
 ; [[Supported language]] : The language implemented by CHICKEN (deviations from the standard and extensions).
 
+; [[Debugging]] : Using "Feathers", the CHICKEN debugger.
+
 ; [[Interface to external functions and variables]] : Accessing C and C++ code and data.
 
 ; [[Extensions]] : Packaging and installing extension libraries.
@@ -35,4 +37,3 @@ This is the manual for CHICKEN Scheme, version 4.9.1
 ; [[Acknowledgements]] : A list of some of the people that have contributed to make CHICKEN what it is.
 
 ; [[Bibliography]] : Links to documents that may be of interest.
-

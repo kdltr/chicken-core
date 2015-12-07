@@ -37,7 +37,7 @@ SETUP_API_OBJECTS_1 = setup-api setup-download
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
        library eval data-structures ports files extras lolevel utils tcp srfi-4 \
-       $(POSIXFILE) internal irregex scheduler \
+       $(POSIXFILE) internal irregex scheduler debugger-client \
        profiler stub expand modules chicken-syntax chicken-ffi-syntax build-version
 LIBCHICKEN_OBJECTS_1 = $(LIBCHICKEN_SCHEME_OBJECTS_1) runtime
 LIBCHICKEN_SHARED_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=$(O))
@@ -61,7 +61,7 @@ ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1 = \
 ## TODO: Shouldn't these manpages match their program names (ie CSI_PROGRAM etc)?
 MANPAGES = \
 	chicken.1 csc.1 csi.1 chicken-install.1 chicken-uninstall.1 \
-	chicken-status.1 chicken-profile.1 chicken-bug.1
+	chicken-status.1 chicken-profile.1 chicken-bug.1 feathers.1
 
 # Not all programs built are installed(?) This is the master list that takes
 # care of which programs should actually be installed/uninstalled
@@ -283,6 +283,12 @@ $(eval $(call declare-program-from-object,$(CSI_STATIC_EXECUTABLE),csi))
 $(eval $(call declare-program-from-object,$(CHICKEN_BUG_PROGRAM)$(EXE),chicken-bug))
 
 
+# scripts
+
+$(CHICKEN_DEBUGGER_PROGRAM): $(SRCDIR)feathers$(SCRIPT_EXT).in
+	$(GENERATE_DEBUGGER)
+
+
 # installation
 
 .PHONY: install uninstall install-libs
@@ -363,6 +369,9 @@ install-bin: $(TARGETS) install-libs install-dev
 		$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) \
 		$(prog)$(EXE) "$(DESTDIR)$(IBINDIR)" $(NL))
 
+	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) $(CHICKEN_DEBUGGER_PROGRAM) \
+	  "$(DESTDIR)$(BINDIR)" $(NL)
+
 ifdef STATICBUILD
 	$(foreach lib,$(IMPORT_LIBRARIES),\
 		$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) \
@@ -417,6 +426,7 @@ install-other-files:
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)README "$(DESTDIR)$(IDOCDIR)"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)LICENSE "$(DESTDIR)$(IDOCDIR)"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)setup.defaults "$(DESTDIR)$(IDATADIR)"
+	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)feathers.tcl "$(DESTDIR)$(DATADIR)"
 
 install-wrappers:
 ifeq ($(WRAPPERDIR),)
@@ -433,6 +443,8 @@ uninstall:
 		$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS)\
 		"$(DESTDIR)$(IBINDIR)$(SEP)$(prog)$(EXE)" $(NL))
 
+	$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS)\
+		"$(DESTDIR)$(IBINDIR)$(SEP)$(CHICKEN_DEBUGGER_PROGRAM)" $(NL))
 	$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) "$(DESTDIR)$(ILIBDIR)$(SEP)lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A)"
 	$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) "$(DESTDIR)$(ILIBDIR)$(SEP)lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(SO)"
 ifdef USES_SONAME
@@ -732,6 +744,8 @@ profiler.c: $(SRCDIR)profiler.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) 
 stub.c: $(SRCDIR)stub.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) 
+debugger-client.c: $(SRCDIR)debugger-client.scm $(SRCDIR)common-declarations.scm dbg-stub.c
+	$(bootstrap-lib)
 build-version.c: $(SRCDIR)build-version.scm buildbranch buildid \
 	  $(SRCDIR)buildversion buildtag.h
 	$(bootstrap-lib)

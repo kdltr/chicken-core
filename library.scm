@@ -135,6 +135,22 @@ shallow_equal(C_word x, C_word y)
   if(C_header_size(y) != len) return C_SCHEME_FALSE;      
   else return C_mk_bool(!C_memcmp((void *)x, (void *)y, len * sizeof(C_word)));
 }
+
+static C_word
+signal_debug_event(C_word mode, C_word msg, C_word args)
+{
+  C_DEBUG_INFO cell;
+  C_word av[ 3 ];
+  cell.enabled = 1;
+  cell.event = C_DEBUG_SIGNAL;
+  cell.loc = "";
+  cell.val = "";
+  av[ 0 ] = mode;
+  av[ 1 ] = msg;
+  av[ 2 ] = args;
+  C_debugger(&cell, 3, av);
+  return C_SCHEME_UNDEFINED;
+}
 EOF
 ) )
 
@@ -4677,8 +4693,12 @@ EOF
 
 ;;; Condition handling:
 
+(define (##sys#debugger msg . args)
+  (##core#inline "signal_debug_event" #:debugger-invocation msg args) )
+
 (define (##sys#signal-hook mode msg . args)
   (##core#inline "C_dbg_hook" #f)
+  (##core#inline "signal_debug_event" mode msg args)
   (case mode
     [(#:user-interrupt)
      (##sys#abort

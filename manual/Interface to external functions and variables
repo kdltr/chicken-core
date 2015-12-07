@@ -17,6 +17,6 @@ Note: Using the foreign library directly from the interpreter or the REPL will n
 * [[C interface]]                 
 
 ---
-Previous: [[Supported language]]
+Previous: [[Debugging]]
 
 Next: [[Extensions]]

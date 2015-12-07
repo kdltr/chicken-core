@@ -1676,6 +1676,29 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_i_true3(dummy1, dummy2, dummy3)  ((dummy1), (dummy2), (dummy3), C_SCHEME_TRUE)
 
 
+/* debug client interface */
+
+typedef struct C_DEBUG_INFO {
+  int event;
+  int enabled;
+  C_char *loc;
+  C_char *val;
+} C_DEBUG_INFO;
+
+#define C_DEBUG_CALL                0
+#define C_DEBUG_GLOBAL_ASSIGN       1
+#define C_DEBUG_GC                  2
+#define C_DEBUG_ENTRY               3
+#define C_DEBUG_SIGNAL              4
+#define C_DEBUG_CONNECT             5
+#define C_DEBUG_LISTEN              6
+#define C_DEBUG_INTERRUPTED         7
+
+#define C_debugger(cell, c, av)     (C_debugger_hook != NULL ? C_debugger_hook(cell, c, av, __FILE__, __LINE__) : C_SCHEME_UNDEFINED)
+
+C_fctexport void C_register_debug_info(C_DEBUG_INFO *);
+
+
 /* Variables: */
 
 C_varextern C_TLS time_t C_startup_time_seconds;
@@ -1710,6 +1733,7 @@ C_varextern C_TLS void *C_restart_trampoline;
 C_varextern C_TLS void (*C_pre_gc_hook)(int mode);
 C_varextern C_TLS void (*C_post_gc_hook)(int mode, C_long ms);
 C_varextern C_TLS void (*C_panic_hook)(C_char *msg);
+C_varextern C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, char *cloc, int cln);
 
 C_varextern C_TLS int
   C_abort_on_thread_exceptions,
@@ -1719,6 +1743,7 @@ C_varextern C_TLS int
   C_heap_size_is_fixed,
   C_max_pending_finalizers,
   C_trace_buffer_size,
+  C_debugging,
   C_main_argc;
 C_varextern C_TLS C_uword
   C_heap_growth,
@@ -2155,6 +2180,8 @@ C_fctexport C_cpsproc(C_peek_unsigned_integer_32);
 
 C_fctexport C_word C_fcall C_decode_literal(C_word **ptr, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_i_pending_interrupt(C_word dummy) C_regparm;
+
+C_fctexport void *C_get_statistics(void);
 
 /* defined in eval.scm: */
 C_fctexport  void  CHICKEN_get_error_message(char *buf,int bufsize);
