@@ -474,14 +474,14 @@ inexact integer.
 <procedure>(file-position FILE)</procedure>
 
 Returns the current file position of {{FILE}}, which should be a
-port or a file-descriptor.
+port, a file-descriptor or a port object.
 
 ==== file-size
 
 <procedure>(file-size FILE)</procedure>
 
 Returns the size of the file designated by {{FILE}}.  {{FILE}}
-may be a filename or a file-descriptor.  If the file does not exist,
+may be a filename, a file-descriptor or a port object.  If the file does not exist,
 an error is signaled. Note that for very large files, {{file-size}} may
 return an inexact integer.
 
@@ -495,8 +495,8 @@ Returns true, if {{FILENAME}} names a regular file (not a directory, socket, etc
 
 <procedure>(file-owner FILE)</procedure>
 
-Returns the user-id of {{FILE}}.  {{FILE}} may be a filename
-or a file-descriptor.
+Returns the user-id of {{FILE}}.  {{FILE}} may be a filename, a file-descriptor
+or a port object.
 
 ==== file-permissions
 
@@ -504,7 +504,7 @@ or a file-descriptor.
 
 Returns the permission bits for {{FILE}}. You can test this value
 by performing bitwise operations on the result and the {{perm/...}}
-values.  {{FILE}} may be a filename or a file-descriptor.
+values.  {{FILE}} may be a filename, a file-descriptor or a port object.
 
 ==== file-read-access?
 ==== file-write-access?
@@ -522,8 +522,8 @@ write or execute permissions on the file named {{FILENAME}}.
 
 <procedure>(file-type FILE [LINK [ERROR]])</procedure>
 
-Returns the file-type for {{FILE}}, which should be a filename or
-file-descriptor. If {{LINK}} is given and true, symbolic-links are
+Returns the file-type for {{FILE}}, which should be a filename, a file-descriptor
+or a port object. If {{LINK}} is given and true, symbolic-links are
 not followed:
 
   regular-file
@@ -548,7 +548,7 @@ error if the file does not exist.
 <procedure>(socket? FILE)</procedure>
 
 These procedures return {{#t}} if {{FILE}} given is of the 
-appropriate type. {{FILE}} may be a filename or a file-descriptor.
+appropriate type. {{FILE}} may be a filename, a file-descriptor or a port object.
 Note that these operations follow symbolic links. If the file does
 not exist, {{#f}} is returned.
 

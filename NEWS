@@ -52,6 +52,9 @@
      last to resolve ambiguities (#1214).
   - Compiler rewrites for char{<,>,<=,>=,=}? are now safe (#1122).
 
+- Unit "posix":
+  - ##sys#stat now works on port objects.
+
 4.10.1
 
 - Core libraries
