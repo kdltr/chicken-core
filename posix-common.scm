@@ -223,6 +223,7 @@ EOF
 
 (define (##sys#stat file link err loc)
   (let ((r (cond ((fixnum? file) (##core#inline "C_fstat" file))
+                 ((port? file) (##core#inline "C_fstat" (port->fileno file)))
                  ((string? file)
                   (let ((path (##sys#make-c-string
 			       (##sys#platform-fixup-pathname
