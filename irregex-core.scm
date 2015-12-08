@@ -3713,20 +3713,24 @@
               (vector->list cset))))
 
 (define (cset-contains? cset ch)
-  (let ((len (vector-length cset)))
-    (case len
-      ((0) #f)
-      ((1) (let ((range (vector-ref cset 0)))
-             (and (char<=? ch (cdr range)) (char<=? (car range) ch))))
-      (else (let lp ((lower 0) (upper len))
-              (let* ((middle (quotient (+ upper lower) 2))
-                     (range (vector-ref cset middle)))
-                (cond ((char<? (cdr range) ch)
-                       (let ((next (+ middle 1)))
-                         (and (< next upper) (lp next upper))))
-                      ((char<? ch (car range))
-                       (and (< lower middle) (lp lower middle)))
-                      (else #t))))))))
+  ;; CHICKEN: Type assumption added for performance.  This is a very
+  ;; hot code path, so every type improvement matters.
+  (assume ((cset (vector-of (pair char char)))
+           (ch char))
+    (let ((len (vector-length cset)))
+      (case len
+        ((0) #f)
+        ((1) (let ((range (vector-ref cset 0)))
+               (and (char<=? ch (cdr range)) (char<=? (car range) ch))))
+        (else (let lp ((lower 0) (upper len))
+                (let* ((middle (quotient (+ upper lower) 2))
+                       (range (vector-ref cset middle)))
+                  (cond ((char<? (cdr range) ch)
+                         (let ((next (+ middle 1)))
+                           (and (< next upper) (lp next upper))))
+                        ((char<? ch (car range))
+                         (and (< lower middle) (lp lower middle)))
+                        (else #t)))))))))
 
 (define (char-ranges-union a b)
   (cons (if (char<=? (car a) (car b)) (car a) (car b))
