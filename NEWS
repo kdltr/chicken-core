@@ -52,8 +52,12 @@
      last to resolve ambiguities (#1214).
   - Compiler rewrites for char{<,>,<=,>=,=}? are now safe (#1122).
 
-- Unit "posix":
-  - ##sys#stat now works on port objects.
+- Unit "posix": The following posix procedures now work on port
+    objects: file-stat, file-size, file-owner, file-permissions,
+    file-modification-time, file-access-time, file-change-time,
+    file-type and all procedures using file-type. These are:
+    regular-file?, symbolic-link?, block-device?, character-device?
+    fifo? and socket?.
 
 4.10.1
 

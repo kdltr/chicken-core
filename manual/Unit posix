@@ -131,7 +131,7 @@ Files beginning with {{.}} are included only if {{SHOW-DOTFILES?}} is given and 
 <procedure>(directory? FILE)</procedure>
 
 Returns {{#t}} if {{FILE}} designates directory. Otherwise, it returns {{#f}}.
-{{FILE}} may be a pathname or a file-descriptor.
+{{FILE}} may be a pathname, a file-descriptor or a port object.
 
 ==== glob
 
@@ -253,8 +253,8 @@ Creates a FIFO with the name {{FILENAME}} and the permission bits
 
 <procedure>(fifo? FILE)</procedure>
 
-Returns {{#t}} if {{FILE}} names a FIFO. {{FILE}} may be a filename
-or a file-descriptor.
+Returns {{#t}} if {{FILE}} names a FIFO. {{FILE}} may be a filename,
+a port or a file-descriptor.
 
 
 === File descriptors and low-level I/O
@@ -389,7 +389,9 @@ this port. Otherwise an error is signaled.
 
 Returns time (in seconds) of the last access, modification or change of {{FILE}}. {{FILE}}
 may be a filename or a file-descriptor. If the file does not exist,
-an error is signaled. 
+an error is signaled.
+
+{{file-access-time}}, {{file-change-time}} and {{file-modification-time}} also accept a port object as their argument.
 
 {{(set! (file-modification-time FILE) SECONDS)}} sets the access- and modification
 time of {{FILE}} to {{SECONDS}}.
@@ -466,6 +468,8 @@ the status of the referenced file is returned;
 however, if the optional argument {{LINK}} is given and
 not {{#f}}, the status of the link itself is returned.
 
+{{FILE}} may be a filename, port or file-descriptor.
+
 Note that for very large files, the {{file-size}} value may be an
 inexact integer.
 
@@ -474,7 +478,7 @@ inexact integer.
 <procedure>(file-position FILE)</procedure>
 
 Returns the current file position of {{FILE}}, which should be a
-port, a file-descriptor or a port object.
+port or a file-descriptor.
 
 ==== file-size
 
@@ -487,9 +491,9 @@ return an inexact integer.
 
 ==== regular-file?
 
-<procedure>(regular-file? FILENAME)</procedure>
+<procedure>(regular-file? FILE)</procedure>
 
-Returns true, if {{FILENAME}} names a regular file (not a directory, socket, etc.)  This operation follows symbolic links; use either {{symbolic-link?}} or {{file-type}} if you need to test for symlinks.
+Returns true, if {{FILE}} names a regular file (not a directory, socket, etc.)  This operation follows symbolic links; use either {{symbolic-link?}} or {{file-type}} if you need to test for symlinks. {{FILE}} may refer to a filename, file descriptor or ports object.
 
 ==== file-owner
 
@@ -760,10 +764,11 @@ the session ID.
 
 ==== symbolic-link?
 
-<procedure>(symbolic-link? FILENAME)</procedure>
+<procedure>(symbolic-link? FILE)</procedure>
 
-Returns true, if {{FILENAME}} names a symbolic link. If no such file exists, {{#f}}
+Returns true, if {{FILE}} names a symbolic link. If no such file exists, {{#f}}
 is returned.  This operation does not follow symbolic links itself.
+{{FILE}} could be a filename, file descriptor or port object.
 
 ==== create-symbolic-link
 
