@@ -71,16 +71,6 @@
 ;;   0.2: 2005/09/27 - adding irregex-opt (like elisp's regexp-opt) utility
 ;;   0.1: 2005/08/18 - simple NFA interpreter over abstract chunked strings
 
-
-(define (%irregex-error arg1 . args)
-  (apply 
-   error 
-   (if (symbol? arg1)
-       (cons (string-append (symbol->string arg1) ": " (car args))
-	     (cdr args))
-       args)))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Data Structures
 
@@ -264,24 +254,24 @@
 (define (irregex-match-numeric-index location m opt)
   (cond
    ((not (irregex-match-data? m))
-    (%irregex-error location "not match data" m))
+    (error location "not match data" m))
    ((not (pair? opt)) 0)
    ((pair? (cdr opt))
-    (apply %irregex-error location "too many arguments" m opt))
+    (apply error location "too many arguments" m opt))
    (else
     (let ((n (car opt)))
       (if (number? n)
           (if (and (integer? n) (exact? n))
               (if (irregex-match-valid-numeric-index? m n)
                   (and (irregex-match-matched-numeric-index? m n) n)
-                  (%irregex-error location "not a valid index" m n))
-              (%irregex-error location "not an exact integer" n))
+                  (error location "not a valid index" m n))
+              (error location "not an exact integer" n))
           (let lp ((ls (irregex-match-names m))
                    (unknown? #t))
             (cond
              ((null? ls)
               (and unknown?
-                   (%irregex-error location "unknown match name" n)))
+                   (error location "unknown match name" n)))
              ((eq? n (caar ls))
               (if (%irregex-match-start-chunk m (cdar ls))
                   (cdar ls)
@@ -290,10 +280,10 @@
 
 (define (irregex-match-valid-index? m n)
   (if (not (irregex-match-data? m))
-      (%irregex-error 'irregex-match-valid-index? "not match data" m))
+      (error 'irregex-match-valid-index? "not match data" m))
   (if (integer? n)
       (if (not (exact? n))
-          (%irregex-error 'irregex-match-valid-index? "not an exact integer" n)
+          (error 'irregex-match-valid-index? "not an exact integer" n)
           (irregex-match-valid-numeric-index? m n))
       (irregex-match-valid-named-index? m n)))
 
@@ -312,7 +302,7 @@
          (cnk (irregex-match-chunker m))
          (get-subchunk (chunker-get-subchunk cnk)))
     (if (not get-subchunk)
-        (%irregex-error "this chunk type does not support match subchunks" m n)
+        (error "this chunk type does not support match subchunks" m n)
         (and n (get-subchunk
                 (%irregex-match-start-chunk m n)
                 (%irregex-match-start-index m n)
@@ -351,7 +341,7 @@
          (get-subchunk (and (pair? o) (car o))))
     (if (not (and (procedure? get-next) (procedure? get-str)
                   (procedure? get-start) (procedure? get-substr)))
-        (%irregex-error 'make-irregex-chunker "expected a procdure"))
+        (error 'make-irregex-chunker "expected a procdure"))
     (vector get-next get-str get-start get-end get-substr get-subchunk)))
 
 (define (chunker-get-next cnk) (vector-ref cnk 0))
@@ -510,7 +500,7 @@
 
 (define (last ls)
   (if (not (pair? ls))
-      (%irregex-error "can't take last of empty list")
+      (error "can't take last of empty list")
       (let lp ((ls ls))
         (if (pair? (cdr ls))
             (lp (cdr ls))
@@ -617,7 +607,7 @@
   (define end (string-length str))
   (define (read i k)
     (cond
-     ((>= i end) (%irregex-error "unterminated embedded SRE" str))
+     ((>= i end) (error "unterminated embedded SRE" str))
      (else
       (case (string-ref str i)
         ((#\()
@@ -630,11 +620,11 @@
                 (k (reverse ls) j))
                ((eq? x dot-token)
                 (if (null? ls)
-                    (%irregex-error "bad dotted form" str)
+                    (error "bad dotted form" str)
                     (read j (lambda (y j2)
                               (read j2 (lambda (z j3)
                                          (if (not (eq? z close-token))
-                                             (%irregex-error "bad dotted form" str)
+                                             (error "bad dotted form" str)
                                              (k (append (reverse (cdr ls))
                                                         (cons (car ls) y))
                                                 j3))))))))
@@ -662,7 +652,7 @@
            (define (collect)
              (if (= from i) res (cons (substring str from i) res)))
            (if (>= i end)
-               (%irregex-error "unterminated string in embedded SRE" str)
+               (error "unterminated string in embedded SRE" str)
                (case (string-ref str i)
                  ((#\") (k (string-cat-reverse (collect)) (+ i 1)))
                  ((#\\) (scan (+ i 1) (+ i 2) (collect)))
@@ -685,7 +675,7 @@
            ((#\t #\f)
             (k (eqv? #\t (string-ref str (+ i 1))) (+ i 2)))
            (else
-            (%irregex-error "bad # syntax in simplified SRE" i))))
+            (error "bad # syntax in simplified SRE" i))))
         (else
          (cond
           ((char-whitespace? (string-ref str i))
@@ -702,7 +692,7 @@
               (else (scan (+ j 1))))))))))))
   (read i (lambda (res j)
             (if (eq? res 'close-token)
-                (%irregex-error "unexpected ')' in SRE" str j)
+                (error "unexpected ')' in SRE" str j)
                 (proc res j)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -734,7 +724,7 @@
   (if (string? obj) (string->sre obj) obj))
 
 (define (string->sre str . o)
-  (if (not (string? str)) (%irregex-error 'string->sre "expected a string" str))
+  (if (not (string? str)) (error 'string->sre "expected a string" str))
   (let ((end (string-length str))
         (flags (symbol-list->flags o)))
 
@@ -829,7 +819,7 @@
       ;; main parsing
       (if (>= i end)
           (if (pair? st)
-              (%irregex-error "unterminated parenthesis in regexp" str)
+              (error "unterminated parenthesis in regexp" str)
               (collect/terms))
           (let ((c (string-ref str i)))
             (case c
@@ -841,7 +831,7 @@
               ((#\?)
                (let ((res (collect/single)))
                  (if (null? res)
-                     (%irregex-error "? can't follow empty pattern" str res)
+                     (error "? can't follow empty pattern" str res)
                      (let ((x (car res)))
                        (lp (+ i 1)
                            (+ i 1)
@@ -865,9 +855,9 @@
                       (op (string->symbol (string c))))
                  (cond
                   ((sre-repeater? x)
-                   (%irregex-error "duplicate repetition (e.g. **) in pattern" str res))
+                   (error "duplicate repetition (e.g. **) in pattern" str res))
                   ((sre-empty? x)
-                   (%irregex-error "can't repeat empty pattern (e.g. ()*)" str res))
+                   (error "can't repeat empty pattern (e.g. ()*)" str res))
                   (else
                    (lp (+ i 1) (+ i 1) flags
                        (cons (list op x) (cdr res))
@@ -875,19 +865,19 @@
               ((#\()
                (cond
                 ((>= (+ i 1) end)
-                 (%irregex-error "unterminated parenthesis in regexp" str))
+                 (error "unterminated parenthesis in regexp" str))
                 ((not (memv (string-ref str (+ i 1)) '(#\? #\*))) ; normal case
                  (lp (+ i 1) (+ i 1) (flag-join flags ~save?) '() (save)))
                 ((>= (+ i 2) end)
-                 (%irregex-error "unterminated parenthesis in regexp" str))
+                 (error "unterminated parenthesis in regexp" str))
                 ((eqv? (string-ref str (+ i 1)) #\*)
                  (if (eqv? #\' (string-ref str (+ i 2)))
                      (with-read-from-string str (+ i 3)
                        (lambda (sre j)
                          (if (or (>= j end) (not (eqv? #\) (string-ref str j))))
-                             (%irregex-error "unterminated (*'...) SRE escape" str)
+                             (error "unterminated (*'...) SRE escape" str)
                              (lp (+ j 1) (+ j 1) flags (cons sre (collect)) st))))
-                     (%irregex-error "bad regexp syntax: (*FOO) not supported" str)))
+                     (error "bad regexp syntax: (*FOO) not supported" str)))
                 (else                   ;; (?...) case
                  (case (string-ref str (+ i 2))
                    ((#\#)
@@ -904,7 +894,7 @@
                    ((#\<)
                     (cond
                      ((>= (+ i 3) end)
-                      (%irregex-error "unterminated parenthesis in regexp" str))
+                      (error "unterminated parenthesis in regexp" str))
                      (else
                       (case (string-ref str (+ i 3))
                         ((#\=)
@@ -922,7 +912,7 @@
                                    `(,(string->symbol (substring str (+ i 3) j))
                                      submatch-named)
                                    (save))
-                               (%irregex-error "invalid (?< sequence" str))))))))
+                               (error "invalid (?< sequence" str))))))))
                    ((#\>)
                     (lp (+ i 3) (+ i 3) (flag-clear flags ~save?)
                         '(atomic) (save)))
@@ -933,12 +923,12 @@
                    ((#\()
                     (cond
                      ((>= (+ i 3) end)
-                      (%irregex-error "unterminated parenthesis in regexp" str))
+                      (error "unterminated parenthesis in regexp" str))
                      ((char-numeric? (string-ref str (+ i 3)))
                       (let* ((j (string-scan-char str #\) (+ i 3)))
                              (n (string->number (substring str (+ i 3) j))))
                         (if (not n)
-                            (%irregex-error "invalid conditional reference" str)
+                            (error "invalid conditional reference" str)
                             (lp (+ j 1) (+ j 1) (flag-clear flags ~save?)
                                 `(,n if) (save)))))
                      ((char-alphabetic? (string-ref str (+ i 3)))
@@ -950,7 +940,7 @@
                       (lp (+ i 2) (+ i 2) (flag-clear flags ~save?)
                           '(if) (save)))))
                    ((#\{)
-                    (%irregex-error "unsupported Perl-style cluster" str))
+                    (error "unsupported Perl-style cluster" str))
                    (else
                     (let ((old-flags flags))
                       (let lp2 ((j (+ i 2)) (flags flags) (invert? #f))
@@ -964,7 +954,7 @@
                                 (cons (if after 'w/utf8 'w/noutf8) res))))
                         (cond
                          ((>= j end)
-                          (%irregex-error "incomplete cluster" str i))
+                          (error "incomplete cluster" str i))
                          (else
                           (case (string-ref str j)
                             ((#\i)
@@ -986,11 +976,11 @@
                              (lp (+ j 1) (+ j 1) flags (new-res '())
                                  (cons (cons old-flags (collect)) st)))
                             (else
-                             (%irregex-error "unknown regex cluster modifier" str)
+                             (error "unknown regex cluster modifier" str)
                              )))))))))))
               ((#\))
                (if (null? st)
-                   (%irregex-error "too many )'s in regexp" str)
+                   (error "too many )'s in regexp" str)
                    (lp (+ i 1)
                        (+ i 1)
                        (caar st)
@@ -1011,7 +1001,7 @@
                  (let ((res (collect/single)))
                    (cond
                     ((null? res)
-                     (%irregex-error "{ can't follow empty pattern"))
+                     (error "{ can't follow empty pattern"))
                     (else
                      (let* ((x (car res))
                             (tail (cdr res))
@@ -1026,7 +1016,7 @@
                              (and (pair? (cdr s2))
                                   (not (equal? "" (cadr s2)))
                                   (not m)))
-                         (%irregex-error "invalid {n} repetition syntax" s2))
+                         (error "invalid {n} repetition syntax" s2))
                         ((null? (cdr s2))
                          (lp (+ j 1) (+ j 1) flags `((= ,n ,x) ,@tail) st))
                         (m
@@ -1037,7 +1027,7 @@
               ((#\\)
                (cond
                 ((>= (+ i 1) end)
-                 (%irregex-error "incomplete escape sequence" str))
+                 (error "incomplete escape sequence" str))
                 (else
                  (let ((c (string-ref str (+ i 1))))
                    (case c
@@ -1084,7 +1074,7 @@
                      ((#\k)
                       (let ((c (string-ref str (+ i 2))))
                         (if (not (memv c '(#\< #\{ #\')))
-                            (%irregex-error "bad \\k usage, expected \\k<...>" str)
+                            (error "bad \\k usage, expected \\k<...>" str)
                             (let* ((terminal (char-mirror c))
                                    (j (string-scan-char str terminal (+ i 2)))
                                    (s (and j (substring str (+ i 3) j)))
@@ -1093,7 +1083,7 @@
                                         'backref-ci
                                         'backref)))
                               (if (not j)
-                                  (%irregex-error "unterminated named backref" str)
+                                  (error "unterminated named backref" str)
                                   (lp (+ j 1) (+ j 1) flags
                                       `((,backref ,(string->symbol s))
                                         ,@(collect))
@@ -1144,7 +1134,7 @@
                           (if cell
                               (lp (+ i 2) (+ i 2) flags
                                   (cons (cdr cell) (collect)) st)
-                              (%irregex-error "unknown escape sequence" str c))))
+                              (error "unknown escape sequence" str c))))
                        (else
                         (lp (+ i 2) (+ i 1) flags (collect) st)))))))))
               ((#\|)
@@ -1186,24 +1176,24 @@
 (define (string-parse-hex-escape str i end)
   (cond
    ((>= i end)
-    (%irregex-error "incomplete hex escape" str i))
+    (error "incomplete hex escape" str i))
    ((eqv? #\{ (string-ref str i))
     (let ((j (string-scan-char-escape str #\} (+ i 1))))
       (if (not j)
-          (%irregex-error "incomplete hex brace escape" str i)
+          (error "incomplete hex brace escape" str i)
           (let* ((s (substring str (+ i 1) j))
                  (n (string->number s 16)))
             (if n
                 (list (integer->char n) j)
-                (%irregex-error "bad hex brace escape" s))))))
+                (error "bad hex brace escape" s))))))
    ((>= (+ i 1) end)
-    (%irregex-error "incomplete hex escape" str i))
+    (error "incomplete hex escape" str i))
    (else
     (let* ((s (substring str i (+ i 2)))
            (n (string->number s 16)))
       (if n
           (list (integer->char n) (+ i 2))
-          (%irregex-error "bad hex escape" s))))))
+          (error "bad hex escape" s))))))
 
 (define (string-parse-cset str start flags)
   (let* ((end (string-length str))
@@ -1211,7 +1201,7 @@
          (utf8? (flag-set? flags ~utf8?)))
     (define (go i prev-char cset)
       (if (>= i end)
-          (%irregex-error "incomplete char set" str i end)
+          (error "incomplete char set" str i end)
           (let ((c (string-ref str i)))
             (case c
               ((#\])
@@ -1229,7 +1219,7 @@
                      (eqv? #\] (string-ref str (+ i 1))))
                  (go (+ i 1) c (cset-adjoin cset c)))
                 ((not prev-char)
-                 (%irregex-error "bad char-set"))
+                 (error "bad char-set"))
                 (else
                  (let ((char (string-ref str (+ i 1))))
                    (apply
@@ -1255,14 +1245,14 @@
                    ((#\:)
                     (let ((j (string-scan-char str #\: (+ i2 1))))
                       (if (or (not j) (not (eqv? #\] (string-ref str (+ j 1)))))
-                          (%irregex-error "incomplete character class" str)
+                          (error "incomplete character class" str)
                           (let* ((class (sre->cset
                                          (string->symbol
                                           (substring str (+ i2 1) j))))
                                  (class (if inv? (cset-complement class) class)))
                             (go (+ j 2) #f (cset-union cset class))))))
                    ((#\= #\.)
-                    (%irregex-error "collating sequences not supported" str))
+                    (error "collating sequences not supported" str))
                    (else
                     (go (+ i 1) #\[ (cset-adjoin cset #\[))))))
               ((#\\)
@@ -1362,7 +1352,7 @@
          (bit-shl (bit-and (byte (+ i 2)) #b00111111) 6)
          (bit-and (byte (+ i 3)) #b00111111))))
     (else
-     (%irregex-error "invalid utf8 length" str len i))))
+     (error "invalid utf8 length" str len i))))
 
 (define (utf8-backup-to-initial-char str i)
   (let lp ((i i))
@@ -1376,12 +1366,12 @@
 (define (utf8-lowest-digit-of-length len)
   (case len
     ((1) 0) ((2) #xC0) ((3) #xE0) ((4) #xF0)
-    (else (%irregex-error "invalid utf8 length" len))))
+    (else (error "invalid utf8 length" len))))
 
 (define (utf8-highest-digit-of-length len)
   (case len
     ((1) #x7F) ((2) #xDF) ((3) #xEF) ((4) #xF7)
-    (else (%irregex-error "invalid utf8 length" len))))
+    (else (error "invalid utf8 length" len))))
 
 (define (char->utf8-list c)
   (let ((i (char->integer c)))
@@ -1399,7 +1389,7 @@
             (bit-ior #b10000000 (bit-and (bit-shr i 12) #b111111))
             (bit-ior #b10000000 (bit-and (bit-shr i 6) #b111111))
             (bit-ior #b10000000 (bit-and i #b111111))))
-     (else (%irregex-error "unicode codepoint out of range:" i)))))
+     (else (error "unicode codepoint out of range:" i)))))
 
 (define (unicode-range->utf8-pattern lo hi)
   (let ((lo-ls (char->utf8-list lo))
@@ -1774,13 +1764,13 @@
                 (let ((n (cond
                           ((number? (cadr sre)) (cadr sre))
                           ((assq (cadr sre) names) => cdr)
-                          (else (%irregex-error "unknown backreference" (cadr sre))))))
+                          (else (error "unknown backreference" (cadr sre))))))
                   (cond
                    ((or (not (integer? n))
                         (not (< 0 n (vector-length sublens))))
-                    (%irregex-error 'sre-length "invalid backreference" sre))
+                    (error 'sre-length "invalid backreference" sre))
                    ((not (vector-ref sublens n))
-                    (%irregex-error 'sre-length "invalid forward backreference" sre))
+                    (error 'sre-length "invalid forward backreference" sre))
                    (else
                     (let ((lo2 (car (vector-ref sublens n)))
                           (hi2 (cdr (vector-ref sublens n))))
@@ -1825,7 +1815,7 @@
                   => (lambda (cell)
                        (lp (apply (cdr cell) (cdr sre)) n lo hi return)))
                  (else
-                  (%irregex-error 'sre-length-ranges "unknown sre operator" sre)))))))
+                  (error 'sre-length-ranges "unknown sre operator" sre)))))))
         ((char? sre)
          (grow 1))
         ((string? sre)
@@ -1839,7 +1829,7 @@
            (if cell
                (lp (if (procedure? (cdr cell)) ((cdr cell)) (cdr cell))
                    n lo hi return)
-               (%irregex-error 'sre-length-ranges "unknown sre" sre)))))))
+               (error 'sre-length-ranges "unknown sre" sre)))))))
     sublens))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1942,13 +1932,13 @@
                           (substring (car src1) i j))))
 
 (define (irregex-search x str . o)
-  (if (not (string? str)) (%irregex-error 'irregex-search "not a string" str))
+  (if (not (string? str)) (error 'irregex-search "not a string" str))
   (let ((start (or (and (pair? o) (car o)) 0))
         (end (or (and (pair? o) (pair? (cdr o)) (cadr o)) (string-length str))))
     (if (not (and (integer? start) (exact? start)))
-        (%irregex-error 'irregex-search "not an exact integer" start))
+        (error 'irregex-search "not an exact integer" start))
     (if (not (and (integer? end) (exact? end)))
-        (%irregex-error 'irregex-search "not an exact integer" end))
+        (error 'irregex-search "not an exact integer" end))
     (irregex-search/chunked x
                             irregex-basic-string-chunker
                             (list str start end)
@@ -1958,7 +1948,7 @@
   (let* ((irx (irregex x))
          (matches (irregex-new-matches irx))
          (i (if (pair? o) (car o) ((chunker-get-start cnk) src))))
-    (if (not (integer? i)) (%irregex-error 'irregex-search "not an integer" i))
+    (if (not (integer? i)) (error 'irregex-search "not an integer" i))
     (irregex-match-chunker-set! matches cnk)
     (irregex-search/matches irx cnk (cons src i) src i matches)))
 
@@ -2030,13 +2020,13 @@
                   #f))))))))
 
 (define (irregex-match irx str . o)
-  (if (not (string? str)) (%irregex-error 'irregex-match "not a string" str))
+  (if (not (string? str)) (error 'irregex-match "not a string" str))
   (let ((start (or (and (pair? o) (car o)) 0))
         (end (or (and (pair? o) (pair? (cdr o)) (cadr o)) (string-length str))))
     (if (not (and (integer? start) (exact? start)))
-        (%irregex-error 'irregex-match "not an exact integer" start))
+        (error 'irregex-match "not an exact integer" start))
     (if (not (and (integer? end) (exact? end)))
-        (%irregex-error 'irregex-match "not an exact integer" end))
+        (error 'irregex-match "not an exact integer" end))
     (irregex-match/chunked irx
                            irregex-basic-string-chunker
                            (list str start end))))
@@ -2630,7 +2620,7 @@
                         (if (procedure? (cdr cell))
                             (lp (cons (apply (cdr cell) (cdar ls)) (cdr ls))
                                 n flags next)
-                            (%irregex-error "non-procedure in op position" (caar ls)))))
+                            (error "non-procedure in op position" (caar ls)))))
                   (else #f)))))))
            (else
             #f))))
@@ -3172,7 +3162,7 @@
             ((*)
              (cond
               ((sre-empty? (sre-sequence (cdr sre)))
-               (%irregex-error "invalid sre: empty *" sre))
+               (error "invalid sre: empty *" sre))
               (else
                (letrec
                    ((body
@@ -3191,7 +3181,7 @@
             ((*?)
              (cond
               ((sre-empty? (sre-sequence (cdr sre)))
-               (%irregex-error "invalid sre: empty *?" sre))
+               (error "invalid sre: empty *?" sre))
               (else
                (letrec
                    ((body
@@ -3358,7 +3348,7 @@
                             (cond
                              ((assq (cadr sre) names) => cdr)
                              (else
-                              (%irregex-error "unknown named backref in SRE IF" sre)))
+                              (error "unknown named backref in SRE IF" sre)))
                             (cadr sre))))
                    (lambda (cnk init src str i end matches fail2)
                      (if (%irregex-match-end-chunk matches index)
@@ -3373,7 +3363,7 @@
             ((backref backref-ci)
              (let ((n (cond ((number? (cadr sre)) (cadr sre))
                             ((assq (cadr sre) names) => cdr)
-                            (else (%irregex-error "unknown backreference" (cadr sre)))))
+                            (else (error "unknown backreference" (cadr sre)))))
                    (compare (if (or (eq? (car sre) 'backref-ci)
                                     (flag-set? flags ~case-insensitive?))
                                 string-ci=?
@@ -3448,7 +3438,7 @@
             ((=> submatch-named)
              (rec `(submatch ,@(cddr sre))))
             (else
-             (%irregex-error "unknown regexp operator" sre)))))
+             (error "unknown regexp operator" sre)))))
      ((symbol? sre)
       (case sre
         ((any)
@@ -3554,7 +3544,7 @@
          (let ((cell (assq sre sre-named-definitions)))
            (if cell
                (rec (cdr cell))
-               (%irregex-error "unknown regexp" sre))))))
+               (error "unknown regexp" sre))))))
      ((char? sre)
       (if (flag-set? flags ~case-insensitive?)
           ;; case-insensitive
@@ -3607,7 +3597,7 @@
 ;;                   (fail)))))
       )
      (else
-      (%irregex-error "unknown regexp" sre)))))
+      (error "unknown regexp" sre)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Character Sets
@@ -3705,7 +3695,7 @@
             ((w/nocase)
              (lp (sre-alternate (cdr sre)) #t))
             (else
-             (%irregex-error "not a valid sre char-set operator" sre)))))
+             (error "not a valid sre char-set operator" sre)))))
      ((char? sre) (if ci?
                       (cset-case-insensitive (range->cset sre sre))
                       (range->cset sre sre)))
@@ -3714,7 +3704,7 @@
       (let ((cell (assq sre sre-named-definitions)))
         (if cell
             (rec (cdr cell))
-            (%irregex-error "not a valid sre char-set" sre)))))))
+            (error "not a valid sre char-set" sre)))))))
 
 (define (cset->sre cset)
   (cons '/
@@ -3854,7 +3844,7 @@
 ;;;; Match and Replace Utilities
 
 (define (irregex-fold/fast irx kons knil str . o)
-  (if (not (string? str)) (%irregex-error 'irregex-fold "not a string" str))
+  (if (not (string? str)) (error 'irregex-fold "not a string" str))
   (let* ((irx (irregex irx))
          (matches (irregex-new-matches irx))
          (finish (or (and (pair? o) (car o)) (lambda (i acc) acc)))
@@ -3865,9 +3855,9 @@
          (init-src (list str start end))
          (init (cons init-src start)))
     (if (not (and (integer? start) (exact? start)))
-        (%irregex-error 'irregex-fold "not an exact integer" start))
+        (error 'irregex-fold "not an exact integer" start))
     (if (not (and (integer? end) (exact? end)))
-        (%irregex-error 'irregex-fold "not an exact integer" end))
+        (error 'irregex-fold "not an exact integer" end))
     (irregex-match-chunker-set! matches irregex-basic-string-chunker)
     (let lp ((src init-src) (i start) (acc knil))
       (if (>= i end)
@@ -3895,7 +3885,7 @@
                             (lp (list str j end) j acc)))))))))))
 
 (define (irregex-fold irx kons . args)
-  (if (not (procedure? kons)) (%irregex-error 'irregex-fold "not a procedure" kons))
+  (if (not (procedure? kons)) (error 'irregex-fold "not a procedure" kons))
   (let ((kons2 (lambda (i m acc) (kons i (irregex-copy-matches m) acc))))
     (apply irregex-fold/fast irx kons2 args)))
 
@@ -3907,7 +3897,7 @@
                 (cadr o)
                 ((chunker-get-start cnk) start)))
          (init (cons start i)))
-    (if (not (integer? i)) (%irregex-error 'irregex-fold/chunked "not an integer" i))
+    (if (not (integer? i)) (error 'irregex-fold/chunked "not an integer" i))
     (irregex-match-chunker-set! matches cnk)
     (let lp ((start start) (i i) (acc knil))
       (if (not start)
@@ -3932,12 +3922,12 @@
                             (lp end-src end-index acc)))))))))))
 
 (define (irregex-fold/chunked irx kons . args)
-  (if (not (procedure? kons)) (%irregex-error 'irregex-fold/chunked "not a procedure" kons))
+  (if (not (procedure? kons)) (error 'irregex-fold/chunked "not a procedure" kons))
   (let ((kons2 (lambda (s i m acc) (kons s i (irregex-copy-matches m) acc))))
     (apply irregex-fold/chunked/fast irx kons2 args)))
 
 (define (irregex-replace irx str . o)
-  (if (not (string? str)) (%irregex-error 'irregex-replace "not a string" str))
+  (if (not (string? str)) (error 'irregex-replace "not a string" str))
   (let ((m (irregex-search irx str)))
     (if m
         (string-cat-reverse
@@ -3948,7 +3938,7 @@
         str)))
 
 (define (irregex-replace/all irx str . o)
-  (if (not (string? str)) (%irregex-error 'irregex-replace/all "not a string" str))
+  (if (not (string? str)) (error 'irregex-replace/all "not a string" str))
   (irregex-fold/fast
    irx
    (lambda (i m acc)
@@ -3995,12 +3985,12 @@
               ((assq (car ls) (irregex-match-names m))
                => (lambda (x) (lp (cons (cdr x) (cdr ls)) res)))
               (else
-               (%irregex-error "unknown match replacement" (car ls)))))))
+               (error "unknown match replacement" (car ls)))))))
          (else
           (lp (cdr ls) (cons (car ls) res)))))))
 
 (define (irregex-extract irx str . o)
-  (if (not (string? str)) (%irregex-error 'irregex-extract "not a string" str))
+  (if (not (string? str)) (error 'irregex-extract "not a string" str))
   (apply irregex-fold/fast
          irx
          (lambda (i m a) (cons (irregex-match-substring m) a))
@@ -4010,7 +4000,7 @@
          o))
 
 (define (irregex-split irx str . o)
-  (if (not (string? str)) (%irregex-error 'irregex-split "not a string" str))
+  (if (not (string? str)) (error 'irregex-split "not a string" str))
   (let ((start (if (pair? o) (car o) 0))
         (end (if (and (pair? o) (pair? (cdr o))) (cadr o) (string-length str))))
     (irregex-fold/fast
