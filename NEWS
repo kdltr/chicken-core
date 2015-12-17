@@ -52,7 +52,10 @@
      last to resolve ambiguities (#1214).
   - Compiler rewrites for char{<,>,<=,>=,=}? are now safe (#1122).
 
-- Unit "posix": The following posix procedures now work on port
+- Core libraries
+  - Irregex has been updated to 0.9.4, which fixes severe performance
+    problems with {n,m} repeating patterns (thanks to Caolan McMahon).
+  - Unit "posix": The following posix procedures now work on port
     objects: file-stat, file-size, file-owner, file-permissions,
     file-modification-time, file-access-time, file-change-time,
     file-type and all procedures using file-type. These are:

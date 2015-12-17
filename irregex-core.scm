@@ -1,6 +1,6 @@
 ;;;; irregex.scm -- IrRegular Expressions
 ;;
-;; Copyright (c) 2005-2011 Alex Shinn.  All rights reserved.
+;; Copyright (c) 2005-2015 Alex Shinn.  All rights reserved.
 ;; BSD-style license: http://synthcode.com/license.txt
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -27,12 +27,11 @@
 ;; performance tuning, but you can only go so far while staying
 ;; portable.  AND-LET*, SRFI-9 records and custom macros would've been
 ;; nice.
-;;
-;; Version 1.0 will be released as a portable R7RS library.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; History
-;;
+;; 0.9.4: 2015/12/14 - performance improvement for {n,m} matches
+;; 0.9.3: 2014/07/01 - R7RS library
 ;; 0.9.2: 2012/11/29 - fixed a bug in -fold on conditional bos patterns
 ;; 0.9.1: 2012/11/27 - various accumulated bugfixes
 ;; 0.9.0: 2012/06/03 - Using tags for match extraction from Peter Bex.
@@ -506,8 +505,8 @@
 (define (find-tail pred ls)
   (let lp ((ls ls))
     (cond ((null? ls) #f)
-	  ((pred (car ls)) ls)
-	  (else (lp (cdr ls))))))
+          ((pred (car ls)) ls)
+          (else (lp (cdr ls))))))
 
 (define (last ls)
   (if (not (pair? ls))
@@ -557,7 +556,7 @@
 
 (define (bit-shl n i)
   (* n (expt 2 i)))
-  
+
 (define (bit-not n) (- #xFFFF n))
 
 (define (bit-ior a b)
@@ -2876,19 +2875,26 @@
                       (cons (list dfa-state finalizer dfa-trans) marked-states)
                       (+ dfa-size 1)))
                 (let* ((closure (nfa-epsilon-closure nfa (cdar trans)))
-                       (reordered (find-reorder-commands nfa closure marked-states))
+                       (reordered
+                        (find-reorder-commands nfa closure marked-states))
                        (copy-cmds (if reordered (cdr reordered) '()))
                        ;; Laurikari doesn't mention what "k" is, but it seems it
                        ;; must be the mappings of the state's reach
-                       (set-cmds (tag-set-commands-for-closure nfa (cdar trans) closure copy-cmds))
+                       (set-cmds (tag-set-commands-for-closure
+                                  nfa (cdar trans) closure copy-cmds))
                        (trans-closure (if reordered (car reordered) closure)))
                   (lp2 (cdr trans)
                        (if reordered
                            unmarked-states
                            (cons trans-closure unmarked-states))
-                       (cons `(,trans-closure ,(caar trans) ,copy-cmds . ,set-cmds)
+                       (cons `(,trans-closure
+                               ,(caar trans) ,copy-cmds . ,set-cmds)
                              dfa-trans)))))))))))
 
+;; When the conversion is complete we renumber the DFA sets-of-states
+;; in order and convert the result to a vector for fast lookup.
+;; Charsets containing single characters are converted to those characters
+;; for quick matching of the literal parts in a regex.
 (define (dfa-renumber states)
   (let ((indexes (let lp ((i 0) (states states) (indexes '()))
                    (if (null? states)
@@ -2912,7 +2918,6 @@
 ;; Extract all distinct ranges and the potential states they can transition
 ;; to from a given set of states.  Any ranges that would overlap with
 ;; distinct characters are split accordingly.
-
 ;; This function is like "reach" in Laurikari's papers, but for each
 ;; possible distinct range of characters rather than per character.
 (define (get-distinct-transitions nfa annotated-states)
@@ -2935,7 +2940,8 @@
                ;; but takes longer to compile.
                (cons (cons cs (nfa-state->mst nfa state mappings))
                      res))
-              ((cset=? cs (caar ls)) ; Add state to existing set for this charset
+              ((cset=? cs (caar ls))
+               ;; Add state to existing set for this charset
                (mst-add! nfa (cdar ls) state mappings)
                (append ls res))
               ((csets-intersect? cs (caar ls)) =>
@@ -2943,8 +2949,9 @@
                  (let* ((only-in-new (cset-difference cs (caar ls)))
                         (only-in-old (cset-difference (caar ls) cs))
                         (states-in-both (cdar ls))
-                        (states-for-old (and (not (cset-empty? only-in-old))
-                                             (mst-copy states-in-both)))
+                        (states-for-old
+                         (and (not (cset-empty? only-in-old))
+                              (mst-copy states-in-both)))
                         (res (if states-for-old
                                  (cons (cons only-in-old states-for-old) res)
                                  res)))
@@ -2990,14 +2997,15 @@
                      ((cdar trans) =>   ; tagged transition?
                       (lambda (tag)
                        (let* ((index (next-index-for-tag! nfa tag closure))
-                              (new-mappings (mst-add-tagged!
-                                             nfa closure state mappings tag index)))
-                         (lp2 (cdr trans) (cons (cons state new-mappings) stack)))))
+                              (new-mappings
+                               (mst-add-tagged!
+                                nfa closure state mappings tag index)))
+                         (lp2 (cdr trans)
+                              (cons (cons state new-mappings) stack)))))
                      (else
                       (mst-add/fast! nfa closure state mappings)
                       (lp2 (cdr trans) (cons (cons state mappings) stack)))))
                    (else (lp2 (cdr trans) stack))))))))))
-
 
 (define (nfa-epsilon-closure nfa states)
   (or (nfa-get-closure nfa states)
@@ -3079,7 +3087,6 @@
         (nfa-set-reorder-commands! nfa closure res)
         res)))
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Closure Compilation
 ;;
@@ -3099,7 +3106,7 @@
                    (irregex-match-start-index-set! matches 0 (cdr init))
                    (irregex-match-end-chunk-set! matches 0 src)
                    (irregex-match-end-index-set! matches 0 i)
-		   (%irregex-match-fail-set! matches fail)
+                   (%irregex-match-fail-set! matches fail)
                    matches)))
     ;; XXXX this should be inlined
     (define (rec sre) (lp sre n flags next))
@@ -3209,7 +3216,7 @@
              (rec `(** ,(cadr sre) ,(cadr sre) ,@(cddr sre))))
             ((>=)
              (rec `(** ,(cadr sre) #f ,@(cddr sre))))
-            ((** **?)
+            ((**)
              (cond
               ((or (and (number? (cadr sre))
                         (number? (caddr sre))
@@ -3217,27 +3224,67 @@
                    (and (not (cadr sre)) (caddr sre)))
                (lambda (cnk init src str i end matches fail) (fail)))
               (else
-               (let* ((from (cadr sre))
-                      (to (caddr sre))
-                      (? (if (eq? '** (car sre)) '? '??))
-                      (* (if (eq? '** (car sre)) '* '*?))
-                      (sre (sre-sequence (cdddr sre)))
-                      (x-sre (sre-strip-submatches sre))
-                      (next (if to
-                                (if (= from to)
-                                    next
-                                    (fold (lambda (x next)
-                                            (lp `(,? ,sre) n flags next))
-                                          next
-                                          (zero-to (- to from))))
-                                (rec `(,* ,sre)))))
-                 (if (zero? from)
+               (letrec
+                   ((from (cadr sre))
+                    (to (caddr sre))
+                    (body-contents (sre-sequence (cdddr sre)))
+                    (body
+                     (lambda (count)
+                       (lp body-contents
+                           n
+                           flags
+                           (lambda (cnk init src str i end matches fail)
+                             (if (and to (= count to))
+                                 (next cnk init src str i end matches fail)
+                                 ((body (+ 1 count))
+                                  cnk init src str i end matches
+                                  (lambda ()
+                                    (if (>= count from)
+                                        (next cnk init src str i end matches fail)
+                                        (fail))))))))))
+                 (if (and (zero? from) to (zero? to))
                      next
-                     (lp `(seq ,@(map (lambda (x) x-sre) (zero-to (- from 1)))
-                               ,sre)
-                         n
-                         flags
-                         next))))))
+                     (lambda (cnk init src str i end matches fail)
+                       ((body 1) cnk init src str i end matches
+                        (lambda ()
+                          (if (zero? from)
+                              (next cnk init src str i end matches fail)
+                              (fail))))))))))
+            ((**?)
+             (cond
+              ((or (and (number? (cadr sre))
+                        (number? (caddr sre))
+                        (> (cadr sre) (caddr sre)))
+                   (and (not (cadr sre)) (caddr sre)))
+               (lambda (cnk init src str i end matches fail) (fail)))
+              (else
+               (letrec
+                   ((from (cadr sre))
+                    (to (caddr sre))
+                    (body-contents (sre-sequence (cdddr sre)))
+                    (body
+                     (lambda (count)
+                       (lp body-contents
+                           n
+                           flags
+                           (lambda (cnk init src str i end matches fail)
+                             (if (< count from)
+                                 ((body (+ 1 count)) cnk init
+                                  src str i end matches fail)
+                                 (next cnk init src str i end matches
+                                       (lambda ()
+                                         (if (and to (= count to))
+                                             (fail)
+                                             ((body (+ 1 count)) cnk init
+                                              src str i end matches fail))))))))))
+                 (if (and (zero? from) to (zero? to))
+                     next
+                     (lambda (cnk init src str i end matches fail)
+                       (if (zero? from)
+                           (next cnk init src str i end matches
+                                 (lambda ()
+                                   ((body 1) cnk init src str i end matches fail)))
+                           ((body 1) cnk init src str i end matches fail))))))))
             ((word)
              (rec `(seq bow ,@(cdr sre) eow)))
             ((word+)
