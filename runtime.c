@@ -189,7 +189,7 @@ static C_TLS int timezone;
 # define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffffffffffeL)
 # define FORWARDING_BIT_SHIFT          63
 # define UWORD_FORMAT_STRING           "0x%016lx"
-# define UWORD_COUNT_FORMAT_STRING     "%u"
+# define UWORD_COUNT_FORMAT_STRING     "%lu"
 #else
 # define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffe)
 # define FORWARDING_BIT_SHIFT          31
@@ -397,12 +397,12 @@ static C_TLS C_byte
   *new_tospace_top,
   *new_tospace_limit,
   *heap_scan_top;
-static C_TLS size_t
+static C_TLS C_uword
   heapspace1_size,
   heapspace2_size,
   heap_size,
   scratchspace_size;
-static C_TLS C_char 
+static C_TLS C_char
   buffer[ STRING_BUFFER_SIZE ],
   *private_repository = NULL,
   *current_module_name,
@@ -2866,7 +2866,7 @@ C_mutate_slot(C_word *slot, C_word val)
     bytes = newmssize * sizeof(C_word *);
 
     if(debug_mode) 
-      C_dbg(C_text("debug"), C_text("resizing mutation-stack from " UWORD_COUNT_FORMAT_STRING "k to " UWORD_COUNT_FORMAT_STRING "k ...\n"), 
+      C_dbg(C_text("debug"), C_text("resizing mutation-stack from %uk to %uk ...\n"),
 	    (mssize * sizeof(C_word *)) / 1024, bytes / 1024);
 
     mutation_stack_bottom = (C_word **)realloc(mutation_stack_bottom, bytes);
@@ -2923,10 +2923,13 @@ C_regparm C_word C_fcall C_scratch_alloc(C_uword size)
     new_scratch_top = new_scratch_start;
     new_scratch_limit = new_scratch_start + new_size;
 
-    if(debug_mode) 
-      C_dbg(C_text("debug"), C_text("resizing scratchspace dynamically from " UWORD_COUNT_FORMAT_STRING "k to " UWORD_COUNT_FORMAT_STRING "k ...\n"), 
+    if(debug_mode) {
+      C_dbg(C_text("debug"), C_text("resizing scratchspace dynamically from "
+				    UWORD_COUNT_FORMAT_STRING "k to "
+				    UWORD_COUNT_FORMAT_STRING "k ...\n"),
 	    C_wordstobytes(scratchspace_size) / 1024,
             C_wordstobytes(new_size) / 1024);
+    }
 
     if(gc_report_flag) {
       C_dbg(C_text("GC"), C_text("(old) scratchspace: \tstart=" UWORD_FORMAT_STRING 
@@ -3709,9 +3712,12 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 	  
   if(size > C_maximal_heap_size) size = C_maximal_heap_size;
 
-  if(debug_mode) 
-    C_dbg(C_text("debug"), C_text("resizing heap dynamically from " UWORD_COUNT_FORMAT_STRING "k to " UWORD_COUNT_FORMAT_STRING "k ...\n"), 
+  if(debug_mode) {
+    C_dbg(C_text("debug"), C_text("resizing heap dynamically from "
+                                  UWORD_COUNT_FORMAT_STRING "k to "
+                                  UWORD_COUNT_FORMAT_STRING "k ...\n"),
 	  heap_size / 1024, size / 1024);
+  }
 
   if(gc_report_flag) {
     C_dbg(C_text("GC"), C_text("(old) fromspace: \tstart=" UWORD_FORMAT_STRING 
@@ -13152,20 +13158,18 @@ static void C_ccall dump_heap_state_2(C_word c, C_word *av)
 	else C_fprintf(C_stderr, C_text("unknown key " UWORD_FORMAT_STRING), (C_uword)b->key);
       }
 
-      C_fprintf(C_stderr, C_text("\t" UWORD_COUNT_FORMAT_STRING), b->count);
+      C_fprintf(C_stderr, C_text("\t%d"), b->count);
 
       if(b->total > 0) 
-	C_fprintf(C_stderr, C_text("\t" UWORD_COUNT_FORMAT_STRING " bytes"), 
-		  (unsigned int)b->total);
+	C_fprintf(C_stderr, C_text("\t%d bytes"), b->total);
 
       C_fputc('\n', C_stderr);
       C_free(b);
     }
   }
 
-  C_fprintf(C_stderr, C_text("\ntotal number of blocks: " UWORD_COUNT_FORMAT_STRING
-			     ", immediates: " UWORD_COUNT_FORMAT_STRING "\n"),
-	    (unsigned int)blk, (unsigned int)imm);
+  C_fprintf(C_stderr, C_text("\ntotal number of blocks: %d, immediates: %d\n"),
+	    blk, imm);
   C_free(hdump_table);
   C_kontinue(k, C_SCHEME_UNDEFINED);
 }
