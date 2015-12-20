@@ -118,28 +118,26 @@
     (if (and (memq 'map standard-bindings) ; s.a.
 	     (> (length+ x) 2))
 	(let ((vars (map (lambda _ (gensym)) lsts)))
-	  `(,%let ((,%result (,%quote ()))
-		   (,%node #f)
-		   (,%proc ,(cadr x))
-		   ,@(map list vars lsts))		   
-		  ,@(map (lambda (var)
-			   `(##core#check (##sys#check-list ,var (,%quote map))))
-			 vars)
-		  (,%let ,%loop ,(map list vars vars)
-			 (,%if (,%and ,@(map (lambda (v) `(,%pair? ,v)) vars))
-			       (,%let ((,%res
-					(,%cons
-					 (,%proc
-					  ,@(map (lambda (v) `(##sys#slot ,v 0)) vars))
-					 (,%quote ()))))
-				      (,%if ,%node
-					    (##sys#setslot ,%node 1 ,%res)
-					    (,%set! ,%result ,%res))
-				      (,%set! ,%node ,%res)
-				      (##core#app
-				       ,%loop
-				       ,@(map (lambda (v) `(##sys#slot ,v 1)) vars)))
-			       ,%result))))
+	  `(,%let ((,%node (,%cons (##core#undefined) (,%quote ()))))
+	     (,%let ((,%result ,%node)
+		     (,%proc ,(cadr x))
+		     ,@(map list vars lsts))
+		    ,@(map (lambda (var)
+			     `(##core#check (##sys#check-list ,var (,%quote map))))
+			   vars)
+	       (,%let ,%loop ,(map list vars vars)
+		 (,%if (,%and ,@(map (lambda (v) `(,%pair? ,v)) vars))
+		       (,%let ((,%res
+				(,%cons
+				 (,%proc
+				  ,@(map (lambda (v) `(##sys#slot ,v 0)) vars))
+				 (,%quote ()))))
+			      (##sys#setslot ,%node 1 ,%res)
+			      (,%set! ,%node ,%res)
+			      (##core#app
+			       ,%loop
+			       ,@(map (lambda (v) `(##sys#slot ,v 1)) vars)))
+		       (##sys#slot ,%result 1))))))
 	x)))
 
 (define-internal-compiler-syntax ((chicken.data-structures#o) x r c) ()
