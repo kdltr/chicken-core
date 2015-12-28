@@ -65,7 +65,7 @@
      real-name real-name2 display-real-name-table
      source-info->string source-info->line call-info constant-form-eval
      dump-nodes read-info-hook read/source-info big-fixnum?
-     hide-variable export-variable variable-visible?
+     hide-variable export-variable variable-hidden? variable-visible?
      mark-variable variable-mark intrinsic? predicate? foldable?
      load-identifier-database
      print-version print-usage print-debug-options
@@ -1563,6 +1563,9 @@
 
 (define (export-variable sym)		; Used only in compiler.scm
   (mark-variable sym '##compiler#visibility 'exported))
+
+(define (variable-hidden? sym)
+  (eq? (##sys#get sym '##compiler#visibility) 'hidden))
 
 (define (variable-visible? sym block-compilation)
   (let ((p (##sys#get sym '##compiler#visibility)))
