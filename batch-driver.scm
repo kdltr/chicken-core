@@ -580,16 +580,17 @@
 				       ,@forms))))))
 		  (exps (append
 			 (map (lambda (ic) `(set! ,(cdr ic) ',(car ic))) immutable-constants)
-			 (map (lambda (n) `(##core#callunit ,n)) used-units)
+			 (map (lambda (uu) `(##core#callunit ,uu)) used-units)
 			 (if emit-profile
 			     (profiling-prelude-exps (and (not unit-name)
 							  (or profile-name #t)))
 			     '() )
 			 exps0
-			 (if (and (not unit-name) (not dynamic))
-			     cleanup-forms
-			     '() )
-			 '((##core#undefined))) ) )
+			 (cond
+			   (unit-name `((##sys#unit-hook ',unit-name)))
+			   (dynamic '())
+			   (else cleanup-forms))
+			 '((##core#undefined)))))
 
 	     (unless (null? import-libraries)
 	       (quit-compiling

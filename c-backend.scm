@@ -67,6 +67,7 @@
 ;; Hacky procedures to make certain names more suitable for use in C.
 (define (backslashify s) (string-translate (->string s) "\\" "\\\\"))
 (define (uncommentify s) (string-translate* (->string s) '(("*/" . "*_/"))))
+(define (c-identifier s) (string->c-identifier (->string s)))
 
 
 ;;; Generate target code:
@@ -391,7 +392,7 @@
 		    (nf (+ n 1)) )
 	       (gen #\{)
 	       (push-args subs i "C_SCHEME_UNDEFINED")
-	       (gen #t "C_" (first params) "_toplevel(" nf ",av2);}")))
+	       (gen #t "C_" (c-identifier (first params)) "_toplevel(" nf ",av2);}")))
 
 	    ((##core#return)
 	     (gen #t "return(")
@@ -532,10 +533,12 @@
 	     "   command line: ")
 	(gen-list user-supplied-options)
 	(gen #t)
-	(cond [unit-name (gen "   unit: " unit-name)]
-	      [else 
-	       (gen "   used units: ")
-	       (gen-list used-units) ] )
+	(cond
+	  (unit-name
+	   (gen "   unit: " unit-name))
+	  (else
+	   (gen "   used units: ")
+	   (gen-list used-units)))
 	(gen #t "*/" #t #t "#include \"" target-include-file "\"")
 	(when external-protos-first
 	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) )
@@ -557,10 +560,10 @@
       (let ((n (length literals)))
 	(gen #t #t "static C_PTABLE_ENTRY *create_ptable(void);")
 	(for-each 
-	 (lambda (uu) 
+	 (lambda (uu)
 	   (gen #t "C_noret_decl(C_" uu "_toplevel)"
 		#t "C_externimport void C_ccall C_" uu "_toplevel(C_word c,C_word *av) C_noret;"))
-	 used-units)
+	 (map c-identifier used-units))
 	(unless (zero? n)
 	  (gen #t #t "static C_TLS C_word lf[" n "];") )
 	(gen #t "static double C_possibly_force_alignment;")
@@ -604,7 +607,7 @@
 		      (gen "C_ccall ") )
 		  (gen id) )
 		 (else
-		  (let ((uname (if unit-name (string-append unit-name "_toplevel") "toplevel")))
+		  (let ((uname (if unit-name (string-append (c-identifier unit-name) "_toplevel") "toplevel")))
 		    (gen "C_noret_decl(C_" uname ")" #t) ;XXX what's this for?
 		    (gen "C_externexport void C_ccall ")
 		    (gen "C_" uname) ) ) )
@@ -760,7 +763,7 @@
 		(temps (lambda-literal-temporaries ll))
 		(ubtemps (lambda-literal-unboxed-temporaries ll))
 		(topname (if unit-name
-			     (string-append unit-name "_toplevel")
+			     (string-append (c-identifier unit-name) "_toplevel")
 			     "toplevel") ) )
 	   (when empty-closure (debugging 'o "dropping unused closure argument" id))
 	   (gen #t #t)
@@ -930,7 +933,7 @@
      (gen #t "{\"" id #\: (string->c-identifier sf) "\",(void*)")
      (if (eq? 'toplevel id)
          (if unit-name
-             (gen "C_" unit-name "_toplevel},")
+             (gen "C_" (c-identifier unit-name) "_toplevel},")
              (gen "C_toplevel},") )
          (gen id "},") ) )
    lambda-table)

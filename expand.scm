@@ -58,8 +58,7 @@
 	  ?se))))
 
 (set! ##sys#features
-  (append '(#:hygienic-macros 
-	    #:syntax-rules 
+  (append '(#:expand #:hygienic-macros #:syntax-rules
 	    #:srfi-0 #:srfi-2 #:srfi-6 #:srfi-9 #:srfi-46 #:srfi-55 #:srfi-61) 
 	  ##sys#features))
 
@@ -924,25 +923,34 @@
 ;;; Macro definitions:
 
 (##sys#extend-macro-environment
- 'import '() 
- (##sys#er-transformer 
-  (cut ##sys#expand-import <> <> <> ##sys#current-environment ##sys#macro-environment
-       #f #f 'import) ) )
+ 'import-syntax '()
+ (##sys#er-transformer
+  (cut ##sys#expand-import <> <> <>
+       ##sys#current-environment ##sys#macro-environment
+       #f #f #f 'import-syntax)))
 
 (##sys#extend-macro-environment
- 'import-for-syntax '() 
- (##sys#er-transformer 
-  (cut ##sys#expand-import <> <> <> ##sys#current-meta-environment 
-       ##sys#meta-macro-environment 
-       #t #f 'import-for-syntax) ) )
+ 'import '()
+ (##sys#er-transformer
+  (cut ##sys#expand-import <> <> <>
+       ##sys#current-environment ##sys#macro-environment
+       #f #f #t 'import)))
 
 (##sys#extend-macro-environment
- 'reexport '() 
- (##sys#er-transformer 
-  (cut ##sys#expand-import <> <> <> ##sys#current-environment ##sys#macro-environment 
-       #f #t 'reexport) ) )
+ 'import-for-syntax '()
+ (##sys#er-transformer
+  (cut ##sys#expand-import <> <> <>
+       ##sys#current-meta-environment ##sys#meta-macro-environment
+       #t #f #t 'import-for-syntax)))
 
-;; contains only "import[-for-syntax]" and "reexport"
+(##sys#extend-macro-environment
+ 'reexport '()
+ (##sys#er-transformer
+  (cut ##sys#expand-import <> <> <>
+       ##sys#current-environment ##sys#macro-environment
+       #f #t #t 'reexport)))
+
+;; contains only "import" and "reexport" forms
 (define ##sys#initial-macro-environment (##sys#macro-environment))
 
 (##sys#extend-macro-environment

@@ -114,8 +114,10 @@
 ; srfi-98 partially in unit posix
 
 (define-constant builtin-features
-  '(chicken srfi-2 srfi-6 srfi-10 srfi-12 srfi-23 srfi-28 srfi-30 srfi-39 
-	    srfi-55 srfi-88 srfi-98) )
+  '(scheme chicken
+    srfi-2 srfi-6 srfi-10 srfi-12
+    srfi-23 srfi-28 srfi-30 srfi-39
+    srfi-55 srfi-88 srfi-98))
 
 (define-constant builtin-features/compiled
   '(srfi-8 srfi-9 srfi-11 srfi-15 srfi-16 srfi-17 srfi-26) )
@@ -667,7 +669,7 @@
 			    (when (##sys#current-module)
 			      (##sys#syntax-error-hook 'module "modules may not be nested" name))
 			    (parameterize ((##sys#current-module 
-					    (##sys#register-module name exports))
+					    (##sys#register-module name #f exports))
 					   (##sys#current-environment '())
 					   (##sys#macro-environment 
 					    ##sys#initial-macro-environment)
@@ -1085,7 +1087,7 @@
 	[display display] )
     (lambda (uname lib)
       (let ([id (##sys#->feature-id uname)])
-	(or (memq id ##sys#features)
+	(or (##sys#get uname '##core#unit)
 	    (let ([libs
 		   (if lib
 		       (##sys#list lib)
@@ -1101,13 +1103,10 @@
 		(display "; loading library ")
 		(display uname)
 		(display " ...\n") )
-	      (let loop ([libs libs])
-		(cond [(null? libs) #f]
-		      [(##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top)
-		       (unless (memq id ##sys#features)
-			 (set! ##sys#features (cons id ##sys#features)))
-		       #t]
-		      [else (loop (##sys#slot libs 1))] ) ) ) ) ) ) ) )
+	      (let loop ((libs libs))
+		(cond ((null? libs) #f)
+		      ((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top) #t)
+		      (else (loop (##sys#slot libs 1)))))))))))
 
 (define load-library
   (lambda (uname . lib)
@@ -1407,16 +1406,17 @@
      (lambda (s r)
        (if (memq (car s)
 		 '(import 
-		    require-extension 
-		    require-extension-for-syntax
-		    require-library 
-		    begin-for-syntax
-		    export 
-		    module
-		    cond-expand
-		    syntax
-		    reexport 
-		    import-for-syntax))
+		   import-syntax
+		   require-extension
+		   require-extension-for-syntax
+		   require-library
+		   begin-for-syntax
+		   export
+		   module
+		   cond-expand
+		   syntax
+		   reexport
+		   import-for-syntax))
 	   r
 	   (cons s r)))
      '()

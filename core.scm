@@ -955,7 +955,7 @@
 			     'module "modules may not be nested" name))
 			  (let-values (((body mreg)
 					(parameterize ((##sys#current-module
-							(##sys#register-module name exports) )
+							(##sys#register-module name unit-name exports))
 						       (##sys#current-environment '())
 						       (##sys#macro-environment
 							##sys#initial-macro-environment)
@@ -1456,15 +1456,14 @@
 	     file-requirements 'static
 	     (cut lset-union/eq? us <>)
 	     (lambda () us))
-	    (let ((units (map (lambda (u) (string->c-identifier (stringify u))) us)))
-	      (set! used-units (append used-units units)) ) ) ) )
+	    (set! used-units
+	      (append used-units us)))))
        ((unit)
 	(check-decl spec 1 1)
-	(let* ([u (stripu (cadr spec))]
-	       [un (string->c-identifier (stringify u))] )
-	  (when (and unit-name (not (string=? unit-name un)))
-	    (warning "unit was already given a name (new name is ignored)") )
-	  (set! unit-name un) ) )
+	(let ((u (stripu (cadr spec))))
+	  (when (and unit-name (not (eq? unit-name u)))
+	    (warning "unit was already given a name (new name is ignored)"))
+	  (set! unit-name u)))
        ((standard-bindings)
 	(if (null? (cdr spec))
 	    (set! standard-bindings default-standard-bindings)
