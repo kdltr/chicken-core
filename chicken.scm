@@ -32,17 +32,17 @@
 	;; TODO: These three need to be made configurable somehow
 	batch-driver c-platform c-backend))
 
+(module chicken.compiler.chicken ()
 
-(include "tweaks")
-
-(import chicken.compiler.batch-driver 
+(import scheme chicken
+	chicken.compiler.batch-driver
 	chicken.compiler.c-platform
 	chicken.compiler.support
 	chicken.data-structures
 	chicken.utils)
 
+(include "tweaks")
 (include "mini-srfi-1.scm")
-
 
 ;;; Prefix argument list with default options:
 
@@ -156,4 +156,4 @@
 		(if (string? o) o (conc "-" o)) )
 	       (loop rest) ) ) ) ) )
   (apply compile-source-file filename compiler-arguments options)
-  (exit) )
+  (exit)))
