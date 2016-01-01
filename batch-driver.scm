@@ -219,7 +219,7 @@
 	(kwstyle (memq 'keyword-style options))
         (loop/dispatch (memq 'clustering options))
 	(uses-units '())
-	(uunit (memq 'unit options))
+	(unit (memq 'unit options))
 	(a-only (memq 'analyze-only options))
 	(dynamic (memq 'dynamic options))
 	(do-scrutinize #t)
@@ -298,8 +298,8 @@
 		  no contf) )
 	  db) ) )
 
-    (when uunit
-      (set! unit-name (string->c-identifier (stringify (option-arg uunit)))) )
+    (when unit
+      (set! unit-name (string->symbol (option-arg unit))))
     (when (or unit-name dynamic)
       (set! standalone-executable #f))
     (when (memq 'ignore-repository options)
