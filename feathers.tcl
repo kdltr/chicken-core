@@ -1358,7 +1358,7 @@ proc MangleSymbol {str} {
         return [binary format ca*a* $len $prefix $name]
     }
 
-    rerurn $str
+    return $str
 }
 
 
