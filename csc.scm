@@ -306,7 +306,6 @@
 (define shared #f)
 (define static #f)
 (define static-libs #f)
-(define required-extensions '())
 
 
 ;;; Display usage information:
@@ -655,7 +654,6 @@ EOF
 		(set! compile-options (cons "-DC_EMBEDDED" compile-options)) ]
 	       [(-require-extension -R)
 		(check s rest)
-		(set! required-extensions (append required-extensions (list (car rest))))
 		(t-options "-require-extension" (car rest))
 		(set! rest (cdr rest)) ]
 	       ((-private-repository)
