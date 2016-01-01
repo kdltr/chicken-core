@@ -690,11 +690,10 @@
 						      (lambda () (list id*)))))))
 				      (unless (or f
 						  (and (symbol? id)
-						       (or (feature? id)
-							   (##sys#find-extension
-							    (##sys#canonicalize-extension-path
-							     id 'require-extension)
-							    #f)) ) )
+						       (##sys#find-extension
+							(##sys#canonicalize-extension-path
+							 id 'require-extension)
+							#f)))
 					(warning
 					 (sprintf "extension `~A' is currently not installed" realid)))
 				      `(##core#begin ,exp ,(loop (cdr ids))) ) ) ) )
@@ -1450,7 +1449,6 @@
      (case (strip-syntax (car spec)) ; no global aliasing
        ((uses)
 	(let ((us (stripu (cdr spec))))
-	  (apply register-feature! us)
 	  (when (pair? us)
 	    (##sys#hash-table-update!
 	     file-requirements 'static

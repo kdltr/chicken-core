@@ -49,8 +49,6 @@
 
 (include "common-declarations.scm")
 
-(register-feature! 'irregex)
-
 ;; These should probably be taken out of irregex upstream
 (declare (unused filter integer-log cset-size remove))
 

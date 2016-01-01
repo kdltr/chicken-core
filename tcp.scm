@@ -149,7 +149,6 @@ EOF
 
 (include "common-declarations.scm")
 
-(register-feature! 'tcp)
 
 (define-foreign-type sockaddr* (pointer "struct sockaddr"))
 (define-foreign-type sockaddr_in* (pointer "struct sockaddr_in"))

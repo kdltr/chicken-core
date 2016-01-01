@@ -47,9 +47,6 @@
 
 (include "common-declarations.scm")
 
-(register-feature! 'data-structures)
-
-
 
 ;;; Combinators:
 

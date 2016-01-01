@@ -68,8 +68,6 @@ EOF
 
 (include "common-declarations.scm")
 
-(register-feature! 'files)
-
 
 (define-foreign-variable strerror c-string "strerror(errno)")
 

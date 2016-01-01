@@ -61,8 +61,6 @@ EOF
 
 (include "common-declarations.scm")
 
-(register-feature! 'lolevel)
-
 
 ;;; Helpers:
 

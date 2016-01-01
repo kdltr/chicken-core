@@ -58,8 +58,6 @@
 
 (include "common-declarations.scm")
 
-(register-feature! 'ports)
-
 
 ;;;; Port-mapping (found in Gauche):
 

@@ -67,10 +67,7 @@
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")
 
-(register-feature! 'eval)
-
 (define-syntax d (syntax-rules () ((_ . _) (void))))
-
 
 (define-foreign-variable install-egg-home c-string "C_INSTALL_EGG_HOME")
 (define-foreign-variable installation-home c-string "C_INSTALL_SHARE_HOME")

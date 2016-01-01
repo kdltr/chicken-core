@@ -50,8 +50,6 @@
 
 (include "common-declarations.scm")
 
-(register-feature! 'utils)
-
 
 ;;; Like `system', but allows format-string and bombs on nonzero return code:
 

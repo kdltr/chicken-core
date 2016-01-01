@@ -40,8 +40,6 @@
 
 (include "common-declarations.scm")
 
-(register-feature! 'extras)
-
 
 ;;; Read expressions from file:
 
