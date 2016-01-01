@@ -12122,7 +12122,7 @@ void C_ccall dload_2(C_word c, C_word *av0)
       current_module_handle = handle;
 
       if(debug_mode) {
-	C_dbg(C_text("debug"), C_text("loading compiled module `%s' (handle is " UWORD_FORMAT_STRING ")\n"),
+	C_dbg(C_text("debug"), C_text("loading compiled library %s (" UWORD_FORMAT_STRING ")\n"),
 	      current_module_name, (C_uword)current_module_handle);
       }
 
@@ -12178,7 +12178,7 @@ void C_ccall dload_2(C_word c, C_word *av0)
       current_module_handle = handle;
 
       if(debug_mode) {
-	C_dbg(C_text("debug"), C_text("loading compiled module `%s' (handle is " UWORD_FORMAT_STRING ")\n"),
+	C_dbg(C_text("debug"), C_text("loading compiled library %s (" UWORD_FORMAT_STRING ")\n"),
 	      current_module_name, (C_uword)current_module_handle);
       }
 
@@ -12226,7 +12226,7 @@ void C_ccall dload_2(C_word c, C_word *av0)
       current_module_handle = handle;
 
       if(debug_mode) {
-	C_dbg(C_text("debug"), C_text("loading compiled module `%s' (handle is " UWORD_FORMAT_STRING ")\n"),
+	C_dbg(C_text("debug"), C_text("loading compiled library %s (" UWORD_FORMAT_STRING ")\n"),
 	      current_module_name, (C_uword)current_module_handle);
       }
 
