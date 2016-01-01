@@ -1811,7 +1811,9 @@ proc SetupServer {} {
 
 proc Usage {code} {
     global the_name
-    puts stderr {Usage: $the_name [-help] [-n] [-d] [-dir DIRNAME] [-port PORT] [PROGRAM ARGUMENTS ...]}
+    set usage "Usage: $the_name "
+    append usage {[-help] [-n] [-d] [-dir DIRNAME] [-port PORT] [PROGRAM ARGUMENTS ...]}
+    puts stderr $usage
     exit $code
 }
 
