@@ -75,10 +75,13 @@
 (define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
 
 (define-constant core-chicken-modules
-  '((chicken.data-structures . data-structures)
+  '((chicken . chicken-syntax)
+    (chicken.data-structures . data-structures)
     (chicken.eval . eval)
     (chicken.extras . extras)
     (chicken.files . files)
+    (chicken.foreign . chicken-ffi-syntax)
+    (chicken.internal . internal)
     (chicken.irregex . irregex)
     (chicken.lolevel . lolevel)
     (chicken.ports . ports)
@@ -86,10 +89,10 @@
     (chicken.tcp . tcp)
     (chicken.utils . utils)))
 
-(define ##sys#core-library-units
+(define-constant core-library-units
   `(srfi-4 . ,(map cdr core-chicken-modules)))
 
-(define ##sys#core-syntax-units
+(define-constant core-syntax-units
   '(chicken-syntax chicken-ffi-syntax))
 
 (define ##sys#explicit-library-modules '())
@@ -1205,23 +1208,26 @@
 (define load-extension
   (let ((string->symbol string->symbol))
     (lambda (id loc #!optional (err? #t))
+      (define (fail message)
+	(and err? (##sys#error loc message id)))
       (cond ((string? id) (set! id (string->symbol id)))
-	    (else (##sys#check-symbol id loc)) )
-      (let ([p (##sys#canonicalize-extension-path id loc)])
-	(cond ((member p loaded-extensions))
-	      ((or (memq id ##sys#core-library-units)
-		   (memq id ##sys#core-syntax-units))
+	    (else (##sys#check-symbol id loc)))
+      (let ((p (##sys#canonicalize-extension-path id loc)))
+	(cond ((##sys#get id '##core#unit))
+	      ((member p loaded-extensions))
+	      ((memq id core-syntax-units)
+	       (fail "cannot load core library"))
+	      ((memq id core-library-units)
 	       (or (load-library-0 id #f)
-		   (and err?
-			(##sys#error loc "cannot load core library" id))))
+		   (fail "cannot load core library")))
 	      (else
-	       (let ([id2 (##sys#find-extension p #f)])
+	       (let ((id2 (##sys#find-extension p #f)))
 		 (cond (id2
 			(load/internal id2 #f)
 			(set! loaded-extensions (cons p loaded-extensions))
 			#t)
-		       (err? (##sys#error loc "cannot load extension" id))
-		       (else #f) ) ) ) ) ) ) ) )
+		       (else
+			(fail "cannot load extension"))))))))))
 
 (define (require . ids)
   (for-each (cut load-extension <> 'require) ids))
@@ -1264,7 +1270,7 @@
 	`(##core#begin
 	  ,x
 	  ,@(if (and imp? (or (not builtin?) (##sys#current-module)))
-		`((import ,id))		;XXX make hygienic
+		`((import-syntax ,id)) ; XXX make hygienic
 		'())))
       (define (doit id #!optional (impid id))
 	(cond ((or (memq id builtin-features)
@@ -1272,21 +1278,15 @@
 	       (values (impform '(##core#undefined) impid #t) #t id))
 	      ((and (not comp?) (##sys#feature? id))
 	       (values (impform '(##core#undefined) impid #f) #t id))
-	      ((memq id ##sys#core-library-units)
+	      ((memq id core-syntax-units)
+	       (values (impform '(##core#undefined) impid #t) #t id))
+	      ((memq id core-library-units)
 	       (values
 		(impform
 		 (if comp?
 		     `(##core#declare (uses ,id))
 		     `(##sys#load-library ',id #f) )
 		 impid #f)
-		#t id) )
-	      ((memq id ##sys#core-syntax-units)
-	       (values
-		(impform
-		 (if comp?
-		     `(##core#declare (uses ,id))
-		     `(##sys#load-library ',id #f) )
-		 impid #t)
 		#t id) )
 	      ((memq id ##sys#explicit-library-modules)
 	       (let* ((info (extension-information/internal id 'require-extension))

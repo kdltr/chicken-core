@@ -225,24 +225,18 @@
        +default-repository-files+)))
 
   (define (ext-version x)
-    (cond ((or (eq? x 'chicken)
-               (equal? x "chicken")
-               (let ((xs (->string x)))
-		 (or (member xs ##sys#core-library-units)
-		     (member xs ##sys#core-syntax-units))))
-           (chicken-version) )
-	  ;; Duplication of (extension-information) to get custom
-	  ;; prefix.  This should be fixed.
-          ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
+    (cond ((or (eq? x 'chicken) (equal? x "chicken"))
+	   (chicken-version))
+	  ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
 		  (sf (make-pathname (repo-path) ep "setup-info")))
 	     (and (file-exists? sf)
 		  (with-input-from-file sf read))) =>
-           (lambda (info)
-             (let ((a (assq 'version info)))
-               (if a
-                   (->string (cadr a))
-                   "0.0.0"))))
-          (else #f)))
+	   (lambda (info)
+	     (let ((a (assq 'version info)))
+	       (if a
+		   (->string (cadr a))
+		   "0.0.0"))))
+	  (else #f)))
 
   (define (meta-dependencies meta)
     (append
