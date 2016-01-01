@@ -962,18 +962,17 @@
 						       (print-error-message ex (current-error-port))
 						       (exit 1))
 						   (##sys#finalize-module (##sys#current-module)))
-						 (cond ((or all-import-libraries
-							    (assq name import-libraries) ) =>
-							    (lambda (il)
-							      (when enable-module-registration
-								(emit-import-lib name il))
-							      ;; Remove from list
-							      ;; to avoid error
-							      (set! import-libraries
-								(delete il import-libraries))
-							      (values
-							       (reverse xs)
-							       '((##core#undefined)))))
+						 (cond ((or (assq name import-libraries) all-import-libraries)
+							=> (lambda (il)
+							     (when enable-module-registration
+							       (emit-import-lib name il))
+							     ;; Remove from list to avoid error
+							     (when (pair? il)
+							       (set! import-libraries
+								 (delete il import-libraries)))
+							     (values
+							      (reverse xs)
+							      '((##core#undefined)))))
 						       ((not enable-module-registration)
 							(values
 							 (reverse xs)
