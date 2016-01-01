@@ -44,8 +44,6 @@
 
 (include "mini-srfi-1.scm")
 
-(##sys#provide 'chicken-ffi-syntax)
-
 (define ##sys#chicken-ffi-macro-environment
   (let ((me0 (##sys#macro-environment)))
 

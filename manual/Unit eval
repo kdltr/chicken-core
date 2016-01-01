@@ -135,20 +135,6 @@ If an extension with the name {{ID}} is installed and if it has a setup-informat
 list registered in the extension repository, then the info-list is returned. Otherwise
 {{extension-information}} returns {{#f}}.
 
-==== provide
-
-<procedure>(provide ID ...)</procedure>
-
-Registers the extension IDs {{ID ...}} as loaded. This is mainly
-intended to provide aliases for certain extension identifiers.
-
-==== provided?
-
-<procedure>(provided? ID ...)</procedure>
-
-Returns {{#t}} if the extension with the IDs {{ID ...}}
-are currently loaded, or {{#f}} otherwise.
-
 ==== require
 
 <procedure>(require ID ...)</procedure>

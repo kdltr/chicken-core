@@ -53,8 +53,7 @@
    eval eval-handler extension-information
    load load-library load-noisily load-relative load-verbose
    interaction-environment null-environment scheme-report-environment
-   provide provided? repl repl-prompt require
-   repository-path set-dynamic-load-mode!)
+   repl repl-prompt require repository-path set-dynamic-load-mode!)
 
 ;; Exclude values defined within this module.
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment))
@@ -1223,20 +1222,6 @@
 			#t)
 		       (err? (##sys#error loc "cannot load extension" id))
 		       (else #f) ) ) ) ) ) ) ) )
-
-(define (provide . ids)
-  (for-each
-   (lambda (id)
-     (##sys#check-symbol id 'provide)
-     (let ([p (##sys#canonicalize-extension-path id 'provide)])
-       (set! loaded-extensions (cons p loaded-extensions))))
-   ids) )
-
-(define ##sys#provide provide)
-
-(define (provided? id)
-  (and (member (##sys#canonicalize-extension-path id 'provided?) loaded-extensions)
-       #t) )
 
 (define (require . ids)
   (for-each (cut load-extension <> 'require) ids))

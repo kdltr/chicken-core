@@ -41,10 +41,6 @@
 
 (include "mini-srfi-1.scm")
 
-
-(##sys#provide 'chicken-syntax)
-
-
 ;;; Non-standard macros:
 
 (define ##sys#chicken-macro-environment
