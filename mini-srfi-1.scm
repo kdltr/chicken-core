@@ -103,8 +103,10 @@
 (define (delete x lst #!optional (test equal?))
   (let loop ((lst lst))
     (cond ((null? lst) lst)
-	  ((test x (car lst)) (cdr lst))
-	  (else (cons (car lst) (loop (cdr lst)))) ) ) )
+	  ((test x (car lst))
+	   (loop (cdr lst)))
+	  (else
+	   (cons (car lst) (loop (cdr lst)))))))
 
 (define (first x) (car x))
 (define (second x) (cadr x))
