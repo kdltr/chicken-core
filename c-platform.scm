@@ -107,10 +107,9 @@
   '(debug 
     output-file include-path heap-size stack-size unit uses module
     keyword-style require-extension inline-limit profile-name
-    prelude postlude prologue epilogue nursery extend feature no-feature types
-    emit-import-library emit-inline-file static-extension consult-inline-file
-    emit-type-file
-    ffi-define ffi-include-path) )
+    prelude postlude prologue epilogue nursery extend feature no-feature
+    consult-inline-file types
+    emit-import-library emit-inline-file emit-type-file))
 
 
 ;;; Standard and extended bindings:
