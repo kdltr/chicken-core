@@ -63,15 +63,6 @@
 # define EOVERFLOW  0
 #endif
 
-/* ITIMER_PROF is more precise, but Cygwin doesn't support it... */
-#ifdef __CYGWIN__
-# define C_PROFILE_SIGNAL SIGALRM
-# define C_PROFILE_TIMER  ITIMER_REAL
-#else
-# define C_PROFILE_SIGNAL SIGPROF
-# define C_PROFILE_TIMER  ITIMER_PROF
-#endif
-
 /* TODO: Include sys/select.h? Windows doesn't seem to have it... */
 #ifndef NO_POSIX_POLL
 #  include <poll.h>
@@ -83,7 +74,18 @@
 # include <sys/resource.h>
 # include <sys/wait.h>
 
+/* ITIMER_PROF is more precise, but Cygwin doesn't support it... */
+# ifdef __CYGWIN__
+#  define C_PROFILE_SIGNAL SIGALRM
+#  define C_PROFILE_TIMER  ITIMER_REAL
+# else
+#  define C_PROFILE_SIGNAL SIGPROF
+#  define C_PROFILE_TIMER  ITIMER_PROF
+# endif
+
 #else
+
+# define C_PROFILE_SIGNAL -1          /* Stupid way to avoid error */
 
 #ifdef ECOS
 #include <cyg/kernel/kapi.h>
@@ -571,6 +573,7 @@ static void C_fcall really_remark(C_word *x) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
 static void C_fcall update_locative_table(int mode) C_regparm;
 static LF_LIST *find_module_handle(C_char *name);
+static void set_profile_timer(C_uword freq);
 static void take_profile_sample();
 
 static C_cpsproc(call_cc_wrapper) C_noret;
@@ -863,10 +866,12 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   (void)C_randomize(C_fix(time(NULL)));
 
   if (profiling) {
-#ifdef HAVE_SIGACTION
+#ifndef C_NONUNIX
+# ifdef HAVE_SIGACTION
     C_sigaction(C_PROFILE_SIGNAL, &sa, NULL);
-#else
+# else
     C_signal(C_PROFILE_SIGNAL, global_signal_handler);
+# endif
 #endif
 
     profile_table = (PROFILE_BUCKET **)C_malloc(PROFILE_TABLE_SIZE * sizeof(PROFILE_BUCKET *));
@@ -1553,17 +1558,7 @@ C_word CHICKEN_run(void *toplevel)
   chicken_is_running = chicken_ran_once = 1;
   return_to_host = 0;
 
-  if(profiling) {
-    struct itimerval itv;
-
-    itv.it_value.tv_sec = profile_frequency / 1000000;
-    itv.it_value.tv_usec = profile_frequency % 1000000;
-    itv.it_interval.tv_sec = itv.it_value.tv_sec;
-    itv.it_interval.tv_usec = itv.it_value.tv_usec;
-
-    if (setitimer(C_PROFILE_TIMER, &itv, NULL) == -1)
-      panic(C_text("error setting timer for profiling"));
-  }
+  if(profiling) set_profile_timer(profile_frequency);
 
 #if C_STACK_GROWS_DOWNWARD
   C_stack_limit = (C_word *)((C_byte *)C_stack_pointer - stack_size);
@@ -1594,17 +1589,7 @@ C_word CHICKEN_run(void *toplevel)
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
   }
 
-  if(profiling) {
-    struct itimerval itv;
-
-    itv.it_value.tv_sec = 0;
-    itv.it_value.tv_usec = 0;
-    itv.it_interval.tv_sec = itv.it_value.tv_sec;
-    itv.it_interval.tv_usec = itv.it_value.tv_usec;
-
-    if (setitimer(C_PROFILE_TIMER, &itv, NULL) == -1)
-      panic(C_text("error clearing timer for profiling"));
-  }
+  if(profiling) set_profile_timer(0);
 
   chicken_is_running = 0;
   return C_restore;
@@ -4283,6 +4268,46 @@ C_regparm void *C_fcall C_retrieve2_symbol_proc(C_word val, char *name)
   }
 
   return C_fast_retrieve_proc(val);
+}
+
+#ifdef C_NONUNIX
+VOID CALLBACK win_timer(PVOID data_ignored, BOOLEAN wait_or_fired)
+{
+  if (profiling) take_profile_sample();
+}
+#endif
+
+static void set_profile_timer(C_uword freq)
+{
+#ifdef C_NONUNIX
+  static HANDLE timer = NULL;
+
+  if (freq == 0) {
+    assert(timer != NULL);
+    if (!DeleteTimerQueueTimer(NULL, timer, NULL)) goto error;
+    timer = NULL;
+  } else if (freq < 1000) {
+    panic(C_text("On Windows, sampling can only be done in milliseconds"));
+  } else {
+    if (!CreateTimerQueueTimer(&timer, NULL, win_timer, NULL, 0, freq/1000, 0))
+      goto error;
+  }
+#else
+  struct itimerval itv;
+
+  itv.it_value.tv_sec = freq / 1000000;
+  itv.it_value.tv_usec = freq % 1000000;
+  itv.it_interval.tv_sec = itv.it_value.tv_sec;
+  itv.it_interval.tv_usec = itv.it_value.tv_usec;
+
+  if (setitimer(C_PROFILE_TIMER, &itv, NULL) == -1) goto error;
+#endif
+
+  return;
+
+error:
+  if (freq == 0) panic(C_text("error clearing timer for profiling"));
+  else panic(C_text("error setting timer for profiling"));
 }
 
 /* Bump profile count for current top of trace buffer */
@@ -13191,18 +13216,11 @@ C_word C_i_dump_statistical_profile()
   C_char *k1, *k2 = NULL;
   int n;
   double ms;
-  struct itimerval itv;
 
   assert(profiling);
   assert(profile_table != NULL);
 
-  itv.it_value.tv_sec = 0;
-  itv.it_value.tv_usec = 0;
-  itv.it_interval.tv_sec = itv.it_value.tv_sec;
-  itv.it_interval.tv_usec = itv.it_value.tv_usec;
-
-  if (setitimer(C_PROFILE_TIMER, &itv, NULL) == -1)
-    panic(C_text("error clearing timer for profiling"));
+  set_profile_timer(0);
 
   profiling = 0; /* In case a SIGPROF is delivered late */
   bp = profile_table;
