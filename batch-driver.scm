@@ -677,7 +677,7 @@
 		    (lambda (fn)
 		      (or (load-type-database fn enable-specialization #f)
 			  (quit-compiling "type-database `~a' not found" fn)))
-		    (collect-options 'types))
+		    (collect-options 'consult-type-file))
 		   (for-each
 		    (lambda (id)
 		      (load-type-database

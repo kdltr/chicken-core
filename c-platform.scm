@@ -108,8 +108,9 @@
     output-file include-path heap-size stack-size unit uses module
     keyword-style require-extension inline-limit profile-name
     prelude postlude prologue epilogue nursery extend feature no-feature
-    consult-inline-file types
-    emit-import-library emit-inline-file emit-type-file))
+    emit-inline-file consult-inline-file
+    emit-type-file consult-type-file
+    emit-import-library))
 
 
 ;;; Standard and extended bindings:

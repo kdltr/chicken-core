@@ -167,9 +167,9 @@
   '(-debug -heap-size -nursery -stack-size -compiler -unit -uses -keyword-style
     -optimize-level -include-path -database-size -extend -prelude -postlude -prologue -epilogue 
     -inline-limit -profile-name
-    -emit-inline-file -types -emit-type-file
-    -feature -debug-level 
-    -consult-inline-file
+    -emit-inline-file -consult-inline-file
+    -emit-type-file -consult-type-file
+    -feature -debug-level
     -emit-import-library
     -module
     -no-feature))
@@ -189,7 +189,8 @@
     (-u "-unsafe")
     (-j "-emit-import-library")
     (-n "-emit-inline-file")		; DEPRECATED
-    (-b "-block") ) )
+    (-b "-block")
+    (-types "-consult-type-file")))
 
 (define short-options
   (string->list "PHhsfiENxubvwAOeWkctgSJM") )
@@ -386,7 +387,7 @@ Usage: #{csc} FILENAME | OPTION ...
                                     append mode
     -profile-name FILENAME         name of the generated profile information
                                     file
-    -types FILENAME                load additional type database
+    -consult-type-file FILENAME    load additional type database
 
   Optimization options:
 

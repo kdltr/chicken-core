@@ -237,9 +237,9 @@ the type declarations retained in this manner:
 {{-emit-type-file FILENAME}} writes the type-information for all declared
 definitions in an internal format to {{FILENAME}}.
 
-{{-types FILENAME}} loads and registers the type-information in
-{{FILENAME}} which should be a file generated though a previous use of
-{{-emit-type-file}}.
+{{-consult-type-file FILENAME}} loads and registers the type-information
+in {{FILENAME}} which should be a file generated though a previous use
+of {{-emit-type-file}}.
 
 If library code is used with {{require-extension}} or {{(declare (unit
 ...))}}  and a {{.types}} file of the same name exists in the
