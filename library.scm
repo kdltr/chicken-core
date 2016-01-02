@@ -4677,6 +4677,8 @@ EOF
   (when (##sys#fudge 37)		; -:H given?
     (##sys#print "\n" #f ##sys#standard-error)
     (##sys#dump-heap-state))
+  (when (##sys#fudge 45)		; -:p or -:P given?
+    (##core#inline "C_i_dump_statistical_profile"))
   (let loop ()
     (let ((tasks ##sys#cleanup-tasks))
       (set! ##sys#cleanup-tasks '())

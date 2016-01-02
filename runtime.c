@@ -63,6 +63,15 @@
 # define EOVERFLOW  0
 #endif
 
+/* ITIMER_PROF is more precise, but Cygwin doesn't support it... */
+#ifdef __CYGWIN__
+# define C_PROFILE_SIGNAL SIGALRM
+# define C_PROFILE_TIMER  ITIMER_REAL
+#else
+# define C_PROFILE_SIGNAL SIGPROF
+# define C_PROFILE_TIMER  ITIMER_PROF
+#endif
+
 /* TODO: Include sys/select.h? Windows doesn't seem to have it... */
 #ifndef NO_POSIX_POLL
 #  include <poll.h>
@@ -165,6 +174,7 @@ static C_TLS int timezone;
 #define TEMPORARY_STACK_SIZE	       4096
 #define STRING_BUFFER_SIZE             4096
 #define DEFAULT_MUTATION_STACK_SIZE    1024
+#define PROFILE_TABLE_SIZE             1024
 
 #define MAX_PENDING_INTERRUPTS         100
 
@@ -319,6 +329,14 @@ typedef struct hdump_bucket_struct
   struct hdump_bucket_struct *next;
 } HDUMP_BUCKET;
 
+typedef struct profile_bucket_struct
+{
+  C_char *key;
+  C_uword sample_count; /* Multiplied by profile freq = time spent */
+  C_uword call_count;   /* Distinct calls seen while sampling */
+  struct profile_bucket_struct *next;
+} PROFILE_BUCKET;
+
 
 /* Variables: */
 
@@ -375,7 +393,9 @@ C_TLS C_uword
   C_heap_growth,
   C_heap_shrinkage;
 C_TLS C_uword C_maximal_heap_size;
-C_TLS time_t C_startup_time_seconds;
+C_TLS time_t
+  C_startup_time_seconds,
+  profile_frequency = 10000;
 C_TLS char 
   **C_main_argv,
 #ifdef SEARCH_EXE_PATH
@@ -452,7 +472,9 @@ static C_TLS int
   chicken_ran_once,
   pass_serious_signals = 1,
   callback_continuation_level;
-static volatile C_TLS int serious_signal_occurred = 0;
+static volatile C_TLS int
+  serious_signal_occurred = 0,
+  profiling = 0;
 static C_TLS unsigned int
   mutation_count,
   tracked_mutation_count,
@@ -487,6 +509,7 @@ static C_TLS FINALIZER_NODE
 static C_TLS void *current_module_handle;
 static C_TLS int flonum_print_precision = FLONUM_PRINT_PRECISION;
 static C_TLS HDUMP_BUCKET **hdump_table;
+static C_TLS PROFILE_BUCKET **profile_table = NULL;
 static C_TLS int 
   pending_interrupts[ MAX_PENDING_INTERRUPTS ],
   pending_interrupts_count,
@@ -548,6 +571,7 @@ static void C_fcall really_remark(C_word *x) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
 static void C_fcall update_locative_table(int mode) C_regparm;
 static LF_LIST *find_module_handle(C_char *name);
+static void take_profile_sample();
 
 static C_cpsproc(call_cc_wrapper) C_noret;
 static C_cpsproc(call_cc_values_wrapper) C_noret;
@@ -785,12 +809,15 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   dlopen_flags = 0;
 #endif
 
-  /* setup signal handlers */
-  if(!pass_serious_signals) {
 #ifdef HAVE_SIGACTION
     sa.sa_flags = 0;
     sigfillset(&sa.sa_mask); /* See note in C_establish_signal_handler() */
     sa.sa_handler = global_signal_handler;
+#endif
+
+  /* setup signal handlers */
+  if(!pass_serious_signals) {
+#ifdef HAVE_SIGACTION
     C_sigaction(SIGBUS, &sa, NULL);
     C_sigaction(SIGFPE, &sa, NULL);
     C_sigaction(SIGILL, &sa, NULL);
@@ -834,6 +861,21 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   callback_continuation_level = 0;
   gc_ms = 0;
   (void)C_randomize(C_fix(time(NULL)));
+
+  if (profiling) {
+#ifdef HAVE_SIGACTION
+    C_sigaction(C_PROFILE_SIGNAL, &sa, NULL);
+#else
+    C_signal(C_PROFILE_SIGNAL, global_signal_handler);
+#endif
+
+    profile_table = (PROFILE_BUCKET **)C_malloc(PROFILE_TABLE_SIZE * sizeof(PROFILE_BUCKET *));
+
+    if(profile_table == NULL)
+      panic(C_text("out of memory - can not allocate profile table"));
+
+    C_memset(profile_table, 0, sizeof(PROFILE_BUCKET *) * PROFILE_TABLE_SIZE);
+  }
   
   /* create k to invoke code for system-startup: */
   k0 = (C_SCHEME_BLOCK *)C_align((C_word)C_fromspace_top);
@@ -1169,7 +1211,10 @@ void global_signal_handler(int signum)
   }
 #endif
 
-  C_raise_interrupt(signal_mapping_table[ signum ]);
+  /* TODO: Make full use of sigaction: check that /our/ timer expired */
+  if (signum == C_PROFILE_SIGNAL && profiling) take_profile_sample();
+  else C_raise_interrupt(signal_mapping_table[ signum ]);
+
 #ifndef HAVE_SIGACTION
   /* not necessarily needed, but older UNIXen may not leave the handler installed: */
   C_signal(signum, global_signal_handler);
@@ -1335,6 +1380,8 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:hsPERCENTAGE   set heap shrink percentage\n"
 		 " -:hSIZE          set fixed heap size\n"
 		 " -:r              write trace output to stderr\n"
+		 " -:p              collect statistical profile and write to file at exit\n"
+		 " -:PFREQ          like -:p, specifying sampling frequency in us (default: 10000)\n"
 		 " -:sSIZE          set nursery (stack) size\n"
 		 " -:tSIZE          set symbol-table size\n"
                  " -:fSIZE          set maximal number of pending finalizers\n"
@@ -1429,6 +1476,15 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 	  C_enable_gcweak = 1;
 	  break;
 
+	case 'P':
+	  profiling = 1;
+	  profile_frequency = arg_val(ptr);
+          goto next;
+
+	case 'p':
+	  profiling = 1;
+          break;
+
 	case 'r':
 	  show_trace = 1;
 	  break;
@@ -1497,6 +1553,18 @@ C_word CHICKEN_run(void *toplevel)
   chicken_is_running = chicken_ran_once = 1;
   return_to_host = 0;
 
+  if(profiling) {
+    struct itimerval itv;
+
+    itv.it_value.tv_sec = profile_frequency / 1000000;
+    itv.it_value.tv_usec = profile_frequency % 1000000;
+    itv.it_interval.tv_sec = itv.it_value.tv_sec;
+    itv.it_interval.tv_usec = itv.it_value.tv_usec;
+
+    if (setitimer(C_PROFILE_TIMER, &itv, NULL) == -1)
+      panic(C_text("error setting timer for profiling"));
+  }
+
 #if C_STACK_GROWS_DOWNWARD
   C_stack_limit = (C_word *)((C_byte *)C_stack_pointer - stack_size);
 #else
@@ -1524,6 +1592,18 @@ C_word CHICKEN_run(void *toplevel)
     C_memcpy(p, C_temporary_stack, argcount * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
+  }
+
+  if(profiling) {
+    struct itimerval itv;
+
+    itv.it_value.tv_sec = 0;
+    itv.it_value.tv_usec = 0;
+    itv.it_interval.tv_sec = itv.it_value.tv_sec;
+    itv.it_interval.tv_usec = itv.it_value.tv_usec;
+
+    if (setitimer(C_PROFILE_TIMER, &itv, NULL) == -1)
+      panic(C_text("error clearing timer for profiling"));
   }
 
   chicken_is_running = 0;
@@ -4205,6 +4285,59 @@ C_regparm void *C_fcall C_retrieve2_symbol_proc(C_word val, char *name)
   return C_fast_retrieve_proc(val);
 }
 
+/* Bump profile count for current top of trace buffer */
+static void take_profile_sample()
+{
+  PROFILE_BUCKET **bp, *b;
+  C_char *key;
+  TRACE_INFO *tb;
+  /* To count distinct calls of a procedure, remember last call */
+  static C_char *prev_key = NULL;
+  static TRACE_INFO *prev_tb = NULL;
+
+  /* trace_buffer_top points *beyond* the topmost entry: Go back one */
+  if (trace_buffer_top == trace_buffer) {
+    if (!trace_buffer_full) return; /* No data yet */
+    tb = trace_buffer_limit - 1;
+  } else {
+    tb = trace_buffer_top - 1;
+  }
+
+  key = tb->raw;
+  if (key == NULL) return; /* May happen while in C_trace() */
+
+  /* We could also just hash the pointer but that's a bit trickier */
+  bp = profile_table + hash_string(C_strlen(key), key, PROFILE_TABLE_SIZE, 0, 0);
+  b = *bp;
+
+  /* First try to find pre-existing item in hash table */
+  while(b != NULL) {
+    if(b->key == key) {
+      b->sample_count++;
+      if (prev_key != key && prev_tb != tb)
+        b->call_count++;
+      goto done;
+    }
+    else b = b->next;
+  }
+
+  /* Not found, allocate a new item and use it as bucket's new head */
+  b = (PROFILE_BUCKET *)C_malloc(sizeof(PROFILE_BUCKET));
+
+  if(b == NULL)
+    panic(C_text("out of memory - cannot allocate profile table-bucket"));
+
+  b->next = *bp;
+  b->key = key;
+  *bp = b;
+  b->sample_count = 1;
+  b->call_count = 1;
+
+done:
+  prev_tb = tb;
+  prev_key = key;
+}
+
 
 C_regparm void C_fcall C_trace(C_char *name)
 {
@@ -4288,7 +4421,9 @@ C_char *C_dump_trace(int start)
 
 C_regparm void C_fcall C_clear_trace_buffer(void)
 {
-  int i;
+  int i, old_profiling = profiling;
+
+  profiling = 0;
 
   if(trace_buffer == NULL) {
     if(C_trace_buffer_size < MIN_TRACE_BUFFER_SIZE)
@@ -4309,15 +4444,19 @@ C_regparm void C_fcall C_clear_trace_buffer(void)
     trace_buffer[ i ].cooked2 = C_SCHEME_FALSE;
     trace_buffer[ i ].thread = C_SCHEME_FALSE;
   }
+
+  profiling = old_profiling;
 }
 
 C_word C_resize_trace_buffer(C_word size) {
-  int old_size = C_trace_buffer_size;
+  int old_size = C_trace_buffer_size, old_profiling = profiling;
   assert(trace_buffer);
+  profiling = 0;
   free(trace_buffer);
   trace_buffer = NULL;
   C_trace_buffer_size = C_unfix(size);
   C_clear_trace_buffer();
+  profiling = old_profiling;
   return(C_fix(old_size));
 }
 
@@ -4835,6 +4974,9 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
 
   case C_fix(44):  /* whether debugger is active */
     return C_mk_bool(C_debugging);
+
+  case C_fix(45):  /* Whether we're currently profiling */
+    return C_mk_bool(profiling);
 
   default: return C_SCHEME_UNDEFINED;
   }
@@ -13042,6 +13184,65 @@ C_i_get_keyword(C_word kw, C_word args, C_word def)
   return def;
 }
 
+C_word C_i_dump_statistical_profile()
+{
+  PROFILE_BUCKET *b, *b2, **bp;
+  FILE *fp;
+  C_char *k1, *k2 = NULL;
+  int n;
+  double ms;
+  struct itimerval itv;
+
+  assert(profiling);
+  assert(profile_table != NULL);
+
+  itv.it_value.tv_sec = 0;
+  itv.it_value.tv_usec = 0;
+  itv.it_interval.tv_sec = itv.it_value.tv_sec;
+  itv.it_interval.tv_usec = itv.it_value.tv_usec;
+
+  if (setitimer(C_PROFILE_TIMER, &itv, NULL) == -1)
+    panic(C_text("error clearing timer for profiling"));
+
+  profiling = 0; /* In case a SIGPROF is delivered late */
+  bp = profile_table;
+
+  C_snprintf(buffer, STRING_BUFFER_SIZE, C_text("PROFILE.%d"), C_getpid());
+
+  if(debug_mode)
+    C_dbg(C_text("debug"), C_text("dumping statistical profile to `%s'...\n"), buffer);
+
+  fp = C_fopen(buffer, "w");
+  if (fp == NULL)
+    panic(C_text("could not write profile!"));
+
+  for(n = 0; n < PROFILE_TABLE_SIZE; ++n) {
+    for(b = bp[ n ]; b != NULL; b = b2) {
+      b2 = b->next;
+
+      k1 = b->key;
+      C_fputs(C_text("(|"), fp);
+      /* Dump raw C string as if it were a symbol */
+      while((k2 = C_strpbrk(k1, C_text("\\|"))) != NULL) {
+        C_fwrite(k1, 1, k2-k1, fp);
+        C_fputc('\\', fp);
+        C_fputc(*k2, fp);
+        k1 = k2+1;
+      }
+      C_fputs(k1, fp);
+      ms = (double)b->sample_count * (double)profile_frequency / 1000.0;
+      C_fprintf(fp, C_text("| " UWORD_COUNT_FORMAT_STRING " %lf)\n"),
+                b->call_count, ms);
+      C_free(b);
+    }
+  }
+
+  C_fclose(fp);
+  C_free(profile_table);
+  profile_table = NULL;
+
+  return C_SCHEME_UNDEFINED;
+}
 
 void C_ccall C_dump_heap_state(C_word c, C_word *av)
 {

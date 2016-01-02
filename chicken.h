@@ -1964,6 +1964,7 @@ C_fctexport time_t C_fcall C_seconds(C_long *ms) C_regparm;
 C_fctexport C_word C_fcall C_bignum_simplify(C_word big) C_regparm;
 C_fctexport C_word C_fcall C_allocate_scratch_bignum(C_word **ptr, C_word size, C_word negp, C_word initp) C_regparm;
 C_fctexport C_word C_fcall C_bignum_rewrap(C_word **p, C_word big) C_regparm;
+C_fctexport C_word C_i_dump_statistical_profile();
 C_fctexport C_word C_a_i_list(C_word **a, int c, ...);
 C_fctexport C_word C_a_i_string(C_word **a, int c, ...);
 C_fctexport C_word C_a_i_record(C_word **a, int c, ...);
