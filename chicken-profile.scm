@@ -159,8 +159,10 @@ EOF
   (make-vector symbol-table-size '()))
 
 (define (read-profile)
-  (let ((hash (make-symbol-table)))
-    (do ((line (read) (read)))
+  (let* ((hash (make-symbol-table))
+	 (header (read))
+	 (type (if (symbol? header) header 'instrumented)))
+    (do ((line (if (symbol? header) (read) header) (read)))
 	((eof-object? line))
       (##sys#hash-table-set!
        hash (first line)
@@ -172,7 +174,7 @@ EOF
        (lambda (sym counts)
 	 (set! alist (alist-cons sym counts alist)))
        hash)
-      alist)))
+      (cons type alist))))
 
 (define (format-string str cols #!optional right (padc #\space))
   (let* ((len (string-length str))
@@ -195,17 +197,26 @@ EOF
 
 (define (write-profile)
   (print "reading `" file "' ...\n")
-  (let* ((data0 (with-input-from-file file read-profile))
-	 (max-t (foldl (lambda (r t) (max r (third t))) 0 data0))
+  (let* ((type&data0 (with-input-from-file file read-profile))
+	 (type  (car type&data0))
+	 (data0 (cdr type&data0))
+	 ;; Instrumented profiling results in total runtime being
+	 ;; counted for the outermost "main" procedure, while
+	 ;; statistical counts time spent only inside the procedure
+	 ;; itself.  Ideally we'd have both, but that's tricky to do.
+	 (total-t (foldl (if (eq? type 'instrumented)
+			     (lambda (r t) (max r (third t)))
+			     (lambda (r t) (+ r (third t))))
+			 0 data0))
 	 (data (sort (map
 		      (lambda (t)
 			(append
 			 t
 			 (let ((c (second t)) ; count
-			       (t (third t))) ; total time
+			       (t (third t))) ; time tallied to procedure
 			   (list (or (and c (> c 0) (/ t c)) ; time / count
 				     0)
-				 (or (and (> max-t 0) (* (/ t max-t) 100)) ; % of max-time
+				 (or (and (> total-t 0) (* (/ t total-t) 100)) ; % of total-time
 				     0)
 				 ))))
 		      data0)

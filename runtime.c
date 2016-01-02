@@ -13234,6 +13234,7 @@ C_word C_i_dump_statistical_profile()
   if (fp == NULL)
     panic(C_text("could not write profile!"));
 
+  C_fputs(C_text("statistical\n"), fp);
   for(n = 0; n < PROFILE_TABLE_SIZE; ++n) {
     for(b = bp[ n ]; b != NULL; b = b2) {
       b2 = b->next;

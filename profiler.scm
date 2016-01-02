@@ -37,6 +37,10 @@
 
 (define-constant profile-info-entry-size 5)
 
+(define empty-file?
+  (foreign-lambda* bool ((scheme-object p))
+    "C_return(ftell(C_port_file(p)) == 0);"))
+
 
 ;;; Globals:
 
@@ -122,7 +126,10 @@
 	(##sys#print "[debug] writing profile...\n" #f ##sys#standard-error) )
       (apply
        with-output-to-file ##sys#profile-name
-       (lambda () 
+       (lambda ()
+	 (when (empty-file? (current-output-port)) ; header needed?
+	   (write 'instrumented)
+	   (write-char #\newline))
 	 (for-each
 	  (lambda (vec)
 	    (let ([len (##sys#size vec)])
