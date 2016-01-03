@@ -200,10 +200,10 @@ $compile syntax-tests-2.scm
 ./a.out
 
 echo "======================================== meta-syntax tests ..."
-$interpret -bnq meta-syntax-test.scm -e '(import foo)' -e "(assert (equal? '((1)) (bar 1 2)))" -e "(assert (equal? '(list 1 2 3) (listify)))" -e "(import foo-usage)" -e "(assert (equal? '(1) (foo-user)))"
+$interpret -bnq meta-syntax-test.scm -e '(import foo)' -e "(assert (equal? '((1)) (bar 1 2)))" -e "(assert (equal? '(list 1 2 3) (listify)))" -e "(import test-import-for-syntax)" -e "(assert (equal? '(1) (test)))" -e "(import test-begin-for-syntax)" -e "(assert (equal? '(1) (test)))"
 $compile_s meta-syntax-test.scm -j foo
 $compile_s foo.import.scm
-$interpret -bnq -e '(require-library meta-syntax-test)' -e '(import foo)' -e "(assert (equal? '((1)) (bar 1 2)))" -e "(assert (equal? '(list 1 2 3) (listify)))" -e "(import foo-usage)" -e "(assert (equal? '(1) (foo-user)))"
+$interpret -bnq meta-syntax-test.scm -e '(import foo)' -e "(assert (equal? '((1)) (bar 1 2)))" -e "(assert (equal? '(list 1 2 3) (listify)))" -e "(import test-import-for-syntax)" -e "(assert (equal? '(1) (test)))" -e "(import test-begin-for-syntax)" -e "(assert (equal? '(1) (test)))"
 
 echo "======================================== reexport tests ..."
 $interpret -bnq reexport-tests.scm
@@ -235,7 +235,7 @@ $interpret -bnq use-square-functor.scm
 $compile use-square-functor.scm
 ./a.out
 $compile -s use-square-functor.scm -J
-$interpret -nqe '(import sf1)' -e '(import sf2)'
+$interpret -nqe '(require-library use-square-functor)' -e '(import sf1)' -e '(import sf2)'
 rm -f sf1.import.* sf2.import.* lst.import.* mod.import.*
 
 echo "======================================== compiler syntax tests ..."
@@ -280,7 +280,6 @@ $interpret -i -s r5rs_pitfalls.scm
 echo "======================================== r7rs tests ..."
 $interpret -i -s r7rs-tests.scm
 
-
 echo "======================================== module tests ..."
 $interpret -include-path ${TEST_DIR}/.. -s module-tests.scm
 $interpret -include-path ${TEST_DIR}/.. -s module-tests-2.scm
@@ -288,7 +287,7 @@ $interpret -include-path ${TEST_DIR}/.. -s module-tests-2.scm
 echo "======================================== module tests (command line options) ..."
 module="test-$(date +%s)"
 $compile test.scm -A -w -j "$module" -module "$module"
-$interpret -e "(import $module)"
+$interpret -e "(import-syntax $module)"
 rm -f "$module.import.scm"
 
 echo "======================================== module tests (compiled) ..."

@@ -264,7 +264,7 @@ a.out
 if errorlevel 1 exit /b 1
 %compile% -s use-square-functor.scm -J
 if errorlevel 1 exit /b 1
-%interpret% -nqe "(import sf1)" -e "(import sf2)"
+%interpret% -nqe "(require-library use-square-functor)" -e "(import sf1)" -e "(import sf2)"
 if errorlevel 1 exit /b 1
 del /f /q sf1.import.* sf2.import.* lst.import.* mod.import.*
 
@@ -337,7 +337,7 @@ echo ======================================== module tests (command line options
 set module="test"
 %compile% test.scm -w -A -j %module% -module %module%
 if errorlevel 1 exit /b 1
-%interpret% -e "(import %module%)"
+%interpret% -e "(import-syntax %module%)"
 if errorlevel 1 exit /b 1
 del /f /q %module%.import.scm
 

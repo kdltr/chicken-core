@@ -1,5 +1,14 @@
 ;;;; meta-syntax-test.scm
 
+;;
+;; A module's syntax definitions should be accessible through either of
+;; the following import forms:
+;;
+;;   (import-for-syntax (foo)) ; meta environment
+;;
+;;   (begin-for-syntax         ; compiler environment
+;;     (import-syntax (foo)))  ; note that `import` will not work here
+;;
 
 (module foo (bar listify)
   (import scheme chicken)
@@ -20,12 +29,23 @@
      (lambda (e r c)
        (call-it-123 list)))))
 
-(module foo-usage (foo-user)
+(module test-import-for-syntax (test)
   (import chicken scheme)
-  (begin-for-syntax (import (prefix foo foo:)))
-  (define-syntax testing
+  (import-for-syntax (prefix foo foo:))
+  (define-syntax test-import-for-syntax
     (er-macro-transformer
      (lambda (x r c)
        `(,(r 'quote) ,@(foo:bar 1 2)))))
-  (define (foo-user)
-    (testing)))
+  (define (test)
+    (test-import-for-syntax)))
+
+(module test-begin-for-syntax (test)
+  (import chicken scheme)
+  (begin-for-syntax
+    (import-syntax (prefix foo foo:)))
+  (define-syntax test-begin-for-syntax
+    (er-macro-transformer
+     (lambda (x r c)
+       `(,(r 'quote) ,@(foo:bar 1 2)))))
+  (define (test)
+    (test-begin-for-syntax)))

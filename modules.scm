@@ -741,9 +741,12 @@
 		  (import-env (append vsv (import-env)))
 		  (macro-env (append vss (macro-env)))
 		  (let ((unit (module-unit mod)))
-		    (if (and unit load?)
-			`(##core#require-extension (,unit) #f)
-			'(##core#undefined)))))
+		    (cond ((not load?)
+			   '(##core#undefined))
+		          ((symbol? unit)
+			   `(##core#require-extension (,unit) #f))
+			  (else
+			   `(##core#require-extension (,name) #f))))))
 	      (cdr x))))))
 
 (define (module-rename sym prefix)

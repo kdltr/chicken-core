@@ -2,7 +2,8 @@
 
 
 (module main ()
-(import scheme chicken foreign foo)	; note: does not load foo!
+(import scheme chicken foreign)
+(import-syntax foo) ; note: does not load foo!
 
 #>
 static int inlined(int i) {
