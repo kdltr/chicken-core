@@ -952,7 +952,7 @@
 			  (when (##sys#current-module)
 			    (##sys#syntax-error-hook
 			     'module "modules may not be nested" name))
-			  (let-values (((body mreg)
+			  (let-values (((body module-registration)
 					(parameterize ((##sys#current-module
 							(##sys#register-module name unit-name exports))
 						       (##sys#current-environment '())
@@ -981,18 +981,20 @@
 								 (delete il import-libraries)))
 							     (values
 							      (reverse xs)
-							      '((##core#undefined)))))
+							      `((##sys#unit-hook ',name)))))
 						       ((not enable-module-registration)
 							(values
 							 (reverse xs)
-							 '((##core#undefined))))
+							 '((##core#undefined)))) ; XXX correct?
 						       (else
 							(values
 							 (reverse xs)
-							 (if standalone-executable
-							     '()
+							 `((##sys#unit-hook ',name)
+							   .
+							   ,(if standalone-executable
+							     `()
 							     (##sys#compiled-module-registration
-							      (##sys#current-module)))))))
+							      (##sys#current-module))))))))
 						(else
 						 (loop
 						  (cdr body)
@@ -1014,7 +1016,7 @@
 					   x
 					   e ;?
 					   (##sys#current-meta-environment) #f #f h ln) )
-					mreg))
+					module-registration))
 				     body))))
 			      (do ((cs compiler-syntax (cdr cs)))
 				  ((eq? cs csyntax))

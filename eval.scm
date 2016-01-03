@@ -680,6 +680,7 @@
 				   (if (null? body)
 				       (let ((xs (reverse xs)))
 					 (##sys#finalize-module (##sys#current-module))
+					 (##sys#unit-hook name)
 					 (lambda (v)
 					   (let loop2 ((xs xs))
 					     (if (null? xs)
