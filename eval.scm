@@ -709,7 +709,7 @@
 			      (compile
 			       (if (null? rs)
 				   '(##core#undefined)
-				   `(##sys#require ,@(map (lambda (x) `',x) rs)) )
+				   `(##sys#require ,@(map (lambda (x) `(##core#quote ,x)) rs)) )
 			       e #f tf cntr se) ) ) ]
 
 			 [(##core#require-extension)
@@ -1285,7 +1285,7 @@
 		(impform
 		 (if comp?
 		     `(##core#declare (uses ,id))
-		     `(##sys#load-library ',id #f) )
+		     `(##sys#load-library (##core#quote ,id) #f))
 		 impid #f)
 		#t id) )
 	      ((memq id ##sys#explicit-library-modules)
@@ -1294,12 +1294,12 @@
 		      (s (and info (assq 'syntax info))))
 		 (values
 		  `(##core#begin
-		    ,@(if s `((##core#require-for-syntax ',id)) '())
+		    ,@(if s `((##core#require-for-syntax (##core#quote ,id))) '())
 		    ,(impform
 		      (if (not nr)
 			  (if comp?
-			      `(##core#declare (uses ,id)) 
-			      `(##sys#load-library ',id #f) )
+			      `(##core#declare (uses ,id))
+			      `(##sys#load-library (##core#quote ,id) #f))
 			  '(##core#undefined))
 		      impid #f))
 		  #t id) ) )
@@ -1313,13 +1313,13 @@
 			  (values 
 			   (impform
 			    `(##core#begin
-			      ,@(if s `((##core#require-for-syntax ',id)) '())
+			      ,@(if s `((##core#require-for-syntax (##core#quote ,id))) '())
 			      ,@(if (or nr (and (not rr) s))
 				    '()
 				    (begin
 				      (add-req id #f)
 				      `((##sys#require
-					 ,@(map (lambda (id) `',id)
+					 ,@(map (lambda (id) `(##core#quote ,id))
 						(cond (rr (cdr rr))
 						      (else (list id)) ) ) ) ) ) ) )
 			    impid #f)
@@ -1328,7 +1328,7 @@
 			(add-req id #f)
 			(values
 			 (impform
-			  `(##sys#require ',id) 
+			  `(##sys#require (##core#quote ,id))
 			  impid #f)
 			 #f id)))))))
       (let loop ((id spec))
