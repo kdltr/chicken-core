@@ -1106,7 +1106,7 @@ EOF
 		((member arg complex-options)
 		 (set! args (cdr args)) )
 		((or (string=? "-R" arg) (string=? "-require-extension" arg))
-		 (eval `(##core#require-extension (,(string->symbol (cadr args))) #t))
+		 (eval `(import ,(string->symbol (cadr args))))
 		 (set! args (cdr args)) )
 		((or (string=? "-e" arg) (string=? "-eval" arg))
 		 (evalstring (cadr args))
