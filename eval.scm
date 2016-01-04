@@ -1183,17 +1183,17 @@
 (define ##sys#setup-mode #f)
 
 (define ##sys#find-extension
-  (let ((string-append string-append) )
+  (let ((file-exists? file-exists?)
+	(string-append string-append))
     (lambda (p inc?)
       (let ((rp (##sys#repository-path)))
 	(define (check path)
 	  (let ((p0 (string-append path "/" p)))
-	    (and (or (and rp
-			  (not ##sys#dload-disabled)
-			  (##sys#fudge 24) ; dload?
-			  (file-exists? (##sys#string-append p0 ##sys#load-dynamic-extension)))
-		     (file-exists? (##sys#string-append p0 source-file-extension)) )
-		 p0) ) )
+	    (or (and rp
+		     (not ##sys#dload-disabled)
+		     (##sys#fudge 24) ; dload?
+		     (file-exists? (##sys#string-append p0 ##sys#load-dynamic-extension)))
+		(file-exists? (##sys#string-append p0 source-file-extension)))))
 	(let loop ((paths (##sys#append
 			   (if ##sys#setup-mode '(".") '())
 			   (if rp (list rp) '())
