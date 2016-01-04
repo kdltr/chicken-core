@@ -702,7 +702,7 @@
 		 (print-error-message 
 		  ex (current-error-port) 
 		  (sprintf "Failed to import from `~a'" file))
-	       (eval `(import ,(string->symbol module-name))))))
+	       (eval `(import-syntax ,(string->symbol module-name))))))
          files))
       (print "generating database")
       (let ((db
