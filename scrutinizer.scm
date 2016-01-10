@@ -88,7 +88,7 @@
 ; global symbol properties:
 ;
 ;   ##compiler#type            ->  TYPESPEC
-;   ##compiler#declared-type   ->  'from-db | 'local | 'implicit
+;   ##compiler#type-source     ->  'db | 'local | 'inference
 ;   ##compiler#predicate       ->  TYPESPEC
 ;   ##compiler#specializations ->  (SPECIALIZATION ...)
 ;   ##compiler#local-specializations ->  (SPECIALIZATION ...)
@@ -197,7 +197,7 @@
       (cond ((blist-type id flow) => list)
 	    ((and (not strict)
 		  (db-get db id 'assigned) 
-		  (not (variable-mark id '##compiler#declared-type)))
+		  (not (variable-mark id '##compiler#type-source)))
 	     '(*))
 	    ((assq id e) =>
 	     (lambda (a)
@@ -447,7 +447,7 @@
 
     (define (initial-argument-types dest vars argc)
       (if (and dest strict
-	       (variable-mark dest '##compiler#declared-type))
+	       (variable-mark dest '##compiler#type-source))
 	  (let* ((ptype (variable-mark dest '##compiler#type))
 		 (typeenv (type-typeenv ptype)))
 	    (if (procedure-type? ptype)
@@ -579,12 +579,12 @@
 					 #f #t (list initial-tag) #f)))
 			   #;(when (and specialize
 				      dest
-				      (variable-mark dest '##compiler#declared-type)
+				      (variable-mark dest '##compiler#type-source)
 				      (not unsafe))
 			     (debugging 'x "checks argument-types" dest) ;XXX
 			     ;; [1] this is subtle: we don't want argtype-checks to be 
 			     ;; generated for toplevel defs other than user-declared ones. 
-			     ;; But since the ##compiler#declared-type mark is set AFTER 
+			     ;; But since the ##compiler#type-source mark is set AFTER
 			     ;; the lambda has been walked (see below, [2]), nothing is added.
 			     (generate-type-checks! n dest vars inits))
 			   (list
@@ -649,7 +649,7 @@
 			      ;; [2] sets property, but lambda has already been walked,
 			      ;; so no type-checks are generated (see also [1], above)
 			      ;; note that implicit declarations are not enforcing
-			      (mark-variable var '##compiler#declared-type 'implicit)
+			      (mark-variable var '##compiler#type-source 'inference)
 			      (mark-variable var '##compiler#type rt))))))
 		    (when b
 		      (cond ((eq? 'undefined (cdr b)) (set-cdr! b rt))
@@ -1803,7 +1803,7 @@
 		    "type-definition `~a' for toplevel binding `~a' conflicts with previously loaded type `~a'"
 		  name new old)))
 	     (mark-variable name '##compiler#type t)
-	     (mark-variable name '##compiler#declared-type 'from-db)
+	     (mark-variable name '##compiler#type-source 'db)
 	     (when specs
 	       (install-specializations name specs)))))
        (read-file dbfile))
@@ -1817,8 +1817,7 @@
       (##sys#hash-table-for-each
        (lambda (sym plist)
 	 (when (and (variable-visible? sym block-compilation)
-		    (memq (variable-mark sym '##compiler#declared-type)
-			  '(local implicit)))
+		    (memq (variable-mark sym '##compiler#type-source) '(local inference)))
 	   (let ((specs (or (variable-mark sym '##compiler#specializations) '()))
 		 (type (variable-mark sym '##compiler#type))
 		 (pred (variable-mark sym '##compiler#predicate))
