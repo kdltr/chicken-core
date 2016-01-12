@@ -173,7 +173,7 @@
 	    ls
 	    (cons x ls)))
       ls lst))
-   '() lss))
+   ls lss))
 
 (define (lset-intersection/eq? ls1 . lss)
   (filter (lambda (x)
