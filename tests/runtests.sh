@@ -39,6 +39,7 @@ for x in \
     chicken.import.so csi.import.so types.db \
     setup-api.so setup-api.import.so srfi-4.import.so \
     setup-download.so setup-download.import.so \
+    chicken.continuation.import.so \
     chicken.data-structures.import.so \
     chicken.extras.import.so \
     chicken.files.import.so \

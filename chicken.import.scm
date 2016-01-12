@@ -52,10 +52,6 @@
    condition-property-accessor
    condition?
    condition->list
-   continuation-capture
-   continuation-graft
-   continuation-return
-   continuation?
    copy-read-table
    cplxnum?
    cpu-time

@@ -1227,53 +1227,6 @@ Ignores {{ARGUMENT ...}} and returns an unspecified value.
 An alias for {{call-with-current-continuation}}.
 
 
-==== continuation-capture
-
-<procedure>(continuation-capture PROCEDURE)</procedure>
-
-Creates a continuation object representing the current continuation and
-tail-calls {{PROCEDURE}} with this continuation as the single argument.
-
-More information about this continuation API can be found in the paper
-[[http://repository.readscheme.org/ftp/papers/sw2001/feeley.pdf]] ''A Better
-API for first class Continuations'' by Marc Feeley.
-
-
-==== continuation?
-
-<procedure>(continuation? X)</procedure>
-
-Returns {{#t}} if {{X}} is a continuation object, or {{#f}} otherwise. Please
-note that this applies only to continuations created by the Continuation API,
-but not by call/cc, i.e.: {{(call-with-current-continuation continuation?)}}
-returns {{#f}}, whereas {{(continuation-capture continuation?)}} returns
-{{#t}}.
-
-
-==== continuation-graft
-
-<procedure>(continuation-graft CONT THUNK)</procedure>
-
-Calls the procedure {{THUNK}} with no arguments and the implicit continuation
-{{CONT}}.
-
-
-==== continuation-return
-
-<procedure>(continuation-return CONT VALUE ...)</procedure>
-
-Returns the value(s) to the continuation {{CONT}}. {{continuation-return}} could
-be implemented like this:
-
-<enscript highlight=scheme>
-(define (continuation-return k . vals)
-  (continuation-graft
-    k
-    (lambda () (apply values vals)) ) )
-</enscript>
-
-
-
 === Setters
 
 SRFI-17 is fully implemented. For more information see:

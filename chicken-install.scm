@@ -45,7 +45,8 @@
 
   (define +default-repository-files+
     ;;XXX keep this up-to-date!
-    '("chicken.data-structures.import.so"
+    '("chicken.continuation.import.so"
+      "chicken.data-structures.import.so"
       "chicken.eval.import.so"
       "chicken.expand.import.so"
       "chicken.extras.import.so"

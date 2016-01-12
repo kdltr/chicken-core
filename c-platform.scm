@@ -210,7 +210,8 @@
     ##sys#check-char ##sys#check-vector ##sys#check-byte-vector ##sys#list ##sys#cons
     ##sys#call-with-values ##sys#flonum-in-fixnum-range? 
     ##sys#fudge ##sys#immediate? ##sys#context-switch
-    ##sys#make-structure ##sys#apply ##sys#apply-values ##sys#continuation-graft
+    ##sys#make-structure ##sys#apply ##sys#apply-values
+    chicken.continuation#continuation-graft
     ##sys#bytevector? ##sys#make-vector ##sys#setter ##sys#car ##sys#cdr ##sys#pair?
     ##sys#eq? ##sys#list? ##sys#vector? ##sys#eqv? ##sys#get-keyword
     ##sys#foreign-char-argument ##sys#foreign-fixnum-argument ##sys#foreign-flonum-argument
@@ -410,7 +411,7 @@
 (rewrite '##sys#call-with-values 13 2 "C_u_call_with_values" #f)
 (rewrite '##sys#call-with-values 13 2 "C_call_with_values" #t)
 (rewrite 'chicken.lolevel#locative-ref 13 1 "C_locative_ref" #t)
-(rewrite '##sys#continuation-graft 13 2 "C_continuation_graft" #t)
+(rewrite 'chicken.continuation#continuation-graft 13 2 "C_continuation_graft" #t)
 
 (rewrite 'caar 2 1 "C_u_i_caar" #f)
 (rewrite 'cdar 2 1 "C_u_i_cdar" #f)

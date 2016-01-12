@@ -931,6 +931,7 @@
   (##sys#register-primitive-module 'r5rs-null '() r4rs-syntax))
 
 (##sys#register-module-alias 'r5rs 'scheme)
+(##sys#register-module-alias 'continuation 'chicken.continuation)
 (##sys#register-module-alias 'data-structures 'chicken.data-structures)
 (##sys#register-module-alias 'extras 'chicken.extras)
 (##sys#register-module-alias 'expand 'chicken.expand)

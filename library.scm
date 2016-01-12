@@ -62,8 +62,6 @@
 #define C_free_mptr(p, i)     (C_free((void *)C_block_item(p, C_unfix(i))), C_SCHEME_UNDEFINED)
 #define C_free_sptr(p, i)     (C_free((void *)(((C_char **)C_block_item(p, 0))[ C_unfix(i) ])), C_SCHEME_UNDEFINED)
 
-#define C_direct_continuation(dummy)  t1
-
 #define C_a_get_current_seconds(ptr, c, dummy)  C_int64_to_num(ptr, time(NULL))
 #define C_peek_c_string_at(ptr, i)    ((C_char *)(((C_char **)ptr)[ i ]))
 
@@ -2333,7 +2331,6 @@ EOF
 (define (procedure? x) (##core#inline "C_i_closurep" x))
 (define apply (##core#primitive "C_apply"))
 (define ##sys#call-with-current-continuation (##core#primitive "C_call_cc"))
-(define (##sys#call-with-direct-continuation k) (##core#app k (##core#inline "C_direct_continuation" #f)))
 (define ##sys#call-with-cthulhu (##core#primitive "C_call_with_cthulhu"))
 (define values (##core#primitive "C_values"))
 (define call-with-values (##core#primitive "C_call_with_values"))
@@ -2449,28 +2446,6 @@ EOF
 	   (set! ##sys#dynamic-winds (##sys#slot ##sys#dynamic-winds 1))
 	   (after)
 	   (##sys#dynamic-unwind winds (fx- n 1)) ) ] ) )
-
-(define (continuation-capture proc)
-  (let ([winds ##sys#dynamic-winds]
-	[k (##core#inline "C_direct_continuation" #f)] )
-    (proc (##sys#make-structure 'continuation k winds))) )
-
-(define (continuation? x)
-  (##sys#structure? x 'continuation) )
-
-(define ##sys#continuation-graft (##core#primitive "C_continuation_graft"))
-
-(define (continuation-graft k thunk)
-  (##sys#check-structure k 'continuation 'continuation-graft)
-  (let ([winds (##sys#slot k 2)])
-    (unless (eq? ##sys#dynamic-winds winds)
-      (##sys#dynamic-unwind winds (fx- (length ##sys#dynamic-winds) (length winds))) )
-    (##sys#continuation-graft k thunk) ) )
-
-(define continuation-return
-  (lambda (k . vals)
-    (##sys#check-structure k 'continuation 'continuation-return)
-    (continuation-graft k (lambda () (apply values vals))) ) )
 
 
 ;;; Ports:

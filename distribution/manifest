@@ -19,6 +19,7 @@ chicken.compiler.core.import.scm
 csc.c
 csi.c
 eval.c
+continuation.c
 data-structures.c
 ports.c
 files.c
@@ -74,6 +75,7 @@ files.scm
 chicken-bug.1
 chicken-bug.scm
 chicken-bug.c
+continuation.scm
 library.scm
 lolevel.scm
 optimizer.scm
@@ -242,6 +244,8 @@ chicken-syntax.c
 common-declarations.scm
 chicken.import.scm
 chicken.import.c
+chicken.continuation.import.scm
+chicken.continuation.import.c
 chicken.data-structures.import.scm
 chicken.data-structures.import.c
 chicken.eval.import.scm
@@ -334,6 +338,7 @@ manual-html/Supported language.html
 manual-html/The R5RS standard.html
 manual-html/The User's Manual.html
 manual-html/Types.html
+manual-html/Unit continuation.html
 manual-html/Unit data-structures.html
 manual-html/Unit eval.html
 manual-html/Unit expand.html

@@ -935,11 +935,11 @@
 (condition? (#(procedure #:pure #:predicate (struct condition)) condition? (*) boolean))
 
 (condition->list (#(procedure #:clean #:enforce) condition->list ((struct condition)) (list-of (pair symbol *))))
-(continuation-capture (#(procedure #:enforce) continuation-capture ((procedure ((struct continuation)) . *)) *))
-(continuation-graft (#(procedure #:clean #:enforce) continuation-graft ((struct continuation) (procedure () . *)) *))
-(continuation-return (#(procedure #:enforce) continuation-return ((struct continuation) #!rest) . *)) ;XXX make return type more specific?
 
-(continuation? (#(procedure #:pure #:predicate (struct continuation)) continuation? (*) boolean))
+(chicken.continuation#continuation-capture (#(procedure #:enforce) chicken.continuation#continuation-capture ((procedure ((struct continuation)) . *)) *))
+(chicken.continuation#continuation-graft (#(procedure #:clean #:enforce) chicken.continuation#continuation-graft ((struct continuation) (procedure () . *)) *))
+(chicken.continuation#continuation-return (#(procedure #:enforce) chicken.continuation#continuation-return ((struct continuation) #!rest) . *)) ;XXX make return type more specific?
+(chicken.continuation#continuation? (#(procedure #:pure #:predicate (struct continuation)) chicken.continuation#continuation? (*) boolean))
 
 (copy-read-table (#(procedure #:clean #:enforce) copy-read-table ((struct read-table)) (struct read-table)))
 

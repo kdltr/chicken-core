@@ -74,6 +74,7 @@
 
 (define-constant core-chicken-modules
   '((chicken . chicken-syntax)
+    (chicken.continuation . continuation)
     (chicken.data-structures . data-structures)
     (chicken.eval . eval)
     (chicken.expand . expand)

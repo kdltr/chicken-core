@@ -27,6 +27,7 @@
 * [[Unit utils]] Shell scripting and file operations
 * [[Unit tcp]] Basic TCP-sockets
 * [[Unit lolevel]] Low-level operations
+* [[Unit continuation]] Continuations
 
 ---
 Previous: [[Using the interpreter]]
