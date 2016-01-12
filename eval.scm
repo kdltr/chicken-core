@@ -78,6 +78,7 @@
   '((chicken . chicken-syntax)
     (chicken.data-structures . data-structures)
     (chicken.eval . eval)
+    (chicken.expand . expand)
     (chicken.extras . extras)
     (chicken.files . files)
     (chicken.foreign . chicken-ffi-syntax)

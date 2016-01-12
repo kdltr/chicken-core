@@ -933,6 +933,7 @@
 (##sys#register-module-alias 'r5rs 'scheme)
 (##sys#register-module-alias 'data-structures 'chicken.data-structures)
 (##sys#register-module-alias 'extras 'chicken.extras)
+(##sys#register-module-alias 'expand 'chicken.expand)
 (##sys#register-module-alias 'files 'chicken.files)
 (##sys#register-module-alias 'foreign 'chicken.foreign)
 (##sys#register-module-alias 'irregex 'chicken.irregex)

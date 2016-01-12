@@ -27,7 +27,7 @@
 
 (declare
   (unit srfi-4)
-  (uses extras)
+  (uses expand extras)
   (disable-interrupts)
   (not inline ##sys#user-print-hook ##sys#number-hash-hook)
   (foreign-declare #<<EOF
@@ -79,7 +79,8 @@ EOF
    write-u8vector)
 
 (import scheme chicken)
-(import chicken.foreign)
+(import chicken.expand
+	chicken.foreign)
 
 (include "common-declarations.scm")
 
