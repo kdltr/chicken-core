@@ -32,6 +32,7 @@
   (uses extras internal)
   (disable-interrupts)
   (fixnum)
+  (hide check-for-multiple-bindings)
   (not inline ##sys#syntax-error-hook ##sys#compiler-syntax-hook
        ##sys#toplevel-definition-hook))
 
