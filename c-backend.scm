@@ -30,7 +30,7 @@
 ;; Same goes for "platform" and "driver".
 (declare
   (unit c-backend)
-  (uses data-structures extras c-platform compiler support))
+  (uses data-structures extras c-platform compiler internal support))
 
 (module chicken.compiler.c-backend
     (generate-code
@@ -43,7 +43,8 @@
 	chicken.compiler.c-platform
 	chicken.compiler.support
 	chicken.extras
-	chicken.foreign)
+	chicken.foreign
+	chicken.internal)
 
 (include "mini-srfi-1.scm")
 
@@ -392,7 +393,7 @@
 		    (nf (+ n 1)) )
 	       (gen #\{)
 	       (push-args subs i "C_SCHEME_UNDEFINED")
-	       (gen #t "C_" (c-identifier (first params)) "_toplevel(" nf ",av2);}")))
+	       (gen #t "C_" (toplevel (first params)) "(" nf ",av2);}")))
 
 	    ((##core#return)
 	     (gen #t "return(")
@@ -559,11 +560,11 @@
     (define (declarations)
       (let ((n (length literals)))
 	(gen #t #t "static C_PTABLE_ENTRY *create_ptable(void);")
-	(for-each 
+	(for-each
 	 (lambda (uu)
-	   (gen #t "C_noret_decl(C_" uu "_toplevel)"
-		#t "C_externimport void C_ccall C_" uu "_toplevel(C_word c,C_word *av) C_noret;"))
-	 (map c-identifier used-units))
+	   (gen #t "C_noret_decl(C_" uu ")"
+		#t "C_externimport void C_ccall C_" uu "(C_word c,C_word *av) C_noret;"))
+	 (map toplevel used-units))
 	(unless (zero? n)
 	  (gen #t #t "static C_TLS C_word lf[" n "];") )
 	(gen #t "static double C_possibly_force_alignment;")
@@ -607,7 +608,7 @@
 		      (gen "C_ccall ") )
 		  (gen id) )
 		 (else
-		  (let ((uname (if unit-name (string-append (c-identifier unit-name) "_toplevel") "toplevel")))
+		  (let ((uname (toplevel unit-name)))
 		    (gen "C_noret_decl(C_" uname ")" #t) ;XXX what's this for?
 		    (gen "C_externexport void C_ccall ")
 		    (gen "C_" uname) ) ) )
@@ -762,9 +763,7 @@
 		(rest-mode (lambda-literal-rest-argument-mode ll))
 		(temps (lambda-literal-temporaries ll))
 		(ubtemps (lambda-literal-unboxed-temporaries ll))
-		(topname (if unit-name
-			     (string-append (c-identifier unit-name) "_toplevel")
-			     "toplevel") ) )
+		(topname (toplevel unit-name)))
 	   (when empty-closure (debugging 'o "dropping unused closure argument" id))
 	   (gen #t #t)
 	   (gen "/* " (cleanup rname) " */" #t)
@@ -932,9 +931,7 @@
    (lambda (id ll)
      (gen #t "{\"" id #\: (string->c-identifier sf) "\",(void*)")
      (if (eq? 'toplevel id)
-         (if unit-name
-             (gen "C_" (c-identifier unit-name) "_toplevel},")
-             (gen "C_toplevel},") )
+         (gen "C_" (toplevel unit-name) "},")
          (gen id "},") ) )
    lambda-table)
   (gen #t "{NULL,NULL}};")
@@ -946,6 +943,14 @@
        #t "return NULL;"
        #t "#endif"
        #t "}") )
+
+
+;;; Generate top-level procedure name:
+
+(define (toplevel name)
+  (if (not name)
+      "toplevel"
+      (string-append (c-identifier name) "_toplevel")))
 
 
 ;;; Create name that is safe for C comments:

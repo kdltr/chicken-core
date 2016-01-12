@@ -27,13 +27,13 @@
 
 (declare (unit support)
 	 (not inline ##sys#user-read-hook) ; XXX: Is this needed?
-	 (uses data-structures eval extras files ports))
+	 (uses data-structures extras files internal ports))
 
 (module chicken.compiler.support
     (compiler-cleanup-hook bomb collected-debugging-output debugging
      debugging-chicken with-debugging-output quit-compiling
      emit-syntax-trace-info check-signature stringify symbolify
-     build-lambda-list string->c-identifier c-ify-string valid-c-identifier?
+     build-lambda-list c-ify-string valid-c-identifier?
      bytes->words words->bytes
      check-and-open-input-file close-checked-input-file fold-inner
      constant? collapsable-literal? immediate? basic-literal?
@@ -217,9 +217,6 @@
   (let loop ((vars vars) (n argc))
     (cond ((or (zero? n) (null? vars)) (or rest '()))
           (else (cons (car vars) (loop (cdr vars) (sub1 n)))) ) ) )
-
-;; XXX: This seems to belong to c-platform, but why is it defined in eval.scm?
-(define string->c-identifier ##sys#string->c-identifier)
 
 ;; XXX: Put this too in c-platform or c-backend?
 (define (c-ify-string str)

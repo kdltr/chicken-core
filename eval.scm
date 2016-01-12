@@ -1320,23 +1320,6 @@
        (values `(##sys#require (##core#quote ,id)) #f 'dynamic)))))
 
 
-;;; Convert string into valid C-identifier:
-
-(define (##sys#string->c-identifier str)
-  (let ((out (open-output-string))
-       (n (string-length str)))
-    (do ((i 0 (fx+ i 1)))
-       ((fx>= i n) (get-output-string out))
-      (let ((c (string-ref str i)))
-       (if (and (not (char-alphabetic? c))
-                (or (not (char-numeric? c)) (fx= i 0)))
-           (let ((i (char->integer c)))
-             (write-char #\_ out)
-             (when (fx< i 16) (write-char #\0 out))
-             (display (number->string i 16) out))
-           (write-char c out))))))
-
-
 ;;; Environments:
 
 (define interaction-environment
