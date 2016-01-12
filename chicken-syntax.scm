@@ -1083,7 +1083,7 @@
  (##sys#er-transformer
   (lambda (x r c)
     (##sys#check-syntax 'use x '(_ . #(_ 0)))
-    `(##core#require-extension ,(cdr x) #t))))
+    `(,(r 'require-extension) ,@(cdr x)))))
 
 (##sys#extend-macro-environment
  'use-for-syntax '()

@@ -95,8 +95,6 @@
 (define-constant core-syntax-units
   '(chicken-syntax chicken-ffi-syntax))
 
-(define ##sys#explicit-library-modules '())
-
 (define-constant cygwin-default-dynamic-load-libraries '("cygchicken-0"))
 (define-constant macosx-load-library-extension ".dylib")
 (define-constant windows-load-library-extension ".dll")
@@ -667,8 +665,8 @@
 					   (caddr x)))))
 			    (when (##sys#current-module)
 			      (##sys#syntax-error-hook 'module "modules may not be nested" name))
-			    (parameterize ((##sys#current-module 
-					    (##sys#register-module name #f exports))
+			    (parameterize ((##sys#current-module
+					    (##sys#register-module name name exports))
 					   (##sys#current-environment '())
 					   (##sys#macro-environment 
 					    ##sys#initial-macro-environment)
@@ -680,7 +678,7 @@
 				   (if (null? body)
 				       (let ((xs (reverse xs)))
 					 (##sys#finalize-module (##sys#current-module))
-					 (##sys#unit-hook name)
+					 (##sys#provide name)
 					 (lambda (v)
 					   (let loop2 ((xs xs))
 					     (if (null? xs)
@@ -713,16 +711,14 @@
 				   `(##sys#require ,@(map (lambda (x) `(##core#quote ,x)) rs)) )
 			       e #f tf cntr se) ) ) ]
 
-			 [(##core#require-extension)
-			  (let ((imp? (caddr x)))
-			    (compile
-			     (let loop ((ids (strip-syntax (cadr x))))
-			       (if (null? ids)
-				   '(##core#undefined)
-				   (let-values (((exp f real-id) 
-						 (##sys#do-the-right-thing (car ids) #f imp?)))
-				     `(##core#begin ,exp ,(loop (cdr ids))) ) ) )
-			     e #f tf cntr se) ) ]
+			 [(##core#require)
+			  (compile
+			   (let loop ((ids (map strip-syntax (cdr x))))
+			     (if (null? ids)
+				 '(##core#undefined)
+				 (let-values (((exp _ _) (##sys#expand-require (car ids))))
+				   `(##core#begin ,exp ,(loop (cdr ids))))))
+			   e #f tf cntr se)]
 
 			 [(##core#elaborationtimeonly ##core#elaborationtimetoo) ; <- Note this!
 			  (##sys#eval/meta (cadr x))
@@ -954,6 +950,16 @@
 	(loop (##sys#slot mode 1)) ) )
     (##sys#set-dlopen-flags! now global) ) )
 
+(define (toplevel name)
+  (if (not name)
+      "toplevel"
+      (##sys#string-append
+       (string->c-identifier (##sys#slot name 1))
+       "_toplevel")))
+
+(define (c-toplevel name loc)
+  (##sys#make-c-string (##sys#string-append "C_" (toplevel name)) loc))
+
 (define load/internal
   (let ((read read)
 	(write write)
@@ -961,56 +967,67 @@
 	(newline newline)
 	(eval eval)
 	(open-input-file open-input-file)
-	(close-input-port close-input-port)
-	(string-append string-append))
-    (lambda (input evaluator #!optional pf timer printer)
+	(close-input-port close-input-port))
+    (lambda (input evaluator #!optional pf timer printer unit)
+
       (define evalproc
 	(or evaluator eval))
-      (define topentry
-	(##sys#make-c-string "C_toplevel"))
-      (define (has-sep? str)
-	(let loop ([i (fx- (##sys#size str) 1)])
-	  (and (not (zero? i))
-	       (if (memq (##core#inline "C_subchar" str i) '(#\\ #\/))
-		   i
+
+      (define (has-slash? str)
+	(let loop ((i (fx- (##sys#size str) 1)))
+	  (if (memq (##core#inline "C_subchar" str i) '(#\\ #\/))
+	      i
+	      (and (fx< 0 i)
 		   (loop (fx- i 1))))))
+
+      ;; dload doesn't consider filenames without slashes to be paths,
+      ;; so we prepend a dot to force a relative pathname.
+      (define (dload-path path)
+	(if (has-slash? path)
+	    path
+	    (##sys#string-append "./" path)))
+
+      (define (dload path)
+	(let ((c-path (##sys#make-c-string (dload-path path) 'load)))
+	  (or (##sys#dload c-path (c-toplevel unit 'load))
+	      (and (symbol? unit)
+		   (##sys#dload c-path (c-toplevel #f 'load))))))
+
+      (define dload?
+	(and (not ##sys#dload-disabled)
+	     (##sys#fudge 24)))
+
       (define fname
 	(cond ((port? input) #f)
 	      ((not (string? input))
 	       (##sys#signal-hook #:type-error 'load "bad argument type - not a port or string" input))
 	      ((##sys#file-exists? input #t #f 'load) input)
 	      (else
-	       (let ([fname2 (##sys#string-append input ##sys#load-dynamic-extension)])
-		 (if (and (not ##sys#dload-disabled)
-			  (##sys#fudge 24) ; dload?
-			  (##sys#file-exists? fname2 #t #f 'load))
+	       (let ((fname2 (##sys#string-append input ##sys#load-dynamic-extension)))
+		 (if (and dload? (##sys#file-exists? fname2 #t #f 'load))
 		     fname2
-		     (let ([fname3 (##sys#string-append input source-file-extension)])
+		     (let ((fname3 (##sys#string-append input source-file-extension)))
 		       (if (##sys#file-exists? fname3 #t #f 'load)
 			   fname3
 			   input)))))))
+
       (when (and (string? input) (not fname))
 	(##sys#signal-hook #:file-error 'load "cannot open file" input))
+
       (when (and (load-verbose) fname)
 	(display "; loading ")
 	(display fname)
 	(display " ...\n")
 	(flush-output))
-      (or (and fname
-	       (or (##sys#dload (##sys#make-c-string fname 'load) topentry)
-		   (and (not (has-sep? fname))
-			(##sys#dload
-			 (##sys#make-c-string
-			  (##sys#string-append "./" fname)
-			  'load)
-			 topentry))))
+
+      (or (and fname dload? (dload fname))
 	  (call-with-current-continuation
 	   (lambda (abrt)
 	     (fluid-let ((##sys#read-error-with-line-number #t)
 			 (##sys#current-source-filename fname)
 			 (##sys#current-load-path
 			  (and fname
-			       (let ((i (has-sep? fname)))
+			       (let ((i (has-slash? fname)))
 				 (if i (##sys#substring fname 0 (fx+ i 1)) "")))))
 	       (let ((in (if fname (open-input-file fname) input)))
 		 (##sys#dynamic-wind
@@ -1083,35 +1100,31 @@
        x) ) ) )
 
 (define load-library-0
-  (let ([string-append string-append]
-	[display display] )
+  (let ((display display))
     (lambda (uname lib)
-      (let ([id (##sys#->feature-id uname)])
-	(or (##sys#get uname '##core#unit)
-	    (let ([libs
-		   (if lib
-		       (##sys#list lib)
-		       (cons (##sys#string-append (##sys#slot uname 1) load-library-extension)
-			     (dynamic-load-libraries) ) ) ]
-		  [top 
-		   (##sys#make-c-string
-		    (string-append 
-		     "C_"
-		     (##sys#string->c-identifier (##sys#slot uname 1)) 
-		     "_toplevel") 'load-library) ] )
-	      (when (load-verbose)
-		(display "; loading library ")
-		(display uname)
-		(display " ...\n") )
-	      (let loop ((libs libs))
-		(cond ((null? libs) #f)
-		      ((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top) #t)
-		      (else (loop (##sys#slot libs 1)))))))))))
+      (or (##sys#provided? uname)
+	  (let ((libs
+		 (if lib
+		     (##sys#list lib)
+		     (cons (##sys#string-append (##sys#slot uname 1) load-library-extension)
+			   (dynamic-load-libraries))))
+		(top
+		 (c-toplevel uname 'load-library)))
+	    (when (load-verbose)
+	      (display "; loading library ")
+	      (display uname)
+	      (display " ...\n") )
+	    (let loop ((libs libs))
+	      (cond ((null? libs) #f)
+		    ((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top)
+		     (##sys#provide uname))
+		    (else (loop (##sys#slot libs 1))))))))))
 
 (define load-library
-  (lambda (uname . lib)
+  (lambda (uname #!optional lib)
     (##sys#check-symbol uname 'load-library)
-    (or (load-library-0 uname (and (pair? lib) (car lib)))
+    (unless (not lib) (##sys#check-string lib 'load-library))
+    (or (load-library-0 uname lib)
 	(##sys#error 'load-library "unable to load library" uname _dlerror) ) ) )
 
 (define ##sys#load-library load-library)
@@ -1204,34 +1217,28 @@
 		 (or (check pa)
 		     (loop (##sys#slot paths 1)) ) ) ) ) ) ) ))
 
-(define loaded-extensions '())
-
-(define load-extension
-  (let ((string->symbol string->symbol))
-    (lambda (id loc #!optional (err? #t))
-      (define (fail message)
-	(and err? (##sys#error loc message id)))
-      (cond ((string? id) (set! id (string->symbol id)))
-	    (else (##sys#check-symbol id loc)))
-      (let ((p (##sys#canonicalize-extension-path id loc)))
-	(cond ((##sys#get id '##core#unit))
-	      ((member p loaded-extensions))
-	      ((memq id core-syntax-units)
-	       (fail "cannot load core library"))
-	      ((memq id core-library-units)
-	       (or (load-library-0 id #f)
-		   (fail "cannot load core library")))
-	      (else
-	       (let ((id2 (##sys#find-extension p #f)))
-		 (cond (id2
-			(load/internal id2 #f)
-			(set! loaded-extensions (cons p loaded-extensions))
-			#t)
-		       (else
-			(fail "cannot load extension"))))))))))
+(define (load-extension id)
+  (define (fail message)
+    (##sys#error 'require message id))
+  (cond ((string? id) (set! id (string->symbol id)))
+	(else (##sys#check-symbol id 'require)))
+  (cond ((##sys#provided? id))
+	((memq id core-syntax-units)
+	 (fail "cannot load core library"))
+	((memq id core-library-units)
+	 (or (load-library-0 id #f)
+	     (fail "cannot load core library")))
+	(else
+	 (let* ((path (##sys#canonicalize-extension-path id 'require))
+		(ext  (##sys#find-extension path #f)))
+	   (cond (ext
+		  (load/internal ext #f #f #f #f id)
+		  (##sys#provide id))
+		 (else
+		  (fail "cannot load extension")))))))
 
 (define (require . ids)
-  (for-each (cut load-extension <> 'require) ids))
+  (for-each load-extension ids))
 
 (define ##sys#require require)
 
@@ -1264,106 +1271,70 @@
 		 '() )
 	     (loop1 (cdr ids)) ) ) ) ) ) )
 
-(define ##sys#do-the-right-thing
-  (let ((vector->list vector->list))
-    (lambda (spec comp? imp? #!optional (add-req void))
-      (define (impform x id builtin?)
-	`(##core#begin
-	  ,x
-	  ,@(if (and imp? (or (not builtin?) (##sys#current-module)))
-		`((import-syntax ,id)) ; XXX make hygienic
-		'())))
-      (define (doit id #!optional (impid id))
-	(cond ((or (memq id builtin-features)
-		   (and comp? (memq id builtin-features/compiled)))
-	       (values (impform '(##core#undefined) impid #t) #t id))
-	      ((and (not comp?) (##sys#feature? id))
-	       (values (impform '(##core#undefined) impid #f) #t id))
-	      ((memq id core-syntax-units)
-	       (values (impform '(##core#undefined) impid #t) #t id))
-	      ((memq id core-library-units)
-	       (values
-		(impform
-		 (if comp?
-		     `(##core#declare (uses ,id))
-		     `(##sys#load-library (##core#quote ,id) #f))
-		 impid #f)
-		#t id) )
-	      ((memq id ##sys#explicit-library-modules)
-	       (let* ((info (extension-information/internal id 'require-extension))
-		      (nr (and info (assq 'import-only info)))
-		      (s (and info (assq 'syntax info))))
-		 (values
-		  `(##core#begin
-		    ,@(if s `((##core#require-for-syntax (##core#quote ,id))) '())
-		    ,(impform
-		      (if (not nr)
-			  (if comp?
-			      `(##core#declare (uses ,id))
-			      `(##sys#load-library (##core#quote ,id) #f))
-			  '(##core#undefined))
-		      impid #f))
-		  #t id) ) )
-	      (else
-	       (let ((info (extension-information/internal id 'require-extension)))
-		 (cond (info
-			(let ((s (assq 'syntax info))
-			      (nr (assq 'import-only info))
-			      (rr (assq 'require-at-runtime info)) )
-			  (when s (add-req id #t))
-			  (values 
-			   (impform
-			    `(##core#begin
-			      ,@(if s `((##core#require-for-syntax (##core#quote ,id))) '())
-			      ,@(if (or nr (and (not rr) s))
-				    '()
-				    (begin
-				      (add-req id #f)
-				      `((##sys#require
-					 ,@(map (lambda (id) `(##core#quote ,id))
-						(cond (rr (cdr rr))
-						      (else (list id)) ) ) ) ) ) ) )
-			    impid #f)
-			   #t id) ) )
-		       (else
-			(add-req id #f)
-			(values
-			 (impform
-			  `(##sys#require (##core#quote ,id))
-			  impid #f)
-			 #f id)))))))
-      (let loop ((id spec))
-	(cond ((assq id core-chicken-modules) =>
-	       (lambda (lib) (doit (cdr lib) spec)))
-	      ((symbol? id)
-	       (doit (library-id id) spec))
-	      ((pair? id)
-	       (case (car id)
-		 ((rename except only prefix)
-		  (if (pair? (cdr id))
-		      (loop (cadr id))
-		      (loop (library-id id))))
-		 (else
-		  (loop (library-id id)))))
-	      (else
-	       (##sys#error "invalid extension specifier" id)))))))
+;;
+;; Given a library specification, returns three values:
+;;
+;;   - an expression for loading the library, if required
+;;   - a fixed-up library id if the library was found, #f otherwise
+;;   - a requirement type (e.g. 'dynamic) or #f if provided statically
+;;
+(define (##sys#expand-require lib #!optional compiling? (static-units '()))
+  (let ((id (library-id lib)))
+    (cond
+      ((assq id core-chicken-modules) =>
+       (lambda (mod)
+	 (##sys#expand-require (cdr mod) compiling? static-units)))
+      ((or (memq id builtin-features)
+	   (and compiling? (memq id builtin-features/compiled)))
+       (values '(##core#undefined) id #f))
+      ((memq id static-units)
+       (values '(##core#undefined) id #f))
+      ((and (not compiling?) (##sys#feature? id))
+       (values '(##core#undefined) id #f))
+      ((memq id core-syntax-units)
+       (values '(##core#undefined) id #f))
+      ((memq id core-library-units)
+       (values
+	(if compiling?
+	    `(##core#declare (uses ,id))
+	    `(##sys#load-library (##core#quote ,id) #f))
+	id #f))
+      ((extension-information/internal id 'require) =>
+       (lambda (info)
+	 (let ((s  (assq 'syntax info))
+	       (nr (assq 'import-only info))
+	       (rr (assq 'require-at-runtime info)))
+	   (values
+	    `(##core#begin
+	      ,@(if s `((##core#require-for-syntax (##core#quote ,id))) '())
+	      ,@(if (or nr (and (not rr) s))
+		    '()
+		    (begin
+		      `((##sys#require
+			 ,@(map (lambda (id) `(##core#quote ,id))
+				(cond (rr (cdr rr))
+				      (else (list id)))))))))
+	    id
+	    (if s 'dynamic/syntax 'dynamic)))))
+      (else
+       (values `(##sys#require (##core#quote ,id)) #f 'dynamic)))))
 
 
 ;;; Convert string into valid C-identifier:
 
 (define (##sys#string->c-identifier str)
   (let ((out (open-output-string))
-	(n (string-length str)))
+       (n (string-length str)))
     (do ((i 0 (fx+ i 1)))
-	((fx>= i n) (get-output-string out))
+       ((fx>= i n) (get-output-string out))
       (let ((c (string-ref str i)))
-	(if (and (not (char-alphabetic? c))
-		 (or (not (char-numeric? c)) (fx= i 0)))
-	    (let ((i (char->integer c)))
-	      (write-char #\_ out)
-	      (when (fx< i 16) (write-char #\0 out))
-	      (display (number->string i 16) out))
-	    (write-char c out))))))
+       (if (and (not (char-alphabetic? c))
+                (or (not (char-numeric? c)) (fx= i 0)))
+           (let ((i (char->integer c)))
+             (write-char #\_ out)
+             (when (fx< i 16) (write-char #\0 out))
+             (display (number->string i 16) out))
+           (write-char c out))))))
 
 
 ;;; Environments:
@@ -1388,8 +1359,10 @@
     (foldr
      (lambda (s r)
        (if (memq (car s)
-		 '(import 
+		 '(import
 		   import-syntax
+		   import-for-syntax
+		   import-syntax-for-syntax
 		   require-extension
 		   require-extension-for-syntax
 		   require-library
@@ -1398,8 +1371,7 @@
 		   module
 		   cond-expand
 		   syntax
-		   reexport
-		   import-for-syntax))
+		   reexport))
 	   r
 	   (cons s r)))
      '()

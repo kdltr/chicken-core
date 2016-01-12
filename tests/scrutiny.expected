@@ -43,10 +43,10 @@ Warning: at toplevel:
   assignment of value of type `fixnum' to toplevel variable `car' does not match declared type `(forall (a) (procedure car ((pair a *)) a))'
 
 Warning: at toplevel:
-  expected a single result in `let' binding of `g18', but received 2 results
+  expected in `let' binding of `g38' a single result, but were given 2 results
 
 Warning: at toplevel:
-  in procedure call to `g18', expected a value of type `(procedure () *)' but was given a value of type `fixnum'
+  in procedure call to `g38', expected a value of type `(procedure () *)', but was given a value of type `fixnum'
 
 Note: in toplevel procedure `foo':
   expected a value of type boolean in conditional, but was given a value of type `(procedure bar () *)' which is always true:

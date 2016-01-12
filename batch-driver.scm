@@ -217,8 +217,7 @@
 	 (and-let* ((pn (memq 'profile-name options))) (cadr pn)))
 	(hsize (memq 'heap-size options))
 	(kwstyle (memq 'keyword-style options))
-        (loop/dispatch (memq 'clustering options))
-	(uses-units '())
+	(loop/dispatch (memq 'clustering options))
 	(unit (memq 'unit options))
 	(a-only (memq 'analyze-only options))
 	(dynamic (memq 'dynamic options))
@@ -405,10 +404,6 @@
 	      ipath) )
     (when (and outfile filename (string=? outfile filename))
       (quit-compiling "source- and output-filename are the same") )
-    (set! uses-units
-      (append-map
-       (lambda (u) (map string->symbol (string-split u ", ")))
-       (collect-options 'uses)))
     (when (memq 'keep-shadowed-macros options)
       (set! undefine-shadowed-macros #f) )
     (when (memq 'no-argc-checks options)
@@ -453,10 +448,18 @@
 
     ;; Append required extensions to initforms:
     (set! initforms
-          (append 
-           initforms 
-           (map (lambda (r) `(##core#require-extension (,(string->symbol r)) #t))
-                (collect-options 'require-extension))))
+      (append
+       initforms
+       (map (lambda (r) `(import ,(string->symbol r)))
+	    (collect-options 'require-extension))))
+
+    ;; Handle units added with the "-uses" flag.
+    (let ((uses (append-map
+		 (lambda (u) (map string->symbol (string-split u ", ")))
+		 (collect-options 'uses))))
+      (unless (null? uses)
+	(set! forms
+	  (cons `(##core#declare (uses . ,uses)) forms))))
 
     (when (memq 'compile-syntax options)
       (set! ##sys#enable-runtime-macros #t) )
@@ -560,10 +563,6 @@
 
 	   (print-expr "source" '|1| forms)
 	   (begin-time)
-	   (unless (null? uses-units)
-	     (set! ##sys#explicit-library-modules
-	       (append ##sys#explicit-library-modules uses-units))
-	     (set! forms (cons `(declare (uses ,@uses-units)) forms)) )
 	   ;; Canonicalize s-expressions
 	   (let* ((exps0 (map canonicalize-expression
 			      (let ((forms (append initforms forms)))
@@ -580,10 +579,9 @@
 							  (or profile-name #t)))
 			     '() )
 			 exps0
-			 (cond
-			   (unit-name `((##sys#unit-hook ',unit-name)))
-			   (dynamic '())
-			   (else cleanup-forms))
+			 (if (or unit-name dynamic)
+			     '()
+			     cleanup-forms)
 			 '((##core#undefined)))))
 
 	     (unless (null? import-libraries)

@@ -925,32 +925,51 @@
 (##sys#extend-macro-environment
  'import-syntax '()
  (##sys#er-transformer
-  (cut ##sys#expand-import <> <> <>
+  (cut ##sys#import <> <> <>
        ##sys#current-environment ##sys#macro-environment
-       #f #f #f 'import-syntax)))
+       #f #f 'import-syntax)))
 
 (##sys#extend-macro-environment
- 'import '()
+ 'import-syntax-for-syntax '()
  (##sys#er-transformer
-  (cut ##sys#expand-import <> <> <>
-       ##sys#current-environment ##sys#macro-environment
-       #f #f #t 'import)))
-
-(##sys#extend-macro-environment
- 'import-for-syntax '()
- (##sys#er-transformer
-  (cut ##sys#expand-import <> <> <>
+  (cut ##sys#import <> <> <>
        ##sys#current-meta-environment ##sys#meta-macro-environment
-       #t #f #t 'import-for-syntax)))
+       #t #f 'import-syntax-for-syntax)))
 
 (##sys#extend-macro-environment
  'reexport '()
  (##sys#er-transformer
-  (cut ##sys#expand-import <> <> <>
+  (cut ##sys#import <> <> <>
        ##sys#current-environment ##sys#macro-environment
-       #f #t #t 'reexport)))
+       #f #t 'reexport)))
 
-;; contains only "import" and "reexport" forms
+(##sys#extend-macro-environment
+ 'import '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    `(##core#begin
+      ,@(map (lambda (x)
+	       (let-values (((mod lib _ _ _) (##sys#expand-import x r c 'import)))
+		 `(##core#begin
+		   (,(r 'import-syntax) ,mod)
+		   (##core#require ,lib))))
+	     (cdr x))))))
+
+(##sys#extend-macro-environment
+ 'begin-for-syntax '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'begin-for-syntax x '(_ . #(_ 0)))
+    (##sys#register-meta-expression `(##core#begin ,@(cdr x)))
+    `(##core#elaborationtimeonly (##core#begin ,@(cdr x))))))
+
+(##sys#extend-macro-environment
+ 'import-for-syntax '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    `(,(r 'begin-for-syntax) (,(r 'import) ,@(cdr x))))))
+
+;; contains only syntax-related bindings
 (define ##sys#initial-macro-environment (##sys#macro-environment))
 
 (##sys#extend-macro-environment
@@ -1426,16 +1445,14 @@
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    (let ((ids (cdr x)))
-      `(##core#require-extension ,ids #f) ) ) ) )
+    `(##core#require ,@(cdr x)))))
 
 (##sys#extend-macro-environment
  'require-extension
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    (let ((ids (cdr x)))
-      `(##core#require-extension ,ids #t) ) ) ) )
+    `(,(r 'import) ,@(cdr x)))))
 
 (##sys#extend-macro-environment
  'require-extension-for-syntax
@@ -1500,15 +1517,6 @@
 			      (string? (car body)))
 			 `((##core#include ,(car body)))
 			 body))))))))))
-
-(##sys#extend-macro-environment
- 'begin-for-syntax
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'begin-for-syntax x '(_ . #(_ 0)))
-    (##sys#register-meta-expression `(##core#begin ,@(cdr x)))
-    `(##core#elaborationtimeonly (##core#begin ,@(cdr x))))))
 
 (##sys#extend-macro-environment
  'export

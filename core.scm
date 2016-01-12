@@ -139,7 +139,7 @@
 ; (##core#define-external-variable <name> <type> <bool> [<symbol>])
 ; (##core#check <exp>)
 ; (##core#require-for-syntax <exp> ...)
-; (##core#require-extension (<id> ...) <bool>)
+; (##core#require <id> ...)
 ; (##core#app <exp> {<exp>})
 ; (##core#define-syntax <symbol> <expr>)
 ; (##core#define-compiler-syntax <symbol> <expr>)
@@ -668,36 +668,27 @@
 			    (lambda () ids) )
 			   '(##core#undefined) ) )
 
-			((##core#require-extension)
-			 (let ((imp? (caddr x)))
-			   (walk
-			    (let loop ([ids (strip-syntax (cadr x))])
-			      (if (null? ids)
-				  '(##core#undefined)
-				  (let ((id (car ids)))
-				    (let-values (((exp f realid)
-						  (##sys#do-the-right-thing
-						   id #t imp?
-						   (lambda (id* syntax?)
-						     (##sys#hash-table-update!
-						      ;; XXX FIXME: This is a bit of a hack.  Why is it needed at all?
-						      file-requirements
-						      (if syntax? 'dynamic/syntax 'dynamic)
-						      (lambda (lst)
-							(if (memq id* lst)
-							    lst
-							    (cons id* lst)))
-						      (lambda () (list id*)))))))
-				      (unless (or f
-						  (and (symbol? id)
-						       (##sys#find-extension
-							(##sys#canonicalize-extension-path
-							 id 'require-extension)
-							#f)))
+			((##core#require)
+			 (walk
+			  (let loop ((ids (map strip-syntax (cdr x))))
+			    (if (null? ids)
+				'(##core#undefined)
+				(let ((id (car ids)))
+				  (let-values (((exp lib type)
+						(##sys#expand-require id #t used-units)))
+				    (unless (not type)
+				      (##sys#hash-table-update!
+				       file-requirements
+				       type
+				       (cut lset-adjoin/eq? <> id)
+				       (cut list id)))
+				    (when (not lib)
+				      (unless (##sys#find-extension
+					       (##sys#canonicalize-extension-path id 'require) #f)
 					(warning
-					 (sprintf "extension `~A' is currently not installed" realid)))
-				      `(##core#begin ,exp ,(loop (cdr ids))) ) ) ) )
-			    e se dest ldest h ln) ) )
+					 (sprintf "extension `~A' is currently not installed" id))))
+				    `(##core#begin ,exp ,(loop (cdr ids)))))))
+			  e se dest ldest h ln))
 
 			((##core#let)
 			 (let* ((bindings (cadr x))
@@ -933,6 +924,7 @@
 
 		       ((##core#module)
 			(let* ((name (strip-syntax (cadr x)))
+			       (unit (or unit-name name))
 			       (exports
 				(or (eq? #t (caddr x))
 				    (map (lambda (exp)
@@ -954,7 +946,7 @@
 			     'module "modules may not be nested" name))
 			  (let-values (((body module-registration)
 					(parameterize ((##sys#current-module
-							(##sys#register-module name unit-name exports))
+							(##sys#register-module name unit exports))
 						       (##sys#current-environment '())
 						       (##sys#macro-environment
 							##sys#initial-macro-environment)
@@ -981,7 +973,7 @@
 								 (delete il import-libraries)))
 							     (values
 							      (reverse xs)
-							      `((##sys#unit-hook ',name)))))
+							      `((##sys#provide ',unit)))))
 						       ((not enable-module-registration)
 							(values
 							 (reverse xs)
@@ -989,12 +981,12 @@
 						       (else
 							(values
 							 (reverse xs)
-							 `((##sys#unit-hook ',name)
+							 `((##sys#provide ',unit)
 							   .
 							   ,(if standalone-executable
-							     `()
-							     (##sys#compiled-module-registration
-							      (##sys#current-module))))))))
+								`()
+								(##sys#compiled-module-registration
+								 (##sys#current-module))))))))
 						(else
 						 (loop
 						  (cdr body)
