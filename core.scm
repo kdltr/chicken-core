@@ -1404,7 +1404,7 @@
     (map (lambda (x) (walk x e se #f #f h ln)) xs) )
 
   (when (memq 'c debugging-chicken) (newline) (pretty-print exp))
-  (##sys#clear-trace-buffer)
+  (foreign-code "C_clear_trace_buffer();")
   ;; Process visited definitions and main expression:
   (walk
    `(##core#begin

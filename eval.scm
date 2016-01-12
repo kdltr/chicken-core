@@ -28,9 +28,7 @@
 (declare
   (unit eval)
   (uses expand internal modules)
-  (not inline ##sys#repl-read-hook ##sys#repl-print-hook 
-       ##sys#read-prompt-hook ##sys#alias-global-hook ##sys#user-read-hook
-       ##sys#syntax-error-hook))
+  (not inline ##sys#alias-global-hook ##sys#user-read-hook ##sys#syntax-error-hook))
 
 #>
 #ifndef C_INSTALL_EGG_HOME
@@ -53,7 +51,7 @@
    eval eval-handler extension-information
    load load-library load-noisily load-relative load-verbose
    interaction-environment null-environment scheme-report-environment
-   repl repl-prompt require repository-path set-dynamic-load-mode!)
+   require repository-path set-dynamic-load-mode!)
 
 ;; Exclude values defined within this module.
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment))
@@ -88,6 +86,7 @@
     (chicken.ports . ports)
     (chicken.posix . posix)
     (chicken.tcp . tcp)
+    (chicken.repl . repl)
     (chicken.utils . utils)))
 
 (define-constant core-library-units
@@ -1385,7 +1384,7 @@
 	 (##sys#error
 	  'null-environment 
 	  "unsupported null environment version" n) )))))
-            
+
 
 ;;; Find included file:
 
@@ -1425,150 +1424,6 @@
 					"/"
 					fname) ) )
 		  (else (loop (##sys#slot paths 1))) ) ) ) ) ) )
-
-
-;;;; Read-Eval-Print loop:
-
-(define ##sys#repl-print-length-limit #f)
-(define ##sys#repl-read-hook #f)
-(define ##sys#repl-recent-call-chain #f) ; used in csi for ,c command
-
-(define (##sys#repl-print-hook x port)
-  (##sys#with-print-length-limit ##sys#repl-print-length-limit (cut ##sys#print x #t port))
-  (##sys#write-char-0 #\newline port) )
-
-(define repl-prompt (make-parameter (lambda () "#;> ")))
-
-(define ##sys#read-prompt-hook
-  (let ([repl-prompt repl-prompt])
-    (lambda () 
-      (##sys#print ((repl-prompt)) #f ##sys#standard-output)
-      (##sys#flush-output ##sys#standard-output) ) ) )
-
-(define ##sys#clear-trace-buffer (foreign-lambda void "C_clear_trace_buffer"))
-(define (##sys#resize-trace-buffer i)
-  (##sys#check-fixnum i)
-  (##core#inline "C_resize_trace_buffer" i))
-
-(define repl
-  (let ((eval eval)
-	(read read)
-	(call-with-current-continuation call-with-current-continuation)
-	(string-append string-append))
-    (lambda (#!optional (evaluator eval))
-
-      (define (write-err xs)
-	(for-each (cut ##sys#repl-print-hook <> ##sys#standard-error) xs) )
-
-      (define (write-results xs)
-	(cond ((null? xs)
-	       (##sys#print "; no values\n" #f ##sys#standard-output))
-	      ((not (eq? (##core#undefined) (car xs)))
-	       (for-each (cut ##sys#repl-print-hook <> ##sys#standard-output) xs)
-	       (when (pair? (cdr xs))
-		 (##sys#print 
-		  (string-append "; " (##sys#number->string (length xs)) " values\n")
-		  #f ##sys#standard-output)))))
-
-      (let ((stdin ##sys#standard-input)
-	    (stdout ##sys#standard-output)
-	    (stderr ##sys#standard-error)
-	    (ehandler (##sys#error-handler))
-	    (rhandler (##sys#reset-handler)) 
-	    (lv #f)
-	    (qh ##sys#quit-hook)
-	    (uie ##sys#unbound-in-eval) )
-
-	(define (saveports)
-	  (set! stdin ##sys#standard-input)
-	  (set! stdout ##sys#standard-output)
-	  (set! stderr ##sys#standard-error) )
-
-	(define (resetports)
-	  (set! ##sys#standard-input stdin)
-	  (set! ##sys#standard-output stdout)
-	  (set! ##sys#standard-error stderr) )
-
-	(call-with-current-continuation
-	 (lambda (k)
-	   (##sys#dynamic-wind
-	    (lambda ()
-	      (set! lv (load-verbose))
-	      (set! ##sys#quit-hook (lambda (result) (k result)))
-	      (load-verbose #t)
-	      (##sys#error-handler
-	       (lambda (msg . args)
-		 (resetports)
-		 (##sys#print "\nError" #f ##sys#standard-error)
-		 (when msg
-		   (##sys#print ": " #f ##sys#standard-error)
-		   (##sys#print msg #f ##sys#standard-error) )
-		 (if (and (pair? args) (null? (cdr args)))
-		     (begin
-		       (##sys#print ": " #f ##sys#standard-error)
-		       (write-err args) )
-		     (begin
-		       (##sys#write-char-0 #\newline ##sys#standard-error)
-		       (write-err args) ) )
-		 (set! ##sys#repl-recent-call-chain
-		   (or (and-let* ((lexn ##sys#last-exception) ;XXX not really right
-				  ((##sys#structure? lexn 'condition))
-				  (a (member '(exn . call-chain) (##sys#slot lexn 2))))
-			 (let ((ct (cadr a)))
-			   (##sys#really-print-call-chain
-			    ##sys#standard-error ct
-			    "\n\tCall history:\n")
-			   ct))
-		       (print-call-chain ##sys#standard-error)))
-		 (flush-output ##sys#standard-error) ) ) )
-	    (lambda ()
-	      (let loop ()
-		(saveports)
-		(call-with-current-continuation
-		 (lambda (c)
-		   (##sys#reset-handler
-		    (lambda ()
-		      (set! ##sys#read-error-with-line-number #f)
-		      (set! ##sys#enable-qualifiers #t)
-		      (resetports)
-		      (c #f) ) ) ) )
-		(##sys#read-prompt-hook)
-		(let ([exp ((or ##sys#repl-read-hook read))])
-		  (unless (eof-object? exp)
-		    (when (eq? #\newline (##sys#peek-char-0 ##sys#standard-input))
-		      (##sys#read-char-0 ##sys#standard-input) )
-		    (##sys#clear-trace-buffer)
-		    (set! ##sys#unbound-in-eval '())
-		    (receive result (evaluator exp)
-		      (when (and ##sys#warnings-enabled (pair? ##sys#unbound-in-eval))
-			(let loop ((vars ##sys#unbound-in-eval) (u '()))
-			  (cond ((null? vars)
-				 (when (pair? u)
-				   (##sys#notice
-				    "the following toplevel variables are referenced but unbound:\n")
-				   (for-each 
-				    (lambda (v)
-				      (##sys#print "  " #f ##sys#standard-error)
-				      (##sys#print (car v) #t ##sys#standard-error)
-				      (when (cdr v)
-					(##sys#print " (in " #f ##sys#standard-error)
-					(##sys#print (cdr v) #t ##sys#standard-error) 
-					(##sys#write-char-0 #\) ##sys#standard-error) )
-				      (##sys#write-char-0 #\newline ##sys#standard-error) )
-				    u)
-				   (##sys#flush-output ##sys#standard-error)))
-				((or (memq (caar vars) u) 
-				     (##sys#symbol-has-toplevel-binding? (caar vars)) )
-				 (loop (cdr vars) u) )
-				(else (loop (cdr vars) (cons (car vars) u))) ) 9 ) )
-		      (write-results result) 
-		      (loop) ) ) ) ) )
-	    (lambda ()
-	      (load-verbose lv)
-	      (set! ##sys#quit-hook qh)
-	      (set! ##sys#unbound-in-eval uie)
-	      (##sys#error-handler ehandler)
-	      (##sys#reset-handler rhandler) ) ) ) ) ) ) ))
 
 
 ;;; SRFI-10:

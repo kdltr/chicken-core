@@ -1,0 +1,27 @@
+[[tags: manual]]
+[[toc:]]
+
+== Unit repl
+
+This unit provides CHICKEN's read-print-eval loop.
+
+
+=== repl
+
+<procedure>(repl [EVALUATOR])</procedure>
+
+Start a new read-eval-print loop. Sets the {{reset-handler}} so that
+any invocation of {{reset}} restarts the read-eval-print loop. Also
+changes the current exception-handler to display a message, write
+any arguments to the value of {{(current-error-port)}} and reset.
+
+If {{EVALUATOR}} is given, it should be a procedure of one argument that
+is used in place of {{eval}} to evaluate each entered expression.
+
+You can use {{quit}} to terminate the current read-eval-print loop.
+
+
+---
+Previous: [[Unit eval]]
+
+Next: [[Unit expand]]

@@ -15,6 +15,7 @@
 * [[Exceptions]]
 * [[Unit library]] Basic Scheme definitions
 * [[Unit eval]] Evaluation
+* [[Unit repl]] Read-print-eval loop
 * [[Unit expand]] Modules and macros handling
 * [[Unit data-structures]] Data structures
 * [[Unit ports]] I/O ports

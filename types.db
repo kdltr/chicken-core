@@ -1236,8 +1236,6 @@
 (register-feature! (#(procedure #:clean #:enforce) register-feature! (#!rest symbol) undefined))
 (remprop! (#(procedure #:clean #:enforce) remprop! (symbol symbol) undefined))
 (rename-file (#(procedure #:clean #:enforce) rename-file (string string) string))
-(chicken.eval#repl (#(procedure #:enforce) chicken.eval#repl (#!optional (procedure (*) . *)) undefined))
-(chicken.eval#repl-prompt (#(procedure #:clean #:enforce) chicken.eval#repl-prompt (#!optional (procedure () string)) procedure))
 (chicken.eval#repository-path (#(procedure #:clean) chicken.eval#repository-path (#!optional *) *))
 (chicken.eval#require (#(procedure #:clean) chicken.eval#require (#!rest (or string symbol)) undefined))
 (reset (procedure reset () noreturn))
@@ -1246,6 +1244,9 @@
 (reverse-list->string (#(procedure #:clean #:enforce) reverse-list->string ((list-of char)) string))
 (set-finalizer! (#(procedure #:clean #:enforce) set-finalizer! (* (procedure (*) . *)) *))
 (set-gc-report! (#(procedure #:clean) set-gc-report! (*) undefined))
+
+(chicken.repl#repl (#(procedure #:enforce) chicken.repl#repl (#!optional (procedure (*) . *)) undefined))
+(chicken.repl#repl-prompt (#(procedure #:clean #:enforce) chicken.repl#repl-prompt (#!optional (procedure () string)) procedure))
 
 (set-parameterized-read-syntax!
  (#(procedure #:clean #:enforce) set-parameterized-read-syntax!

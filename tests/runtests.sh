@@ -35,18 +35,24 @@ mkdir -p test-repository
 
 # copy files into test-repository (by hand to avoid calling `chicken-install'):
 
-for x in setup-api.so setup-api.import.so setup-download.so \
-      setup-download.import.so chicken.import.so chicken.lolevel.import.so \
-      srfi-4.import.so chicken.data-structures.import.so \
-      chicken.ports.import.so chicken.utils.import.so chicken.files.import.so \
-      chicken.posix.import.so \
-      chicken.extras.import.so \
-      chicken.internal.import.so \
-      chicken.irregex.import.so \
-      chicken.tcp.import.so \
-      chicken.foreign.import.so \
-      csi.import.so types.db; do
-  cp ../$x test-repository
+for x in \
+    chicken.import.so csi.import.so types.db \
+    setup-api.so setup-api.import.so srfi-4.import.so \
+    setup-download.so setup-download.import.so \
+    chicken.data-structures.import.so \
+    chicken.extras.import.so \
+    chicken.files.import.so \
+    chicken.foreign.import.so \
+    chicken.internal.import.so \
+    chicken.irregex.import.so \
+    chicken.lolevel.import.so \
+    chicken.ports.import.so \
+    chicken.posix.import.so \
+    chicken.repl.import.so \
+    chicken.tcp.import.so \
+    chicken.utils.import.so
+do
+    cp ../$x test-repository
 done
 
 CHICKEN_REPOSITORY=${TEST_DIR}/test-repository

@@ -26,7 +26,7 @@
 
 
 (declare
-  (uses data-structures eval expand extras ports)
+  (uses data-structures eval expand extras ports repl)
   (usual-integrations)
   (disable-interrupts)
   (compile-syntax)
@@ -56,7 +56,8 @@ EOF
 
 (import chicken.data-structures
 	chicken.extras
-	chicken.ports)
+	chicken.ports
+	chicken.repl)
 
 
 ;;; Parameters:

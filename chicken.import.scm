@@ -217,8 +217,6 @@
    register-feature!
    remprop!
    rename-file
-   (repl . chicken.eval#repl)
-   (repl-prompt . chicken.eval#repl-prompt)
    (repository-path . chicken.eval#repository-path)
    (require . chicken.eval#require)
    reset

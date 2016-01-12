@@ -40,6 +40,7 @@ srfi-4.c
 stub.c
 support.c
 chicken.compiler.support.import.scm
+repl.c
 tcp.c
 utils.c
 feathers.in
@@ -88,6 +89,7 @@ posixunix.scm
 posixwin.scm
 posix-common.scm
 profiler.scm
+repl.scm
 runtime.c
 scheduler.scm
 srfi-4.scm
@@ -262,6 +264,8 @@ chicken.ports.import.scm
 chicken.ports.import.c
 chicken.posix.import.scm
 chicken.posix.import.c
+chicken.repl.import.scm
+chicken.repl.import.c
 chicken.tcp.import.scm
 chicken.tcp.import.c
 chicken.utils.import.scm
@@ -340,6 +344,7 @@ manual-html/Unit lolevel.html
 manual-html/Unit ports.html
 manual-html/Unit posix.html
 manual-html/Unit irregex.html
+manual-html/Unit repl.html
 manual-html/Unit srfi-4.html
 manual-html/Unit tcp.html
 manual-html/Unit utils.html
