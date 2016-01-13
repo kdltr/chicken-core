@@ -208,7 +208,7 @@
 (define ##sys#unbound-in-eval #f)
 (define ##sys#eval-debug-level (make-parameter 1))
 
-(define ##sys#compile-to-closure
+(define compile-to-closure
   (let ([write write]
 	[reverse reverse]
 	[with-input-from-file with-input-from-file]
@@ -410,7 +410,7 @@
 				 (aliases (map gensym vars))
 				 [e2 (cons aliases e)]
 				 (se2 (##sys#extend-se se vars aliases))
-				 [body (##sys#compile-to-closure
+				 [body (compile-to-closure
 					(##sys#canonicalize-body (cddr x) se2 #f)
 					e2 se2 cntr evalenv static) ] )
 			    (case n
@@ -500,7 +500,7 @@
 				      (se2 (##sys#extend-se se vars aliases))
 				      (e2 (cons aliases e))
 				      (body 
-				       (##sys#compile-to-closure
+				       (compile-to-closure
 					(##sys#canonicalize-body body se2 #f)
 					e2 se2 (or h cntr) evalenv static) ) )
 				 (case argc
@@ -849,7 +849,7 @@
 	  (##sys#current-environment cme)
 	  (##sys#active-eval-environment ##sys#current-meta-environment))
 	(lambda ()
-	  ((##sys#compile-to-closure
+	  ((compile-to-closure
 	    form
 	    '() 
 	    (##sys#current-meta-environment)) ;XXX evalenv? static?
@@ -871,11 +871,11 @@
 	      (let ((se2 (##sys#slot env 2)))
 		((if se2		; not interaction-environment?
 		     (parameterize ((##sys#macro-environment '()))
-		       (##sys#compile-to-closure x '() se2 #f env (##sys#slot env 3)))
-		     (##sys#compile-to-closure x '() se #f env #f))
+		       (compile-to-closure x '() se2 #f env (##sys#slot env 3)))
+		     (compile-to-closure x '() se #f env #f))
 		 '() ) ) )
 	     (else
-	      ((##sys#compile-to-closure x '() se #f #f #f) '() ) ) ) ) )))
+	      ((compile-to-closure x '() se #f #f #f) '())))))))
 
 (define (eval x . env)
   (apply (eval-handler) x env))
