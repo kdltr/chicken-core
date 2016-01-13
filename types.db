@@ -870,13 +870,15 @@
 
 (argc+argv (#(procedure #:clean) argc+argv () fixnum pointer))
 (argv (#(procedure #:clean) argv () (list-of string)))
-(integer-length (#(procedure #:clean #:enforce #:foldable) integer-length (integer) fixnum)
+
+(chicken.bitwise#integer-length
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#integer-length (integer) fixnum)
 		((fixnum) (##core#inline "C_i_fixnum_length" #(1)))
 		((*) (##core#inline "C_i_integer_length" #(1))))
 
-(arithmetic-shift (#(procedure #:clean #:enforce #:foldable) arithmetic-shift (integer fixnum) integer)
-		  ((* *) (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 6)
-						 #(1) #(2))))
+(chicken-bitwise#arithmetic-shift
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#arithmetic-shift (integer fixnum) integer)
+		((* *) (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 6) #(1) #(2))))
 
 (exact-integer-nth-root (#(procedure #:clean #:enforce #:foldable) exact-integer-nth-root (integer integer) integer integer)
 		    ((integer integer) (##sys#exact-integer-nth-root/loc 'exact-integer-nth-root #(1) #(2))))
@@ -886,32 +888,37 @@
 
 (bignum? (#(procedure #:pure #:predicate bignum) bignum? (*) boolean))
 
-(bit-set? (#(procedure #:clean #:enforce #:foldable) bit-set? (integer integer) boolean)
+(chicken.bitwise#bit-set?
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bit-set? (integer integer) boolean)
 	  ((fixnum fixnum) (##core#inline "C_i_fixnum_bit_setp" #(1) #(2)))
 	  ((* *) (##core#inline "C_i_bit_setp" #(1) #(2))))
 
-(bitwise-and (#(procedure #:clean #:enforce #:foldable) bitwise-and (#!rest integer) integer)
+(chicken.bitwise#bitwise-and
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-and (#!rest integer) integer)
            (() '-1)
            ((fixnum) (fixnum) #(1))
            ((integer) #(1))
            ((fixnum fixnum) (fixnum) (##core#inline "C_u_fixnum_and" #(1) #(2)))
            ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_and" 6) #(1) #(2))))
 
-(bitwise-ior (#(procedure #:clean #:enforce #:foldable) bitwise-ior (#!rest integer) integer)
+(chicken.bitwise#bitwise-ior
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-ior (#!rest integer) integer)
            (() '0)
            ((fixnum) (fixnum) #(1))
            ((integer) #(1))
            ((fixnum fixnum) (fixnum) (##core#inline "C_u_fixnum_or" #(1) #(2)))
 	   ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_ior" 6) #(1) #(2))))
 
-(bitwise-xor (#(procedure #:clean #:enforce #:foldable) bitwise-xor (#!rest integer) integer)
+(chicken.bitwise#bitwise-xor
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-xor (#!rest integer) integer)
            (() '0)
            ((fixnum) (fixnum) #(1))
            ((integer) #(1))
            ((fixnum fixnum) (fixnum) (##core#inline "C_fixnum_xor" #(1) #(2)))
            ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_xor" 6) #(1) #(2))))
 
-(bitwise-not (#(procedure #:clean #:enforce #:foldable) bitwise-not (integer) integer)
+(chicken.bitwise#bitwise-not
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-not (integer) integer)
 	     ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_not" 6) #(1))))
 
 (blob->string (#(procedure #:clean #:enforce) blob->string (blob) string))

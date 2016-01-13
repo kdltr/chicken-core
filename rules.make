@@ -85,8 +85,9 @@ DISTFILES = $(filter-out runtime.c,$(LIBCHICKEN_OBJECTS_1:=.c)) \
 	$(IMPORT_LIBRARIES:=.import.c) \
 	$(DYNAMIC_IMPORT_LIBRARIES:=.import.scm) \
 	$(foreach lib,$(DYNAMIC_CHICKEN_IMPORT_LIBRARIES),chicken.$(lib).import.scm) \
+	$(foreach lib,$(DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES),chicken.$(lib).import.scm) \
 	$(foreach lib,$(filter-out chicken,$(COMPILER_OBJECTS_1)),chicken.compiler.$(lib).import.scm) \
-	$(POSIX_IMPORT_LIBRARY:=.import.scm) posixunix.c posixwin.c
+	posixunix.c posixwin.c
 # Remove the duplicate $(POSIXFILE) entry:
 DISTFILES := $(sort $(DISTFILES))
 
@@ -492,34 +493,32 @@ endif
 
 define declare-emitted-import-lib-dependency
 .SECONDARY: $(1).import.scm
-$(1).import.scm: $(1).c
+$(1).import.scm: $(2).c
 endef
 
 define declare-emitted-chicken-import-lib-dependency
-.SECONDARY: chicken.$(1).import.scm
-chicken.$(1).import.scm: $(1).c
+$(call declare-emitted-import-lib-dependency,chicken.$(1),$(1))
 endef
 
 define declare-emitted-compiler-import-lib-dependency
-.SECONDARY: chicken.compiler.$(1).import.scm
-chicken.compiler.$(1).import.scm: $(1).c
+$(call declare-emitted-import-lib-dependency,chicken.compiler.$(1),$(1))
 endef
 
 $(foreach lib, $(SETUP_API_OBJECTS_1),\
-          $(eval $(call declare-emitted-import-lib-dependency,$(lib))))
+          $(eval $(call declare-emitted-import-lib-dependency,$(lib),$(lib))))
 
 $(foreach lib, $(DYNAMIC_IMPORT_LIBRARIES),\
-          $(eval $(call declare-emitted-import-lib-dependency,$(lib))))
+          $(eval $(call declare-emitted-import-lib-dependency,$(lib),$(lib))))
 
-$(foreach lib, $(DYNAMIC_CHICKEN_IMPORT_LIBRARIES),\
+$(foreach lib, $(DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES),\
           $(eval $(call declare-emitted-chicken-import-lib-dependency,$(lib))))
 
 $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
           $(eval $(call declare-emitted-compiler-import-lib-dependency,$(lib))))
 
-# posix declared manually, as it varies based on POSIXFILE
-.SECONDARY: chicken.posix.import.scm
-chicken.posix.import.scm: $(POSIXFILE).c
+# special cases for modules not corresponding directly to units
+$(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
 
 chicken.c: chicken.scm mini-srfi-1.scm \
 		chicken.compiler.batch-driver.import.scm \
@@ -549,6 +548,7 @@ c-backend.c: c-backend.scm mini-srfi-1.scm \
 		chicken.compiler.c-platform.import.scm \
 		chicken.compiler.support.import.scm \
 		chicken.compiler.core.import.scm \
+		chicken.bitwise.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.extras.import.scm
 core.c: core.scm mini-srfi-1.scm \
@@ -659,12 +659,18 @@ setup-download.c: setup-download.scm \
 		chicken.tcp.import.scm \
 		chicken.utils.import.scm \
 		setup-api.import.scm
+srfi-4.c: srfi-4.scm \
+		chicken.bitwise.import.scm \
+		chicken.expand.import.scm \
+		chicken.foreign.import.scm
 posixunix.c: posixunix.scm \
+		chicken.bitwise.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm
 posixwin.c: posixwin.scm \
+		chicken.bitwise.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
 		chicken.irregex.import.scm \
@@ -706,7 +712,7 @@ endef
 bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTIONS) -output-file $@
 
 library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib)
+	$(bootstrap-lib) -emit-import-library chicken.bitwise
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal
 eval.c: $(SRCDIR)eval.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm

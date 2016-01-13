@@ -286,6 +286,7 @@
 	|   |-- chicken
 	|   |   `-- 8
 	|   |       |-- chicken.import.so
+	|   |       |-- chicken.bitwise.import.so
 	|   |       |-- chicken.continuation.import.so
 	|   |       |-- chicken.data-structures.import.so
 	|   |       |-- chicken.eval.import.so

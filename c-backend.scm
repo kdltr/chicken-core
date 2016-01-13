@@ -38,6 +38,7 @@
      foreign-type-declaration)
 
 (import chicken scheme
+	chicken.bitwise
 	chicken.data-structures
 	chicken.compiler.core
 	chicken.compiler.c-platform

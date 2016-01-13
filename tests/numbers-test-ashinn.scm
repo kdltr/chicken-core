@@ -1,5 +1,7 @@
 (include "test.scm")
 
+(use bitwise)
+
 (current-test-epsilon 0) ;; We want exact comparisons by default
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

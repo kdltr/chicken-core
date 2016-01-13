@@ -30,13 +30,7 @@
    add1
    argc+argv
    argv
-   arithmetic-shift
    bignum?
-   bit-set?
-   bitwise-and
-   bitwise-ior
-   bitwise-not
-   bitwise-xor
    blob->string
    blob-size
    blob?
@@ -167,7 +161,6 @@
    getter-with-setter
    implicit-exit-handler
    infinite?
-   integer-length
    (ir-macro-transformer . chicken.expand#ir-macro-transformer)
    keyword->string
    keyword-style

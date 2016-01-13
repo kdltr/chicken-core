@@ -712,7 +712,8 @@ EOF
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 
 (import scheme chicken)
-(import chicken.data-structures
+(import chicken.bitwise
+	chicken.data-structures
 	chicken.extras
 	chicken.files
 	chicken.foreign

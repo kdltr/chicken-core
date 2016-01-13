@@ -138,14 +138,17 @@
     current-input-port current-output-port) )
 
 (set! default-extended-bindings
-  '(bignum? cplxnum? ratnum? bitwise-and bitwise-ior bitwise-xor bitwise-not
+  '(bignum? cplxnum? ratnum? chicken.bitwise#integer-length
+    chicken.bitwise#bitwise-and chicken.bitwise#bitwise-not
+    chicken.bitwise#bitwise-ior chicken.bitwise#bitwise-xor
+    chicken.bitwise#arithmetic-shift chicken.bitwise#bit-set?
     add1 sub1 fx+ fx- fx* fx/ fxgcd fx+? fx-? fx*? fx/? fxmod fxrem fp/?
     fx= fx> fx< fx>= fx<= fixnum? fxneg fxmax fxmin fxlen fxand fxnot fxior
-    fxxor fxshr fxshl bit-set? fxodd? fxeven? fp+ fp- fp* fp/ fpmin fpmax fpneg
+    fxxor fxshr fxshl fxodd? fxeven? fp+ fp- fp* fp/ fpmin fpmax fpneg
     fpgcd fp> fp< fp= fp>= fp<= fpfloor fpceiling fptruncate fpround fpsin
     fpcos fptan fpasin fpacos fpatan fpatan2 fpexp fpexpt fplog fpsqrt fpabs
-    fpinteger? exact-integer? flonum? nan? finite? infinite? integer-length
-    arithmetic-shift void flush-output print print* error call/cc blob-size
+    fpinteger? exact-integer? flonum? nan? finite? infinite?
+    void flush-output print print* error call/cc blob-size
     identity blob=? equal=? make-polar make-rectangular real-part imag-part
     string->symbol symbol-append foldl foldr setter
     current-error-port current-thread get-keyword
@@ -565,11 +568,11 @@
 
 (rewrite 'abs 14 'fixnum 1 "C_fixnum_abs" "C_fixnum_abs")
 
-(rewrite 'bitwise-and 21 -1 "C_fixnum_and" "C_u_fixnum_and" "C_s_a_i_bitwise_and" 6)
-(rewrite 'bitwise-xor 21 0 "C_fixnum_xor" "C_fixnum_xor" "C_s_a_i_bitwise_xor" 6)
-(rewrite 'bitwise-ior 21 0 "C_fixnum_or" "C_u_fixnum_or" "C_s_a_i_bitwise_ior" 6)
+(rewrite 'chicken.bitwise#bitwise-and 21 -1 "C_fixnum_and" "C_u_fixnum_and" "C_s_a_i_bitwise_and" 6)
+(rewrite 'chicken.bitwise#bitwise-xor 21 0 "C_fixnum_xor" "C_fixnum_xor" "C_s_a_i_bitwise_xor" 6)
+(rewrite 'chicken.bitwise#bitwise-ior 21 0 "C_fixnum_or" "C_u_fixnum_or" "C_s_a_i_bitwise_ior" 6)
 
-(rewrite 'bitwise-not 22 1 "C_s_a_i_bitwise_not" #t 6 "C_fixnum_not")
+(rewrite 'chicken.bitwise#bitwise-not 22 1 "C_s_a_i_bitwise_not" #t 6 "C_fixnum_not")
 
 (rewrite 'fp+ 16 2 "C_a_i_flonum_plus" #f words-per-flonum)
 (rewrite 'fp- 16 2 "C_a_i_flonum_difference" #f words-per-flonum)
@@ -779,7 +782,7 @@
 (rewrite 'fxrem 17 2 "C_i_fixnum_remainder_checked")
 
 (rewrite
- 'arithmetic-shift 8
+ 'chicken.bitwise#arithmetic-shift 8
  (lambda (db classargs cont callargs)
    ;; (arithmetic-shift <x> <-int>)
    ;;           -> (##core#inline "C_fixnum_shift_right" <x> -<int>)
@@ -1001,7 +1004,7 @@
 		      (list arg)) ) ) ) ) ) ) )
 
 (rewrite
- 'bit-set? 8
+ 'chicken.bitwise#bit-set? 8
  (lambda (db classargs cont callargs)
    (and (= 2 (length callargs))
 	(make-node
@@ -1013,7 +1016,7 @@
 		callargs) ) ) ) ) )
 
 (rewrite
- 'integer-length 8
+ 'chicken.bitwise#integer-length 8
  (lambda (db classargs cont callargs)
    (and (= 1 (length callargs))
 	(make-node

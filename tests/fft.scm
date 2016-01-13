@@ -8,7 +8,8 @@
      (extended-bindings)
      (block)
      (not safe)))
-  (else))
+  (else
+   (use bitwise)))
 
 ;;; All the following redefinitions are *ignored* by the Gambit compiler
 ;;; because of the declarations above.

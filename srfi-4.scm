@@ -79,7 +79,8 @@ EOF
    write-u8vector)
 
 (import scheme chicken)
-(import chicken.expand
+(import chicken.bitwise
+	chicken.expand
 	chicken.foreign)
 
 (include "common-declarations.scm")

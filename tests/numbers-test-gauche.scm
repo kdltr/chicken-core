@@ -47,6 +47,9 @@
   (+ (expt 2 (expt 2 n)) 1))
 
 ;; Gauche compat
+
+(use bitwise)
+
 (define (greatest-fixnum) most-positive-fixnum)
 (define (least-fixnum) most-negative-fixnum)
 (define (fixnum-width) fixnum-precision)

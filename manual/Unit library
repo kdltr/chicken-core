@@ -19,6 +19,9 @@ Adds/subtracts 1 from {{N}}.
 
 ==== Binary integer operations
 
+Binary integer operations are provided by the {{(chicken bitwise)}}
+module.
+
 <procedure>(bitwise-and N1 ...)</procedure>
 <procedure>(bitwise-ior N1 ...)</procedure>
 <procedure>(bitwise-xor N1 ...)</procedure>

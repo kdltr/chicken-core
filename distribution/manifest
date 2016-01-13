@@ -244,6 +244,8 @@ chicken-syntax.c
 common-declarations.scm
 chicken.import.scm
 chicken.import.c
+chicken.bitwise.import.scm
+chicken.bitwise.import.c
 chicken.continuation.import.scm
 chicken.continuation.import.c
 chicken.data-structures.import.scm

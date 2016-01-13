@@ -1,8 +1,8 @@
 ;;;; compiler-tests.scm
 
 
-(import (chicken foreign) srfi-4)
-(import-for-syntax data-structures (chicken expand))
+(import bitwise foreign srfi-4)
+(import-for-syntax data-structures expand)
 
 ;; test dropping of previous toplevel assignments
 

@@ -1406,21 +1406,21 @@ EOF
         ((4)   (values 2 0))
         (else  (error "this should never happen")))
       (let*-values
-          (((len/4) (fxshr (fx+ (integer-length a) 1) 2))
+          (((len/4) (fxshr (fx+ (chicken.bitwise#integer-length a) 1) 2))
            ((len/2) (fxshl len/4 1))
            ((s^ r^) (##sys#exact-integer-sqrt
-		     (arithmetic-shift a (fxneg len/2))))
-           ((mask)  (- (arithmetic-shift 1 len/4) 1))
-           ((a0)    (bitwise-and a mask))
-           ((a1)    (bitwise-and (arithmetic-shift a (fxneg len/4)) mask))
+		     (chicken.bitwise#arithmetic-shift a (fxneg len/2))))
+           ((mask)  (- (chicken.bitwise#arithmetic-shift 1 len/4) 1))
+           ((a0)    (chicken.bitwise#bitwise-and a mask))
+           ((a1)    (chicken.bitwise#bitwise-and (chicken.bitwise#arithmetic-shift a (fxneg len/4)) mask))
            ((q u)   ((##core#primitive "C_u_integer_quotient_and_remainder")
-		     (+ (arithmetic-shift r^ len/4) a1)
-		     (arithmetic-shift s^ 1)))
-           ((s)     (+ (arithmetic-shift s^ len/4) q))
-           ((r)     (+ (arithmetic-shift u len/4) (- a0 (* q q)))))
+		     (+ (chicken.bitwise#arithmetic-shift r^ len/4) a1)
+		     (chicken.bitwise#arithmetic-shift s^ 1)))
+           ((s)     (+ (chicken.bitwise#arithmetic-shift s^ len/4) q))
+           ((r)     (+ (chicken.bitwise#arithmetic-shift u len/4) (- a0 (* q q)))))
         (if (negative? r)
             (values (- s 1)
-		    (- (+ r (arithmetic-shift s 1)) 1))
+		    (- (+ r (chicken.bitwise#arithmetic-shift s 1)) 1))
             (values s r)))))
 
 (define (exact-integer-sqrt x)
@@ -1465,12 +1465,12 @@ EOF
 (define (##sys#exact-integer-nth-root/loc loc k n)
   (if (or (eq? 0 k) (eq? 1 k) (eq? 1 n)) ; Maybe call exact-integer-sqrt on n=2?
       (values k 0)
-      (let ((len (integer-length k)))
+      (let ((len (chicken.bitwise#integer-length k)))
 	(if (< len n)	  ; Idea from Gambit: 2^{len-1} <= k < 2^{len}
 	    (values 1 (- k 1)) ; Since x >= 2, we know x^{n} can't exist
 	    ;; Set initial guess to (at least) 2^ceil(ceil(log2(k))/n)
 	    (let* ((shift-amount (inexact->exact (ceiling (/ (fx+ len 1) n))))
-		   (g0 (arithmetic-shift 1 shift-amount))
+		   (g0 (chicken.bitwise#arithmetic-shift 1 shift-amount))
 		   (n-1 (- n 1)))
 	      (let lp ((g0 g0)
 		       (g1 (quotient
@@ -1492,7 +1492,7 @@ EOF
         (cond
          ((eq? e2 0) res)
          ((even? e2)	     ; recursion is faster than iteration here
-          (* res (square (lp 1 (arithmetic-shift e2 -1)))))
+          (* res (square (lp 1 (chicken.bitwise#arithmetic-shift e2 -1)))))
          (else
           (lp (* res base) (- e2 1)))))))
 
@@ -1637,12 +1637,12 @@ EOF
   (if (not (negative? point))
       (exact->inexact (* mant (##sys#integer-power 10 point)))
       (let* ((scl (##sys#integer-power 10 (abs point)))
-	     (bex (fx- (fx- (integer-length mant) (integer-length scl))
+	     (bex (fx- (fx- (chicken.bitwise#integer-length mant) (chicken.bitwise#integer-length scl))
                        flonum-precision)))
         (if (fx< bex 0)
-            (let* ((num (arithmetic-shift mant (fxneg bex)))
+            (let* ((num (chicken.bitwise#arithmetic-shift mant (fxneg bex)))
                    (quo (round-quotient num scl)))
-              (cond ((> (integer-length quo) flonum-precision)
+              (cond ((> (chicken.bitwise#integer-length quo) flonum-precision)
                      ;; Too many bits of quotient; readjust
                      (set! bex (fx+ 1 bex))
                      (set! quo (round-quotient num (* scl 2)))))
@@ -4164,15 +4164,17 @@ EOF
 ;;; Bitwise operations:
 
 ;; From SRFI-33
-(define (integer-length x) (##core#inline "C_i_integer_length" x))
-(define (bit-set? n i) (##core#inline "C_i_bit_setp" n i))
 
+(module chicken.bitwise *
+(import scheme chicken)
 (define bitwise-and (##core#primitive "C_bitwise_and"))
 (define bitwise-ior (##core#primitive "C_bitwise_ior"))
 (define bitwise-xor (##core#primitive "C_bitwise_xor"))
 (define (bitwise-not n) (##core#inline_allocate ("C_s_a_i_bitwise_not" 6) n))
+(define (bit-set? n i) (##core#inline "C_i_bit_setp" n i))
+(define (integer-length x) (##core#inline "C_i_integer_length" x))
 (define (arithmetic-shift n m)
-  (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 6) n m))
+  (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 6) n m)))
 
 ;;; String ports:
 ;

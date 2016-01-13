@@ -87,7 +87,8 @@
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 
 (import scheme chicken)
-(import chicken.files
+(import chicken.bitwise
+	chicken.files
 	chicken.foreign
 	chicken.irregex
 	chicken.ports)
