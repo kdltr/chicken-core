@@ -198,13 +198,13 @@ a.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== meta-syntax tests ...
-%interpret% -bnq meta-syntax-test.scm -e "(import foo)" -e "(assert (equal? '((1)) (bar 1 2)))" -e "(assert (equal? '(list 1 2 3) (listify)))"
+%interpret% -bnq meta-syntax-test.scm -e "(import foo)" -e "(assert (equal? '((1)) (bar 1 2)))" -e "(assert (equal? '(list 1 2 3) (listify)))" -e "(import test-import-syntax-for-syntax)" -e "(assert (equal? '(1) (test)))" -e "(import test-begin-for-syntax)" -e "(assert (equal? '(1) (test)))"
 if errorlevel 1 exit /b 1
 %compile_s% meta-syntax-test.scm -j foo
 if errorlevel 1 exit /b 1
 %compile_s% foo.import.scm
 if errorlevel 1 exit /b 1
-%interpret% -bnq -e "(require-library meta-syntax-test)" -e "(import foo)" -e "(assert (equal? '((1)) (bar 1 2)))" -e "(assert (equal? '(list 1 2 3) (listify)))"
+%interpret% -bnq -e "(require-library meta-syntax-test)" -e "(import foo)" -e "(assert (equal? '((1)) (bar 1 2)))" -e "(assert (equal? '(list 1 2 3) (listify)))" -e "(import test-import-syntax-for-syntax)" -e "(assert (equal? '(1) (test)))" -e "(import test-begin-for-syntax)" -e "(assert (equal? '(1) (test)))"
 if errorlevel 1 exit /b 1
 
 echo ======================================== reexport tests ...
