@@ -81,20 +81,6 @@ A parameter that holds a list of default options that should be given
 to {{csc}} after invocation of the {{compile-file}} procedure. 
 The initial default options are {{-O2 -d2}}.
 
-=== Scanning through an input port
-
-==== scan-input-lines
-
-<procedure>(scan-input-lines REGEXP [PORT])</procedure>
-
-Reads lines from {{PORT}} (defaults to the result of {{(current-input-port)}})
-using {{read-line}} and returns the result of {{(irregex-search REGEXP LINE)}},
-if the match succeeds. If no match could be found, {{#f}} is returned.
-
-{{REGEXP}} may also be a procedure of one argument which is called for each
-input line and should return a non-false value on success, which will then
-be the result of the call to {{scan-input-lines}}.
-
 
 === Asking the user for confirmation
 

@@ -1,7 +1,7 @@
 ;;;; sgrep.scm - grepping benchmark
 
 
-(use irregex extras utils posix)
+(use irregex extras utils ports)
 
 
 (define big-string
@@ -17,14 +17,12 @@
 	  (lambda ()
 	    (let ((h 0)
 		  (c 0))
-	      (scan-input-lines
-	       (lambda (line)
-		 (set! c (fx+ c 1))
-		 ;(when (zero? (fxmod c 500)) (print* "."))
-		 (when (irregex-search expr line)
-		   (set! h (fx+ h 1)))
-		 #f))
-	      ;(newline)
+	      (do ((line (read-line) (read-line)))
+		  ((eof-object? line))
+		(set! c (fx+ c 1))
+		;(when (zero? (fxmod c 500)) (print* "."))
+		(when (irregex-search expr line)
+		  (set! h (fx+ h 1))))
 	      h))))))))
 
 (define-syntax rx1

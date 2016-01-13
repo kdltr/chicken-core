@@ -35,7 +35,6 @@
   (compile-file
    compile-file-options
    read-all
-   scan-input-lines
    system*
    yes-or-no?
    qs)
@@ -125,20 +124,6 @@
 		       (load-file f)
 		       f))))
 		(else #f)))))))
-
-
-;;; Scan lines until regex or predicate matches
-
-(define scan-input-lines
-  (lambda (rx #!optional (port ##sys#standard-input))
-    (let ((rx (if (procedure? rx)
-		  rx
-		  (cute irregex-search (irregex rx) <>))))
-      (let loop ()
-	(let ((ln (read-line port)))
-	  (and (not (eof-object? ln))
-	       (or (rx ln)
-		   (loop))))))))
 
 
 ;; Ask for confirmation

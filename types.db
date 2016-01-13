@@ -2258,5 +2258,4 @@
 (chicken.utils#qs (#(procedure #:clean #:enforce) chicken.utils#qs (string) string))
 (chicken.utils#compile-file (#(procedure #:clean #:enforce) chicken.utils#compile-file (string #!rest) (or false string)))
 (chicken.utils#compile-file-options (#(procedure #:clean #:enforce) chicken.utils#compile-file-options (#!optional (list-of string)) (list-of string)))
-(chicken.utils#scan-input-lines (#(procedure #:enforce) chicken.utils#scan-input-lines (* #!optional input-port) *))
 (chicken.utils#yes-or-no? (#(procedure #:enforce) chicken.utils#yes-or-no? (string #!rest) *))
