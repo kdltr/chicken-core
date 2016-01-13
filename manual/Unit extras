@@ -8,6 +8,7 @@ used in {{csi}} by default.
 
 === Random numbers
 
+These procedures are provided by the {{(chicken random)}} module.
 
 ==== randomize
 

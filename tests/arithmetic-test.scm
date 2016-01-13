@@ -15,7 +15,7 @@
   (else))
 
 
-(use extras)
+(use extras random)
 
 #+use-numbers (use numbers)
 

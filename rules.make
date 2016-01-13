@@ -519,6 +519,7 @@ $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
 # special cases for modules not corresponding directly to units
 $(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.random,extras))
 
 chicken.c: chicken.scm mini-srfi-1.scm \
 		chicken.compiler.batch-driver.import.scm \
@@ -589,7 +590,8 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
-		chicken.ports.import.scm
+		chicken.ports.import.scm \
+		chicken.random.import.scm
 csc.c: csc.scm \
 		chicken.posix.import.scm \
 		chicken.data-structures.import.scm \
@@ -724,7 +726,7 @@ expand.c: $(SRCDIR)expand.scm $(SRCDIR)synrules.scm $(SRCDIR)common-declarations
 modules.c: $(SRCDIR)modules.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib)
 extras.c: $(SRCDIR)extras.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.extras
+	$(bootstrap-lib) -emit-import-library chicken.extras -emit-import-library chicken.random
 posixunix.c: $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.posix
 posixwin.c: $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm

@@ -58,6 +58,7 @@
       "chicken.lolevel.import.so"
       "chicken.ports.import.so"
       "chicken.posix.import.so"
+      "chicken.random.import.so"
       "chicken.repl.import.so"
       "chicken.tcp.import.so"
       "chicken.utils.import.so"

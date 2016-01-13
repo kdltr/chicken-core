@@ -1525,8 +1525,6 @@
 (chicken.extras#pretty-print (#(procedure #:enforce) chicken.extras#pretty-print (* #!optional output-port) undefined))
 (chicken.extras#pretty-print-width (#(procedure #:clean) chicken.extras#pretty-print-width (#!optional fixnum) *))
 (chicken.extras#printf (#(procedure #:enforce) chicken.extras#printf (string #!rest) undefined))
-(chicken.extras#random (#(procedure #:clean #:enforce) chicken.extras#random (fixnum) fixnum))
-(chicken.extras#randomize (#(procedure #:clean #:enforce) chicken.extras#randomize (#!optional fixnum) undefined))
 (chicken.extras#read-buffered (#(procedure #:enforce) chicken.extras#read-buffered (#!optional input-port) string))
 (chicken.extras#read-byte (#(procedure #:enforce) chicken.extras#read-byte (#!optional input-port) *))
 (chicken.extras#read-file (#(procedure #:enforce) chicken.extras#read-file (#!optional (or input-port string) (procedure (input-port) *) fixnum) list))
@@ -1540,6 +1538,10 @@
 (chicken.extras#write-line (#(procedure #:enforce) chicken.extras#write-line (string #!optional output-port) undefined))
 (chicken.extras#write-string (#(procedure #:enforce) chicken.extras#write-string (string #!optional * output-port) undefined))
 
+;; random
+
+(chicken.random#random (#(procedure #:clean #:enforce) chicken.random#random (fixnum) fixnum))
+(chicken.random#randomize (#(procedure #:clean #:enforce) chicken.random#randomize (#!optional fixnum) undefined))
 
 ;; files
 

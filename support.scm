@@ -81,7 +81,8 @@
 	chicken.extras
 	chicken.files
 	chicken.foreign
-	chicken.ports)
+	chicken.ports
+	chicken.random)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")

@@ -270,6 +270,8 @@ chicken.ports.import.scm
 chicken.ports.import.c
 chicken.posix.import.scm
 chicken.posix.import.c
+chicken.random.import.scm
+chicken.random.import.c
 chicken.repl.import.scm
 chicken.repl.import.c
 chicken.tcp.import.scm

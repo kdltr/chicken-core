@@ -31,7 +31,7 @@
 
 (module chicken.extras
   (format fprintf pp pretty-print pretty-print-width printf
-   random randomize read-buffered read-byte read-file read-line
+   read-buffered read-byte read-file read-line
    read-lines read-string read-string! read-token sprintf
    write-byte write-line write-string)
 
@@ -55,22 +55,6 @@
       (if (port? port)
 	  (slurp port)
 	  (call-with-input-file port slurp) ) ) ) )
-
-
-;;; Random numbers:
-
-(define (randomize . n)
-  (let ((nn (if (null? n)
-		(quotient (current-seconds) 1000) ; wall clock time
-		(car n))))
-    (##sys#check-fixnum nn 'randomize)
-    (##core#inline "C_randomize" nn) ) )
-
-(define (random n)
-  (##sys#check-fixnum n 'random)
-  (if (eq? n 0)
-      0
-      (##core#inline "C_random_fixnum" n) ) )
 
 
 ;;; Line I/O:
@@ -655,6 +639,25 @@
 		  (##sys#error 'format "illegal destination" fmt-or-dst args)])
 	   args) ) )
 
-(register-feature! 'srfi-28)
+(register-feature! 'srfi-28))
 
-)
+
+;;; Random numbers:
+
+(module chicken.random
+  (randomize random)
+
+(import scheme chicken)
+
+(define (randomize . n)
+  (let ((nn (if (null? n)
+		(quotient (current-seconds) 1000) ; wall clock time
+		(car n))))
+    (##sys#check-fixnum nn 'randomize)
+    (##core#inline "C_randomize" nn)))
+
+(define (random n)
+  (##sys#check-fixnum n 'random)
+  (if (eq? n 0)
+      0
+      (##core#inline "C_random_fixnum" n))))
