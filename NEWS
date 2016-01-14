@@ -41,6 +41,8 @@
   - CHICKEN now supports the Linux X32 ABI (thanks to Sven Hartrumpf).
 
 - Runtime system:
+  - Delivery of signals in other OS-level threads is now dealt with
+    in a more robust way (#1232) (thanks to Joerg Wittenberger).
   - Compiled programs with large literals won't crash on startup (#1221).
   - Comparisons of closures now behave in a stable way, whether or not
      the code was compiled with the -no-lambda-info option (#1041).

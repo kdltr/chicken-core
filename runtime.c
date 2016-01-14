@@ -4850,20 +4850,24 @@ C_regparm void C_fcall C_paranoid_check_for_interrupt(void)
 
 C_regparm void C_fcall C_raise_interrupt(int reason)
 {
+  /*
+   * Save the value of C_stack_limit from before the interrupt is queued
+   * to ensure that multiple signals only ever cause saved_stack_limit
+   * to be assigned a value from when pending_interrupts_count was zero.
+   */
+  C_word *stack_limit = C_stack_limit;
+
   if(C_interrupts_enabled) {
     if(pending_interrupts_count == 0 && !handling_interrupts) {
-      /* Force the next stack check to fail by faking a "full" stack.
-         That causes save_and_reclaim() to be called, which will
-         invoke handle_interrupt() (which restores the stack limit). */
-      saved_stack_limit = C_stack_limit;
-
-#if C_STACK_GROWS_DOWNWARD
-      C_stack_limit = C_stack_pointer + 1000;
-#else
-      C_stack_limit = C_stack_pointer - 1000;
-#endif
-      interrupt_time = C_cpu_milliseconds();
       pending_interrupts[ pending_interrupts_count++ ] = reason;
+      /*
+       * Force the next stack check to fail by faking a "full" stack.
+       * This causes save_and_reclaim() to be called, which invokes
+       * handle_interrupt(), which restores the stack limit.
+       */
+      saved_stack_limit = stack_limit;
+      C_stack_limit = stack_bottom;
+      interrupt_time = C_cpu_milliseconds();
     } else if(pending_interrupts_count < MAX_PENDING_INTERRUPTS) {
       int i;
       /*
