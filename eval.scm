@@ -1304,7 +1304,7 @@
       ((extension-information/internal id 'require) =>
        (lambda (info)
 	 (let ((s  (assq 'syntax info))
-	       (nr (assq 'import-only info))
+	       (nr (assq 'syntax-only info))
 	       (rr (assq 'require-at-runtime info)))
 	   (values
 	    `(##core#begin

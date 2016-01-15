@@ -123,12 +123,12 @@ as a file containing macros to be loaded at compile/macro-expansion time.
 Specifies extensions that should be loaded (via {{require}}) at runtime. This is mostly
 useful for syntax extensions that need additional support code at runtime.
 
-===== import-only
+===== syntax-only
 
-  [extension property] (import-only)
+  [extension property] (syntax-only)
 
-Specifies that this extension only provides a expansion-time code in an import library and
-does not require code to be loaded at runtime.
+Specifies that this extension only provides a expansion-time code in an
+import library and does not require code to be loaded at runtime.
 
 ===== version
 
