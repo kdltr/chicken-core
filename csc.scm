@@ -92,10 +92,9 @@
 (define cross-chicken (##sys#fudge 39))
 
 (define (prefix str dir default)
-  (quotewrap
-   (if chicken-prefix
-       (make-pathname (list chicken-prefix dir) str)
-       default) ))
+  (if chicken-prefix
+      (make-pathname (list chicken-prefix dir) str)
+      default) )
 
 (define (back-slash->forward-slash path)
   (if windows-shell
@@ -112,10 +111,11 @@
   (prefix "" "share" (if host-mode INSTALL_SHARE_HOME TARGET_SHARE_HOME)))
 
 (define translator
-  (prefix "chicken" "bin"
-	  (make-pathname
-	   INSTALL_BIN_HOME
-	   CHICKEN_PROGRAM)))
+  (quotewrap
+   (prefix "chicken" "bin"
+	   (make-pathname
+	    INSTALL_BIN_HOME
+	    CHICKEN_PROGRAM))))
 
 (define compiler (quotewrap (if host-mode INSTALL_CC TARGET_CC)))
 (define c++-compiler (quotewrap (if host-mode INSTALL_CXX TARGET_CXX)))
@@ -279,10 +279,11 @@
 	   (conc " -Wl,-R"
 		 (if deployed
 		     "\\$ORIGIN"
-		     (prefix "" "lib"
-			     (if host-mode
-				 INSTALL_LIB_HOME
-				 TARGET_RUN_LIB_HOME))))))
+		     (quotewrap
+		      (prefix "" "lib"
+			      (if host-mode
+				  INSTALL_LIB_HOME
+				  TARGET_RUN_LIB_HOME)))))))
 	 (aix
 	  (list (conc "-Wl,-R\"" library-dir "\"")))
 	 (else
