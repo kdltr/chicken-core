@@ -1386,7 +1386,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:hSIZE          set fixed heap size\n"
 		 " -:r              write trace output to stderr\n"
 		 " -:p              collect statistical profile and write to file at exit\n"
-		 " -:PFREQ          like -:p, specifying sampling frequency in us (default: 10000)\n"
+		 " -:PFREQUENCY     like -:p, specifying sampling frequency in us (default: 10000)\n"
 		 " -:sSIZE          set nursery (stack) size\n"
 		 " -:tSIZE          set symbol-table size\n"
                  " -:fSIZE          set maximal number of pending finalizers\n"
