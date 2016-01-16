@@ -27,7 +27,7 @@
 
 (declare
   (unit profiler)
-  (hide ##sys#profile-name ##sys#profile-vector-list cpu-ms)
+  (hide ##sys#profile-name ##sys#profile-vector-list cpu-ms empty-file?)
   (unsafe)
   (disable-interrupts))
 
