@@ -591,9 +591,12 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.foreign.import.scm \
 		chicken.ports.import.scm
 csc.c: csc.scm \
+		chicken.posix.import.scm \
 		chicken.data-structures.import.scm \
+		chicken.eval.import.scm \
+		chicken.utils.import.scm \
 		chicken.files.import.scm \
-		chicken.utils.import.scm
+		chicken.extras.import.scm
 csi.c: csi.scm \
 		chicken.data-structures.import.scm \
 		chicken.extras.import.scm \

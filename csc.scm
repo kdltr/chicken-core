@@ -27,9 +27,10 @@
 
 (declare
   (block)
-  (uses data-structures eval utils files extras))
+  (uses posix data-structures eval utils files extras))
 
-(import chicken.data-structures
+(import chicken.posix
+	chicken.data-structures
 	chicken.extras
 	chicken.files
 	chicken.utils)
