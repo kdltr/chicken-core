@@ -70,6 +70,7 @@
 (define-foreign-variable BINARY_VERSION int "C_BINARY_VERSION")
 (define-foreign-variable POSTINSTALL_PROGRAM c-string "C_INSTALL_POSTINSTALL_PROGRAM")
 
+(define windows-shell WINDOWS_SHELL)
 
 ;;; Parameters:
 
@@ -91,23 +92,30 @@
 (define cross-chicken (##sys#fudge 39))
 
 (define (prefix str dir default)
-  (if chicken-prefix
-      (make-pathname (list chicken-prefix dir) str)
-      default) )
+  (quotewrap
+   (if chicken-prefix
+       (make-pathname (list chicken-prefix dir) str)
+       default) ))
+
+(define (back-slash->forward-slash path)
+  (if windows-shell
+      (string-translate path #\\ #\/)
+      path))
 
 (define (quotewrap str)
+  (qs (back-slash->forward-slash (normalize-pathname str))))
+
+(define (quotewrap-no-slash-trans str)
   (qs (normalize-pathname str)))
 
 (define home
-  (quotewrap 
-   (prefix "" "share" (if host-mode INSTALL_SHARE_HOME TARGET_SHARE_HOME))))
+  (prefix "" "share" (if host-mode INSTALL_SHARE_HOME TARGET_SHARE_HOME)))
 
 (define translator
-  (quotewrap 
-   (prefix "chicken" "bin"
-	   (make-pathname
-	    INSTALL_BIN_HOME
-	    CHICKEN_PROGRAM))))
+  (prefix "chicken" "bin"
+	  (make-pathname
+	   INSTALL_BIN_HOME
+	   CHICKEN_PROGRAM)))
 
 (define compiler (quotewrap (if host-mode INSTALL_CC TARGET_CC)))
 (define c++-compiler (quotewrap (if host-mode INSTALL_CXX TARGET_CXX)))
@@ -123,7 +131,6 @@
 (define shared-library-extension ##sys#load-dynamic-extension)
 (define default-translation-optimization-options '())
 (define pic-options (if (or mingw cygwin) '("-DPIC") '("-fPIC" "-DPIC")))
-(define windows-shell WINDOWS_SHELL)
 (define generate-manifest #f)
 
 (define libchicken (string-append "lib" INSTALL_LIB_NAME))
@@ -221,11 +228,10 @@
 
 (define default-library-files 
   (list
-   (quotewrap
-    (prefix default-library "lib"
-	    (string-append
-	     (if host-mode INSTALL_LIB_HOME TARGET_LIB_HOME)
-	     (string-append "/" default-library)))) ))
+   (prefix default-library "lib"
+	   (string-append
+	    (if host-mode INSTALL_LIB_HOME TARGET_LIB_HOME)
+	    (string-append "/" default-library)))) )
 
 (define default-shared-library-files 
   (list (string-append "-l" (if host-mode INSTALL_LIB_NAME TARGET_LIB_NAME))))
@@ -246,10 +252,10 @@
 
 (define builtin-compile-options
   (append
-   (if include-dir (list (conc "-I\"" include-dir "\"")) '())
+   (if include-dir (list (conc "-I" include-dir)) '())
    (cond ((get-environment-variable "CHICKEN_C_INCLUDE_PATH") => 
 	  (lambda (path) 
-	    (map (cut string-append "-I\"" <> "\"") (string-split path ":;"))))
+	    (map (cut string-append "-I" <>) (map quotewrap (string-split path ":;")))))
 	 (else '()))))
 
 (define compile-only-flag "-c")
@@ -269,25 +275,24 @@
   (append
    (cond (elf
 	  (list
-	   (conc "-L\"" library-dir "\"")
-	   (conc " -Wl,-R\""
+	   (conc "-L" library-dir)
+	   (conc " -Wl,-R"
 		 (if deployed
 		     "\\$ORIGIN"
 		     (prefix "" "lib"
 			     (if host-mode
 				 INSTALL_LIB_HOME
-				 TARGET_RUN_LIB_HOME)))
-		 "\"")) )
-		 (aix
-		  (list (conc "-Wl,-R\"" library-dir "\"")))
+				 TARGET_RUN_LIB_HOME))))))
+	 (aix
+	  (list (conc "-Wl,-R\"" library-dir "\"")))
 	 (else
-	  (list (conc "-L\"" library-dir "\""))))
+	  (list (conc "-L" library-dir))))
    (if (and deployed (memq (software-version) '(freebsd openbsd netbsd)))
        (list "-Wl,-z,origin")
        '())
    (cond ((get-environment-variable "CHICKEN_C_LIBRARY_PATH") => 
 	  (lambda (path) 
-	    (map (cut string-append "-L\"" <> "\"") (string-split path ":;"))))
+	    (map (cut string-append "-L" <>) (string-split path ":;"))))
 	 (else '()))))
 	
 (define target-filename #f)
@@ -580,8 +585,8 @@ EOF
 		  (sprintf
 		      "~A ~A ~A" 
 		      (if windows-shell "move" "mv")
-		    (quotewrap target-filename)
-		    (quotewrap (string-append target-filename ".old")))))
+		    ((if windows-shell quotewrap-no-slash-trans quotewrap) target-filename)
+		    ((if windows-shell quotewrap-no-slash-trans quotewrap) (string-append target-filename ".old")))))
 	       (run-linking)) ) ]
 	  [else
 	   (let* ([arg (car args)]
@@ -998,8 +1003,8 @@ EOF
      (if windows-shell 
 	 "copy /Y"
 	 "cp")
-     (quotewrap from)
-     (quotewrap to))))
+     ((if windows-shell quotewrap-no-slash-trans quotewrap) from)
+     ((if windows-shell quotewrap-no-slash-trans quotewrap) to))))
 
 (define (linker-options)
   (string-append

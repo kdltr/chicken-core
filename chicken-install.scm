@@ -522,6 +522,11 @@
 		 (and (not (any loop (cdr p))) (fail)))
 		(else (error "invalid `platform' property" name (cadr platform))))))))
 
+  (define (back-slash->forward-slash path)
+    (if *windows-shell*
+	(string-translate path #\\ #\/)
+	path))
+
   (define (make-install-command egg-name egg-version dep?)
     (conc
      *csi*
@@ -544,12 +549,12 @@
      (let ((prefix (get-prefix)))
        (if prefix
 	   (sprintf " -e \"(destination-prefix \\\"~a\\\")\"" 
-	     (normalize-pathname prefix 'unix))
+	     (back-slash->forward-slash (normalize-pathname prefix)))
 	   ""))
      (let ((prefix (get-prefix #t)))
        (if prefix
 	   (sprintf " -e \"(runtime-prefix \\\"~a\\\")\"" 
-	     (normalize-pathname prefix 'unix))
+	     (back-slash->forward-slash (normalize-pathname prefix)))
 	   ""))
      (if (pair? *csc-features*)
 	 (sprintf " -e \"(extra-features '~s)\"" *csc-features*)

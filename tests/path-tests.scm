@@ -69,7 +69,7 @@
 (test '(#f "/" (".")) (receive (decompose-directory "/.//")))
 
 (if ##sys#windows-platform
-    (test '(#f "\\" #f) (receive (decompose-directory "///\\///")))
+    (test '(#f "/" #f) (receive (decompose-directory "///\\///")))
     (test '(#f "/" ("\\")) (receive (decompose-directory "///\\///"))))
 
 (test '(#f "/" ("foo")) (receive (decompose-directory "//foo//")))
@@ -183,22 +183,38 @@
     (test '("a." ".b" #f) (receive (decompose-pathname "a.\\.b")))
     (test '(#f "a.\\" "b") (receive (decompose-pathname "a.\\.b"))))
 
-(test "x/y/z.q" (make-pathname "x/y" "z" "q"))
-(test "x/y/z.q" (make-pathname "x/y" "z.q"))
-(test "x/y/z.q" (make-pathname "x/y/" "z.q"))
-(test "x/y/z.q" (make-pathname "x/y/" "z.q"))
+(cond (##sys#windows-platform
+       (test "x/y\\z.q" (make-pathname "x/y" "z" "q"))
+       (test "x/y\\z.q" (make-pathname "x/y" "z.q"))
+       (test "x/y\\z.q" (make-pathname "x/y/" "z.q"))
+       (test "x/y\\z.q" (make-pathname "x/y/" "z.q"))
+       (test "x/y\\z.q" (make-pathname "x/y\\" "z.q"))
+       (test "x//y\\z.q" (make-pathname "x//y/" "z.q"))
+       (test "x\\y\\z.q" (make-pathname "x\\y" "z.q")))
+      (else
+       (test "x/y/z.q" (make-pathname "x/y" "z" "q"))
+       (test "x/y/z.q" (make-pathname "x/y" "z.q"))
+       (test "x/y/z.q" (make-pathname "x/y/" "z.q"))
+       (test "x/y/z.q" (make-pathname "x/y/" "z.q"))
+       (test "x/y\\/z.q" (make-pathname "x/y\\" "z.q"))
+       (test "x//y/z.q" (make-pathname "x//y/" "z.q"))
+       (test "x\\y/z.q" (make-pathname "x\\y" "z.q"))))
 
-(if ##sys#windows-platform
-    (test "x/y/z.q" (make-pathname "x/y\\" "z.q"))
-    (test "x/y\\/z.q" (make-pathname "x/y\\" "z.q")))
-
-(test "x//y/z.q" (make-pathname "x//y/" "z.q"))
-(test "x\\y/z.q" (make-pathname "x\\y" "z.q"))
 (test 'error (handle-exceptions _ 'error (make-pathname '(#f) "foo")))
+
 (test "/x/y/z" (make-pathname #f "/x/y/z"))
-(test "/x/y/z" (make-pathname "/" "x/y/z"))
-(test "/x/y/z" (make-pathname "/x" "/y/z"))
-(test "/x/y/z" (make-pathname '("/") "x/y/z"))
-(test "/x/y/z" (make-pathname '("/" "x") "y/z"))
-(test "/x/y/z" (make-pathname '("/x" "y") "z"))
-(test "/x/y/z/" (make-pathname '("/x" "y" "z") #f))
+
+(cond (##sys#windows-platform
+       (test "\\x/y/z" (make-pathname "/" "x/y/z"))
+       (test "/x\\y/z" (make-pathname "/x" "/y/z"))
+       (test "\\x/y/z" (make-pathname '("/") "x/y/z"))
+       (test "\\x\\y/z" (make-pathname '("/" "x") "y/z"))
+       (test "/x\\y\\z" (make-pathname '("/x" "y") "z"))
+       (test "/x\\y\\z\\" (make-pathname '("/x" "y" "z") #f)))
+      (else
+       (test "/x/y/z" (make-pathname "/" "x/y/z"))
+       (test "/x/y/z" (make-pathname "/x" "/y/z"))
+       (test "/x/y/z" (make-pathname '("/") "x/y/z"))
+       (test "/x/y/z" (make-pathname '("/" "x") "y/z"))
+       (test "/x/y/z" (make-pathname '("/x" "y") "z"))
+       (test "/x/y/z/" (make-pathname '("/x" "y" "z") #f))))

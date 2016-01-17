@@ -24,14 +24,19 @@
 (change-directory "find-files-test-dir")
 
 (cond-expand
-  ((and windows (not cygwin)))		; Cannot handle symlinks
-  (else (create-symbolic-link "dir-link-target" "dir-link-name")))
+  ((and windows (not cygwin))		; Cannot handle symlinks
+   (define (path lst)
+     (map (cut string-translate <> "/" "\\") lst)) )
+  (else
+   (create-symbolic-link "dir-link-target" "dir-link-name")
+   (define (path lst) lst)))
 
 (test-begin "find-files")
 
 (test-equal "no keyword args"
             (find-files ".")
-            `("./foo/bar/baz"
+            (path 
+	     `("./foo/bar/baz"
               "./foo/bar"
               "./foo"
               "./dir-link-target/foo"
@@ -41,11 +46,12 @@
 	      ,@(cond-expand
 		  ((and windows (not cygwin)) '())
 		  (else '("./dir-link-name")))
-              "./file2")
+              "./file2"))
             file-list=?)
 
 (test-equal "dotfiles: #t"
             (find-files "." dotfiles: #t)
+	    (path
             `("./foo/bar/baz/.quux"
               "./foo/bar/baz"
               "./foo/bar"
@@ -58,12 +64,13 @@
 	      ,@(cond-expand
 		  ((and windows (not cygwin)) '())
 		  (else '("./dir-link-name")))
-              "./file2")
+              "./file2"))
             file-list=?)
 
 (test-equal "follow-symlinks: #t"
             (find-files "." follow-symlinks: #t)
-            `("./foo/bar/baz"
+            (path
+	     `("./foo/bar/baz"
               "./foo/bar"
               "./foo"
               "./dir-link-target/foo"
@@ -75,12 +82,13 @@
 		  (else '("./dir-link-name/foo"
 			  "./dir-link-name/bar"
 			  "./dir-link-name")))
-              "./file2")
+              "./file2"))
             file-list=?)
 
 (test-equal "limit: 1"
             (find-files "." limit: 1)
-            `("./foo/bar"
+            (path
+	     `("./foo/bar"
               "./foo"
               "./dir-link-target/foo"
               "./dir-link-target/bar"
@@ -89,11 +97,12 @@
 	      ,@(cond-expand
 		  ((and windows (not cygwin)) '())
 		  (else '("./dir-link-name")))
-              "./file2")
+              "./file2"))
             file-list=?)
 
 (test-equal "limit: 1 follow-symlinks: #t"
             (find-files "." limit: 1 follow-symlinks: #t)
+	    (path
             `("./foo/bar"
               "./foo"
               "./dir-link-target/foo"
@@ -105,11 +114,12 @@
 		  (else '("./dir-link-name/foo"
 			  "./dir-link-name/bar"
 			  "./dir-link-name")))
-              "./file2")
+              "./file2"))
             file-list=?)
 
 (test-equal "limit: 2"
             (find-files "." limit: 2)
+	    (path
             `("./foo/bar/baz"
               "./foo/bar"
               "./foo"
@@ -120,11 +130,12 @@
 	      ,@(cond-expand
 		  ((and windows (not cygwin)) '())
 		  (else '("./dir-link-name")))
-              "./file2")
+              "./file2"))
             file-list=?)
 
 (test-equal "limit: 2 follow-symlinks: #t"
             (find-files "." limit: 2 follow-symlinks: #t)
+	    (path
             `("./foo/bar/baz"
               "./foo/bar"
               "./foo"
@@ -137,36 +148,39 @@
 		  (else '("./dir-link-name/foo"
 			  "./dir-link-name/bar"
 			  "./dir-link-name")))
-              "./file2")
+              "./file2"))
             file-list=?)
 
 (test-equal "test: (lambda (f) (directory? f))"
             (find-files "." test: (lambda (f) (directory? f)))
-            `("./foo/bar/baz"
+            (path
+	     `("./foo/bar/baz"
               "./foo/bar"
               "./foo"
               "./dir-link-target"
 	      ,@(cond-expand
 		  ((and windows (not cygwin)) '())
-		  (else '("./dir-link-name"))))
+		  (else '("./dir-link-name")))))
             file-list=?)
 
 (test-equal "test: (lambda (f) (directory? f)) action: (lambda (f p) (cons (string-append \"--\" f) p))"
             (find-files "."
                         test: (lambda (f) (directory? f))
                         action: (lambda (f p) (cons (string-append "--" f) p)))
-            `("--./foo/bar/baz"
+            (path
+	     `("--./foo/bar/baz"
               "--./foo/bar"
               "--./foo"
               "--./dir-link-target"
 	      ,@(cond-expand
 		  ((and windows (not cygwin)) '())
-		  (else '("--./dir-link-name"))))
+		  (else '("--./dir-link-name")))))
             file-list=?)
 
 (test-equal "dotfiles: #t test: (lambda (f) (directory? f)) follow-symlinks: #t"
             (find-files "." dotfiles: #t test: (lambda (f) (directory? f)) follow-symlinks: #t)
-            `("./foo/bar/baz/.quux"
+            (path
+	     `("./foo/bar/baz/.quux"
               "./foo/bar/baz"
               "./foo/bar"
               "./foo/.x"
@@ -174,7 +188,7 @@
               "./dir-link-target"
 	      ,@(cond-expand
 		  ((and windows (not cygwin)) '())
-		  (else '("./dir-link-name"))))
+		  (else '("./dir-link-name")))))
             file-list=?)
 
 (test-equal "dotfiles: #t test: (lambda (f) (directory? f)) follow-symlinks: #t limit: 1"
@@ -183,13 +197,14 @@
                         test: (lambda (f) (directory? f))
                         follow-symlinks: #t
                         limit: 1)
-            `("./foo/bar"
+            (path
+	     `("./foo/bar"
               "./foo/.x"
               "./foo"
               "./dir-link-target"
 	      ,@(cond-expand
 		  ((and windows (not cygwin)) '())
-		  (else '("./dir-link-name"))))
+		  (else '("./dir-link-name")))))
             file-list=?)
 
 (test-end "find-files")
