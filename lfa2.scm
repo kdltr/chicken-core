@@ -41,7 +41,8 @@
 
 (import chicken scheme
 	chicken.compiler.support
-	chicken.extras)
+	chicken.extras
+	chicken.format)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")

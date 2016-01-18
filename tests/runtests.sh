@@ -45,6 +45,7 @@ for x in \
     chicken.extras.import.so \
     chicken.files.import.so \
     chicken.foreign.import.so \
+    chicken.format.import.so \
     chicken.internal.import.so \
     chicken.irregex.import.so \
     chicken.lolevel.import.so \

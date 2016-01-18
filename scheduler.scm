@@ -133,7 +133,8 @@ C_inline void C_fdset_add(int fd, int input, int output) {
 EOF
 ) )
 
-(import chicken.extras)
+(import chicken.extras
+	chicken.format)
 
 (include "common-declarations.scm")
 

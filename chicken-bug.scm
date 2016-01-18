@@ -29,6 +29,7 @@
 (import chicken.data-structures
 	chicken.extras
 	chicken.foreign
+	chicken.format
 	chicken.posix
 	chicken.tcp
 	chicken.utils)

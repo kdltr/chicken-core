@@ -1,4 +1,4 @@
-(use (only extras printf))
+(use (only format printf))
 
 (load-relative "loopy-loop.scm")
 (load-relative "matchable.scm")

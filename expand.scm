@@ -1187,7 +1187,7 @@
 	      (##sys#check-syntax 'cond clause '#(_ 1))
 	      (cond (else?
 		     (##sys#warn
-		      (chicken.extras#sprintf "clause following `~S' clause in `cond'" else?)
+		      (chicken.format#sprintf "clause following `~S' clause in `cond'" else?)
 		      (chicken.expand#strip-syntax clause))
 		     (expand rclauses else?)
 		     '(##core#begin))

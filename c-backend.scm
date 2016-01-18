@@ -40,6 +40,7 @@
 (import chicken scheme
 	chicken.bitwise
 	chicken.data-structures
+	chicken.format
 	chicken.compiler.core
 	chicken.compiler.c-platform
 	chicken.compiler.support

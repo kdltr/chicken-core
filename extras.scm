@@ -30,9 +30,9 @@
  (uses data-structures))
 
 (module chicken.extras
-  (format fprintf pp pretty-print pretty-print-width printf
+  (pp pretty-print pretty-print-width
    read-buffered read-byte read-file read-line
-   read-lines read-string read-string! read-token sprintf
+   read-lines read-string read-string! read-token
    write-byte write-line write-string)
 
 (import scheme chicken)
@@ -564,8 +564,15 @@
 
 (define pp pretty-print)
 
+) ; module chicken.extras
+
 
 ;;; Write simple formatted output:
+
+(module chicken.format
+  (format fprintf printf sprintf)
+
+(import scheme chicken)
 
 (define fprintf0
   (lambda (loc port msg args)

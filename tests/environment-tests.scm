@@ -41,13 +41,13 @@
 
 (define foo-env (module-environment 'foo))
 (define csi-env (module-environment 'csi))
-(define extras-env (module-environment 'extras))
+(define format-env (module-environment 'format))
 
 (test-equal (eval '(bar) foo-env) 99)
 (test-error (eval 'baz foo-env))
 (test-equal (eval '(editor-command) csi-env) #f)
 (test-error (eval 'baz csi-env))
-(test-equal (eval '(format "~a" 1) extras-env) "1")
-(test-error (eval 'baz extras-env))
+(test-equal (eval '(format "~a" 1) format-env) "1")
+(test-error (eval 'baz format-env))
 
 (test-end)

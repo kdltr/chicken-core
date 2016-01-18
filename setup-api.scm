@@ -70,6 +70,7 @@
 	  chicken.extras
 	  chicken.files
 	  chicken.foreign
+	  chicken.format
 	  chicken.ports
 	  chicken.posix
 	  chicken.irregex

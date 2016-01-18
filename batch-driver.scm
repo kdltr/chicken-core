@@ -44,6 +44,7 @@
 	chicken.data-structures
 	chicken.extras
 	chicken.files
+	chicken.format
 	chicken.compiler.support
 	chicken.compiler.compiler-syntax
 	chicken.compiler.core

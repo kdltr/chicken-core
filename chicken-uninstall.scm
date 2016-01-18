@@ -37,6 +37,7 @@
 	  chicken.extras
 	  chicken.files
 	  chicken.foreign
+	  chicken.format
 	  chicken.irregex
 	  chicken.ports
 	  chicken.posix

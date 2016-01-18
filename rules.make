@@ -519,6 +519,7 @@ $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
 # special cases for modules not corresponding directly to units
 $(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.format,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.random,extras))
 
 chicken.c: chicken.scm mini-srfi-1.scm \
@@ -536,7 +537,8 @@ batch-driver.c: batch-driver.scm mini-srfi-1.scm \
 		chicken.compiler.lfa2.import.scm \
 		chicken.compiler.c-backend.import.scm \
 		chicken.compiler.support.import.scm \
-		chicken.data-structures.import.scm
+		chicken.data-structures.import.scm \
+		chicken.format.import.scm
 c-platform.c: c-platform.scm mini-srfi-1.scm \
 		chicken.compiler.optimizer.import.scm \
 		chicken.compiler.support.import.scm \
@@ -551,45 +553,52 @@ c-backend.c: c-backend.scm mini-srfi-1.scm \
 		chicken.compiler.core.import.scm \
 		chicken.bitwise.import.scm \
 		chicken.data-structures.import.scm \
-		chicken.extras.import.scm
+		chicken.extras.import.scm \
+		chicken.format.import.scm
 core.c: core.scm mini-srfi-1.scm \
 		chicken.compiler.scrutinizer.import.scm \
 		chicken.compiler.support.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.eval.import.scm \
 		chicken.expand.import.scm \
-		chicken.extras.import.scm
+		chicken.extras.import.scm \
+		chicken.format.import.scm
 optimizer.c: optimizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.extras.import.scm \
 		chicken.foreign.import.scm
 scheduler.c: scheduler.scm \
-		chicken.extras.import.scm
+		chicken.extras.import.scm \
+		chicken.format.import.scm
 scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.expand.import.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
+		chicken.format.import.scm \
 		chicken.ports.import.scm
 lfa2.c: lfa2.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
-		chicken.extras.import.scm
+		chicken.extras.import.scm \
+		chicken.format.import.scm
 compiler-syntax.c: compiler-syntax.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.compiler.core.import.scm \
 		chicken.data-structures.import.scm \
-		chicken.extras.import.scm
+		chicken.format.import.scm
 chicken-ffi-syntax.c: chicken-ffi-syntax.scm \
 		chicken.data-structures.import.scm \
-		chicken.extras.import.scm
+		chicken.extras.import.scm \
+		chicken.format.import.scm
 support.c: support.scm mini-srfi-1.scm \
 		chicken.data-structures.import.scm \
 		chicken.expand.import.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
+		chicken.format.import.scm \
 		chicken.ports.import.scm \
 		chicken.random.import.scm
 csc.c: csc.scm \
@@ -598,15 +607,18 @@ csc.c: csc.scm \
 		chicken.eval.import.scm \
 		chicken.utils.import.scm \
 		chicken.files.import.scm \
-		chicken.extras.import.scm
+		chicken.format.import.scm \
+		chicken.utils.import.scm
 csi.c: csi.scm \
 		chicken.data-structures.import.scm \
 		chicken.extras.import.scm \
+		chicken.format.import.scm \
 		chicken.ports.import.scm
 chicken-bug.c: chicken-bug.scm \
 		chicken.data-structures.import.scm \
 		chicken.extras.import.scm \
 		chicken.foreign.import.scm \
+		chicken.format.import.scm \
 		chicken.tcp.import.scm \
 		chicken.utils.import.scm
 chicken-profile.c: chicken-profile.scm \
@@ -616,6 +628,7 @@ chicken-status.c: chicken-status.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
+		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm \
 		chicken.posix.import.scm \
@@ -625,6 +638,7 @@ chicken-install.c: chicken-install.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
+		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm \
 		chicken.posix.import.scm \
@@ -636,6 +650,7 @@ chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
+		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm \
 		chicken.posix.import.scm \
@@ -646,6 +661,7 @@ setup-api.c: setup-api.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
+		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm \
 		chicken.posix.import.scm \
@@ -655,6 +671,7 @@ setup-download.c: setup-download.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
+		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm \
 		chicken.posix.import.scm \
@@ -704,6 +721,7 @@ utils.c: utils.scm \
 		chicken.extras.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
+		chicken.format.import.scm \
 		chicken.posix.import.scm \
 		chicken.irregex.import.scm
 
@@ -726,7 +744,10 @@ expand.c: $(SRCDIR)expand.scm $(SRCDIR)synrules.scm $(SRCDIR)common-declarations
 modules.c: $(SRCDIR)modules.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib)
 extras.c: $(SRCDIR)extras.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.extras -emit-import-library chicken.random
+	$(bootstrap-lib) \
+	-emit-import-library chicken.extras \
+	-emit-import-library chicken.format \
+	-emit-import-library chicken.random
 posixunix.c: $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.posix
 posixwin.c: $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm

@@ -1519,12 +1519,9 @@
 
 ;; extras
 
-(chicken.extras#format (procedure chicken.extras#format (#!rest) *))
-(chicken.extras#fprintf (#(procedure #:enforce) chicken.extras#fprintf (output-port string #!rest) undefined))
 (chicken.extras#pp (#(procedure #:enforce) chicken.extras#pp (* #!optional output-port) undefined))
 (chicken.extras#pretty-print (#(procedure #:enforce) chicken.extras#pretty-print (* #!optional output-port) undefined))
 (chicken.extras#pretty-print-width (#(procedure #:clean) chicken.extras#pretty-print-width (#!optional fixnum) *))
-(chicken.extras#printf (#(procedure #:enforce) chicken.extras#printf (string #!rest) undefined))
 (chicken.extras#read-buffered (#(procedure #:enforce) chicken.extras#read-buffered (#!optional input-port) string))
 (chicken.extras#read-byte (#(procedure #:enforce) chicken.extras#read-byte (#!optional input-port) *))
 (chicken.extras#read-file (#(procedure #:enforce) chicken.extras#read-file (#!optional (or input-port string) (procedure (input-port) *) fixnum) list))
@@ -1533,10 +1530,14 @@
 (chicken.extras#read-string (#(procedure #:enforce) chicken.extras#read-string (#!optional (or fixnum false) input-port) string))
 (chicken.extras#read-string! (#(procedure #:enforce) chicken.extras#read-string! ((or fixnum false) string #!optional input-port fixnum) fixnum))
 (chicken.extras#read-token (#(procedure #:enforce) chicken.extras#read-token ((procedure (char) *) #!optional input-port) string))
-(chicken.extras#sprintf (#(procedure #:enforce #:foldable) chicken.extras#sprintf (string #!rest) string))
 (chicken.extras#write-byte (#(procedure #:enforce) chicken.extras#write-byte (fixnum #!optional output-port) undefined))
 (chicken.extras#write-line (#(procedure #:enforce) chicken.extras#write-line (string #!optional output-port) undefined))
 (chicken.extras#write-string (#(procedure #:enforce) chicken.extras#write-string (string #!optional * output-port) undefined))
+
+(chicken.format#format (procedure chicken.format#format (#!rest) *))
+(chicken.format#fprintf (#(procedure #:enforce) chicken.format#fprintf (output-port string #!rest) undefined))
+(chicken.format#printf (#(procedure #:enforce) chicken.format#printf (string #!rest) undefined))
+(chicken.format#sprintf (#(procedure #:enforce #:foldable) chicken.format#sprintf (string #!rest) string))
 
 ;; random
 

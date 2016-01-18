@@ -199,8 +199,8 @@
     chicken.data-structures#substring-ci=?
     chicken.data-structures#any? chicken.data-structures#atom?
     chicken.data-structures#alist-ref chicken.data-structures#rassoc
-    chicken.extras#read-string chicken.extras#format
-    chicken.extras#printf chicken.extras#sprintf chicken.extras#fprintf))
+    chicken.extras#read-string chicken.format#format
+    chicken.format#printf chicken.format#sprintf chicken.format#fprintf))
 
 (set! internal-bindings
   '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set!

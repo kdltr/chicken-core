@@ -33,6 +33,7 @@
 	chicken.data-structures
 	chicken.extras
 	chicken.files
+	chicken.format
 	chicken.utils)
 
 (include "mini-srfi-1.scm")

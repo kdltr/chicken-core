@@ -37,6 +37,7 @@
 	chicken.data-structures
 	chicken.expand
 	chicken.extras
+	chicken.format
 	chicken.files
 	chicken.ports)
 

@@ -938,6 +938,7 @@
 (##sys#register-module-alias 'expand 'chicken.expand)
 (##sys#register-module-alias 'files 'chicken.files)
 (##sys#register-module-alias 'foreign 'chicken.foreign)
+(##sys#register-module-alias 'format 'chicken.format)
 (##sys#register-module-alias 'irregex 'chicken.irregex)
 (##sys#register-module-alias 'lolevel 'chicken.lolevel)
 (##sys#register-module-alias 'ports 'chicken.ports)

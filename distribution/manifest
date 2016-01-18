@@ -260,6 +260,8 @@ chicken.files.import.scm
 chicken.files.import.c
 chicken.foreign.import.scm
 chicken.foreign.import.c
+chicken.format.import.scm
+chicken.format.import.c
 chicken.internal.import.scm
 chicken.internal.import.c
 chicken.irregex.import.scm

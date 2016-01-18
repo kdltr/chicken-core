@@ -36,6 +36,7 @@
 	  chicken.extras
 	  chicken.files
 	  chicken.foreign
+	  chicken.format
 	  chicken.irregex
 	  chicken.ports
 	  chicken.posix
@@ -52,6 +53,7 @@
       "chicken.extras.import.so"
       "chicken.files.import.so"
       "chicken.foreign.import.so"
+      "chicken.format.import.so"
       "chicken.import.so"
       "chicken.internal.import.so"
       "chicken.irregex.import.so"

@@ -323,7 +323,8 @@
 	chicken.eval
 	chicken.expand
 	chicken.extras
-	chicken.foreign)
+	chicken.foreign
+	chicken.format)
 
 (define (d arg1 . more)
   (when (##sys#fudge 13)		; debug mode?

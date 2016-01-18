@@ -44,6 +44,7 @@
 	chicken.extras
 	chicken.files
 	chicken.foreign
+	chicken.format
 	chicken.posix
 	chicken.irregex)
 

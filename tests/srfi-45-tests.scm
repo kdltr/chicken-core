@@ -1,7 +1,7 @@
 ;;; Tests adapted from SRFI 45 (for "lazy" -> "delay-force").
 ;;; That SRFI Copyright (C) André van Tonder (2003).
 
-(use (only extras printf)
+(use (only format printf)
      (only ports with-output-to-string))
 
 (define *errors* 0)

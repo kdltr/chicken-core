@@ -56,6 +56,7 @@ EOF
 
 (import chicken.data-structures
 	chicken.extras
+	chicken.format
 	chicken.ports
 	chicken.repl)
 

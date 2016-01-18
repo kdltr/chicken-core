@@ -1,4 +1,4 @@
-(require-extension extras)
+(require-extension format)
 
 (define (list-tabulate n proc)
   (let loop ((i 0))

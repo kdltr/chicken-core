@@ -43,6 +43,7 @@ output of reasonable quality.
 
 === Formatted output
 
+These procedures are provided by the {{(chicken format)}} module.
 
 ==== printf
 ==== fprintf
