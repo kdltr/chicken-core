@@ -1707,14 +1707,8 @@
 (chicken.lolevel#extend-procedure (#(procedure #:clean #:enforce) chicken.lolevel#extend-procedure (procedure *) procedure))
 (chicken.lolevel#extended-procedure? (#(procedure #:clean) chicken.lolevel#extended-procedure (*) boolean))
 (chicken.lolevel#free (#(procedure #:clean #:enforce) chicken.lolevel#free (pointer) undefined))
-(chicken.lolevel#locative->object (#(procedure #:clean #:enforce) chicken.lolevel#locative->object (locative) *))
-(chicken.lolevel#locative-ref (#(procedure #:clean #:enforce) chicken.lolevel#locative-ref (locative) *))
-(chicken.lolevel#locative-set! (#(procedure #:enforce) chicken.lolevel#locative-set! (locative *) *))
-(chicken.lolevel#locative? (#(procedure #:pure #:predicate locative) chicken.lolevel#locative? (*) boolean))
-(chicken.lolevel#make-locative (#(procedure #:clean #:enforce) chicken.lolevel#make-locative (* #!optional fixnum) locative))
 (chicken.lolevel#make-pointer-vector (#(procedure #:clean #:enforce) chicken.lolevel#make-pointer-vector (fixnum #!optional (or pointer false)) pointer-vector))
 (chicken.lolevel#make-record-instance (#(procedure #:clean) chicken.lolevel#make-record-instance (symbol #!rest) *))
-(chicken.lolevel#make-weak-locative (#(procedure #:clean #:enforce) chicken.lolevel#make-weak-locative (* #!optional fixnum) locative))
 
 (chicken.lolevel#move-memory! (#(procedure #:enforce) chicken.lolevel#move-memory! (* * #!optional fixnum fixnum fixnum) *))
 
@@ -1805,6 +1799,14 @@
 (chicken.lolevel#tag-pointer (#(procedure #:clean #:enforce) chicken.lolevel#tag-pointer (pointer *) pointer))
 (chicken.lolevel#tagged-pointer? (#(procedure #:clean #:enforce) chicken.lolevel#tagged-pointer? (* #!optional *) boolean))
 
+;; locative
+
+(chicken.locative#locative->object (#(procedure #:clean #:enforce) chicken.locative#locative->object (locative) *))
+(chicken.locative#locative-ref (#(procedure #:clean #:enforce) chicken.locative#locative-ref (locative) *))
+(chicken.locative#locative-set! (#(procedure #:enforce) chicken.locative#locative-set! (locative *) *))
+(chicken.locative#locative? (#(procedure #:pure #:predicate locative) chicken.locative#locative? (*) boolean))
+(chicken.locative#make-locative (#(procedure #:clean #:enforce) chicken.locative#make-locative (* #!optional fixnum) locative))
+(chicken.locative#make-weak-locative (#(procedure #:clean #:enforce) chicken.locative#make-weak-locative (* #!optional fixnum) locative))
 
 ;; ports
 

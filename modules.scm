@@ -940,6 +940,7 @@
 (##sys#register-module-alias 'format 'chicken.format)
 (##sys#register-module-alias 'io 'chicken.io)
 (##sys#register-module-alias 'irregex 'chicken.irregex)
+(##sys#register-module-alias 'locative 'chicken.locative)
 (##sys#register-module-alias 'lolevel 'chicken.lolevel)
 (##sys#register-module-alias 'ports 'chicken.ports)
 (##sys#register-module-alias 'posix 'chicken.posix)

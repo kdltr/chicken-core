@@ -1,7 +1,7 @@
 ;;;; typematch-tests.scm
 
 
-(use lolevel data-structures)
+(use locative lolevel data-structures)
 
 
 (define (make-list n x)

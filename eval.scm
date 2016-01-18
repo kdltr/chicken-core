@@ -85,6 +85,7 @@
     (chicken.internal . internal)
     (chicken.io . extras)
     (chicken.irregex . irregex)
+    (chicken.locative . lolevel)
     (chicken.lolevel . lolevel)
     (chicken.ports . ports)
     (chicken.posix . posix)

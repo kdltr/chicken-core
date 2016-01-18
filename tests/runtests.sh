@@ -48,6 +48,7 @@ for x in \
     chicken.internal.import.so \
     chicken.io.import.so \
     chicken.irregex.import.so \
+    chicken.locative.import.so \
     chicken.lolevel.import.so \
     chicken.ports.import.so \
     chicken.posix.import.so \

@@ -179,8 +179,8 @@
     chicken.lolevel#u16vector-set! chicken.lolevel#s16vector-set!
     chicken.lolevel#u32vector-set! chicken.lolevel#s32vector-set!
     chicken.lolevel#u64vector-set! chicken.lolevel#s64vector-set!
-    chicken.lolevel#locative-ref chicken.lolevel#locative-set!
-    chicken.lolevel#locative->object chicken.lolevel#locative?
+    chicken.locative#locative-ref chicken.locative#locative-set!
+    chicken.locative#locative->object chicken.locative#locative?
     chicken.lolevel#pointer->object chicken.lolevel#pointer+
     chicken.lolevel#address->pointer chicken.lolevel#pointer->address
     chicken.lolevel#pointer=? chicken.lolevel#number-of-slots
@@ -413,7 +413,7 @@
 (rewrite 'call-with-values 13 2 "C_call_with_values" #t)
 (rewrite '##sys#call-with-values 13 2 "C_u_call_with_values" #f)
 (rewrite '##sys#call-with-values 13 2 "C_call_with_values" #t)
-(rewrite 'chicken.lolevel#locative-ref 13 1 "C_locative_ref" #t)
+(rewrite 'chicken.locative#locative-ref 13 1 "C_locative_ref" #t)
 (rewrite 'chicken.continuation#continuation-graft 13 2 "C_continuation_graft" #t)
 
 (rewrite 'caar 2 1 "C_u_i_caar" #f)
@@ -464,7 +464,7 @@
 (rewrite 'not 2 1 "C_i_not"#t )
 (rewrite 'char? 2 1 "C_charp" #t)
 (rewrite 'string? 2 1 "C_i_stringp" #t)
-(rewrite 'chicken.lolevel#locative? 2 1 "C_i_locativep" #t)
+(rewrite 'chicken.locative#locative? 2 1 "C_i_locativep" #t)
 (rewrite 'symbol? 2 1 "C_i_symbolp" #t)
 (rewrite 'vector? 2 1 "C_i_vectorp" #t)
 (rewrite '##sys#vector? 2 1 "C_i_vectorp" #t)
@@ -829,8 +829,8 @@
 (rewrite '##sys#permanent? 17 1 "C_permanentp")
 (rewrite '##sys#null-pointer? 17 1 "C_null_pointerp" "C_null_pointerp")
 (rewrite '##sys#immediate? 17 1 "C_immp")
-(rewrite 'chicken.lolevel#locative->object 17 1 "C_i_locative_to_object")
-(rewrite 'chicken.lolevel#locative-set! 17 2 "C_i_locative_set")
+(rewrite 'chicken.locative#locative->object 17 1 "C_i_locative_to_object")
+(rewrite 'chicken.locative#locative-set! 17 2 "C_i_locative_set")
 (rewrite '##sys#foreign-fixnum-argument 17 1 "C_i_foreign_fixnum_argumentp")
 (rewrite '##sys#foreign-char-argument 17 1 "C_i_foreign_char_argumentp")
 (rewrite '##sys#foreign-flonum-argument 17 1 "C_i_foreign_flonum_argumentp")
@@ -956,8 +956,8 @@
     (srfi-4#s64vector-ref . srfi-4#s64vector-set!)
     (srfi-4#f32vector-ref . srfi-4#f32vector-set!)
     (srfi-4#f64vector-ref . srfi-4#f64vector-set!)
+    (chicken.locative#locative-ref . chicken.locative#locative-set!)
     (chicken.lolevel#block-ref . chicken.lolevel#block-set!)
-    (chicken.lolevel#locative-ref . chicken.lolevel#locative-set!)
     (chicken.lolevel#pointer-u8-ref . chicken.lolevel#pointer-u8-set!)
     (chicken.lolevel#pointer-s8-ref . chicken.lolevel#pointer-s8-set!)
     (chicken.lolevel#pointer-u16-ref . chicken.lolevel#pointer-u16-set!)

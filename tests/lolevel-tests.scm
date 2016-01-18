@@ -1,6 +1,6 @@
 ;;;; Unit lolevel testing
 
-(require-extension lolevel srfi-4 extras)
+(require-extension locative lolevel srfi-4)
 
 (define-syntax assert-error
   (syntax-rules ()

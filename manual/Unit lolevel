@@ -374,6 +374,8 @@ on the locative. The container object can be computed by calling the
 
 Locatives may be passed to foreign procedures that expect pointer arguments.
 
+The following procedures are provided by the {{(chicken locative)}}
+module.
 
 ==== make-locative
 

@@ -266,6 +266,8 @@ chicken.io.import.scm
 chicken.io.import.c
 chicken.irregex.import.scm
 chicken.irregex.import.c
+chicken.locative.import.scm
+chicken.locative.import.c
 chicken.lolevel.import.scm
 chicken.lolevel.import.c
 chicken.ports.import.scm
