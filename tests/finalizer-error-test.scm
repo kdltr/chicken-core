@@ -1,5 +1,7 @@
 ;;;; finalizer-error-test.scm - by "megane"
 
+(use gc)
+
 (define n 10000)
 
 (define (make-objects n)

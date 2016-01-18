@@ -1,5 +1,6 @@
 ;;;; test-finalizers-2.scm - test finalizers + GC roots
 
+(use gc)
 
 (define (list-tabulate n proc)
   (let loop ((i 0))

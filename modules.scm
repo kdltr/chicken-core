@@ -938,6 +938,7 @@
 (##sys#register-module-alias 'files 'chicken.files)
 (##sys#register-module-alias 'foreign 'chicken.foreign)
 (##sys#register-module-alias 'format 'chicken.format)
+(##sys#register-module-alias 'gc 'chicken.gc)
 (##sys#register-module-alias 'io 'chicken.io)
 (##sys#register-module-alias 'irregex 'chicken.irregex)
 (##sys#register-module-alias 'locative 'chicken.locative)

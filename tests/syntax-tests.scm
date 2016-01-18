@@ -1,8 +1,7 @@
 ;;;; syntax-tests.scm - various macro tests
 
 (use-for-syntax pretty-print)
-(use pretty-print)
-
+(use gc pretty-print)
 
 (define-syntax t
   (syntax-rules ()

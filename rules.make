@@ -519,6 +519,7 @@ $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
 # special cases for modules not corresponding directly to units
 $(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.format,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.io,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.pretty-print,extras))
@@ -541,7 +542,9 @@ batch-driver.c: batch-driver.scm mini-srfi-1.scm \
 		chicken.compiler.c-backend.import.scm \
 		chicken.compiler.support.import.scm \
 		chicken.data-structures.import.scm \
+		chicken.files.import.scm \
 		chicken.format.import.scm \
+		chicken.gc.import.scm \
 		chicken.pretty-print.import.scm
 c-platform.c: c-platform.scm mini-srfi-1.scm \
 		chicken.compiler.optimizer.import.scm \
@@ -615,6 +618,7 @@ csc.c: csc.scm \
 csi.c: csi.scm \
 		chicken.data-structures.import.scm \
 		chicken.format.import.scm \
+		chicken.gc.import.scm \
 		chicken.io.import.scm \
 		chicken.ports.import.scm \
 		chicken.pretty-print.import.scm
@@ -687,7 +691,8 @@ setup-download.c: setup-download.scm \
 srfi-4.c: srfi-4.scm \
 		chicken.bitwise.import.scm \
 		chicken.expand.import.scm \
-		chicken.foreign.import.scm
+		chicken.foreign.import.scm \
+		chicken.gc.import.scm
 posixunix.c: posixunix.scm \
 		chicken.bitwise.import.scm \
 		chicken.files.import.scm \
@@ -738,7 +743,9 @@ endef
 bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTIONS) -output-file $@
 
 library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.bitwise
+	$(bootstrap-lib) \
+	-emit-import-library chicken.bitwise \
+	-emit-import-library chicken.gc
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal
 eval.c: $(SRCDIR)eval.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm

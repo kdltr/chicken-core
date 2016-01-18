@@ -56,6 +56,7 @@ EOF
 
 (import chicken.data-structures
 	chicken.format
+	chicken.gc
 	chicken.io
 	chicken.ports
 	chicken.pretty-print

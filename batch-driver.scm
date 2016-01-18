@@ -44,6 +44,7 @@
 	chicken.data-structures
 	chicken.files
 	chicken.format
+	chicken.gc
 	chicken.pretty-print
 	chicken.compiler.support
 	chicken.compiler.compiler-syntax

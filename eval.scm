@@ -82,6 +82,7 @@
     (chicken.files . files)
     (chicken.foreign . chicken-ffi-syntax)
     (chicken.format . extras)
+    (chicken.gc . library)
     (chicken.internal . internal)
     (chicken.io . extras)
     (chicken.irregex . irregex)

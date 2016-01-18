@@ -260,6 +260,8 @@ chicken.foreign.import.scm
 chicken.foreign.import.c
 chicken.format.import.scm
 chicken.format.import.c
+chicken.gc.import.scm
+chicken.gc.import.c
 chicken.internal.import.scm
 chicken.internal.import.c
 chicken.io.import.scm

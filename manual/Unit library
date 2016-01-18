@@ -733,15 +733,6 @@ Returns the number of milliseconds since process- or machine startup.
 Returns the number of seconds since midnight, Jan. 1, 1970.
 
 
-==== current-gc-milliseconds
-
-<procedure>(current-gc-milliseconds)</procedure>
-
-Returns the number of milliseconds spent in major garbage collections since
-the last call of {{current-gc-milliseconds}} and returns an exact
-integer.
-
-
 
 === Interrupts and error-handling
 
@@ -837,7 +828,7 @@ continues execution.
 
 === Garbage collection
 
-
+The following procedures are provided by the {{(chicken gc)}} module.
 
 ==== gc
 
@@ -847,6 +838,14 @@ Invokes a garbage-collection and returns the number of free bytes in the heap.
 The flag specifies whether a minor ({{#f}}) or major ({{#t}}) GC is to be
 triggered. If no argument is given, {{#t}} is assumed. An explicit {{#t}}
 argument will cause all pending finalizers to be executed.
+
+==== current-gc-milliseconds
+
+<procedure>(current-gc-milliseconds)</procedure>
+
+Returns the number of milliseconds spent in major garbage collections since
+the last call of {{current-gc-milliseconds}} and returns an exact
+integer.
 
 ==== memory-statistics
 

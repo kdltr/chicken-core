@@ -200,7 +200,6 @@ EOF
 (define-foreign-variable main_argv c-pointer "C_main_argv")
 (define-foreign-variable strerror c-string "strerror(errno)")
 
-(define (set-gc-report! flag) (##core#inline "C_set_gc_report" flag))
 (define ##sys#gc (##core#primitive "C_gc"))
 (define (##sys#setslot x i y) (##core#inline "C_i_setslot" x i y))
 (define (##sys#setislot x i y) (##core#inline "C_i_set_i_slot" x i y))
@@ -213,7 +212,6 @@ EOF
 (define ##sys#symbol-table-info (##core#primitive "C_get_symbol_table_info"))
 (define ##sys#memory-info (##core#primitive "C_get_memory_info"))
 (define (current-milliseconds) (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f))
-(define (current-gc-milliseconds) (##sys#fudge 31))
 (define ##sys#decode-seconds (##core#primitive "C_decode_seconds"))
 (define get-environment-variable (foreign-lambda c-string "C_getenv" c-string))
 (define executable-pathname (foreign-lambda c-string* "C_executable_pathname"))
@@ -5381,6 +5379,27 @@ EOF
      x) ) )
 
 
+(module chicken.gc
+  (current-gc-milliseconds gc memory-statistics set-finalizer! set-gc-report!)
+
+(import scheme chicken
+	chicken.foreign)
+
+;;; GC info:
+
+(define (current-gc-milliseconds) (##sys#fudge 31))
+
+(define (set-gc-report! flag)
+  (##core#inline "C_set_gc_report" flag))
+
+;;; Memory info:
+
+(define (memory-statistics)
+  (let* ((free (##sys#gc #t))
+	 (info (##sys#memory-info))
+	 (hsize (##sys#slot info 0)))
+    (vector hsize (fx- hsize free) (##sys#slot info 1))))
+
 ;;; Finalization:
 
 (define-foreign-variable _max_pending_finalizers int "C_max_pending_finalizers")
@@ -5462,8 +5481,7 @@ EOF
   (let ((a (and (pair? arg) (car arg))))
     (if a
 	(##sys#force-finalizers)
-	(apply ##sys#gc arg) ) ) )
-
+	(##sys#gc a)))))
 
 ;;; Auxilliary definitions for safe use in quasiquoted forms and evaluated code:
 
@@ -5661,15 +5679,6 @@ EOF
 	  #:type-error loc
 	  "bad argument type - locative cannot refer to objects of this type" 
 	  obj) ] ) )
-
-
-;;; More memory info
-
-(define (memory-statistics)
-  (let* ([free (##sys#gc #t)]
-	 [info (##sys#memory-info)] 
-	 [hsize (##sys#slot info 0)] )
-    (vector hsize (fx- hsize free) (##sys#slot info 1)) ) )
 
 
 ;;; Property lists

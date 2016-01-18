@@ -968,7 +968,6 @@
 		  #(tmp1))))
  (() ##sys#current-exception-handler))
 
-(current-gc-milliseconds (#(procedure #:clean) current-gc-milliseconds () integer))
 (current-milliseconds (#(procedure #:clean) current-milliseconds () integer))
 
 (current-read-table
@@ -1160,7 +1159,6 @@
 (fxshr (#(procedure #:clean #:foldable) fxshr (fixnum fixnum) fixnum))
 (fxxor (#(procedure #:clean #:foldable) fxxor (fixnum fixnum) fixnum))
 (fxlen (#(procedure #:clean #:foldable) fxlen (fixnum) fixnum))
-(gc (#(procedure #:clean) gc (#!optional *) fixnum))
 (gensym (#(procedure #:clean) gensym (#!optional (or string symbol)) symbol))
 
 (get (#(procedure #:clean #:enforce) get (symbol symbol #!optional *) *)
@@ -1204,7 +1202,6 @@
 (make-parameter (#(procedure #:clean #:enforce) make-parameter (* #!optional procedure) procedure))
 (make-property-condition (#(procedure #:clean #:enforce) make-property-condition (symbol #!rest *) (struct condition)))
 (maximum-flonum float)
-(memory-statistics (#(procedure #:clean) memory-statistics () (vector-of fixnum)))
 (minimum-flonum float)
 (module-environment (#(procedure #:clean #:enforce) module-environment (symbol #!optional symbol) (struct environment)))
 (most-negative-fixnum fixnum)
@@ -1249,8 +1246,14 @@
 (reset-handler (#(procedure #:clean #:enforce) reset-handler (#!optional (procedure () . *)) procedure))
 (return-to-host (procedure return-to-host () . *))
 (reverse-list->string (#(procedure #:clean #:enforce) reverse-list->string ((list-of char)) string))
-(set-finalizer! (#(procedure #:clean #:enforce) set-finalizer! (* (procedure (*) . *)) *))
-(set-gc-report! (#(procedure #:clean) set-gc-report! (*) undefined))
+
+;; gc
+
+(chicken.gc#current-gc-milliseconds (#(procedure #:clean) chicken.gc#current-gc-milliseconds () integer))
+(chicken.gc#gc (#(procedure #:clean) chicken.gc#gc (#!optional *) fixnum))
+(chicken.gc#memory-statistics (#(procedure #:clean) chicken.gc#memory-statistics () (vector-of fixnum)))
+(chicken.gc#set-finalizer! (#(procedure #:clean #:enforce) chicken.gc#set-finalizer! (* (procedure (*) . *)) *))
+(chicken.gc#set-gc-report! (#(procedure #:clean) chicken.gc#set-gc-report! (*) undefined))
 
 (chicken.repl#repl (#(procedure #:enforce) chicken.repl#repl (#!optional (procedure (*) . *)) undefined))
 (chicken.repl#repl-prompt (#(procedure #:clean #:enforce) chicken.repl#repl-prompt (#!optional (procedure () string)) procedure))

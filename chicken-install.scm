@@ -54,6 +54,7 @@
       "chicken.files.import.so"
       "chicken.foreign.import.so"
       "chicken.format.import.so"
+      "chicken.gc.import.so"
       "chicken.import.so"
       "chicken.internal.import.so"
       "chicken.io.import.so"

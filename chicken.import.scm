@@ -51,7 +51,6 @@
    cpu-time
    current-error-port
    current-exception-handler
-   current-gc-milliseconds
    current-milliseconds
    current-read-table
    current-seconds
@@ -148,7 +147,6 @@
    fxshr
    fxxor
    fxlen
-   gc
    gensym
    get
    get-call-chain
@@ -177,7 +175,6 @@
    make-promise
    make-property-condition
    maximum-flonum
-   memory-statistics
    minimum-flonum
    module-environment
    most-negative-fixnum
@@ -212,8 +209,6 @@
    reset-handler
    return-to-host
    reverse-list->string
-   set-finalizer!
-   set-gc-report!
    set-parameterized-read-syntax!
    set-port-name!
    set-read-syntax!
