@@ -272,6 +272,8 @@ chicken.ports.import.scm
 chicken.ports.import.c
 chicken.posix.import.scm
 chicken.posix.import.c
+chicken.pretty-print.import.scm
+chicken.pretty-print.import.c
 chicken.random.import.scm
 chicken.random.import.c
 chicken.repl.import.scm

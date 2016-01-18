@@ -29,7 +29,7 @@
 
 (compound-module 
  big-chicken
- chicken ports files extras data-structures)
+ chicken ports files extras pretty-print data-structures)
 
 (require-library extras data-structures)
 

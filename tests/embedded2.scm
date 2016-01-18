@@ -1,4 +1,4 @@
-(use extras)
+(use pretty-print)
 
 #>
 #include <assert.h>

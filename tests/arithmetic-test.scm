@@ -15,7 +15,7 @@
   (else))
 
 
-(use extras random)
+(use pretty-print random)
 
 #+use-numbers (use numbers)
 

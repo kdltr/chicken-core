@@ -58,6 +58,7 @@ EOF
 	chicken.extras
 	chicken.format
 	chicken.ports
+	chicken.pretty-print
 	chicken.repl)
 
 

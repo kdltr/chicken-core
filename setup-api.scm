@@ -73,6 +73,7 @@
 	  chicken.format
 	  chicken.ports
 	  chicken.posix
+	  chicken.pretty-print
 	  chicken.irregex
 	  chicken.utils)
 

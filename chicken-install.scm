@@ -40,6 +40,7 @@
 	  chicken.irregex
 	  chicken.ports
 	  chicken.posix
+	  chicken.pretty-print
 	  chicken.utils)
 
   (include "mini-srfi-1.scm")
@@ -60,6 +61,7 @@
       "chicken.lolevel.import.so"
       "chicken.ports.import.so"
       "chicken.posix.import.so"
+      "chicken.pretty-print.import.so"
       "chicken.random.import.so"
       "chicken.repl.import.so"
       "chicken.tcp.import.so"

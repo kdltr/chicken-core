@@ -45,6 +45,7 @@
 	chicken.extras
 	chicken.files
 	chicken.format
+	chicken.pretty-print
 	chicken.compiler.support
 	chicken.compiler.compiler-syntax
 	chicken.compiler.core

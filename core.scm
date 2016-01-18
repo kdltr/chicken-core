@@ -324,7 +324,8 @@
 	chicken.expand
 	chicken.extras
 	chicken.foreign
-	chicken.format)
+	chicken.format
+	chicken.pretty-print)
 
 (define (d arg1 . more)
   (when (##sys#fudge 13)		; debug mode?

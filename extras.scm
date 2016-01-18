@@ -30,13 +30,11 @@
  (uses data-structures))
 
 (module chicken.extras
-  (pp pretty-print pretty-print-width
-   read-buffered read-byte read-file read-line
+  (read-buffered read-byte read-file read-line
    read-lines read-string read-string! read-token
    write-byte write-line write-string)
 
 (import scheme chicken)
-(import chicken.data-structures)
 
 (include "common-declarations.scm")
 
@@ -245,7 +243,7 @@
   (##sys#check-output-port port #t 'write-byte)
   (##sys#write-char-0 (integer->char byte) port) )
 
-
+) ; module chicken.extras
 
 
 ;;; Pretty print:
@@ -256,6 +254,12 @@
 ;
 ; Modified by felix for use with CHICKEN
 ;
+
+(module chicken.pretty-print
+  (pp pretty-print pretty-print-width)
+
+(import scheme chicken
+	chicken.data-structures)
 
 (define generic-write
   (lambda (obj display? width output)
@@ -562,9 +566,7 @@
     (generic-write obj #f (pretty-print-width) (lambda (s) (display s port) #t))
     (##core#undefined) ) )
 
-(define pp pretty-print)
-
-) ; module chicken.extras
+(define pp pretty-print))
 
 
 ;;; Write simple formatted output:

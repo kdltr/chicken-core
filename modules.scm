@@ -943,6 +943,7 @@
 (##sys#register-module-alias 'lolevel 'chicken.lolevel)
 (##sys#register-module-alias 'ports 'chicken.ports)
 (##sys#register-module-alias 'posix 'chicken.posix)
+(##sys#register-module-alias 'pretty-print 'chicken.pretty-print)
 (##sys#register-module-alias 'random 'chicken.random)
 (##sys#register-module-alias 'repl 'chicken.repl)
 (##sys#register-module-alias 'tcp 'chicken.tcp)

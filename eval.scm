@@ -88,6 +88,7 @@
     (chicken.lolevel . lolevel)
     (chicken.ports . ports)
     (chicken.posix . posix)
+    (chicken.pretty-print . extras)
     (chicken.tcp . tcp)
     (chicken.repl . repl)
     (chicken.utils . utils)))

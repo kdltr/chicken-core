@@ -1,7 +1,7 @@
 ;;;; syntax-tests.scm - various macro tests
 
-(use-for-syntax extras)
-(use extras)
+(use-for-syntax pretty-print)
+(use pretty-print)
 
 
 (define-syntax t
@@ -564,7 +564,7 @@
   (s:define bar 99))
 
 (module m0002 ()
-  (import scheme m0001 extras)
+  (import scheme m0001 pretty-print)
   (pp (foo bar)))
 
 

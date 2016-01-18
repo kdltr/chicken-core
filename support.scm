@@ -83,6 +83,7 @@
 	chicken.foreign
 	chicken.format
 	chicken.ports
+	chicken.pretty-print
 	chicken.random)
 
 (include "tweaks")

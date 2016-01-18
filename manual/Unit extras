@@ -102,6 +102,7 @@ The optional {{DESTINATION}}, when supplied, performs:
 
 === Pretty-printing
 
+These procedures are provided by the {{(chicken pretty-print)}} module.
 
 ==== pretty-print
 

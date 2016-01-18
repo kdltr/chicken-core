@@ -1,7 +1,7 @@
 ;;;; functor-tests.scm
 
 
-(use data-structures extras ports)
+(use data-structures ports pretty-print)
 
 
 (include "test.scm")

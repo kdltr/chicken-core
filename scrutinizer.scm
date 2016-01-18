@@ -39,7 +39,8 @@
 	chicken.extras
 	chicken.format
 	chicken.files
-	chicken.ports)
+	chicken.ports
+	chicken.pretty-print)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")
