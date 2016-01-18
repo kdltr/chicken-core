@@ -1516,20 +1516,19 @@
 (chicken.data-structures#substring=? (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#substring=? (string string #!optional fixnum fixnum fixnum) boolean))
 (chicken.data-structures#tail? (#(procedure #:clean) chicken.data-structures#tail? (* *) boolean))
 
+;; io
 
-;; extras
-
-(chicken.extras#read-buffered (#(procedure #:enforce) chicken.extras#read-buffered (#!optional input-port) string))
-(chicken.extras#read-byte (#(procedure #:enforce) chicken.extras#read-byte (#!optional input-port) *))
-(chicken.extras#read-file (#(procedure #:enforce) chicken.extras#read-file (#!optional (or input-port string) (procedure (input-port) *) fixnum) list))
-(chicken.extras#read-line (#(procedure #:enforce) chicken.extras#read-line (#!optional input-port (or false fixnum)) (or eof string)))
-(chicken.extras#read-lines (#(procedure #:enforce) chicken.extras#read-lines (#!optional (or input-port string) fixnum) (list-of string)))
-(chicken.extras#read-string (#(procedure #:enforce) chicken.extras#read-string (#!optional (or fixnum false) input-port) string))
-(chicken.extras#read-string! (#(procedure #:enforce) chicken.extras#read-string! ((or fixnum false) string #!optional input-port fixnum) fixnum))
-(chicken.extras#read-token (#(procedure #:enforce) chicken.extras#read-token ((procedure (char) *) #!optional input-port) string))
-(chicken.extras#write-byte (#(procedure #:enforce) chicken.extras#write-byte (fixnum #!optional output-port) undefined))
-(chicken.extras#write-line (#(procedure #:enforce) chicken.extras#write-line (string #!optional output-port) undefined))
-(chicken.extras#write-string (#(procedure #:enforce) chicken.extras#write-string (string #!optional * output-port) undefined))
+(chicken.io#read-buffered (#(procedure #:enforce) chicken.io#read-buffered (#!optional input-port) string))
+(chicken.io#read-byte (#(procedure #:enforce) chicken.io#read-byte (#!optional input-port) *))
+(chicken.io#read-file (#(procedure #:enforce) chicken.io#read-file (#!optional (or input-port string) (procedure (input-port) *) fixnum) list))
+(chicken.io#read-line (#(procedure #:enforce) chicken.io#read-line (#!optional input-port (or false fixnum)) (or eof string)))
+(chicken.io#read-lines (#(procedure #:enforce) chicken.io#read-lines (#!optional (or input-port string) fixnum) (list-of string)))
+(chicken.io#read-string (#(procedure #:enforce) chicken.io#read-string (#!optional (or fixnum false) input-port) string))
+(chicken.io#read-string! (#(procedure #:enforce) chicken.io#read-string! ((or fixnum false) string #!optional input-port fixnum) fixnum))
+(chicken.io#read-token (#(procedure #:enforce) chicken.io#read-token ((procedure (char) *) #!optional input-port) string))
+(chicken.io#write-byte (#(procedure #:enforce) chicken.io#write-byte (fixnum #!optional output-port) undefined))
+(chicken.io#write-line (#(procedure #:enforce) chicken.io#write-line (string #!optional output-port) undefined))
+(chicken.io#write-string (#(procedure #:enforce) chicken.io#write-string (string #!optional * output-port) undefined))
 
 ;; pretty-print
 

@@ -254,8 +254,6 @@ chicken.eval.import.scm
 chicken.eval.import.c
 chicken.expand.import.scm
 chicken.expand.import.c
-chicken.extras.import.scm
-chicken.extras.import.c
 chicken.files.import.scm
 chicken.files.import.c
 chicken.foreign.import.scm
@@ -264,6 +262,8 @@ chicken.format.import.scm
 chicken.format.import.c
 chicken.internal.import.scm
 chicken.internal.import.c
+chicken.io.import.scm
+chicken.io.import.c
 chicken.irregex.import.scm
 chicken.irregex.import.c
 chicken.lolevel.import.scm

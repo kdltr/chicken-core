@@ -119,7 +119,10 @@ of {{(current-output-port)}}.
 Specifies the maximal line-width for pretty printing, after which line
 wrap will occur.
 
+
 === Input/Output extensions
+
+These procedures are provided by the {{(chicken io)}} module.
 
 ==== read-byte
 ==== write-byte

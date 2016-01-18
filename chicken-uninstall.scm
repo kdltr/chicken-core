@@ -34,10 +34,10 @@
   (import scheme chicken)
   (import setup-api)
   (import chicken.data-structures
-	  chicken.extras
 	  chicken.files
 	  chicken.foreign
 	  chicken.format
+	  chicken.io
 	  chicken.irregex
 	  chicken.ports
 	  chicken.posix

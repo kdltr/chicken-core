@@ -27,9 +27,9 @@
 (require-library posix tcp data-structures utils extras)
 
 (import chicken.data-structures
-	chicken.extras
 	chicken.foreign
 	chicken.format
+	chicken.io
 	chicken.posix
 	chicken.tcp
 	chicken.utils)

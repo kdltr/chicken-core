@@ -42,11 +42,11 @@ for x in \
     chicken.bitwise.import.so \
     chicken.continuation.import.so \
     chicken.data-structures.import.so \
-    chicken.extras.import.so \
     chicken.files.import.so \
     chicken.foreign.import.so \
     chicken.format.import.so \
     chicken.internal.import.so \
+    chicken.io.import.so \
     chicken.irregex.import.so \
     chicken.lolevel.import.so \
     chicken.ports.import.so \

@@ -322,9 +322,9 @@
 	chicken.data-structures
 	chicken.eval
 	chicken.expand
-	chicken.extras
 	chicken.foreign
 	chicken.format
+	chicken.io
 	chicken.pretty-print)
 
 (define (d arg1 . more)

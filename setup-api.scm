@@ -67,14 +67,14 @@
   
   (import scheme chicken
 	  chicken.data-structures
-	  chicken.extras
 	  chicken.files
 	  chicken.foreign
 	  chicken.format
+	  chicken.io
+	  chicken.irregex
 	  chicken.ports
 	  chicken.posix
 	  chicken.pretty-print
-	  chicken.irregex
 	  chicken.utils)
 
 (include "mini-srfi-1.scm")

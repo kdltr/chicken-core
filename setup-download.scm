@@ -39,10 +39,10 @@
   (import scheme chicken)
   (import setup-api
 	  chicken.data-structures
-	  chicken.extras
 	  chicken.files
 	  chicken.foreign
 	  chicken.format
+	  chicken.io
 	  chicken.irregex
 	  chicken.posix
 	  chicken.tcp

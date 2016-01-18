@@ -199,7 +199,7 @@
     chicken.data-structures#substring-ci=?
     chicken.data-structures#any? chicken.data-structures#atom?
     chicken.data-structures#alist-ref chicken.data-structures#rassoc
-    chicken.extras#read-string chicken.format#format
+    chicken.io#read-string chicken.format#format
     chicken.format#printf chicken.format#sprintf chicken.format#fprintf))
 
 (set! internal-bindings
@@ -1029,7 +1029,7 @@
 
 (rewrite 'read-char 23 0 '##sys#read-char/port '##sys#standard-input)
 (rewrite 'write-char 23 1 '##sys#write-char/port '##sys#standard-output)
-(rewrite 'chicken.extras#read-string 23 1 '##sys#read-string/port '##sys#standard-input)
+(rewrite 'chicken.io#read-string 23 1 '##sys#read-string/port '##sys#standard-input)
 (rewrite 'chicken.data-structures#substring=? 23 2 '##sys#substring=? 0 0 #f)
 (rewrite 'chicken.data-structures#substring-ci=? 23 2 '##sys#substring-ci=? 0 0 #f)
 (rewrite 'chicken.data-structures#substring-index 23 2 '##sys#substring-index 0)

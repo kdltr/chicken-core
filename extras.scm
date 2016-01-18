@@ -29,7 +29,7 @@
  (unit extras)
  (uses data-structures))
 
-(module chicken.extras
+(module chicken.io
   (read-buffered read-byte read-file read-line
    read-lines read-string read-string! read-token
    write-byte write-line write-string)
@@ -243,7 +243,7 @@
   (##sys#check-output-port port #t 'write-byte)
   (##sys#write-char-0 (integer->char byte) port) )
 
-) ; module chicken.extras
+) ; module chicken.io
 
 
 ;;; Pretty print:

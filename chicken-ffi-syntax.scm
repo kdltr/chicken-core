@@ -40,7 +40,6 @@
   (no-procedure-checks))
 
 (import chicken.data-structures
-	chicken.extras
 	chicken.format)
 
 (include "mini-srfi-1.scm")

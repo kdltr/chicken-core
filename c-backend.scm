@@ -44,7 +44,6 @@
 	chicken.compiler.core
 	chicken.compiler.c-platform
 	chicken.compiler.support
-	chicken.extras
 	chicken.foreign
 	chicken.internal)
 

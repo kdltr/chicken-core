@@ -1,7 +1,5 @@
 ;;;; test-finalizers.scm
 
-(use extras)
-
 (##sys#eval-debug-level 0)		; disable keeping trace-buffer with frameinfo
 
 (define x (list 1 2 3))

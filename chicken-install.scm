@@ -33,10 +33,10 @@
   (import setup-download setup-api)
 
   (import chicken.data-structures
-	  chicken.extras
 	  chicken.files
 	  chicken.foreign
 	  chicken.format
+	  chicken.io
 	  chicken.irregex
 	  chicken.ports
 	  chicken.posix
@@ -51,12 +51,12 @@
       "chicken.data-structures.import.so"
       "chicken.eval.import.so"
       "chicken.expand.import.so"
-      "chicken.extras.import.so"
       "chicken.files.import.so"
       "chicken.foreign.import.so"
       "chicken.format.import.so"
       "chicken.import.so"
       "chicken.internal.import.so"
+      "chicken.io.import.so"
       "chicken.irregex.import.so"
       "chicken.lolevel.import.so"
       "chicken.ports.import.so"

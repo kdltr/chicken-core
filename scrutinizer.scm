@@ -36,9 +36,9 @@
 	chicken.compiler.support
 	chicken.data-structures
 	chicken.expand
-	chicken.extras
-	chicken.format
 	chicken.files
+	chicken.format
+	chicken.io
 	chicken.ports
 	chicken.pretty-print)
 

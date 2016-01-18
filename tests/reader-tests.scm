@@ -1,7 +1,7 @@
 ;;;; reader-tests.scm
 
 
-(use (only extras read-line)
+(use (only io read-line)
      (only ports with-input-from-string with-output-to-string)
      (only utils read-all))
 

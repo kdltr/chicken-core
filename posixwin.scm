@@ -715,7 +715,6 @@ EOF
 (import scheme chicken)
 (import chicken.bitwise
 	chicken.data-structures
-	chicken.extras
 	chicken.files
 	chicken.foreign
 	chicken.irregex

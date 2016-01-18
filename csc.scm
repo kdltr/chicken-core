@@ -31,7 +31,6 @@
 
 (import chicken.posix
 	chicken.data-structures
-	chicken.extras
 	chicken.files
 	chicken.format
 	chicken.utils)

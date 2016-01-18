@@ -55,8 +55,8 @@ EOF
 	history-add history-ref history-clear history-show) )
 
 (import chicken.data-structures
-	chicken.extras
 	chicken.format
+	chicken.io
 	chicken.ports
 	chicken.pretty-print
 	chicken.repl)

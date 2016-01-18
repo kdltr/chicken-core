@@ -78,10 +78,10 @@
 (import chicken scheme
 	chicken.data-structures
 	chicken.expand
-	chicken.extras
 	chicken.files
 	chicken.foreign
 	chicken.format
+	chicken.io
 	chicken.ports
 	chicken.pretty-print
 	chicken.random)

@@ -2,9 +2,6 @@
 ;
 ; - run this with the "-:w" option
 
-
-(use extras)
-
 (assert (##sys#fudge 15) "please run this test with the `-:w' runtime option")
 
 (define (gcsome #!optional (n 100))

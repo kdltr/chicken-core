@@ -1,6 +1,6 @@
 ;;;; library-tests.scm
 
-(use bitwise extras ports)
+(use bitwise ports)
 
 (define-syntax assert-fail
   (syntax-rules ()

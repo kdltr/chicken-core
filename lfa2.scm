@@ -41,7 +41,6 @@
 
 (import chicken scheme
 	chicken.compiler.support
-	chicken.extras
 	chicken.format)
 
 (include "tweaks")

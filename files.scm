@@ -62,8 +62,8 @@ EOF
 
 (import scheme chicken)
 (import chicken.data-structures
-	chicken.extras
 	chicken.foreign
+	chicken.io
 	chicken.irregex)
 
 (include "common-declarations.scm")

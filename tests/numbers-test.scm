@@ -1,7 +1,8 @@
 ;;;; numbers-test.scm
 
 (include "test.scm")
-(use bitwise extras format posix)
+
+(use bitwise format posix)
 
 ;; The default "comparator" doesn't know how to deal with extended number types
 (current-test-comparator

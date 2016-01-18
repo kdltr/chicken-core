@@ -42,7 +42,6 @@
 
 (import chicken scheme
 	chicken.data-structures
-	chicken.extras
 	chicken.files
 	chicken.format
 	chicken.pretty-print

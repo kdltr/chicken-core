@@ -27,7 +27,7 @@
 
 (declare
   (unit scheduler)
-  (uses extras)
+  (uses extras) ; for sprintf
   (disable-interrupts)
   (hide ready-queue-head ready-queue-tail ##sys#timeout-list
 	##sys#update-thread-state-buffer ##sys#restore-thread-state-buffer
@@ -133,8 +133,7 @@ C_inline void C_fdset_add(int fd, int input, int output) {
 EOF
 ) )
 
-(import chicken.extras
-	chicken.format)
+(import chicken.format)
 
 (include "common-declarations.scm")
 
