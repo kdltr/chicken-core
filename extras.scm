@@ -165,7 +165,9 @@
 (define ##sys#read-string/port
   (lambda (n p)
     (##sys#check-input-port p #t 'read-string)
-    (cond (n (##sys#check-fixnum n 'read-string)
+    (cond ((eof-object? (##sys#peek-char-0 p))
+	   (if (eq? n 0) "" #!eof))
+          (n (##sys#check-fixnum n 'read-string)
 	     (let* ((str (##sys#make-string n))
 		    (n2 (##sys#read-string! n str p 0)) )
 	       (if (eq? n n2)
@@ -175,7 +177,8 @@
 	   (let ([out (open-output-string)]
 		 (buf (make-string read-string-buffer-size)))
 	     (let loop ()
-	       (let ((n (##sys#read-string! read-string-buffer-size
+	       (let ((c (peek-char p))
+		     (n (##sys#read-string! read-string-buffer-size
 					    buf p 0)))
 		 (cond ((eq? n 0)
 			(get-output-string out))

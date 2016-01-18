@@ -179,12 +179,14 @@ a string naming a file. Returns a list of strings, each string representing a li
 
 Read or write {{NUM}} characters from/to {{PORT}}, which defaults to the
 value of {{(current-input-port)}} or {{(current-output-port)}}, respectively. 
-If {{NUM}} is {{#f}} or not given, then all data
-up to the end-of-file is read, or, in the case of {{write-string}} the whole
-string is written. If no more input is available, {{read-string}} returns the
-empty string. {{read-string!}} reads destructively into the given {{STRING}} argument,
-but never more characters than would fit into {{STRING}}. If {{START}} is given, then
-the read characters are stored starting at that position.
+
+If {{NUM}} is {{#f}} or not given, then all data up to the end-of-file is
+read, or, in the case of {{write-string}} the whole string is written. If no
+more input is available, {{read-string}} returns {{#!eof}}.
+
+{{read-string!}} reads destructively into the given {{STRING}} argument, but
+never more characters than would fit into {{STRING}}. If {{START}} is given,
+then the read characters are stored starting at that position.
 {{read-string!}} returns the actual number of characters read.
 
 
