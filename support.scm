@@ -508,11 +508,7 @@
 		  (if (null? bs)
 		      (walk body)
 		      (make-node
-		       'let 
-		       (map (lambda (v) 
-			      ;; for temporaries introduced by specialization
-			      (if (eq? '#:tmp v) (error "SHOULD NOT HAPPEN") v)) ; OBSOLETE
-			    (unzip1 bs))
+		       'let (unzip1 bs)
 		       (append (map (lambda (b) (walk (cadr b))) (cadr x))
 			       (list (walk body)) ) ) ) ) )
 	       ((lambda ##core#lambda) 
