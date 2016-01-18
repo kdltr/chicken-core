@@ -34,7 +34,6 @@
 (module chicken.utils
   (compile-file
    compile-file-options
-   read-all
    system*
    yes-or-no?
    qs)
@@ -59,15 +58,6 @@
 	   [n (system str)] )
       (unless (zero? n)
 	(##sys#error "shell invocation failed with non-zero return status" str n) ) ) ) )
-
-
-;;; Read file as string from given filename or port:
-
-(define (read-all . file)
-  (let ([file (optional file ##sys#standard-input)])
-    (if (port? file)
-	(read-string #f file)
-	(with-input-from-file file (cut read-string #f) #:binary) ) ) )
 
 
 ;;; Quote string for shell

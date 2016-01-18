@@ -349,7 +349,7 @@
 		     host port
 		     (string-append locn "?list=1")
 		     proxy-host proxy-port proxy-user-pass)))
-	(let ((ls (read-all in)))
+	(let ((ls (read-string #f in)))
 	  (close-input-port in)
 	  (close-output-port out)
 	  ls))))

@@ -1,9 +1,8 @@
 ;;;; reader-tests.scm
 
 
-(use (only io read-line)
-     (only ports with-input-from-string with-output-to-string)
-     (only utils read-all))
+(use (only io read-line read-string)
+     (only ports with-input-from-string with-output-to-string))
 
 
 (set-sharp-read-syntax! #\& (lambda (p) (read p) (values)))
@@ -24,4 +23,4 @@
 !! bye
 
 (assert (string=? output "hi\nfoo\nbaz\nbye\n"))
-(assert (string=? "   ." (with-input-from-string "\x20\u0020\U00000020\056" read-all)))
+(assert (string=? "   ." (with-input-from-string "\x20\u0020\U00000020\056" read-string)))

@@ -2258,7 +2258,6 @@
 
 ;; utils
 
-(chicken.utils#read-all (#(procedure #:enforce) chicken.utils#read-all (#!optional (or input-port string)) string))
 (chicken.utils#system* (#(procedure #:clean #:enforce) chicken.utils#system* (string #!rest) undefined))
 (chicken.utils#qs (#(procedure #:clean #:enforce) chicken.utils#qs (string) string))
 (chicken.utils#compile-file (#(procedure #:clean #:enforce) chicken.utils#compile-file (string #!rest) (or false string)))

@@ -21,17 +21,6 @@ Similar to {{(system (sprintf FORMATSTRING ARGUMENT1 ...))}},
 but signals an error should the invoked program return a nonzero
 exit status.
 
-=== Reading a file's contents
-
-==== read-all
-
-<procedure>(read-all [FILE-OR-PORT])</procedure>
-
-If {{FILE-OR-PORT}} is a string, then this procedure returns the contents of the file
-as a string. If {{FILE-OR-PORT}} is a port, all remaining input is read and returned as
-a string. The port is not closed. If no argument is provided, input will be read from the
-port that is the current value of {{(current-input-port)}}.
-
 
 === Shell argument quoting
 

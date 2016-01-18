@@ -5,7 +5,7 @@
 
 
 (define big-string
-  (read-all (optional (command-line-arguments) "compiler.scm")))
+  (with-input-from-file (optional (command-line-arguments) "compiler.scm") read-string))
 
 (define-syntax bgrep
   (syntax-rules ()

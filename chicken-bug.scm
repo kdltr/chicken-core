@@ -70,13 +70,13 @@
   (print "\n\nchicken-config.h:\n")
   (with-input-from-file (make-pathname +c-include-path+ "chicken-config.h")
     (lambda ()
-      (display (read-all)) ) )
+      (display (read-string))))
   (newline)
   (when (and (string=? +cc+ "gcc") (feature? 'unix))
     (print "CC seems to be gcc, trying to obtain version...\n")
     (with-input-from-pipe "gcc -v 2>&1"
       (lambda ()
-	(display (read-all)))))
+	(display (read-string)))))
   (newline) )
 
 (define (usage code)
@@ -136,7 +136,7 @@ EOF
 		(string-append
 		 msg
 		 "\n\nFile added: " arg "\n\n"
-		 (read-all arg) ) ) ) ) )
+		 (with-input-from-file arg read-string))))))
      args)
     (unless files
       (set! msg (string-append msg "\n\n" (user-input))))

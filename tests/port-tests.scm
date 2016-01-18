@@ -96,7 +96,7 @@ EOF
     (get-output-string out))))
 
 ;; fill buffers
-(read-all "compiler.scm") 
+(with-input-from-file "compiler.scm" read-string)
 
 (print "slow...")
 (time

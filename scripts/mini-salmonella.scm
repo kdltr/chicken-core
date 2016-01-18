@@ -76,7 +76,7 @@
 (on-exit (lambda () (delete-file* *tmplogfile*)))
 
 (define (copy-log egg file)
-  (let ((log (read-all file)))
+  (let ((log (with-input-from-file file read-string)))
     (with-output-to-file *errlogfile*
       (lambda ()
 	(print #\newline egg #\:)
