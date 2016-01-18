@@ -629,16 +629,19 @@ EOF
 
 ;;; Environment access:
 
-(define setenv
+(define set-environment-variable!
   (lambda (var val)
-    (##sys#check-string var 'setenv)
-    (##sys#check-string val 'setenv)
-    (##core#inline "C_setenv" (##sys#make-c-string var 'setenv) (##sys#make-c-string val 'setenv))
+    (##sys#check-string var 'set-environment-variable!)
+    (##sys#check-string val 'set-environment-variable!)
+    (##core#inline "C_setenv"
+     (##sys#make-c-string var 'set-environment-variable!)
+     (##sys#make-c-string val 'set-environment-variable!))
     (##core#undefined) ) )
 
-(define (unsetenv var)
-  (##sys#check-string var 'unsetenv)
-  (##core#inline "C_unsetenv" (##sys#make-c-string var 'unsetenv))
+(define (unset-environment-variable! var)
+  (##sys#check-string var 'unset-environment-variable!)
+  (##core#inline "C_unsetenv"
+   (##sys#make-c-string var 'unset-environment-variable!))
   (##core#undefined) )
 
 (define get-environment-variables

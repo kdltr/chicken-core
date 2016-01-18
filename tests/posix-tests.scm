@@ -23,8 +23,8 @@
       (delete-file* tnpfilpn) ) ) )
 
 (assert-error (get-environment-variable "with\x00embedded-NUL"))
-(assert-error (setenv "with\x00embedded-NUL" "blabla"))
-(assert-error (setenv "blabla" "with\x00embedded-NUL"))
+(assert-error (set-environment-variable! "with\x00embedded-NUL" "blabla"))
+(assert-error (set-environment-variable! "blabla" "with\x00embedded-NUL"))
 (assert-error (system "echo this is \x00 not okay"))
 ;; Use "false" to signal to the calling script that there was an error,
 ;; even if the process will get called
@@ -51,8 +51,8 @@
   (assert (not (directory-exists? tmp-dot)))
   (assert (not (directory-exists? tmp-dir))))
 
-;; unsetenv
-(setenv "FOO" "bar")
+;; unset-environment-variable!
+(set-environment-variable! "FOO" "bar")
 (assert (equal? (get-environment-variable "FOO") "bar"))
-(unsetenv "FOO")
+(unset-environment-variable! "FOO")
 (assert (not (get-environment-variable "FOO")))

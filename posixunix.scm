@@ -74,7 +74,7 @@
    read-symbolic-link regular-file? seconds->local-time seconds->string
    seconds->utc-time seek/cur seek/end seek/set set-alarm!
    set-buffering-mode! set-groups! set-root-directory!
-   set-signal-handler! set-signal-mask! setenv signal-handler
+   set-signal-handler! set-signal-mask! signal-handler
    signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
    signal/alrm signal/break signal/chld signal/cont signal/fpe
    signal/bus signal/hup signal/ill signal/int signal/io signal/kill
@@ -83,7 +83,8 @@
    signal/usr2 signal/vtalrm signal/winch signal/xcpu signal/xfsz
    signals-list sleep block-device? character-device? fifo? socket?
    string->time symbolic-link? system-information terminal-name
-   terminal-port? terminal-size time->string unsetenv user-information
+   terminal-port? terminal-size time->string user-information
+   set-environment-variable! unset-environment-variable!
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 
 (import scheme chicken)

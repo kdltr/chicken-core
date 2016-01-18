@@ -1018,17 +1018,17 @@ These variables contain signal codes for use with {{process-signal}},  {{set-sig
 Returns a association list of the environment variables and their
 current values (see also [[http://srfi.schemers.org/srfi-98/|SRFI-98]]).
 
-==== setenv
+==== set-environment-variable!
 
-<procedure>(setenv VARIABLE VALUE)</procedure>
+<procedure>(set-environment-variable! VARIABLE VALUE)</procedure>
 
 Sets the environment variable named {{VARIABLE}} to
 {{VALUE}}. Both arguments should be strings. If the variable is
 not defined in the environment, a new definition is created.
 
-==== unsetenv
+==== unset-environment-variable!
 
-<procedure>(unsetenv VARIABLE)</procedure>
+<procedure>(unset-environment-variable! VARIABLE)</procedure>
 
 Removes the definition of the environment variable {{VARIABLE}} from
 the environment of the current process. If the variable is not defined,
@@ -1330,13 +1330,13 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{set-group-id!}} : {{setgid}}
 ; {{set-user-id!}} : {{setuid}}
 ; {{set-root-directory!}} : {{chroot}}
-; {{setenv}} : {{setenv/putenv}}
+; {{set-environment-variable!}} : {{setenv/putenv}}
 ; {{sleep}} : {{sleep}}
 ; {{system-information}} : {{uname}}
 ; {{terminal-name}} : {{ttyname}}
 ; {{terminal-port?}} : {{isatty}}
 ; {{time->string}} : {{asctime}}
-; {{unsetenv}} : {{putenv}}
+; {{unset-environment-variable!}} : {{unsetenv/putenv}}
 ; {{user-information}} : {{getpwnam/getpwuid}}
 ; {{utc-time->seconds}} : {{timegm}}
 
