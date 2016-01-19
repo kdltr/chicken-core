@@ -36,6 +36,7 @@ irregex.c
 posixunix.c
 posixwin.c
 profiler.c
+read-syntax.c
 scheduler.c
 srfi-4.c
 stub.c
@@ -91,6 +92,7 @@ posixunix.scm
 posixwin.scm
 posix-common.scm
 profiler.scm
+read-syntax.scm
 repl.scm
 runtime.c
 scheduler.scm

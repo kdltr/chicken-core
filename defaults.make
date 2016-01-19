@@ -265,9 +265,10 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 PRIMITIVE_IMPORT_LIBRARIES = chicken csi chicken.foreign
 DYNAMIC_IMPORT_LIBRARIES = setup-api setup-download srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise format gc io locative posix \
-	pretty-print random read-syntax
-DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = data-structures eval repl expand \
-	continuation files internal irregex lolevel ports tcp utils
+	pretty-print random
+DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
+	eval expand files internal irregex lolevel ports read-syntax \
+	repl tcp utils
 
 # targets
 

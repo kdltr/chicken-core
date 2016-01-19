@@ -93,7 +93,7 @@
     (chicken.pretty-print . extras)
     (chicken.tcp . tcp)
     (chicken.repl . repl)
-    (chicken.read-syntax . library)
+    (chicken.read-syntax . read-syntax)
     (chicken.utils . utils)))
 
 (define-constant core-library-units

@@ -3754,14 +3754,6 @@ EOF
 	    (else (loop lst (fxshl (hex c) 4)))))))
 
 
-;;; Read syntax:
-
-(module chicken.read-syntax
-  (copy-read-table define-reader-ctor set-read-syntax!
-   set-sharp-read-syntax! set-parameterized-read-syntax!)
-
-(import scheme chicken)
-
 ;;; Hooks for user-defined read-syntax:
 ;
 ; - Redefine this to handle new read-syntaxes. If 'char' doesn't match
@@ -3774,107 +3766,6 @@ EOF
     ((#\f #\F) (##sys#read-char-0 port) #f)
     ((#\t #\T) (##sys#read-char-0 port) #t)
     (else (##sys#read-error port "invalid sharp-sign read syntax" char) ) ) )
-
-
-;;; Table for specially handled read-syntax:
-;
-; - should be either #f or a 256-element vector containing procedures
-; - the procedure is called with two arguments, a char (peeked) and a port and should return an expression
-
-(define read-marks '())
-
-(define (##sys#set-read-mark! sym proc)
-  (let ((a (assq sym read-marks)))
-    (if a
-	(##sys#setslot a 1 proc)
-	(set! read-marks (cons (cons sym proc) read-marks)) ) ) )
-
-(define set-read-syntax!)
-(define set-sharp-read-syntax!)
-(define set-parameterized-read-syntax!)
-
-(let ((crt current-read-table))
- 
- (define ((syntax-setter loc slot wrap) chr proc)
-    (cond ((symbol? chr) (##sys#set-read-mark! chr proc))
-	  (else
-	   (let ((crt (crt)))
-	     (unless (##sys#slot crt slot)
-	       (##sys#setslot crt slot (##sys#make-vector 256 #f)) )
-	     (##sys#check-char chr loc)
-	     (let ((i (char->integer chr)))
-	       (##sys#check-range i 0 256 loc)
-              (cond (proc
-                     (##sys#check-closure proc loc)
-                     (##sys#setslot (##sys#slot crt slot) i (wrap proc)))
-                    (else
-                     (##sys#setslot (##sys#slot crt slot) i #f))))))))
- 
-  (set! set-read-syntax!
-    (syntax-setter
-     'set-read-syntax! 1 
-     (lambda (proc)
-       (lambda (_ port) 
-	 (##sys#read-char-0 port)
-	 (proc port) ) ) ) )
-
-  (set! set-sharp-read-syntax!
-    (syntax-setter
-     'set-sharp-read-syntax! 2
-     (lambda (proc)
-       (lambda (_ port) 
-	 (##sys#read-char-0 port)
-	 (proc port) ) ) ) )
-
-  (set! set-parameterized-read-syntax!
-    (syntax-setter
-     'set-parameterized-read-syntax! 3
-     (lambda (proc)
-       (lambda (_ port num)
-	 (##sys#read-char-0 port)
-	 (proc port num) ) ) ) ) )
-
-
-;;; Read-table operations:
-
-(define (copy-read-table rt)
-  (##sys#check-structure rt 'read-table 'copy-read-table)
-  (##sys#make-structure 
-   'read-table
-   (let ((t1 (##sys#slot rt 1)))
-     (and t1 (##sys#vector-resize t1 (##sys#size t1) #f) ) )
-   (let ((t2 (##sys#slot rt 2)))
-     (and t2 (##sys#vector-resize t2 (##sys#size t2) #f) ) )
-   (let ((t3 (##sys#slot rt 3)))
-     (and t3 (##sys#vector-resize t3 (##sys#size t3) #f) ) ) ))
-
-;;; SRFI-10:
-
-(define sharp-comma-reader-ctors (make-vector 301 '()))
-
-(define (define-reader-ctor spec proc)
-  (##sys#check-symbol spec 'define-reader-ctor)
-  (##sys#hash-table-set! sharp-comma-reader-ctors spec proc))
-
-(set! ##sys#user-read-hook
-  (let ((old ##sys#user-read-hook)
-	(read-char read-char)
-	(read read))
-    (lambda (char port)
-      (cond ((char=? char #\,)
-	     (read-char port)
-	     (let* ((exp (read port))
-		    (err (lambda () (##sys#read-error port "invalid sharp-comma external form" exp))))
-	       (if (or (null? exp) (not (list? exp)))
-		   (err)
-		   (let ([spec (##sys#slot exp 0)])
-		     (if (not (symbol? spec))
-			 (err)
-			 (let ((ctor (##sys#hash-table-ref sharp-comma-reader-ctors spec)))
-			   (if ctor
-			       (apply ctor (##sys#slot exp 1))
-			       (##sys#read-error port "undefined sharp-comma constructor" spec))))))))
-	    (else (old char port)))))))
 
 
 ;;; Output:
@@ -4480,7 +4371,7 @@ EOF
 	    [else	  (err x)] ) ) ) )
 
 (define ##sys#features
-  '(#:chicken #:srfi-6 #:srfi-10 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62 #:srfi-17 
+  '(#:chicken #:srfi-6 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62 #:srfi-17
 	      #:srfi-12 #:srfi-88 #:srfi-98
 	      #:irregex-is-core-unit #:full-numeric-tower))
 
