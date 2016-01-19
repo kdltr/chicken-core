@@ -1,9 +1,8 @@
 ;;;; reader-tests.scm
 
-
 (use (only io read-line read-string)
-     (only ports with-input-from-string with-output-to-string))
-
+     (only ports with-input-from-string with-output-to-string)
+     (only read-syntax set-read-syntax! set-sharp-read-syntax!))
 
 (set-sharp-read-syntax! #\& (lambda (p) (read p) (values)))
 (set-sharp-read-syntax! #\^ (lambda (p) (read p)))

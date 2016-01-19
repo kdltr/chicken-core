@@ -46,7 +46,6 @@
    condition-property-accessor
    condition?
    condition->list
-   copy-read-table
    cplxnum?
    cpu-time
    current-error-port
@@ -54,7 +53,6 @@
    current-milliseconds
    current-read-table
    current-seconds
-   (define-reader-ctor . chicken.eval#define-reader-ctor)
    delete-file
    directory-exists?
    (dynamic-load-libraries . chicken.eval#dynamic-load-libraries)
@@ -209,10 +207,7 @@
    reset-handler
    return-to-host
    reverse-list->string
-   set-parameterized-read-syntax!
    set-port-name!
-   set-read-syntax!
-   set-sharp-read-syntax!
    setter
    signal
    signum

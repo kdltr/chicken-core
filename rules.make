@@ -520,6 +520,7 @@ $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
 $(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.read-syntax,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.format,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.io,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.pretty-print,extras))
@@ -745,7 +746,8 @@ bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTION
 library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
 	-emit-import-library chicken.bitwise \
-	-emit-import-library chicken.gc
+	-emit-import-library chicken.gc \
+	-emit-import-library chicken.read-syntax
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal
 eval.c: $(SRCDIR)eval.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm

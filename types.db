@@ -943,12 +943,31 @@
 
 (condition->list (#(procedure #:clean #:enforce) condition->list ((struct condition)) (list-of (pair symbol *))))
 
+;; continuation
+
 (chicken.continuation#continuation-capture (#(procedure #:enforce) chicken.continuation#continuation-capture ((procedure ((struct continuation)) . *)) *))
 (chicken.continuation#continuation-graft (#(procedure #:clean #:enforce) chicken.continuation#continuation-graft ((struct continuation) (procedure () . *)) *))
 (chicken.continuation#continuation-return (#(procedure #:enforce) chicken.continuation#continuation-return ((struct continuation) #!rest) . *)) ;XXX make return type more specific?
 (chicken.continuation#continuation? (#(procedure #:pure #:predicate (struct continuation)) chicken.continuation#continuation? (*) boolean))
 
-(copy-read-table (#(procedure #:clean #:enforce) copy-read-table ((struct read-table)) (struct read-table)))
+;; read-syntax
+
+(chicken.read-syntax#copy-read-table (#(procedure #:clean #:enforce) chicken.read-syntax#copy-read-table ((struct read-table)) (struct read-table)))
+(chicken.read-syntax#define-reader-ctor (#(procedure #:clean #:enforce) chicken.read-syntax#define-reader-ctor (symbol procedure) undefined))
+
+(chicken.read-syntax#set-parameterized-read-syntax!
+ (#(procedure #:clean #:enforce) chicken.read-syntax#set-parameterized-read-syntax!
+  (char (or false (procedure (input-port fixnum) . *)))
+  undefined))
+
+(chicken.read-syntax#set-read-syntax!
+ (#(procedure #:clean #:enforce) chicken.read-syntax#set-read-syntax!
+  (char (or false (procedure (input-port) . *)))
+  undefined))
+
+(chicken.read-syntax#set-sharp-read-syntax!
+ (#(procedure #:clean #:enforce) chicken.read-syntax#set-sharp-read-syntax!
+  (char (or false (procedure (input-port) . *))) undefined))
 
 (cplxnum? (#(procedure #:pure #:predicate cplxnum) cplxnum? (*) boolean))
 
@@ -974,7 +993,6 @@
  (#(procedure #:clean) current-read-table (#!optional (struct read-table)) (struct read-table)))
 
 (current-seconds (#(procedure #:clean) current-seconds () integer))
-(chicken.eval#define-reader-ctor (#(procedure #:clean #:enforce) chicken.eval#define-reader-ctor (symbol procedure) undefined))
 (delete-file (#(procedure #:clean #:enforce) delete-file (string) string))
 (enable-warnings (#(procedure #:clean) enable-warnings (#!optional *) *))
 
@@ -1258,22 +1276,8 @@
 (chicken.repl#repl (#(procedure #:enforce) chicken.repl#repl (#!optional (procedure (*) . *)) undefined))
 (chicken.repl#repl-prompt (#(procedure #:clean #:enforce) chicken.repl#repl-prompt (#!optional (procedure () string)) procedure))
 
-(set-parameterized-read-syntax!
- (#(procedure #:clean #:enforce) set-parameterized-read-syntax!
-  (char (or false (procedure (input-port fixnum) . *)))
-  undefined))
-
 (set-port-name! (#(procedure #:clean #:enforce) set-port-name! (port string) undefined)
 		((port string) (##sys#setslot #(1) '3 #(2))))
-
-(set-read-syntax!
- (#(procedure #:clean #:enforce) set-read-syntax!
-  (char (or false (procedure (input-port) . *)))
-  undefined))
-
-(set-sharp-read-syntax!
- (#(procedure #:clean #:enforce) set-sharp-read-syntax!
-  (char (or false (procedure (input-port) . *))) undefined))
 
 (setter (#(procedure #:clean #:enforce) setter (procedure) procedure))
 (signal (procedure signal (*) . *))

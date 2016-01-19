@@ -66,6 +66,7 @@
       "chicken.pretty-print.import.so"
       "chicken.random.import.so"
       "chicken.repl.import.so"
+      "chicken.read-syntax.import.so"
       "chicken.tcp.import.so"
       "chicken.utils.import.so"
       "csi.import.so"

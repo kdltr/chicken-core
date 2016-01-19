@@ -1258,6 +1258,9 @@ procedure may be changed.
 
 === Reader extensions
 
+The following procedures are provided by the {{(chicken read-syntax)}}
+module.
+
 ==== define-reader-ctor
 
 <procedure>(define-reader-ctor SYMBOL PROC)</procedure>

@@ -3752,7 +3752,15 @@ EOF
 		 (loop lst h)))
 	    (h (loop (cons (integer->char (fxior h (hex c))) lst) #f))
 	    (else (loop lst (fxshl (hex c) 4)))))))
-	      
+
+
+;;; Read syntax:
+
+(module chicken.read-syntax
+  (copy-read-table define-reader-ctor set-read-syntax!
+   set-sharp-read-syntax! set-parameterized-read-syntax!)
+
+(import scheme chicken)
 
 ;;; Hooks for user-defined read-syntax:
 ;
@@ -3839,6 +3847,34 @@ EOF
      (and t2 (##sys#vector-resize t2 (##sys#size t2) #f) ) )
    (let ((t3 (##sys#slot rt 3)))
      (and t3 (##sys#vector-resize t3 (##sys#size t3) #f) ) ) ))
+
+;;; SRFI-10:
+
+(define sharp-comma-reader-ctors (make-vector 301 '()))
+
+(define (define-reader-ctor spec proc)
+  (##sys#check-symbol spec 'define-reader-ctor)
+  (##sys#hash-table-set! sharp-comma-reader-ctors spec proc))
+
+(set! ##sys#user-read-hook
+  (let ((old ##sys#user-read-hook)
+	(read-char read-char)
+	(read read))
+    (lambda (char port)
+      (cond ((char=? char #\,)
+	     (read-char port)
+	     (let* ((exp (read port))
+		    (err (lambda () (##sys#read-error port "invalid sharp-comma external form" exp))))
+	       (if (or (null? exp) (not (list? exp)))
+		   (err)
+		   (let ([spec (##sys#slot exp 0)])
+		     (if (not (symbol? spec))
+			 (err)
+			 (let ((ctor (##sys#hash-table-ref sharp-comma-reader-ctors spec)))
+			   (if ctor
+			       (apply ctor (##sys#slot exp 1))
+			       (##sys#read-error port "undefined sharp-comma constructor" spec))))))))
+	    (else (old char port)))))))
 
 
 ;;; Output:

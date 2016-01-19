@@ -948,6 +948,7 @@
 (##sys#register-module-alias 'pretty-print 'chicken.pretty-print)
 (##sys#register-module-alias 'random 'chicken.random)
 (##sys#register-module-alias 'repl 'chicken.repl)
+(##sys#register-module-alias 'read-syntax 'chicken.read-syntax)
 (##sys#register-module-alias 'tcp 'chicken.tcp)
 (##sys#register-module-alias 'utils 'chicken.utils)
 

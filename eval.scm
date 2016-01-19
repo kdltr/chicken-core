@@ -47,7 +47,7 @@
 <#
 
 (module chicken.eval
-  (chicken-home define-reader-ctor dynamic-load-libraries
+  (chicken-home dynamic-load-libraries
    eval eval-handler extension-information
    load load-library load-noisily load-relative load-verbose
    interaction-environment null-environment scheme-report-environment
@@ -93,6 +93,7 @@
     (chicken.pretty-print . extras)
     (chicken.tcp . tcp)
     (chicken.repl . repl)
+    (chicken.read-syntax . library)
     (chicken.utils . utils)))
 
 (define-constant core-library-units
@@ -1430,35 +1431,6 @@
 					"/"
 					fname) ) )
 		  (else (loop (##sys#slot paths 1))) ) ) ) ) ) )
-
-
-;;; SRFI-10:
-
-(define sharp-comma-reader-ctors (make-vector 301 '()))
-
-(define (define-reader-ctor spec proc)
-  (##sys#check-symbol spec 'define-reader-ctor)
-  (##sys#hash-table-set! sharp-comma-reader-ctors spec proc))
-
-(set! ##sys#user-read-hook
-  (let ((old ##sys#user-read-hook)
-	(read-char read-char)
-	(read read) )
-    (lambda (char port)
-      (cond ((char=? char #\,)
-	     (read-char port)
-	     (let* ((exp (read port))
-		    (err (lambda () (##sys#read-error port "invalid sharp-comma external form" exp))) )
-	       (if (or (null? exp) (not (list? exp)))
-		   (err)
-		   (let ([spec (##sys#slot exp 0)])
-		     (if (not (symbol? spec))
-			 (err) 
-			 (let ((ctor (##sys#hash-table-ref sharp-comma-reader-ctors spec)))
-			   (if ctor
-			       (apply ctor (##sys#slot exp 1))
-			       (##sys#read-error port "undefined sharp-comma constructor" spec) ) ) ) ) ) ) )
-	    (else (old char port)) ) ) ) )
 
 ) ; eval module
 
