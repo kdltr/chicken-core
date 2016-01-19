@@ -939,8 +939,6 @@
   (rewrite 'call-with-current-continuation 8 rewrite-call/cc)
   (rewrite 'call/cc 8 rewrite-call/cc) )
 
-(declare (hide setter-map))
-
 (define setter-map
   '((car . set-car!)
     (cdr . set-cdr!)

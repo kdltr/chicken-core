@@ -31,12 +31,12 @@
   (disable-interrupts)
   (hide ##sys#dynamic-unwind
 	##sys#vector-resize ##sys#default-parameter-vector 
-	current-print-length setter-tag read-marks
+	current-print-length setter-tag
 	##sys#print-exit
 	##sys#format-here-doc-warning
 	exit-in-progress
         maximal-string-length find-ratio-between find-ratio
-	make-complex flonum->ratnum ratnum rat+/-
+	make-complex flonum->ratnum ratnum
 	+maximum-allowed-exponent+ mantexp->dbl ldexp round-quotient
 	##sys#string->compnum ##sys#internal-gcd)
   (not inline ##sys#user-read-hook ##sys#error-hook ##sys#signal-hook ##sys#schedule

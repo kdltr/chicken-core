@@ -31,10 +31,10 @@
   (disable-interrupts)
   (hide ready-queue-head ready-queue-tail ##sys#timeout-list
 	##sys#update-thread-state-buffer ##sys#restore-thread-state-buffer
-	remove-from-ready-queue ##sys#unblock-threads-for-i/o
+	##sys#unblock-threads-for-i/o
 	;; This isn't hidden ATM to allow set!ing it as a hook/workaround
 	; ##sys#force-primordial
-	fdset-set fdset-test create-fdset stderr delq
+	remove-from-ready-queue fdset-test create-fdset stderr delq
 	##sys#clear-i/o-state-for-thread! ##sys#abandon-mutexes) 
   (not inline ##sys#interrupt-hook ##sys#force-primordial)
   (unsafe)

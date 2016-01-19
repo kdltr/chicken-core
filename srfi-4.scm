@@ -636,8 +636,6 @@ EOF
 
 ;;; Accessing the packed bytevector:
 
-(declare (hide pack pack-copy unpack unpack-copy))
-
 (define (pack tag loc)
   (lambda (v)
     (##sys#check-structure v tag loc)
@@ -765,8 +763,6 @@ EOF
 
 
 ;;; Subvectors:
-
-(declare (hide subnvector))
 
 (define (subnvector v t es from to loc)
   (##sys#check-structure v t loc)
