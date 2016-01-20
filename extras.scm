@@ -90,24 +90,16 @@
 				(loop (fx+ i 1)) ] ) ) ) ) ) ) ) ) ) ) ) )
 
 (define read-lines
-  (lambda port-and-max
-    (let* ((port (if (pair? port-and-max) (##sys#slot port-and-max 0) ##sys#standard-input))
-	   (rest (and (pair? port-and-max) (##sys#slot port-and-max 1)))
-	   (max (if (pair? rest) (##sys#slot rest 0) #f)) )
-      (define (doread port)
-	(let loop ((lns '())
-		   (n (or max 1000000000)) ) ; this is silly
-	  (if (eq? n 0)
-	      (##sys#fast-reverse lns)
-	      (let ((ln (read-line port)))
-		(if (eof-object? ln)
-		    (##sys#fast-reverse lns)
-		    (loop (cons ln lns) (fx- n 1)) ) ) ) ) )
-      (if (string? port)
-	  (call-with-input-file port doread)
-	  (begin
-	    (##sys#check-input-port port #t 'read-lines)
-	    (doread port) ) ) ) ) )
+  (lambda (#!optional (port ##sys#standard-input) (max most-positive-fixnum))
+    (##sys#check-input-port port #t 'read-lines)
+    (let loop ((lns '())
+	       (n (or max 1000000000))) ; this is silly
+      (if (or (eq? n 0))
+	  (##sys#fast-reverse lns)
+	  (let ((ln (read-line port)))
+	    (if (eof-object? ln)
+		(##sys#fast-reverse lns)
+		(loop (cons ln lns) (fx- n 1))))))))
 
 (define write-line
   (lambda (str . port)
