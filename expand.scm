@@ -44,7 +44,8 @@
    er-macro-transformer
    ir-macro-transformer)
 
-(import scheme chicken)
+(import scheme chicken
+	chicken.keyword)
 
 (include "common-declarations.scm")
 

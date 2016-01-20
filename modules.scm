@@ -39,6 +39,8 @@
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
+(import chicken.keyword)
+
 (define-alias dd d)
 (define-alias dm d)
 (define-alias dx d)
@@ -941,6 +943,7 @@
 (##sys#register-module-alias 'gc 'chicken.gc)
 (##sys#register-module-alias 'io 'chicken.io)
 (##sys#register-module-alias 'irregex 'chicken.irregex)
+(##sys#register-module-alias 'keyword 'chicken.keyword)
 (##sys#register-module-alias 'locative 'chicken.locative)
 (##sys#register-module-alias 'lolevel 'chicken.lolevel)
 (##sys#register-module-alias 'ports 'chicken.ports)

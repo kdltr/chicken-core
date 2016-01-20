@@ -151,7 +151,7 @@
     void flush-output print print* error call/cc blob-size
     identity blob=? equal=? make-polar make-rectangular real-part imag-part
     string->symbol symbol-append foldl foldr setter
-    current-error-port current-thread get-keyword
+    current-error-port current-thread chicken.keyword#get-keyword
     srfi-4#u8vector-length srfi-4#s8vector-length
     srfi-4#u16vector-length srfi-4#s16vector-length
     srfi-4#u32vector-length srfi-4#u64vector-length
@@ -1033,7 +1033,7 @@
 (rewrite 'chicken.data-structures#substring-index 23 2 '##sys#substring-index 0)
 (rewrite 'chicken.data-structures#substring-index-ci 23 2 '##sys#substring-index-ci 0)
 
-(rewrite 'get-keyword 7 2 "C_i_get_keyword" #f #t)
+(rewrite 'chicken.keyword#get-keyword 7 2 "C_i_get_keyword" #f #t)
 (rewrite '##sys#get-keyword 7 2 "C_i_get_keyword" #f #t)
 
 )

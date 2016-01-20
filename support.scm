@@ -81,6 +81,7 @@
 	chicken.files
 	chicken.foreign
 	chicken.format
+	chicken.keyword
 	chicken.io
 	chicken.ports
 	chicken.pretty-print

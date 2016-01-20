@@ -150,7 +150,6 @@
    get-call-chain
    get-condition-property
    get-environment-variable
-   get-keyword
    (get-line-number . chicken.expand#get-line-number)
    get-output-string
    get-properties
@@ -158,9 +157,7 @@
    implicit-exit-handler
    infinite?
    (ir-macro-transformer . chicken.expand#ir-macro-transformer)
-   keyword->string
    keyword-style
-   keyword?
    (load-library . chicken.eval#load-library)
    (load-noisily . chicken.eval#load-noisily)
    (load-relative . chicken.eval#load-relative)
@@ -215,7 +212,6 @@
    software-type
    software-version
    string->blob
-   string->keyword
    string->uninterned-symbol
    (strip-syntax . chicken.expand#strip-syntax)
    sub1

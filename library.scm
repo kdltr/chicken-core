@@ -2041,6 +2041,11 @@ EOF
 
 ;;; Keywords:
 
+(module chicken.keyword
+  (keyword? get-keyword keyword->string string->keyword)
+
+(import scheme chicken)
+
 (define (keyword? x)
   (and (symbol? x) (fx= 0 (##sys#byte (##sys#slot x 1) 0))) )
 
@@ -2066,7 +2071,7 @@ EOF
 	    (and thunk (thunk))
 	    r)))))
 
-(define ##sys#get-keyword get-keyword)
+(define ##sys#get-keyword get-keyword))
 
 
 ;;; Blob:
@@ -4365,10 +4370,10 @@ EOF
 	  (##sys#string-append s "-")
 	  "") )
     (lambda (x)
-      (cond [(string? x)  (string->keyword x)]
-	    [(keyword? x) x]
-	    [(symbol? x)  (string->keyword (##sys#symbol->string x))]
-	    [else	  (err x)] ) ) ) )
+      (cond ((chicken.keyword#keyword? x) x)
+	    ((string? x) (chicken.keyword#string->keyword x))
+	    ((symbol? x) (chicken.keyword#string->keyword (##sys#symbol->string x)))
+	    (else (err x))))))
 
 (define ##sys#features
   '(#:chicken #:srfi-6 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62 #:srfi-17

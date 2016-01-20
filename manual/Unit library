@@ -492,6 +492,9 @@ syntax, either compatible to Common LISP, or to DSSSL.  As long as this
 parameter is set to {{#:suffix}}, CHICKEN conforms to
 [[http://srfi.schemers.org/srfi-88/srfi-88.html|SRFI-88]].
 
+The following procedures are provided by the {{(chicken keyword)}}
+module.
+
 
 ==== get-keyword
 

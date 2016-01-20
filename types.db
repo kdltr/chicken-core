@@ -1185,9 +1185,15 @@
 (get-call-chain (#(procedure #:clean #:enforce) get-call-chain (#!optional fixnum (struct thread)) (list-of vector)))
 (get-condition-property (#(procedure #:clean #:enforce) get-condition-property ((struct condition) symbol symbol #!optional *) *))
 (get-environment-variable (#(procedure #:clean #:enforce) get-environment-variable (string) *))
-(get-keyword (#(procedure #:clean #:enforce) get-keyword (symbol list #!optional *) *))
 (get-output-string (#(procedure #:clean #:enforce) get-output-string (output-port) string))
 (get-properties (#(procedure #:clean #:enforce) get-properties (symbol list) symbol * list))
+
+;; keyword
+
+(chicken.keyword#get-keyword (#(procedure #:clean #:enforce) chicken.keyword#get-keyword (symbol list #!optional *) *))
+(chicken.keyword#keyword->string (#(procedure #:clean #:enforce) chicken.keyword#keyword->string (symbol) string))
+(chicken.keyword#keyword? (#(procedure #:pure) chicken.keyword#keyword? (*) boolean))
+(chicken.keyword#string->keyword (#(procedure #:clean #:enforce) chicken.keyword#string->keyword (string) symbol))
 
 (getter-with-setter
  (#(procedure #:clean #:enforce)
@@ -1204,9 +1210,7 @@
   ((procedure (* (procedure (*) *) (procedure (* *) *)) *))
   (struct transformer)))
 
-(keyword->string (#(procedure #:clean #:enforce) keyword->string (symbol) string))
 (keyword-style (#(procedure #:clean) keyword-style (#!optional symbol) symbol))
-(keyword? (#(procedure #:pure) keyword? (*) boolean))
 (chicken.eval#load-library (#(procedure #:enforce) chicken.eval#load-library (symbol #!optional string) undefined))
 (chicken.eval#load-relative (#(procedure #:enforce) chicken.eval#load-relative (string #!optional (procedure (*) . *)) undefined))
 (chicken.eval#load-verbose (#(procedure #:clean) chicken.eval#load-verbose (#!optional *) *))
@@ -1294,7 +1298,6 @@
 (software-type (#(procedure #:pure) software-type () symbol))
 (software-version (#(procedure #:pure) software-version () symbol))
 (string->blob (#(procedure #:clean #:enforce) string->blob (string) blob))
-(string->keyword (#(procedure #:clean #:enforce) string->keyword (string) symbol))
 (string->uninterned-symbol (#(procedure #:clean #:enforce) string->uninterned-symbol (string) symbol))
 (chicken.expand#strip-syntax (#(procedure #:clean) chicken.expand#strip-syntax (*) *))
 

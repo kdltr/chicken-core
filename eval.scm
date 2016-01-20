@@ -59,6 +59,7 @@
 
 (import chicken.internal
 	chicken.expand
+	chicken.keyword
 	chicken.foreign)
 
 (include "common-declarations.scm")
@@ -86,6 +87,7 @@
     (chicken.internal . internal)
     (chicken.io . extras)
     (chicken.irregex . irregex)
+    (chicken.keyword . library)
     (chicken.locative . lolevel)
     (chicken.lolevel . lolevel)
     (chicken.ports . ports)

@@ -270,6 +270,8 @@ chicken.io.import.scm
 chicken.io.import.c
 chicken.irregex.import.scm
 chicken.irregex.import.c
+chicken.keyword.import.scm
+chicken.keyword.import.c
 chicken.locative.import.scm
 chicken.locative.import.c
 chicken.lolevel.import.scm

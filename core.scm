@@ -325,6 +325,7 @@
 	chicken.foreign
 	chicken.format
 	chicken.io
+	chicken.keyword
 	chicken.pretty-print)
 
 (define (d arg1 . more)

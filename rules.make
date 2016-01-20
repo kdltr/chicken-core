@@ -520,6 +520,7 @@ $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
 $(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.keyword,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.format,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.io,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.pretty-print,extras))
@@ -569,6 +570,7 @@ core.c: core.scm mini-srfi-1.scm \
 		chicken.expand.import.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
+		chicken.keyword.import.scm \
 		chicken.pretty-print.import.scm
 optimizer.c: optimizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
@@ -603,10 +605,13 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
+		chicken.keyword.import.scm \
 		chicken.io.import.scm \
 		chicken.ports.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.random.import.scm
+modules.c: modules.scm \
+		chicken.keyword.import.scm
 csc.c: csc.scm \
 		chicken.posix.import.scm \
 		chicken.data-structures.import.scm \
@@ -707,12 +712,15 @@ posixwin.c: posixwin.scm \
 		chicken.ports.import.scm
 data-structures.c: data-structures.scm \
 		chicken.foreign.import.scm
+expand.c: expand.scm \
+		chicken.keyword.import.scm
 extras.c: extras.scm \
 		chicken.data-structures.import.scm
 eval.c: eval.scm \
 		chicken.expand.import.scm \
 		chicken.foreign.import.scm \
-		chicken.internal.import.scm
+		chicken.internal.import.scm \
+		chicken.keyword.import.scm
 repl.c: repl.scm \
 		chicken.eval.import.scm
 files.c: files.scm \
@@ -745,7 +753,8 @@ bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTION
 library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
 	-emit-import-library chicken.bitwise \
-	-emit-import-library chicken.gc
+	-emit-import-library chicken.gc \
+	-emit-import-library chicken.keyword
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal
 eval.c: $(SRCDIR)eval.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
