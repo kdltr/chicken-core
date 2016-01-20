@@ -1525,9 +1525,9 @@
 
 ;; io
 
+(chicken.io#read-all (#(procedure #:enforce) chicken.io#read-all (#!optional input-port (procedure (input-port) *) fixnum) list))
 (chicken.io#read-buffered (#(procedure #:enforce) chicken.io#read-buffered (#!optional input-port) string))
 (chicken.io#read-byte (#(procedure #:enforce) chicken.io#read-byte (#!optional input-port) *))
-(chicken.io#read-file (#(procedure #:enforce) chicken.io#read-file (#!optional (or input-port string) (procedure (input-port) *) fixnum) list))
 (chicken.io#read-line (#(procedure #:enforce) chicken.io#read-line (#!optional input-port (or false fixnum)) (or eof string)))
 (chicken.io#read-lines (#(procedure #:enforce) chicken.io#read-lines (#!optional (or input-port string) fixnum) (list-of string)))
 (chicken.io#read-string (#(procedure #:enforce) chicken.io#read-string (#!optional (or fixnum false) input-port) string))

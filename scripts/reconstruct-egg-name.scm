@@ -41,7 +41,7 @@
       (current-directory cd) ) ) )
 
 (define (get-info eggnam #!optional (dir (repository-path)))
-  (car (read-file (make-pathname dir eggnam +info-extn+))) )
+  (car (call-with-input-file (make-pathname dir eggnam +info-extn+) read-all)))
 
 (define (put-info info eggnam #!optional (dir (repository-path)))
   (let ((tmpfil (create-temporary-file)))

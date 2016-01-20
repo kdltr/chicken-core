@@ -133,18 +133,17 @@ These procedures are provided by the {{(chicken io)}} module.
 Read/write a byte to the port given in {{PORT}}, which default to the values
 of {{(current-input-port)}} and {{(current-output-port)}}, respectively.
 
-==== read-file
+==== read-all
 
-<procedure>(read-file [FILE-OR-PORT [READER [MAXCOUNT]]])</procedure>
+<procedure>(read-all [PORT [READER [MAXCOUNT]]])</procedure>
 
-Returns a list containing all toplevel expressions
-read from the file or port {{FILE-OR-PORT}}. If no argument is given,
-input is read from the port that is the current value of {{(current-input-port)}}.
-After all expressions are read, and if the argument is a port, then the port will
-not be closed. The {{READER}} argument specifies the procedure used to read 
-expressions from the given file or port and defaults to {{read}}. The reader
-procedure will be called with a single argument (an input port).
-If {{MAXCOUNT}} is given then only up to {{MAXCOUNT}} expressions will be read in.
+Returns a list containing all toplevel expressions read from the given
+{{PORT}}. If no argument is given, input is read from the value of
+{{(current-input-port)}}. The {{READER}} argument specifies the
+procedure used to read expressions and defaults to {{read}}. The reader
+procedure will be called with a single argument (an input port). If
+{{MAXCOUNT}} is given then only up to {{MAXCOUNT}} expressions will be
+read in.
 
 
 ==== read-line

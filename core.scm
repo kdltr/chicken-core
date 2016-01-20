@@ -560,7 +560,7 @@
 	   (imps (##sys#compiled-module-registration (##sys#current-module)))
 	   (oldimps
 	    (and (file-exists? fname)
-		 (read-file fname) ) ) )
+		 (call-with-input-file fname read-all))))
       (cond ((equal? imps oldimps)
 	     (when verbose-mode
 	       (print "not generating import library `" fname "' for module `"

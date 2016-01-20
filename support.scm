@@ -1634,7 +1634,7 @@
 	 (##sys#put! 
 	  id '##core#db
 	  (append (or (##sys#get id '##core#db) '()) (list (cdr e))) )))
-     (read-file dbfile))))
+     (call-with-input-file dbfile read-all))))
 
 
 ;;; Print version/usage information:

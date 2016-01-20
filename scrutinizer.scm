@@ -1805,7 +1805,7 @@
 	     (mark-variable name '##compiler#type-source 'db)
 	     (when specs
 	       (install-specializations name specs)))))
-       (read-file dbfile))
+       (call-with-input-file dbfile read-all))
       #t)))
 
 (define (emit-type-file source-file type-file db block-compilation)

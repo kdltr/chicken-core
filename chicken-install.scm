@@ -192,12 +192,12 @@
 		  ((override)
 		   (set! *override* 
 		     (if (and (pair? (cdr x)) (string? (cadr x)))
-			 (read-file (cadr x))
+			 (call-with-input-file (cadr x) read-all)
 			 (cdr x))))
 		  ((hack)
 		   (set! *hacks* (append *hacks* (list (eval (cadr x))))))
 		  (else (broken x))))
-	      (read-file deff))))
+	      (call-with-input-file deff read-all))))
       (pair? *default-sources*) ))
 
   (define (resolve-location name)
@@ -777,7 +777,7 @@
     (delete-duplicates
      (filter-map
       (lambda (sf)
-	(let* ((info (first (read-file sf)))
+	(let* ((info (first (call-with-input-file sf read-all)))
 	       (v (cond ((assq 'version info) => cadr)
 			(else ""))))
 	  (cond ((assq 'egg-name info) => 
@@ -1018,7 +1018,7 @@ EOF
 			(loop (cddr args) eggs))
 		       ((string=? "-override" arg)
                         (unless (pair? (cdr args)) (usage 1))
-			(set! *override* (read-file (cadr args)))
+			(set! *override* (call-with-input-file (cadr args) read-all))
 			(loop (cddr args) eggs))
 		       ((or (string=? "-x" arg) (string=? "-keep-installed" arg))
 			(set! *keep-existing* #t)
