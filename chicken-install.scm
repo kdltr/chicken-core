@@ -118,9 +118,15 @@
   (define *hacks* '())
 
   (define (repo-path)
-    (if (and *cross-chicken* (not *host-extension*))
-	(make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
-	(repository-path)))
+    (if *deploy*
+	*prefix*
+	(if (and *cross-chicken* (not *host-extension*))
+	    (make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
+	    (if *prefix*
+		(make-pathname
+		 *prefix*
+		 (sprintf "lib/chicken/~a" (##sys#fudge 42)))
+		(repository-path)))))
 
   (define (get-prefix #!optional runtime)
     (cond ((and *cross-chicken*
@@ -208,7 +214,7 @@
         '()))
 
   (define (init-repository dir)
-    (let ((src (repository-path))
+    (let ((src (get-prefix))
           (copy (if *windows-shell*
                     "copy"
                     "cp -r")))
@@ -225,7 +231,12 @@
 		 (or (member xs ##sys#core-library-units)
 		     (member xs ##sys#core-syntax-units))))
            (chicken-version) )
-          ((extension-information x) =>
+	  ;; Duplication of (extension-information) to get custom
+	  ;; prefix.  This should be fixed.
+          ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
+		  (sf (make-pathname (repo-path) ep "setup-info")))
+	     (and (file-exists? sf)
+		  (with-input-from-file sf read))) =>
            (lambda (info)
              (let ((a (assq 'version info)))
                (if a
@@ -241,12 +252,9 @@
 
   (define (check-dependency dep)
     (cond ((or (symbol? dep) (string? dep))
-	   (values
-	    (if *deploy*
-		(->string dep)
-		(and (not (ext-version dep))
-		     (->string dep)))
-	    #f))
+	   (values (and (not (ext-version dep))
+			(->string dep))
+		   #f))
 	  ((and (list? dep) (eq? 'or (car dep)))
 	   (let scan ((ordeps (cdr dep)) (bestm #f) (bestu #f))
 	     (if (null? ordeps)
@@ -268,10 +276,8 @@
 	  ((and (list? dep) (= 2 (length dep))
 		(or (string? (car dep)) (symbol? (car dep))))
 	   (let ((v (ext-version (car dep))))
-	     (cond ((or *deploy* (not v))
-		    (values
-		     (->string (car dep))
-		     #f))
+	     (cond ((not v)
+		    (values (->string (car dep)) #f))
 		   ((not (version>=? v (->string (cadr dep))))
 		    (cond ((string=? "chicken" (->string (car dep)))
 			   (if *force*
@@ -687,7 +693,7 @@
         (remove-directory tmpdir))))
 
   (define (update-db)
-    (let* ((files (glob (make-pathname (repository-path) "*.import.*")))
+    (let* ((files (glob (make-pathname (repo-path) "*.import.*")))
            (tmpdir (create-temporary-directory))
            (dbfile (make-pathname tmpdir +module-db+))
            (rx (irregex ".*/([^/]+)\\.import\\.(scm|so)")))
@@ -721,7 +727,7 @@
         (with-output-to-file dbfile
           (lambda ()
             (for-each (lambda (x) (write x) (newline)) db)))
-        (copy-file dbfile (make-pathname (repository-path) +module-db+))
+        (copy-file dbfile (make-pathname (repo-path) +module-db+))
         (remove-directory tmpdir))))
 
   (define (apply-mappings eggs)
@@ -863,10 +869,11 @@ EOF
       (setup-proxy (get-environment-variable "http_proxy"))
       (let loop ((args args) (eggs '()))
         (cond ((null? args)
-               (cond ((and *deploy* (not *prefix*))
-		      (error 
-		       "`-deploy' only makes sense in combination with `-prefix DIRECTORY`"))
-		     (update (update-db))
+	       (when *deploy*
+		 (unless *prefix*
+		   (error
+		    "`-deploy' only makes sense in combination with `-prefix DIRECTORY`")))
+               (cond (update (update-db))
 		     (scan (scan-directory scan))
                      (else
 		      (let ((defaults (load-defaults)))
@@ -919,7 +926,7 @@ EOF
                             (string=? arg "--help"))
                         (usage 0))
                        ((string=? arg "-repository")
-                        (print (repository-path))
+                        (print (repo-path))
                         (exit 0))
                        ((string=? arg "-force")
                         (set! *force* #t)

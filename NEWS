@@ -73,6 +73,9 @@
     basic source-level debugging of compiled Scheme code.
   - A statistical profiler has been added, enabling sampling-based
     runtime profiling of compiled programs.
+  - "chicken-install"
+    - When installing eggs in deploy mode, already satisfied
+      dependencies aren't reinstalled every time (#1106).
   - "chicken-uninstall"
     - -prefix and -deploy options were added, matching chicken-install.
   - "chicken-status"
