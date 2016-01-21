@@ -73,6 +73,10 @@
     basic source-level debugging of compiled Scheme code.
   - A statistical profiler has been added, enabling sampling-based
     runtime profiling of compiled programs.
+  - "chicken-uninstall"
+    - -prefix and -deploy options were added, matching chicken-install.
+  - "chicken-status"
+    - -prefix and -deploy options were added, matching chicken-install.
 
 4.10.1
 

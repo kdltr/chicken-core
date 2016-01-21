@@ -637,7 +637,11 @@
 
 (define (remove-extension egg #!optional (repo (repository-path)))
   (and-let* ((files (assq 'files (read-info egg repo))))
-    (for-each remove-file* (cdr files)))
+    (for-each
+     (lambda (f)
+       (let ((p (if (absolute-pathname? f) f (make-pathname repo f))))
+	 (remove-file* p)))
+     (cdr files)))
   (remove-file* (make-pathname repo egg setup-file-extension)))
 
 (define ($system str)

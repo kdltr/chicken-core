@@ -43,15 +43,24 @@
 
   (define-foreign-variable C_TARGET_LIB_HOME c-string)
   (define-foreign-variable C_BINARY_VERSION int)
+  (define-foreign-variable C_TARGET_PREFIX c-string)
 
   (define *cross-chicken* (feature? #:cross-chicken))
   (define *host-extensions* *cross-chicken*)
   (define *target-extensions* *cross-chicken*)
+  (define *prefix* #f)
+  (define *deploy* #f)
 
   (define (repo-path)
-    (if (and *cross-chicken* (not *host-extensions*))
-	(make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
-	(repository-path)))
+    (if *deploy*
+	*prefix*
+	(if (and *cross-chicken* (not *host-extensions*))
+	    (make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
+	    (if *prefix*
+		(make-pathname
+		 *prefix*
+		 (sprintf "lib/chicken/~a" (##sys#fudge 42)))
+		(repository-path)))))
 
   (define (grep rx lst)
     (filter (cut irregex-search rx <>) lst))
@@ -143,13 +152,15 @@ usage: chicken-status [OPTION | PATTERN] ...
        -exact                   treat PATTERN as exact match (not a pattern)
        -host                    when cross-compiling, show status of host extensions only
        -target                  when cross-compiling, show status of target extensions only
+  -p   -prefix PREFIX           change installation prefix to PREFIX
+       -deploy                  prefix is a deployment directory
        -list                    dump installed extensions and their versions in "override" format
   -e   -eggs                    list installed eggs
 EOF
 );|
     (exit code))
 
-  (define *short-options* '(#\h #\f))
+  (define *short-options* '(#\h #\f #\p))
 
   (define (main args)
     (let ((files #f)
@@ -158,36 +169,41 @@ EOF
 	  (exact #f))
       (let loop ((args args) (pats '()))
 	(if (null? args)
-            (if (and eggs (or dump files))
-                (begin
-                  (with-output-to-port (current-error-port)
-                    (cut print "-eggs cannot be used with -list."))
-                  (exit 1))
-                (let ((status
-                       (lambda ()
-                         (let* ((patterns
-                                 (map
-                                  irregex
-                                  (cond ((null? pats) '(".*"))
-                                        (exact (map (lambda (p)
-                                                      (string-append "^" (irregex-quote p) "$"))
-                                                    pats))
-                                        (else (map ##sys#glob->regexp pats)))))
-                                (eggs/exts ((if eggs gather-eggs gather-extensions) patterns)))
-                           (if (null? eggs/exts)
-                               (display "(none)\n" (current-error-port))
-                               ((cond (eggs list-installed-eggs)
-                                      (files list-installed-files)
-                                      (else list-installed-extensions))
-                                eggs/exts))))))
-                  (cond (dump (dump-installed-versions))
-                        ((and *host-extensions* *target-extensions*)
-                         (print "host at " (repo-path) ":\n")
-                         (status)
-                         (fluid-let ((*host-extensions* #f))
-                           (print "\ntarget at " (repo-path) ":\n")
-                           (status)))
-                        (else (status)))))
+            (cond
+	     ((and eggs (or dump files))
+	      (with-output-to-port (current-error-port)
+		(cut print "-eggs cannot be used with -list."))
+	      (exit 1))
+	     ((and *deploy* (not *prefix*))
+	      (with-output-to-port (current-error-port)
+		(cut print "`-deploy' only makes sense in combination with `-prefix DIRECTORY`"))
+	      (exit 1))
+	     (else
+	      (let ((status
+		     (lambda ()
+		       (let* ((patterns
+			       (map
+				irregex
+				(cond ((null? pats) '(".*"))
+				      (exact (map (lambda (p)
+						    (string-append "^" (irregex-quote p) "$"))
+						  pats))
+				      (else (map ##sys#glob->regexp pats)))))
+			      (eggs/exts ((if eggs gather-eggs gather-extensions) patterns)))
+			 (if (null? eggs/exts)
+			     (display "(none)\n" (current-error-port))
+			     ((cond (eggs list-installed-eggs)
+				    (files list-installed-files)
+				    (else list-installed-extensions))
+			      eggs/exts))))))
+		(cond (dump (dump-installed-versions))
+		      ((and *host-extensions* *target-extensions*)
+		       (print "host at " (repo-path) ":\n")
+		       (status)
+		       (fluid-let ((*host-extensions* #f))
+			 (print "\ntarget at " (repo-path) ":\n")
+			 (status)))
+		      (else (status))))))
 	    (let ((arg (car args)))
 	      (cond ((or (string=? arg "-help") 
 			 (string=? arg "-h")
@@ -199,6 +215,18 @@ EOF
 		    ((string=? arg "-target")
 		     (set! *host-extensions* #f)
 		     (loop (cdr args) pats))
+		    ((string=? "-deploy" arg)
+		     (set! *deploy* #t)
+		     (loop (cdr args) pats))
+		    ((or (string=? arg "-p") (string=? arg "-prefix"))
+		     (unless (pair? (cdr args)) (usage 1))
+		     (set! *prefix*
+		       (let ((p (cadr args)))
+			 (if (absolute-pathname? p)
+			     p
+			     (normalize-pathname
+			      (make-pathname (current-directory) p) ) ) ) )
+		     (loop (cddr args) pats))
 		    ((string=? arg "-exact")
 		     (set! exact #t)
 		     (loop (cdr args) pats))

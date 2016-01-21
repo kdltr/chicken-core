@@ -50,11 +50,19 @@
   (define *cross-chicken* (feature? #:cross-chicken))
   (define *host-extensions* *cross-chicken*)
   (define *target-extensions* *cross-chicken*)
+  (define *prefix* #f)
+  (define *deploy* #f)
 
   (define (repo-path)
-    (if (and *cross-chicken* (not *host-extensions*))
-	(make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
-	(repository-path)))
+    (if *deploy*
+	*prefix*
+	(if (and *cross-chicken* (not *host-extensions*))
+	    (make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
+	    (if *prefix*
+		(make-pathname
+		 *prefix*
+		 (sprintf "lib/chicken/~a" (##sys#fudge 42)))
+		(repository-path)))))
 
   (define *force* #f)
 
@@ -110,21 +118,27 @@ usage: chicken-uninstall [OPTION | PATTERN] ...
        -force                   don't ask, delete whatever matches
        -exact                   treat PATTERN as exact match (not a pattern)
   -s   -sudo                    use sudo(1) for deleting files
+  -p   -prefix PREFIX           change installation prefix to PREFIX
+       -deploy                  prefix is a deployment directory
        -host                    when cross-compiling, uninstall host extensions only
        -target                  when cross-compiling, uninstall target extensions only
 EOF
 );| (sic)
     (exit code))
 
-  (define *short-options* '(#\h #\s))
+  (define *short-options* '(#\h #\s #\p))
 
   (define (main args)
     (let ((exact #f))
       (let loop ((args args) (pats '()))
 	(cond ((null? args)
 	       (when (null? pats) (usage 1))
+	       (when (and *deploy* (not *prefix*))
+		 (with-output-to-port (current-error-port)
+		   (cut print "`-deploy' only makes sense in combination with `-prefix DIRECTORY`"))
+		 (exit 1))
 	       (uninstall
-		(reverse 
+		(reverse
 		 (map
 		  (lambda (p)
 		    (if exact
@@ -155,6 +169,18 @@ EOF
 		       ((or (string=? arg "-s") (string=? arg "-sudo"))
 			(sudo-install #t)
 			(loop (cdr args) pats))
+		       ((string=? "-deploy" arg)
+			(set! *deploy* #t)
+			(loop (cdr args) pats))
+		       ((or (string=? arg "-p") (string=? arg "-prefix"))
+			(unless (pair? (cdr args)) (usage 1))
+			(set! *prefix*
+			  (let ((p (cadr args)))
+			    (if (absolute-pathname? p)
+				p
+				(normalize-pathname
+				 (make-pathname (current-directory) p) ) ) ) )
+			(loop (cddr args) pats))
 		       ((and (positive? (string-length arg))
 			     (char=? #\- (string-ref arg 0)))
 			(if (> (string-length arg) 2)
