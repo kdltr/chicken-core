@@ -76,50 +76,11 @@
    fixnum-bits
    fixnum-precision
    fixnum?
-   flonum-decimal-precision
-   flonum-epsilon
-   flonum-maximum-decimal-exponent
-   flonum-maximum-exponent
-   flonum-minimum-decimal-exponent
-   flonum-minimum-exponent
-   flonum-precision
-   flonum-print-precision
-   flonum-radix
    flonum?
    flush-output
    foldl
    foldr
    force-finalizers
-   fp-
-   fp*
-   fp/
-   fp+
-   fp<
-   fp<=
-   fp=
-   fp>
-   fp>=
-   fpabs
-   fpacos
-   fpasin
-   fpatan
-   fpatan2
-   fpexp
-   fpexpt
-   fpfloor
-   fpceiling
-   fpcos
-   fpinteger?
-   fplog
-   fpgcd
-   fpmax
-   fpmin
-   fpneg
-   fpround
-   fpsin
-   fpsqrt
-   fptan
-   fptruncate
    fx-
    fx*
    fx/
@@ -169,8 +130,6 @@
    make-parameter
    make-promise
    make-property-condition
-   maximum-flonum
-   minimum-flonum
    module-environment
    most-negative-fixnum
    most-positive-fixnum

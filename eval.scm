@@ -81,6 +81,7 @@
     (chicken.eval . eval)
     (chicken.expand . expand)
     (chicken.files . files)
+    (chicken.flonum . library)
     (chicken.foreign . chicken-ffi-syntax)
     (chicken.format . extras)
     (chicken.gc . library)

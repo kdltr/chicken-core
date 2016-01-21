@@ -799,6 +799,18 @@ EOF
 (define (fx*? x y) (##core#inline "C_i_o_fixnum_times" x y) )
 (define (fx/? x y) (##core#inline "C_i_o_fixnum_quotient" x y) )
 
+(define (flonum? x) (##core#inline "C_i_flonump" x))
+(define (bignum? x) (##core#inline "C_i_bignump" x))
+(define (ratnum? x) (##core#inline "C_i_ratnump" x))
+(define (cplxnum? x) (##core#inline "C_i_cplxnump" x))
+
+(define (finite? x) (##core#inline "C_i_finitep" x))
+(define (infinite? x) (##core#inline "C_i_infinitep" x))
+(define (nan? x) (##core#inline "C_i_nanp" x))
+
+(module chicken.flonum *
+(import chicken scheme chicken.foreign)
+
 (define maximum-flonum (foreign-value "DBL_MAX" double))
 (define minimum-flonum (foreign-value "DBL_MIN" double))
 (define flonum-radix (foreign-value "FLT_RADIX" int))
@@ -809,15 +821,6 @@ EOF
 (define flonum-minimum-exponent (foreign-value "DBL_MIN_EXP" int))
 (define flonum-maximum-decimal-exponent (foreign-value "DBL_MAX_10_EXP" int))
 (define flonum-minimum-decimal-exponent (foreign-value "DBL_MIN_10_EXP" int))
-
-(define (flonum? x) (##core#inline "C_i_flonump" x))
-(define (bignum? x) (##core#inline "C_i_bignump" x))
-(define (ratnum? x) (##core#inline "C_i_ratnump" x))
-(define (cplxnum? x) (##core#inline "C_i_cplxnump" x))
-
-(define (finite? x) (##core#inline "C_i_finitep" x))
-(define (infinite? x) (##core#inline "C_i_infinitep" x))
-(define (nan? x) (##core#inline "C_i_nanp" x))
 
 (define-inline (fp-check-flonum x loc)
   (unless (flonum? x)
@@ -899,10 +902,6 @@ EOF
   (fp-check-flonum x 'fpceiling)
   (##core#inline_allocate ("C_a_i_flonum_ceiling" 4) x))
 
-(define ##sys#floor fpfloor) ;XXX needed for backwards compatibility with "numbers" egg (really?)
-(define ##sys#truncate fptruncate)
-(define ##sys#ceiling fpceiling)
-
 (define (fpsin x)
   (fp-check-flonum x 'fpsin)
   (##core#inline_allocate ("C_a_i_flonum_sin" 4) x))
@@ -955,6 +954,13 @@ EOF
   (fp-check-flonum x 'fpinteger?)
   (##core#inline "C_u_i_fpintegerp" x))
 
+(define (flonum-print-precision #!optional prec)
+  (let ((prev (##core#inline "C_get_print_precision")))
+    (when prec
+      (##sys#check-fixnum prec 'flonum-print-precision)
+      (##core#inline "C_set_print_precision" prec))
+    prev)))
+
 (define-inline (integer-negate x)
   (##core#inline_allocate ("C_s_a_u_i_integer_negate" 6) x))
 
@@ -992,7 +998,7 @@ EOF
 (define-inline (%cplxnum-imag c) (##sys#slot c 2))
 
 (define (make-complex r i)
-  (if (or (eq? i 0) (and (##core#inline "C_i_flonump" i) (fp= i 0.0)))
+  (if (or (eq? i 0) (and (##core#inline "C_i_flonump" i) (chicken.flonum#fp= i 0.0)))
       r
       (##sys#make-structure '##sys#cplxnum
 			    (if (inexact? i) (exact->inexact r) r)
@@ -1086,7 +1092,7 @@ EOF
 (define (flonum->ratnum x)
   ;; Try to multiply by two until we reach an integer
   (define (float-fraction-length x)
-    (do ((x x (fp* x 2.0))
+    (do ((x x (chicken.flonum#fp* x 2.0))
          (i 0 (fx+ i 1)))
         ((##core#inline "C_u_i_fpintegerp" x) i)))
 
@@ -1097,12 +1103,12 @@ EOF
           (##sys#/-2 (##sys#/-2 (%flo->int scaled-y) q) d)
           (##sys#error-bad-inexact x 'inexact->exact))))
 
-  (if (and (fp< x 1.0)         ; Watch out for denormalized numbers
-           (fp> x -1.0))       ; XXX: Needs a test, it seems pointless
-      (deliver (* x (expt 2.0 flonum-precision))
+  (if (and (chicken.flonum#fp< x 1.0)         ; Watch out for denormalized numbers
+           (chicken.flonum#fp> x -1.0))       ; XXX: Needs a test, it seems pointless
+      (deliver (* x (expt 2.0 chicken.flonum#flonum-precision))
                ;; Can be bignum (is on 32-bit), so must wait until after init.
                ;; We shouldn't need to calculate this every single time, tho..
-               (##sys#integer-power 2 flonum-precision))
+               (##sys#integer-power 2 chicken.flonum#flonum-precision))
       (deliver x 1)))
 
 (define (inexact->exact x)
@@ -1158,7 +1164,7 @@ EOF
            (make-complex x y) ))
         ((or (##core#inline "C_i_flonump" x) (##core#inline "C_i_flonump" y))
          ;; This may be incorrect when one is a ratnum consisting of bignums
-         (fp/ (exact->inexact x) (exact->inexact y)))
+         (chicken.flonum#fp/ (exact->inexact x) (exact->inexact y)))
         ((ratnum? x)
          (if (ratnum? y)
              ;; a/b / c/d = a*d / b*c  [generic]
@@ -1196,7 +1202,7 @@ EOF
 
 (define (floor x)
   (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (fpfloor x))
+        ((##core#inline "C_i_flonump" x) (chicken.flonum#fpfloor x))
         ;; (floor x) = greatest integer <= x
         ((ratnum? x) (let* ((n (%ratnum-numerator x))
                             (q (quotient n (%ratnum-denominator x))))
@@ -1205,7 +1211,7 @@ EOF
 
 (define (ceiling x)
   (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (fpceiling x))
+        ((##core#inline "C_i_flonump" x) (chicken.flonum#fpceiling x))
         ;; (ceiling x) = smallest integer >= x
         ((ratnum? x) (let* ((n (%ratnum-numerator x))
                             (q (quotient n (%ratnum-denominator x))))
@@ -1214,7 +1220,7 @@ EOF
 
 (define (truncate x)
   (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (fptruncate x))
+        ((##core#inline "C_i_flonump" x) (chicken.flonum#fptruncate x))
         ;; (rational-truncate x) = integer of largest magnitude <= (abs x)
         ((ratnum? x) (quotient (%ratnum-numerator x)
 			       (%ratnum-denominator x)))
@@ -1350,7 +1356,7 @@ EOF
 ;; General case: sin^{-1}(z) = -i\ln(iz + \sqrt{1-z^2})
 (define (asin n)
   (##sys#check-number n 'asin)
-  (cond ((and (##core#inline "C_i_flonump" n) (fp>= n -1.0) (fp<= n 1.0))
+  (cond ((and (##core#inline "C_i_flonump" n) (chicken.flonum#fp>= n -1.0) (chicken.flonum#fp<= n 1.0))
          (##core#inline_allocate ("C_a_i_asin" 4) n))
         ((and (##core#inline "C_fixnump" n) (fx>= n -1) (fx<= n 1))
          (##core#inline_allocate ("C_a_i_asin" 4)
@@ -1367,7 +1373,7 @@ EOF
   (let ((asin1 (##core#inline_allocate ("C_a_i_asin" 4) 1)))
     (lambda (n)
       (##sys#check-number n 'acos)
-      (cond ((and (##core#inline "C_i_flonump" n) (fp>= n -1.0) (fp<= n 1.0))
+      (cond ((and (##core#inline "C_i_flonump" n) (chicken.flonum#fp>= n -1.0) (chicken.flonum#fp<= n 1.0))
              (##core#inline_allocate ("C_a_i_acos" 4) n))
             ((and (##core#inline "C_fixnump" n) (fx>= n -1) (fx<= n 1))
              (##core#inline_allocate ("C_a_i_acos" 4)
@@ -1635,12 +1641,13 @@ EOF
   (if (not (negative? point))
       (exact->inexact (* mant (##sys#integer-power 10 point)))
       (let* ((scl (##sys#integer-power 10 (abs point)))
-	     (bex (fx- (fx- (chicken.bitwise#integer-length mant) (chicken.bitwise#integer-length scl))
-                       flonum-precision)))
+	     (bex (fx- (fx- (chicken.bitwise#integer-length mant)
+			    (chicken.bitwise#integer-length scl))
+                       chicken.flonum#flonum-precision)))
         (if (fx< bex 0)
             (let* ((num (chicken.bitwise#arithmetic-shift mant (fxneg bex)))
                    (quo (round-quotient num scl)))
-              (cond ((> (chicken.bitwise#integer-length quo) flonum-precision)
+              (cond ((> (chicken.bitwise#integer-length quo) chicken.flonum#flonum-precision)
                      ;; Too many bits of quotient; readjust
                      (set! bex (fx+ 1 bex))
                      (set! quo (round-quotient num (* scl 2)))))
@@ -1889,13 +1896,6 @@ EOF
 (define ##sys#flonum->string (##core#primitive "C_flonum_to_string"))
 (define ##sys#integer->string (##core#primitive "C_integer_to_string"))
 (define ##sys#number->string number->string)
-
-(define (flonum-print-precision #!optional prec)
-  (let ([prev (##core#inline "C_get_print_precision")])
-    (when prec
-      (##sys#check-fixnum prec 'flonum-print-precision)
-      (##core#inline "C_set_print_precision" prec) )
-    prev ) )
 
 (define (equal=? x y)
   (define (compare-slots x y start)

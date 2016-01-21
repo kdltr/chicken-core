@@ -44,6 +44,7 @@
 	chicken.compiler.core
 	chicken.compiler.c-platform
 	chicken.compiler.support
+	chicken.flonum
 	chicken.foreign
 	chicken.internal)
 

@@ -43,6 +43,7 @@ for x in \
     chicken.continuation.import.so \
     chicken.data-structures.import.so \
     chicken.files.import.so \
+    chicken.flonum.import.so \
     chicken.foreign.import.so \
     chicken.format.import.so \
     chicken.gc.import.so \

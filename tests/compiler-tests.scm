@@ -1,7 +1,7 @@
 ;;;; compiler-tests.scm
 
 
-(import bitwise foreign srfi-4)
+(import bitwise flonum foreign srfi-4)
 (import-for-syntax data-structures expand)
 
 ;; test dropping of previous toplevel assignments

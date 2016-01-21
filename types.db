@@ -493,7 +493,7 @@
 (gcd (#(procedure #:clean #:enforce #:foldable) gcd (#!rest (or integer float)) (or integer float))
      (() '0)
      ((fixnum fixnum) (fixnum) (fxgcd #(1) #(2)))
-     ((float float) (float) (fpgcd #(1) #(2)))
+     ((float float) (float) (chicken.flonum#fpgcd #(1) #(2)))
      ((integer integer) (integer)
       (##core#inline_allocate ("C_s_a_u_i_integer_gcd" 6) #(1) #(2)))
      ((* *) (##sys#gcd #(1) #(2))))
@@ -1022,6 +1022,13 @@
 (file-exists? (#(procedure #:clean #:enforce) file-exists? (string) (or false string)))
 (directory-exists? (#(procedure #:clean #:enforce) directory-exists? (string) (or false string)))
 
+(flush-output (#(procedure #:enforce) flush-output (#!optional output-port) undefined))
+
+(foldl (forall (a b) (#(procedure #:enforce) foldl ((procedure (a b) a) a (list-of b)) a)))
+(foldr (forall (a b) (#(procedure #:enforce) foldr ((procedure (a b) b) b (list-of a)) b)))
+
+(force-finalizers (procedure force-finalizers () undefined))
+
 (nan? (#(procedure #:clean #:enforce #:foldable) nan? (number) boolean)
       (((or integer ratnum)) (let ((#(tmp) #(1))) '#f))
       ((float) (##core#inline "C_u_i_flonum_nanp" #(1)))
@@ -1041,115 +1048,108 @@
 (fixnum-precision fixnum)
 
 (fixnum? (#(procedure #:pure #:predicate fixnum) fixnum? (*) boolean))
-
-(flonum-decimal-precision fixnum)
-(flonum-epsilon float)
-(flonum-maximum-decimal-exponent fixnum)
-(flonum-maximum-exponent fixnum)
-(flonum-minimum-decimal-exponent fixnum)
-(flonum-minimum-exponent fixnum)
-(flonum-precision fixnum)
-(flonum-print-precision (#(procedure #:clean #:enforce) (#!optional fixnum) fixnum))
-(flonum-radix fixnum)
-
 (flonum? (#(procedure #:pure #:predicate float) flonum? (*) boolean))
 
-(flush-output (#(procedure #:enforce) flush-output (#!optional output-port) undefined))
+;; flonum
 
-(foldl (forall (a b) (#(procedure #:enforce) foldl ((procedure (a b) a) a (list-of b)) a)))
-(foldr (forall (a b) (#(procedure #:enforce) foldr ((procedure (a b) b) b (list-of a)) b)))
+(chicken.flonum#flonum-decimal-precision fixnum)
+(chicken.flonum#flonum-epsilon float)
+(chicken.flonum#flonum-maximum-decimal-exponent fixnum)
+(chicken.flonum#flonum-maximum-exponent fixnum)
+(chicken.flonum#flonum-minimum-decimal-exponent fixnum)
+(chicken.flonum#flonum-minimum-exponent fixnum)
+(chicken.flonum#flonum-precision fixnum)
+(chicken.flonum#flonum-print-precision (#(procedure #:clean #:enforce) chicken.flonum#flonum-print-precision (#!optional fixnum) fixnum))
+(chicken.flonum#flonum-radix fixnum)
 
-(force-finalizers (procedure force-finalizers () undefined))
-
-(fp- (#(procedure #:clean #:enforce #:foldable) fp- (float float) float)
+(chicken.flonum#fp- (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp- (float float) float)
      ((float float) (##core#inline_allocate ("C_a_i_flonum_difference" 4) #(1) #(2)) ))
 
-(fp* (#(procedure #:clean #:enforce #:foldable) fp* (float float) float)
+(chicken.flonum#fp* (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp* (float float) float)
      ((float float) (##core#inline_allocate ("C_a_i_flonum_times" 4) #(1) #(2)) ))
 
-(fp/ (#(procedure #:clean #:enforce #:foldable) fp/ (float float) float)
+(chicken.flonum#fp/ (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp/ (float float) float)
      ((float float) (##core#inline_allocate ("C_a_i_flonum_quotient" 4) #(1) #(2)) ))
 
-(fpgcd (#(procedure #:clean #:enforce #:foldable) fpgcd (float float) float)
+(chicken.flonum#fpgcd (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpgcd (float float) float)
        ((float float) (##core#inline_allocate ("C_a_i_flonum_gcd" 4) #(1) #(2)) ))
 
-(fp+ (#(procedure #:clean #:enforce #:foldable) fp+ (float float) float)
+(chicken.flonum#fp+ (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp+ (float float) float)
      ((float float) (##core#inline_allocate ("C_a_i_flonum_plus" 4) #(1) #(2)) ))
 
-(fp< (#(procedure #:clean #:enforce #:foldable) fp< (float float) boolean)
+(chicken.flonum#fp< (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp< (float float) boolean)
      ((float float) (##core#inline "C_flonum_lessp" #(1) #(2)) ))
 
-(fp<= (#(procedure #:clean #:enforce #:foldable) fp<= (float float) boolean)
+(chicken.flonum#fp<= (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp<= (float float) boolean)
       ((float float) (##core#inline "C_flonum_less_or_equal_p" #(1) #(2)) ))
 
-(fp= (#(procedure #:clean #:enforce #:foldable) fp= (float float) boolean)
+(chicken.flonum#fp= (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp= (float float) boolean)
      ((float float) (##core#inline "C_flonum_equalp" #(1) #(2)) ))
 
-(fp> (#(procedure #:clean #:enforce #:foldable) fp> (float float) boolean)
+(chicken.flonum#fp> (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp> (float float) boolean)
      ((float float) (##core#inline "C_flonum_greaterp" #(1) #(2)) ))
 
-(fp>= (#(procedure #:clean #:enforce #:foldable) fp>= (float float) boolean)
+(chicken.flonum#fp>= (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fp>= (float float) boolean)
       ((float float) (##core#inline "C_flonum_greater_or_equal_p" #(1) #(2)) ))
 
-(fpabs (#(procedure #:clean #:enforce #:foldable) fpabs (float) float)
+(chicken.flonum#fpabs (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpabs (float) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_abs" 4) #(1) )))
 
-(fpacos (#(procedure #:clean #:enforce #:foldable) fpacos (float) float)
+(chicken.flonum#fpacos (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpacos (float) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_acos" 4) #(1) )))
 
-(fpasin (#(procedure #:clean #:enforce #:foldable) fpasin (float) float)
+(chicken.flonum#fpasin (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpasin (float) float)
 	((float) (##core#inline_allocate ("C_a_i_flonum_asin" 4) #(1) )))
 
-(fpatan (#(procedure #:clean #:enforce #:foldable) fpatan (float) float)
+(chicken.flonum#fpatan (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpatan (float) float)
 	((float) (##core#inline_allocate ("C_a_i_flonum_atan" 4) #(1) )))
 
-(fpatan2 (#(procedure #:clean #:enforce #:foldable) fpatan2 (float float) float)
-	 ((float float) (##core#inline_allocate ("C_a_i_flonum_atan2" 4)
-						#(1) #(2))))
-(fpceiling (#(procedure #:clean #:enforce #:foldable) fpceiling (float) float)
+(chicken.flonum#fpatan2 (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpatan2 (float float) float)
+	 ((float float) (##core#inline_allocate ("C_a_i_flonum_atan2" 4) #(1) #(2))))
+
+(chicken.flonum#fpceiling (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpceiling (float) float)
 	   ((float) (##core#inline_allocate ("C_a_i_flonum_ceiling" 4) #(1) )))
 
-(fpcos (#(procedure #:clean #:enforce #:foldable) fpcos (float) float)
+(chicken.flonum#fpcos (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpcos (float) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_cos" 4) #(1) )))
 
-(fpexp (#(procedure #:clean #:enforce #:foldable) fpexp (float) float)
+(chicken.flonum#fpexp (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpexp (float) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_exp" 4) #(1) )))
 
-(fpexpt (#(procedure #:clean #:enforce #:foldable) fpexpt (float float) float)
-	((float float) (##core#inline_allocate ("C_a_i_flonum_expt" 4)
-					       #(1) #(2))))
+(chicken.flonum#fpexpt (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpexpt (float float) float)
+	((float float) (##core#inline_allocate ("C_a_i_flonum_expt" 4) #(1) #(2))))
 
-(fpfloor (#(procedure #:clean #:enforce #:foldable) fpfloor (float) float)
+(chicken.flonum#fpfloor (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpfloor (float) float)
 	 ((float) (##core#inline_allocate ("C_a_i_flonum_floor" 4) #(1) )))
 
-(fpinteger? (#(procedure #:clean #:enforce #:foldable) fpinteger? (float) boolean)
+(chicken.flonum#fpinteger? (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpinteger? (float) boolean)
 	    ((float) (##core#inline "C_u_i_fpintegerp" #(1) )))
 
-(fplog (#(procedure #:clean #:enforce #:foldable) fplog (float) float)
+(chicken.flonum#fplog (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fplog (float) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_log" 4) #(1) )))
 
-(fpmax (#(procedure #:clean #:enforce #:foldable) fpmax (float float) float)
+(chicken.flonum#fpmax (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpmax (float float) float)
        ((float float) (##core#inline "C_i_flonum_max" #(1) #(2))))
 
-(fpmin (#(procedure #:clean #:enforce #:foldable) fpmin (float float) float)
+(chicken.flonum#fpmin (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpmin (float float) float)
        ((float float) (##core#inline "C_i_flonum_min" #(1) #(2))))
 
-(fpneg (#(procedure #:clean #:enforce #:foldable) fpneg (float) float)
+(chicken.flonum#fpneg (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpneg (float) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_negate" 4) #(1) )))
 
-(fpround (#(procedure #:clean #:enforce #:foldable) fpround (float) float)
+(chicken.flonum#fpround (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpround (float) float)
 	 ((float) (##core#inline_allocate ("C_a_i_flonum_round" 4) #(1) )))
 
-(fpsin (#(procedure #:clean #:enforce #:foldable) fpsin (float) float)
+(chicken.flonum#fpsin (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpsin (float) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_sin" 4) #(1) )))
 
-(fpsqrt (#(procedure #:clean #:enforce #:foldable) fpsqrt (float) float)
+(chicken.flonum#fpsqrt (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fpsqrt (float) float)
 	((float) (##core#inline_allocate ("C_a_i_flonum_sqrt" 4) #(1) )))
 
-(fptan (#(procedure #:clean #:enforce #:foldable) fptan (float) float)
+(chicken.flonum#fptan (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fptan (float) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_tan" 4) #(1) )))
 
-(fptruncate (#(procedure #:clean #:enforce #:foldable) fptruncate (float) float)
+(chicken.flonum#fptruncate (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fptruncate (float) float)
 	    ((float) (##core#inline_allocate ("C_a_i_flonum_truncate" 4) #(1) )))
 
 ;;XXX should these be enforcing?
@@ -1223,8 +1223,8 @@
 (make-composite-condition (#(procedure #:clean #:enforce) make-composite-condition (#!rest (struct condition)) (struct condition)))
 (make-parameter (#(procedure #:clean #:enforce) make-parameter (* #!optional procedure) procedure))
 (make-property-condition (#(procedure #:clean #:enforce) make-property-condition (symbol #!rest *) (struct condition)))
-(maximum-flonum float)
-(minimum-flonum float)
+(chicken.flonum#maximum-flonum float)
+(chicken.flonum#minimum-flonum float)
 (module-environment (#(procedure #:clean #:enforce) module-environment (symbol #!optional symbol) (struct environment)))
 (most-negative-fixnum fixnum)
 (most-positive-fixnum fixnum)

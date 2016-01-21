@@ -2,7 +2,7 @@
 
 (include "test.scm")
 
-(use bitwise format posix)
+(use bitwise flonum format posix)
 
 ;; The default "comparator" doesn't know how to deal with extended number types
 (current-test-comparator

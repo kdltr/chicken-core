@@ -137,17 +137,21 @@
     list-ref abs char-ready? peek-char list->string string->list
     current-input-port current-output-port) )
 
+(define-constant flonum-bindings
+  (map (lambda (x) (symbol-append 'chicken.flonum# x))
+       '(fp/? fp+ fp- fp* fp/ fp> fp< fp= fp>= fp<= fpmin fpmax fpneg fpgcd
+	 fpfloor fpceiling fptruncate fpround fpsin fpcos fptan fpasin fpacos
+	 fpatan fpatan2 fpexp fpexpt fplog fpsqrt fpabs fpinteger?)))
+
 (set! default-extended-bindings
-  '(bignum? cplxnum? ratnum? chicken.bitwise#integer-length
+  `(bignum? cplxnum? ratnum? ,@flonum-bindings
+    chicken.bitwise#integer-length
     chicken.bitwise#bitwise-and chicken.bitwise#bitwise-not
     chicken.bitwise#bitwise-ior chicken.bitwise#bitwise-xor
     chicken.bitwise#arithmetic-shift chicken.bitwise#bit-set?
-    add1 sub1 fx+ fx- fx* fx/ fxgcd fx+? fx-? fx*? fx/? fxmod fxrem fp/?
+    add1 sub1 fx+ fx- fx* fx/ fxgcd fx+? fx-? fx*? fx/? fxmod fxrem
     fx= fx> fx< fx>= fx<= fixnum? fxneg fxmax fxmin fxlen fxand fxnot fxior
-    fxxor fxshr fxshl fxodd? fxeven? fp+ fp- fp* fp/ fpmin fpmax fpneg
-    fpgcd fp> fp< fp= fp>= fp<= fpfloor fpceiling fptruncate fpround fpsin
-    fpcos fptan fpasin fpacos fpatan fpatan2 fpexp fpexpt fplog fpsqrt fpabs
-    fpinteger? exact-integer? flonum? nan? finite? infinite?
+    fxxor fxshr fxshl fxodd? fxeven?  exact-integer? flonum? nan? finite? infinite?
     void flush-output print print* error call/cc blob-size
     identity blob=? equal=? make-polar make-rectangular real-part imag-part
     string->symbol symbol-append foldl foldr setter
@@ -487,7 +491,7 @@
 (rewrite 'nan? 2 1 "C_i_nanp" #f)
 (rewrite 'finite? 2 1 "C_i_finitep" #f)
 (rewrite 'infinite? 2 1 "C_i_infinitep" #f)
-(rewrite 'fpinteger? 2 1 "C_u_i_fpintegerp" #f)
+(rewrite 'chicken.flonum#fpinteger? 2 1 "C_u_i_fpintegerp" #f)
 (rewrite '##sys#pointer? 2 1 "C_anypointerp" #t)
 (rewrite 'pointer? 2 1 "C_i_safe_pointerp" #t)
 (rewrite '##sys#generic-structure? 2 1 "C_structurep" #t)
@@ -528,15 +532,15 @@
 (rewrite 'fx< 2 2 "C_fixnum_lessp" #t)
 (rewrite 'fx>= 2 2 "C_fixnum_greater_or_equal_p" #t)
 (rewrite 'fx<= 2 2 "C_fixnum_less_or_equal_p" #t)
-(rewrite 'fp= 2 2 "C_flonum_equalp" #f)
-(rewrite 'fp> 2 2 "C_flonum_greaterp" #f)
-(rewrite 'fp< 2 2 "C_flonum_lessp" #f)
-(rewrite 'fp>= 2 2 "C_flonum_greater_or_equal_p" #f)
-(rewrite 'fp<= 2 2 "C_flonum_less_or_equal_p" #f)
+(rewrite 'chicken.flonum#fp= 2 2 "C_flonum_equalp" #f)
+(rewrite 'chicken.flonum#fp> 2 2 "C_flonum_greaterp" #f)
+(rewrite 'chicken.flonum#fp< 2 2 "C_flonum_lessp" #f)
+(rewrite 'chicken.flonum#fp>= 2 2 "C_flonum_greater_or_equal_p" #f)
+(rewrite 'chicken.flonum#fp<= 2 2 "C_flonum_less_or_equal_p" #f)
 (rewrite 'fxmax 2 2 "C_i_fixnum_max" #t)
 (rewrite 'fxmin 2 2 "C_i_fixnum_min" #t)
-(rewrite 'fpmax 2 2 "C_i_flonum_max" #f)
-(rewrite 'fpmin 2 2 "C_i_flonum_min" #f)
+(rewrite 'chicken.flonum#fpmax 2 2 "C_i_flonum_max" #f)
+(rewrite 'chicken.flonum#fpmin 2 2 "C_i_flonum_min" #f)
 (rewrite 'fxgcd 2 2 "C_i_fixnum_gcd" #t)
 (rewrite 'fxlen 2 1 "C_i_fixnum_length" #t)
 (rewrite 'char-numeric? 2 1 "C_u_i_char_numericp" #t)
@@ -574,13 +578,13 @@
 
 (rewrite 'chicken.bitwise#bitwise-not 22 1 "C_s_a_i_bitwise_not" #t 6 "C_fixnum_not")
 
-(rewrite 'fp+ 16 2 "C_a_i_flonum_plus" #f words-per-flonum)
-(rewrite 'fp- 16 2 "C_a_i_flonum_difference" #f words-per-flonum)
-(rewrite 'fp* 16 2 "C_a_i_flonum_times" #f words-per-flonum)
-(rewrite 'fp/ 16 2 "C_a_i_flonum_quotient" #f words-per-flonum)
-(rewrite 'fp/? 16 2 "C_a_i_flonum_quotient_checked" #f words-per-flonum)
-(rewrite 'fpneg 16 1 "C_a_i_flonum_negate" #f words-per-flonum)
-(rewrite 'fpgcd 16 2 "C_a_i_flonum_gcd" #f words-per-flonum)
+(rewrite 'chicken.flonum#fp+ 16 2 "C_a_i_flonum_plus" #f words-per-flonum)
+(rewrite 'chicken.flonum#fp- 16 2 "C_a_i_flonum_difference" #f words-per-flonum)
+(rewrite 'chicken.flonum#fp* 16 2 "C_a_i_flonum_times" #f words-per-flonum)
+(rewrite 'chicken.flonum#fp/ 16 2 "C_a_i_flonum_quotient" #f words-per-flonum)
+(rewrite 'chicken.flonum#fp/? 16 2 "C_a_i_flonum_quotient_checked" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpneg 16 1 "C_a_i_flonum_negate" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpgcd 16 2 "C_a_i_flonum_gcd" #f words-per-flonum)
 
 (rewrite 'zero? 5 "C_eqp" 0 'fixnum)
 (rewrite 'zero? 2 1 "C_i_zerop" #t)
@@ -700,26 +704,26 @@
 (rewrite 'fxodd? 2 1 "C_i_fixnumoddp" #t)
 (rewrite 'fxeven? 2 1 "C_i_fixnumevenp" #t)
 
-(rewrite 'floor 15 'flonum 'fixnum 'fpfloor #f)
-(rewrite 'ceiling 15 'flonum 'fixnum 'fpceiling #f)
-(rewrite 'truncate 15 'flonum 'fixnum 'fptruncate #f)
+(rewrite 'floor 15 'flonum 'fixnum 'chicken.flonum#fpfloor #f)
+(rewrite 'ceiling 15 'flonum 'fixnum 'chicken.flonum#fpceiling #f)
+(rewrite 'truncate 15 'flonum 'fixnum 'chicken.flonum#fptruncate #f)
 
-(rewrite 'fpsin 16 1 "C_a_i_flonum_sin" #f words-per-flonum)
-(rewrite 'fpcos 16 1 "C_a_i_flonum_cos" #f words-per-flonum)
-(rewrite 'fptan 16 1 "C_a_i_flonum_tan" #f words-per-flonum)
-(rewrite 'fpasin 16 1 "C_a_i_flonum_asin" #f words-per-flonum)
-(rewrite 'fpacos 16 1 "C_a_i_flonum_acos" #f words-per-flonum)
-(rewrite 'fpatan 16 1 "C_a_i_flonum_atan" #f words-per-flonum)
-(rewrite 'fpatan2 16 2 "C_a_i_flonum_atan2" #f words-per-flonum)
-(rewrite 'fpexp 16 1 "C_a_i_flonum_exp" #f words-per-flonum)
-(rewrite 'fpexpt 16 2 "C_a_i_flonum_expt" #f words-per-flonum)
-(rewrite 'fplog 16 1 "C_a_i_flonum_log" #f words-per-flonum)
-(rewrite 'fpsqrt 16 1 "C_a_i_flonum_sqrt" #f words-per-flonum)
-(rewrite 'fpabs 16 1 "C_a_i_flonum_abs" #f words-per-flonum)
-(rewrite 'fptruncate 16 1 "C_a_i_flonum_truncate" #f words-per-flonum)
-(rewrite 'fpround 16 1 "C_a_i_flonum_round" #f words-per-flonum)
-(rewrite 'fpceiling 16 1 "C_a_i_flonum_ceiling" #f words-per-flonum)
-(rewrite 'fpround 16 1 "C_a_i_flonum_floor" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpsin 16 1 "C_a_i_flonum_sin" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpcos 16 1 "C_a_i_flonum_cos" #f words-per-flonum)
+(rewrite 'chicken.flonum#fptan 16 1 "C_a_i_flonum_tan" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpasin 16 1 "C_a_i_flonum_asin" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpacos 16 1 "C_a_i_flonum_acos" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpatan 16 1 "C_a_i_flonum_atan" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpatan2 16 2 "C_a_i_flonum_atan2" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpexp 16 1 "C_a_i_flonum_exp" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpexpt 16 2 "C_a_i_flonum_expt" #f words-per-flonum)
+(rewrite 'chicken.flonum#fplog 16 1 "C_a_i_flonum_log" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpsqrt 16 1 "C_a_i_flonum_sqrt" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpabs 16 1 "C_a_i_flonum_abs" #f words-per-flonum)
+(rewrite 'chicken.flonum#fptruncate 16 1 "C_a_i_flonum_truncate" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpround 16 1 "C_a_i_flonum_round" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpceiling 16 1 "C_a_i_flonum_ceiling" #f words-per-flonum)
+(rewrite 'chicken.flonum#fpround 16 1 "C_a_i_flonum_floor" #f words-per-flonum)
 
 (rewrite 'cons 16 2 "C_a_i_cons" #t 3)
 (rewrite '##sys#cons 16 2 "C_a_i_cons" #t 3)

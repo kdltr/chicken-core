@@ -9,7 +9,7 @@
      (block)
      (not safe)))
   (else
-   (use bitwise)))
+   (use bitwise flonum)))
 
 ;;; All the following redefinitions are *ignored* by the Gambit compiler
 ;;; because of the declarations above.

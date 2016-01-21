@@ -1,6 +1,6 @@
 ;;;; library-tests.scm
 
-(use bitwise keyword ports)
+(use bitwise flonum keyword ports)
 
 (define-syntax assert-fail
   (syntax-rules ()

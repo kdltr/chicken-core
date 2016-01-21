@@ -258,6 +258,8 @@ chicken.expand.import.scm
 chicken.expand.import.c
 chicken.files.import.scm
 chicken.files.import.c
+chicken.flonum.import.scm
+chicken.flonum.import.c
 chicken.foreign.import.scm
 chicken.foreign.import.c
 chicken.format.import.scm

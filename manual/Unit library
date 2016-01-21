@@ -170,6 +170,8 @@ Platform-specific fixnum limits.
 
 ==== Arithmetic floating-point operations
 
+These procedures are provided by the {{(chicken flonum)}} module.
+
 <procedure>(fp+ X Y)</procedure>
 <procedure>(fp- X Y)</procedure>
 <procedure>(fp* X Y)</procedure>

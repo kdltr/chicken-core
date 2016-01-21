@@ -519,6 +519,7 @@ $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
 # special cases for modules not corresponding directly to units
 $(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.flonum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.keyword,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.format,extras))
@@ -561,6 +562,7 @@ c-backend.c: c-backend.scm mini-srfi-1.scm \
 		chicken.compiler.core.import.scm \
 		chicken.bitwise.import.scm \
 		chicken.data-structures.import.scm \
+		chicken.flonum.import.scm \
 		chicken.format.import.scm
 core.c: core.scm mini-srfi-1.scm \
 		chicken.compiler.scrutinizer.import.scm \
@@ -753,6 +755,7 @@ bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTION
 library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
 	-emit-import-library chicken.bitwise \
+	-emit-import-library chicken.flonum \
 	-emit-import-library chicken.gc \
 	-emit-import-library chicken.keyword
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm

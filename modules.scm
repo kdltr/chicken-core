@@ -938,6 +938,7 @@
 (##sys#register-module-alias 'data-structures 'chicken.data-structures)
 (##sys#register-module-alias 'expand 'chicken.expand)
 (##sys#register-module-alias 'files 'chicken.files)
+(##sys#register-module-alias 'flonum 'chicken.flonum)
 (##sys#register-module-alias 'foreign 'chicken.foreign)
 (##sys#register-module-alias 'format 'chicken.format)
 (##sys#register-module-alias 'gc 'chicken.gc)
