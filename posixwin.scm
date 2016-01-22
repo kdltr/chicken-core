@@ -662,7 +662,7 @@ EOF
 (define-foreign-variable _stat_st_blocks scheme-object "C_SCHEME_UNDEFINED")
 
 (module chicken.posix
-  (_exit call-with-input-pipe call-with-output-pipe change-directory
+  (emergency-exit call-with-input-pipe call-with-output-pipe change-directory
    change-directory* change-file-mode change-file-owner close-input-pipe
    close-output-pipe create-directory create-fifo create-pipe
    create-session create-symbolic-link current-directory
@@ -1167,11 +1167,6 @@ EOF
 
 
 ;;; Other things:
-
-(define _exit
-  (let ([ex0 (foreign-lambda void "_exit" int)])
-    (lambda code
-      (ex0 (if (pair? code) (car code) 0)) ) ) )
 
 (define (terminal-port? port)
   (##sys#check-open-port port 'terminal-port?)

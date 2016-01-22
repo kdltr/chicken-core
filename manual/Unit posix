@@ -1119,14 +1119,14 @@ The {{FORMAT}} string follows the rules for the C library procedure {{strptime}}
 
 === Raw exit
 
-==== _exit
+==== emergency-exit
 
-<procedure>(_exit [CODE])</procedure>
+<procedure>(emergency-exit [CODE])</procedure>
 
 Exits the current process without flushing any buffered output (using
-the C function {{_exit}}).  Note that the {{exit-handler}}
-is not called when this procedure is invoked. The optional return-code
-{{CODE}} defaults to {{0}}.
+the C function {{_exit}}).  Note that the {{exit-handler}} is not called
+when this procedure is invoked. The optional exit status code {{CODE}}
+defaults to {{0}}.
 
 
 === ERRNO values
@@ -1281,7 +1281,7 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{current-user-id}} : {{getuid}}
 ; {{delete-directory}} : {{rmdir}}
 ; {{duplicate-fileno}} : {{dup/dup2}}
-; {{_exit}} : {{_exit}}
+; {{emergency-exit}} : {{_exit}}
 ; {{file-close}} : {{close}}
 ; {{file-access-time}} : {{stat}}
 ; {{file-change-time}} : {{stat}}

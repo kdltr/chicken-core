@@ -1843,7 +1843,7 @@
 
 ;; posix
 
-(chicken.posix#_exit (procedure chicken.posix#_exit (#!optional fixnum) noreturn))
+(chicken.posix#emergency-exit (procedure chicken.posix#emergency-exit (#!optional fixnum) noreturn))
 (chicken.posix#call-with-input-pipe (#(procedure #:enforce) chicken.posix#call-with-input-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
 (chicken.posix#call-with-output-pipe (#(procedure #:enforce) chicken.posix#call-with-output-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
 (chicken.posix#change-directory (#(procedure #:clean #:enforce) chicken.posix#change-directory (string) string))
