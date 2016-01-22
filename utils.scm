@@ -27,7 +27,7 @@
 
 (declare
   (unit utils)
-  (uses data-structures eval extras posix files irregex)
+  (uses data-structures eval extras posix files)
   (fixnum)
   (disable-interrupts) )
 
@@ -35,7 +35,6 @@
   (compile-file
    compile-file-options
    system*
-   yes-or-no?
    qs)
 
 (import scheme chicken)
@@ -43,9 +42,7 @@
 	chicken.files
 	chicken.foreign
 	chicken.format
-	chicken.io
-	chicken.posix
-	chicken.irregex)
+	chicken.posix)
 
 (include "common-declarations.scm")
 
@@ -115,81 +112,5 @@
 		       (load-file f)
 		       f))))
 		(else #f)))))))
-
-
-;; Ask for confirmation
-
-#>
-#if defined(_WIN32) && !defined(__CYGWIN__)
-# include <windows.h>
-# define C_HAS_MESSAGE_BOX 1
-static int
-C_confirmation_dialog(char *msg, char *caption, int def, int abort)
-{
-  int d = 0, r;
-  int t = abort ? MB_YESNOCANCEL : MB_YESNO;
-
-  switch(def) {
-  case 0: d = MB_DEFBUTTON1; break;
-  case 1: d = MB_DEFBUTTON2; break;
-  case 2: d = MB_DEFBUTTON3;
-  }
-
-  r = MessageBox(NULL, msg, caption, t | MB_ICONQUESTION | d);
-
-  switch(r) {
-  case IDYES: return 1;
-  case IDNO: return 0;
-  default: return -1;
-  }
-}
-#else
-# define C_HAS_MESSAGE_BOX 0
-static int
-C_confirmation_dialog(char *msg, char *caption, int def, int abort) { return -1; }
-#endif
-<#
-
-;; Note: for Mac OS X, "CFUserNotificationDisplayAlert" could be used,
-;;       unless that requires linking any libraries. This would also
-;;       be useful for runtime error messages.
-
-(define-foreign-variable C_HAS_MESSAGE_BOX bool)
-
-(define yes-or-no?
-  (let ((dialog (foreign-lambda int "C_confirmation_dialog" c-string c-string int bool)))
-    (lambda (str #!key default title (abort reset))
-      (let ((gui (and C_HAS_MESSAGE_BOX (not (##sys#fudge 4))))) ; C_gui_mode
-	(define (get-input)
-	  (if gui
-	      (let ((r (dialog 
-			str
-			(or title "CHICKEN Runtime")
-			(cond ((not default) 3)
-			      ((string-ci=? default "yes") 0)
-			      ((string-ci=? default "no") 1)
-			      (else 2))
-			abort)))
-		(case r
-		  ((0) "no")
-		  ((1) "yes")
-		  (else "abort")))
-	      (read-line)))
-	(let loop ()
-	  (unless gui
-	    (printf "~%~A (yes/no~a) " str (if abort "/abort" ""))
-	    (when default (printf "[~A] " default))
-	    (flush-output))
-	  (let ((ln (get-input)))
-	    (cond ((eof-object? ln) (set! ln "abort"))
-		  ((and default (string=? "" ln)) (set! ln default)) )
-	    (cond ((string-ci=? "yes" ln) #t)
-		  ((string-ci=? "no" ln) #f)
-		  ((and abort (string-ci=? "abort" ln)) (abort))
-		  (else
-		   (if abort
-		       (printf "~%Please enter \"yes\", \"no\" or \"abort\".~%")
-		       (printf "~%Please enter \"yes\" or \"no\".~%"))
-		   (loop) ) ) ) ) ) ) ) )
 
 )

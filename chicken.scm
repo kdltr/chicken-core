@@ -39,8 +39,7 @@
 	chicken.compiler.batch-driver
 	chicken.compiler.c-platform
 	chicken.compiler.support
-	chicken.data-structures
-	chicken.utils)
+	chicken.data-structures)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")

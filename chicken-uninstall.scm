@@ -24,10 +24,7 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-(require-library
- setup-api
- posix data-structures utils ports irregex files)
-
+(require-library setup-api posix data-structures ports irregex files)
 
 (module main ()
   
@@ -40,8 +37,7 @@
 	  chicken.io
 	  chicken.irregex
 	  chicken.ports
-	  chicken.posix
-	  chicken.utils)
+	  chicken.posix)
 
   (include "mini-srfi-1.scm")
 

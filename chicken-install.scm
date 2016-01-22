@@ -25,7 +25,7 @@
 
 
 (require-library setup-download setup-api)
-(require-library posix data-structures utils irregex ports extras files)
+(require-library posix data-structures irregex ports extras files)
 
 (module main ()
 
@@ -40,8 +40,7 @@
 	  chicken.irregex
 	  chicken.ports
 	  chicken.posix
-	  chicken.pretty-print
-	  chicken.utils)
+	  chicken.pretty-print)
 
   (include "mini-srfi-1.scm")
 

@@ -533,8 +533,7 @@ chicken.c: chicken.scm mini-srfi-1.scm \
 		chicken.compiler.batch-driver.import.scm \
 		chicken.compiler.c-platform.import.scm \
 		chicken.compiler.support.import.scm \
-		chicken.data-structures.import.scm \
-		chicken.utils.import.scm
+		chicken.data-structures.import.scm
 batch-driver.c: batch-driver.scm mini-srfi-1.scm \
 		chicken.compiler.core.import.scm \
 		chicken.compiler.compiler-syntax.import.scm \

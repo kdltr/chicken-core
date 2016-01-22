@@ -71,25 +71,6 @@ to {{csc}} after invocation of the {{compile-file}} procedure.
 The initial default options are {{-O2 -d2}}.
 
 
-=== Asking the user for confirmation
-
-==== yes-or-no?
-
-<procedure>(yes-or-no? MESSAGE #!key default title abort)</procedure>
-
-Prints the string {{MESSAGE}} and asks for entering "yes", "no" or "abort".
-If running under Windows in GUI mode, then a suitable dialog box is shown.
-Returns either {{#t}} or {{#f}} depending on whether {{yes}} or {{no}}
-was entered. The {{default}} keyword argument specifies the default
-answer that is effective if the user just presses ENTER (or the default
-button in case of a dialog box). {{title}} specifies the text shown
-in the caption of the dialog box and is ignored when not running in
-GUI mode. {{abort}} should be a zero-argument procedure that is
-called when the user selects "abort". The default value for {{abort}}
-is the {{reset}} procedure. A value of {{#f}} for {{abort}} disables
-aborting completely.
-
-
 Previous: [[Unit posix]]
 
 Next: [[Unit tcp]]
