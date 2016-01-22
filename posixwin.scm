@@ -719,7 +719,8 @@ EOF
 	chicken.foreign
 	chicken.irregex
 	chicken.ports
-	chicken.random)
+	chicken.random
+	chicken.time)
 
 (include "posix-common.scm")
 

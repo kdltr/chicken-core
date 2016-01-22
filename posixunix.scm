@@ -92,7 +92,8 @@
 	chicken.files
 	chicken.foreign
 	chicken.irregex
-	chicken.ports)
+	chicken.ports
+	chicken.time)
 
 (include "posix-common.scm")
 

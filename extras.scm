@@ -648,7 +648,7 @@
 (module chicken.random
   (randomize random)
 
-(import scheme chicken)
+(import scheme chicken chicken.time)
 
 (define (randomize . n)
   (let ((nn (if (null? n)

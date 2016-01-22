@@ -46,6 +46,7 @@
 	chicken.format
 	chicken.gc
 	chicken.pretty-print
+	chicken.time
 	chicken.compiler.support
 	chicken.compiler.compiler-syntax
 	chicken.compiler.core

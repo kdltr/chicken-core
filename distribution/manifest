@@ -290,6 +290,8 @@ chicken.repl.import.scm
 chicken.repl.import.c
 chicken.tcp.import.scm
 chicken.tcp.import.c
+chicken.time.import.scm
+chicken.time.import.c
 chicken.utils.import.scm
 chicken.utils.import.c
 srfi-4.import.scm

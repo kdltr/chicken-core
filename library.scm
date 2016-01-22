@@ -211,7 +211,6 @@ EOF
 (define return-to-host (##core#primitive "C_return_to_host"))
 (define ##sys#symbol-table-info (##core#primitive "C_get_symbol_table_info"))
 (define ##sys#memory-info (##core#primitive "C_get_memory_info"))
-(define (current-milliseconds) (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f))
 (define ##sys#decode-seconds (##core#primitive "C_decode_seconds"))
 (define get-environment-variable (foreign-lambda c-string "C_getenv" c-string))
 (define executable-pathname (foreign-lambda c-string* "C_executable_pathname"))
@@ -243,6 +242,15 @@ EOF
   (##sys#check-range i 0 (##sys#size x) '##sys#block-set!)
   (##sys#setslot x i y) )
 
+(module chicken.time
+  (cpu-time current-milliseconds current-seconds)
+
+(import scheme)
+(reexport (only chicken time))
+
+(define (current-milliseconds)
+  (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f))
+
 (define (current-seconds) 
   (##core#inline_allocate ("C_a_get_current_seconds" 7) #f))
 
@@ -253,7 +261,7 @@ EOF
       ;; function entry and `buf' contents will have been extracted
       ;; before `values' gets called.
       (##core#inline_allocate ("C_a_i_cpu_time" 8) buf)
-      (values (##sys#slot buf 0) (##sys#slot buf 1)))))
+      (values (##sys#slot buf 0) (##sys#slot buf 1))))))
 
 (define (##sys#check-structure x y . loc) 
   (if (pair? loc)
@@ -4096,7 +4104,7 @@ EOF
 ;; From SRFI-33
 
 (module chicken.bitwise *
-(import scheme chicken)
+(import scheme)
 (define bitwise-and (##core#primitive "C_bitwise_and"))
 (define bitwise-ior (##core#primitive "C_bitwise_ior"))
 (define bitwise-xor (##core#primitive "C_bitwise_xor"))

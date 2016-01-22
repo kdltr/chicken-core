@@ -2,7 +2,8 @@
 ;
 ; by Alex Shinn, lifted from match-test by felix
 
-(use data-structures) ; for "->string"
+(use data-structures) ; ->string
+(use time) ; current-milliseconds
 
 (define *pass* 0)
 (define *fail* 0)

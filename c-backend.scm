@@ -41,12 +41,13 @@
 	chicken.bitwise
 	chicken.data-structures
 	chicken.format
-	chicken.compiler.core
-	chicken.compiler.c-platform
-	chicken.compiler.support
 	chicken.flonum
 	chicken.foreign
-	chicken.internal)
+	chicken.internal
+	chicken.time
+	chicken.compiler.core
+	chicken.compiler.c-platform
+	chicken.compiler.support)
 
 (include "mini-srfi-1.scm")
 

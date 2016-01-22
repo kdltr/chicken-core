@@ -933,6 +933,8 @@
   (##sys#register-primitive-module 'r5rs-null '() r4rs-syntax))
 
 (##sys#register-module-alias 'r5rs 'scheme)
+
+;; NOTE these are just here for shorthand and can be dropped whenever
 (##sys#register-module-alias 'bitwise 'chicken.bitwise)
 (##sys#register-module-alias 'continuation 'chicken.continuation)
 (##sys#register-module-alias 'data-structures 'chicken.data-structures)
@@ -954,6 +956,7 @@
 (##sys#register-module-alias 'repl 'chicken.repl)
 (##sys#register-module-alias 'read-syntax 'chicken.read-syntax)
 (##sys#register-module-alias 'tcp 'chicken.tcp)
+(##sys#register-module-alias 'time 'chicken.time)
 (##sys#register-module-alias 'utils 'chicken.utils)
 
 (register-feature! 'module-environments)

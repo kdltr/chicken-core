@@ -971,8 +971,6 @@
 
 (cplxnum? (#(procedure #:pure #:predicate cplxnum) cplxnum? (*) boolean))
 
-(cpu-time (#(procedure #:clean) cpu-time () fixnum fixnum))
-
 (current-error-port
  (#(procedure #:clean #:enforce) current-error-port (#!optional output-port) output-port)
  ((output-port) (let ((#(tmp1) #(1))) 
@@ -987,12 +985,15 @@
 		  #(tmp1))))
  (() ##sys#current-exception-handler))
 
-(current-milliseconds (#(procedure #:clean) current-milliseconds () integer))
+;; time
+
+(chicken.time#cpu-time (#(procedure #:clean) chicken.time#cpu-time () fixnum fixnum))
+(chicken.time#current-seconds (#(procedure #:clean) chicken.time#current-seconds () integer))
+(chicken.time#current-milliseconds (#(procedure #:clean) chicken.time#current-milliseconds () integer))
 
 (current-read-table
  (#(procedure #:clean) current-read-table (#!optional (struct read-table)) (struct read-table)))
 
-(current-seconds (#(procedure #:clean) current-seconds () integer))
 (delete-file (#(procedure #:clean #:enforce) delete-file (string) string))
 (enable-warnings (#(procedure #:clean) enable-warnings (#!optional *) *))
 

@@ -85,7 +85,8 @@
 	chicken.io
 	chicken.ports
 	chicken.pretty-print
-	chicken.random)
+	chicken.random
+	chicken.time)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")

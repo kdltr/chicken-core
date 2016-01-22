@@ -1,4 +1,5 @@
-(use (only format printf))
+(use (only format printf)
+     (only time current-milliseconds))
 
 (load-relative "loopy-loop.scm")
 (load-relative "matchable.scm")

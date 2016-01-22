@@ -145,7 +145,8 @@ EOF
 
 (import scheme chicken)
 (import chicken.foreign
-	chicken.ports)
+	chicken.ports
+	chicken.time)
 
 (include "common-declarations.scm")
 

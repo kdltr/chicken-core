@@ -73,6 +73,7 @@
 (define-foreign-variable uses-soname? bool "C_USES_SONAME")
 (define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
 
+;; TODO take these mappings from import files instead
 (define-constant core-chicken-modules
   '((chicken . chicken-syntax)
     (chicken.bitwise . library)
@@ -95,6 +96,7 @@
     (chicken.posix . posix)
     (chicken.pretty-print . extras)
     (chicken.tcp . tcp)
+    (chicken.time . library)
     (chicken.repl . repl)
     (chicken.read-syntax . read-syntax)
     (chicken.utils . utils)))

@@ -47,12 +47,9 @@
    condition?
    condition->list
    cplxnum?
-   cpu-time
    current-error-port
    current-exception-handler
-   current-milliseconds
    current-read-table
-   current-seconds
    delete-file
    directory-exists?
    (dynamic-load-libraries . chicken.eval#dynamic-load-libraries)

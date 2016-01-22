@@ -20,7 +20,7 @@
 
 (string?)				; expected 1 argument, got 0
 
-(print (cpu-time))			; expected 1 result, got 2
+(print (values 1 2))			; expected 1 result, got 2
 (print (values))			; expected 1 result, got 0
 
 (let ((x 100))

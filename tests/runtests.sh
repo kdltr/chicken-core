@@ -60,6 +60,7 @@ for x in \
     chicken.repl.import.so \
     chicken.read-syntax.import.so \
     chicken.tcp.import.so \
+    chicken.time.import.so \
     chicken.utils.import.so
 do
     cp ../$x test-repository

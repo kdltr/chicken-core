@@ -70,6 +70,7 @@
       "chicken.repl.import.so"
       "chicken.read-syntax.import.so"
       "chicken.tcp.import.so"
+      "chicken.time.import.so"
       "chicken.utils.import.so"
       "csi.import.so"
       "setup-api.import.so"
