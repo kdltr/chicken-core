@@ -283,7 +283,6 @@
     (##sys#check-syntax 'parameterize form '#(_ 2))
     (let* ((bindings (cadr form))
 	   (body (cddr form))
-	   (swap (r 'swap))
 	   (convert? (r 'convert?))
 	   (params (##sys#map car bindings))
 	   (vals (##sys#map cadr bindings))
@@ -295,29 +294,26 @@
 	(##core#let
 	 ,(map ##sys#list saveds vals)
 	 (##core#let
-	  ((,convert? #t))
-	  (##core#let
-	   ((,swap (##core#lambda
-		    ()
-		    (##core#let
-		     ;; First, convert all (converters may throw exns)
-		     (,@(map (lambda (p s t)
-			       `(,t (##core#if ,convert?
-					       (,p ,s #t #f)
-					       ,s)))
-			     param-aliases saveds temps))
-		     ;; Save current values so we can restore them
-		     ,@(map (lambda (p s) `(##core#set! ,s (,p)))
-			    param-aliases saveds)
-		     ;; Now set params to their new values (can't fail)
-		     ,@(map (lambda (p t) `(,p ,t #f #t))
-			    param-aliases temps)
-		     ;; And toggle conversion
-		     (##core#set! ,convert? #f)))))
-	   (##sys#dynamic-wind 
-	    ,swap
-	    (##core#lambda () ,@body)
-	    ,swap) ) ) ) )))))
+	  ((,convert? #t)) ; Convert only first time extent is entered!
+	  (##sys#dynamic-wind
+	   (##core#lambda ()
+	    (##core#let
+	     ;; First, call converters (which may throw exceptions!)
+	     ,(map (lambda (p s temp)
+		     `(,temp (##core#if ,convert? (,p ,s #t #f) ,s)))
+		   param-aliases saveds temps)
+	     ;; Save current values so we can restore them later
+	     ,@(map (lambda (p s) `(##core#set! ,s (,p)))
+		    param-aliases saveds)
+	     ;; Set parameters to their new values.  This can't fail.
+	     ,@(map (lambda (p t) `(,p ,t #f #t)) param-aliases temps)
+	     ;; Remember we already converted (only call converters once!)
+	     (##core#set! ,convert? #f) ) )
+	   (##core#lambda () ,@body)
+	   (##core#lambda ()
+	    ;; Restore parameters to their original, saved values
+	    ,@(map (lambda (p s) `(,p ,s #f #t))
+		   param-aliases saveds) )) ) ) ) ) )))
 
 (##sys#extend-macro-environment
  'when '()
