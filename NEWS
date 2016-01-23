@@ -56,23 +56,23 @@
   - When requesting to emit import libraries that don't exist, the
      compiler now gives an error instead of quietly continuing (#1188).
 
+- Core libraries
+   - SRFI-18: thread-join! no longer gives an error when passed a
+     thread in the "sleeping" state (thanks to Joerg Wittenberger)
+   - Irregex has been updated to 0.9.4, which fixes severe performance
+     problems with {n,m} repeating patterns (thanks to Caolan McMahon).
+   - Unit "posix": The following posix procedures now work on port
+     objects: file-stat, file-size, file-owner, file-permissions,
+     file-modification-time, file-access-time, file-change-time,
+     file-type and all procedures using file-type. These are:
+     regular-file?, symbolic-link?, block-device?, character-device?
+     fifo? and socket?.
+
 - Tools
   - A debugger is now available, known as "feathers", which allows
     basic source-level debugging of compiled Scheme code.
   - A statistical profiler has been added, enabling sampling-based
     runtime profiling of compiled programs.
-
-- Core libraries
-  - SRFI-18: thread-join! no longer gives an error when passed a
-    thread in the "sleeping" state (thanks to Joerg Wittenberger)
-  - Irregex has been updated to 0.9.4, which fixes severe performance
-    problems with {n,m} repeating patterns (thanks to Caolan McMahon).
-  - Unit "posix": The following posix procedures now work on port
-    objects: file-stat, file-size, file-owner, file-permissions,
-    file-modification-time, file-access-time, file-change-time,
-    file-type and all procedures using file-type. These are:
-    regular-file?, symbolic-link?, block-device?, character-device?
-    fifo? and socket?.
 
 4.10.1
 
