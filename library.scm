@@ -3011,42 +3011,46 @@ EOF
 (define make-parameter
   (let ((count 0))
     (lambda (init #!optional (guard (lambda (x) x)))
-      (let ((val (guard init))
-	    (i count))
+      (let* ((val (guard init))
+	     (i count)
+	     (assign (lambda (val n convert? set?)
+		       (when (fx>= i n)
+			 (set! ##sys#current-parameter-vector
+			   (##sys#vector-resize
+			    ##sys#current-parameter-vector
+			    (fx+ i 1)
+			    ##sys#snafu) ) )
+		       (let ((val (if convert? (guard val) val)))
+			 (when set?
+			   (##sys#setslot ##sys#current-parameter-vector i val))
+			 val))))
+
 	(set! count (fx+ count 1))
 	(when (fx>= i (##sys#size ##sys#default-parameter-vector))
-	  (set! ##sys#default-parameter-vector 
+	  (set! ##sys#default-parameter-vector
 	    (##sys#vector-resize
 	     ##sys#default-parameter-vector
 	     (fx+ i 1)
 	     (##core#undefined)) ) )
 	(##sys#setslot ##sys#default-parameter-vector i val)
-	(let ((assign 
-	       (lambda (val n mode)
-		 (when (fx>= i n)
-		   (set! ##sys#current-parameter-vector
-		     (##sys#vector-resize
-		      ##sys#current-parameter-vector
-		      (fx+ i 1)
-		      ##sys#snafu) ) )
-		 (let ((val (if mode val (guard val))))
-		   (##sys#setslot ##sys#current-parameter-vector i val)
-		   val))))
-	  (getter-with-setter
-	   (lambda args
-	     (let ((n (##sys#size ##sys#current-parameter-vector)))
-	       (cond ((pair? args)
-		      (assign (car args) n (optional (cdr args) #f)))
-		     ((fx>= i n)
-		      (##sys#slot ##sys#default-parameter-vector i) )
-		     (else
-		      (let ((val (##sys#slot ##sys#current-parameter-vector i)))
-			(if (eq? val ##sys#snafu)
-			    (##sys#slot ##sys#default-parameter-vector i) 
-			    val) ) ) ) ) )
-	   (lambda (val)
-	     (let ((n (##sys#size ##sys#current-parameter-vector)))
-	       (assign val n #f)))))))))
+
+	(getter-with-setter
+	 (lambda args
+	   (let ((n (##sys#size ##sys#current-parameter-vector)))
+	     (cond ((pair? args)
+		    (let-optionals (cdr args) ((convert? #t)
+					       (set? #t))
+		      (assign (car args) n convert? set?)))
+		   ((fx>= i n)
+		    (##sys#slot ##sys#default-parameter-vector i) )
+		   (else
+		    (let ((val (##sys#slot ##sys#current-parameter-vector i)))
+		      (if (eq? val ##sys#snafu)
+			  (##sys#slot ##sys#default-parameter-vector i)
+			  val) ) ) ) ) )
+	 (lambda (val)
+	   (let ((n (##sys#size ##sys#current-parameter-vector)))
+	     (assign val n #f #t))))))))
   
 
 ;;; Input:

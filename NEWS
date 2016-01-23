@@ -60,6 +60,9 @@
 - Core libraries
    - SRFI-18: thread-join! no longer gives an error when passed a
      thread in the "sleeping" state (thanks to Joerg Wittenberger)
+   - SRFI-39: When a parameter's "guard" procedure raises an exception,
+     "parameterize" now correctly resets the original values of all
+     parameters (fixes #1227, thanks to Joo ChurlSoo).
    - Irregex has been updated to 0.9.4, which fixes severe performance
      problems with {n,m} repeating patterns (thanks to Caolan McMahon).
    - Unit "posix": The following posix procedures now work on port

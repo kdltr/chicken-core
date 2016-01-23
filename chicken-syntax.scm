@@ -284,25 +284,36 @@
     (let* ((bindings (cadr form))
 	   (body (cddr form))
 	   (swap (r 'swap))
-	   (mode (r 'mode))
+	   (convert? (r 'convert?))
 	   (params (##sys#map car bindings))
 	   (vals (##sys#map cadr bindings))
-	   (aliases (##sys#map (lambda (z) (r (pname z))) params))
-	   (aliases2 (##sys#map (lambda (z) (r (gensym))) params)) )
+	   (param-aliases (##sys#map (lambda (z) (r (pname z))) params))
+	   (saveds (##sys#map (lambda (z) (r (gensym 'saved))) params))
+	   (temps (##sys#map (lambda (z) (r (gensym 'tmp))) params)) )
       `(##core#let
-	,(map ##sys#list aliases params)
+	,(map ##sys#list param-aliases params) ; These may be expressions
 	(##core#let
-	 ,(map ##sys#list aliases2 vals)
+	 ,(map ##sys#list saveds vals)
 	 (##core#let
-	  ((,mode #f))
+	  ((,convert? #t))
 	  (##core#let
 	   ((,swap (##core#lambda
 		    ()
-		    ,@(map (lambda (a a2)
-			     `(##core#let ((t (,a))) (,a ,a2 ,mode)
-					  (##core#set! ,a2 t)))
-			   aliases aliases2)
-		    (##core#set! ,mode #t))))
+		    (##core#let
+		     ;; First, convert all (converters may throw exns)
+		     (,@(map (lambda (p s t)
+			       `(,t (##core#if ,convert?
+					       (,p ,s #t #f)
+					       ,s)))
+			     param-aliases saveds temps))
+		     ;; Save current values so we can restore them
+		     ,@(map (lambda (p s) `(##core#set! ,s (,p)))
+			    param-aliases saveds)
+		     ;; Now set params to their new values (can't fail)
+		     ,@(map (lambda (p t) `(,p ,t #f #t))
+			    param-aliases temps)
+		     ;; And toggle conversion
+		     (##core#set! ,convert? #f)))))
 	   (##sys#dynamic-wind 
 	    ,swap
 	    (##core#lambda () ,@body)

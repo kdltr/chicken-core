@@ -521,6 +521,27 @@ A
 
 (assert (= 2 guard-called))
 
+;; Parameters are reset correctly (#1227, pointed out by Joo ChurlSoo)
+
+(let ((a (make-parameter 1 number->string))
+      (b (make-parameter 2 number->string)))
+  (assert (equal? (list "1" "2") (list (a) (b))))
+
+  (assert (equal? (list "10" "20")
+		  (parameterize ((a 10) (b 20)) (list (a) (b)))))
+
+  (assert (equal? (list "1" "2") (list (a) (b))))
+
+  (handle-exceptions exn #f (parameterize ((a 10) (b 'x)) (void)))
+
+  (assert (equal? (list "1" "2") (list (a) (b))))
+
+  (parameterize ((a 10) (b 30) (a 20))
+    (assert (equal? (list "20" "30") (list (a) (b)))))
+
+  (assert (equal? (list "1" "2") (list (a) (b)))) )
+
+
 ;;; vector and blob limits
 
 (assert-fail (make-blob -1))
