@@ -63,6 +63,8 @@
     runtime profiling of compiled programs.
 
 - Core libraries
+  - SRFI-18: thread-join! no longer gives an error when passed a
+    thread in the "sleeping" state (thanks to Joerg Wittenberger)
   - Irregex has been updated to 0.9.4, which fixes severe performance
     problems with {n,m} repeating patterns (thanks to Caolan McMahon).
   - Unit "posix": The following posix procedures now work on port
