@@ -98,7 +98,12 @@ protocol. Such a design would make native threads in CHICKEN
 essentially equivalent to Unix processes and shared memory.
 
 For a different approach to concurrency, please see the
-[[/egg/mpi|mpi]] egg.
+[[/egg/mpi|mpi]] or
+[[/egg/concurrent-native-callbacks|concurrent-native-callbacks]] egg.
+
+[[http://www.stylewarning.com/blog/about|Robert Smith]] has put
+[[http://www.stylewarning.com/blog/bounties|a bounty]] on a
+release-quality implementation of native threads.
 
 ==== Does CHICKEN support Unicode strings?
 

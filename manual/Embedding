@@ -4,10 +4,10 @@
 
 == Embedding
 
-Compiled Scheme files can be linked with C code, provided the Scheme code was compiled
-in ''embedded'' mode by passing {{-DC_EMBEDDED}} to the C compiler (this will
-disable generation of a {{main()}} function). {{csc}} will do this, when given
-the {{-embedded}} option. Alternatively pass {{-embedded}} to {{csc}}.
+Compiled Scheme files can be linked with C code, provided the Scheme
+code was compiled in ''embedded'' mode by passing {{-DC_EMBEDDED}} to
+the C compiler (this will disable generation of a {{main()}}
+function). {{csc}} will do this, when given the {{-embedded}} option.
 
 The following C API is available:
 

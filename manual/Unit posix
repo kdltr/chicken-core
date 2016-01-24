@@ -31,7 +31,7 @@ Operations used with {{file-control}}.
 <constant>fileno/stdout</constant><br>
 <constant>fileno/stderr</constant>
 
-Standard I/O file descriptor numbers, used with procedures 
+Standard I/O file descriptor numbers, used with procedures
 such as {{open-input-file*}} which take file descriptors.
 
 ==== Open flags
@@ -52,8 +52,8 @@ such as {{open-input-file*}} which take file descriptors.
 <constant>open/binary</constant><br>
 <constant>open/text</constant>
 
-Open flags used with the {{file-open}} procedure.  {{open/read}} is a 
-convenience synonym for {{open/rdonly}}, as is {{open/write}} 
+Open flags used with the {{file-open}} procedure.  {{open/read}} is a
+convenience synonym for {{open/rdonly}}, as is {{open/write}}
 for {{open/wronly}}.
 
 ==== Permission bits
@@ -538,7 +538,7 @@ not followed:
   character-device
   block-device
 
-Note that not all types are supported on every platform. 
+Note that not all types are supported on every platform.
 If {{ERROR}} is given and true, {{file-type}} signals an
 error if the file does not exist.
 
@@ -551,7 +551,7 @@ error if the file does not exist.
 <procedure>(block-device? FILE)</procedure><br>
 <procedure>(socket? FILE)</procedure>
 
-These procedures return {{#t}} if {{FILE}} given is of the 
+These procedures return {{#t}} if {{FILE}} given is of the
 appropriate type. {{FILE}} may be a filename, a file-descriptor or a port object.
 Note that these operations follow symbolic links. If the file does
 not exist, {{#f}} is returned.
@@ -645,14 +645,14 @@ Get or set the process group ID of the process specified by {{PID}}.
 
 Replaces the running process with a new process image from the program
 stored at {{PATHNAME}}, using the C library function {{execvp(3)}}.
-If the optional argument {{ARGUMENT-LIST}} is given, then it should 
+If the optional argument {{ARGUMENT-LIST}} is given, then it should
 contain a list of strings which are passed as arguments to the subprocess.
-If the optional argument {{ENVIRONMENT-LIST}} is supplied, then the library 
+If the optional argument {{ENVIRONMENT-LIST}} is supplied, then the library
 function {{execve(2)}} is used, and the environment passed in
 {{ENVIRONMENT-LIST}} (which should be of the form {{("<NAME>=<VALUE>" ...)}}
 is given to the invoked process. Note that {{execvp(3)}} respects the
 current setting of the {{PATH}} environment variable while {{execve(3)}} does not.
- 
+
 This procedure never returns; it either replaces the process with a new one
 or it raises an exception in case something went wrong executing the program.
 
@@ -1166,19 +1166,24 @@ These variables contain error codes as returned by {{errno}}.
 
 Recursively traverses the contents of {{DIRECTORY}} (which should be a
 string) and invokes the procedure {{action}} for all files in which
-the procedure {{test}} is true.  {{test}} may be a procedure of one
-argument or an irregex object, regex string or SRE expression that
-will be matched with a full pathname using {{irregex-match}}.
+the procedure {{test}} is true.
+
+{{test}} may be a procedure of one argument or an irregex object,
+regex string or SRE expression that will be matched with a full
+pathname using {{irregex-match}}. {{test}} defaults to {{(constantly
+#t)}}.
+
+
 {{action}} should be a procedure of two arguments: the currently
 encountered file and the result of the previous invocation of
 {{action}}, or, if this is the first invocation, the value of
-{{seed}}. {{test}} defaults to {{(constantly #t)}}, {{action}}
-defaults to {{cons}}, {{seed}} defaults to {{()}}.  {{limit}} should
-be a procedure of one argument that is called for each nested
-directory and which should return true, if that directory is to be
-traversed recursively. {{limit}} may also be an exact integer that
-gives the maximum recursion depth. For example, a depth of {{0}} means
-that only files in the top-level, specified directory are to be
+{{seed}}. {{action}} defaults to {{cons}}, {{seed}} defaults to {{()}}.
+
+{{limit}} should be a procedure of one argument that is called for
+each nested directory and which should return true, if that directory
+is to be traversed recursively. {{limit}} may also be an exact integer
+that gives the maximum recursion depth. For example, a depth of {{0}}
+means that only files in the top-level, specified directory are to be
 traversed. In this case, all nested directories are ignored.
 {{limit}} may also be {{#f}} (the default), which is equivalent to
 {{(constantly #t)}}.
@@ -1199,7 +1204,7 @@ has a different signature:
   (find-files DIRECTORY [TEST [ACTION [SEED [LIMIT]]]])
 
 The old signature was supported until CHICKEN 4.7.3 for compatibility reasons,
-at which point it became invalid.  The optional arguments are ignored 
+at which point it became invalid.  The optional arguments are ignored
 and use their default values, and no warning is issued.  One symptom is
 that your {{TEST}} does not work, returning every file.
 
