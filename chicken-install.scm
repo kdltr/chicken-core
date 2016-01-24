@@ -214,7 +214,7 @@
         '()))
 
   (define (init-repository dir)
-    (let ((src (get-prefix))
+    (let ((src (repo-path))
           (copy (if *windows-shell*
                     "copy"
                     "cp -r")))
