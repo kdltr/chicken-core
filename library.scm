@@ -1595,7 +1595,7 @@ EOF
                     (##sys#slot next 1)) ) )  ) ) )
 
 ;; This simple enough idea is from
-;; http://www.numberworld.org/y-cruncher/algorithms/radix-conversion.html
+;; http://www.numberworld.org/y-cruncher/internals/radix-conversion.html
 (define (##sys#integer->string/recursive n base expected-string-size)
   (let*-values (((halfsize) (fxshr (fx+ expected-string-size 1) 1))
                 ((b^M/2) (##sys#integer-power base halfsize))
