@@ -11545,8 +11545,9 @@ static void bignum_to_str_2(C_word c, C_word *av)
 	radix_digit = big_digit;
         big_digit = *scan++;
 	radix_digit |= ((unsigned int)big_digit << big_digit_len) & radix_mask;
+        *index-- = characters[radix_digit];
 	big_digit >>= (radix_shift - big_digit_len);
-        big_digit_len = C_BIGNUM_DIGIT_LENGTH - big_digit_len;
+        big_digit_len = C_BIGNUM_DIGIT_LENGTH - (radix_shift - big_digit_len);
       }
 
       while(big_digit_len >= radix_shift && index >= buf) {

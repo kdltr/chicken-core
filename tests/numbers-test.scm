@@ -972,6 +972,12 @@
  (test-equal "edge case printing"
        (number->string (expt 2 256) 16)
        "10000000000000000000000000000000000000000000000000000000000000000")
+ (test-equal "non-exact multiple of 64 length edge case printing"
+       "4000000000000000000000" (number->string (expt 2 65) 8))
+ (test-equal "another non-exact multiple of 64 length edge case printing"
+       "200000000000000000000000" (number->string (expt 2 70) 8))
+ (test-equal "edge case length calculation"
+       "10000000000000000000000000000000000000000000000000000000000000000000000" (number->string (expt 2 210) 8))
  (test-equal "positive hexdigit invariance"
        (number->string
         (string->number "123456789abcdef123456789abcdef123456789abcdef" 16)
