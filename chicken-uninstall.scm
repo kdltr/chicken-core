@@ -23,18 +23,14 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-
-(require-library setup-api posix data-structures ports irregex files)
-
 (module main ()
-  
+
   (import scheme chicken)
   (import setup-api)
   (import chicken.data-structures
 	  chicken.files
 	  chicken.foreign
 	  chicken.format
-	  chicken.io
 	  chicken.irregex
 	  chicken.ports
 	  chicken.posix)

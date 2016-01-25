@@ -26,7 +26,7 @@
 
 (declare
   (unit scrutinizer)
-  (uses data-structures eval expand extras ports files support))
+  (uses data-structures expand extras files ports support))
 
 (module chicken.compiler.scrutinizer
     (scrutinize load-type-database emit-type-file

@@ -27,7 +27,7 @@
 
 (declare
   (uses chicken-syntax chicken-ffi-syntax 
-	srfi-4 utils extras data-structures
+	srfi-4 extras data-structures
 	lolevel ; unused, but loaded to make foldable bindings available
 	support compiler optimizer lfa2 compiler-syntax scrutinizer
 	;; TODO: These three need to be made configurable somehow

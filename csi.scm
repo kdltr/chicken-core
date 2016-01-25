@@ -26,7 +26,6 @@
 
 
 (declare
-  (uses data-structures eval expand extras ports repl)
   (usual-integrations)
   (disable-interrupts)
   (compile-syntax)
@@ -55,8 +54,10 @@ EOF
 	history-add history-ref history-clear history-show) )
 
 (import chicken.data-structures
+	chicken.foreign
 	chicken.format
 	chicken.gc
+	chicken.keyword
 	chicken.io
 	chicken.ports
 	chicken.pretty-print
@@ -292,7 +293,7 @@ EOF
 	 (set! command-table (cons (list name proc help) command-table))))
   (##sys#void))
 
-(set! csi-eval
+(define csi-eval
   (let ((eval eval)
 	(load-noisily load-noisily)
 	(read read)

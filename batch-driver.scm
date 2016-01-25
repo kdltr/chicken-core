@@ -29,7 +29,7 @@
 ;; Same goes for "backend" and "platform".
 (declare
   (unit batch-driver)
-  (uses eval extras data-structures files
+  (uses extras data-structures files
 	support compiler-syntax compiler optimizer
 	;; TODO: Backend should be configurable
 	scrutinizer lfa2 c-platform c-backend) )

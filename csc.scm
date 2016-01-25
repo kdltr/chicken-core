@@ -24,14 +24,12 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-
-(declare
-  (block)
-  (uses posix data-structures eval utils files extras))
+(declare (block))
 
 (import chicken.posix
 	chicken.data-structures
 	chicken.files
+	chicken.foreign
 	chicken.format
 	chicken.utils)
 

@@ -29,7 +29,7 @@
   (unit srfi-4)
   (uses expand extras)
   (disable-interrupts)
-  (not inline ##sys#user-print-hook ##sys#number-hash-hook)
+  (not inline ##sys#user-print-hook)
   (foreign-declare #<<EOF
 #define C_copy_subvector(to, from, start_to, start_from, bytes)   \
   (C_memcpy((C_char *)C_data_pointer(to) + C_unfix(start_to), (C_char *)C_data_pointer(from) + C_unfix(start_from), C_unfix(bytes)), \

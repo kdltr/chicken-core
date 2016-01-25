@@ -23,10 +23,6 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-
-(require-library setup-download setup-api)
-(require-library posix data-structures irregex ports extras files)
-
 (module main ()
 
   (import scheme chicken)
@@ -548,7 +544,7 @@
 		  (not *host-extension*))) ; host-repo must always take precedence
 	 ""
 	 "-setup-mode ")
-     "-e \"(require-library setup-api)\" -e \"(import setup-api)\" "
+     "-e \"(import setup-api)\" "
      (if *debug-setup*
 	 ""
 	 "-e \"(setup-error-handling)\" ")

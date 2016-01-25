@@ -23,16 +23,17 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-
-(require-library posix tcp data-structures utils extras)
+(declare (block))
 
 (import chicken.data-structures
+	chicken.files
 	chicken.foreign
 	chicken.format
 	chicken.io
+	chicken.keyword
+	chicken.ports
 	chicken.posix
-	chicken.tcp
-	chicken.utils)
+	chicken.time)
 
 (define-constant +bug-report-file+ "chicken-bug-report.~a-~a-~a")
 

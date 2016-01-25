@@ -40,9 +40,9 @@
 (import chicken scheme
 	chicken.bitwise
 	chicken.data-structures
-	chicken.format
 	chicken.flonum
 	chicken.foreign
+	chicken.format
 	chicken.internal
 	chicken.time
 	chicken.compiler.core

@@ -23,11 +23,6 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-
-(require-library extras irregex posix utils setup-api data-structures tcp
-		 files)
-
-
 (module setup-download (retrieve-extension
 			locate-egg/local
 			locate-egg/http

@@ -27,7 +27,7 @@
 
 (declare
   (unit utils)
-  (uses data-structures eval extras posix files)
+  (uses data-structures posix files)
   (fixnum)
   (disable-interrupts) )
 

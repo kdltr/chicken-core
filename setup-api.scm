@@ -23,9 +23,6 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-
-(require-library irregex utils posix extras ports data-structures files)
-
 ; This code is partially quite messy and the API is not overly consistent,
 ; mainly because it has grown "organically" while the old chicken-setup program
 ; evolved. The code was extracted and put into this module, without much
@@ -73,7 +70,6 @@
 	  chicken.format
 	  chicken.io
 	  chicken.irregex
-	  chicken.ports
 	  chicken.posix
 	  chicken.pretty-print
 	  chicken.utils)
