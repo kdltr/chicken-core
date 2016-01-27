@@ -51,6 +51,9 @@
 	 (cons (car a) (if (symbol? (cdr a)) (cdr a) '<macro>)))
        se))
 
+(define-inline (se-subset names env)
+  (map (cut assq <> env) names))
+
 (define-inline (getp sym prop)
   (##core#inline "C_i_getprop" sym prop #f))
 
@@ -396,10 +399,10 @@
     (putp palias '##core#primitive sym)
     palias))
 
-(define (##sys#register-primitive-module name vexports #!optional (sexports '()))
+(define (##sys#register-core-module name lib vexports #!optional (sexports '()))
   (let* ((me (##sys#macro-environment))
 	 (mod (make-module
-	       name name '()
+	       name lib '()
 	       (map (lambda (ve)
 		      (if (symbol? ve)
 			  (cons ve (##sys#primitive-alias ve))
@@ -422,6 +425,10 @@
 	   (##sys#macro-environment)))
     (set! ##sys#module-table (cons (cons name mod) ##sys#module-table)) 
     mod))
+
+;; same as register-builtin, but uses module's name as its library
+(define (##sys#register-primitive-module name vexports #!optional (sexports '()))
+  (##sys#register-core-module name name vexports sexports))
 
 (define (find-export sym mod indirect)
   (let ((exports (module-export-list mod)))
@@ -933,6 +940,7 @@
   (##sys#register-primitive-module 'r5rs-null '() r4rs-syntax))
 
 (##sys#register-module-alias 'r5rs 'scheme)
+(##sys#register-module-alias 'srfi-88 'chicken.keyword)
 
 ;; NOTE these are just here for shorthand and can be dropped whenever
 (##sys#register-module-alias 'bitwise 'chicken.bitwise)
@@ -958,6 +966,30 @@
 (##sys#register-module-alias 'tcp 'chicken.tcp)
 (##sys#register-module-alias 'time 'chicken.time)
 (##sys#register-module-alias 'utils 'chicken.utils)
+
+;; built-in SRFIs
+;; todo 2 8 9 11 12 15 16 28 39 8 9 11 15 16 17 26 31
+;; noop 46 61 62
+
+(##sys#register-primitive-module
+ 'srfi-0 '() (se-subset '(cond-expand) ##sys#default-macro-environment))
+
+(##sys#register-primitive-module
+ 'srfi-6 '(open-input-string open-output-string get-output-string))
+
+(##sys#register-primitive-module
+ 'srfi-10 '((define-reader-ctor . chicken.read-syntax#define-reader-ctor)))
+
+(##sys#register-primitive-module
+ 'srfi-23 '(error))
+
+(##sys#register-primitive-module
+ 'srfi-55 '() (se-subset '(require-extension) ##sys#default-macro-environment))
+
+(##sys#register-core-module
+ 'srfi-98 'posix
+ '(get-environment-variable
+   (get-environment-variables . chicken.posix#get-environment-variables)))
 
 (register-feature! 'module-environments)
 

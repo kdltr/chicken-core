@@ -1289,10 +1289,10 @@
 ;;
 (define (##sys#expand-require lib #!optional compiling? (static-units '()))
   (let ((id (library-id lib)))
+  (let loop ((id (library-id lib)))
     (cond
       ((assq id core-chicken-modules) =>
-       (lambda (mod)
-	 (##sys#expand-require (cdr mod) compiling? static-units)))
+       (lambda (mod) (loop (cdr mod))))
       ((or (memq id builtin-features)
 	   (and compiling? (memq id builtin-features/compiled)))
        (values '(##core#undefined) id #f))
