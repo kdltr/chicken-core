@@ -1298,8 +1298,6 @@
        (values '(##core#undefined) id #f))
       ((memq id static-units)
        (values '(##core#undefined) id #f))
-      ((and (not compiling?) (##sys#feature? id))
-       (values '(##core#undefined) id #f))
       ((memq id core-syntax-units)
        (values '(##core#undefined) id #f))
       ((memq id core-library-units)
