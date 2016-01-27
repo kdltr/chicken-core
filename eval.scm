@@ -51,7 +51,7 @@
    eval eval-handler extension-information
    load load-library load-noisily load-relative load-verbose
    interaction-environment null-environment scheme-report-environment
-   require repository-path set-dynamic-load-mode!)
+   load-extension repository-path set-dynamic-load-mode!)
 
 ;; Exclude values defined within this module.
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment))
@@ -715,12 +715,12 @@
 			 [(##core#require-for-syntax)
 			  (let ([ids (map (lambda (x) (##sys#eval/meta x))
 					  (cdr x))])
-			    (apply ##sys#require ids)
+			    (apply ##sys#load-extension ids)
 			    (let ((rs (lookup-runtime-requirements ids)))
 			      (compile
 			       (if (null? rs)
 				   '(##core#undefined)
-				   `(##sys#require ,@(map (lambda (x) `(##core#quote ,x)) rs)) )
+				   `(##sys#load-extension ,@(map (lambda (x) `(##core#quote ,x)) rs)))
 			       e #f tf cntr se) ) ) ]
 
 			 [(##core#require)
@@ -1231,9 +1231,9 @@
 
 (define (load-extension id)
   (define (fail message)
-    (##sys#error 'require message id))
+    (##sys#error 'load-extension message id))
   (cond ((string? id) (set! id (string->symbol id)))
-	(else (##sys#check-symbol id 'require)))
+	(else (##sys#check-symbol id 'load-extension)))
   (cond ((##sys#provided? id))
 	((memq id core-syntax-units)
 	 (fail "cannot load core library"))
@@ -1241,7 +1241,7 @@
 	 (or (load-library-0 id #f)
 	     (fail "cannot load core library")))
 	(else
-	 (let* ((path (##sys#canonicalize-extension-path id 'require))
+	 (let* ((path (##sys#canonicalize-extension-path id 'load-extension))
 		(ext  (##sys#find-extension path #f)))
 	   (cond (ext
 		  (load/internal ext #f #f #f #f id)
@@ -1249,10 +1249,7 @@
 		 (else
 		  (fail "cannot load extension")))))))
 
-(define (require . ids)
-  (for-each load-extension ids))
-
-(define ##sys#require require)
+(define ##sys#load-extension load-extension)
 
 (define extension-information/internal
   (let ([with-input-from-file with-input-from-file]
@@ -1322,14 +1319,14 @@
 	      ,@(if (or nr (and (not rr) s))
 		    '()
 		    (begin
-		      `((##sys#require
+		      `((##sys#load-extension
 			 ,@(map (lambda (id) `(##core#quote ,id))
 				(cond (rr (cdr rr))
 				      (else (list id)))))))))
 	    id
 	    (if s 'dynamic/syntax 'dynamic)))))
       (else
-       (values `(##sys#require (##core#quote ,id)) #f 'dynamic)))))
+       (values `(##sys#load-extension (##core#quote ,id)) #f 'dynamic)))))
 
 
 ;;; Environments:

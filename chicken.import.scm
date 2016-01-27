@@ -155,7 +155,6 @@
    remprop!
    rename-file
    (repository-path . chicken.eval#repository-path)
-   (require . chicken.eval#require)
    reset
    reset-handler
    return-to-host
