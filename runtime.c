@@ -8882,7 +8882,8 @@ bignum_divrem(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r)
   default:
     res = C_SCHEME_FALSE;
     size = C_bignum_size(x) - C_bignum_size(y);
-    if (size > C_BURNIKEL_ZIEGLER_DIFF_THRESHOLD) {
+    if (C_bignum_size(y) > C_BURNIKEL_ZIEGLER_THRESHOLD &&
+        size > C_BURNIKEL_ZIEGLER_THRESHOLD) {
       res = bignum_divide_burnikel_ziegler(ptr, x, y, q, r);
     }
 
@@ -8930,7 +8931,7 @@ bignum_divide_burnikel_ziegler(C_word **ptr, C_word x, C_word y, C_word *q, C_wo
    * below the threshold, so we can always split N in half.
    */
   s = C_bignum_size(y);
-  m = 1 << C_ilen(s / C_BURNIKEL_ZIEGLER_DIFF_THRESHOLD);
+  m = 1 << C_ilen(s / C_BURNIKEL_ZIEGLER_THRESHOLD);
   j = (s+m-1) / m;              /* j = s/m, rounded up */
   n = j * m;
 
@@ -9097,16 +9098,12 @@ burnikel_ziegler_2n_div_1n(C_word **ptr, C_word a, C_word b, C_word b1, C_word b
 {
   C_word kab[2][C_SIZEOF_FIX_BIGNUM*7], *ka, a12, a3, a4,
          q1 = C_fix(0), r1, q2 = C_fix(0), r2, *qp;
-  int stack_full = 0, size_a, size_b;
+  int stack_full = 0;
 
   C_stack_check1(stack_full = 1);
 
-  size_a = (a & C_FIXNUM_BIT) ? 1 : C_bignum_size(a);
-  size_b = (b & C_FIXNUM_BIT) ? 1 : C_bignum_size(b);
-  
   n = C_unfix(n);
-  if (stack_full || (n & 1) ||
-      ((size_a - size_b) < C_BURNIKEL_ZIEGLER_DIFF_THRESHOLD)) {
+  if (stack_full || (n & 1) || (n < C_BURNIKEL_ZIEGLER_THRESHOLD)) {
     integer_divrem(ptr, a, b, q, r);
   } else {
     ka = kab[0];

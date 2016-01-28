@@ -422,7 +422,7 @@ static inline int isinf_ld (long double x)
 /* This defines when to switch from schoolbook to Burnikel-Ziegler
  * division.  It creates even more garbage than Karatsuba :(
  */
-# define C_BURNIKEL_ZIEGLER_DIFF_THRESHOLD 300
+# define C_BURNIKEL_ZIEGLER_THRESHOLD 300
 #endif
 #ifndef C_RECURSIVE_TO_STRING_THRESHOLD
 /* This threshold is in terms of the expected string length. */
