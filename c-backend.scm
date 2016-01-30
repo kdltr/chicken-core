@@ -1394,10 +1394,16 @@ return((C_header_bits(lit) >> 24) & 0xff);
     (foreign-lambda* int ((scheme-object lit))
       "return(C_header_size(lit));"))
   (define (encode-size n)
-    ;; only handles sizes in the 24-bit range!
-    (string (integer->char (bitwise-and #xff (arithmetic-shift n -16)))
-	    (integer->char (bitwise-and #xff (arithmetic-shift n -8)))
-	    (integer->char (bitwise-and #xff n))))
+    (if (fx> (fxlen n) 24)
+	;; Unfortunately we can't do much more to help the user.
+	;; Printing the literal is not helpful because it's *huge*,
+	;; and we have no line number information here.
+	(quit-compiling
+	 "Encoded literal size of ~S is too large (must fit in 24 bits)" n)
+	(string
+	 (integer->char (bitwise-and #xff (arithmetic-shift n -16)))
+	 (integer->char (bitwise-and #xff (arithmetic-shift n -8)))
+	 (integer->char (bitwise-and #xff n)))))
   (define (finish str)		   ; can be taken out at a later stage
     (string-append (string #\xfe) str))
   (finish

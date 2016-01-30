@@ -55,6 +55,7 @@
   - Compiler rewrites for char{<,>,<=,>=,=}? are now safe (#1122).
   - When requesting to emit import libraries that don't exist, the
      compiler now gives an error instead of quietly continuing (#1188).
+  - Don't silently truncate huge literals (thanks to Claude Marinier).
 
 - Core libraries
    - SRFI-18: thread-join! no longer gives an error when passed a

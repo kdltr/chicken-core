@@ -1462,19 +1462,53 @@
 (define (constant-form-eval op argnodes k)  ; Used only in optimizer.scm
   (let* ((args (map (lambda (n) (first (node-parameters n))) argnodes))
 	 (form (cons op (map (lambda (arg) `(quote ,arg)) args))))
-    (handle-exceptions ex 
-	(begin
-	  (k #f form #f (get-condition-property ex 'exn 'message)))
-      ;; op must have toplevel binding, result must be single-valued
-      (let ((proc (##sys#slot op 0)))
-	(if (procedure? proc)
-	    (let ((results (receive (apply proc args))))
-	      (cond ((= 1 (length results))
-		     (debugging 'o "folded constant expression" form)
-		     (k #t form (car results) #f))
-		    (else 
-		     (bomb "attempt to constant-fold call to procedure that has multiple results" form))))
-	    (bomb "attempt to constant-fold call to non-procedure" form))))))
+    ;; op must have toplevel binding, result must be single-valued
+    (let ((proc (##sys#slot op 0)))
+      (if (procedure? proc)
+	  (let ((results (handle-exceptions ex
+			     (k #f form #f
+				(get-condition-property ex 'exn 'message))
+			   (receive (apply proc args)))))
+	    (cond ((node? results) ; TODO: This should not happen
+		   (k #f form #f #f))
+		  ((and (= 1 (length results))
+			(encodeable-literal? (car results)))
+		   (debugging 'o "folded constant expression" form)
+		   (k #t form (car results) #f))
+		  ((= 1 (length results)) ; not encodeable; don't fold
+		   (k #f form #f #f))
+		  (else
+		   (bomb "attempt to constant-fold call to procedure that has multiple results" form))))
+	  (bomb "attempt to constant-fold call to non-procedure" form)))))
+
+;; Is the literal small enough to be encoded?  Otherwise, it should
+;; not be constant-folded.
+(define (encodeable-literal? lit)
+  (define getsize
+    (foreign-lambda* int ((scheme-object lit))
+      "return(C_header_size(lit));"))
+  (define (fits? n)
+    (fx<= (integer-length n) 24))
+  (cond ((immediate? lit))
+	((exact-integer? lit)
+	 ;; Could use integer-length, but that's trickier (minus
+	 ;; symbol etc).  If the string is too large to allocate,
+	 ;; we'll also get an exception!
+	 (let ((str (handle-exceptions ex #f (number->string lit 16))))
+	   (and str (fits? (string-length str)))))
+	((flonum? lit))
+	((symbol? lit)
+	 (let ((str (##sys#slot lit 1)))
+	   (fits? (string-length str))))
+	((##core#inline "C_byteblockp" lit)
+	 (fits? (getsize lit)))
+	(else
+	 (let ((len (getsize lit)))
+	   (and (fits? len)
+		(every
+		 encodeable-literal?
+		 (list-tabulate len (lambda (i)
+				      (##sys#slot lit i)))))))))
 
 
 ;;; Dump node structure:

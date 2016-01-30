@@ -241,6 +241,16 @@
                       (set! outer-bar inner-bar) 
                       (outer-bar '#f))))) 
 
+;; Found by Claude Marinier: Huge literals with a length which need
+;; more than 3 bytes to encode would get silently truncated.  We'll
+;; prevent constant-folding if it would lead to such large literals.
+(let* ((bignum (expt 2 70000000))
+       ;; This prevents complete evaluation at compile-time
+       (unknown-bignum ((foreign-lambda* scheme-object
+			    ((scheme-object n)) "C_return(n);") bignum)))
+  (assert (equal? 70000001 (integer-length unknown-bignum))))
+
+
 ;; Test that encode-literal/decode-literal use the proper functions
 ;; to decode number literals.
 (assert (equal? '(+inf.0 -inf.0) (list (fp/ 1.0 0.0) (fp/ -1.0 0.0))))
