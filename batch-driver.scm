@@ -584,7 +584,7 @@
 							  (or profile-name #t)))
 			     '() )
 			 exps0
-			 (if (or unit-name dynamic)
+			 (if (not standalone-executable)
 			     '()
 			     cleanup-forms)
 			 '((##core#undefined)))))
