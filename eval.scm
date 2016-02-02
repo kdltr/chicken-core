@@ -27,7 +27,7 @@
 
 (declare
   (unit eval)
-  (uses expand internal modules)
+  (uses chicken-syntax expand internal modules)
   (not inline ##sys#alias-global-hook ##sys#user-read-hook ##sys#syntax-error-hook))
 
 #>

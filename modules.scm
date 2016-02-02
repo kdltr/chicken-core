@@ -51,9 +51,6 @@
 	 (cons (car a) (if (symbol? (cdr a)) (cdr a) '<macro>)))
        se))
 
-(define-inline (se-subset names env)
-  (map (cut assq <> env) names))
-
 (define-inline (getp sym prop)
   (##core#inline "C_i_getprop" sym prop #f))
 
@@ -391,13 +388,6 @@
 	   (##sys#macro-environment)))
     (set! ##sys#module-table (cons (cons name mod) ##sys#module-table)) 
     mod))
-
-(define (##sys#primitive-alias sym)
-  (let ((palias 
-	 (##sys#string->symbol 
-	  (##sys#string-append "#%" (##sys#slot sym 1)))))
-    (putp palias '##core#primitive sym)
-    palias))
 
 (define (##sys#register-core-module name lib vexports #!optional (sexports '()))
   (let* ((me (##sys#macro-environment))
@@ -970,21 +960,60 @@
 (##sys#register-module-alias 'time 'chicken.time)
 (##sys#register-module-alias 'utils 'chicken.utils)
 
-;; built-in SRFIs
-;; todo 2 8 9 11 12 15 16 28 39 8 9 11 15 16 17 26 31
-;; noop 46 61 62
+(define-inline (se-subset names env) (map (cut assq <> env) names))
 
 (##sys#register-primitive-module
  'srfi-0 '() (se-subset '(cond-expand) ##sys#default-macro-environment))
 
 (##sys#register-primitive-module
- 'srfi-6 '(open-input-string open-output-string get-output-string))
+ 'srfi-2 '() (se-subset '(and-let*) ##sys#chicken-macro-environment))
+
+(##sys#register-core-module
+ 'srfi-6 'library '(open-input-string open-output-string get-output-string))
 
 (##sys#register-primitive-module
- 'srfi-10 '((define-reader-ctor . chicken.read-syntax#define-reader-ctor)))
+ 'srfi-8 '() (se-subset '(receive) ##sys#chicken-macro-environment))
 
 (##sys#register-primitive-module
- 'srfi-23 '(error))
+ 'srfi-9 '() (se-subset '(define-record-type) ##sys#chicken-macro-environment))
+
+(##sys#register-core-module
+ 'srfi-10 'read-syntax '((define-reader-ctor . chicken.read-syntax#define-reader-ctor)))
+
+(##sys#register-primitive-module
+ 'srfi-11 '() (se-subset '(let-values let*-values) ##sys#chicken-macro-environment))
+
+(##sys#register-core-module
+ 'srfi-12 'library
+ '(abort condition? condition-predicate condition-property-accessor
+   current-exception-handler make-composite-condition make-property-condition
+   signal with-exception-handler)
+ (se-subset '(handle-exceptions) ##sys#chicken-macro-environment))
+
+(##sys#register-primitive-module
+ 'srfi-15 '() (se-subset '(fluid-let) ##sys#chicken-macro-environment))
+
+(##sys#register-primitive-module
+ 'srfi-16 '() (se-subset '(case-lambda) ##sys#chicken-macro-environment))
+
+(##sys#register-primitive-module
+ 'srfi-17 '() (se-subset '(set!) ##sys#default-macro-environment))
+
+(##sys#register-core-module
+ 'srfi-23 'library '(error))
+
+(##sys#register-primitive-module
+ 'srfi-26 '() (se-subset '(cut cute) ##sys#chicken-macro-environment))
+
+(##sys#register-core-module
+ 'srfi-28 'extras '((format . chicken.format#format)))
+
+(##sys#register-primitive-module
+ 'srfi-31 '() (se-subset '(rec) ##sys#chicken-macro-environment))
+
+(##sys#register-core-module
+ 'srfi-39 'library '(make-parameter)
+ (se-subset '(parameterize) ##sys#chicken-macro-environment))
 
 (##sys#register-primitive-module
  'srfi-55 '() (se-subset '(require-extension) ##sys#default-macro-environment))

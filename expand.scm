@@ -83,6 +83,12 @@
 ;;XXX should this be in eval.scm?
 (define ##sys#active-eval-environment (make-parameter ##sys#current-environment))
 
+(define (##sys#primitive-alias sym)
+  (let ((alias (##sys#string->symbol
+		(##sys#string-append "#%" (##sys#slot sym 1)))))
+    (putp alias '##core#primitive sym)
+    alias))
+
 (define (lookup id se)
   (cond ((##core#inline "C_u_i_assq" id se) => cdr)
 	((getp id '##core#macro-alias))
