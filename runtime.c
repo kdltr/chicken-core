@@ -1684,9 +1684,6 @@ void barf(int code, char *loc, ...)
   C_temporary_stack = C_temporary_stack_bottom;
   err = C_block_item(err, 0);
 
-  if(C_immediatep(err))
-    panic(C_text("`##sys#error-hook' is not defined - the `library' unit was probably not linked with this executable"));
-
   switch(code) {
   case C_BAD_ARGUMENT_COUNT_ERROR:
     msg = C_text("bad argument count");
@@ -1961,9 +1958,11 @@ void barf(int code, char *loc, ...)
   default: panic(C_text("illegal internal error code"));
   }
 
-  av = C_alloc(c + 4);
-  
-  if(!C_immediatep(err)) {
+  if(C_immediatep(err)) {
+    C_dbg(C_text("error"), C_text("%s\n"), msg);
+    panic(C_text("`##sys#error-hook' is not defined - the `library' unit was probably not linked with this executable"));
+  } else {
+    av = C_alloc(c + 4);
     va_start(v, loc);
     av[ 0 ] = err;
     /* No continuation is passed: '##sys#error-hook' may not return: */
@@ -1983,7 +1982,6 @@ void barf(int code, char *loc, ...)
     va_end(v);
     C_do_apply(c + 4, av);
   }
-  else panic(msg);
 }
 
 
