@@ -24,7 +24,7 @@
   (syntax-rules ()
     ((_ name imp ...)
      (module name ()
-       (import scheme)
+       (import scheme imp ...)
        (reexport imp ...)))))
 
 (compound-module
@@ -49,7 +49,7 @@
 (module
  m5
  *					; () works here
- (import chicken scheme)
+ (import chicken scheme m4)
  (reexport m4))
 
 (import m5)

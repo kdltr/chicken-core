@@ -579,6 +579,7 @@
 		  (exps (append
 			 (map (lambda (ic) `(set! ,(cdr ic) ',(car ic))) immutable-constants)
 			 (map (lambda (uu) `(##core#callunit ,uu)) used-units)
+			 (if unit-name `((##core#provide ,unit-name)) '())
 			 (if emit-profile
 			     (profiling-prelude-exps (and (not unit-name)
 							  (or profile-name #t)))
@@ -631,10 +632,9 @@
 		 (end-time "user pass") ) )
 
 	     ;; Convert s-expressions to node tree
-	     (let ((node0 (make-node
-			   'lambda '(())
-			   (list (build-node-graph
-				  (canonicalize-begin-body exps) ) ) ) ) 
+	     (let ((node0 (build-toplevel-procedure
+			   (build-node-graph
+			    (canonicalize-begin-body exps))))
 		   (db #f))
 	       (print-node "initial node tree" '|T| node0)
 	       (initialize-analysis-database)

@@ -815,8 +815,7 @@ stub.c: $(SRCDIR)stub.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) 
 debugger-client.c: $(SRCDIR)debugger-client.scm $(SRCDIR)common-declarations.scm dbg-stub.c
 	$(bootstrap-lib)
-build-version.c: $(SRCDIR)build-version.scm buildbranch buildid \
-	  $(SRCDIR)buildversion buildtag.h
+build-version.c: $(SRCDIR)build-version.scm $(SRCDIR)buildversion buildbranch buildid buildtag.h
 	$(bootstrap-lib)
 
 define declare-bootstrap-import-lib

@@ -51,21 +51,24 @@
    eval eval-handler extension-information
    load load-library load-noisily load-relative load-verbose
    interaction-environment null-environment scheme-report-environment
-   load-extension repository-path set-dynamic-load-mode!)
+   load-extension provide provided? repository-path
+   require set-dynamic-load-mode!)
 
-;; Exclude values defined within this module.
-(import (except scheme eval load interaction-environment null-environment scheme-report-environment))
-(import chicken)
+;; Exclude bindings defined within this module.
+(import (except scheme eval load interaction-environment null-environment scheme-report-environment)
+	(except chicken chicken-home provide provided? repository-path require))
 
-(import chicken.internal
-	chicken.expand
-	chicken.keyword
-	chicken.foreign)
+(import chicken.expand
+	chicken.foreign
+	chicken.internal
+	chicken.keyword)
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
+
+(provide* eval) ; TODO remove after a snapshot release
 
 (define-foreign-variable install-egg-home c-string "C_INSTALL_EGG_HOME")
 (define-foreign-variable installation-home c-string "C_INSTALL_SHARE_HOME")
@@ -73,39 +76,20 @@
 (define-foreign-variable uses-soname? bool "C_USES_SONAME")
 (define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
 
-;; TODO take these mappings from import files instead
-(define-constant core-chicken-modules
-  '((chicken . chicken-syntax)
-    (chicken.bitwise . library)
-    (chicken.continuation . continuation)
-    (chicken.data-structures . data-structures)
-    (chicken.eval . eval)
-    (chicken.expand . expand)
-    (chicken.files . files)
-    (chicken.flonum . library)
-    (chicken.foreign . chicken-ffi-syntax)
-    (chicken.format . extras)
-    (chicken.gc . library)
-    (chicken.internal . internal)
-    (chicken.io . extras)
-    (chicken.irregex . irregex)
-    (chicken.keyword . library)
-    (chicken.locative . lolevel)
-    (chicken.lolevel . lolevel)
-    (chicken.ports . ports)
-    (chicken.posix . posix)
-    (chicken.pretty-print . extras)
-    (chicken.tcp . tcp)
-    (chicken.time . library)
-    (chicken.repl . repl)
-    (chicken.read-syntax . read-syntax)
-    (chicken.utils . utils)))
+(define-constant core-unit-requirements
+  '((scheme ; XXX not totally correct, also needs eval
+     . (##core#require library))
+    (chicken.foreign
+     . (##core#require-for-syntax chicken-ffi-syntax))
+    (chicken
+     . (##core#begin
+	(##core#require-for-syntax chicken-syntax)
+	(##core#require library)))))
 
-(define-constant core-library-units
-  `(srfi-4 . ,(map cdr core-chicken-modules)))
-
-(define-constant core-syntax-units
-  '(chicken-syntax chicken-ffi-syntax))
+(define-constant core-units
+  '(chicken-syntax chicken-ffi-syntax continuation data-structures eval
+    expand extras files internal irregex library lolevel ports posix
+    srfi-4 tcp repl read-syntax utils))
 
 (define-constant cygwin-default-dynamic-load-libraries '("cygchicken-0"))
 (define-constant macosx-load-library-extension ".dylib")
@@ -119,17 +103,11 @@
 (define-constant prefix-environment-variable "CHICKEN_PREFIX")
 
 ; these are actually in unit extras, but that is used by default
-; srfi-12 in unit library
-; srfi-98 partially in unit posix
 
 (define-constant builtin-features
-  '(scheme chicken
-    srfi-2 srfi-6 srfi-10 srfi-12
-    srfi-23 srfi-28 srfi-30 srfi-39
-    srfi-55 srfi-88 srfi-98))
-
-(define-constant builtin-features/compiled
-  '(srfi-8 srfi-9 srfi-11 srfi-15 srfi-16 srfi-17 srfi-26) )
+  '(srfi-12 srfi-30 srfi-46 srfi-61 srfi-62           ; runtime
+    srfi-0 srfi-2 srfi-8 srfi-9 srfi-11 srfi-15       ; syntax
+    srfi-16 srfi-17 srfi-26 srfi-31 srfi-55 srfi-88)) ; syntax cont
 
 (define default-dynamic-load-libraries
   (case (build-platform)
@@ -144,7 +122,16 @@
     (lambda (#!optional dir)
       (and prefix
 	   (if dir (##sys#string-append prefix dir) prefix) ) ) ) )
-	  
+
+
+;;; Library registration (used for code loading):
+
+(define (##sys#provide id)
+  (##core#inline_allocate ("C_a_i_provide" 8) id))
+
+(define (##sys#provided? id)
+  (##core#inline "C_i_providedp" id))
+
 
 ;;; System settings
 
@@ -373,7 +360,7 @@
 					  (compile '(##core#undefined) e #f tf cntr se) ) ] )
 			    (lambda (v) (if (##core#app test v) (##core#app cns v) (##core#app alt v))) ) ]
 
-			 [(##core#begin ##core#toplevel-begin)
+			 [(##core#begin)
 			  (let* ((body (##sys#slot x 1))
 				 (len (length body)) )
 			    (case len
@@ -678,7 +665,7 @@
 			    (when (##sys#current-module)
 			      (##sys#syntax-error-hook 'module "modules may not be nested" name))
 			    (parameterize ((##sys#current-module
-					    (##sys#register-module name name exports))
+					    (##sys#register-module name #f exports))
 					   (##sys#current-environment '())
 					   (##sys#macro-environment 
 					    ##sys#initial-macro-environment)
@@ -690,7 +677,6 @@
 				   (if (null? body)
 				       (let ((xs (reverse xs)))
 					 (##sys#finalize-module (##sys#current-module))
-					 (##sys#provide name)
 					 (lambda (v)
 					   (let loop2 ((xs xs))
 					     (if (null? xs)
@@ -712,9 +698,11 @@
 			 [(##core#loop-lambda)
 			  (compile `(,(rename 'lambda se) ,@(cdr x)) e #f tf cntr se) ]
 
+			 [(##core#provide)
+			  (compile `(##sys#provide (##core#quote ,(cadr x))) e #f tf cntr se)]
+
 			 [(##core#require-for-syntax)
-			  (let ([ids (map (lambda (x) (##sys#eval/meta x))
-					  (cdr x))])
+			  (let ((ids (cdr x)))
 			    (apply ##sys#load-extension ids)
 			    (let ((rs (lookup-runtime-requirements ids)))
 			      (compile
@@ -1128,8 +1116,7 @@
 	      (display " ...\n") )
 	    (let loop ((libs libs))
 	      (cond ((null? libs) #f)
-		    ((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top)
-		     (##sys#provide uname))
+		    ((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top) #t)
 		    (else (loop (##sys#slot libs 1))))))))))
 
 (define load-library
@@ -1229,19 +1216,17 @@
 		 (or (check pa)
 		     (loop (##sys#slot paths 1)) ) ) ) ) ) ) ))
 
-(define (load-extension id)
+(define (##sys#load-extension id #!optional loc)
   (define (fail message)
-    (##sys#error 'load-extension message id))
+    (##sys#error loc message id))
   (cond ((string? id) (set! id (string->symbol id)))
-	(else (##sys#check-symbol id 'load-extension)))
+	(else (##sys#check-symbol id loc)))
   (cond ((##sys#provided? id))
-	((memq id core-syntax-units)
-	 (fail "cannot load core library"))
-	((memq id core-library-units)
+	((memq id core-units)
 	 (or (load-library-0 id #f)
 	     (fail "cannot load core library")))
 	(else
-	 (let* ((path (##sys#canonicalize-extension-path id 'load-extension))
+	 (let* ((path (##sys#canonicalize-extension-path id loc))
 		(ext  (##sys#find-extension path #f)))
 	   (cond (ext
 		  (load/internal ext #f #f #f #f id)
@@ -1249,7 +1234,21 @@
 		 (else
 		  (fail "cannot load extension")))))))
 
-(define ##sys#load-extension load-extension)
+(define (load-extension id)
+  (##sys#load-extension id 'load-extension))
+
+(define (require . ids)
+  (for-each (cut ##sys#load-extension <> 'require) ids))
+
+(define (provide . ids)
+  (for-each (cut ##sys#check-symbol <> 'provide) ids)
+  (for-each (cut ##sys#provide <>) ids))
+
+(define (provided? . ids)
+  (let loop ((ids ids))
+    (or (null? ids)
+	(and (##sys#provided? (car ids))
+	     (loop (cdr ids))))))
 
 (define extension-information/internal
   (let ([with-input-from-file with-input-from-file]
@@ -1289,31 +1288,27 @@
 ;;
 (define (##sys#expand-require lib #!optional compiling? (static-units '()))
   (let ((id (library-id lib)))
-  (let loop ((id (library-id lib)))
     (cond
-      ((assq id core-chicken-modules) =>
-       (lambda (mod) (loop (cdr mod))))
-      ((or (memq id builtin-features)
-	   (and compiling? (memq id builtin-features/compiled)))
+      ((assq id core-unit-requirements) =>
+       (lambda (x) (values (cdr x) id #f)))
+      ((memq id builtin-features)
        (values '(##core#undefined) id #f))
       ((memq id static-units)
        (values '(##core#undefined) id #f))
-      ((memq id core-syntax-units)
-       (values '(##core#undefined) id #f))
-      ((memq id core-library-units)
+      ((memq id core-units)
        (values
 	(if compiling?
 	    `(##core#declare (uses ,id))
 	    `(##sys#load-library (##core#quote ,id) #f))
 	id #f))
-      ((extension-information/internal id 'require) =>
+      ((extension-information/internal id #f) =>
        (lambda (info)
 	 (let ((s  (assq 'syntax info))
 	       (nr (assq 'syntax-only info))
 	       (rr (assq 'require-at-runtime info)))
 	   (values
 	    `(##core#begin
-	      ,@(if s `((##core#require-for-syntax (##core#quote ,id))) '())
+	      ,@(if s `((##core#require-for-syntax ,id)) '())
 	      ,@(if (or nr (and (not rr) s))
 		    '()
 		    (begin

@@ -27,6 +27,16 @@
 (declare 
   (usual-integrations))
 
+;; In chicken-5 units are self-providing, but when bootstrapping with
+;; chicken-4 we need to manually trigger C_a_i_provide for some
+;; special-case units (see `core-unit-requirements` in eval.scm).
+(define-syntax provide*
+  (er-macro-transformer
+   (lambda (x r c)
+     (cond-expand
+       (chicken-5 `(void))
+       (chicken-4 `(##core#inline_allocate ("C_a_i_provide" 8) ',(cadr x)))))))
+
 (cond-expand
  (debugbuild
   (define-syntax d

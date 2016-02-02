@@ -389,6 +389,9 @@
 	       (when (pair? args) (expr-args args i))
 	       (gen #\)) ) )
 
+	    ((##core#provide)
+	     (gen "C_a_i_provide(&a,1,lf[" (first params) "])"))
+
 	    ((##core#callunit)
 	     ;; The code generated here does not use the extra temporary needed for standard calls, so we have
 	     ;;  one unused variable:
@@ -813,7 +816,7 @@
 			[llen (length literals)] )
 		    (gen #t "C_word *a;"
 			 #t "if(toplevel_initialized) {C_kontinue(t1,C_SCHEME_UNDEFINED);}"
-			 #t "else C_toplevel_entry(C_text(\"" topname "\"));")
+			 #t "else C_toplevel_entry(C_text(\"" (or unit-name topname) "\"));")
 		    (when emit-debug-info
 		      (gen #t "C_register_debug_info(C_debug_info);"))
 		    (when disable-stack-overflow-checking

@@ -111,11 +111,11 @@
 ; (##core#lambda ({<variable>}+ [. <variable>]) <body>)
 ; (##core#set! <variable> <exp>)
 ; (##core#begin <exp> ...)
-; (##core#toplevel-begin <exp> ...)
 ; (##core#include <string>)
 ; (##core#loop-lambda <llist> <body>)
 ; (##core#undefined)
 ; (##core#primitive <name>)
+; (##core#provide <id>)
 ; (##core#inline {<op>} <exp>)
 ; (##core#inline_allocate (<op> <words>) {<exp>})
 ; (##core#inline_ref (<name> <type>))
@@ -172,6 +172,7 @@
 ; [##core#callunit {<unitname>} <exp>...]
 ; [##core#switch {<count>} <exp> <const1> <body1> ... <defaultbody>]
 ; [##core#cond <exp> <exp> <exp>]
+; [##core#provide <id>]
 ; [##core#recurse {<tail-flag>} <exp1> ...]
 ; [##core#return <exp>]
 ; [##core#direct_call {<safe-flag> <debug-info> <call-id> <words>} <exp-f> <exp>...]
@@ -216,6 +217,7 @@
 ; [##core#literal {<literal>}]
 ; [##core#immediate {<type> [<immediate>]}]     - type: bool/fix/nil/char
 ; [##core#proc {<name> [<non-internal>]}]
+; [##core#provide <literal>]
 ; [##core#recurse {<tail-flag> <call-id>} <exp1> ...]
 ; [##core#return <exp>]
 ; [##core#direct_call {<safe-flag> <debug-info> <call-id> <words>} <exp-f> <exp>...]
@@ -272,7 +274,7 @@
 (module chicken.compiler.core
     (analyze-expression canonicalize-expression compute-database-statistics
      initialize-compiler perform-closure-conversion perform-cps-conversion
-     prepare-for-code-generation
+     prepare-for-code-generation build-toplevel-procedure
 
      ;; These are both exported for use in eval.scm (which is a bit of
      ;; a hack). file-requirements is also used by batch-driver
@@ -651,7 +653,7 @@
 				    (hide-variable var)
 				    var) ] ) ) )
 
-			((##core#undefined ##core#callunit ##core#primitive) x)
+			((##core#callunit ##core#provide ##core#primitive ##core#undefined) x)
 
 			((##core#inline_ref)
 			 `(##core#inline_ref
@@ -663,13 +665,8 @@
 			   ,(walk (caddr x) e se dest ldest h ln)))
 
 			((##core#require-for-syntax)
-			 (let ([ids (map eval (cdr x))])
-			   (apply ##sys#require ids)
-			   (##sys#hash-table-update!
-			    file-requirements 'dynamic/syntax
-			    (cut lset-union/eq? <> ids)
-			    (lambda () ids) )
-			   '(##core#undefined) ) )
+			 (apply ##sys#load-extension (cdr x))
+			 '(##core#undefined))
 
 			((##core#require)
 			 (walk
@@ -927,7 +924,8 @@
 
 		       ((##core#module)
 			(let* ((name (strip-syntax (cadr x)))
-			       (unit (or unit-name name))
+			       (import-lib (or (assq name import-libraries) all-import-libraries))
+			       (unit (and import-lib (or unit-name name)))
 			       (exports
 				(or (eq? #t (caddr x))
 				    (map (lambda (exp)
@@ -966,30 +964,27 @@
 						       (print-error-message ex (current-error-port))
 						       (exit 1))
 						   (##sys#finalize-module (##sys#current-module)))
-						 (cond ((or (assq name import-libraries) all-import-libraries)
-							=> (lambda (il)
-							     (when enable-module-registration
-							       (emit-import-lib name il))
-							     ;; Remove from list to avoid error
-							     (when (pair? il)
-							       (set! import-libraries
-								 (delete il import-libraries)))
-							     (values
-							      (reverse xs)
-							      `((##sys#provide ',unit)))))
+						 (cond (import-lib
+							(when enable-module-registration
+							  (emit-import-lib name import-lib))
+							;; Remove from list to avoid error
+							(when (pair? import-lib)
+							  (set! import-libraries
+							    (delete import-lib import-libraries)))
+							(values
+							 (reverse xs)
+							 '((##core#undefined))))
 						       ((not enable-module-registration)
 							(values
 							 (reverse xs)
-							 '((##core#undefined)))) ; XXX correct?
+							 '((##core#undefined))))
 						       (else
 							(values
 							 (reverse xs)
-							 `((##sys#provide ',unit)
-							   .
-							   ,(if standalone-executable
-								`()
-								(##sys#compiled-module-registration
-								 (##sys#current-module))))))))
+							 (if standalone-executable
+							     '()
+							     (##sys#compiled-module-registration
+							      (##sys#current-module)))))))
 						(else
 						 (loop
 						  (cdr body)
@@ -1123,7 +1118,7 @@
 			 (##sys#eval/meta (cadr x))
 			 '(##core#undefined) )
 
-			((##core#begin ##core#toplevel-begin)
+			((##core#begin)
 			 (if (pair? (cdr x))
 			     (canonicalize-begin-body
 			      (let fold ([xs (cdr x)])
@@ -1691,6 +1686,12 @@
      '(##core#undefined) ) ) )
 
 
+;;; Create entry procedure:
+
+(define (build-toplevel-procedure node)
+  (make-node 'lambda '(()) (list node)))
+
+
 ;;; Expand "foreign-lambda"/"foreign-safe-lambda" forms and add item to stub-list:
 
 (define-record-type foreign-stub
@@ -1821,7 +1822,7 @@
 	  (params (node-parameters n))
 	  (class (node-class n)) )
       (case (node-class n)
-	((##core#variable quote ##core#undefined ##core#primitive) (k n))
+	((##core#variable quote ##core#undefined ##core#primitive ##core#provide) (k n))
 	((if) (let* ((t1 (gensym 'k))
 		     (t2 (gensym 'r))
 		     (k1 (lambda (r) (make-node '##core#call (list #t) (list (varnode t1) r)))) )
@@ -1947,7 +1948,7 @@
 	    (class (node-class n)) )
 	(grow 1)
 	(case class
-	  ((quote ##core#undefined ##core#proc) #f)
+	  ((quote ##core#undefined ##core#provide ##core#proc) #f)
 
 	  ((##core#variable)
 	   (let ((var (first params)))
@@ -2352,7 +2353,7 @@
 		 (list var)
 		 '())))
 
-	  ((quote ##core#undefined ##core#proc ##core#primitive)
+	  ((quote ##core#undefined ##core#provide ##core#proc ##core#primitive)
 	   '())
 
 	  ((let)
@@ -2433,7 +2434,7 @@
 	    (class (node-class n)) )
 	(case class
 
-	  ((quote ##core#undefined ##core#proc) n)
+	  ((quote ##core#undefined ##core#provide ##core#proc) n)
 
 	  ((##core#variable)
 	   (let* ((var (first params))
@@ -2705,6 +2706,12 @@
 		    [else class] )
 	      '()
 	      subs) ) )
+
+	  ((##core#provide)
+	   ;; Allocate enough space for the ##core#provided property.
+	   (let ((id (literal (first params))))
+	     (set! allocated (+ allocated 8))
+	     (make-node class (list id) '())))
 
 	  ((##core#lambda ##core#direct_lambda)
 	   (let ((temps temporaries)

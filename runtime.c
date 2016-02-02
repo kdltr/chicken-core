@@ -450,6 +450,7 @@ static C_TLS C_word
   error_hook_symbol,
   pending_finalizers_symbol,
   callback_continuation_stack_symbol,
+  core_provided_symbol,
   *forwarding_table;
 static C_TLS int 
   trace_buffer_full,
@@ -1150,6 +1151,7 @@ void initialize_symbol_table(void)
   C_bignum_type_tag = C_intern2(C_heaptop, C_text("\003sysbignum"));
   C_ratnum_type_tag = C_intern2(C_heaptop, C_text("\003sysratnum"));
   C_cplxnum_type_tag = C_intern2(C_heaptop, C_text("\003syscplxnum"));
+  core_provided_symbol = C_intern2(C_heaptop, C_text("\004coreprovided"));
   interrupt_hook_symbol = C_intern2(C_heaptop, C_text("\003sysinterrupt-hook"));
   error_hook_symbol = C_intern2(C_heaptop, C_text("\003syserror-hook"));
   callback_continuation_stack_symbol = C_intern3(C_heaptop, C_text("\003syscallback-continuation-stack"), C_SCHEME_END_OF_LIST);
@@ -3603,6 +3605,7 @@ C_regparm void C_fcall mark_system_globals(void)
   mark(&C_bignum_type_tag);
   mark(&C_ratnum_type_tag);
   mark(&C_cplxnum_type_tag);
+  mark(&core_provided_symbol);
   mark(&interrupt_hook_symbol);
   mark(&error_hook_symbol);
   mark(&callback_continuation_stack_symbol);
@@ -3962,6 +3965,7 @@ C_regparm void C_fcall remark_system_globals(void)
   remark(&C_bignum_type_tag);
   remark(&C_ratnum_type_tag);
   remark(&C_cplxnum_type_tag);
+  remark(&core_provided_symbol);
   remark(&interrupt_hook_symbol);
   remark(&error_hook_symbol);
   remark(&callback_continuation_stack_symbol);
@@ -4534,9 +4538,23 @@ C_regparm C_word C_fcall C_u_i_string_ci_hash(C_word str, C_word rnd)
 C_regparm void C_fcall C_toplevel_entry(C_char *name)
 {
   if(debug_mode)
-    C_dbg(C_text("debug"), C_text("entering toplevel %s...\n"), name);
+    C_dbg(C_text("debug"), C_text("entering %s...\n"), name);
 }
 
+C_regparm C_word C_fcall C_a_i_provide(C_word **a, int c, C_word id)
+{
+  if (debug_mode == 2) {
+    C_word str = C_block_item(id, 1);
+    C_snprintf(buffer, C_header_size(str) + 1, C_text("%s"), (C_char *) C_data_pointer(str));
+    C_dbg(C_text("debug"), C_text("providing %s...\n"), buffer);
+  }
+  return C_a_i_putprop(a, 3, id, core_provided_symbol, C_SCHEME_TRUE);
+}
+
+C_regparm C_word C_fcall C_i_providedp(C_word id)
+{
+  return C_i_getprop(id, core_provided_symbol, C_SCHEME_FALSE);
+}
 
 C_word C_halt(C_word msg)
 {

@@ -139,6 +139,8 @@
    port-name
    port-position
    port?
+   (provide . chicken.eval#provide)
+   (provided? . chicken.eval#provided?)
    print
    print-call-chain
    print-error-message
@@ -155,6 +157,7 @@
    remprop!
    rename-file
    (repository-path . chicken.eval#repository-path)
+   (require . chicken.eval#require)
    reset
    reset-handler
    return-to-host

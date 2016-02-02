@@ -695,63 +695,66 @@
 
 (define (##sys#import x r c import-env macro-env meta? reexp? loc)
   (##sys#check-syntax loc x '(_ . #(_ 1)))
+  (for-each
+   (lambda (spec)
+     (let-values (((name _ vsv vss vsi) (##sys#expand-import spec r c loc)))
+       (##sys#finalize-import name vsv vss vsi import-env macro-env meta? reexp? loc)))
+   (cdr x))
+  '(##core#undefined))
+
+(define (##sys#finalize-import name vsv vss vsi import-env macro-env meta? reexp? loc)
   (let ((cm (##sys#current-module)))
+    (when cm ; save import form
+      (if meta?
+          (set-module-meta-import-forms!
+           cm
+           (append (module-meta-import-forms cm) (list name)))
+          (set-module-import-forms!
+           cm
+           (append (module-import-forms cm) (list name)))))
+    (dd `(IMPORT: ,loc))
+    (dd `(V: ,(if cm (module-name cm) '<toplevel>) ,(map-se vsv)))
+    (dd `(S: ,(if cm (module-name cm) '<toplevel>) ,(map-se vss)))
+    (mark-imported-symbols vsv) ; mark imports as ##core#aliased
     (for-each
-     (lambda (spec)
-       (let-values (((name _ vsv vss vsi) (##sys#expand-import spec r c loc)))
-	 (when cm ; save import form
-	   (if meta?
-	       (set-module-meta-import-forms!
-		cm
-		(append (module-meta-import-forms cm) (list name)))
-	       (set-module-import-forms!
-		cm
-		(append (module-import-forms cm) (list name)))))
-	 (dd `(IMPORT: ,loc))
-	 (dd `(V: ,(if cm (module-name cm) '<toplevel>) ,(map-se vsv)))
-	 (dd `(S: ,(if cm (module-name cm) '<toplevel>) ,(map-se vss)))
-	 (mark-imported-symbols vsv) ; mark imports as ##core#aliased
-	 (for-each
-	  (lambda (imp)
-	    (and-let* ((id (car imp))
-		       (a (assq id (import-env)))
-		       (aid (cdr imp))
-		       ((not (eq? aid (cdr a)))))
-	      (##sys#notice "re-importing already imported identifier" id)))
-	  vsv)
-	 (for-each
-	  (lambda (imp)
-	    (and-let* ((a (assq (car imp) (macro-env)))
-		       ((not (eq? (cdr imp) (cdr a)))))
-	      (##sys#notice "re-importing already imported syntax" (car imp))))
-	  vss)
-	 (when reexp?
-	   (unless cm
-	     (##sys#syntax-error-hook loc "`reexport' only valid inside a module"))
-	   (let ((el (module-export-list cm)))
-	     (cond ((eq? #t el)
-		    (set-module-sexports! cm (append vss (module-sexports cm)))
-		    (set-module-exist-list!
-		     cm
-		     (append (module-exist-list cm)
-			     (map car vsv)
-			     (map car vss))))
-		   (else
-		    (set-module-export-list!
-		     cm
-		     (append
-		      (let ((xl (module-export-list cm)))
-			(if (eq? #t xl) '() xl))
-		      (map car vsv)
-		      (map car vss))))))
-	   (set-module-iexports!
-	    cm
-	    (merge-se (module-iexports cm) vsi))
-	   (dm "export-list: " (module-export-list cm)))
-	 (import-env (append vsv (import-env)))
-	 (macro-env (append vss (macro-env)))))
-     (cdr x))
-    '(##core#undefined)))
+     (lambda (imp)
+       (and-let* ((id (car imp))
+                  (a (assq id (import-env)))
+                  (aid (cdr imp))
+                  ((not (eq? aid (cdr a)))))
+         (##sys#notice "re-importing already imported identifier" id)))
+     vsv)
+    (for-each
+     (lambda (imp)
+       (and-let* ((a (assq (car imp) (macro-env)))
+                  ((not (eq? (cdr imp) (cdr a)))))
+         (##sys#notice "re-importing already imported syntax" (car imp))))
+     vss)
+    (when reexp?
+      (unless cm
+        (##sys#syntax-error-hook loc "`reexport' only valid inside a module"))
+      (let ((el (module-export-list cm)))
+        (cond ((eq? #t el)
+               (set-module-sexports! cm (append vss (module-sexports cm)))
+               (set-module-exist-list!
+                cm
+                (append (module-exist-list cm)
+                        (map car vsv)
+                        (map car vss))))
+              (else
+               (set-module-export-list!
+                cm
+                (append
+                 (let ((xl (module-export-list cm)))
+                   (if (eq? #t xl) '() xl))
+                 (map car vsv)
+                 (map car vss))))))
+      (set-module-iexports!
+       cm
+       (merge-se (module-iexports cm) vsi))
+      (dm "export-list: " (module-export-list cm)))
+    (import-env (append vsv (import-env)))
+    (macro-env (append vss (macro-env)))))
 
 (define (module-rename sym prefix)
   (##sys#string->symbol

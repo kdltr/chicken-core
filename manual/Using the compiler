@@ -417,15 +417,12 @@ Let's take a simple example.
 
   % csc -t hello.scm -optimize-level 3 -output-file hello.c
 
-Compiled to C, we get {{hello.c}}. We need the files {{chicken.h}},
-{{chicken-config.h}}, {{build-version.c}}, {{buildtag.h}} and
-{{runtime.c}}, which contain the basic runtime system, plus the five
-basic library files {{library.c}}, {{eval.c}}, {{expand.c}},
-{{modules.c}} and {{build-version.c}} which contain the same
-functionality as the library linked into a plain CHICKEN-compiled
-application, or which is available by default in the interpreter,
-{{csi}}:
-
+Compiled to C, we get {{hello.c}}. We need the files {{chicken-config.h}},
+{{chicken.h}}, {{buildtag.h}} and {{runtime.c}}, which contain the basic runtime
+system, plus the library files {{library.c}}, {{internal.c}}, {{eval.c}},
+{{expand.c}}, {{modules.c}} and {{build-version.c}}, which contain the same
+functionality as the library linked into a plain CHICKEN-compiled application,
+or which is available by default in the interpreter, {{csi}}:
 
   % cd /tmp
   % echo '(print "Hello World.")' > hello.scm
@@ -444,8 +441,13 @@ application, or which is available by default in the interpreter,
 
 Now we have all files together, and can create an tarball containing all the files:
 
+<<<<<<< HEAD
  % tar cf hello.tar hello.c runtime.c build-version.c library.c eval.c extras.c \
    expand.c modules.c chicken.h chicken-config.h
+=======
+ % tar cf hello.tar hello.c runtime.c build-version.c library.c internal.c \
+   eval.c extras.c expand.c modules.c chicken.h chicken-config.h
+>>>>>>> 0b88ca1... Add core form for library tracking
  % gzip hello.tar
 
 This is naturally rather simplistic. Things like enabling dynamic

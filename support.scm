@@ -544,7 +544,7 @@
 		   (car x)
 		   (list (if (and (pair? arg) (eq? 'quote (car arg))) (cadr arg) arg))
 		   (map walk (cddr x)) ) ) )
-	       ((##core#inline ##core#callunit) 
+	       ((##core#inline ##core#provide ##core#callunit)
 		(make-node (car x) (list (cadr x)) (map walk (cddr x))) )
 	       ((##core#debug-event) ; 2nd argument is provided by canonicalization phase
 		(make-node (car x) (cdr x) '()))

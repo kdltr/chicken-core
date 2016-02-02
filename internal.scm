@@ -34,6 +34,7 @@
 
 (import scheme chicken)
 
+(include "common-declarations.scm")
 (include "mini-srfi-1.scm")
 
 

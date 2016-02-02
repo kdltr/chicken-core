@@ -29,7 +29,7 @@
 
 (declare
   (unit expand)
-  (uses extras internal)
+  (uses internal)
   (disable-interrupts)
   (fixnum)
   (hide check-for-multiple-bindings)
@@ -950,11 +950,12 @@
  (##sys#er-transformer
   (lambda (x r c)
     `(##core#begin
-      ,@(map (lambda (x)
-	       (let-values (((mod lib _ _ _) (##sys#expand-import x r c 'import)))
-		 `(##core#begin
-		   (,(r 'import-syntax) ,mod)
-		   (##core#require ,lib))))
+      ,@(map (lambda (spec)
+	       (let-values (((name lib v s i) (##sys#expand-import spec r c 'import)))
+		 (##sys#finalize-import
+		  name v s i
+		  ##sys#current-environment ##sys#macro-environment #f #f 'import)
+		 (if (not lib) '(##core#undefined) `(##core#require ,lib))))
 	     (cdr x))))))
 
 (##sys#extend-macro-environment

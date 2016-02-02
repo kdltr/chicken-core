@@ -39,7 +39,10 @@
   (no-bound-checks)
   (no-procedure-checks))
 
+(include "common-declarations.scm")
 (include "mini-srfi-1.scm")
+
+(provide* chicken-syntax) ; TODO remove after snapshot release
 
 ;;; Non-standard macros:
 

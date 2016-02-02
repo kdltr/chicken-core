@@ -42,7 +42,10 @@
 (import chicken.data-structures
 	chicken.format)
 
+(include "common-declarations.scm")
 (include "mini-srfi-1.scm")
+
+(provide* chicken-ffi-syntax) ; TODO remove after snapshot release
 
 (define ##sys#chicken-ffi-macro-environment
   (let ((me0 (##sys#macro-environment)))
