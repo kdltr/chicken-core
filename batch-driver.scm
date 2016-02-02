@@ -182,8 +182,7 @@
   (initialize-compiler)
   (set! explicit-use-flag (memq 'explicit-use options))
   (set! emit-debug-info (memq 'debug-info options))
-  (let ((initforms `((import-for-syntax scheme chicken)
-		     (import scheme chicken)
+  (let ((initforms `((import-for-syntax ,@default-syntax-imports)
 		     (##core#declare
 		      ,@(append 
 			 default-declarations
@@ -192,7 +191,10 @@
 			     '())
 			 (if explicit-use-flag
 			     '()
-			     `((uses ,@units-used-by-default)))))))
+			     `((uses ,@default-units)))))
+		     ,@(if explicit-use-flag
+			   '()
+			   `((import ,@default-imports)))))
         (verbose (memq 'verbose options))
 	(outfile (cond ((memq 'output-file options) 
 			=> (lambda (node)

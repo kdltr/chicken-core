@@ -34,8 +34,11 @@
 	optimizer support compiler))
 
 (module chicken.compiler.c-platform
-    (default-declarations default-profiling-declarations
-     units-used-by-default
+    (;; Batch compilation defaults
+     default-declarations default-profiling-declarations
+     default-units default-imports default-syntax-imports
+
+     ;; Compiler flags
      valid-compiler-options valid-compiler-options-with-argument
 
      ;; For consumption by c-backend *only*
@@ -75,7 +78,10 @@
      (bound-to-procedure
        ##sys#profile-entry ##sys#profile-exit) ) ) )
 
-(define units-used-by-default '(library eval chicken-syntax))
+(define default-units '(library eval))
+(define default-imports '(scheme chicken))
+(define default-syntax-imports '(scheme chicken))
+
 (define words-per-flonum 4)
 
 (eq-inline-operator "C_eqp")
