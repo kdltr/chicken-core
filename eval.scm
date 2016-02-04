@@ -702,14 +702,14 @@
 			  (compile `(##sys#provide (##core#quote ,(cadr x))) e #f tf cntr se)]
 
 			 [(##core#require-for-syntax)
-			  (let ((ids (cdr x)))
-			    (apply ##sys#load-extension ids)
-			    (let ((rs (lookup-runtime-requirements ids)))
-			      (compile
-			       (if (null? rs)
-				   '(##core#undefined)
-				   `(##sys#load-extension ,@(map (lambda (x) `(##core#quote ,x)) rs)))
-			       e #f tf cntr se) ) ) ]
+			  (let ((ids (strip-syntax (cdr x))))
+			    (for-each ##sys#load-extension ids)
+			    (compile
+			     `(##core#begin
+			       ,@(map (lambda (x)
+					`(##sys#load-extension (##core#quote ,x)))
+				      (lookup-runtime-requirements ids)))
+			     e #f tf cntr se))]
 
 			 [(##core#require)
 			  (compile
@@ -1219,8 +1219,6 @@
 (define (##sys#load-extension id #!optional loc)
   (define (fail message)
     (##sys#error loc message id))
-  (cond ((string? id) (set! id (string->symbol id)))
-	(else (##sys#check-symbol id loc)))
   (cond ((##sys#provided? id))
 	((memq id core-units)
 	 (or (load-library-0 id #f)
@@ -1238,6 +1236,7 @@
   (##sys#load-extension id 'load-extension))
 
 (define (require . ids)
+  (for-each (cut ##sys#check-symbol <> 'require) ids)
   (for-each (cut ##sys#load-extension <> 'require) ids))
 
 (define (provide . ids)
@@ -1245,10 +1244,7 @@
   (for-each (cut ##sys#provide <>) ids))
 
 (define (provided? . ids)
-  (let loop ((ids ids))
-    (or (null? ids)
-	(and (##sys#provided? (car ids))
-	     (loop (cdr ids))))))
+  (every ##sys#provided? ids))
 
 (define extension-information/internal
   (let ([with-input-from-file with-input-from-file]

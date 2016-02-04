@@ -665,7 +665,7 @@
 			   ,(walk (caddr x) e se dest ldest h ln)))
 
 			((##core#require-for-syntax)
-			 (apply ##sys#load-extension (cdr x))
+			 (for-each ##sys#load-extension (cdr x))
 			 '(##core#undefined))
 
 			((##core#require)
