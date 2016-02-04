@@ -754,7 +754,6 @@
 (open-output-file (#(procedure #:clean #:enforce) open-output-file (string #!rest symbol) output-port))
 (close-input-port (#(procedure #:enforce) close-input-port (input-port) undefined))
 (close-output-port (#(procedure #:enforce) close-output-port (output-port) undefined))
-(chicken.eval#load (procedure chicken.eval#load (string #!optional (procedure (*) . *)) undefined))
 (read (#(procedure #:enforce) read (#!optional input-port) *))
 
 (eof-object? (#(procedure #:pure #:predicate eof) eof-object? (*) boolean))
@@ -798,7 +797,6 @@
 			 (let ((#(tmp2) #(2)))
 			   (#(tmp2) (#(tmp1)))))))
 
-(chicken.eval#eval (procedure chicken.eval#eval (* #!optional (struct environment)) . *))
 (char-ready? (#(procedure #:enforce) char-ready? (#!optional input-port) boolean))
 
 (real-part (#(procedure #:clean #:enforce #:foldable) real-part (number) (or integer float ratnum))
@@ -840,6 +838,21 @@
 	     ((integer) (fixnum) (let ((#(tmp) #(1))) '1))
 	     ((ratnum) (integer) (##sys#slot #(1) '2)))
 
+;; eval
+
+(chicken.eval#chicken-home (#(procedure #:clean) chicken.eval#chicken-home () string))
+(chicken.eval#eval (procedure chicken.eval#eval (* #!optional (struct environment)) . *))
+(chicken.eval#extension-information (#(procedure #:clean) chicken.eval#extension-information (symbol) *))
+(chicken.eval#load (procedure chicken.eval#load (string #!optional (procedure (*) . *)) undefined))
+(chicken.eval#load-extension (#(procedure #:enforce) chicken.eval#load-extension (symbol) boolean))
+(chicken.eval#load-library (#(procedure #:enforce) chicken.eval#load-library (symbol #!optional string) undefined))
+(chicken.eval#load-relative (#(procedure #:enforce) chicken.eval#load-relative (string #!optional (procedure (*) . *)) undefined))
+(chicken.eval#load-verbose (#(procedure #:clean) chicken.eval#load-verbose (#!optional *) *))
+(chicken.eval#provide (#(procedure #:clean #:enforce) chicken.eval#provide (#!rest symbol) undefined))
+(chicken.eval#provided? (#(procedure #:clean #:enforce) chicken.eval#provided? (#!rest symbol) boolean))
+(chicken.eval#repository-path (#(procedure #:clean) chicken.eval#repository-path (#!optional *) *))
+(chicken.eval#require (#(procedure #:clean) chicken.eval#require (#!rest symbol) undefined))
+
 (chicken.eval#scheme-report-environment
  (#(procedure #:clean #:enforce) chicken.eval#scheme-report-environment (#!optional fixnum) (struct environment)))
 
@@ -848,9 +861,6 @@
 
 (chicken.eval#interaction-environment
  (#(procedure #:clean) chicken.eval#interaction-environment () (struct environment)))
-
-(port-closed? (#(procedure #:clean #:enforce) port-closed? (port) boolean)
-	      ((port) (##sys#slot #(1) '8)))
 
 
 ;; chicken
@@ -933,7 +943,6 @@
 (call/cc (#(procedure #:enforce) call/cc ((procedure (*) . *)) . *))
 (case-sensitive (#(procedure #:clean) case-sensitive (#!optional *) *))
 (char-name (#(procedure #:clean #:enforce) char-name ((or char symbol) #!optional char) *)) ;XXX -> (or char symbol) ?
-(chicken.eval#chicken-home (#(procedure #:clean) chicken.eval#chicken-home () string))
 (chicken-version (#(procedure #:pure) chicken-version (#!optional *) string))
 (command-line-arguments (#(procedure #:clean) command-line-arguments (#!optional (list-of string)) (list-of string)))
 (condition-predicate (#(procedure #:clean #:enforce) condition-predicate (symbol) (procedure ((struct condition)) boolean)))
@@ -1017,7 +1026,6 @@
 (exit (procedure exit (#!optional fixnum) noreturn))
 (exit-handler (#(procedure #:clean #:enforce) exit-handler (#!optional (procedure (fixnum) . *)) procedure))
 (chicken.expand#expand (procedure chicken.expand#expand (* #!optional list) *))
-(chicken.eval#extension-information (#(procedure #:clean) chicken.eval#extension-information (symbol) *))
 (feature? (#(procedure #:clean) feature? (#!rest symbol) boolean))
 (features (#(procedure #:clean) features () (list-of symbol)))
 (file-exists? (#(procedure #:clean #:enforce) file-exists? (string) (or false string)))
@@ -1212,9 +1220,6 @@
   (struct transformer)))
 
 (keyword-style (#(procedure #:clean) keyword-style (#!optional symbol) symbol))
-(chicken.eval#load-library (#(procedure #:enforce) chicken.eval#load-library (symbol #!optional string) undefined))
-(chicken.eval#load-relative (#(procedure #:enforce) chicken.eval#load-relative (string #!optional (procedure (*) . *)) undefined))
-(chicken.eval#load-verbose (#(procedure #:clean) chicken.eval#load-verbose (#!optional *) *))
 (machine-byte-order (#(procedure #:pure) machine-byte-order () symbol))
 (machine-type (#(procedure #:pure) machine-type () symbol))
 
@@ -1241,6 +1246,9 @@
 
 (port? (#(procedure #:pure #:predicate (or input-port output-port)) port? (*) boolean))
 
+(port-closed? (#(procedure #:clean #:enforce) port-closed? (port) boolean)
+	      ((port) (##sys#slot #(1) '8)))
+
 (print (procedure print (#!rest *) undefined))
 (print-call-chain (#(procedure #:clean #:enforce) print-call-chain (#!optional output-port fixnum * string) undefined))
 (print-error-message (#(procedure #:clean #:enforce) print-error-message (* #!optional output-port string) undefined))
@@ -1263,8 +1271,6 @@
 (register-feature! (#(procedure #:clean #:enforce) register-feature! (#!rest symbol) undefined))
 (remprop! (#(procedure #:clean #:enforce) remprop! (symbol symbol) undefined))
 (rename-file (#(procedure #:clean #:enforce) rename-file (string string) string))
-(chicken.eval#repository-path (#(procedure #:clean) chicken.eval#repository-path (#!optional *) *))
-(chicken.eval#require (#(procedure #:clean) chicken.eval#require (#!rest (or string symbol)) undefined))
 (reset (procedure reset () noreturn))
 (reset-handler (#(procedure #:clean #:enforce) reset-handler (#!optional (procedure () . *)) procedure))
 (return-to-host (procedure return-to-host () . *))
@@ -1417,6 +1423,12 @@
 (##sys#standard-input input-port)
 (##sys#standard-output output-port)
 (##sys#standard-error output-port)
+
+(##sys#provide (procedure ##sys#provide (symbol) boolean)
+  ((symbol) (##core#inline_allocate ("C_a_i_provide" 8) #(1))))
+
+(##sys#provided? (procedure ##sys#provided? (symbol) boolean)
+  ((symbol) (##core#inline "C_i_providedp" #(1))))
 
 
 ;; data-structures

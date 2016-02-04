@@ -1236,6 +1236,7 @@
 		  (fail "cannot load extension")))))))
 
 (define (load-extension id)
+  (##sys#check-symbol id 'load-extension)
   (##sys#load-extension id 'load-extension))
 
 (define (require . ids)
@@ -1247,6 +1248,7 @@
   (for-each (cut ##sys#provide <>) ids))
 
 (define (provided? . ids)
+  (for-each (cut ##sys#check-symbol <> 'provided?) ids)
   (every ##sys#provided? ids))
 
 (define extension-information/internal
@@ -1298,7 +1300,7 @@
        (values
 	(if compiling?
 	    `(##core#declare (uses ,id))
-	    `(##sys#load-library (##core#quote ,id) #f))
+	    `(##sys#load-library (##core#quote ,id)))
 	id #f))
       ((not dynamic?)
        (values `(##sys#provided? (##core#quote ,id)) #f #f))
