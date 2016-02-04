@@ -677,6 +677,7 @@
 				   (if (null? body)
 				       (let ((xs (reverse xs)))
 					 (##sys#finalize-module (##sys#current-module))
+					 (##sys#provide (module-requirement name))
 					 (lambda (v)
 					   (let loop2 ((xs xs))
 					     (if (null? xs)
@@ -713,11 +714,13 @@
 
 			 [(##core#require)
 			  (compile
-			   (let loop ((ids (map strip-syntax (cdr x))))
+			   (let loop ((ids (strip-syntax (cdr x))))
 			     (if (null? ids)
 				 '(##core#undefined)
-				 (let-values (((exp _ _) (##sys#expand-require (car ids))))
-				   `(##core#begin ,exp ,(loop (cdr ids))))))
+				 (let ((id   (car ids))
+				       (rest (cdr ids)))
+				   (let-values (((exp _ _) (##sys#process-require id #f (null? rest))))
+				     `(##core#if ,exp (##core#undefined) ,(loop rest))))))
 			   e #f tf cntr se)]
 
 			 [(##core#elaborationtimeonly ##core#elaborationtimetoo) ; <- Note this!
@@ -1279,10 +1282,10 @@
 ;; Given a library specification, returns three values:
 ;;
 ;;   - an expression for loading the library, if required
-;;   - a fixed-up library id if the library was found, #f otherwise
+;;   - a library id if the library was found, #f otherwise
 ;;   - a requirement type (e.g. 'dynamic) or #f if provided statically
 ;;
-(define (##sys#expand-require lib #!optional compiling? (static-units '()))
+(define (##sys#process-require lib #!optional compiling? dynamic? (static-units '()))
   (let ((id (library-id lib)))
     (cond
       ((assq id core-unit-requirements) =>
@@ -1297,6 +1300,8 @@
 	    `(##core#declare (uses ,id))
 	    `(##sys#load-library (##core#quote ,id) #f))
 	id #f))
+      ((not dynamic?)
+       (values `(##sys#provided? (##core#quote ,id)) #f #f))
       ((extension-information/internal id #f) =>
        (lambda (info)
 	 (let ((s  (assq 'syntax info))
@@ -1304,14 +1309,15 @@
 	       (rr (assq 'require-at-runtime info)))
 	   (values
 	    `(##core#begin
-	      ,@(if s `((##core#require-for-syntax ,id)) '())
+	      ,@(if (not s)
+		    '()
+		    `((##core#require-for-syntax ,id)))
 	      ,@(if (or nr (and (not rr) s))
 		    '()
-		    (begin
-		      `((##sys#load-extension
-			 ,@(map (lambda (id) `(##core#quote ,id))
-				(cond (rr (cdr rr))
-				      (else (list id)))))))))
+		    (map (lambda (id)
+			   `(##sys#load-extension (##core#quote ,id)))
+			 (cond (rr (cdr rr))
+			       (else (list id))))))
 	    id
 	    (if s 'dynamic/syntax 'dynamic)))))
       (else

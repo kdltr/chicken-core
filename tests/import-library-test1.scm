@@ -1,7 +1,3 @@
-(import (only (chicken eval) provide))
-
-(provide 'foo) ; XXX
-
 (module foo (foo xcase)
   (import (rename scheme (case xcase)))
   (define-syntax foo 

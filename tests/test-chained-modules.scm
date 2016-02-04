@@ -1,7 +1,3 @@
-(import (only (chicken eval) provide))
-
-(provide 'm1 'm2 'm3) ; XXX
-
 (module m1 ((s1 f1))
   (import scheme chicken)
   (define (f1) (print "f1") 'f1)

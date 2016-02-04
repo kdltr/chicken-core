@@ -933,21 +933,21 @@
 (##sys#extend-macro-environment
  'import-syntax '()
  (##sys#er-transformer
-  (cut ##sys#import <> <> <>
+  (cut ##sys#expand-import <> <> <>
        ##sys#current-environment ##sys#macro-environment
        #f #f 'import-syntax)))
 
 (##sys#extend-macro-environment
  'import-syntax-for-syntax '()
  (##sys#er-transformer
-  (cut ##sys#import <> <> <>
+  (cut ##sys#expand-import <> <> <>
        ##sys#current-meta-environment ##sys#meta-macro-environment
        #t #f 'import-syntax-for-syntax)))
 
 (##sys#extend-macro-environment
  'reexport '()
  (##sys#er-transformer
-  (cut ##sys#import <> <> <>
+  (cut ##sys#expand-import <> <> <>
        ##sys#current-environment ##sys#macro-environment
        #f #t 'reexport)))
 
@@ -956,12 +956,17 @@
  (##sys#er-transformer
   (lambda (x r c)
     `(##core#begin
-      ,@(map (lambda (spec)
-	       (let-values (((name lib v s i) (##sys#expand-import spec r c 'import)))
-		 (##sys#finalize-import
-		  name v s i
-		  ##sys#current-environment ##sys#macro-environment #f #f 'import)
-		 (if (not lib) '(##core#undefined) `(##core#require ,lib))))
+      ,@(map (lambda (x)
+	       (let-values (((name lib spec v s i) (##sys#decompose-import x r c 'import)))
+		 (if (not spec)
+		     (##sys#syntax-error-hook
+		      'import "cannot import from undefined module" name)
+		     (##sys#import
+		      spec v s i
+		      ##sys#current-environment ##sys#macro-environment #f #f 'import))
+		 (if (not lib)
+		     '(##core#undefined)
+		     `(##core#require ,(module-requirement name) ,lib))))
 	     (cdr x))))))
 
 (##sys#extend-macro-environment
@@ -1454,7 +1459,11 @@
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    `(##core#require ,@(cdr x)))))
+    `(##core#begin
+      ,@(map (lambda (x)
+	       (let-values (((name lib _ _ _ _) (##sys#decompose-import x r c 'import)))
+		 `(##core#require ,(module-requirement name) ,lib)))
+	     (cdr x))))))
 
 (##sys#extend-macro-environment
  'require-extension

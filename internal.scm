@@ -30,7 +30,8 @@
   (fixnum))
 
 (module chicken.internal
-  (library-id valid-library-specifier? string->c-identifier)
+  (library-id valid-library-specifier?
+   module-requirement string->c-identifier)
 
 (import scheme chicken)
 
@@ -88,5 +89,13 @@
 	       (string-append str "." (library-part->string (car lst)))))
 	 ((null? lst)
 	  (##sys#intern-symbol str))))))
+
+
+;;; Requirement identifier for modules:
+
+(define (module-requirement id)
+  (##sys#string->symbol
+   (##sys#string-append (##sys#slot id 1) "#")))
+
 
 ) ; chicken.internal

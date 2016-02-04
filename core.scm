@@ -139,7 +139,7 @@
 ; (##core#define-external-variable <name> <type> <bool> [<symbol>])
 ; (##core#check <exp>)
 ; (##core#require-for-syntax <exp> ...)
-; (##core#require <id> ...)
+; (##core#require <id> <id> ...)
 ; (##core#app <exp> {<exp>})
 ; (##core#define-syntax <symbol> <expr>)
 ; (##core#define-compiler-syntax <symbol> <expr>)
@@ -326,6 +326,7 @@
 	chicken.expand
 	chicken.foreign
 	chicken.format
+	chicken.internal
 	chicken.io
 	chicken.keyword
 	chicken.pretty-print)
@@ -670,24 +671,23 @@
 
 			((##core#require)
 			 (walk
-			  (let loop ((ids (map strip-syntax (cdr x))))
+			  (let loop ((ids (strip-syntax (cdr x)))
+				     (exps '()))
 			    (if (null? ids)
-				'(##core#undefined)
-				(let ((id (car ids)))
-				  (let-values (((exp lib type)
-						(##sys#expand-require id #t used-units)))
+				(foldl (lambda (expr e)
+					 `(##core#if ,e (##core#undefined) ,expr))
+				       (car exps)
+				       (cdr exps))
+				(let ((id   (car ids))
+				      (rest (cdr ids)))
+				  (let-values (((exp found type)
+						(##sys#process-require id #t (null? rest) used-units)))
 				    (unless (not type)
 				      (##sys#hash-table-update!
-				       file-requirements
-				       type
+				       file-requirements type
 				       (cut lset-adjoin/eq? <> id)
 				       (cut list id)))
-				    (when (not lib)
-				      (unless (##sys#find-extension
-					       (##sys#canonicalize-extension-path id 'require) #f)
-					(warning
-					 (sprintf "extension `~A' is currently not installed" id))))
-				    `(##core#begin ,exp ,(loop (cdr ids)))))))
+				    (if found exp (loop rest (cons exp exps)))))))
 			  e se dest ldest h ln))
 
 			((##core#let)
@@ -924,8 +924,8 @@
 
 		       ((##core#module)
 			(let* ((name (strip-syntax (cadr x)))
-			       (import-lib (or (assq name import-libraries) all-import-libraries))
-			       (unit (and import-lib (or unit-name name)))
+			       (lib  (or unit-name name))
+			       (req  (module-requirement name))
 			       (exports
 				(or (eq? #t (caddr x))
 				    (map (lambda (exp)
@@ -947,7 +947,7 @@
 			     'module "modules may not be nested" name))
 			  (let-values (((body module-registration)
 					(parameterize ((##sys#current-module
-							(##sys#register-module name unit exports))
+							(##sys#register-module name lib exports))
 						       (##sys#current-environment '())
 						       (##sys#macro-environment
 							##sys#initial-macro-environment)
@@ -964,27 +964,21 @@
 						       (print-error-message ex (current-error-port))
 						       (exit 1))
 						   (##sys#finalize-module (##sys#current-module)))
-						 (cond (import-lib
-							(when enable-module-registration
-							  (emit-import-lib name import-lib))
-							;; Remove from list to avoid error
-							(when (pair? import-lib)
-							  (set! import-libraries
-							    (delete import-lib import-libraries)))
-							(values
-							 (reverse xs)
-							 '((##core#undefined))))
+						 (cond ((or (assq name import-libraries) all-import-libraries)
+							=> (lambda (il)
+							     (emit-import-lib name il)
+							     ;; Remove from list to avoid error
+							     (when (pair? il)
+							       (set! import-libraries
+								 (delete il import-libraries)))
+							     (values (reverse xs) '((##core#undefined)))))
 						       ((not enable-module-registration)
-							(values
-							 (reverse xs)
-							 '((##core#undefined))))
+							(values (reverse xs) '((##core#undefined))))
 						       (else
 							(values
 							 (reverse xs)
-							 (if standalone-executable
-							     '()
-							     (##sys#compiled-module-registration
-							      (##sys#current-module)))))))
+							 (##sys#compiled-module-registration
+							  (##sys#current-module))))))
 						(else
 						 (loop
 						  (cdr body)
@@ -997,6 +991,7 @@
 			    (let ((body
 				   (canonicalize-begin-body
 				    (append
+				     `((##core#provide ,req))
 				     (parameterize ((##sys#current-module #f)
 						    (##sys#macro-environment
 						     (##sys#meta-macro-environment)))

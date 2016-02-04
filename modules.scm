@@ -556,25 +556,21 @@
   (let* ((mname (##sys#resolve-module-name lib loc))
 	 (mod (##sys#find-module mname #f loc)))
     (unless mod
-      (let* ((il (##sys#find-extension
-		  (string-append (symbol->string mname) ".import")
-		  #t)))
-	(cond (il (parameterize ((##sys#current-module #f)
-				 (##sys#current-environment '())
-				 (##sys#current-meta-environment 
-				  (##sys#current-meta-environment))
-				 (##sys#macro-environment
-				  (##sys#meta-macro-environment)))
-		    (fluid-let ((##sys#notices-enabled #f)) ; to avoid re-import warnings
-		      (chicken.eval#load il)))
-		  (set! mod (##sys#find-module mname 'import)))
-	      (else
-	       (##sys#syntax-error-hook
-		loc "cannot import from undefined module" 
-		mname)))))
+      (and-let* ((il (##sys#find-extension
+		      (string-append (symbol->string mname) ".import")
+		      #t)))
+	(parameterize ((##sys#current-module #f)
+		       (##sys#current-environment '())
+		       (##sys#current-meta-environment
+			(##sys#current-meta-environment))
+		       (##sys#macro-environment
+			(##sys#meta-macro-environment)))
+	  (fluid-let ((##sys#notices-enabled #f)) ; to avoid re-import warnings
+	    (chicken.eval#load il)
+	    (set! mod (##sys#find-module mname 'import))))))
     mod))
 
-(define (##sys#expand-import x r c loc)
+(define (##sys#decompose-import x r c loc)
   (let ((%only (r 'only))
 	(%rename (r 'rename))
 	(%except (r 'except))
@@ -587,121 +583,129 @@
 	    ((symbol? x) (##sys#symbol->string x))
 	    ((number? x) (number->string x))
 	    (else (##sys#syntax-error-hook loc "invalid prefix" ))))
-    (define (module-imports name)
-      (let ((mod (find-module/import-library name loc)))
-	(values (module-name mod)
-		(module-library mod)
-		(module-vexports mod)
-		(module-sexports mod)
-		(module-iexports mod))))
-    (let loop ((x x))
-      (cond ((symbol? x)
-	     (module-imports (chicken.expand#strip-syntax x)))
-	    ((not (pair? x))
-             (##sys#syntax-error-hook loc "invalid import specification" x))
-            (else
-	     (let ((head (car x)))
-	       (cond ((c %only head)
-		      (##sys#check-syntax loc x '(_ _ . #(symbol 0)))
-		      (let-values (((form name impv imps impi) (loop (cadr x)))
-				   ((imports) (chicken.expand#strip-syntax (cddr x))))
-			(let loop ((ids imports) (v '()) (s '()) (missing '()))
-			  (cond ((null? ids)
-				 (for-each
-				  (lambda (id)
-				    (warn "imported identifier doesn't exist" name id))
-				  missing)
-				 (values `(,head ,form ,@imports) name v s impi))
-				((assq (car ids) impv) =>
-				 (lambda (a)
-				   (loop (cdr ids) (cons a v) s missing)))
-				((assq (car ids) imps) =>
-				 (lambda (a)
-				   (loop (cdr ids) v (cons a s) missing)))
-				(else
-				 (loop (cdr ids) v s (cons (car ids) missing)))))))
-		     ((c %except head)
-		      (##sys#check-syntax loc x '(_ _ . #(symbol 0)))
-		      (let-values (((form name impv imps impi) (loop (cadr x)))
-				   ((imports) (chicken.expand#strip-syntax (cddr x))))
-			(let loop ((impv impv) (v '()) (ids imports))
-			  (cond ((null? impv)
-				 (let loop ((imps imps) (s '()) (ids ids))
-				   (cond ((null? imps)
-					  (for-each
-					   (lambda (id)
-					     (warn "excluded identifier doesn't exist" name id))
-					   ids)
-					  (values `(,head ,form ,@imports) name v s impi))
-					 ((memq (caar imps) ids) =>
-					  (lambda (id)
-					    (loop (cdr imps) s (delete (car id) ids eq?))))
-					 (else
-					  (loop (cdr imps) (cons (car imps) s) ids)))))
-				((memq (caar impv) ids) =>
-				 (lambda (id)
-				   (loop (cdr impv) v (delete (car id) ids eq?))))
-				(else
-				 (loop (cdr impv) (cons (car impv) v) ids))))))
-		     ((c %rename head)
-		      (##sys#check-syntax loc x '(_ _ . #((symbol symbol) 0)))
-		      (let-values (((form name impv imps impi) (loop (cadr x)))
-				   ((renames) (chicken.expand#strip-syntax (cddr x))))
-			(let loop ((impv impv) (v '()) (ids renames))
-			  (cond ((null? impv)
-				 (let loop ((imps imps) (s '()) (ids ids))
-				   (cond ((null? imps)
-					  (for-each
-					   (lambda (id)
-					     (warn "renamed identifier doesn't exist" name id))
-					   (map car ids))
-					  (values `(,head ,form ,@renames) name v s impi))
-					 ((assq (caar imps) ids) =>
-					  (lambda (a)
-					    (loop (cdr imps)
-						  (cons (cons (cadr a) (cdar imps)) s)
-						  (delete a ids eq?))))
-					 (else
-					  (loop (cdr imps) (cons (car imps) s) ids)))))
-				((assq (caar impv) ids) =>
-				 (lambda (a)
-				   (loop (cdr impv)
-					 (cons (cons (cadr a) (cdar impv)) v)
-					 (delete a ids eq?))))
-				(else
-				 (loop (cdr impv) (cons (car impv) v) ids))))))
-		     ((c %prefix head)
-		      (##sys#check-syntax loc x '(_ _ _))
-		      (let-values (((name lib impv imps impi) (loop (cadr x)))
-				   ((prefix) (chicken.expand#strip-syntax (caddr x))))
-			(define (rename imp)
-			  (cons
-			   (##sys#string->symbol
-			    (##sys#string-append (tostr prefix) (##sys#symbol->string (car imp))))
-			   (cdr imp)))
-			(values `(,head ,name ,prefix) lib (map rename impv) (map rename imps) impi)))
-		     (else
-		      (module-imports (chicken.expand#strip-syntax x))))))))))
+    (call-with-current-continuation
+     (lambda (k)
+       (define (module-imports name)
+	 (let* ((id  (library-id name))
+	        (mod (find-module/import-library id loc)))
+	   (if (not mod)
+	       (k id id #f #f #f #f)
+	       (values (module-name mod)
+		       (module-library mod)
+		       (module-name mod)
+		       (module-vexports mod)
+		       (module-sexports mod)
+		       (module-iexports mod)))))
+       (let loop ((x x))
+	 (cond ((symbol? x)
+		(module-imports (chicken.expand#strip-syntax x)))
+	       ((not (pair? x))
+		(##sys#syntax-error-hook loc "invalid import specification" x))
+	       (else
+		(let ((head (car x)))
+		  (cond ((c %only head)
+			 (##sys#check-syntax loc x '(_ _ . #(symbol 0)))
+			 (let-values (((name lib spec impv imps impi) (loop (cadr x)))
+				      ((imports) (chicken.expand#strip-syntax (cddr x))))
+			   (let loop ((ids imports) (v '()) (s '()) (missing '()))
+			     (cond ((null? ids)
+				    (for-each
+				     (lambda (id)
+				       (warn "imported identifier doesn't exist" spec id))
+				     missing)
+				    (values name lib `(,head ,spec ,@imports) v s impi))
+				   ((assq (car ids) impv) =>
+				    (lambda (a)
+				      (loop (cdr ids) (cons a v) s missing)))
+				   ((assq (car ids) imps) =>
+				    (lambda (a)
+				      (loop (cdr ids) v (cons a s) missing)))
+				   (else
+				    (loop (cdr ids) v s (cons (car ids) missing)))))))
+			((c %except head)
+			 (##sys#check-syntax loc x '(_ _ . #(symbol 0)))
+			 (let-values (((name lib spec impv imps impi) (loop (cadr x)))
+				      ((imports) (chicken.expand#strip-syntax (cddr x))))
+			   (let loop ((impv impv) (v '()) (ids imports))
+			     (cond ((null? impv)
+				    (let loop ((imps imps) (s '()) (ids ids))
+				      (cond ((null? imps)
+					     (for-each
+					      (lambda (id)
+						(warn "excluded identifier doesn't exist" name id))
+					      ids)
+					     (values name lib `(,head ,spec ,@imports) v s impi))
+					    ((memq (caar imps) ids) =>
+								    (lambda (id)
+								      (loop (cdr imps) s (delete (car id) ids eq?))))
+					    (else
+					     (loop (cdr imps) (cons (car imps) s) ids)))))
+				   ((memq (caar impv) ids) =>
+							   (lambda (id)
+							     (loop (cdr impv) v (delete (car id) ids eq?))))
+				   (else
+				    (loop (cdr impv) (cons (car impv) v) ids))))))
+			((c %rename head)
+			 (##sys#check-syntax loc x '(_ _ . #((symbol symbol) 0)))
+			 (let-values (((name lib spec impv imps impi) (loop (cadr x)))
+				      ((renames) (chicken.expand#strip-syntax (cddr x))))
+			   (let loop ((impv impv) (v '()) (ids renames))
+			     (cond ((null? impv)
+				    (let loop ((imps imps) (s '()) (ids ids))
+				      (cond ((null? imps)
+					     (for-each
+					      (lambda (id)
+						(warn "renamed identifier doesn't exist" name id))
+					      (map car ids))
+					     (values name lib `(,head ,spec ,@renames) v s impi))
+					    ((assq (caar imps) ids) =>
+					     (lambda (a)
+					       (loop (cdr imps)
+						     (cons (cons (cadr a) (cdar imps)) s)
+						     (delete a ids eq?))))
+					    (else
+					     (loop (cdr imps) (cons (car imps) s) ids)))))
+				   ((assq (caar impv) ids) =>
+				    (lambda (a)
+				      (loop (cdr impv)
+					    (cons (cons (cadr a) (cdar impv)) v)
+					    (delete a ids eq?))))
+				   (else
+				    (loop (cdr impv) (cons (car impv) v) ids))))))
+			((c %prefix head)
+			 (##sys#check-syntax loc x '(_ _ _))
+			 (let-values (((name lib spec impv imps impi) (loop (cadr x)))
+				      ((prefix) (chicken.expand#strip-syntax (caddr x))))
+			   (define (rename imp)
+			     (cons
+			      (##sys#string->symbol
+			       (##sys#string-append (tostr prefix) (##sys#symbol->string (car imp))))
+			      (cdr imp)))
+			   (values name lib `(,head ,spec ,prefix) (map rename impv) (map rename imps) impi)))
+			(else
+			 (module-imports (chicken.expand#strip-syntax x))))))))))))
 
-(define (##sys#import x r c import-env macro-env meta? reexp? loc)
+(define (##sys#expand-import x r c import-env macro-env meta? reexp? loc)
   (##sys#check-syntax loc x '(_ . #(_ 1)))
   (for-each
-   (lambda (spec)
-     (let-values (((name _ vsv vss vsi) (##sys#expand-import spec r c loc)))
-       (##sys#finalize-import name vsv vss vsi import-env macro-env meta? reexp? loc)))
+   (lambda (x)
+     (let-values (((name _ spec v s i) (##sys#decompose-import x r c loc)))
+       (if (not spec)
+	   (##sys#syntax-error-hook loc "cannot import from undefined module" name x)
+	   (##sys#import spec v s i import-env macro-env meta? reexp? loc))))
    (cdr x))
   '(##core#undefined))
 
-(define (##sys#finalize-import name vsv vss vsi import-env macro-env meta? reexp? loc)
+(define (##sys#import spec vsv vss vsi import-env macro-env meta? reexp? loc)
   (let ((cm (##sys#current-module)))
     (when cm ; save import form
       (if meta?
           (set-module-meta-import-forms!
            cm
-           (append (module-meta-import-forms cm) (list name)))
+           (append (module-meta-import-forms cm) (list spec)))
           (set-module-import-forms!
            cm
-           (append (module-import-forms cm) (list name)))))
+           (append (module-import-forms cm) (list spec)))))
     (dd `(IMPORT: ,loc))
     (dd `(V: ,(if cm (module-name cm) '<toplevel>) ,(map-se vsv)))
     (dd `(S: ,(if cm (module-name cm) '<toplevel>) ,(map-se vss)))
@@ -1026,6 +1030,9 @@
 (register-feature! 'module-environments)
 
 (define (module-environment mname #!optional (ename mname))
-  (let* ((mod (find-module/import-library mname 'module-environment))
-	 (saved (module-saved-environments mod)))
-    (##sys#make-structure 'environment ename (car saved) #t)))
+  (let ((mod (find-module/import-library mname 'module-environment)))
+    (if (not mod)
+	(##sys#syntax-error-hook
+	 'module-environment "undefined module" mname)
+	(##sys#make-structure
+	 'environment ename (car (module-saved-environments mod)) #t))))
