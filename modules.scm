@@ -39,7 +39,9 @@
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
-(import chicken.keyword)
+(import chicken.expand
+	chicken.internal
+	chicken.keyword)
 
 (define-alias dd d)
 (define-alias dm d)
@@ -124,7 +126,7 @@
     (thunk)))
 
 (define (##sys#resolve-module-name name loc)
-  (let loop ((n (chicken.internal#library-id name)) (done '()))
+  (let loop ((n (library-id name)) (done '()))
     (cond ((assq n (##sys#module-alias-environment)) =>
 	   (lambda (a)
 	     (let ((n2 (cdr a)))
@@ -304,9 +306,9 @@
 	(ifs (module-import-forms mod))
 	(sexports (module-sexports mod))
 	(mifs (module-meta-import-forms mod)))
-    `(,@(if (pair? ifs) `((chicken.eval#eval '(import-syntax ,@(chicken.expand#strip-syntax ifs)))) '())
-      ,@(if (pair? mifs) `((import-syntax ,@(chicken.expand#strip-syntax mifs))) '())
-      ,@(##sys#fast-reverse (map chicken.expand#strip-syntax (module-meta-expressions mod)))
+    `(,@(if (pair? ifs) `((chicken.eval#eval '(import-syntax ,@(strip-syntax ifs)))) '())
+      ,@(if (pair? mifs) `((import-syntax ,@(strip-syntax mifs))) '())
+      ,@(##sys#fast-reverse (strip-syntax (module-meta-expressions mod)))
       (##sys#register-compiled-module
        ',(module-name mod)
        ',(module-library mod)
@@ -322,7 +324,7 @@
 		 (let* ((name (car sexport))
 			(a (assq name dlist)))
 		   (cond ((pair? a) 
-			  `(cons ',(car sexport) ,(chicken.expand#strip-syntax (cdr a))))
+			  `(cons ',(car sexport) ,(strip-syntax (cdr a))))
 			 (else
 			  (dm "re-exported syntax" name mname)
 			  `',name))))
@@ -335,7 +337,7 @@
 		      ((assq (caar sd) sexports) (loop (cdr sd)))
 		      (else
 		       (let ((name (caar sd)))
-			 (cons `(cons ',(caar sd) ,(chicken.expand#strip-syntax (cdar sd)))
+			 (cons `(cons ',(caar sd) ,(strip-syntax (cdar sd)))
 			       (loop (cdr sd)))))))))))))
 
 (define (##sys#register-compiled-module name lib iexports vexports sexports #!optional
@@ -598,7 +600,7 @@
 		       (module-iexports mod)))))
        (let loop ((x x))
 	 (cond ((symbol? x)
-		(module-imports (chicken.expand#strip-syntax x)))
+		(module-imports (strip-syntax x)))
 	       ((not (pair? x))
 		(##sys#syntax-error-hook loc "invalid import specification" x))
 	       (else
@@ -606,7 +608,7 @@
 		  (cond ((c %only head)
 			 (##sys#check-syntax loc x '(_ _ . #(symbol 0)))
 			 (let-values (((name lib spec impv imps impi) (loop (cadr x)))
-				      ((imports) (chicken.expand#strip-syntax (cddr x))))
+				      ((imports) (strip-syntax (cddr x))))
 			   (let loop ((ids imports) (v '()) (s '()) (missing '()))
 			     (cond ((null? ids)
 				    (for-each
@@ -625,7 +627,7 @@
 			((c %except head)
 			 (##sys#check-syntax loc x '(_ _ . #(symbol 0)))
 			 (let-values (((name lib spec impv imps impi) (loop (cadr x)))
-				      ((imports) (chicken.expand#strip-syntax (cddr x))))
+				      ((imports) (strip-syntax (cddr x))))
 			   (let loop ((impv impv) (v '()) (ids imports))
 			     (cond ((null? impv)
 				    (let loop ((imps imps) (s '()) (ids ids))
@@ -648,7 +650,7 @@
 			((c %rename head)
 			 (##sys#check-syntax loc x '(_ _ . #((symbol symbol) 0)))
 			 (let-values (((name lib spec impv imps impi) (loop (cadr x)))
-				      ((renames) (chicken.expand#strip-syntax (cddr x))))
+				      ((renames) (strip-syntax (cddr x))))
 			   (let loop ((impv impv) (v '()) (ids renames))
 			     (cond ((null? impv)
 				    (let loop ((imps imps) (s '()) (ids ids))
@@ -675,7 +677,7 @@
 			((c %prefix head)
 			 (##sys#check-syntax loc x '(_ _ _))
 			 (let-values (((name lib spec impv imps impi) (loop (cadr x)))
-				      ((prefix) (chicken.expand#strip-syntax (caddr x))))
+				      ((prefix) (strip-syntax (caddr x))))
 			   (define (rename imp)
 			     (cons
 			      (##sys#string->symbol
@@ -683,7 +685,7 @@
 			      (cdr imp)))
 			   (values name lib `(,head ,spec ,prefix) (map rename impv) (map rename imps) impi)))
 			(else
-			 (module-imports (chicken.expand#strip-syntax x))))))))))))
+			 (module-imports (strip-syntax x))))))))))))
 
 (define (##sys#expand-import x r c import-env macro-env meta? reexp? loc)
   (##sys#check-syntax loc x '(_ . #(_ 1)))
@@ -841,7 +843,7 @@
 			  (if (pair? (car p)) ; has default argument?
 			      (let ((exps (cdr p))
 				    (alias (caar p))
-				    (mname (chicken.internal#library-id (cadar p))))
+				    (mname (library-id (cadar p))))
 				(match-functor-argument alias name mname exps fname)
 				(cons (list alias mname) (loop2 (cdr fas))))
 			      ;; no default argument, we have too few argument modules
@@ -855,7 +857,7 @@
 			 (exps (cdr p))
 			 (def? (pair? p1))
 			 (alias (if def? (car p1) p1))
-			 (mname (chicken.internal#library-id (car as))))
+			 (mname (library-id (car as))))
 		    (match-functor-argument alias name mname exps fname)
 		    (cons (list alias mname)
 			  (loop (cdr as) (cdr fas)))))))

@@ -613,6 +613,8 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.random.import.scm \
 		chicken.time.import.scm
 modules.c: modules.scm \
+		chicken.expand.import.scm \
+		chicken.internal.import.scm \
 		chicken.keyword.import.scm
 csc.c: csc.scm \
 		chicken.data-structures.import.scm \
