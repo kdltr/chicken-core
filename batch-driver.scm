@@ -585,10 +585,9 @@
 							  (or profile-name #t)))
 			     '() )
 			 exps0
-			 (if (not standalone-executable)
-			     '()
-			     cleanup-forms)
-			 '((##core#undefined)))))
+			 (if standalone-executable
+			     cleanup-forms
+			     '((##core#undefined))))))
 
 	     (unless (null? import-libraries)
 	       (quit-compiling
