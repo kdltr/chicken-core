@@ -105,7 +105,7 @@
 ; these are actually in unit extras, but that is used by default
 
 (define-constant builtin-features
-  '(srfi-12 srfi-30 srfi-46 srfi-61 srfi-62           ; runtime
+  '(srfi-30 srfi-46 srfi-61 srfi-62                   ; runtime
     srfi-0 srfi-2 srfi-8 srfi-9 srfi-11 srfi-15       ; syntax
     srfi-16 srfi-17 srfi-26 srfi-31 srfi-55 srfi-88)) ; syntax cont
 
