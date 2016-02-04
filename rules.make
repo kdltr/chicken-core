@@ -717,7 +717,8 @@ posixwin.c: posixwin.scm \
 data-structures.c: data-structures.scm \
 		chicken.foreign.import.scm
 expand.c: expand.scm \
-		chicken.keyword.import.scm
+		chicken.keyword.import.scm \
+		chicken.internal.import.scm
 extras.c: extras.scm \
 		chicken.data-structures.import.scm \
 		chicken.time.import.scm

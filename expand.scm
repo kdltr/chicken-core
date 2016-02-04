@@ -186,10 +186,6 @@
 	      (cons (cons name data) me))
 	     data)))))
 
-(define (##sys#copy-macro old new)
-  (let ((def (lookup old (##sys#macro-environment))))
-    (apply ##sys#extend-macro-environment new def) ) )
-
 (define (##sys#macro? sym #!optional (senv (##sys#current-environment)))
   (or (let ((l (lookup sym senv)))
 	(pair? l))
@@ -441,7 +437,7 @@
 ;
 ; (i.e.`"(define define ...)")
 
-(define (##sys#defjam-error form)
+(define (defjam-error form)
   (##sys#syntax-error-hook
    "redefinition of currently used defining form" ; help me find something better
    form))
@@ -541,7 +537,7 @@
 			       ;; insufficient, if introduced by different expansions, but
 			       ;; better than nothing:
 			       ((eq? (car def) (cadr def))
-				(##sys#defjam-error def))
+				(defjam-error def))
 			       (else def))
 			 defs) 
 		   #f)))
@@ -564,7 +560,7 @@
 			 (cond [(not (pair? head))
 				(##sys#check-syntax 'define x '(_ variable . #(_ 0)) #f se)
 				(when (eq? (car x) head) ; see above
-				  (##sys#defjam-error x))
+				  (defjam-error x))
 				(loop rest (cons head vars)
 				      (cons (if (pair? (cddr x))
 						(caddr x)
@@ -575,7 +571,7 @@
 				(##sys#check-syntax
 				 'define x '(_ (_ . lambda-list) . #(_ 1)) #f se)
 				(loop2
-				 (##sys#expand-curried-define head (cddr x) se)) ]
+				 (expand-curried-define head (cddr x) se))]
 			       [else
 				(##sys#check-syntax
 				 'define x
@@ -625,7 +621,7 @@
 
 ;;; Expand "curried" lambda-list syntax for `define'
 
-(define (##sys#expand-curried-define head body se)
+(define (expand-curried-define head body se)
   (let ((name #f))
     (define (loop head body)
       (if (symbol? (car head))
@@ -928,7 +924,11 @@
 
 ) ; chicken.expand module
 
+
 ;;; Macro definitions:
+
+(import chicken.expand
+	chicken.internal)
 
 (##sys#extend-macro-environment
  'import-syntax '()
@@ -1021,7 +1021,7 @@
     (##sys#check-syntax 'begin x '(_ . #(_ 0)))
     `(##core#begin ,@(cdr x)))))
 
-(set! ##sys#define-definition
+(set! chicken.expand#define-definition
   (##sys#extend-macro-environment
    'define
    '()
@@ -1036,18 +1036,18 @@
                  (let ((name (or (getp head '##core#macro-alias) head)))
                    (##sys#register-export name (##sys#current-module)))
 		 (when (c (r 'define) head)
-		   (##sys#defjam-error x))
+		   (chicken.expand#defjam-error x))
 		 `(##core#set! 
 		   ,head 
 		   ,(if (pair? body) (car body) '(##core#undefined))) )
 		((pair? (car head))
 		 (##sys#check-syntax 'define form '(_ (_ . lambda-list) . #(_ 1)))
-		 (loop (##sys#expand-curried-define head body '())) ) ;XXX '() should be se
+		 (loop (chicken.expand#expand-curried-define head body '()))) ;XXX '() should be se
 		(else
 		 (##sys#check-syntax 'define form '(_ (symbol . lambda-list) . #(_ 1)))
 		 (loop (list (car x) (car head) `(##core#lambda ,(cdr head) ,@body)))))))))))
 
-(set! ##sys#define-syntax-definition
+(set! chicken.expand#define-syntax-definition
   (##sys#extend-macro-environment
    'define-syntax
    '()
@@ -1061,7 +1061,7 @@
                (let ((name (or (getp head '##core#macro-alias) head)))
                  (##sys#register-export name (##sys#current-module)))
 	       (when (c (r 'define-syntax) head)
-		 (##sys#defjam-error form))
+		 (chicken.expand#defjam-error form))
 	       `(##core#define-syntax ,head ,(car body)))
 	      (else			; DEPRECATED
 	       (##sys#check-syntax 'define-syntax head '(_ . lambda-list))
@@ -1196,7 +1196,7 @@
 	      (cond (else?
 		     (##sys#warn
 		      (chicken.format#sprintf "clause following `~S' clause in `cond'" else?)
-		      (chicken.expand#strip-syntax clause))
+		      (strip-syntax clause))
 		     (expand rclauses else?)
 		     '(##core#begin))
 		    ((or (c %else (car clause))
@@ -1211,7 +1211,7 @@
                          (##sys#srfi-4-vector? (car clause))
                          (and (pair? (car clause))
                               (c (r 'quote) (caar clause))))
-		     (expand rclauses (chicken.expand#strip-syntax (car clause)))
+		     (expand rclauses (strip-syntax (car clause)))
 		     (cond ((and (fx= (length clause) 3)
 				 (c %=> (cadr clause)))
 			    `(,(caddr clause) ,(car clause)))
@@ -1264,7 +1264,7 @@
 		    (cond (else?
 			   (##sys#warn
 			    "clause following `else' clause in `case'"
-			    (chicken.expand#strip-syntax clause))
+			    (strip-syntax clause))
 			   (expand rclauses #t)
 			   '(##core#begin))
 			  ((c %else (car clause))
@@ -1410,7 +1410,7 @@
 		     x
 		     (cons 'cond-expand clauses)) )
       (define (test fx)
-	(cond ((symbol? fx) (##sys#feature? (chicken.expand#strip-syntax fx)))
+	(cond ((symbol? fx) (##sys#feature? (strip-syntax fx)))
 	      ((not (pair? fx)) (err fx))
 	      (else
 	       (let ((head (car fx))
@@ -1477,9 +1477,9 @@
   (lambda (x r c)
     (##sys#check-syntax 'module x '(_ _ _ . #(_ 0)))
     (let ((len (length x))
-	  (name (chicken.internal#library-id (cadr x))))
+	  (name (library-id (cadr x))))
       (cond ((and (fx>= len 4) (c (r '=) (caddr x)))
-	     (let* ((x (chicken.expand#strip-syntax x))
+	     (let* ((x (strip-syntax x))
 		    (app (cadddr x)))
 	       (cond ((fx> len 4)
 		      ;; feature suggested by syn:
@@ -1508,13 +1508,12 @@
 		       'module x '(_ _ _ (_ . #(_ 0))))
 		      (##sys#instantiate-functor
 		       name
-		       (chicken.internal#library-id (car app))
+		       (library-id (car app))
 		       (cdr app))))))	; functor arguments
 	    (else
 	     ;;XXX use module name in "loc" argument?
 	     (let ((exports
-		    (##sys#validate-exports
-		     (chicken.expand#strip-syntax (caddr x)) 'module)))
+		    (##sys#validate-exports (strip-syntax (caddr x)) 'module)))
 	       `(##core#module 
 		 ,name
 		 ,(if (eq? '* exports)
@@ -1532,10 +1531,7 @@
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    (let ((exps 
-	   (##sys#validate-exports 
-	    (chicken.expand#strip-syntax (cdr x))
-	    'export))
+    (let ((exps (##sys#validate-exports (strip-syntax (cdr x)) 'export))
 	  (mod (##sys#current-module)))
       (when mod
 	(##sys#add-to-export-list mod exps))
