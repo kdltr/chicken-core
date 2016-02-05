@@ -451,13 +451,6 @@
     (set! ##sys#features (cons '#:compiling ##sys#features))
     (set! upap (user-post-analysis-pass))
 
-    ;; Append required extensions to initforms:
-    (set! initforms
-      (append
-       initforms
-       (map (lambda (r) `(import ,(string->symbol r)))
-	    (collect-options 'require-extension))))
-
     ;; Handle units added with the "-uses" flag.
     (let ((uses (append-map
 		 (lambda (u) (map string->symbol (string-split u ", ")))
@@ -465,6 +458,13 @@
       (unless (null? uses)
 	(set! forms
 	  (cons `(##core#declare (uses . ,uses)) forms))))
+
+    ;; Append required extensions to initforms:
+    (set! initforms
+      (append
+       initforms
+       (map (lambda (r) `(import ,(string->symbol r)))
+	    (collect-options 'require-extension))))
 
     (when (memq 'compile-syntax options)
       (set! ##sys#enable-runtime-macros #t) )
