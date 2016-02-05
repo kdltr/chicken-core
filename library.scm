@@ -970,6 +970,8 @@ EOF
       (##core#inline "C_set_print_precision" prec))
     prev)))
 
+(import chicken.flonum)
+
 (define-inline (integer-negate x)
   (##core#inline_allocate ("C_s_a_u_i_integer_negate" 6) x))
 
@@ -1007,7 +1009,7 @@ EOF
 (define-inline (%cplxnum-imag c) (##sys#slot c 2))
 
 (define (make-complex r i)
-  (if (or (eq? i 0) (and (##core#inline "C_i_flonump" i) (chicken.flonum#fp= i 0.0)))
+  (if (or (eq? i 0) (and (##core#inline "C_i_flonump" i) (fp= i 0.0)))
       r
       (##sys#make-structure '##sys#cplxnum
 			    (if (inexact? i) (exact->inexact r) r)
@@ -1101,7 +1103,7 @@ EOF
 (define (flonum->ratnum x)
   ;; Try to multiply by two until we reach an integer
   (define (float-fraction-length x)
-    (do ((x x (chicken.flonum#fp* x 2.0))
+    (do ((x x (fp* x 2.0))
          (i 0 (fx+ i 1)))
         ((##core#inline "C_u_i_fpintegerp" x) i)))
 
@@ -1112,12 +1114,12 @@ EOF
           (##sys#/-2 (##sys#/-2 (%flo->int scaled-y) q) d)
           (##sys#error-bad-inexact x 'inexact->exact))))
 
-  (if (and (chicken.flonum#fp< x 1.0)         ; Watch out for denormalized numbers
-           (chicken.flonum#fp> x -1.0))       ; XXX: Needs a test, it seems pointless
-      (deliver (* x (expt 2.0 chicken.flonum#flonum-precision))
+  (if (and (fp< x 1.0)         ; Watch out for denormalized numbers
+           (fp> x -1.0))       ; XXX: Needs a test, it seems pointless
+      (deliver (* x (expt 2.0 flonum-precision))
                ;; Can be bignum (is on 32-bit), so must wait until after init.
                ;; We shouldn't need to calculate this every single time, tho..
-               (##sys#integer-power 2 chicken.flonum#flonum-precision))
+               (##sys#integer-power 2 flonum-precision))
       (deliver x 1)))
 
 (define (inexact->exact x)
@@ -1136,6 +1138,24 @@ EOF
 
 (define ##sys#exact->inexact exact->inexact)
 (define ##sys#inexact->exact inexact->exact)
+
+
+;;; Bitwise operations:
+
+;; From SRFI-33
+
+(module chicken.bitwise *
+(import scheme)
+(define bitwise-and (##core#primitive "C_bitwise_and"))
+(define bitwise-ior (##core#primitive "C_bitwise_ior"))
+(define bitwise-xor (##core#primitive "C_bitwise_xor"))
+(define (bitwise-not n) (##core#inline_allocate ("C_s_a_i_bitwise_not" 6) n))
+(define (bit-set? n i) (##core#inline "C_i_bit_setp" n i))
+(define (integer-length x) (##core#inline "C_i_integer_length" x))
+(define (arithmetic-shift n m)
+  (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 6) n m)))
+
+(import chicken.bitwise)
 
 ;;; Basic arithmetic:
 
@@ -1173,7 +1193,7 @@ EOF
            (make-complex x y) ))
         ((or (##core#inline "C_i_flonump" x) (##core#inline "C_i_flonump" y))
          ;; This may be incorrect when one is a ratnum consisting of bignums
-         (chicken.flonum#fp/ (exact->inexact x) (exact->inexact y)))
+         (fp/ (exact->inexact x) (exact->inexact y)))
         ((ratnum? x)
          (if (ratnum? y)
              ;; a/b / c/d = a*d / b*c  [generic]
@@ -1211,7 +1231,7 @@ EOF
 
 (define (floor x)
   (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (chicken.flonum#fpfloor x))
+        ((##core#inline "C_i_flonump" x) (fpfloor x))
         ;; (floor x) = greatest integer <= x
         ((ratnum? x) (let* ((n (%ratnum-numerator x))
                             (q (quotient n (%ratnum-denominator x))))
@@ -1220,7 +1240,7 @@ EOF
 
 (define (ceiling x)
   (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (chicken.flonum#fpceiling x))
+        ((##core#inline "C_i_flonump" x) (fpceiling x))
         ;; (ceiling x) = smallest integer >= x
         ((ratnum? x) (let* ((n (%ratnum-numerator x))
                             (q (quotient n (%ratnum-denominator x))))
@@ -1229,7 +1249,7 @@ EOF
 
 (define (truncate x)
   (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (chicken.flonum#fptruncate x))
+        ((##core#inline "C_i_flonump" x) (fptruncate x))
         ;; (rational-truncate x) = integer of largest magnitude <= (abs x)
         ((ratnum? x) (quotient (%ratnum-numerator x)
 			       (%ratnum-denominator x)))
@@ -1365,7 +1385,7 @@ EOF
 ;; General case: sin^{-1}(z) = -i\ln(iz + \sqrt{1-z^2})
 (define (asin n)
   (##sys#check-number n 'asin)
-  (cond ((and (##core#inline "C_i_flonump" n) (chicken.flonum#fp>= n -1.0) (chicken.flonum#fp<= n 1.0))
+  (cond ((and (##core#inline "C_i_flonump" n) (fp>= n -1.0) (fp<= n 1.0))
          (##core#inline_allocate ("C_a_i_asin" 4) n))
         ((and (##core#inline "C_fixnump" n) (fx>= n -1) (fx<= n 1))
          (##core#inline_allocate ("C_a_i_asin" 4)
@@ -1382,7 +1402,7 @@ EOF
   (let ((asin1 (##core#inline_allocate ("C_a_i_asin" 4) 1)))
     (lambda (n)
       (##sys#check-number n 'acos)
-      (cond ((and (##core#inline "C_i_flonump" n) (chicken.flonum#fp>= n -1.0) (chicken.flonum#fp<= n 1.0))
+      (cond ((and (##core#inline "C_i_flonump" n) (fp>= n -1.0) (fp<= n 1.0))
              (##core#inline_allocate ("C_a_i_acos" 4) n))
             ((and (##core#inline "C_fixnump" n) (fx>= n -1) (fx<= n 1))
              (##core#inline_allocate ("C_a_i_acos" 4)
@@ -1419,21 +1439,21 @@ EOF
         ((4)   (values 2 0))
         (else  (error "this should never happen")))
       (let*-values
-          (((len/4) (fxshr (fx+ (chicken.bitwise#integer-length a) 1) 2))
+          (((len/4) (fxshr (fx+ (integer-length a) 1) 2))
            ((len/2) (fxshl len/4 1))
            ((s^ r^) (##sys#exact-integer-sqrt
-		     (chicken.bitwise#arithmetic-shift a (fxneg len/2))))
-           ((mask)  (- (chicken.bitwise#arithmetic-shift 1 len/4) 1))
-           ((a0)    (chicken.bitwise#bitwise-and a mask))
-           ((a1)    (chicken.bitwise#bitwise-and (chicken.bitwise#arithmetic-shift a (fxneg len/4)) mask))
+		     (arithmetic-shift a (fxneg len/2))))
+           ((mask)  (- (arithmetic-shift 1 len/4) 1))
+           ((a0)    (bitwise-and a mask))
+           ((a1)    (bitwise-and (arithmetic-shift a (fxneg len/4)) mask))
            ((q u)   ((##core#primitive "C_u_integer_quotient_and_remainder")
-		     (+ (chicken.bitwise#arithmetic-shift r^ len/4) a1)
-		     (chicken.bitwise#arithmetic-shift s^ 1)))
-           ((s)     (+ (chicken.bitwise#arithmetic-shift s^ len/4) q))
-           ((r)     (+ (chicken.bitwise#arithmetic-shift u len/4) (- a0 (* q q)))))
+		     (+ (arithmetic-shift r^ len/4) a1)
+		     (arithmetic-shift s^ 1)))
+           ((s)     (+ (arithmetic-shift s^ len/4) q))
+           ((r)     (+ (arithmetic-shift u len/4) (- a0 (* q q)))))
         (if (negative? r)
             (values (- s 1)
-		    (- (+ r (chicken.bitwise#arithmetic-shift s 1)) 1))
+		    (- (+ r (arithmetic-shift s 1)) 1))
             (values s r)))))
 
 (define (exact-integer-sqrt x)
@@ -1478,12 +1498,12 @@ EOF
 (define (##sys#exact-integer-nth-root/loc loc k n)
   (if (or (eq? 0 k) (eq? 1 k) (eq? 1 n)) ; Maybe call exact-integer-sqrt on n=2?
       (values k 0)
-      (let ((len (chicken.bitwise#integer-length k)))
+      (let ((len (integer-length k)))
 	(if (< len n)	  ; Idea from Gambit: 2^{len-1} <= k < 2^{len}
 	    (values 1 (- k 1)) ; Since x >= 2, we know x^{n} can't exist
 	    ;; Set initial guess to (at least) 2^ceil(ceil(log2(k))/n)
 	    (let* ((shift-amount (inexact->exact (ceiling (/ (fx+ len 1) n))))
-		   (g0 (chicken.bitwise#arithmetic-shift 1 shift-amount))
+		   (g0 (arithmetic-shift 1 shift-amount))
 		   (n-1 (- n 1)))
 	      (let lp ((g0 g0)
 		       (g1 (quotient
@@ -1505,7 +1525,7 @@ EOF
         (cond
          ((eq? e2 0) res)
          ((even? e2)	     ; recursion is faster than iteration here
-          (* res (square (lp 1 (chicken.bitwise#arithmetic-shift e2 -1)))))
+          (* res (square (lp 1 (arithmetic-shift e2 -1)))))
          (else
           (lp (* res base) (- e2 1)))))))
 
@@ -1650,13 +1670,13 @@ EOF
   (if (not (negative? point))
       (exact->inexact (* mant (##sys#integer-power 10 point)))
       (let* ((scl (##sys#integer-power 10 (abs point)))
-	     (bex (fx- (fx- (chicken.bitwise#integer-length mant)
-			    (chicken.bitwise#integer-length scl))
-                       chicken.flonum#flonum-precision)))
+	     (bex (fx- (fx- (integer-length mant)
+			    (integer-length scl))
+                       flonum-precision)))
         (if (fx< bex 0)
-            (let* ((num (chicken.bitwise#arithmetic-shift mant (fxneg bex)))
+            (let* ((num (arithmetic-shift mant (fxneg bex)))
                    (quo (round-quotient num scl)))
-              (cond ((> (chicken.bitwise#integer-length quo) chicken.flonum#flonum-precision)
+              (cond ((> (integer-length quo) flonum-precision)
                      ;; Too many bits of quotient; readjust
                      (set! bex (fx+ 1 bex))
                      (set! quo (round-quotient num (* scl 2)))))
@@ -2081,6 +2101,8 @@ EOF
 	    r)))))
 
 (define ##sys#get-keyword get-keyword))
+
+(import chicken.keyword)
 
 
 ;;; Blob:
@@ -4100,21 +4122,6 @@ EOF
 	   (thunk)))))))
 
 
-;;; Bitwise operations:
-
-;; From SRFI-33
-
-(module chicken.bitwise *
-(import scheme)
-(define bitwise-and (##core#primitive "C_bitwise_and"))
-(define bitwise-ior (##core#primitive "C_bitwise_ior"))
-(define bitwise-xor (##core#primitive "C_bitwise_xor"))
-(define (bitwise-not n) (##core#inline_allocate ("C_s_a_i_bitwise_not" 6) n))
-(define (bit-set? n i) (##core#inline "C_i_bit_setp" n i))
-(define (integer-length x) (##core#inline "C_i_integer_length" x))
-(define (arithmetic-shift n m)
-  (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 6) n m)))
-
 ;;; String ports:
 ;
 ; - Port-slots:
@@ -4379,9 +4386,9 @@ EOF
 	  (##sys#string-append s "-")
 	  "") )
     (lambda (x)
-      (cond ((chicken.keyword#keyword? x) x)
-	    ((string? x) (chicken.keyword#string->keyword x))
-	    ((symbol? x) (chicken.keyword#string->keyword (##sys#symbol->string x)))
+      (cond ((keyword? x) x)
+	    ((string? x) (string->keyword x))
+	    ((symbol? x) (string->keyword (##sys#symbol->string x)))
 	    (else (err x))))))
 
 (define ##sys#features
