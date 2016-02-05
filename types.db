@@ -1231,7 +1231,7 @@
 (make-property-condition (#(procedure #:clean #:enforce) make-property-condition (symbol #!rest *) (struct condition)))
 (chicken.flonum#maximum-flonum float)
 (chicken.flonum#minimum-flonum float)
-(module-environment (#(procedure #:clean #:enforce) module-environment (symbol #!optional symbol) (struct environment)))
+(module-environment (#(procedure #:clean #:enforce) module-environment ((or symbol (list-of (or symbol fixnum))) #!optional *) (struct environment)))
 (most-negative-fixnum fixnum)
 (most-positive-fixnum fixnum)
 (on-exit (#(procedure #:clean #:enforce) on-exit ((procedure () . *)) undefined))
