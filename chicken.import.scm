@@ -131,6 +131,7 @@
    most-negative-fixnum
    most-positive-fixnum
    nan?
+   notice
    on-exit
    open-input-string
    open-output-string
