@@ -703,13 +703,13 @@
 			  (compile `(##sys#provide (##core#quote ,(cadr x))) e #f tf cntr se)]
 
 			 [(##core#require-for-syntax)
-			  (let ((ids (strip-syntax (cdr x))))
-			    (for-each ##sys#load-extension ids)
+			  (let ((id (strip-syntax (cadr x))))
+			    (##sys#load-extension id)
 			    (compile
 			     `(##core#begin
 			       ,@(map (lambda (x)
 					`(##sys#load-extension (##core#quote ,x)))
-				      (lookup-runtime-requirements ids)))
+				      (lookup-runtime-requirements id)))
 			     e #f tf cntr se))]
 
 			 [(##core#require)
@@ -1262,19 +1262,11 @@
 (define (extension-information ext)
   (extension-information/internal ext 'extension-information))
 
-(define lookup-runtime-requirements
-  (let ([with-input-from-file with-input-from-file]
-	[read read] )
-    (lambda (ids)
-      (let loop1 ([ids ids])
-	(if (null? ids)
-	    '()
-	    (append
-	     (or (and-let* ((info (extension-information/internal (car ids) #f))
-			    (a (assq 'require-at-runtime info)))
-		   (cdr a) )
-		 '() )
-	     (loop1 (cdr ids)) ) ) ) ) ) )
+(define (lookup-runtime-requirements id)
+  (let ((info (extension-information/internal id #f)))
+    (cond ((not info) '())
+	  ((assq 'require-at-runtime info) => cdr)
+	  (else '()))))
 
 ;;
 ;; Given a library specification, returns three values:

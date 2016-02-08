@@ -672,7 +672,7 @@
 			   ,(walk (caddr x) e se dest ldest h ln)))
 
 			((##core#require-for-syntax)
-			 (for-each ##sys#load-extension (cdr x))
+			 (##sys#load-extension (cadr x))
 			 '(##core#undefined))
 
 			((##core#require)
