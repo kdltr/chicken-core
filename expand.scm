@@ -966,7 +966,7 @@
 		      ##sys#current-environment ##sys#macro-environment #f #f 'import))
 		 (if (not lib)
 		     '(##core#undefined)
-		     `(##core#require ,(module-requirement name) ,lib))))
+		     `(##core#require ,lib ,(module-requirement name)))))
 	     (cdr x))))))
 
 (##sys#extend-macro-environment
@@ -1462,7 +1462,9 @@
     `(##core#begin
       ,@(map (lambda (x)
 	       (let-values (((name lib _ _ _ _) (##sys#decompose-import x r c 'import)))
-		 `(##core#require ,(module-requirement name) ,lib)))
+		 (if (not lib)
+		     '(##core#undefined)
+		     `(##core#require ,lib ,(module-requirement name)))))
 	     (cdr x))))))
 
 (##sys#extend-macro-environment

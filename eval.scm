@@ -714,13 +714,10 @@
 
 			 [(##core#require)
 			  (compile
-			   (let loop ((ids (strip-syntax (cdr x))))
-			     (if (null? ids)
-				 '(##core#undefined)
-				 (let ((id   (car ids))
-				       (rest (cdr ids)))
-				   (let-values (((exp _ _) (##sys#process-require id #f (null? rest))))
-				     `(##core#if ,exp (##core#undefined) ,(loop rest))))))
+			   (let ((id         (cadr x))
+				 (alternates (cddr x)))
+			     (let-values (((exp _ _) (##sys#process-require id #f alternates)))
+			       `(##core#begin ,exp (##core#undefined))))
 			   e #f tf cntr se)]
 
 			 [(##core#elaborationtimeonly ##core#elaborationtimetoo) ; <- Note this!
@@ -1219,10 +1216,9 @@
 		 (or (check pa)
 		     (loop (##sys#slot paths 1)) ) ) ) ) ) ) ))
 
-(define (##sys#load-extension id #!optional loc)
-  (define (fail message)
-    (##sys#error loc message id))
+(define (##sys#load-extension id #!optional (alternates '()) loc)
   (cond ((##sys#provided? id))
+	((any ##sys#provided? alternates))
 	((memq id core-units)
 	 (or (load-library-0 id #f)
 	     (fail "cannot load core library")))
@@ -1237,11 +1233,11 @@
 
 (define (load-extension id)
   (##sys#check-symbol id 'load-extension)
-  (##sys#load-extension id 'load-extension))
+  (##sys#load-extension id '() 'load-extension))
 
 (define (require . ids)
   (for-each (cut ##sys#check-symbol <> 'require) ids)
-  (for-each (cut ##sys#load-extension <> 'require) ids))
+  (for-each (cut ##sys#load-extension <> '() 'require) ids))
 
 (define (provide . ids)
   (for-each (cut ##sys#check-symbol <> 'provide) ids)
@@ -1287,7 +1283,7 @@
 ;;   - a library id if the library was found, #f otherwise
 ;;   - a requirement type (e.g. 'dynamic) or #f if provided statically
 ;;
-(define (##sys#process-require lib #!optional compiling? dynamic? (static-units '()))
+(define (##sys#process-require lib #!optional compiling? (alternates '()) (static-units '()))
   (let ((id (library-id lib)))
     (cond
       ((assq id core-unit-requirements) =>
@@ -1296,14 +1292,14 @@
        (values '(##core#undefined) id #f))
       ((memq id static-units)
        (values '(##core#undefined) id #f))
+      ((any (cut memq <> static-units) alternates)
+       (values '(##core#undefined) id #f))
       ((memq id core-units)
        (values
 	(if compiling?
 	    `(##core#declare (uses ,id))
 	    `(##sys#load-library (##core#quote ,id)))
 	id #f))
-      ((not dynamic?)
-       (values `(##sys#provided? (##core#quote ,id)) #f #f))
       ((extension-information/internal id #f) =>
        (lambda (info)
 	 (let ((s  (assq 'syntax info))
@@ -1317,13 +1313,19 @@
 	      ,@(if (or nr (and (not rr) s))
 		    '()
 		    (map (lambda (id)
-			   `(##sys#load-extension (##core#quote ,id)))
+			   `(##sys#load-extension
+			     (##core#quote ,id)
+			     (##core#quote ,alternates)))
 			 (cond (rr (cdr rr))
 			       (else (list id))))))
 	    id
 	    (if s 'dynamic/syntax 'dynamic)))))
       (else
-       (values `(##sys#load-extension (##core#quote ,id)) #f 'dynamic)))))
+       (values `(##sys#load-extension
+		 (##core#quote ,id)
+		 (##core#quote ,alternates))
+	       #f
+	       'dynamic)))))
 
 
 ;;; Environments:

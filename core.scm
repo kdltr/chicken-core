@@ -138,7 +138,7 @@
 ; (##core#foreign-callback-wrapper '<name> <qualifiers> '<type> '({<type>}) <exp>)
 ; (##core#define-external-variable <name> <type> <bool> [<symbol>])
 ; (##core#check <exp>)
-; (##core#require-for-syntax <exp> ...)
+; (##core#require-for-syntax <id> ...)
 ; (##core#require <id> <id> ...)
 ; (##core#app <exp> {<exp>})
 ; (##core#define-syntax <symbol> <expr>)
@@ -670,25 +670,17 @@
 			 '(##core#undefined))
 
 			((##core#require)
-			 (walk
-			  (let loop ((ids (strip-syntax (cdr x)))
-				     (exps '()))
-			    (if (null? ids)
-				(foldl (lambda (expr e)
-					 `(##core#if ,e (##core#undefined) ,expr))
-				       (car exps)
-				       (cdr exps))
-				(let ((id   (car ids))
-				      (rest (cdr ids)))
-				  (let-values (((exp found type)
-						(##sys#process-require id #t (null? rest) used-units)))
-				    (unless (not type)
-				      (##sys#hash-table-update!
-				       file-requirements type
-				       (cut lset-adjoin/eq? <> id)
-				       (cut list id)))
-				    (if found exp (loop rest (cons exp exps)))))))
-			  e se dest ldest h ln))
+			 (let ((id         (cadr x))
+			       (alternates (cddr x)))
+			   (let-values (((exp found type)
+					 (##sys#process-require id #t alternates used-units)))
+			     (unless (not type)
+			       (##sys#hash-table-update!
+				file-requirements type
+				(cut lset-adjoin/eq? <> id)
+				(cut list id)))
+			     (walk `(##core#begin ,exp (##core#undefined))
+				   e se dest ldest h ln))))
 
 			((##core#let)
 			 (let* ((bindings (cadr x))
