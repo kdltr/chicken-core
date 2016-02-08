@@ -968,14 +968,18 @@
 							     (when (pair? il)
 							       (set! import-libraries
 								 (delete il import-libraries)))
-							     (values (reverse xs) '((##core#undefined)))))
+							     (values (reverse xs) '())))
 						       ((not enable-module-registration)
-							(values (reverse xs) '((##core#undefined))))
+							(values (reverse xs) '()))
 						       (else
 							(values
 							 (reverse xs)
-							 (##sys#compiled-module-registration
-							  (##sys#current-module))))))
+							 ;; XXX there's currently no way to enable
+							 ;; module registration for executables!
+							 (if standalone-executable
+							     '()
+							     (##sys#compiled-module-registration
+							      (##sys#current-module)))))))
 						(else
 						 (loop
 						  (cdr body)
