@@ -703,8 +703,8 @@
 			  (compile `(##sys#provide (##core#quote ,(cadr x))) e #f tf cntr se)]
 
 			 [(##core#require-for-syntax)
-			  (let ((id (strip-syntax (cadr x))))
-			    (##sys#load-extension id)
+			  (let ((id (cadr x)))
+			    (load-extension id)
 			    (compile
 			     `(##core#begin
 			       ,@(map (lambda (x)
@@ -1097,34 +1097,36 @@
        (##sys#check-list x)
        x) ) ) )
 
-(define load-library-0
+(define load-library/internal
   (let ((display display))
-    (lambda (uname lib)
+    (lambda (uname lib loc)
       (let ((libs
 	     (if lib
 		 (##sys#list lib)
 		 (cons (##sys#string-append (##sys#slot uname 1) load-library-extension)
 		       (dynamic-load-libraries))))
 	    (top
-	     (c-toplevel uname 'load-library)))
+	     (c-toplevel uname loc)))
 	(when (load-verbose)
 	  (display "; loading library ")
 	  (display uname)
 	  (display " ...\n") )
 	(let loop ((libs libs))
-	  (cond ((null? libs) #f)
-		((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top) #t)
-		(else (loop (##sys#slot libs 1)))))))))
+	  (cond ((null? libs)
+		 (##sys#error loc "unable to load library" uname _dlerror))
+		((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top))
+		(else
+		 (loop (##sys#slot libs 1)))))))))
 
-(define load-library
-  (lambda (uname #!optional lib)
-    (##sys#check-symbol uname 'load-library)
-    (unless (not lib) (##sys#check-string lib 'load-library))
-    (or (##sys#provided? uname)
-	(load-library-0 uname lib)
-	(##sys#error 'load-library "unable to load library" uname _dlerror) ) ) )
+(define (##sys#load-library uname #!optional lib loc)
+  (unless (##sys#provided? uname)
+    (load-library/internal uname lib loc)
+    (##core#undefined)))
 
-(define ##sys#load-library load-library)
+(define (load-library uname #!optional lib)
+  (##sys#check-symbol uname 'load-library)
+  (unless (not lib) (##sys#check-string lib 'load-library))
+  (##sys#load-library uname lib 'load-library))
 
 (define ##sys#include-forms-from-file
   (let ((with-input-from-file with-input-from-file)
@@ -1215,18 +1217,21 @@
 		 (or (check pa)
 		     (loop (##sys#slot paths 1)) ) ) ) ) ) ) ))
 
-(define (##sys#load-extension id #!optional (alternates '()) loc)
+(define (load-extension/internal id alternates loc)
   (cond ((##sys#provided? id))
 	((any ##sys#provided? alternates))
 	((memq id core-units)
-	 (or (load-library-0 id #f)
-	     (##sys#error loc "cannot load core library" id)))
+         (load-library/internal id #f loc))
 	((##sys#find-extension id #f) =>
 	 (lambda (ext)
 	   (load/internal ext #f #f #f #f id)
 	   (##sys#provide id)))
 	(else
 	 (##sys#error loc "cannot load extension" id))))
+
+(define (##sys#load-extension id #!optional (alternates '()) loc)
+  (load-extension/internal id alternates loc)
+  (##core#undefined))
 
 (define (load-extension id)
   (##sys#check-symbol id 'load-extension)
