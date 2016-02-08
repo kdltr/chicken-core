@@ -298,7 +298,7 @@
      extended-bindings standard-bindings
 
      ;; non-booleans set by the (batch) driver, and read by the (c) backend
-     target-heap-size target-stack-size unit-name used-units
+     target-heap-size target-stack-size unit-name used-units provided
 
      ;; bindings, set by the (c) platform
      default-extended-bindings default-standard-bindings internal-bindings
@@ -420,6 +420,7 @@
 (define toplevel-scope #t)
 (define toplevel-lambda-id #f)
 (define file-requirements #f)
+(define provided '())
 
 (define unlikely-variables '(unquote unquote-splicing))
 
@@ -654,7 +655,12 @@
 				    (hide-variable var)
 				    var) ] ) ) )
 
-			((##core#callunit ##core#provide ##core#primitive ##core#undefined) x)
+			((##core#callunit ##core#primitive ##core#undefined) x)
+
+			((##core#provide)
+			 (let ((id (cadr x)))
+			   (set! provided (lset-adjoin/eq? provided id))
+			   `(##core#provide ,id)))
 
 			((##core#inline_ref)
 			 `(##core#inline_ref
@@ -673,7 +679,7 @@
 			 (let ((id         (cadr x))
 			       (alternates (cddr x)))
 			   (let-values (((exp found type)
-					 (##sys#process-require id #t alternates used-units)))
+					 (##sys#process-require id #t alternates provided)))
 			     (unless (not type)
 			       (##sys#hash-table-update!
 				file-requirements type
@@ -983,7 +989,6 @@
 			    (let ((body
 				   (canonicalize-begin-body
 				    (append
-				     `((##core#provide ,req))
 				     (parameterize ((##sys#current-module #f)
 						    (##sys#macro-environment
 						     (##sys#meta-macro-environment)))
@@ -993,8 +998,8 @@
 					   x
 					   e ;?
 					   (##sys#current-meta-environment) #f #f h ln) )
-					module-registration))
-				     body))))
+					(cons `(##core#provide ,req) module-registration)))
+				      body))))
 			      (do ((cs compiler-syntax (cdr cs)))
 				  ((eq? cs csyntax))
 				(##sys#put! (caar cs) '##compiler#compiler-syntax (cdar cs)))
@@ -1427,14 +1432,14 @@
        (syntax-error "invalid declaration specification" spec) )
      (case (strip-syntax (car spec)) ; no global aliasing
        ((uses)
-	(let ((us (stripu (cdr spec))))
+	(let ((us (lset-difference/eq? (stripu (cdr spec)) used-units)))
 	  (when (pair? us)
+	    (set! provided (append provided us))
+	    (set! used-units (append used-units us))
 	    (##sys#hash-table-update!
 	     file-requirements 'static
 	     (cut lset-union/eq? us <>)
-	     (lambda () us))
-	    (set! used-units
-	      (append used-units us)))))
+	     (lambda () us)))))
        ((unit)
 	(check-decl spec 1 1)
 	(let ((u (stripu (cadr spec))))

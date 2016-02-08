@@ -1283,16 +1283,16 @@
 ;;   - a library id if the library was found, #f otherwise
 ;;   - a requirement type (e.g. 'dynamic) or #f if provided statically
 ;;
-(define (##sys#process-require lib #!optional compiling? (alternates '()) (static-units '()))
+(define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()))
   (let ((id (library-id lib)))
     (cond
       ((assq id core-unit-requirements) =>
        (lambda (x) (values (cdr x) id #f)))
       ((memq id builtin-features)
        (values '(##core#undefined) id #f))
-      ((memq id static-units)
+      ((memq id provided)
        (values '(##core#undefined) id #f))
-      ((any (cut memq <> static-units) alternates)
+      ((any (cut memq <> provided) alternates)
        (values '(##core#undefined) id #f))
       ((memq id core-units)
        (values
