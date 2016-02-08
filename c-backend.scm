@@ -539,13 +539,11 @@
 	      "")
 	     "   command line: ")
 	(gen-list user-supplied-options)
-	(gen #t)
-	(cond
-	  (unit-name
-	   (gen "   unit: " unit-name))
-	  (else
-	   (gen "   used units: ")
-	   (gen-list used-units)))
+	(unless (not unit-name)
+	  (gen #t "   unit: " unit-name))
+	(unless (null? used-units)
+	  (gen #t "   uses: ")
+	  (gen-list used-units))
 	(gen #t "*/" #t #t "#include \"" target-include-file "\"")
 	(when external-protos-first
 	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) )

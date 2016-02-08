@@ -617,10 +617,6 @@
 	     (when (debugging 'n "line number database:")
 	       (display-line-number-database) )
 
-	     (when (and unit-name dynamic)
-	       (##sys#notice 
-		(sprintf "library unit `~a' compiled in dynamic mode" unit-name) ) )
-
 	     (set! ##sys#line-number-database line-number-database-2)
 	     (set! line-number-database-2 #f)
 
