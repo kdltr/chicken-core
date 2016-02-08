@@ -685,8 +685,7 @@
 				file-requirements type
 				(cut lset-adjoin/eq? <> id)
 				(cut list id)))
-			     (walk `(##core#begin ,exp (##core#undefined))
-				   e se dest ldest h ln))))
+			     (walk exp e se dest ldest h ln))))
 
 			((##core#let)
 			 (let* ((bindings (cadr x))

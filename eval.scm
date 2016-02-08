@@ -713,12 +713,10 @@
 			     e #f tf cntr se))]
 
 			 [(##core#require)
-			  (compile
-			   (let ((id         (cadr x))
-				 (alternates (cddr x)))
-			     (let-values (((exp _ _) (##sys#process-require id #f alternates)))
-			       `(##core#begin ,exp (##core#undefined))))
-			   e #f tf cntr se)]
+			  (let ((id         (cadr x))
+				(alternates (cddr x)))
+			    (let-values (((exp _ _) (##sys#process-require id #f alternates)))
+			      (compile exp e #f tf cntr se)))]
 
 			 [(##core#elaborationtimeonly ##core#elaborationtimetoo) ; <- Note this!
 			  (##sys#eval/meta (cadr x))
