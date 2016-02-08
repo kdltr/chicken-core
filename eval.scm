@@ -1197,8 +1197,9 @@
 (define ##sys#find-extension
   (let ((file-exists? file-exists?)
 	(string-append string-append))
-    (lambda (p inc?)
-      (let ((rp (##sys#repository-path)))
+    (lambda (path inc?)
+      (let ((p  (##sys#canonicalize-extension-path path #f))
+	    (rp (##sys#repository-path)))
 	(define (check path)
 	  (let ((p0 (string-append path "/" p)))
 	    (or (and rp
@@ -1221,15 +1222,13 @@
 	((any ##sys#provided? alternates))
 	((memq id core-units)
 	 (or (load-library-0 id #f)
-	     (fail "cannot load core library")))
+	     (##sys#error loc "cannot load core library" id)))
+	((##sys#find-extension id #f) =>
+	 (lambda (ext)
+	   (load/internal ext #f #f #f #f id)
+	   (##sys#provide id)))
 	(else
-	 (let* ((path (##sys#canonicalize-extension-path id loc))
-		(ext  (##sys#find-extension path #f)))
-	   (cond (ext
-		  (load/internal ext #f #f #f #f id)
-		  (##sys#provide id))
-		 (else
-		  (fail "cannot load extension")))))))
+	 (##sys#error loc "cannot load extension" id))))
 
 (define (load-extension id)
   (##sys#check-symbol id 'load-extension)

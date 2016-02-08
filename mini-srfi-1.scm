@@ -27,12 +27,12 @@
 
 (declare 
   (unused take span drop partition split-at append-map every any cons* concatenate delete
-	  first second third fourth alist-cons delete-duplicates fifth
+	  first second third fourth alist-cons delete-duplicates fifth remove
 	  filter filter-map unzip1 last list-index lset-adjoin/eq? lset-difference/eq?
 	  lset-union/eq? lset-intersection/eq? list-tabulate lset<=/eq? lset=/eq? length+
 	  find find-tail iota make-list posq posv)
   (hide take span drop partition split-at append-map every any cons* concatenate delete
-	first second third fourth alist-cons delete-duplicates fifth
+	first second third fourth alist-cons delete-duplicates fifth remove
 	filter filter-map unzip1 last list-index lset-adjoin/eq? lset-difference/eq?
 	lset-union/eq? lset-intersection/eq? list-tabulate lset<=/eq? lset=/eq? length+
 	find find-tail iota make-list posq posv))
@@ -136,6 +136,9 @@
 		 (else r)))
 	 '()
 	 lst))
+
+(define (remove pred lst)
+  (filter (lambda (x) (not (pred x))) lst))
 
 (define (unzip1 lst) (map (lambda (x) (car x)) lst))
 

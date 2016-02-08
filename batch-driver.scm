@@ -597,12 +597,17 @@
 		 (map (lambda (il) (->string (car il)))
 		      import-libraries) ", ")))
 
-	     (when (null? (lset-intersection/eq? '(eval repl) used-units))
-	       (and-let* ((reqs (##sys#hash-table-ref file-requirements 'dynamic)))
+	     (and-let* ((reqs (##sys#hash-table-ref file-requirements 'dynamic))
+			(missing (remove (cut ##sys#find-extension <> #f) reqs)))
+	       (when (null? (lset-intersection/eq? '(eval repl) used-units))
 		 (notice ; XXX only issued when "-verbose" is used
 		  (sprintf "~A has dynamic requirements but doesn't load (chicken eval): ~A"
 			   (cond (unit-name "unit") (dynamic "library") (else "program"))
-			   (string-intersperse (map ->string reqs) ", ")))))
+			   (string-intersperse (map ->string reqs) ", "))))
+	       (when (pair? missing)
+		 (warning
+		  (sprintf "the following extensions are not currently installed: ~A"
+			   (string-intersperse (map ->string missing) ", ")))))
 
 	     (when (pair? compiler-syntax-statistics)
 	       (with-debugging-output
