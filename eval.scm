@@ -1100,28 +1100,28 @@
 (define load-library-0
   (let ((display display))
     (lambda (uname lib)
-      (or (##sys#provided? uname)
-	  (let ((libs
-		 (if lib
-		     (##sys#list lib)
-		     (cons (##sys#string-append (##sys#slot uname 1) load-library-extension)
-			   (dynamic-load-libraries))))
-		(top
-		 (c-toplevel uname 'load-library)))
-	    (when (load-verbose)
-	      (display "; loading library ")
-	      (display uname)
-	      (display " ...\n") )
-	    (let loop ((libs libs))
-	      (cond ((null? libs) #f)
-		    ((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top) #t)
-		    (else (loop (##sys#slot libs 1))))))))))
+      (let ((libs
+	     (if lib
+		 (##sys#list lib)
+		 (cons (##sys#string-append (##sys#slot uname 1) load-library-extension)
+		       (dynamic-load-libraries))))
+	    (top
+	     (c-toplevel uname 'load-library)))
+	(when (load-verbose)
+	  (display "; loading library ")
+	  (display uname)
+	  (display " ...\n") )
+	(let loop ((libs libs))
+	  (cond ((null? libs) #f)
+		((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top) #t)
+		(else (loop (##sys#slot libs 1)))))))))
 
 (define load-library
   (lambda (uname #!optional lib)
     (##sys#check-symbol uname 'load-library)
     (unless (not lib) (##sys#check-string lib 'load-library))
-    (or (load-library-0 uname lib)
+    (or (##sys#provided? uname)
+	(load-library-0 uname lib)
 	(##sys#error 'load-library "unable to load library" uname _dlerror) ) ) )
 
 (define ##sys#load-library load-library)
