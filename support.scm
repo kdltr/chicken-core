@@ -76,6 +76,7 @@
      number-type unsafe)
 
 (import chicken scheme
+	chicken.bitwise
 	chicken.data-structures
 	chicken.expand
 	chicken.files

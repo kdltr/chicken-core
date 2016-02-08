@@ -601,6 +601,7 @@ chicken-ffi-syntax.c: chicken-ffi-syntax.scm \
 		chicken.data-structures.import.scm \
 		chicken.format.import.scm
 support.c: support.scm mini-srfi-1.scm \
+		chicken.bitwise.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.expand.import.scm \
 		chicken.files.import.scm \
