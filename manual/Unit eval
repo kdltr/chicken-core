@@ -37,7 +37,6 @@ all expressions have been read.
 A compiled file can only be loaded once. Subsequent attempts to load the
 same file have no effect.
 
-
 ==== load-relative
 
 <procedure>(load-relative FILE [EVALPROC])</procedure>
@@ -59,6 +58,7 @@ printed before evaluation by applying the expression to the value of this
 argument, which should be a one-argument procedure.
 
 See also the [[Parameters#load-verbose|load-verbose]] parameter.
+
 ==== load-library
 
 <procedure>(load-library UNIT [LIBRARYFILE])</procedure>
@@ -66,17 +66,15 @@ See also the [[Parameters#load-verbose|load-verbose]] parameter.
 On platforms that support dynamic loading, {{load-library}} loads
 the compiled library unit {{UNIT}} (which should be a symbol). If the
 string {{LIBRARYFILE}} is given, then the given shared library will
-be loaded and the toplevel code of the contained unit will be executed.
-If no {{LIBRARYFILE}} argument is given, then the following libraries
-are checked for the required unit:
+be loaded and the toplevel code of the specified unit will be executed.
+If no {{LIBRARYFILE}} argument is given, then the libraries given in the
+parameter {{dynamic-load-libraries}} are searched for the required unit.
+If the unit is not found, an error is signaled.
 
-* a file named ''{{<UNIT>.so}}''
-* the files given in the parameter {{dynamic-load-libraries}}
-
-If the unit is not found, an error is signaled. When the library unit
-can be successfully loaded, a feature-identifier named {{UNIT}}
-is registered. If the feature is already registered before loading,
-the {{load-library}} does nothing.
+Note that {{LIBRARYFILE}} is considered relative to the {{dlopen(3)}}
+search path by default. In order to use a file relative to the current
+working directory, a relative or absolute pathname must be used, i.e.
+{{LIBRARYFILE}} must contain at least one slash ({{"/"}}).
 
 ==== set-dynamic-load-mode!
 
@@ -96,27 +94,28 @@ Note that this procedure does not control the way Scheme variables are handled -
 this facility is mainly of interest when accessing foreign code.
 
 
-=== Read-eval-print loop
-
-==== repl
-
-<procedure>(repl [EVALUATOR])</procedure>
-
-Start a new read-eval-print loop. Sets the {{reset-handler}} so that
-any invocation of {{reset}} restarts the read-eval-print loop. Also
-changes the current exception-handler to display a message, write
-any arguments to the value of {{(current-error-port)}} and reset.
-
-If {{EVALUATOR}} is given, it should be a procedure of one argument that
-is used in place of {{eval}} to evaluate each entered expression.
-
-You can use {{quit}} to terminate the current read-eval-print loop.
-
-
 === Loading extension libraries
 
 This functionality is only available on platforms that support dynamic
-loading of compiled code. Currently Linux, BSD, Solaris, Windows (with Cygwin) and HP/UX are supported.
+loading of compiled code. Currently Linux, BSD, Solaris, Windows (with
+Cygwin) and HP/UX are supported.
+
+==== load-extension
+
+<procedure>(load-extension ID)</procedure>
+
+If the extension library {{ID}} is not already loaded into the
+system, then {{load-extension}} will look up the location of the shared
+extension library and load it. If {{ID}} names a library-unit of the
+base system, then it is loaded via {{load-library}}. If no extension
+library is available for the given ID, then an attempt is made to load
+the file {{ID.so}} or {{ID.scm}} (in that order) from one of the
+following locations:
+
+* the current directory
+* the current repository path (see {{repository-path}})
+
+{{ID}} should be a symbol.
 
 ==== repository-path
 
@@ -139,18 +138,23 @@ list registered in the extension repository, then the info-list is returned. Oth
 
 <procedure>(require ID ...)</procedure>
 
-If the extension library {{ID}} is not already loaded into the
-system, then {{require}} will lookup the location of the shared
-extension library and load it. If {{ID}} names a library-unit of
-the base system, then it is loaded via {{load-library}}. If no
-extension library is available for the given ID, then an attempt is
-made to load the file {{ID.so}} or {{ID.scm}} (in that order)
-from one of the following locations:
+An alias for {{load-extension}} that allows multiple extension
+identifiers to be provided.
 
-* the current include path, which defaults to the pathnames given in {{CHICKEN_INCLUDE_PATH}}.
-* the current directory
+==== provide
 
-{{ID}} should be a string or a symbol.
+<procedure>(require ID ...)</procedure>
+
+Registers the extension IDs {{ID ...}} as loaded. This is mainly
+intended to provide aliases for certain library identifiers.
+
+==== provided?
+
+procedure: (provided? ID ...)
+
+Returns {{#t}} if extension with the IDs {{ID ...}} are currently
+loaded, or {{#f}} otherwise.
+
 
 === System information
 
@@ -173,11 +177,6 @@ if the environment variable {{CHICKEN_PREFIX}} is set, then {{chicken-home}} wil
 Evaluates {{EXP}} and returns the result of the evaluation. The second argument is optional
 and defaults to the value of {{(interaction-environment)}}.
 
-'''Note''': if you want to eval an expression containing chicken special forms you must
-
-  (use chicken-syntax)
-
-before calling {{eval}}.
 
 ---
 Previous: [[Unit library]]

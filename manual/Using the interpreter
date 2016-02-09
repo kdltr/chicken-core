@@ -299,13 +299,6 @@ instead. It should work on almost any system but is not as
 feature-rich as readline (e.g. it lacks reverse-i-search and
 auto-completion).
 
-The interpreter {{csi}} internally requires some routines from the
-{{ports}} and {{extras}} library units and loads them automatically
-on startup. These libraries are not automatically loaded in compiled
-code, so there is an inconsistency between code that is executed
-in {{csi}} versus code that is compiled and executed.
-
-
 ---
 Previous: [[Using the compiler]]
 

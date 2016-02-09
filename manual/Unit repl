@@ -21,6 +21,15 @@ is used in place of {{eval}} to evaluate each entered expression.
 You can use {{quit}} to terminate the current read-eval-print loop.
 
 
+=== repl-prompt
+
+<parameter>(repl-prompt)</parameter>
+
+A procedure that should evaluate to a string that will be printed before
+reading interactive input from the user in a read-eval-print loop.
+Defaults to {{(lambda () "#;N> ")}}.
+
+
 ---
 Previous: [[Unit eval]]
 
