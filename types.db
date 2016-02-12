@@ -179,22 +179,19 @@
 (reverse (forall (a) (#(procedure #:clean #:enforce) reverse ((list-of a)) (list-of a)))
          ((null) (null) (let ((#(tmp) #(1))) '())))
 
-(memq (forall (a b) (#(procedure #:clean #:foldable) memq
-                    (a (list-of b))
-                    (or false (list-of b))))
+(memq (forall (a) (#(procedure #:clean #:foldable) memq (* (list-of a))
+		   (or false (list-of a))))
       ((* null) (let ((#(tmp) #(1))) '#f))
       ((* list) (##core#inline "C_u_i_memq" #(1) #(2))))
 
-(memv (forall (a b) (#(procedure #:clean #:foldable) memv
-                    (a (list-of b))
-                    (or false (list-of b))))
+(memv (forall (a) (#(procedure #:clean #:foldable) memv (* (list-of a))
+		   (or false (list-of a))))
       ((* null) (let ((#(tmp) #(1))) '#f))
       (((or symbol procedure immediate) list)
        (##core#inline "C_u_i_memq" #(1) #(2))))
 
-(member (forall (a b) (#(procedure #:clean #:foldable) member
-		       (a (list-of b))
-		       (or false (list-of b))))
+(member (forall (a) (#(procedure #:clean #:foldable) member
+                     (* (list-of a)) (or false (list-of a))))
 	((* null) (let ((#(tmp) #(1))) '#f))
 	(((or symbol procedure immediate) list)
 	 (##core#inline "C_u_i_memq" #(1) #(2)))
@@ -216,9 +213,9 @@
       ((* (list-of (pair (or symbol procedure immediate) *)))
        (##core#inline "C_u_i_assq" #(1) #(2))))
 
-(assoc (forall (a b c) (#(procedure #:clean #:foldable) assoc
-                       (a (list-of (pair b c)))
-                       (or false (pair b c))))
+(assoc (forall (a b) (#(procedure #:clean #:foldable) assoc
+                      (* (list-of (pair a b)))
+                      (or false (pair a b))))
        ((* null) (let ((#(tmp) #(1))) '#f))
        (((or symbol procedure immediate) (list-of pair))
 	(##core#inline "C_u_i_assq" #(1) #(2)))
@@ -1408,9 +1405,21 @@
 (chicken.data-structures#->string (procedure chicken.data-structures#->string (*) string)
 	  ((string) #(1)))
 
-(chicken.data-structures#alist-ref (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#alist-ref (* (list-of pair) #!optional (procedure (* *) *) *) *))
-(chicken.data-structures#alist-update! (#(procedure #:enforce) chicken.data-structures#alist-update! (* * (list-of pair) #!optional (procedure (* *) *)) *))
-(chicken.data-structures#alist-update (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#alist-update (* * (list-of pair) #!optional (procedure (* *) *) *) *))
+(chicken.data-structures#alist-ref
+ (forall (a b c d)
+         (#(procedure #:clean #:foldable) chicken.data-structures#alist-ref
+          (a (list-of (pair b c)) #!optional (procedure (a b) *) d)
+          (or false c d))))
+(chicken.data-structures#alist-update!
+ (forall (a b c d)
+         (#(procedure) chicken.data-structures#alist-update!
+          (a b (list-of (pair c d)) #!optional (procedure (a c) *))
+          (list-of (pair c (or b d))))))
+(chicken.data-structures#alist-update
+ (forall (a b c d)
+         (#(procedure #:clean) chicken.data-structures#alist-update
+          (a b (list-of (pair c d)) #!optional (procedure (a c) *))
+          (list-of (pair c (or b d))))))
 
 (chicken.data-structures#any? (#(procedure #:pure #:foldable) chicken.data-structures#any? (*) boolean)
       ((*) (let ((#(tmp) #(1))) '#t)))
@@ -1446,8 +1455,10 @@
 
 (chicken.data-structures#o (#(procedure #:clean #:enforce) chicken.data-structures#o (#!rest (procedure (*) *)) (procedure (*) *)))
 
-;; TODO: Should this accept a test procedure?
-(chicken.data-structures#rassoc (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#rassoc (* (list-of pair) #!optional (procedure (* *) *)) *))
+(chicken.data-structures#rassoc
+ (forall (a b c) (#(procedure #:clean #:foldable) chicken.data-structures#rassoc
+                  (a (list-of (pair b c)) #!optional (procedure (a b) *))
+                  (or false (pair b c)))))
 (chicken.data-structures#reverse-string-append (#(procedure #:clean #:enforce) chicken.data-structures#reverse-string-append ((list-of string)) string))
 
 (chicken.data-structures#sort
