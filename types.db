@@ -198,24 +198,24 @@
 	((* (list-of (or symbol procedure immediate)))
 	 (##core#inline "C_u_i_memq" #(1) #(2))))
 
-(assq (forall (a b) (#(procedure #:clean #:foldable) assq
-		     (* (list-of (pair a b)))
-		     (or false (pair a b))))
+(assq (forall (a b c) (#(procedure #:clean #:foldable) assq
+                       (a (list-of (pair b c)))
+                       (or false (pair a c))))
       ((* null) (let ((#(tmp) #(1))) '#f))
       ((* (list-of pair)) (##core#inline "C_u_i_assq" #(1) #(2))))
 
-(assv (forall (a b) (#(procedure #:clean #:foldable) assv
-		     (* (list-of (pair a b)))
-		     (or false (pair a b))))
+(assv (forall (a b c) (#(procedure #:clean #:foldable) assv
+                       (a (list-of (pair b c)))
+                       (or false (pair a c))))
       ((* null) (let ((#(tmp) #(1))) '#f))
       (((or symbol immediate procedure) (list-of pair))
        (##core#inline "C_u_i_assq" #(1) #(2)))
       ((* (list-of (pair (or symbol procedure immediate) *)))
        (##core#inline "C_u_i_assq" #(1) #(2))))
 
-(assoc (forall (a b) (#(procedure #:clean #:foldable) assoc
-                      (* (list-of (pair a b)))
-                      (or false (pair a b))))
+(assoc (forall (a b c) (#(procedure #:clean #:foldable) assoc
+			(a (list-of (pair b c)))
+			(or false (pair a c))))
        ((* null) (let ((#(tmp) #(1))) '#f))
        (((or symbol procedure immediate) (list-of pair))
 	(##core#inline "C_u_i_assq" #(1) #(2)))
