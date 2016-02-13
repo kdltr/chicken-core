@@ -25,10 +25,10 @@ Warning: at toplevel:
   (scrutiny-tests.scm:21) in procedure call to `string?', expected 1 argument but was given 0 arguments
 
 Warning: at toplevel:
-  expected a single result in argument #1 of procedure call `(print (cpu-time))', but received 2 results
+  (scrutiny-tests.scm:23) expected a single result in argument #1 of procedure call `(print (cpu-time))', but received 2 results
 
 Warning: at toplevel:
-  expected a single result in argument #1 of procedure call `(print (values))', but received zero results
+  (scrutiny-tests.scm:24) expected a single result in argument #1 of procedure call `(print (values))', but received zero results
 
 Warning: at toplevel:
   (scrutiny-tests.scm:27) in procedure call to `x', expected a value of type `(procedure () *)' but was given a value of type `fixnum'

@@ -127,6 +127,16 @@
 (define (walked-result n)
   (first (node-parameters n)))		; assumes ##core#the/result node
 
+(define (node-line-number n)
+  (case (node-class n)
+    ((##core#call)
+     (let ((params (node-parameters n)))
+       (and (pair? (cdr params))
+	    (pair? (cadr params)) ; debug-info has line-number information?
+	    (source-info->line (cadr params)))))
+    ((##core#typecase)
+     (car (node-parameters n)))
+    (else #f)))
 
 (define (scrutinize node db complain specialize strict block-compilation)
   (let ((blist '())			; (((VAR . FLOW) TYPE) ...)
@@ -226,7 +236,7 @@
 	   t (pp-fragment x)))
 	f))
 
-    (define (single what tv loc)
+    (define (single node what tv loc)
       (if (eq? '* tv)
 	  '*
 	  (let ((n (length tv)))
@@ -234,14 +244,14 @@
 		  ((zero? n)
 		   (report
 		    loc
-		    "expected a single result ~a, but received zero results"
-		    what)
+		    "~aexpected a single result ~a, but received zero results"
+		    (node-source-prefix node) what)
 		   'undefined)
 		  (else
 		   (report
 		    loc
-		    "expected a single result ~a, but received ~a result~a"
-		    what n (multiples n))
+		    "~aexpected a single result ~a, but received ~a result~a"
+		    (node-source-prefix node) what n (multiples n))
 		   (first tv))))))
 
     (define (report-notice loc msg . args)
@@ -259,6 +269,10 @@
     (define (report-error loc msg . args)
       (set! errors #t)
       (apply report loc msg args))
+
+    (define (node-source-prefix n)
+      (let ((line (node-line-number n)))
+       (if (not line) "" (sprintf "(~a) " line))))
 
     (define (location-name loc)
       (define (lname loc1)
@@ -303,16 +317,9 @@
 
     (define (call-result node args e loc params typeenv)
       (define (pname)
-	(sprintf "~ain procedure call to `~s', " 
-	  (if (and (pair? params)
-		   (pair? (cdr params))
-		   (pair? (cadr params))) ; sourceinfo has line-number information?
-	      (let ((n (source-info->line (cadr params))))
-		(if n
-		    (sprintf "(~a) " n)
-		    ""))
-	      "")
-	  (fragment (first (node-subexpressions node)))))
+	(sprintf "~ain procedure call to `~s', "
+		 (node-source-prefix node)
+		 (fragment (first (node-subexpressions node)))))
       (let* ((actualtypes (map walked-result args))
 	     (ptype (car actualtypes))
 	     (pptype? (procedure-type? ptype))
@@ -486,7 +493,7 @@
 			(tst (first subs))
 			(nor-1 noreturn))
 		    (set! noreturn #f)
-		    (let* ((rt (single "in conditional" (walk tst e loc #f #f flow tags) loc))
+		    (let* ((rt (single n "in conditional" (walk tst e loc #f #f flow tags) loc))
 			   (c (second subs))
 			   (a (third subs))
 			   (nor0 noreturn))
@@ -539,7 +546,8 @@
 			(walk (car body) (append e2 e) loc dest tail flow ctags)
 			(let* ((var (car vars))
 			       (val (car body))
-			       (t (single 
+			       (t (single
+				   n
 				   (sprintf "in `let' binding of `~a'" (real-name var))
 				   (walk val e loc var #f flow #f) 
 				   loc)))
@@ -606,7 +614,8 @@
 		 ((set! ##core#set!)
 		  (let* ((var (first params))
 			 (type (variable-mark var '##compiler#type))
-			 (rt (single 
+			 (rt (single
+			      n
 			      (sprintf "in assignment to `~a'" var)
 			      (walk (first subs) e loc var #f flow #f)
 			      loc))
@@ -680,7 +689,8 @@
 				      (make-node
 				       '##core#the/result
 				       (list
-					(single 
+					(single
+					 n
 					 (sprintf 
 					     "in ~a of procedure call `~s'"
 					   (if (zero? i)
@@ -821,11 +831,9 @@
 		    (let loop ((types (cdr params)) (subs (cdr subs)))
 		      (cond ((null? types)
 			     (quit-compiling
-			      "~a~ano clause applies in `compiler-typecase' for expression of type `~s':~a" 
+			      "~a~ano clause applies in `compiler-typecase' for expression of type `~s':~a"
 			      (location-name loc)
-			      (if (first params) 
-				  (sprintf "(~a) " (first params))
-				  "")
+			      (node-source-prefix n)
 			      (car ts)
 			      (string-intersperse
 			       (map (lambda (t) (sprintf "\n    ~a" t))
