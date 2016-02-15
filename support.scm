@@ -45,7 +45,7 @@
      node-parameters node-parameters-set!
      node-subexpressions node-subexpressions-set! varnode qnode
      build-node-graph build-expression-tree fold-boolean inline-lambda-bindings
-     tree-copy copy-node! emit-global-inline-file load-inline-file
+     tree-copy copy-node! copy-node emit-global-inline-file load-inline-file
      match-node expression-has-side-effects? simple-lambda-node?
      dump-undefined-globals dump-defined-globals dump-global-refs
      make-foreign-callback-stub foreign-callback-stub?
@@ -732,6 +732,11 @@
     (if (pair? t)
 	(cons (rec (car t)) (rec (cdr t)))
 	t) ) )
+
+(define (copy-node n)
+  (make-node (node-class n)
+             (node-parameters n)
+             (node-subexpressions n)))
 
 (define (copy-node! from to)
   (node-class-set! to (node-class from))
