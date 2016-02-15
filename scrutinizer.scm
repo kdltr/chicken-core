@@ -369,6 +369,7 @@
 					      (specialize-node!
 					       node (cdr args)
 					       `(let ((#(tmp) #(1))) '#t))
+					      (set! r '(true))
 					      (set! op (list pn pt))))
 					   ((begin
 					      (trail-restore trail0 typeenv)
@@ -382,6 +383,7 @@
 					      (specialize-node!
 					       node (cdr args)
 					       `(let ((#(tmp) #(1))) '#f))
+					      (set! r '(false))
 					      (set! op (list pt `(not ,pt)))))
 					   (else (trail-restore trail0 typeenv)))))
 			     ((and specialize (get-specializations pn)) =>
