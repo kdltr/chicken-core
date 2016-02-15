@@ -485,7 +485,7 @@ connect_to_debugger()
   static char info[ 256 ];
   struct hostent *he;
   struct sockaddr_in sa;
-  int i, port;
+  int i, port = DEFAULT_DEBUGGER_PORT;
   int yes = 1;
   int r;
 
@@ -494,14 +494,15 @@ connect_to_debugger()
   if(addr == NULL) return C_SCHEME_FALSE;      /* no debugger address given */
 
   /* parse host and port number */
-  for(i = C_strlen(addr) - 1; i >= 0; --i) {
+  for(i = C_strlen(addr) - 1; i > 0; --i) {
     if(addr[ i ] == ':') break;
   }
 
   if(i == 0) host = addr;
   else {
     port = atoi(addr + i + 1);
-    host = strndup(addr, i);
+    host = C_strdup(addr);
+    addr[i] = '\0';    /* We don't use strndup() for compat reasons */
   }
 
 #ifdef _WIN32
