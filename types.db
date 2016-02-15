@@ -54,7 +54,9 @@
 ;; scheme
 
 (not (#(procedure #:pure #:foldable) not (*) boolean)
-     (((not boolean)) (let ((#(tmp) #(1))) '#f)))
+     ((true) (false) (let ((#(tmp) #(1))) '#f))
+     ((false) (true) (let ((#(tmp) #(1))) '#t))
+     (((not boolean)) (false) (let ((#(tmp) #(1))) '#f)))
 
 (boolean? (#(procedure #:pure #:predicate boolean) boolean? (*) boolean))
 
