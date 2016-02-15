@@ -78,16 +78,13 @@ Warning: in toplevel procedure `foo10':
   (scrutiny-tests.scm:105) in procedure call to `+', expected argument #1 of type `number' but was given an argument of type `string'
 
 Note: in toplevel procedure `foo10':
-  expression returns a result of type `string' but is declared to return `pair', which is not a subtype
+  expression returns a result of type `string' but is declared to return `pair', which is not compatible
 
 Warning: in toplevel procedure `foo10':
   (scrutiny-tests.scm:109) in procedure call to `string-append', expected argument #1 of type `string' but was given an argument of type `pair'
 
 Warning: in toplevel procedure `foo10':
   expression returns 2 values but is declared to have a single result
-
-Note: in toplevel procedure `foo10':
-  expression returns a result of type `fixnum' but is declared to return `*', which is not a subtype
 
 Warning: in toplevel procedure `foo10':
   expression returns zero values but is declared to have a single result of type `*'

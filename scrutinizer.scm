@@ -816,11 +816,11 @@
 			      "expression returns ~a values but is declared to have \
 			       a single result" (length rt)))
 			   (when (and (second params)
-				      (not (type<=? t (first rt))))
+				      (not (compatible-types? t (first rt))))
 			     ((if strict report-error report-notice)
 			      loc
 			      "expression returns a result of type `~a' but is \
-			       declared to return `~a', which is not a subtype"
+			       declared to return `~a', which is not compatible"
 			      (first rt) t))))
 		    (list t)))
 		 ((##core#typecase)
