@@ -45,32 +45,38 @@
     in a more robust way (#1232) (thanks to Joerg Wittenberger).
   - Compiled programs with large literals won't crash on startup (#1221).
   - Comparisons of closures now behave in a stable way, whether or not
-     the code was compiled with the -no-lambda-info option (#1041).
+    the code was compiled with the -no-lambda-info option (#1041).
 
 - Compiler:
   - Specializations on implicit "or" types like "number" or "boolean" now
-     work, removing the requirement for the inferred types to match
-     declared types exactly.  Specializations are matched from first to
-     last to resolve ambiguities (#1214).
+    work, removing the requirement for the inferred types to match
+    declared types exactly.  Specializations are matched from first to
+    last to resolve ambiguities (#1214).
   - Compiler rewrites for char{<,>,<=,>=,=}? are now safe (#1122).
   - When requesting to emit import libraries that don't exist, the
      compiler now gives an error instead of quietly continuing (#1188).
   - Don't silently truncate huge literals (thanks to Claude Marinier).
 
 - Core libraries
-   - SRFI-18: thread-join! no longer gives an error when passed a
-     thread in the "sleeping" state (thanks to Joerg Wittenberger)
-   - SRFI-39: When a parameter's "guard" procedure raises an exception,
-     "parameterize" now correctly resets the original values of all
-     parameters (fixes #1227, thanks to Joo ChurlSoo).
-   - Irregex has been updated to 0.9.4, which fixes severe performance
-     problems with {n,m} repeating patterns (thanks to Caolan McMahon).
-   - Unit "posix": The following posix procedures now work on port
-     objects: file-stat, file-size, file-owner, file-permissions,
-     file-modification-time, file-access-time, file-change-time,
-     file-type and all procedures using file-type. These are:
-     regular-file?, symbolic-link?, block-device?, character-device?
-     fifo? and socket?.
+  - SRFI-18: thread-join! no longer gives an error when passed a
+    thread in the "sleeping" state (thanks to Joerg Wittenberger)
+  - SRFI-18: mutex-lock! will not set ownership of mutexes when
+    passed #f as the owner (#1231), not disown a mutex from owner if
+    locking fails for timeout and not keep the last thread which held
+    a mutex until the next lock (thanks to Joerg Wittenberger).
+  - SRFI-39: When a parameter's "guard" procedure raises an exception,
+    "parameterize" now correctly resets the original values of all
+    parameters (fixes #1227, thanks to Joo ChurlSoo).
+  - Irregex has been updated to 0.9.4, which fixes severe performance
+    problems with {n,m} repeating patterns (thanks to Caolan McMahon).
+  - Unit "posix": The following posix procedures now work on port
+    objects: file-stat, file-size, file-owner, file-permissions,
+    file-modification-time, file-access-time, file-change-time,
+    file-type and all procedures using file-type. These are:
+    regular-file?, symbolic-link?, block-device?, character-device?
+    fifo? and socket?.
+  - Unit "data-structures": alist-{update[!],ref} were made consistent
+    with srfi-1 in the argument order of comparison procedures.
 
 - Tools
   - A debugger is now available, known as "feathers", which allows
