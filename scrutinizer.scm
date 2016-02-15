@@ -210,15 +210,20 @@
 	    ((memq t '(* boolean false undefined noreturn)) #f)
 	    (else #t)))
 
-    (define (always-true t loc x)
-      (let ((f (always-true1 t)))
-	(when f
-	  (report-notice
-	   loc
-	   "expected a value of type boolean in conditional, but \
-	    was given a value of type `~a' which is always true:~%~%~a"
-	   t (pp-fragment x)))
-	f))
+    (define (always-true if-node test-node t loc)
+      (and-let* ((_ (always-true1 t)))
+	(report-notice
+	 loc "~aexpected a value of type boolean in conditional, but \
+	 was given a value of type `~a' which is always true:~%~%~a"
+	 (node-source-prefix test-node) t (pp-fragment if-node))
+	#t))
+
+    (define (always-false if-node test-node t loc)
+      (and-let* ((_ (eq? t 'false)))
+	(report-notice
+	 loc "~ain conditional, test expression will always return false:~%~%~a"
+	 (node-source-prefix test-node) (pp-fragment if-node))
+	#t))
 
     (define (single node what tv loc)
       (if (eq? '* tv)
@@ -483,10 +488,13 @@
 			   (a (third subs))
 			   (nor0 noreturn))
 		      (cond
-			((and (always-true rt loc n) specialize)
-			 ;; drop branch and re-walk updated node
+			((and (always-true n tst rt loc) specialize)
 			 (set! dropped-branches (add1 dropped-branches))
-			 (copy-node! (build-node-graph `(let ((,(gensym) ,tst)) ,c)) n)
+			 (mutate-node! n `(let ((,(gensym) ,tst)) ,c))
+			 (walk n e loc dest tail flow ctags))
+			((and (always-false n tst rt loc) specialize)
+			 (set! dropped-branches (add1 dropped-branches))
+			 (mutate-node! n `(let ((,(gensym) ,tst)) ,a))
 			 (walk n e loc dest tail flow ctags))
 			(else
 			 (let* ((r1 (walk c e loc dest tail (cons (car tags) flow) #f))

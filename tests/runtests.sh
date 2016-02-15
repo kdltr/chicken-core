@@ -82,16 +82,22 @@ $compile inlining-tests.scm -optimize-level 3
 ./a.out
 
 echo "======================================== scrutiny tests ..."
-$compile typematch-tests.scm -specialize -w
+$compile typematch-tests.scm -specialize -no-warnings
 ./a.out
-$compile scrutiny-tests.scm -A -scrutinize 2>scrutiny.out -verbose
 
-# this is sensitive to gensym-names, so make it optional
+$compile scrutiny-tests.scm -analyze-only -verbose 2>scrutiny.out
+$compile specialization-tests.scm -analyze-only -verbose -specialize 2>specialization.out
+
+# these are sensitive to gensym-names, so make them optional
 if test \! -f scrutiny.expected; then
     cp scrutiny.out scrutiny.expected
 fi
+if test \! -f specialization.expected; then
+    cp specialization.out specialization.expected
+fi
 
 diff $DIFF_OPTS scrutiny.expected scrutiny.out
+diff $DIFF_OPTS specialization.expected specialization.out
 
 $compile scrutiny-tests-2.scm -A -scrutinize -analyze-only 2>scrutiny-2.out -verbose
 
