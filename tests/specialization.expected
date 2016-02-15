@@ -1,0 +1,16 @@
+
+Note: at toplevel:
+  (specialization-tests.scm:3) in procedure call to `string?', the predicate is called with an argument of type `string' and will always return true
+
+Note: at toplevel:
+  (specialization-tests.scm:3) expected a value of type boolean in conditional, but was given a value of type `true' which is always true:
+
+(if (string? a) 'ok 'no)
+
+Note: at toplevel:
+  (specialization-tests.scm:4) in procedure call to `string?', the predicate is called with an argument of type `symbol' and will always return false
+
+Note: at toplevel:
+  (specialization-tests.scm:4) in conditional, test expression will always return false:
+
+(if (string? a) 'ok 'no)

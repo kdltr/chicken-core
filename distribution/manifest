@@ -187,9 +187,11 @@ tests/test.scm
 tests/loopy-test.scm
 tests/loopy-loop.scm
 tests/r5rs_pitfalls.scm
+tests/specialization-tests.scm
 tests/specialization-test-1.scm
 tests/specialization-test-2.scm
 tests/specialization-test-2.types
+tests/specialization.expected
 tests/test-irregex.scm
 tests/re-tests.txt
 tests/lolevel-tests.scm
