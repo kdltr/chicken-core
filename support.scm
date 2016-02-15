@@ -760,6 +760,11 @@
 	(cons (rec (car t)) (rec (cdr t)))
 	t) ) )
 
+(define (copy-node n)
+  (make-node (node-class n)
+             (node-parameters n)
+             (node-subexpressions n)))
+
 (define (copy-node! from to)
   (node-class-set! to (node-class from))
   (node-parameters-set! to (node-parameters from))

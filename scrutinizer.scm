@@ -26,9 +26,10 @@
 
 (declare
   (unit scrutinizer)
-  (hide specialize-node! specialization-statistics
+  (hide specialize-node! specialization-statistics mutate-node! node-mutations
 	procedure-type? named? procedure-result-types procedure-argument-types
 	noreturn-type? rest-type procedure-name d-depth
+	source-node source-node-tree node-line-number node-debug-info
 	noreturn-procedure-type? trail trail-restore walked-result 
 	multiples procedure-arguments procedure-results typeset-min
 	smash-component-types! generate-type-checks! over-all-instantiations
@@ -123,16 +124,6 @@
 (define (walked-result n)
   (first (node-parameters n)))		; assumes ##core#the/result node
 
-(define (node-line-number n)
-  (case (node-class n)
-    ((##core#call)
-     (let ((params (node-parameters n)))
-       (and (pair? (cdr params))
-	    (pair? (cadr params)) ; debug-info has line-number information?
-	    (source-info->line (cadr params)))))
-    ((##core#typecase)
-     (car (node-parameters n)))
-    (else #f)))
 
 (define (scrutinize node db complain specialize)
   (let ((blist '())			; (((VAR . FLOW) TYPE) ...)
@@ -265,7 +256,7 @@
 
     (define (node-source-prefix n)
       (let ((line (node-line-number n)))
-       (if (not line) "" (sprintf "(~a) " line))))
+	(if (not line) "" (sprintf "(~a) " line))))
 
     (define (location-name loc)
       (define (lname loc1)
@@ -284,7 +275,7 @@
     (define add-loc cons)
 
     (define (fragment x)
-      (let ((x (build-expression-tree x)))
+      (let ((x (build-expression-tree (source-node-tree x))))
 	(let walk ((x x) (d 0))
 	  (cond ((atom? x) (##sys#strip-syntax x))
 		((>= d +fragment-max-depth+) '...)
@@ -836,7 +827,7 @@
 					  (append (type-typeenv (car types)) typeenv)
 					  #t)
 			     ;; drops exp
-			     (copy-node! (car subs) n)
+			     (mutate-node! n (car subs))
 			     (walk n e loc dest tail flow ctags))
 			    (else
 			     (trail-restore trail0 typeenv)
@@ -1821,6 +1812,47 @@
        db)
       (print "; END OF FILE"))))
 
+;;
+;; Source node tracking
+;;
+;; Nodes are mutated in place during specialization, which may lose line
+;; number information if, for example, a node is changed from a
+;; ##core#call to a class without debug info. To preserve line numbers
+;; and allow us to print fragments of the original source, we maintain a
+;; side table of mappings from mutated nodes to copies of the originals.
+;;
+
+(define node-mutations '())
+
+(define (mutate-node! node expr)
+  (set! node-mutations (alist-update! node (copy-node node) node-mutations))
+  (copy-node! (build-node-graph expr) node))
+
+(define (source-node n #!optional (k values))
+  (let ((orig (alist-ref n node-mutations eq?)))
+    (if (not orig) (k n) (source-node orig k))))
+
+(define (source-node-tree n)
+  (source-node
+   n
+   (lambda (n*)
+     (make-node (node-class n*)
+		(node-parameters n*)
+		(map source-node (node-subexpressions n*))))))
+
+(define (node-line-number n)
+  (node-debug-info (source-node n)))
+
+(define (node-debug-info n)
+  (case (node-class n)
+    ((##core#call)
+     (let ((params (node-parameters n)))
+       (and (pair? (cdr params))
+	    (pair? (cadr params)) ; debug-info has line-number information?
+	    (source-info->line (cadr params)))))
+    ((##core#typecase)
+     (car (node-parameters n)))
+    (else #f)))
 
 ;; Mutate node for specialization
 
@@ -1848,8 +1880,7 @@
 	    ((not (pair? x)) x)
 	    ((eq? 'quote (car x)) x)	; to handle numeric constants
 	    (else (cons (subst (car x)) (subst (cdr x))))))
-    (let ((spec (subst template)))
-      (copy-node! (build-node-graph spec) node))))
+    (mutate-node! node (subst template))))
 
 
 ;;; Type-validation and -normalization
