@@ -13,6 +13,8 @@ set FAST_OPTIONS=-O5 -d0 -b -disable-interrupts
 set PATH=%cd%\..;%PATH%
 
 set TYPESDB=..\types.db
+rem Increase this when tests start failing on "inexplicable" diffs
+set FCBUFSIZE=500
 
 set compile=..\csc -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -o a.out
 set compile2=..\csc -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/..
@@ -60,14 +62,14 @@ if errorlevel 1 exit /b 1
 rem this is sensitive to gensym-names, so make it optional
 if not exist scrutiny.expected copy /Y scrutiny.out scrutiny.expected
 
-fc /w scrutiny.expected scrutiny.out
+fc /lb%FCBUFSIZE% /w scrutiny.expected scrutiny.out
 if errorlevel 1 exit /b 1
 
 %compile% scrutiny-tests-2.scm -A -verbose 2>scrutiny-2.out
 if errorlevel 1 exit /b 1
 
 if not exist scrutiny-2.expected copy /Y scrutiny-2.out scrutiny-2.expected
-fc /w scrutiny-2.expected scrutiny-2.out
+fc /lb%FCBUFSIZE% /w scrutiny-2.expected scrutiny-2.out
 if errorlevel 1 exit /b 1
 
 %compile% scrutiny-tests-3.scm -specialize -block
@@ -151,13 +153,13 @@ if errorlevel 1 exit /b 1
 echo ======================================== dynamic-wind tests ...
 %interpret% -s dwindtst.scm >dwindtst.out
 if errorlevel 1 exit /b 1
-fc /w dwindtst.expected dwindtst.out
+fc /lb%FCBUFSIZE% /w dwindtst.expected dwindtst.out
 if errorlevel 1 exit /b 1
 %compile% dwindtst.scm
 if errorlevel 1 exit /b 1
 a.out >dwindtst.out
 if errorlevel 1 exit /b 1
-fc /w dwindtst.expected dwindtst.out
+fc /lb%FCBUFSIZE% /w dwindtst.expected dwindtst.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== lolevel tests ...
