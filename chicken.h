@@ -98,6 +98,12 @@
 # define C_LLP
 #endif
 
+/* Declare base Win32 version for access to Timer Queue functions. */
+
+#ifdef __MINGW32__
+# define _WIN32_WINNT 0x0500
+#endif
+
 
 /* Headers */
 
