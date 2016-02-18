@@ -12369,16 +12369,20 @@ void C_ccall C_locative_ref(C_word c, C_word *av)
     /* closure = av[ 0 ] */
     k = av[ 1 ],
     loc,
-    *av2,
-    *ptr, val;
-  C_alloc_flonum;
+    *ptr, val,
+#ifdef C_SIXTY_FOUR
+    ab[nmax(C_SIZEOF_BIGNUM(2), WORDS_PER_FLONUM)],
+#else
+    ab[nmax(C_SIZEOF_BIGNUM(1), WORDS_PER_FLONUM)],
+#endif
+    *a = ab;
 
   if(c != 3) C_bad_argc(c, 3);
 
   loc = av[ 2 ];
 
   if(C_immediatep(loc) || C_block_header(loc) != C_LOCATIVE_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-set!", loc);
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-ref", loc);
 
   ptr = (C_word *)C_block_item(loc, 0);
 
@@ -12391,36 +12395,12 @@ void C_ccall C_locative_ref(C_word c, C_word *av)
   case C_S8_LOCATIVE: C_kontinue(k, C_fix(*((char *)ptr)));
   case C_U16_LOCATIVE: C_kontinue(k, C_fix(*((unsigned short *)ptr)));
   case C_S16_LOCATIVE: C_kontinue(k, C_fix(*((short *)ptr)));
-  case C_U32_LOCATIVE:
-    av2 = C_alloc(4);
-    av2[ 0 ] = C_SCHEME_UNDEFINED;
-    av2[ 1 ] = k;
-    av2[ 2 ] = (C_word)(ptr - 1);
-    av2[ 3 ] = C_fix(0);
-    C_peek_unsigned_integer(3, av);
-  case C_S32_LOCATIVE:
-    av2 = C_alloc(4);
-    av2[ 0 ] = C_SCHEME_UNDEFINED;
-    av2[ 1 ] = k;
-    av2[ 2 ] = (C_word)(ptr - 1);
-    av2[ 3 ] = C_fix(0);
-    C_peek_signed_integer(3, av);
-  case C_U64_LOCATIVE:
-    av2 = C_alloc(4);
-    av2[ 0 ] = C_SCHEME_UNDEFINED;
-    av2[ 1 ] = k;
-    av2[ 2 ] = (C_word)(ptr - 1);
-    av2[ 3 ] = C_fix(0);
-    C_peek_uint64(3, av);
-  case C_S64_LOCATIVE:
-    av2 = C_alloc(4);
-    av2[ 0 ] = C_SCHEME_UNDEFINED;
-    av2[ 1 ] = k;
-    av2[ 2 ] = (C_word)(ptr - 1);
-    av2[ 3 ] = C_fix(0);
-    C_peek_int64(3, av);
-  case C_F32_LOCATIVE: C_kontinue_flonum(k, *((float *)ptr));
-  case C_F64_LOCATIVE: C_kontinue_flonum(k, *((double *)ptr));
+  case C_U32_LOCATIVE: C_kontinue(k, C_unsigned_int_to_num(&a, *((C_u32 *)ptr)));
+  case C_S32_LOCATIVE: C_kontinue(k, C_int_to_num(&a, *((C_s32 *)ptr)));
+  case C_U64_LOCATIVE: C_kontinue(k, C_uint64_to_num(&a, *((C_u64 *)ptr)));
+  case C_S64_LOCATIVE: C_kontinue(k, C_int64_to_num(&a, *((C_s64 *)ptr)));
+  case C_F32_LOCATIVE: C_kontinue(k, C_flonum(&a, *((float *)ptr)));
+  case C_F64_LOCATIVE: C_kontinue(k, C_flonum(&a, *((double *)ptr)));
   default: panic(C_text("bad locative type"));
   }
 }
