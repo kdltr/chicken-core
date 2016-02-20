@@ -502,7 +502,7 @@ connect_to_debugger()
   else {
     port = atoi(addr + i + 1);
     host = C_strdup(addr);
-    addr[i] = '\0';    /* We don't use strndup() for compat reasons */
+    host[i] = '\0';    /* We don't use strndup() for compat reasons */
   }
 
 #ifdef _WIN32
