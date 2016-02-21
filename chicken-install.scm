@@ -693,20 +693,22 @@
         (remove-directory tmpdir))))
 
   (define (update-db)
-    (let* ((files (glob (make-pathname (repo-path) "*.import.*")))
+    (let* ((files (glob (make-pathname (repo-path) "*.import.so")
+			(make-pathname (repo-path) "*.import.scm")))
            (tmpdir (create-temporary-directory))
-           (dbfile (make-pathname tmpdir +module-db+))
-           (rx (irregex ".*/([^/]+)\\.import\\.(scm|so)")))
+           (dbfile (make-pathname tmpdir +module-db+)))
       (print "loading import libraries ...")
       (fluid-let ((##sys#warnings-enabled #f))
         (for-each
-         (lambda (f)
-           (let ((m (irregex-match rx f)))
+         (lambda (path)
+           (let* ((file (pathname-strip-directory path))
+		  (import-name (pathname-strip-extension file))
+		  (module-name (pathname-strip-extension import-name)))
 	     (handle-exceptions ex
 		 (print-error-message 
 		  ex (current-error-port) 
-		  (sprintf "Failed to import from `~a'" f))
-	       (eval `(import ,(string->symbol (irregex-match-substring m 1)))))))
+		  (sprintf "Failed to import from `~a'" file))
+	       (eval `(import ,(string->symbol module-name))))))
          files))
       (print "generating database")
       (let ((db
