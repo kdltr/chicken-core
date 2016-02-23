@@ -27,8 +27,9 @@
 
 (declare
   (uses chicken-syntax chicken-ffi-syntax 
-	srfi-4 utils extras data-structures support
-	compiler optimizer lfa2 compiler-syntax scrutinizer
+	srfi-4 utils extras data-structures
+	lolevel ; unused, but loaded to make foldable bindings available
+	support compiler optimizer lfa2 compiler-syntax scrutinizer
 	;; TODO: These three need to be made configurable somehow
 	batch-driver c-platform c-backend))
 
