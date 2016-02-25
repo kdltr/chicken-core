@@ -12636,13 +12636,12 @@ void C_ccall C_call_with_cthulhu(C_word c, C_word *av)
     k = av[ 1 ],
     proc = av[ 2 ],
     *a = C_alloc(C_SIZEOF_CLOSURE(1)),
-    av2[ 4 ];
-  
-  av2[ 0 ] = C_SCHEME_UNDEFINED;
-  av2[ 1 ] = C_closure(&a, 1, (C_word)termination_continuation); /* k */
-  av2[ 2 ] = proc;
-  av2[ 3 ] = C_SCHEME_END_OF_LIST;
-  C_do_apply(4, av2);
+    av2[ 3 ];
+
+  av2[ 0 ] = C_closure(&a, 1, (C_word)termination_continuation); /* k */
+  av2[ 1 ] = proc;
+  av2[ 2 ] = C_SCHEME_END_OF_LIST;
+  C_do_apply(3, av2);
 }
 
 
