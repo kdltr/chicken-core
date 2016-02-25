@@ -164,6 +164,51 @@ EOF
 
 (provide* library) ; TODO remove after snapshot release
 
+
+;;; Fixnum arithmetic:
+
+(module chicken.fixnum *
+(import chicken scheme chicken.foreign)
+
+(define most-positive-fixnum (foreign-value "C_MOST_POSITIVE_FIXNUM" int))
+(define most-negative-fixnum (foreign-value "C_MOST_NEGATIVE_FIXNUM" int))
+(define fixnum-bits (foreign-value "(C_WORD_SIZE - 1)" int))
+(define fixnum-precision (foreign-value "(C_WORD_SIZE - (1 + 1))" int))
+
+(define (fx+ x y) (##core#inline "C_fixnum_plus" x y))
+(define (fx- x y) (##core#inline "C_fixnum_difference" x y))
+(define (fx* x y) (##core#inline "C_fixnum_times" x y))
+(define (fx= x y) (eq? x y))
+(define (fx> x y) (##core#inline "C_fixnum_greaterp" x y))
+(define (fx< x y) (##core#inline "C_fixnum_lessp" x y))
+(define (fx>= x y) (##core#inline "C_fixnum_greater_or_equal_p" x y))
+(define (fx<= x y) (##core#inline "C_fixnum_less_or_equal_p" x y))
+(define (fxmin x y) (##core#inline "C_i_fixnum_min" x y))
+(define (fxmax x y) (##core#inline "C_i_fixnum_max" x y))
+(define (fxneg x) (##core#inline "C_fixnum_negate" x))
+(define (fxand x y) (##core#inline "C_fixnum_and" x y))
+(define (fxior x y) (##core#inline "C_fixnum_or" x y))
+(define (fxxor x y) (##core#inline "C_fixnum_xor" x y))
+(define (fxnot x) (##core#inline "C_fixnum_not" x))
+(define (fxshl x y) (##core#inline "C_fixnum_shift_left" x y))
+(define (fxshr x y) (##core#inline "C_fixnum_shift_right" x y))
+(define (fxodd? x) (##core#inline "C_i_fixnumoddp" x))
+(define (fxeven? x) (##core#inline "C_i_fixnumevenp" x))
+(define (fxlen x) (##core#inline "C_i_fixnum_length" x))
+(define (fx/ x y) (##core#inline "C_fixnum_divide" x y) )
+(define (fxgcd x y) (##core#inline "C_i_fixnum_gcd" x y))
+(define (fxmod x y) (##core#inline "C_fixnum_modulo" x y) )
+(define (fxrem x y) (##core#inline "C_i_fixnum_remainder_checked" x y) )
+
+;; these are currently undocumented
+(define (fx+? x y) (##core#inline "C_i_o_fixnum_plus" x y) )
+(define (fx-? x y) (##core#inline "C_i_o_fixnum_difference" x y) )
+(define (fx*? x y) (##core#inline "C_i_o_fixnum_times" x y) )
+(define (fx/? x y) (##core#inline "C_i_o_fixnum_quotient" x y)))
+
+(import chicken.fixnum)
+
+
 ;;; System routines:
 
 (define (exit #!optional (code 0)) ((##sys#exit-handler) code))
@@ -771,43 +816,7 @@ EOF
 ;; [MpNT]  Tiplea at al., "MpNT: A Multi-Precision Number Theory Package"
 ;; [MCA]   Richard P. Brent & Paul Zimmermann, "Modern Computer Arithmetic"
 
-(define most-positive-fixnum (foreign-value "C_MOST_POSITIVE_FIXNUM" int))
-(define most-negative-fixnum (foreign-value "C_MOST_NEGATIVE_FIXNUM" int))
-(define fixnum-bits (foreign-value "(C_WORD_SIZE - 1)" int))
-(define fixnum-precision (foreign-value "(C_WORD_SIZE - (1 + 1))" int))
-
 (define (fixnum? x) (##core#inline "C_fixnump" x))
-(define (fx+ x y) (##core#inline "C_fixnum_plus" x y))
-(define (fx- x y) (##core#inline "C_fixnum_difference" x y))
-(define (fx* x y) (##core#inline "C_fixnum_times" x y))
-(define (fx= x y) (eq? x y))
-(define (fx> x y) (##core#inline "C_fixnum_greaterp" x y))
-(define (fx< x y) (##core#inline "C_fixnum_lessp" x y))
-(define (fx>= x y) (##core#inline "C_fixnum_greater_or_equal_p" x y))
-(define (fx<= x y) (##core#inline "C_fixnum_less_or_equal_p" x y))
-(define (fxmin x y) (##core#inline "C_i_fixnum_min" x y))
-(define (fxmax x y) (##core#inline "C_i_fixnum_max" x y))
-(define (fxneg x) (##core#inline "C_fixnum_negate" x))
-(define (fxand x y) (##core#inline "C_fixnum_and" x y))
-(define (fxior x y) (##core#inline "C_fixnum_or" x y))
-(define (fxxor x y) (##core#inline "C_fixnum_xor" x y))
-(define (fxnot x) (##core#inline "C_fixnum_not" x))
-(define (fxshl x y) (##core#inline "C_fixnum_shift_left" x y))
-(define (fxshr x y) (##core#inline "C_fixnum_shift_right" x y))
-(define (fxodd? x) (##core#inline "C_i_fixnumoddp" x))
-(define (fxeven? x) (##core#inline "C_i_fixnumevenp" x))
-(define (fxlen x) (##core#inline "C_i_fixnum_length" x))
-(define (fx/ x y) (##core#inline "C_fixnum_divide" x y) )
-(define (fxgcd x y) (##core#inline "C_i_fixnum_gcd" x y))
-(define (fxmod x y) (##core#inline "C_fixnum_modulo" x y) )
-(define (fxrem x y) (##core#inline "C_i_fixnum_remainder_checked" x y) )
-
-;; these are currently undocumented
-(define (fx+? x y) (##core#inline "C_i_o_fixnum_plus" x y) )
-(define (fx-? x y) (##core#inline "C_i_o_fixnum_difference" x y) )
-(define (fx*? x y) (##core#inline "C_i_o_fixnum_times" x y) )
-(define (fx/? x y) (##core#inline "C_i_o_fixnum_quotient" x y) )
-
 (define (flonum? x) (##core#inline "C_i_flonump" x))
 (define (bignum? x) (##core#inline "C_i_bignump" x))
 (define (ratnum? x) (##core#inline "C_i_ratnump" x))
@@ -2073,7 +2082,7 @@ EOF
 (module chicken.keyword
   (keyword? get-keyword keyword->string string->keyword)
 
-(import scheme chicken)
+(import scheme chicken chicken.fixnum)
 
 (define (keyword? x)
   (and (symbol? x) (fx= 0 (##sys#byte (##sys#slot x 1) 0))) )
@@ -5330,8 +5339,7 @@ EOF
 (module chicken.gc
   (current-gc-milliseconds gc memory-statistics set-finalizer! set-gc-report!)
 
-(import scheme chicken
-	chicken.foreign)
+(import scheme chicken chicken.fixnum chicken.foreign)
 
 ;;; GC info:
 

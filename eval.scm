@@ -1429,6 +1429,8 @@
 
 ) ; eval module
 
+(import chicken chicken.eval)
+
 ;;; Simple invocation API:
 
 (declare
@@ -1465,13 +1467,13 @@
 (define-external (CHICKEN_eval (scheme-object exp) ((c-pointer "C_word") result)) bool
   (run-safe
    (lambda ()
-     (store-result (chicken.eval#eval exp) result))))
+     (store-result (eval exp) result))))
 
 (define-external (CHICKEN_eval_string (c-string str) ((c-pointer "C_word") result)) bool
   (run-safe
    (lambda ()
      (let ((i (open-input-string str)))
-       (store-result (chicken.eval#eval (read i)) result)))))
+       (store-result (eval (read i)) result)))))
 
 #>
 #define C_copy_result_string(str, buf, n)  (C_memcpy((char *)C_block_item(buf, 0), C_c_string(str), C_unfix(n)), ((char *)C_block_item(buf, 0))[ C_unfix(n) ] = '\0', C_SCHEME_TRUE)
@@ -1490,7 +1492,7 @@
   (run-safe
    (lambda ()
      (let ((o (open-output-string)))
-       (write (chicken.eval#eval exp) o)
+       (write (eval exp) o)
        (store-string (get-output-string o) bufsize buf)) ) ) )
 
 (define-external (CHICKEN_eval_string_to_string (c-string str) ((c-pointer "char") buf)
@@ -1499,7 +1501,7 @@
   (run-safe
    (lambda ()
      (let ((o (open-output-string)))
-       (write (chicken.eval#eval (read (open-input-string str))) o)
+       (write (eval (read (open-input-string str))) o)
        (store-string (get-output-string o) bufsize buf)) ) ) )
 
 (define-external (CHICKEN_apply (scheme-object func) (scheme-object args) 
@@ -1523,7 +1525,7 @@
        (store-result (read i) result) ) ) ) )
 
 (define-external (CHICKEN_load (c-string str)) bool
-  (run-safe (lambda () (chicken.eval#load str) #t)))
+  (run-safe (lambda () (load str) #t)))
 
 (define-external (CHICKEN_get_error_message ((c-pointer "char") buf) (int bufsize)) void
   (store-string (or last-error "No error") bufsize buf) )

@@ -285,11 +285,11 @@
 	   ((*) (##core#inline "C_i_negativep" #(1))))
 
 (max (#(procedure #:clean #:enforce #:foldable) max (#!rest number) number)
-     ((fixnum fixnum) (fxmax #(1) #(2)))
+     ((fixnum fixnum) (chicken.fixnum#fxmax #(1) #(2)))
      ((float float) (##core#inline "C_i_flonum_max" #(1) #(2))))
 
 (min (#(procedure #:clean #:enforce #:foldable) min (#!rest number) number)
-     ((fixnum fixnum) (fxmin #(1) #(2)))
+     ((fixnum fixnum) (chicken.fixnum#fxmin #(1) #(2)))
      ((float float) (##core#inline "C_i_flonum_min" #(1) #(2))))
 
 (+ (#(procedure #:clean #:enforce #:foldable) + (#!rest number) number)
@@ -403,7 +403,7 @@
 (> (#(procedure #:clean #:enforce #:foldable) > (#!rest number) boolean)
    (() '#t)
    ((number) (let ((#(tmp) #(1))) '#t))
-   ((fixnum fixnum) (fx> #(1) #(2)))
+   ((fixnum fixnum) (chicken.fixnum#fx> #(1) #(2)))
    ((float float) (##core#inline "C_flonum_greaterp" #(1) #(2)))
    ((integer integer) (##core#inline "C_i_integer_greaterp" #(1) #(2)))
    ((* *) (##core#inline "C_i_greaterp" #(1) #(2))))
@@ -411,7 +411,7 @@
 (< (#(procedure #:clean #:enforce #:foldable) < (#!rest number) boolean)
    (() '#t)
    ((number) (let ((#(tmp) #(1))) '#t))
-   ((fixnum fixnum) (fx< #(1) #(2)))
+   ((fixnum fixnum) (chicken.fixnum#fx< #(1) #(2)))
    ((integer integer) (##core#inline "C_i_integer_lessp" #(1) #(2)))
    ((float float) (##core#inline "C_flonum_lessp" #(1) #(2)))
    ((* *) (##core#inline "C_i_lessp" #(1) #(2))))
@@ -419,7 +419,7 @@
 (>= (#(procedure #:clean #:enforce #:foldable) >= (#!rest number) boolean)
     (() '#t)
     ((number) (let ((#(tmp) #(1))) '#t))
-    ((fixnum fixnum) (fx>= #(1) #(2)))
+    ((fixnum fixnum) (chicken.fixnum#fx>= #(1) #(2)))
     ((integer integer) (##core#inline "C_i_integer_greater_or_equalp" #(1) #(2)))
     ((float float) (##core#inline "C_flonum_greater_or_equal_p" #(1) #(2)))
     ((* *) (##core#inline "C_i_greater_or_equalp" #(1) #(2))))
@@ -427,7 +427,7 @@
 (<= (#(procedure #:clean #:enforce #:foldable) <= (#!rest number) boolean)
     (() '#t)
     ((number) (let ((#(tmp) #(1))) '#t))
-    ((fixnum fixnum) (fx<= #(1) #(2)))
+    ((fixnum fixnum) (chicken.fixnum#fx<= #(1) #(2)))
     ((integer integer) (##core#inline "C_i_integer_less_or_equalp" #(1) #(2)))
     ((float float) (##core#inline "C_flonum_less_or_equal_p" #(1) #(2)))
     ((* *) (##core#inline "C_i_less_or_equalp" #(1) #(2))))
@@ -492,7 +492,7 @@
 
 (gcd (#(procedure #:clean #:enforce #:foldable) gcd (#!rest (or integer float)) (or integer float))
      (() '0)
-     ((fixnum fixnum) (fixnum) (fxgcd #(1) #(2)))
+     ((fixnum fixnum) (fixnum) (chicken.fixnum#fxgcd #(1) #(2)))
      ((float float) (float) (chicken.flonum#fpgcd #(1) #(2)))
      ((integer integer) (integer)
       (##core#inline_allocate ("C_s_a_u_i_integer_gcd" 6) #(1) #(2)))
@@ -896,7 +896,11 @@
 (exact-integer-sqrt (#(procedure #:clean #:enforce #:foldable) exact-integer-sqrt (integer) integer integer)
 		    ((integer) (##sys#exact-integer-sqrt #(1))))
 
+(fixnum? (#(procedure #:pure #:predicate fixnum) fixnum? (*) boolean))
+(flonum? (#(procedure #:pure #:predicate float) flonum? (*) boolean))
 (bignum? (#(procedure #:pure #:predicate bignum) bignum? (*) boolean))
+(ratnum? (#(procedure #:pure #:predicate ratnum) ratnum? (*) boolean))
+(cplxnum? (#(procedure #:pure #:predicate cplxnum) cplxnum? (*) boolean))
 
 (chicken.bitwise#bit-set?
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bit-set? (integer integer) boolean)
@@ -978,8 +982,6 @@
  (#(procedure #:clean #:enforce) chicken.read-syntax#set-sharp-read-syntax!
   (char (or false (procedure (input-port) . *))) undefined))
 
-(cplxnum? (#(procedure #:pure #:predicate cplxnum) cplxnum? (*) boolean))
-
 (current-error-port
  (#(procedure #:clean #:enforce) current-error-port (#!optional output-port) output-port)
  ((output-port) (let ((#(tmp1) #(1))) 
@@ -1052,12 +1054,6 @@
 	 (((or integer ratnum)) (let ((#(tmp) #(1))) '#t))
 	 ((float) (##core#inline "C_u_i_flonum_finitep" #(1)))
 	 ((*) (##core#inline "C_i_finitep" #(1))))
-
-(fixnum-bits fixnum)
-(fixnum-precision fixnum)
-
-(fixnum? (#(procedure #:pure #:predicate fixnum) fixnum? (*) boolean))
-(flonum? (#(procedure #:pure #:predicate float) flonum? (*) boolean))
 
 ;; flonum
 
@@ -1161,31 +1157,37 @@
 (chicken.flonum#fptruncate (#(procedure #:clean #:enforce #:foldable) chicken.flonum#fptruncate (float) float)
 	    ((float) (##core#inline_allocate ("C_a_i_flonum_truncate" 4) #(1) )))
 
+;; fixnum
+
+(chicken.fixnum#fixnum-bits fixnum)
+(chicken.fixnum#fixnum-precision fixnum)
+
 ;;XXX should these be enforcing?
-(fx- (#(procedure #:clean #:foldable) fx- (fixnum fixnum) fixnum))
-(fx* (#(procedure #:clean #:foldable) fx* (fixnum fixnum) fixnum))
-(fx/ (#(procedure #:clean #:foldable) fx/ (fixnum fixnum) fixnum))
-(fxgcd (#(procedure #:clean #:foldable) fxgcd (fixnum fixnum) fixnum))
-(fx+ (#(procedure #:clean #:foldable) fx+ (fixnum fixnum) fixnum))
-(fx< (#(procedure #:clean #:foldable) fx< (fixnum fixnum) boolean))
-(fx<= (#(procedure #:clean #:foldable) fx<= (fixnum fixnum) boolean))
-(fx= (#(procedure #:clean #:foldable) fx= (fixnum fixnum) boolean))
-(fx> (#(procedure #:clean #:foldable) fx> (fixnum fixnum) boolean))
-(fx>= (#(procedure #:clean #:foldable) fx>= (fixnum fixnum) boolean))
-(fxand (#(procedure #:clean #:foldable) fxand (fixnum fixnum) fixnum))
-(fxeven? (#(procedure #:clean #:foldable) fxeven? (fixnum) boolean))
-(fxior (#(procedure #:clean #:foldable) fxior (fixnum fixnum) fixnum))
-(fxmax (#(procedure #:clean #:foldable) fxmax (fixnum fixnum) fixnum))
-(fxmin (#(procedure #:clean #:foldable) fxmin (fixnum fixnum) fixnum))
-(fxmod (#(procedure #:clean #:foldable) fxmod (fixnum fixnum) fixnum))
-(fxrem (#(procedure #:clean #:foldable) fxrem (fixnum fixnum) fixnum))
-(fxneg (#(procedure #:clean #:foldable) fxneg (fixnum) fixnum))
-(fxnot (#(procedure #:clean #:foldable) fxnot (fixnum) fixnum))
-(fxodd? (#(procedure #:clean #:foldable) fxodd? (fixnum) boolean))
-(fxshl (#(procedure #:clean #:foldable) fxshl (fixnum fixnum) fixnum))
-(fxshr (#(procedure #:clean #:foldable) fxshr (fixnum fixnum) fixnum))
-(fxxor (#(procedure #:clean #:foldable) fxxor (fixnum fixnum) fixnum))
-(fxlen (#(procedure #:clean #:foldable) fxlen (fixnum) fixnum))
+(chicken.fixnum#fx- (#(procedure #:clean #:foldable) chicken.fixnum#fx- (fixnum fixnum) fixnum))
+(chicken.fixnum#fx* (#(procedure #:clean #:foldable) chicken.fixnum#fx* (fixnum fixnum) fixnum))
+(chicken.fixnum#fx/ (#(procedure #:clean #:foldable) chicken.fixnum#fx/ (fixnum fixnum) fixnum))
+(chicken.fixnum#fxgcd (#(procedure #:clean #:foldable) chicken.fixnum#fxgcd (fixnum fixnum) fixnum))
+(chicken.fixnum#fx+ (#(procedure #:clean #:foldable) chicken.fixnum#fx+ (fixnum fixnum) fixnum))
+(chicken.fixnum#fx< (#(procedure #:clean #:foldable) chicken.fixnum#fx< (fixnum fixnum) boolean))
+(chicken.fixnum#fx<= (#(procedure #:clean #:foldable) chicken.fixnum#fx<= (fixnum fixnum) boolean))
+(chicken.fixnum#fx= (#(procedure #:clean #:foldable) chicken.fixnum#fx= (fixnum fixnum) boolean))
+(chicken.fixnum#fx> (#(procedure #:clean #:foldable) chicken.fixnum#fx> (fixnum fixnum) boolean))
+(chicken.fixnum#fx>= (#(procedure #:clean #:foldable) chicken.fixnum#fx>= (fixnum fixnum) boolean))
+(chicken.fixnum#fxand (#(procedure #:clean #:foldable) chicken.fixnum#fxand (fixnum fixnum) fixnum))
+(chicken.fixnum#fxeven? (#(procedure #:clean #:foldable) chicken.fixnum#fxeven? (fixnum) boolean))
+(chicken.fixnum#fxior (#(procedure #:clean #:foldable) chicken.fixnum#fxior (fixnum fixnum) fixnum))
+(chicken.fixnum#fxmax (#(procedure #:clean #:foldable) chicken.fixnum#fxmax (fixnum fixnum) fixnum))
+(chicken.fixnum#fxmin (#(procedure #:clean #:foldable) chicken.fixnum#fxmin (fixnum fixnum) fixnum))
+(chicken.fixnum#fxmod (#(procedure #:clean #:foldable) chicken.fixnum#fxmod (fixnum fixnum) fixnum))
+(chicken.fixnum#fxrem (#(procedure #:clean #:foldable) chicken.fixnum#fxrem (fixnum fixnum) fixnum))
+(chicken.fixnum#fxneg (#(procedure #:clean #:foldable) chicken.fixnum#fxneg (fixnum) fixnum))
+(chicken.fixnum#fxnot (#(procedure #:clean #:foldable) chicken.fixnum#fxnot (fixnum) fixnum))
+(chicken.fixnum#fxodd? (#(procedure #:clean #:foldable) chicken.fixnum#fxodd? (fixnum) boolean))
+(chicken.fixnum#fxshl (#(procedure #:clean #:foldable) chicken.fixnum#fxshl (fixnum fixnum) fixnum))
+(chicken.fixnum#fxshr (#(procedure #:clean #:foldable) chicken.fixnum#fxshr (fixnum fixnum) fixnum))
+(chicken.fixnum#fxxor (#(procedure #:clean #:foldable) chicken.fixnum#fxxor (fixnum fixnum) fixnum))
+(chicken.fixnum#fxlen (#(procedure #:clean #:foldable) chicken.fixnum#fxlen (fixnum) fixnum))
+
 (gensym (#(procedure #:clean) gensym (#!optional (or string symbol)) symbol))
 
 (get (#(procedure #:clean #:enforce) get (symbol symbol #!optional *) *)
@@ -1231,9 +1233,9 @@
 (make-property-condition (#(procedure #:clean #:enforce) make-property-condition (symbol #!rest *) (struct condition)))
 (chicken.flonum#maximum-flonum float)
 (chicken.flonum#minimum-flonum float)
+(chicken.fixnum#most-negative-fixnum fixnum)
+(chicken.fixnum#most-positive-fixnum fixnum)
 (module-environment (#(procedure #:clean #:enforce) module-environment ((or symbol (list-of (or symbol fixnum))) #!optional *) (struct environment)))
-(most-negative-fixnum fixnum)
-(most-positive-fixnum fixnum)
 (on-exit (#(procedure #:clean #:enforce) on-exit ((procedure () . *)) undefined))
 (open-input-string (#(procedure #:clean #:enforce) open-input-string (string #!rest) input-port))
 (open-output-string (#(procedure #:clean) open-output-string (#!rest) output-port))
@@ -1265,8 +1267,6 @@
        (##core#inline_allocate ("C_a_i_putprop" 8) #(1) #(2) #(3))))
 
 (quit (procedure quit (#!optional *) noreturn))
-
-(ratnum? (#(procedure #:pure #:predicate ratnum) ratnum? (*) boolean))
 
 (register-feature! (#(procedure #:clean #:enforce) register-feature! (#!rest symbol) undefined))
 (remprop! (#(procedure #:clean #:enforce) remprop! (symbol symbol) undefined))
@@ -1673,7 +1673,7 @@
 
 (chicken.irregex#irregex-match-num-submatches (#(procedure #:enforce) chicken.irregex#irregex-match-num-submatches ((struct regexp-match)) fixnum)
                               (((struct regexp-match))
-                               (fx- (fx/ (##sys#size (##sys#slot #(1) '1)) '4) '2)))
+                               (chicken.fixnum#fx- (chicken.fixnum#fx/ (##sys#size (##sys#slot #(1) '1)) '4) '2)))
 
 (chicken.irregex#irregex-new-matches (procedure chicken.irregex#irregex-new-matches (*) *)) ; really only for internal use..
 (chicken.irregex#irregex-opt (#(procedure #:clean #:enforce) chicken.irregex#irregex-opt (list) *))

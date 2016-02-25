@@ -65,6 +65,18 @@ Like {{exact-integer-sqrt}}, but with any base value.  Calculates
 {{s}} and {{r}} where {{s^N + r = K}} and {{K < (s+1)^N}}.
 
 
+==== fixnum?
+
+<procedure>(fixnum? X)</procedure>
+
+Returns {{#t}} if {{X}} is a fixnum, or {{#f}} otherwise.
+
+==== flonum?
+
+<procedure>(flonum? X)</procedure>
+
+Returns {{#t}} if {{X}} is a flonum, or {{#f}} otherwise.
+
 ==== bignum?
 
 <procedure>(bignum? X)</procedure>
@@ -114,6 +126,9 @@ large numbers.
 
 ==== Arithmetic fixnum operations
 
+The following procedures are provided by the {{(chicken fixnum)}}
+module.
+
 <procedure>(fx+ N1 N2)</procedure>
 <procedure>(fx- N1 N2)</procedure>
 <procedure>(fx* N1 N2)</procedure>
@@ -152,12 +167,6 @@ respectively.
 <procedure>(fx<= N1 N2)</procedure>
 
 Comparison of fixnums and predicates on them.
-
-==== fixnum?
-
-<procedure>(fixnum? X)</procedure>
-
-Returns {{#t}} if {{X}} is a fixnum, or {{#f}} otherwise.
 
 ==== Fixnum limits
 
@@ -212,12 +221,6 @@ application.
 
 Note: {{fpround}} uses the rounding mode that your C library
 implements, which is usually different from R5RS.
-
-==== flonum?
-
-<procedure>(flonum? X)</procedure>
-
-Returns {{#t}} if {{X}} is a flonum, or {{#f}} otherwise.
 
 ==== Flonum limits
 

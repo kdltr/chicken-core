@@ -149,15 +149,19 @@
 	 fpfloor fpceiling fptruncate fpround fpsin fpcos fptan fpasin fpacos
 	 fpatan fpatan2 fpexp fpexpt fplog fpsqrt fpabs fpinteger?)))
 
-(set! default-extended-bindings
-  `(bignum? cplxnum? ratnum? ,@flonum-bindings
+(define-constant fixnum-bindings
+  (map (lambda (x) (symbol-append 'chicken.fixnum# x))
+       '(fx* fx*? fx+ fx+? fx- fx-? fx/ fx/? fx< fx<= fx= fx> fx>= fxand
+	 fxeven? fxgcd fxior fxlen fxmax fxmin fxmod fxneg fxnot fxodd?
+	 fxrem fxshl fxshr fxxor)))
+
+(define-constant extended-bindings
+  '(bignum? cplxnum? fixnum? flonum? ratnum?
     chicken.bitwise#integer-length
     chicken.bitwise#bitwise-and chicken.bitwise#bitwise-not
     chicken.bitwise#bitwise-ior chicken.bitwise#bitwise-xor
     chicken.bitwise#arithmetic-shift chicken.bitwise#bit-set?
-    add1 sub1 fx+ fx- fx* fx/ fxgcd fx+? fx-? fx*? fx/? fxmod fxrem
-    fx= fx> fx< fx>= fx<= fixnum? fxneg fxmax fxmin fxlen fxand fxnot fxior
-    fxxor fxshr fxshl fxodd? fxeven?  exact-integer? flonum? nan? finite? infinite?
+    add1 sub1 exact-integer? nan? finite? infinite?
     void flush-output print print* error call/cc blob-size
     identity blob=? equal=? make-polar make-rectangular real-part imag-part
     string->symbol symbol-append foldl foldr setter
@@ -211,6 +215,9 @@
     chicken.data-structures#alist-ref chicken.data-structures#rassoc
     chicken.io#read-string chicken.format#format
     chicken.format#printf chicken.format#sprintf chicken.format#fprintf))
+
+(set! default-extended-bindings
+  (append fixnum-bindings flonum-bindings extended-bindings))
 
 (set! internal-bindings
   '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set!
@@ -527,28 +534,28 @@
 (rewrite '##sys#slot 2 2 "C_slot" #t)		; consider as safe, the primitive is unsafe anyway.
 (rewrite '##sys#block-ref 2 2 "C_i_block_ref" #t) ;XXX must be safe for pattern matcher (anymore?)
 (rewrite '##sys#size 2 1 "C_block_size" #t)
-(rewrite 'fxnot 2 1 "C_fixnum_not" #t)
-(rewrite 'fx* 2 2 "C_fixnum_times" #t)
-(rewrite 'fx+? 2 2 "C_i_o_fixnum_plus" #t)
-(rewrite 'fx-? 2 2 "C_i_o_fixnum_difference" #t)
-(rewrite 'fx*? 2 2 "C_i_o_fixnum_times" #t)
-(rewrite 'fx/? 2 2 "C_i_o_fixnum_quotient" #t)
-(rewrite 'fx= 2 2 "C_eqp" #t)
-(rewrite 'fx> 2 2 "C_fixnum_greaterp" #t)
-(rewrite 'fx< 2 2 "C_fixnum_lessp" #t)
-(rewrite 'fx>= 2 2 "C_fixnum_greater_or_equal_p" #t)
-(rewrite 'fx<= 2 2 "C_fixnum_less_or_equal_p" #t)
+(rewrite 'chicken.fixnum#fxnot 2 1 "C_fixnum_not" #t)
+(rewrite 'chicken.fixnum#fx* 2 2 "C_fixnum_times" #t)
+(rewrite 'chicken.fixnum#fx+? 2 2 "C_i_o_fixnum_plus" #t)
+(rewrite 'chicken.fixnum#fx-? 2 2 "C_i_o_fixnum_difference" #t)
+(rewrite 'chicken.fixnum#fx*? 2 2 "C_i_o_fixnum_times" #t)
+(rewrite 'chicken.fixnum#fx/? 2 2 "C_i_o_fixnum_quotient" #t)
+(rewrite 'chicken.fixnum#fx= 2 2 "C_eqp" #t)
+(rewrite 'chicken.fixnum#fx> 2 2 "C_fixnum_greaterp" #t)
+(rewrite 'chicken.fixnum#fx< 2 2 "C_fixnum_lessp" #t)
+(rewrite 'chicken.fixnum#fx>= 2 2 "C_fixnum_greater_or_equal_p" #t)
+(rewrite 'chicken.fixnum#fx<= 2 2 "C_fixnum_less_or_equal_p" #t)
 (rewrite 'chicken.flonum#fp= 2 2 "C_flonum_equalp" #f)
 (rewrite 'chicken.flonum#fp> 2 2 "C_flonum_greaterp" #f)
 (rewrite 'chicken.flonum#fp< 2 2 "C_flonum_lessp" #f)
 (rewrite 'chicken.flonum#fp>= 2 2 "C_flonum_greater_or_equal_p" #f)
 (rewrite 'chicken.flonum#fp<= 2 2 "C_flonum_less_or_equal_p" #f)
-(rewrite 'fxmax 2 2 "C_i_fixnum_max" #t)
-(rewrite 'fxmin 2 2 "C_i_fixnum_min" #t)
+(rewrite 'chicken.fixnum#fxmax 2 2 "C_i_fixnum_max" #t)
+(rewrite 'chicken.fixnum#fxmin 2 2 "C_i_fixnum_min" #t)
 (rewrite 'chicken.flonum#fpmax 2 2 "C_i_flonum_max" #f)
 (rewrite 'chicken.flonum#fpmin 2 2 "C_i_flonum_min" #f)
-(rewrite 'fxgcd 2 2 "C_i_fixnum_gcd" #t)
-(rewrite 'fxlen 2 1 "C_i_fixnum_length" #t)
+(rewrite 'chicken.fixnum#fxgcd 2 2 "C_i_fixnum_gcd" #t)
+(rewrite 'chicken.fixnum#fxlen 2 1 "C_i_fixnum_length" #t)
 (rewrite 'char-numeric? 2 1 "C_u_i_char_numericp" #t)
 (rewrite 'char-alphabetic? 2 1 "C_u_i_char_alphabeticp" #t)
 (rewrite 'char-whitespace? 2 1 "C_u_i_char_whitespacep" #t)
@@ -707,8 +714,8 @@
 (rewrite 'even? 17 1 "C_i_evenp" "C_u_i_evenp")
 (rewrite 'odd? 17 1 "C_i_oddp" "C_u_i_oddp")
 
-(rewrite 'fxodd? 2 1 "C_i_fixnumoddp" #t)
-(rewrite 'fxeven? 2 1 "C_i_fixnumevenp" #t)
+(rewrite 'chicken.fixnum#fxodd? 2 1 "C_i_fixnumoddp" #t)
+(rewrite 'chicken.fixnum#fxeven? 2 1 "C_i_fixnumevenp" #t)
 
 (rewrite 'floor 15 'flonum 'fixnum 'chicken.flonum#fpfloor #f)
 (rewrite 'ceiling 15 'flonum 'fixnum 'chicken.flonum#fpceiling #f)
@@ -779,17 +786,17 @@
 		      '("C_i_setslot") ) )
 		callargs) ) ) ) ) )
 
-(rewrite 'fx+ 17 2 "C_fixnum_plus" "C_u_fixnum_plus")
-(rewrite 'fx- 17 2 "C_fixnum_difference" "C_u_fixnum_difference")
-(rewrite 'fxshl 17 2 "C_fixnum_shift_left")
-(rewrite 'fxshr 17 2 "C_fixnum_shift_right")
-(rewrite 'fxneg 17 1 "C_fixnum_negate" "C_u_fixnum_negate")
-(rewrite 'fxxor 17 2 "C_fixnum_xor" "C_fixnum_xor")
-(rewrite 'fxand 17 2 "C_fixnum_and" "C_u_fixnum_and")
-(rewrite 'fxior 17 2 "C_fixnum_or" "C_u_fixnum_or")
-(rewrite 'fx/ 17 2 "C_fixnum_divide" "C_u_fixnum_divide")
-(rewrite 'fxmod 17 2 "C_fixnum_modulo" "C_u_fixnum_modulo")
-(rewrite 'fxrem 17 2 "C_i_fixnum_remainder_checked")
+(rewrite 'chicken.fixnum#fx+ 17 2 "C_fixnum_plus" "C_u_fixnum_plus")
+(rewrite 'chicken.fixnum#fx- 17 2 "C_fixnum_difference" "C_u_fixnum_difference")
+(rewrite 'chicken.fixnum#fxshl 17 2 "C_fixnum_shift_left")
+(rewrite 'chicken.fixnum#fxshr 17 2 "C_fixnum_shift_right")
+(rewrite 'chicken.fixnum#fxneg 17 1 "C_fixnum_negate" "C_u_fixnum_negate")
+(rewrite 'chicken.fixnum#fxxor 17 2 "C_fixnum_xor" "C_fixnum_xor")
+(rewrite 'chicken.fixnum#fxand 17 2 "C_fixnum_and" "C_u_fixnum_and")
+(rewrite 'chicken.fixnum#fxior 17 2 "C_fixnum_or" "C_u_fixnum_or")
+(rewrite 'chicken.fixnum#fx/ 17 2 "C_fixnum_divide" "C_u_fixnum_divide")
+(rewrite 'chicken.fixnum#fxmod 17 2 "C_fixnum_modulo" "C_u_fixnum_modulo")
+(rewrite 'chicken.fixnum#fxrem 17 2 "C_i_fixnum_remainder_checked")
 
 (rewrite
  'chicken.bitwise#arithmetic-shift 8

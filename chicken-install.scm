@@ -47,6 +47,7 @@
       "chicken.eval.import.so"
       "chicken.expand.import.so"
       "chicken.files.import.so"
+      "chicken.fixnum.import.so"
       "chicken.flonum.import.so"
       "chicken.foreign.import.so"
       "chicken.format.import.so"

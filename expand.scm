@@ -927,8 +927,7 @@
 
 ;;; Macro definitions:
 
-(import chicken.expand
-	chicken.internal)
+(import chicken chicken.expand chicken.internal)
 
 (##sys#extend-macro-environment
  'import-syntax '()

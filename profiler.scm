@@ -31,6 +31,8 @@
   (unsafe)
   (disable-interrupts))
 
+(import chicken)
+
 (include "common-declarations.scm")
 
 (define-foreign-variable profile-id int "C_getpid()")

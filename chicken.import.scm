@@ -70,39 +70,39 @@
    features
    file-exists?
    finite?
-   fixnum-bits
-   fixnum-precision
+   (fixnum-bits . chicken.fixnum#fixnum-bits)
+   (fixnum-precision . chicken.fixnum#fixnum-precision)
    fixnum?
    flonum?
    flush-output
    foldl
    foldr
    force-finalizers
-   fx-
-   fx*
-   fx/
-   fx+
-   fx<
-   fx<=
-   fx=
-   fx>
-   fx>=
-   fxand
-   fxeven?
-   fxgcd
-   fxior
-   fxlen
-   fxmax
-   fxmin
-   fxmod
-   fxneg
-   fxnot
-   fxodd?
-   fxrem
-   fxshl
-   fxshr
-   fxxor
-   fxlen
+   (fx- . chicken.fixnum#fx-)
+   (fx* . chicken.fixnum#fx*)
+   (fx/ . chicken.fixnum#fx/)
+   (fx+ . chicken.fixnum#fx+)
+   (fx< . chicken.fixnum#fx<)
+   (fx<= . chicken.fixnum#fx<=)
+   (fx= . chicken.fixnum#fx=)
+   (fx> . chicken.fixnum#fx>)
+   (fx>= . chicken.fixnum#fx>=)
+   (fxand . chicken.fixnum#fxand)
+   (fxeven? . chicken.fixnum#fxeven?)
+   (fxgcd . chicken.fixnum#fxgcd)
+   (fxior . chicken.fixnum#fxior)
+   (fxlen . chicken.fixnum#fxlen)
+   (fxmax . chicken.fixnum#fxmax)
+   (fxmin . chicken.fixnum#fxmin)
+   (fxmod . chicken.fixnum#fxmod)
+   (fxneg . chicken.fixnum#fxneg)
+   (fxnot . chicken.fixnum#fxnot)
+   (fxodd? . chicken.fixnum#fxodd?)
+   (fxrem . chicken.fixnum#fxrem)
+   (fxshl . chicken.fixnum#fxshl)
+   (fxshr . chicken.fixnum#fxshr)
+   (fxxor . chicken.fixnum#fxxor)
+   (fxlen . chicken.fixnum#fxlen)
    gensym
    get
    get-call-chain
@@ -128,8 +128,8 @@
    make-promise
    make-property-condition
    module-environment
-   most-negative-fixnum
-   most-positive-fixnum
+   (most-negative-fixnum . chicken.fixnum#most-negative-fixnum)
+   (most-positive-fixnum . chicken.fixnum#most-positive-fixnum)
    nan?
    notice
    on-exit
