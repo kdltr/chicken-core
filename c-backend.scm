@@ -839,46 +839,40 @@
 		  (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
 		  (gen #t "if(!C_demand((c-" n ")*C_SIZEOF_PAIR +" demand ")){"))
 		 (else
-		  (cond [(and (not direct) (> demand 0))
-			 (if looping
-			     (gen #t "C_word *a;"
-				  #t "loop:"
-				  #t "a=C_alloc(" demand ");")
-			     (gen #t "C_word ab[" demand "],*a=ab;") ) ]
-			[else
-			 (unless direct (gen #t "C_word *a;"))
-			 (when (and direct (not unsafe) (not disable-stack-overflow-checking))
-			   (gen #t "C_stack_overflow_check;") )
-			 (when looping (gen #t "loop:"))])
+		  (unless direct (gen #t "C_word *a;"))
+		  (when (and direct (not unsafe) (not disable-stack-overflow-checking))
+		    (gen #t "C_stack_overflow_check;"))
+		  (when looping (gen #t "loop:"))
 		  (when (and external (not unsafe) (not no-argc-checks) (not customizable))
 		    ;; (not customizable) implies empty-closure
 		    (if (eq? rest-mode 'none)
 			(when (> n 2) (gen #t "if(c<" n ") C_bad_min_argc_2(c," n ",t0);"))
 			(gen #t "if(c!=" n ") C_bad_argc_2(c," n ",t0);") ) )
-		  (cond ((and (not direct) (or external (> demand 0)))
+		  (cond ((not direct)
+			 ;; The interrupt handler may fill the stack, so we only
+			 ;; check for an interrupt when the procedure is restartable
 			 (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-			 (if (and looping (> demand 0))
-			     (gen #t "if(!C_stack_probe(a)){")
-			     (gen #t "if(!C_stack_probe(&a)){") ) )
-			(else (gen #\{)))))
-	   (cond ((and (not (eq? 'toplevel id))
-		       (not direct)
-		       (or rest external (> demand 0)) )
-		  (cond [rest
+			 (gen #t "if(!C_demand(" demand ")){"))
+			(else
+			 (gen #\{)))))
+	   (cond ((and (not (eq? 'toplevel id)) (not direct))
+		  (cond (rest
 			 (gen #t "C_save_and_reclaim((void*)" id ",c,av);}"
 			      #t "a=C_alloc((c-" n ")*C_SIZEOF_PAIR+" demand ");")
 			 (gen #t "t" n "=C_build_rest(&a,c," n ",av);")
-			 (do ([i (+ n 1) (+ i 1)]
-			      [j temps (- j 1)] )
+			 (do ((i (+ n 1) (+ i 1))
+			      (j temps (- j 1)))
 			     ((zero? j))
-			   (gen #t "C_word t" i #\;) )]
-			[else 
+			   (gen #t "C_word t" i #\;)))
+			(else
 			 (cond ((and customizable (> nec 0))
 				(gen #t "C_save_and_reclaim_args((void *)tr" id #\, nec #\,)
 				(apply gen arglist)
 				(gen ");}"))
 			       (else
-				(gen "C_save_and_reclaim((void *)" id #\, n ",av);}")))]))
+				(gen "C_save_and_reclaim((void *)" id #\, n ",av);}")))
+			 (when (> demand 0)
+			   (gen #t "a=C_alloc(" demand ");")))))
 		 (else (gen #\})))
            (set! non-av-proc customizable)
 	   (expression
