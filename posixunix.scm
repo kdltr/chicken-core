@@ -1414,7 +1414,7 @@ EOF
   (define (setup port args loc)
     (let-optionals* args ([start 0]
                           [len #t] )
-      (##sys#check-port port loc)
+      (##sys#check-open-port port loc)
       (##sys#check-exact-integer start loc)
       (if (eq? #t len)
           (set! len 0)
