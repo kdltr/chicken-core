@@ -2863,11 +2863,14 @@
 
 	  ((if ##core#cond)
 	   (let* ((test (walk (first subs) e e-count here boxes))
+		  (t0 temporaries)
 		  (a0 allocated)
 		  (x1 (walk (second subs) e e-count here boxes))
+		  (t1 temporaries)
 		  (a1 allocated)
 		  (x2 (walk (third subs) e e-count here boxes)))
 	     (set! allocated (+ a0 (max (- allocated a1) (- a1 a0))))
+	     (set! temporaries (+ t0 (max (- temporaries t1) (- t1 t0))))
 	     (make-node class params (list test x1 x2))))
 
 	  ((##core#switch)
