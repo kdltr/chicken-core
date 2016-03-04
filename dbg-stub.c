@@ -381,7 +381,7 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
         send_string(rw_buffer);
 
         for(n = 0; n < reply; ++n) {
-          sprintf(rw_buffer, " %lu", (unsigned long)((char *)C_data_pointer(x))[ n ]);
+          sprintf(rw_buffer, " %u", ((unsigned char *)C_data_pointer(x))[ n ]);
           send_string(rw_buffer);
         }
 
