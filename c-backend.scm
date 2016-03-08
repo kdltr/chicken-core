@@ -744,6 +744,7 @@
 	 (let* ((n (lambda-literal-argument-count ll))
 		(rname (real-name id db))
 		(demand (lambda-literal-allocated ll))
+		(max-av (apply max 0 (lambda-literal-callee-signatures ll)))
 		(rest (lambda-literal-rest-argument ll))
 		(customizable (lambda-literal-customizable ll))
 		(empty-closure (and customizable (zero? (lambda-literal-closure-size ll))))
@@ -818,8 +819,8 @@
 			     #t "C_heap_size_is_fixed=1;"))
 		      (when target-stack-size
 			(gen #t "C_resize_stack(" target-stack-size ");") ) )
-		    (gen #t "C_check_nursery_minimum(" demand ");"
-			 #t "if(!C_demand(" demand ")){"
+		    (gen #t "C_check_nursery_minimum(C_calculate_demand(" demand ",c," max-av "));"
+			 #t "if(!C_demand(C_calculate_demand(" demand ",c," max-av "))){"
 			 #t "C_save_and_reclaim((void*)C_" topname ",c,av);}"
 			 #t "toplevel_initialized=1;"
 			 #t "if(!C_demand_2(" ldemand ")){"
@@ -837,7 +838,7 @@
 		  (when (and (not unsafe) (not no-argc-checks) (> n 2) (not empty-closure))
 		    (gen #t "if(c<" n ") C_bad_min_argc_2(c," n ",t0);") )
 		  (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-		  (gen #t "if(!C_demand((c-" n ")*C_SIZEOF_PAIR +" demand ")){"))
+		  (gen #t "if(!C_demand(C_calculate_demand((c-" n ")*C_SIZEOF_PAIR +" demand ",c," max-av "))){"))
 		 (else
 		  (unless direct (gen #t "C_word *a;"))
 		  (when (and direct (not unsafe) (not disable-stack-overflow-checking))
@@ -852,7 +853,10 @@
 			 ;; The interrupt handler may fill the stack, so we only
 			 ;; check for an interrupt when the procedure is restartable
 			 (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-			 (gen #t "if(!C_demand(" demand ")){"))
+			 (gen #t "if(!C_demand(C_calculate_demand("
+			      demand
+			      (if customizable ",0," ",c,")
+			      max-av "))){"))
 			(else
 			 (gen #\{)))))
 	   (cond ((and (not (eq? 'toplevel id)) (not direct))
