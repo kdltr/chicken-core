@@ -1060,11 +1060,10 @@
 				      (mark-variable var '##compiler#always-bound-to-procedure)
 				      (mark-variable var '##compiler#always-bound))
 				    (when emit-debug-info
-				      (let ((tmp (gensym)))
-					(set! val
-					  `(let ((,tmp ,val))
-					     (##core#debug-event "C_DEBUG_GLOBAL_ASSIGN" ',var)
-					     ,tmp)))))
+				      (set! val
+					`(let ((,var ,val))
+					   (##core#debug-event "C_DEBUG_GLOBAL_ASSIGN" ',var)
+					   ,var))))
 				  (cond ((##sys#macro? var)
 					 (warning
 					  (sprintf "assigned global variable `~S' is syntax ~A"
