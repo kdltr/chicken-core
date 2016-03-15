@@ -353,7 +353,7 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       send_string("(*");
 
       while(mask--) {
-        sprintf(rw_buffer, " %d", *(ptr++));
+        sprintf(rw_buffer, " %u", (unsigned char) *(ptr++));
         send_string(rw_buffer);
       }
 
