@@ -395,3 +395,20 @@
 (assert (= 12.0 (s4v-sum "float" f64vector '#f64(1.5 2.5 3.5 4.5))))
 (assert (= 12.0 (s4v-sum "float" nonnull-f32vector '#f32(1.5 2.5 3.5 4.5))))
 (assert (= 12.0 (s4v-sum "float" nonnull-f64vector '#f64(1.5 2.5 3.5 4.5))))
+
+
+;; Reported by Jörg Wittenberger: in some cases, -profile would
+;; generate calls to procedures.  This was due to calls to pure
+;; procedures not getting replaced with explicitly consed rest
+;; list when the procedures themselves were hidden.
+(module explicitly-consed-rest-args-bug (do-it also-do-it)
+ (import scheme chicken)
+
+ (: get-value (* * #!rest * --> *))
+ (define (get-value x y . rest)
+   (apply x y rest))
+ (define (do-it arg)
+   (get-value arg 2))
+ (define (also-do-it arg)
+   (get-value arg 3))
+)
