@@ -1587,6 +1587,8 @@ EOF
 (define process-fork
   (let ((fork (foreign-lambda int "C_fork")))
     (lambda (#!optional thunk killothers)
+      ;; flush all stdio streams before fork
+      ((foreign-lambda int "C_fflush" c-pointer) #f)
       (let ((pid (fork)))
 	(when (fx= -1 pid) 
 	  (posix-error #:process-error 'process-fork "cannot create child process"))
@@ -1596,7 +1598,7 @@ EOF
 		 (lambda (thunk) (thunk)))
 	     (lambda ()
 	       (thunk)
-	       ((foreign-lambda void "_exit" int) 0) ))
+	       (exit 0)))
 	    pid)))))
 
 (define process-execute

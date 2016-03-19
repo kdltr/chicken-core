@@ -1402,7 +1402,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:S              do not handle segfaults or other serious conditions\n"
 		 "\n  SIZE may have a `k' (`K'), `m' (`M') or `g' (`G') suffix, meaning size\n"
 		 "  times 1024, 1048576, and 1073741824, respectively.\n\n");
-	  exit(0);
+	  C_exit_runtime(C_fix(0));
 
 	case 'h':
 	  switch(*ptr) {
@@ -1619,7 +1619,7 @@ void C_ccall termination_continuation(C_word c, C_word *av)
     C_dbg(C_text("debug"), C_text("application terminated normally\n"));
   }
 
-  exit(0);
+  C_exit_runtime(C_fix(0));
 }
 
 
@@ -1648,7 +1648,7 @@ void usual_panic(C_char *msg)
   } /* fall through if not WIN32 GUI app */
 
   C_dbg("panic", C_text("%s - execution terminated\n\n%s"), msg, dmp);
-  C_exit(1);
+  C_exit_runtime(C_fix(1));
 }
 
 
@@ -1665,7 +1665,7 @@ void horror(C_char *msg)
   } /* fall through */
 
   C_dbg("horror", C_text("\n%s - execution terminated"), msg);  
-  C_exit(1);
+  C_exit_runtime(C_fix(1));
 }
 
 
@@ -4587,7 +4587,7 @@ C_word C_halt(C_word msg)
   if(dmp != NULL) 
     C_dbg("", C_text("\n%s"), dmp);
   
-  C_exit(EX_SOFTWARE);
+  C_exit_runtime(C_fix(EX_SOFTWARE));
   return 0;
 }
 
@@ -4709,8 +4709,8 @@ void C_ccall C_stop_timer(C_word c, C_word *av)
 
 C_word C_exit_runtime(C_word code)
 {
-  exit(C_unfix(code));
-  return 0;			/* to please the compiler... */
+  C_fflush(NULL);
+  C__exit(C_unfix(code));
 }
 
 

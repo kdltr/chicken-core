@@ -201,7 +201,7 @@ terminate(char *msg)
 {
   fprintf(stderr, "%s\n", msg);
   socket_close();
-  _exit(1);
+  C_exit_runtime(C_fix(1));
 }
 
 

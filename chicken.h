@@ -952,6 +952,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 # define C_fflush                   fflush
 # define C_getchar                  getchar
 # define C_exit                     exit
+# define C__exit                    _exit
 # define C_dlopen                   dlopen
 # define C_dlclose                  dlclose
 # define C_dlsym                    dlsym
@@ -1874,7 +1875,7 @@ C_fctexport C_word C_message(C_word msg);
 C_fctexport C_word C_fcall C_equalp(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_set_gc_report(C_word flag) C_regparm;
 C_fctexport C_word C_fcall C_start_timer(void) C_regparm;
-C_fctexport C_word C_exit_runtime(C_word code);
+C_fctexport C_word C_exit_runtime(C_word code) C_noret;
 C_fctexport C_word C_fcall C_set_print_precision(C_word n) C_regparm;
 C_fctexport C_word C_fcall C_get_print_precision(void) C_regparm;
 C_fctexport C_word C_fcall C_read_char(C_word port) C_regparm;
