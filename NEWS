@@ -92,6 +92,8 @@
     - -prefix and -deploy options were added, matching chicken-install.
   - "chicken-status"
     - -prefix and -deploy options were added, matching chicken-install.
+  - The -sudo and -s options for chicken-install and chicken-uninstall
+    now honor a "SUDO" environment variable (thanks to Timo Myyrä).
 
 4.10.1
 

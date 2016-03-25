@@ -821,7 +821,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
   -l   -location LOCATION       install from given location instead of default
   -t   -transport TRANSPORT     use given transport instead of default
        -proxy HOST[:PORT]       download via HTTP proxy
-  -s   -sudo                    use sudo(1) for filesystem operations
+  -s   -sudo                    use external command to elevate privileges for filesystem operations
   -r   -retrieve                only retrieve egg into current directory, don't install
   -n   -no-install              do not install, just build (implies `-keep')
   -p   -prefix PREFIX           change installation prefix to PREFIX
@@ -845,7 +845,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
        -show-depends            display a list of egg dependencies for the given egg(s)
        -show-foreign-depends    display a list of foreign dependencies for the given egg(s)
 
-chicken-install recognizes the http_proxy, and proxy_auth environment variables, if set.
+chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
 
 EOF
 );|

@@ -110,7 +110,7 @@ usage: chicken-uninstall [OPTION | PATTERN] ...
        -version                 show version and exit
        -force                   don't ask, delete whatever matches
        -exact                   treat PATTERN as exact match (not a pattern)
-  -s   -sudo                    use sudo(1) for deleting files
+  -s   -sudo                    use external command to elevate privileges for deleting files
   -p   -prefix PREFIX           change installation prefix to PREFIX
        -deploy                  prefix is a deployment directory
        -host                    when cross-compiling, uninstall host extensions only

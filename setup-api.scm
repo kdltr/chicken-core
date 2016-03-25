@@ -162,12 +162,13 @@
   (print "Warning: cannot install as superuser with Windows") )
 
 (define (unix-sudo-install-setup)
-  (set! *copy-command*        "sudo cp -r")
-  (set! *remove-command*      "sudo rm -fr")
-  (set! *move-command*        "sudo mv")
-  (set! *chmod-command*       "sudo chmod")
-  (set! *ranlib-command*      "sudo ranlib")
-  (set! *mkdir-command*       "sudo mkdir") )
+  (let ((sudo-cmd (qs (or (get-environment-variable "SUDO") "sudo"))))
+    (set! *copy-command* (sprintf "~a cp -r" sudo-cmd))
+    (set! *remove-command* (sprintf "~a rm -rf" sudo-cmd))
+    (set! *move-command* (sprintf "~a mv" sudo-cmd))
+    (set! *chmod-command* (sprintf "~a chmod" sudo-cmd))
+    (set! *ranlib-command* (sprintf "~a ranlib" sudo-cmd))
+    (set! *mkdir-command* (sprintf "~a mkdir" sudo-cmd))))
 
 (define (user-install-setup)
   (set! *sudo* #f)
@@ -620,7 +621,9 @@
 	     (error 'remove-directory "cannot remove - directory not found" dir)
 	     #f))
 	(*sudo*
-	 (ignore-errors ($system (sprintf "sudo rm -fr ~a" (shellpath dir)))))
+	 (ignore-errors
+	  (let ((sudo-cmd (or (get-environment-variable "SUDO") "sudo")))
+	    ($system (sprintf "~a rm -fr ~a" (qs sudo-cmd) (shellpath dir))))))
 	(else
 	 (let walk ((dir dir))
 	   (let ((files (directory dir #t)))
