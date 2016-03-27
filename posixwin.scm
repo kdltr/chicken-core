@@ -797,9 +797,12 @@ EOF
 (define file-close
   (lambda (fd)
     (##sys#check-fixnum fd 'file-close)
-    (when (fx< (##core#inline "C_close" fd) 0)
-      (##sys#update-errno)
-      (##sys#signal-hook #:file-error 'file-close "cannot close file" fd) ) ) )
+    (let loop ()
+      (when (fx< (##core#inline "C_close" fd) 0)
+	(select _errno
+	  ((_eintr) (##sys#dispatch-interrupt loop))
+	  (else
+	   (posix-error #:file-error 'file-close "cannot close file" fd)))))))
 
 (define file-read
   (lambda (fd size . buffer)

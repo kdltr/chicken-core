@@ -75,6 +75,8 @@
     file-type and all procedures using file-type. These are:
     regular-file?, symbolic-link?, block-device?, character-device?
     fifo? and socket?.
+  - Unit "posix": When "file-close" is interrupted it will retry,
+    to avoid leaking descriptors (thanks to Joerg Wittenberger).
   - Unit "data-structures": alist-{update[!],ref} were made consistent
     with srfi-1 in the argument order of comparison procedures.
   - Unit "lolevel": locative-ref has been fixed for locatives of u32
