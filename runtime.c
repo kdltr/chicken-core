@@ -11018,6 +11018,9 @@ C_a_i_string_to_number(C_word **a, int c, C_word str, C_word radix0)
   if(radix0 & C_FIXNUM_BIT) radix = C_unfix(radix0);
   else barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "string->number", radix0);
 
+  if (radix < 2 || radix > 36) /* Makes no sense and isn't supported */
+    barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "string->number", radix0);
+
   if(C_immediatep(str) || C_header_bits(str) != C_STRING_TYPE)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "string->number", str);
 
@@ -11302,14 +11305,14 @@ C_regparm C_word C_fcall convert_string_to_number(C_char *str, int radix, C_word
   errno = 0;
   n = C_strtow(str, &eptr, radix);
   
-  if(((n == C_LONG_MAX || n == C_LONG_MIN) && errno == ERANGE) || *eptr != '\0') {
+  if(((n == C_LONG_MAX || n == C_LONG_MIN) && errno != 0) || *eptr != '\0') {
     if(radix != 10)
       return from_n_nary(str, radix, flo) ? 2 : 0;
 
     errno = 0;
     fn = C_strtod(str, &eptr2);
 
-    if(fn == HUGE_VAL && errno == ERANGE) return 0;
+    if((fn == HUGE_VAL && errno != 0) || fn == -HUGE_VAL) return 0;
     else if(eptr2 == str) return 0;
     else if(*eptr2 == '\0' || (eptr != eptr2 && !C_strncmp(eptr2, ".0", C_strlen(eptr2)))) {
       *flo = fn;

@@ -81,6 +81,8 @@
     with srfi-1 in the argument order of comparison procedures.
   - Unit "lolevel": locative-ref has been fixed for locatives of u32
     and s32vectors (thanks to Joerg Wittenberger for pointing this out).
+  - string->number now signals exceptions if passed a bad base instead
+    of segfaulting (#1272; reported by "Tilpner" on IRC).
 
 - Tools
   - A debugger is now available, known as "feathers", which allows
