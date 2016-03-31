@@ -12,6 +12,9 @@
   - The "-scrutinize" compiler option has been removed.
   - The "-module" compiler option (aliased as "-m") now expects a module name.
 
+- Tools
+  - The new "-link" option to csc allows linking with objects from extensions.
+
 - Core libraries
   - Removed support for memory-mapped files (posix), queues (data-structures),
     binary-search (data-structures), scan-input-lines (utils), and

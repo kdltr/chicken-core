@@ -8,6 +8,7 @@ set OS_NAME=WindowsNT
 
 set CHICKEN=..\chicken
 set CHICKEN_PROFILE=..\chicken-profile
+set CHICKEN_REPOSITORY=
 set ASMFLAGS=-Wa,-w
 set FAST_OPTIONS=-O5 -d0 -b -disable-interrupts
 set PATH=%cd%\..;%PATH%
@@ -21,7 +22,8 @@ set compile2=..\csc -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -incl
 set compile_s=..\csc -s -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/..
 set interpret=..\csi -n -include-path %TEST_DIR%/..
 
-del /f /q *.exe *.so *.o *.import.* ..\foo.import.*
+del /f /q /s *.exe *.so *.o *.import.* ..\foo.import.* test-repository
+mkdir test-repository
 
 echo ======================================== version tests ...
 %interpret% -s version-tests.scm
@@ -527,6 +529,29 @@ if errorlevel 1 exit /b 1
 
 echo ======================================== embedding (3) ...
 %compile% -e embedded3.c embedded4.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+
+echo ======================================== linking tests ...
+%compile% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.o
+%compile% -link reverser linking-tests.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+%compile% -link reverser linking-tests.scm -static
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+set CHICKEN_REPOSITORY=test-repository
+mkdir %CHICKEN_REPOSITORY%
+move reverser.o %CHICKEN_REPOSITORY%
+move reverser.import.scm %CHICKEN_REPOSITORY%
+%compile% -link reverser linking-tests.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+%compile% -link reverser linking-tests.scm -static
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1

@@ -169,7 +169,7 @@
     -emit-type-file -consult-type-file
     -feature -debug-level
     -emit-import-library
-    -module
+    -module -link
     -no-feature))
 
 (define-constant shortcuts
@@ -307,6 +307,26 @@
 (define static-libs #f)
 
 
+;;; Locate object files for linking:
+
+(define (find-object-files name)
+
+  (define (locate-object-file filename repo)
+    (let ((f (##sys#resolve-include-filename filename '() repo)))
+      (and (file-exists? f) (list f))))
+
+  (define (static-extension-information name)
+    (and-let* ((info  (extension-information name))
+	       (files (alist-ref 'static info eq?)))
+      (map (lambda (f) (make-pathname (repository-path) f)) files)))
+
+  (let ((f (make-pathname #f name object-extension)))
+    (or (locate-object-file f #f)
+	(static-extension-information name)
+	(locate-object-file f #t)
+	(stop "couldn't find linked extension: ~a" name))))
+
+
 ;;; Display usage information:
 
 (define (usage)
@@ -439,6 +459,8 @@ Usage: #{csc} FILENAME | OPTION ...
     -e  -embedded                  compile as embedded
                                     (don't generate `main()')
     -gui                           compile as GUI application
+    -link NAME                     link extension with compiled executable
+                                    (implies -uses)
     -R  -require-extension NAME    require extension and import in compiled
                                     code
     -dll -library                  compile multiple units into a dynamic
@@ -538,6 +560,9 @@ EOF
              (osx (if lib "-dynamiclib" "-bundle -headerpad_max_install_names"))
              (else "-shared")) link-options))
     (set! shared #t) )
+
+  (define (collect-linked-files names)
+    (append-map find-object-files (string-split names ", ")))
 
   (define (use-private-repository)
     (set! compile-options (cons "-DC_PRIVATE_REPOSITORY" compile-options)))
@@ -651,6 +676,12 @@ EOF
 	       [(-e -embedded)
 		(set! embedded #t)
 		(set! compile-options (cons "-DC_EMBEDDED" compile-options)) ]
+	       [(-link)
+		(check s rest)
+		(t-options "-uses" (car rest))
+		(set! object-files
+		  (append object-files (collect-linked-files (car rest))))
+		(set! rest (cdr rest))]
 	       [(-require-extension -R)
 		(check s rest)
 		(t-options "-require-extension" (car rest))

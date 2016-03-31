@@ -444,6 +444,18 @@ echo "======================================== embedding (3) ..."
 $compile -e embedded3.c embedded4.scm
 ./a.out
 
+echo "======================================== linking tests ..."
+$compile -unit reverser reverser/tags/1.0/reverser.scm -J -c -o reverser.o
+$compile -link reverser linking-tests.scm
+./a.out
+$compile -link reverser linking-tests.scm -static
+./a.out
+mv reverser.o reverser.import.scm "$CHICKEN_REPOSITORY"
+CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile -link reverser linking-tests.scm
+./a.out
+CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile -link reverser linking-tests.scm -static
+./a.out
+
 echo "======================================== private repository test ..."
 mkdir -p tmp
 $compile private-repository-test.scm -private-repository -o tmp/xxx

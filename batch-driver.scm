@@ -646,9 +646,8 @@
 		 (when enable-inline-files
 		   (for-each
 		    (lambda (id)
-		      (and-let* ((ifile (##sys#resolve-include-filename 
-					 (make-pathname #f (symbol->string id) "inline")
-					 #f #t))
+		      (and-let* ((ifile (##sys#resolve-include-filename
+					 (symbol->string id) '(".inline") #t))
 				 ((file-exists? ifile)))
 			(dribble "Loading inline file ~a ..." ifile)
 			(load-inline-file ifile)))

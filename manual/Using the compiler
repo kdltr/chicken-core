@@ -86,6 +86,8 @@ the source text should be read from standard input.
 
 ; -keep-shadowed-macros : Do not remove macro definitions with the same name as assigned toplevel variables (the default is to remove the macro definition).
 
+; -link NAME : Links the extension {{NAME}} with the compiled program and uses it as a unit. Multiple names may be given and should be separated by commas.
+
 ; -local : Assume toplevel variables defined in the current compilation unit are not externally modified. This gives the compiler more opportunities for inlining. Note that this may result in counter-intuitive and non-standard behaviour: an asssignment to an exported toplevel variable executed in a different compilation unit or in evaluated code will possibly not be seen by code executing in the current compilation unit.
 
 ; -lfa2 : Does an additional lightweight flow-analysis pass on the fully optimized program to remove more type checks.

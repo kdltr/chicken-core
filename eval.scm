@@ -1133,7 +1133,7 @@
 	(read read)
 	(reverse reverse))
     (lambda (fname)
-      (let ((path (##sys#resolve-include-filename fname #t)))
+      (let ((path (##sys#resolve-include-filename fname #t #f)))
 	(when (load-verbose) (print "; including " path " ..."))
 	(with-input-from-file path
 	  (lambda ()
@@ -1398,20 +1398,24 @@
   (let ((string-append string-append) )
     (define (exists? fname)
       (##sys#file-exists? fname #t #f #f))
-    (lambda (fname prefer-source #!optional repo)
-      (define (test2 fname lst)
+    (lambda (fname exts repo)
+      (define (test-extensions fname lst)
 	(if (null? lst)
 	    (and (exists? fname) fname)
-	    (let ([fn (##sys#string-append fname (car lst))])
+	    (let ((fn (##sys#string-append fname (car lst))))
 	      (if (exists? fn)
 		  fn
-		  (test2 fname (cdr lst)) ) ) ) )
+		  (test-extensions fname (cdr lst))))))
       (define (test fname)
-	(test2 
+	(test-extensions
 	 fname
-	 (cond ((not (##sys#fudge 24)) (list source-file-extension)) ; no dload?
-	       (prefer-source (list source-file-extension ##sys#load-dynamic-extension))
-	       (else (list ##sys#load-dynamic-extension source-file-extension) ) ) ))
+	 (cond ((pair? exts) exts)     ; specific list of extensions
+	       ((not (##sys#fudge 24)) ; no dload -> source only
+		(list source-file-extension))
+	       ((not exts)             ; prefer compiled
+		(list ##sys#load-dynamic-extension source-file-extension))
+	       (else                   ; prefer source
+		(list source-file-extension ##sys#load-dynamic-extension)))))
       (or (test fname)
 	  (let loop ((paths (if repo
 				(##sys#append 

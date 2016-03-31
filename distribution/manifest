@@ -118,6 +118,7 @@ tests/arithmetic-test.scm
 tests/arithmetic-test.32.expected
 tests/arithmetic-test.64.expected
 tests/library-tests.scm
+tests/linking-tests.scm
 tests/compiler-tests.scm
 tests/inlining-tests.scm
 tests/locative-stress-test.scm
