@@ -24,6 +24,7 @@ set interpret=..\csi -n -include-path %TEST_DIR%/..
 
 del /f /q /s *.exe *.so *.o *.import.* ..\foo.import.* test-repository
 mkdir test-repository
+copy %TYPESDB% test-repository
 
 echo ======================================== version tests ...
 %interpret% -s version-tests.scm
@@ -534,26 +535,26 @@ a.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== linking tests ...
-%compile% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.o
-%compile% -link reverser linking-tests.scm
+%compile2% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.o
+%compile2% -link reverser linking-tests.scm
 if errorlevel 1 exit /b 1
-a.out
+linking-tests
 if errorlevel 1 exit /b 1
-%compile% -link reverser linking-tests.scm -static
+%compile2% -link reverser linking-tests.scm -static
 if errorlevel 1 exit /b 1
-a.out
+linking-tests
 if errorlevel 1 exit /b 1
 set CHICKEN_REPOSITORY=test-repository
 mkdir %CHICKEN_REPOSITORY%
 move reverser.o %CHICKEN_REPOSITORY%
 move reverser.import.scm %CHICKEN_REPOSITORY%
-%compile% -link reverser linking-tests.scm
+%compile2% -link reverser linking-tests.scm
 if errorlevel 1 exit /b 1
-a.out
+linking-tests
 if errorlevel 1 exit /b 1
-%compile% -link reverser linking-tests.scm -static
+%compile2% -link reverser linking-tests.scm -static
 if errorlevel 1 exit /b 1
-a.out
+linking-tests
 if errorlevel 1 exit /b 1
 
 echo ======================================== private repository test ...

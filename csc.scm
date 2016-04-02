@@ -203,6 +203,7 @@
 (define generated-rc-files '())
 (define object-files '())
 (define generated-object-files '())
+(define linked-extensions '())
 (define cpp-mode #f)
 (define objc-mode #f)
 (define embedded #f)
@@ -215,6 +216,7 @@
 (define deploy #f)
 (define deployed #f)
 (define rpath #f)
+(define ignore-repository #f)
 
 (define extra-libraries
   (if host-mode
@@ -322,8 +324,9 @@
 
   (let ((f (make-pathname #f name object-extension)))
     (or (locate-object-file f #f)
-	(static-extension-information name)
-	(locate-object-file f #t)
+	(and (not ignore-repository)
+	     (or (static-extension-information name)
+		 (locate-object-file f #t)))
 	(stop "couldn't find linked extension: ~a" name))))
 
 
@@ -561,9 +564,6 @@ EOF
              (else "-shared")) link-options))
     (set! shared #t) )
 
-  (define (collect-linked-files names)
-    (append-map find-object-files (string-split names ", ")))
-
   (define (use-private-repository)
     (set! compile-options (cons "-DC_PRIVATE_REPOSITORY" compile-options)))
 
@@ -579,6 +579,9 @@ EOF
 	     (when show-libs (print* (linker-libraries) #\space))
 	     (newline)
 	     (exit) )
+	   (when (pair? linked-extensions)
+	     (set! object-files ; add objects from linked extensions
+	       (append object-files (append-map find-object-files linked-extensions))))
 	   (cond [(null? scheme-files)
 		  (when (and (null? c-files) 
 			     (null? object-files))
@@ -679,8 +682,8 @@ EOF
 	       [(-link)
 		(check s rest)
 		(t-options "-uses" (car rest))
-		(set! object-files
-		  (append object-files (collect-linked-files (car rest))))
+		(set! linked-extensions
+		  (append linked-extensions (string-split (car rest) ", ")))
 		(set! rest (cdr rest))]
 	       [(-require-extension -R)
 		(check s rest)
@@ -688,6 +691,9 @@ EOF
 		(set! rest (cdr rest)) ]
 	       ((-private-repository)
 		(use-private-repository))
+	       ((-ignore-repository)
+		(set! ignore-repository #t)
+		(t-options arg))
 	       ((-no-elevation)
 		(set! generate-manifest #t))
 	       [(-gui)

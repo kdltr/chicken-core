@@ -85,8 +85,8 @@ TYPESDB=../types.db
 cp $TYPESDB test-repository/types.db
 
 compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out"
-compile2="../csc -compiler $CHICKEN -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
-compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
+compile2="../csc -compiler ${CHICKEN} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
+compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS}"
 interpret="../csi -n -include-path ${TEST_DIR}/.."
 
 rm -f *.exe *.so *.o *.import.* a.out ../foo.import.*
@@ -445,16 +445,16 @@ $compile -e embedded3.c embedded4.scm
 ./a.out
 
 echo "======================================== linking tests ..."
-$compile -unit reverser reverser/tags/1.0/reverser.scm -J -c -o reverser.o
-$compile -link reverser linking-tests.scm
-./a.out
-$compile -link reverser linking-tests.scm -static
-./a.out
+$compile2 -unit reverser reverser/tags/1.0/reverser.scm -J -c -o reverser.o
+$compile2 -link reverser linking-tests.scm
+./linking-tests
+$compile2 -link reverser linking-tests.scm -static
+./linking-tests
 mv reverser.o reverser.import.scm "$CHICKEN_REPOSITORY"
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile -link reverser linking-tests.scm
-./a.out
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile -link reverser linking-tests.scm -static
-./a.out
+CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile2 -link reverser linking-tests.scm
+./linking-tests
+CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile2 -link reverser linking-tests.scm -static
+./linking-tests
 
 echo "======================================== private repository test ..."
 mkdir -p tmp
