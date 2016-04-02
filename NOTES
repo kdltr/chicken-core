@@ -1,0 +1,79 @@
+NOTES (new install)
+===============
+
+
+* TODO Create branch
+
+* Complete egg-info compilation
+** TODO Shell-script (batch-file) generation
+    - respect settings in chicken-config.h
+** TODO Ise "linkage" declaration for extensions + programs
+    - add default compile/link options depending on linkage in code-generators.
+** TODO Obtain "executable-extension" somehow
+    - should be able to run for all platforms, so use global setting that can be modified by cmdline.
+** TODO Do validation of egg-info at some stage
+** TODO A chicken built with STATICBUILD needs to install import libs as source
+    - see use of "addfiles" for extension.
+    - can this be figured out from chicken-config.h?
+
+* TODO repository-path
+    - allow multiple locations?
+    - might be needed anyway, unless components are to be usable only when installed.
+    - CHICKEN_REPOSITORY
+
+* TODO Extract download stuff
+
+* TODO Temporary directory for saving scripts + intermediate files
+
+* TODO Check what cmdline options to retain
+** TODO Option for explicitly generating Windows/UNIX build/install scripts
+
+* Things to resolve
+** TODO setup-info files
+    - add installed files of all components.
+        - collect when compiling commands and return updated egg-info as 3rd result.
+        - can be stored in build-directory.
+    - one for the whole egg (use "components" to find associated parts).
+    - "extension-information"
+** TODO setup.defaults
+** TODO Retrieval from local directory
+** TODO Cross-build + cross-chickens
+    - "-target"/"-host"
+** TODO CHICKEN_PREFIX?
+
+* Drop
+** TODO svn transport
+** TODO deployment
+
+* TODO Remove setup-api/setup-download
+
+* Build/install scripts
+** TODO fully sh(1) compatible
+    - http://people.fas.harvard.edu/~lib113/reference/unix/portable_scripting.html
+    - https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/cmd.mspx?mfr=true
+** TODO "chicken-do" tool to build if dependencies are newer than target
+    - "usage: chicken-do TARGET CMD ... : DEPENDENCIES ..."
+    - try to avoid quoting hell, especially on Windows.
+    - ideally, use execvp
+        - http://www.cplusplus.com/forum/windows/3398/ and
+          http://www.cplusplus.com/forum/beginner/1988/3/#msg14102
+** TODO Consider making this powerful enough to build chicken
+** TODO Handle case where program and extension in egg have same name
+    - e.g. "hyde" in hyde egg.
+    - can we ignore this, if source files have different names, just compiling exe/so directly should
+      work.
+
+* Install scripts
+** TODO fully sh(1) compatible
+** TODO Allow overrriding DESTDIR, PREFIX
+** TODO Install setup-info
+** TODO Use install(1) ?
+
+* Tools
+** TODO chicken-install
+** TODO chicken-uninstall
+** TODO chicken-status
+
+* TODO Copyright headers
+
+* TODO Documentation
