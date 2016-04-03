@@ -1,0 +1,164 @@
+NOTES (new install)
+~~~~~~~~~~~~~~~~
+
+* TODO Proposals
+** Encode install-prefix in cache-dir name
+** Check whether files are overwritten by egg on installation
+** Allow certain set of trusted programs to be called during install
+    - list in setup.defaults?
+
+* TODO Try more complex eggs
+    - bind (including dependencies)
+
+* TODO .egg files for all C5 eggs
+    - tag using X.Y.Z scheme.
+
+* TODO chicken-do: delete target file if build fails
+    - needs to fork subprocess.
+    - better would be to use temporary for output and then rename.
+        - but then would have to replace occurrence of target in command arguments.
+
+* TODO Remove custom location from setup.defaults
+
+* TODO Separation of d/l step possible?
+    - required to check downloaded content
+
+* TODO Static linking
+    - (chicken) "-static" option - when requiring extension, check if repo contains *.o(bj) file.
+        - mind cross-compilation: use target-repo in target mode (needs to passed to chicken).
+    - csc: drop -static, rename -static-libs to -static (doc) (and pass to chicken).
+    - pass information about used static eggs either in separate file or embedded as comment
+      in C file (first line)
+
+* TODO Rebase on upstream at some stage
+
+* Complete egg-info compilation
+** TODO What should the default optimization options be?
+    - also for compiled import libraries.
+    - respect DEBUGBUILD?
+
+* TODO Option for not fetching/installing dependencies
+    - proposed by wasamasa.
+    - does this make sense?
+
+* Implement minimal "chicken-install"
+** Basic functionality
+*** TODO Repository init (cross-aware)
+    - old-chicken-install.scm://+default-repository-files+/
+*** TODO print repository
+*** TODO Comment all toplevel procedures
+*** TODO Add usage information
+
+* TODO repository-path
+    - allow multiple locations?
+    - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
+      installation target.
+
+* Issues
+** Link-options are passed directly to csc
+    - is this right?
+
+* Suggestion by florz: sign eggs (or hashes) and decode using NaCl
+    - https://tweetnacl.cr.yp.to/software.html
+
+* Setup features
+** TODO Keep binaries + intermediate files ("-k")
+    - needed, since we normally build from cache?
+** TODO "-feature" + "-no-feature"
+** TODO Hack for OSX SIP?
+    - system / DYLD_ vars
+** TODO reinstall?
+** TODO Request by Jon Foerch: allow *.egg in specific subdirectory ("chicken")
+
+* TODO "build-dependencies" 
+    - toplevel deps that are needed during build, override "dependencies", if given.
+    - or is the intent differently? Ask moritz.
+
+* Download/build directories
+** TODO handle egg-files given on command-line
+    - and build in respective directory.
+
+* TODO "-test" implies all tests are run - is this right?
+
+* TODO If THE SYSTEM takes repo-tags as versions, then version-enforcement enforces a remote tag syntax
+
+* TODO Check what cmdline options to retain
+** Option for explicitly generating Windows/UNIX build/install scripts?
+    - i.e. selecting target platform.
+
+* Things to resolve
+** setup-info / egg-info files
+*** one for the whole egg (use "components" to find associated parts).
+*** TODO Fix "extension-information"
+    - drop it completely? we can't locate extensions, just eggs.
+*** TODO syntax-only extensions 
+    - i.e. matchable, miscmacros (is it?)
+*** TODO require-at-runtime?
+
+* TODO Fix loading/linking
+    - needs support by compiler.
+    - see also eval.scm:/##sys#process-require/
+
+* TODO Drop CHICKEN_PREFIX
+    - chicken-prefix and all of its uses.
+
+* Build/install scripts
+** TODO Use "-setup-mode" when invoking csc during build
+    - but that requires csc is run in source-dir.
+** must be fully sh(1) compatible
+    - http://people.fas.harvard.edu/~lib113/reference/unix/portable_scripting.html
+    - https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/cmd.mspx?mfr=true
+** TODO Test "chicken-do" and port to Windows
+    - ideally, use execvp/CreateProcess
+        - http://www.cplusplus.com/forum/windows/3398/ and
+          http://www.cplusplus.com/forum/beginner/1988/3/#msg14102
+** Consider making this powerful enough to build chicken
+    - needs support for object-files (C or Scheme) and building libraries.
+** TODO Handle case where program and extension in egg have same name
+    - e.g. "hyde" in hyde egg.
+    - can we ignore this? if source files have different names, just compiling exe/so directly should
+      work.
+
+* "dependencies" has 2 meanings, depending on nesting level in egg info
+
+* TODO Do we have to cleanup after building eggs?
+
+* "chicken-install -r" retrieves into cache - sufficient?
+
+* TODO Component dependencies need to be converted to filenames
+    - before generating build-commands.
+    - but specific for genfiles (source prop or name), exts, prgs.
+    - dependencies are currently disabled in chicken-do command-generation.
+
+* Tools
+** TODO chicken-status
+    - option to list cached eggs (+ version)
+    - filter egg-info and list components.
+
+* TODO Copyright headers
+    - chicken-do.c  egg-*.scm
+
+* TODO Documentation
+    - document CHICKEN_EGG_CACHE
+    - remove old and obsolete stuff  (dropped options, etc.)
+    - update manual
+    - chicken-do (manpage)
+    - update egg-tutorial on wiki
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gg extension-information    ctags --language=scheme *.scm   SchemeIndent
+cm chicken-do && cp chicken-do bin
+cm chicken-install      cm install      chicken-status.scm
+chicken-config.h  chicken-do.c  config.mk  old-chicken-install.scm  rules.make
+git gui   git pull      win bin/csi    distribution/manifest    chicken-uninstall.scm
+/home/felix/.chicken-install.cache/  lib/chicken/8  ~/chicken/5  
+/home/felix/chicken/c5-eggs/
+../bin/chicken-install -defaults ../setup.defaults -n
+chicken-install.scm  setup-api.scm  setup-download.scm
+ egg-compile.scm  egg-environment.scm  egg-download.scm egg-information.scm
+win bin/csi
+cm chicken-install
+chicken-install -v -test  posix-groups
+chicken-status      chicken-uninstall -force
+win bin/csi  
+rm -fr /home/felix/.chicken-install.cache/*
