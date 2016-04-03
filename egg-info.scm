@@ -26,7 +26,10 @@
 (define default-dynamic-extension-link-options '())
 (define default-extension-linkage '(static dynamic))
 (define default-program-linkage '(dynamic))
-(define executable-extension "")
+(define unix-executable-extension "")
+(define windows-executable-extension ".exe")
+(define unix-object-extension ".o")
+(define windows-object-extension ".obj")
 
 
 (define (validate-egg-info info)
@@ -45,7 +48,7 @@
                 (if (memq (car item) named-items) (cddr item) (cdr item))))))
     info))
 
-(define (compile-egg-info info)
+(define (compile-egg-info info platform)
   (let ((exts '())
         (prgs '())
         (data '())
@@ -59,7 +62,9 @@
         (dest #f)
         (deps '())
         (lopts '())
-        (opts '()))
+        (opts '())
+        (objext #f)
+        (exeext #t))
     (define (check-target t lst)
       (when (member t lst)
         (error "target multiply defined" t))
@@ -78,7 +83,7 @@
                       (opts '()))
             (for-each compile-extension/program (cddr info))
             (addfiles 
-              (if (memq 'static link) (conc target ".o") '())
+              (if (memq 'static link) (conc target objext) '())
               (if (memq 'dynamic link) (conc target ".so") '())
               (conc target ".import.so")) ; assumes import-lib is always compiled?
             (set! exts (cons (list target deps src opts lopts link) exts))))
@@ -114,7 +119,7 @@
                       (lopts '())
                       (opts '()))
             (for-each compile-extension/program (cddr info))
-            (addfiles (conc target executable-extension))
+            (addfiles (conc target exeext))
             (set! prgs (cons (list target deps src opts lopts link) prgs))))))
     (define (compile-extension/program info)
       (case (car info)
@@ -161,6 +166,13 @@
                          (assq dep scminc)
                          (error "unknown component dependency" dep name))))
               deps))
+    (case platform
+      ((unix) 
+        (set! objext unix-object-extension)
+        (set! exeext unix-executable-extension))
+      ((windows) 
+        (set! objext windows-object-extension)
+        (set! exeext windows-executable-extension)))
     ;; collect information
     (for-each compile info)
     ;; sort topologically, by dependencies
@@ -177,8 +189,17 @@
         (append 
           (foldr
             (lambda (t cmds)
-              (let ((data (assq t exts)))
-                (cons `(compile-extension ,@data) cmds)))
+              (let* ((data (assq t exts))
+                     (link (list-ref data 5)))
+                (append
+                  (if (memq 'static link) 
+                      `((compile-static-extension ,@data))
+                      '())
+                  (if (memq 'dynamic link) 
+                      `((compile-dynamic-extension ,@data))
+                      '())
+                  `((compile-import-library ,@data))
+                  cmds)))
             '() order)
           (map (lambda (prg) `(compile-program ,prg)) prgs))
         ;; installation commands
@@ -243,8 +264,12 @@
 ;;; platform-independent part of code generation
 
 (define generators
-  `((compile-extension (unix ,gen-compile-unix-extension) 
-                       (windows ,gen-compile-windows-extension))
+  `((compile-static-extension (unix ,gen-compile-unix-static-extension) 
+                              (windows ,gen-compile-windows-static-extension))
+    (compile-dynamic-extension (unix ,gen-compile-unix-dynamic-extension) 
+                              (windows ,gen-compile-windows-dynamic-extension))
+    (compile-import-library (unix ,gen-compile-unix-import-library) 
+                              (windows ,gen-compile-windows-import-library))
     (compile-program (unix ,gen-compile-unix-program) 
                      (windows ,gen-compile-windows-program))
     (install-extension (unix ,gen-install-unix-extension)
