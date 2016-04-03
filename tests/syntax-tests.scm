@@ -748,6 +748,7 @@
   (define-values (v1 v2) (values 1 2))
   (define-values (v3 . v4) (values 3 4))
   (define-values v56 (values 5 6))
+  (define v56-again v56) ; ordering of assignments was broken #1274
   43
   (define (f1) 4)
   (define ((f2)) 4)
@@ -758,7 +759,8 @@
   (assert (= 2 v2))
   (assert (= 3 v3))
   (assert (equal? (list 4) v4))
-  (assert (equal? (list 5 6) v56)))
+  (assert (equal? (list 5 6) v56))
+  (assert (equal? (list 5 6) v56-again)))
 
 (assert (= 1 (s2)))
 (assert (= 3 (f1)))

@@ -99,6 +99,10 @@
   - The -sudo and -s options for chicken-install and chicken-uninstall
     now honor a "SUDO" environment variable (thanks to Timo Myyrä).
 
+- Syntax expander
+  - Mixed internal define/define-values are now correctly ordered, so
+    later defines can refer to earlier define-values (#1274).
+
 4.10.1
 
 - Core libraries
