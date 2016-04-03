@@ -32,7 +32,10 @@ NOTES (new install)
 ** TODO setup-info files
     - add installed files of all components.
         - collect when compiling commands and return updated egg-info as 3rd result.
-        - can be stored in build-directory.
+        - new egg-info (setup-info) can be stored in build-directory.
+        - respect obj-extensions for platform.
+        - default dests: share/chicken, include
+        - separate commands for build/install obj + so
     - one for the whole egg (use "components" to find associated parts).
     - "extension-information"
 ** TODO setup.defaults
@@ -54,7 +57,7 @@ NOTES (new install)
 ** TODO "chicken-do" tool to build if dependencies are newer than target
     - "usage: chicken-do TARGET CMD ... : DEPENDENCIES ..."
     - try to avoid quoting hell, especially on Windows.
-    - ideally, use execvp
+    - ideally, use execvp/CreateProcess
         - http://www.cplusplus.com/forum/windows/3398/ and
           http://www.cplusplus.com/forum/beginner/1988/3/#msg14102
 ** TODO Consider making this powerful enough to build chicken
