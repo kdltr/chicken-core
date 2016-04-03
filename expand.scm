@@ -533,20 +533,11 @@
 		     (symbol? (caar body))
 		     (comp 'define-syntax (caar body)))
 		(let ((def (car body)))
-		  (loop 
-		   (cdr body) 
-		   (cons (cond ((pair? (cadr def)) ; DEPRECATED
-				`(define-syntax ; (the first element is actually ignored)
-				   ,(caadr def)
-				   (##sys#er-transformer
-				    (##core#lambda ,(cdadr def) ,@(cddr def)))))
-			       ;; insufficient, if introduced by different expansions, but
-			       ;; better than nothing:
-			       ((eq? (car def) (cadr def))
-				(defjam-error def))
-			       (else def))
-			 defs) 
-		   #f)))
+		  ;; This check is insufficient, if introduced by
+		  ;; different expansions, but better than nothing:
+		  (when (eq? (car def) (cadr def))
+		    (defjam-error def))
+		  (loop (cdr body) (cons def defs) #f)))
 	       (else (loop body defs #t))))))
     (define (expand body)
       ;; Each #t in "mvars" indicates an MV-capable "var".  Non-MV
