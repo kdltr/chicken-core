@@ -500,3 +500,10 @@
    ("#b10+11i" (make-rectangular 2 3) "2.0+3.0i" "2.+3.i")))
 
  )
+
+;; #1272 - Bases not in [2,36] throw errors.
+(let ((check-base (lambda (b)
+                    (string->number "123" b)
+                    (error "No error on invalid base" b))))
+  (condition-case (check-base 1)  ((exn type) 'ok))
+  (condition-case (check-base 37) ((exn type) 'ok)))
