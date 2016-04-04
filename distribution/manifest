@@ -47,6 +47,7 @@ chicken.compiler.support.import.scm
 repl.c
 tcp.c
 utils.c
+user-pass.c
 feathers.in
 feathers.bat.in
 feathers.tcl
@@ -251,6 +252,8 @@ chicken.import.scm
 chicken.import.c
 chicken.bitwise.import.scm
 chicken.bitwise.import.c
+chicken.compiler.user-pass.import.scm
+chicken.compiler.user-pass.import.c
 chicken.continuation.import.scm
 chicken.continuation.import.c
 chicken.data-structures.import.scm

@@ -32,13 +32,10 @@
   (uses extras data-structures files
 	support compiler-syntax compiler optimizer
 	;; TODO: Backend should be configurable
-	scrutinizer lfa2 c-platform c-backend) )
+	scrutinizer lfa2 c-platform c-backend user-pass))
 
 (module chicken.compiler.batch-driver
-    (compile-source-file
-
-     user-options-pass user-read-pass user-preprocessor-pass user-pass
-     user-post-analysis-pass)
+    (compile-source-file)
 
 (import chicken scheme
 	chicken.data-structures
@@ -54,18 +51,13 @@
 	chicken.compiler.scrutinizer
 	chicken.compiler.lfa2
 	chicken.compiler.c-platform
-	chicken.compiler.c-backend)
+	chicken.compiler.c-backend
+	chicken.compiler.user-pass)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")
 
 (define-constant funny-message-timeout 60000)
-
-(define user-options-pass (make-parameter #f))
-(define user-read-pass (make-parameter #f))
-(define user-preprocessor-pass (make-parameter #f))
-(define user-pass (make-parameter #f))
-(define user-post-analysis-pass (make-parameter #f))
 
 ;;; Emit collected information from various statistics about the program
 

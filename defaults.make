@@ -266,6 +266,7 @@ PRIMITIVE_IMPORT_LIBRARIES = chicken csi chicken.foreign
 DYNAMIC_IMPORT_LIBRARIES = setup-api setup-download srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise fixnum flonum format gc io \
 	keyword locative posix pretty-print random time
+DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
 	eval expand files internal irregex lolevel ports read-syntax \
 	repl tcp utils
@@ -284,7 +285,8 @@ CHICKEN_DEBUGGER_PROGRAM ?= $(PROGRAM_PREFIX)feathers$(PROGRAM_SUFFIX)$(SCRIPT_E
 IMPORT_LIBRARIES = $(DYNAMIC_IMPORT_LIBRARIES) \
 		   $(PRIMITIVE_IMPORT_LIBRARIES) \
 		   $(foreach lib,$(DYNAMIC_CHICKEN_IMPORT_LIBRARIES),chicken.$(lib)) \
-		   $(foreach lib,$(DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES),chicken.$(lib))
+		   $(foreach lib,$(DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES),chicken.$(lib)) \
+		   $(foreach lib,$(DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES),chicken.compiler.$(lib))
 
 ifdef STATICBUILD
 CHICKEN_STATIC_EXECUTABLE = $(CHICKEN_PROGRAM)$(EXE)

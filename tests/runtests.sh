@@ -429,6 +429,9 @@ echo "======================================== executable tests ..."
 $compile executable-tests.scm
 ./a.out "$TEST_DIR/a.out"
 
+echo "======================================== user pass tests ..."
+$compile -extend user-pass-tests.scm null.scm
+
 echo "======================================== embedding (1) ..."
 $compile embedded1.c
 ./a.out

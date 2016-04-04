@@ -367,6 +367,9 @@ can be set to procedures that are called to perform certain compilation
 passes instead of the usual processing (for more information about
 parameters see [[Supported language]]).
 
+These parameters are provided by the {{(chicken compiler user-pass)}}
+module.
+
 <parameter>user-options-pass</parameter>
 
 Holds a procedure that will be called with a list of command-line arguments and should return two values: the source filename and the actual list of options, where compiler switches have their leading {{-}} (hyphen) removed and are converted to symbols.  Note that this parameter is invoked '''before''' processing of the {{-extend}} option, and so can only be changed in compiled user passes.

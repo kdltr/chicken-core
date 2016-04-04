@@ -30,8 +30,8 @@
 	srfi-4 extras data-structures
 	lolevel ; unused, but loaded to make foldable bindings available
 	support compiler optimizer lfa2 compiler-syntax scrutinizer
-	;; TODO: These three need to be made configurable somehow
-	batch-driver c-platform c-backend))
+	;; TODO: Backend should be configurable
+	batch-driver c-platform c-backend user-pass))
 
 (module chicken.compiler.chicken ()
 
@@ -39,6 +39,7 @@
 	chicken.compiler.batch-driver
 	chicken.compiler.c-platform
 	chicken.compiler.support
+	chicken.compiler.user-pass
 	chicken.data-structures)
 
 (include "tweaks")
