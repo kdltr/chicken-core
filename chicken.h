@@ -37,7 +37,7 @@
 #define ___CHICKEN
 
 #define C_MAJOR_VERSION   4
-#define C_MINOR_VERSION   10
+#define C_MINOR_VERSION   11
 
 #ifndef _ISOC99_SOURCE
 # define _ISOC99_SOURCE
