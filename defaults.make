@@ -1,6 +1,6 @@
 # defaults.make - default settings -*- Makefile -*-
 #
-# Copyright (c) 2008-2015, The CHICKEN Team
+# Copyright (c) 2008-2016, The CHICKEN Team
 # Copyright (c) 2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -27,7 +27,7 @@
 
 # basic parameters
 
-BINARYVERSION = 7
+BINARYVERSION = 8
 STACKDIRECTION ?= 1
 CROSS_CHICKEN ?= 0
 
@@ -88,7 +88,7 @@ MAKEDIR_COMMAND ?= -mkdir
 else
 REMOVE_COMMAND ?= rm
 INSTALL_PROGRAM ?= install
-MAKEDIR_COMMAND ?= install
+MAKEDIR_COMMAND ?= $(INSTALL_PROGRAM)
 endif
 POSTINSTALL_STATIC_LIBRARY ?= true
 POSTINSTALL_PROGRAM ?= true
@@ -197,6 +197,7 @@ LIBCHICKEN_SO_LIBRARIES ?= $(LIBRARIES)
 
 ifdef WINDOWS_SHELL
 BUILD_TIME ?= $(shell date /t)
+SCRIPT_EXT = .bat
 COPY_COMMAND = copy /Y
 HOSTNAME ?= $(shell hostname)
 UNAME_SYS ?= Windows
@@ -206,10 +207,14 @@ BUILD_TAG ?= compiled $(BUILD_TIME) on $(HOSTNAME) ($(UNAME_SYS))
 # that systems (Debian, OS X, Haiku, Mingw, Cygwin) are shipping it
 echo = echo $(3)$(1)$(2)
 else
+SCRIPT_EXT =
 COPY_COMMAND = cp
 echo = echo '$(subst ','\'',$(3))'$(1)$(2)
 #' fix Emacs syntax highlighting
 endif
+WISH ?= "$$wish"
+GENERATE_DEBUGGER ?= cat $< >$@; echo 'exec $(WISH) "$(DATADIR)/feathers.tcl" -- "$$@"' >>$@
+
 
 # file extensions
 
@@ -224,16 +229,6 @@ ASM ?= .S
 POSIXFILE ?= posixunix
 CHICKEN_CONFIG_H = chicken-config.h
 
-ifneq ($(ARCH),)
-HACKED_APPLY ?= 1
-APPLY_HACK_SRC ?= apply-hack.$(ARCH)$(ASM)
-APPLY_HACK_OBJECT ?= apply-hack.$(ARCH)$(O)
-endif
-
-ifeq ($(HACKED_APPLY),)
-APPLY_HACK_OBJECT =
-endif
-
 # bootstrapping compiler
 
 CHICKEN ?= chicken$(EXE)
@@ -246,7 +241,7 @@ CSI ?= csi$(EXE)
 
 CHICKEN_OPTIONS = -optimize-level 2 -include-path . -include-path $(SRCDIR) -inline -ignore-repository -feature chicken-bootstrap
 ifdef DEBUGBUILD
-CHICKEN_OPTIONS += -feature debugbuild -verbose
+CHICKEN_OPTIONS += -feature debugbuild -verbose -debug-info
 else
 CHICKEN_OPTIONS += -no-warnings
 endif
@@ -277,6 +272,7 @@ CHICKEN_INSTALL_PROGRAM = $(PROGRAM_PREFIX)chicken-install$(PROGRAM_SUFFIX)
 CHICKEN_UNINSTALL_PROGRAM = $(PROGRAM_PREFIX)chicken-uninstall$(PROGRAM_SUFFIX)
 CHICKEN_STATUS_PROGRAM = $(PROGRAM_PREFIX)chicken-status$(PROGRAM_SUFFIX)
 CHICKEN_BUG_PROGRAM = $(PROGRAM_PREFIX)chicken-bug$(PROGRAM_SUFFIX)
+CHICKEN_DEBUGGER_PROGRAM ?= $(PROGRAM_PREFIX)feathers$(PROGRAM_SUFFIX)$(SCRIPT_EXT)
 IMPORT_LIBRARIES = chicken lolevel srfi-1 srfi-4 data-structures ports files posix srfi-13 srfi-69 extras srfi-14 tcp foreign srfi-18 utils csi irregex
 IMPORT_LIBRARIES += setup-api setup-download
 
@@ -289,7 +285,7 @@ TARGETLIBS ?= lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A)
 TARGETS += $(TARGETLIBS) $(CHICKEN_STATIC_EXECUTABLE) \
 	$(CSI_STATIC_EXECUTABLE) $(CHICKEN_PROFILE_PROGRAM)$(EXE) \
 	$(CSC_PROGRAM)$(EXE) \
-	$(CHICKEN_BUG_PROGRAM)$(EXE)
+	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM)
 else
 CHICKEN_STATIC_EXECUTABLE = $(CHICKEN_PROGRAM)-static$(EXE)
 CSI_STATIC_EXECUTABLE = $(CSI_PROGRAM)-static$(EXE)
@@ -300,12 +296,13 @@ TARGETS += $(TARGETLIBS) $(CHICKEN_SHARED_EXECUTABLE) \
 	$(CSI_SHARED_EXECUTABLE) $(CHICKEN_PROFILE_PROGRAM)$(EXE) \
 	$(CSC_PROGRAM)$(EXE) $(CHICKEN_INSTALL_PROGRAM)$(EXE) $(CHICKEN_UNINSTALL_PROGRAM)$(EXE) \
 	$(CHICKEN_STATUS_PROGRAM)$(EXE) setup-download.so setup-api.so \
-	$(CHICKEN_BUG_PROGRAM)$(EXE) \
+	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM) \
 	$(IMPORT_LIBRARIES:%=%.import.so)
 endif
 ifdef WINDOWS
 TARGETS += chicken.rc$(O)
 endif
+
 
 # main rule
 

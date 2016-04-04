@@ -1,6 +1,6 @@
 ;;;; chicken-syntax.scm - non-standard syntax extensions
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -279,30 +279,39 @@
     (##sys#check-syntax 'parameterize form '#(_ 2))
     (let* ((bindings (cadr form))
 	   (body (cddr form))
-	   (swap (r 'swap))
-	   (mode (r 'mode))
+	   (the (r 'the))
+	   (boolean (r 'boolean))
+	   (convert? (r 'convert?))
 	   (params (##sys#map car bindings))
 	   (vals (##sys#map cadr bindings))
-	   (aliases (##sys#map (lambda (z) (r (pname z))) params))
-	   (aliases2 (##sys#map (lambda (z) (r (gensym))) params)) )
+	   (param-aliases (##sys#map (lambda (z) (r (pname z))) params))
+	   (saveds (##sys#map (lambda (z) (r (gensym 'saved))) params))
+	   (temps (##sys#map (lambda (z) (r (gensym 'tmp))) params)) )
       `(##core#let
-	,(map ##sys#list aliases params)
+	,(map ##sys#list param-aliases params) ; These may be expressions
 	(##core#let
-	 ,(map ##sys#list aliases2 vals)
+	 ,(map ##sys#list saveds vals)
 	 (##core#let
-	  ((,mode #f))
-	  (##core#let
-	   ((,swap (##core#lambda
-		    ()
-		    ,@(map (lambda (a a2)
-			     `(##core#let ((t (,a))) (,a ,a2 ,mode)
-					  (##core#set! ,a2 t)))
-			   aliases aliases2)
-		    (##core#set! ,mode #t))))
-	   (##sys#dynamic-wind 
-	    ,swap
-	    (##core#lambda () ,@body)
-	    ,swap) ) ) ) )))))
+	  ((,convert? (,the ,boolean #t))) ; Convert only first time extent is entered!
+	  (##sys#dynamic-wind
+	   (##core#lambda ()
+	    (##core#let
+	     ;; First, call converters (which may throw exceptions!)
+	     ,(map (lambda (p s temp)
+		     `(,temp (##core#if ,convert? (,p ,s #t #f) ,s)))
+		   param-aliases saveds temps)
+	     ;; Save current values so we can restore them later
+	     ,@(map (lambda (p s) `(##core#set! ,s (,p)))
+		    param-aliases saveds)
+	     ;; Set parameters to their new values.  This can't fail.
+	     ,@(map (lambda (p t) `(,p ,t #f #t)) param-aliases temps)
+	     ;; Remember we already converted (only call converters once!)
+	     (##core#set! ,convert? #f) ) )
+	   (##core#lambda () ,@body)
+	   (##core#lambda ()
+	    ;; Restore parameters to their original, saved values
+	    ,@(map (lambda (p s) `(,p ,s #f #t))
+		   param-aliases saveds) )) ) ) ) ) )))
 
 (##sys#extend-macro-environment
  'when '()
@@ -1231,20 +1240,17 @@
 			(##sys#put! 
 			 gname '##compiler#local-specializations
 			 (##sys#append
+			  (##sys#get gname '##compiler#local-specializations '())
 			  (list
 			   (cons atypes
 				 (if (and rtypes (pair? rtypes))
 				     (list
 				      (map (cut ##compiler#check-and-validate-type 
-					     <>
-					     'define-specialization)
+						<>
+						'define-specialization)
 					   rtypes)
 				      spec)
-				     (list spec))))
-			  (or (##compiler#variable-mark 
-			       gname
-			       '##compiler#local-specializations)
-			      '())))
+				     (list spec))))))
 			`(##core#begin
 			  (##core#declare (inline ,alias) (hide ,alias))
 			  (,%define (,alias ,@anames)

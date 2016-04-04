@@ -272,36 +272,26 @@ Specializations can also be defined by the user:
 
 <syntax>(define-specialization (NAME ARGUMENT ...) [RESULTS] BODY)</syntax>
 
-{{NAME}} should have a declared type (for example by using {{:}})
-(this is currently not checked).  Declares the calls to the globally
-defined procedure {{NAME}} with arguments matching the types given in
-{{ARGUMENTS}} should be replaced by {{BODY}} (a single expression). If
-given, {{RESULTS}} (which follows the syntax given above under "Type
-Syntax") narrows the result type(s) if it differs from the result
-types previously declared for {{NAME}}.  {{ARGUMENT}} should be an
-identifier naming the formal parameter or a list of the form
-{{(IDENTIFIER TYPE)}}. In the former case, this argument specializes
-on the {{*}} type. User-defined specializations are always local to
-the compilation unit in which they occur and can not be exported. When
-encountered in the interpreter, {{define-specialization}} does nothing
-and returns an unspecified result.
+Declares that calls to the globally defined procedure {{NAME}} with
+arguments matching the types given by {{ARGUMENT}}s should be replaced
+by {{BODY}} (a single expression). Each {{ARGUMENT}} should be an
+identifier naming a formal parameter, or a list of the form
+{{(IDENTIFIER TYPE)}}. In the former case, this argument specializes on
+the {{*}} type. If given, {{RESULTS}} (which follows the syntax given
+above under "Type Syntax") adjusts the result types from those
+previously declared for {{NAME}}.
 
-Note that the exact order of specialization application is not
-specified and nested specializations may result in not narrowing down
-the result types to the most specific type, due to the way the
-flow-analysis is implemented. It is recommended to not define "chains"
-of specializations where one variant of a procedure call is
-specialized to another one that is intended to specialize further.
-This can not always be avoided, but should be kept in mind.
+{{NAME}} must have a declared type (for example by using {{:}}). If it
+doesn't, the specialization is ignored.
 
-Note that the matching of argument types is done "exactly". This
-means, for example, that an argument type specialized for {{list}}
-will not match {{null}}: even though {{null}} is a subtype of {{list}}
-and will match during normal flow-analysis, we want to be able to
-control what happens when a procedure is called with exactly with a
-list argument. To handle the case when it is called with a {{null}}
-argument, define another specialization for exactly that type or
-use an {{(or ...)}} type-specifier.
+User-defined specializations are always local to the compilation unit in
+which they occur and cannot be exported. When encountered in the
+interpreter, {{define-specialization}} does nothing and returns an
+unspecified result.
+
+When multiple specializations may apply to a given call, they are
+prioritized by the order in which they were defined, with earlier
+specializations taking precedence over later ones.
 
 There is currently no way of ensuring specializations take place.  You
 can use the {{-debug o}} compiler options to see the total number of

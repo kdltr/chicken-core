@@ -1,6 +1,6 @@
 ;;;; compiler-namespace.scm - private namespace declarations for compiler units
 ;
-; Copyright (c) 2009-2015, The CHICKEN Team
+; Copyright (c) 2009-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -115,6 +115,7 @@
  enable-inline-files
  enable-specialization
  encode-literal
+ encodeable-literal?
  eq-inline-operator
  estimate-foreign-result-location-size
  estimate-foreign-result-size
@@ -216,7 +217,6 @@
  optimization-iterations
  original-program-size
  output
- parameter-limit
  pending-canonicalizations
  perform-closure-conversion
  perform-cps-conversion
@@ -266,7 +266,7 @@
  simplified-ops
  simplify-named-call
  simplify-type
- slashify
+ backslashify
  sort-symbols
  source-filename
  source-info->string
@@ -299,6 +299,7 @@
  valid-compiler-options
  valid-compiler-options-with-argument
  validate-type
+ variable-hidden?
  variable-mark
  variable-visible?
  varnode

@@ -1,6 +1,6 @@
 ;;;; batch-driver.scm - Driver procedure for the compiler
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -52,9 +52,13 @@
 	      arg) ) ) )
   (initialize-compiler)
   (set! explicit-use-flag (memq 'explicit-use options))
+  (set! emit-debug-info (memq 'debug-info options))
   (let ((initforms `((##core#declare
 		      ,@(append 
 			 default-declarations
+			 (if emit-debug-info
+			     '((uses debugger-client))
+			     '())
 			 (if explicit-use-flag
 			     '()
 			     `((uses ,@units-used-by-default)) ) ) ) ) )
@@ -470,6 +474,13 @@
 			     '() )
 			 '((##core#undefined))) ] )
 
+	     (unless (null? import-libraries)
+	       (quit "No module definition found for import libraries to emit: ~A"
+		     ;; ~S would be confusing: separate with a comma
+		     (string-intersperse
+		      (map (lambda (il) (->string (car il)))
+			   import-libraries) ", ")))
+
 	     (when (pair? compiler-syntax-statistics)
 	       (with-debugging-output
 		'S
@@ -664,19 +675,19 @@
 			    (when a-only (exit 0))
 			    (begin-time)
 			    ;; Preparation
-			    (receive 
-			     (node literals lliterals lambda-table)
-			     (prepare-for-code-generation node2 db)
-			     (end-time "preparation")
-			     (begin-time)
-			     ;; Code generation
-			     (let ((out (if outfile (open-output-file outfile) (current-output-port))) )
-			       (dribble "generating `~A' ..." outfile)
-			       (generate-code literals lliterals lambda-table out filename dynamic db)
-			       (when outfile
-				 (close-output-port out)))
-			     (end-time "code generation")
-			     (when (memq 't debugging-chicken)
-			       (##sys#display-times (##sys#stop-timer)))
-			     (compiler-cleanup-hook)
-			     (dribble "compilation finished.") ) ) ) ) ) ) ) ) ) ) ) )
+			    (receive (node literals lliterals lambda-table dbg-info)
+				(prepare-for-code-generation node2 db)
+			      (end-time "preparation")
+			      (begin-time)
+			      ;; Code generation
+			      (let ((out (if outfile (open-output-file outfile) (current-output-port))) )
+				(dribble "generating `~A' ..." outfile)
+				(generate-code literals lliterals lambda-table out filename
+					       dynamic db dbg-info)
+				(when outfile
+				  (close-output-port out)))
+			      (end-time "code generation")
+			      (when (memq 't debugging-chicken)
+				(##sys#display-times (##sys#stop-timer)))
+			      (compiler-cleanup-hook)
+			      (dribble "compilation finished.") ) ) ) ) ) ) ) ) ) ) ) )

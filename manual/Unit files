@@ -81,7 +81,6 @@ or {{unix}} and defaults to on whatever platform is currently
 in use. All relative path elements and duplicate separators are processed 
 and removed.  If {{NAME}} ends with
 a {{/}} or is empty, the appropriate slash is appended to the tail.
-Tilde {{~}} and variable {{$<name>/...}} expansion is also done.
 
 No directories or files are actually tested for existence; this 
 procedure only canonicalises path syntax.

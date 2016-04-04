@@ -1,6 +1,6 @@
 ;;;; Unit lolevel testing
 
-(require-extension lolevel)
+(require-extension lolevel srfi-4 extras)
 
 (define-syntax assert-error
   (syntax-rules ()
@@ -134,17 +134,58 @@
 
 (assert (eq? some-unique-tag (pointer-tag some-tagged-pointer)))
 
-; make-locative
+; make-locative, locative-ref, locative-set!, locative?
+
+;; Reverse an object vector of the given type by going through
+;; locatives.
+(define-syntax check-type-locative
+  (ir-macro-transformer
+   (lambda (e i c)
+     (let* ((type (strip-syntax (cadr e)))
+	    (inits (cddr e))
+	    (size (length inits))
+	    (construct type)
+	    (make (i (symbol-append 'make- type)))
+	    (ref (i (symbol-append type '-ref))))
+       `(let* ((old (,construct ,@inits))
+	       (new (,make ,size)))
+	  ;; Copy first
+	  (do ((i 0 (add1 i)))
+	      ((= i ,size))
+	    (let ((loc-src (make-locative old i))
+		  (loc-dst (make-locative new (- ,size i 1))))
+	      (assert (locative? loc-src))
+	      (assert (locative? loc-dst))
+	      (locative-set! loc-dst (locative-ref loc-src))))
+	  (printf "\nold: ~S\nnew: ~S\n" old new)
+	  ;; Now compare (unroll loop for better error reporting)
+	  ,@(let lp ((i 0) (res '()))
+	      (if (= i size)
+		  res
+		  (lp (add1 i)
+		      ;; Note: we must use eqv? because extraction
+		      ;; may cause fresh object allocation.
+		      (cons `(assert (eqv? (,ref old ,i)
+					   (,ref new ,(- size i 1))))
+			    res)))))))))
+
+(check-type-locative string #\nul #\y #\o #\xff)
+(check-type-locative vector 'yo 1 2 #f #t '(1 2 3) #(1 2 3))
+(check-type-locative u8vector 0 1 2 #xfe #xff)
+(check-type-locative s8vector #x-80 #x-7f -2 -1 0 1 2 #x7e #x7f)
+(check-type-locative u16vector 0 1 2 #xfffe #xffff)
+(check-type-locative s16vector #x-8000 #x-7fff -2 -1 0 1 2 #x7ffe #x7fff)
+(check-type-locative u32vector 0 1 2 #xfffffffe #xffffffff)
+(check-type-locative s32vector
+		     #x-80000000 #x-7fffffff -2 -1
+		     0 1 2 #x7ffffffe #x7fffffff)
+;; TODO: better/more extreme values?
+(check-type-locative f32vector -1e100 -2.0 -1.0 0.0 1.0 2.0 1e100)
+(check-type-locative f64vector -1e200 -2.0 -1.0 0.0 1.0 2.0 1e200)
 
 ; make-weak-locative
 
-; locative-set!
-
-; locative-ref
-
 ; locative->object
-
-; locative?
 
 ; extend-procedure
 

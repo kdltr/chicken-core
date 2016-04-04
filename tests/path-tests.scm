@@ -36,7 +36,7 @@
 (test "a" (normalize-pathname "a"))
 (test "a/" (normalize-pathname "a/" 'unix))
 (test "a/b" (normalize-pathname "a/b" 'unix))
-(test "a/b" (normalize-pathname "a\\b" 'unix))
+(test "a\\b" (normalize-pathname "a\\b" 'unix))
 (test "a\\b" (normalize-pathname "a\\b" 'windows))
 (test "a\\b" (normalize-pathname "a/b" 'windows))
 (test "a/b/" (normalize-pathname "a/b/" 'unix))
@@ -67,7 +67,11 @@
 (assert (not (directory-null? "//foo//")))
 
 (test '(#f "/" (".")) (receive (decompose-directory "/.//")))
-(test '(#f "/" #f) (receive (decompose-directory "///\\///")))
+
+(if ##sys#windows-platform
+    (test '(#f "/" #f) (receive (decompose-directory "///\\///")))
+    (test '(#f "/" ("\\")) (receive (decompose-directory "///\\///"))))
+
 (test '(#f "/" ("foo")) (receive (decompose-directory "//foo//")))
 (test '(#f "/" ("foo" "bar")) (receive (decompose-directory "//foo//bar")))
 (test '(#f #f (".")) (receive (decompose-directory ".//")))
@@ -77,57 +81,140 @@
 
 (test '(#f #f #f) (receive (decompose-pathname "")))
 (test '("/" #f #f) (receive (decompose-pathname "/")))
-(test '("\\" #f #f) (receive (decompose-pathname "\\")))
+
+(if ##sys#windows-platform
+    (test '("\\" #f #f) (receive (decompose-pathname "\\")))
+    (test '(#f "\\" #f) (receive (decompose-pathname "\\"))))
+
 (test '("/" "a" #f) (receive (decompose-pathname "/a")))
-(test '("\\" "a" #f) (receive (decompose-pathname "\\a")))
+
+(if ##sys#windows-platform
+    (test '("\\" "a" #f) (receive (decompose-pathname "\\a")))
+    (test '(#f "\\a" #f) (receive (decompose-pathname "\\a"))))
+
 (test '("/" #f #f) (receive (decompose-pathname "///")))
-(test '("\\" #f #f) (receive (decompose-pathname "\\\\\\")))
+
+(if ##sys#windows-platform
+    (test '("\\" #f #f) (receive (decompose-pathname "\\\\\\")))
+    (test '(#f "\\\\\\" #f) (receive (decompose-pathname "\\\\\\"))))
+
 (test '("/" "a" #f) (receive (decompose-pathname "///a")))
-(test '("\\" "a" #f) (receive (decompose-pathname "\\\\\\a")))
+
+(if ##sys#windows-platform
+    (test '("\\" "a" #f) (receive (decompose-pathname "\\\\\\a")))
+    (test '(#f "\\\\\\a" #f) (receive (decompose-pathname "\\\\\\a"))))
+
 (test '("/a" "b" #f) (receive (decompose-pathname "/a/b")))
-(test '("\\a" "b" #f) (receive (decompose-pathname "\\a\\b")))
+
+(if ##sys#windows-platform
+    (test '("\\a" "b" #f) (receive (decompose-pathname "\\a\\b")))
+    (test '(#f "\\a\\b" #f) (receive (decompose-pathname "\\a\\b"))))
+
 (test '("/a" "b" "c") (receive (decompose-pathname "/a/b.c")))
-(test '("\\a" "b" "c") (receive (decompose-pathname "\\a\\b.c")))
+
+(if ##sys#windows-platform
+    (test '("\\a" "b" "c") (receive (decompose-pathname "\\a\\b.c")))
+    (test '(#f "\\a\\b" "c") (receive (decompose-pathname "\\a\\b.c"))))
+
 (test '("." "a" #f) (receive (decompose-pathname "./a")))
-(test '("." "a" #f) (receive (decompose-pathname ".\\a")))
+
+(if ##sys#windows-platform
+    (test '("." "a" #f) (receive (decompose-pathname ".\\a")))
+    (test '(#f ".\\a" #f) (receive (decompose-pathname ".\\a"))))
+
 (test '("." "a" "b") (receive (decompose-pathname "./a.b")))
-(test '("." "a" "b") (receive (decompose-pathname ".\\a.b")))
+
+(if ##sys#windows-platform
+    (test '("." "a" "b") (receive (decompose-pathname ".\\a.b")))
+    (test '(#f ".\\a" "b") (receive (decompose-pathname ".\\a.b"))))
+
 (test '("./a" "b" #f) (receive (decompose-pathname "./a/b")))
-(test '(".\\a" "b" #f) (receive (decompose-pathname ".\\a\\b")))
+
+(if ##sys#windows-platform
+    (test '(".\\a" "b" #f) (receive (decompose-pathname ".\\a\\b")))
+    (test '(#f ".\\a\\b" #f) (receive (decompose-pathname ".\\a\\b"))))
+
 (test '(#f "a" #f) (receive (decompose-pathname "a")))
 (test '(#f "a." #f) (receive (decompose-pathname "a.")))
 (test '(#f ".a" #f) (receive (decompose-pathname ".a")))
 (test '("a" "b" #f) (receive (decompose-pathname "a/b")))
-(test '("a" "b" #f) (receive (decompose-pathname "a\\b")))
+
+(if ##sys#windows-platform
+    (test '("a" "b" #f) (receive (decompose-pathname "a\\b")))
+    (test '(#f "a\\b" #f) (receive (decompose-pathname "a\\b"))))
+
 (test '("a" "b" #f) (receive (decompose-pathname "a///b")))
-(test '("a" "b" #f) (receive (decompose-pathname "a\\\\\\b")))
+
+(if ##sys#windows-platform
+    (test '("a" "b" #f) (receive (decompose-pathname "a\\\\\\b")))
+    (test '(#f "a\\\\\\b" #f) (receive (decompose-pathname "a\\\\\\b"))))
+
 (test '("a/b" "c" #f) (receive (decompose-pathname "a/b/c")))
-(test '("a\\b" "c" #f) (receive (decompose-pathname "a\\b\\c")))
+
+(if ##sys#windows-platform
+    (test '("a\\b" "c" #f) (receive (decompose-pathname "a\\b\\c")))
+    (test '(#f "a\\b\\c" #f) (receive (decompose-pathname "a\\b\\c"))))
+
 (test '("a/b/c" #f #f) (receive (decompose-pathname "a/b/c/")))
-(test '("a\\b\\c" #f #f) (receive (decompose-pathname "a\\b\\c\\")))
+
+(if ##sys#windows-platform
+    (test '("a\\b\\c" #f #f) (receive (decompose-pathname "a\\b\\c\\")))
+    (test '(#f "a\\b\\c\\" #f) (receive (decompose-pathname "a\\b\\c\\"))))
+
 (test '("a/b/c" #f #f) (receive (decompose-pathname "a/b/c///")))
-(test '("a\\b\\c" #f #f) (receive (decompose-pathname "a\\b\\c\\\\\\")))
+
+(if ##sys#windows-platform
+    (test '("a\\b\\c" #f #f) (receive (decompose-pathname "a\\b\\c\\\\\\")))
+    (test '(#f "a\\b\\c\\\\\\" #f) (receive (decompose-pathname "a\\b\\c\\\\\\"))))
+
 (test '(#f "a" "b") (receive (decompose-pathname "a.b")))
 (test '("a.b" #f #f) (receive (decompose-pathname "a.b/")))
-(test '("a.b" #f #f) (receive (decompose-pathname "a.b\\")))
+
+(if ##sys#windows-platform
+    (test '("a.b" #f #f) (receive (decompose-pathname "a.b\\")))
+    (test '(#f "a" "b\\") (receive (decompose-pathname "a.b\\"))))
+
 (test '(#f "a.b" "c") (receive (decompose-pathname "a.b.c")))
 (test '(#f "a." "b") (receive (decompose-pathname "a..b")))
 (test '(#f "a.." "b") (receive (decompose-pathname "a...b")))
 (test '("a." ".b" #f) (receive (decompose-pathname "a./.b")))
-(test '("a." ".b" #f) (receive (decompose-pathname "a.\\.b")))
 
-(test "x/y/z.q" (make-pathname "x/y" "z" "q"))
-(test "x/y/z.q" (make-pathname "x/y" "z.q"))
-(test "x/y/z.q" (make-pathname "x/y/" "z.q"))
-(test "x/y/z.q" (make-pathname "x/y/" "z.q"))
-(test "x/y/z.q" (make-pathname "x/y\\" "z.q"))
-(test "x//y/z.q" (make-pathname "x//y/" "z.q"))
-(test "x\\y/z.q" (make-pathname "x\\y" "z.q"))
+(if ##sys#windows-platform
+    (test '("a." ".b" #f) (receive (decompose-pathname "a.\\.b")))
+    (test '(#f "a.\\" "b") (receive (decompose-pathname "a.\\.b"))))
+
+(cond (##sys#windows-platform
+       (test "x/y\\z.q" (make-pathname "x/y" "z" "q"))
+       (test "x/y\\z.q" (make-pathname "x/y" "z.q"))
+       (test "x/y\\z.q" (make-pathname "x/y/" "z.q"))
+       (test "x/y\\z.q" (make-pathname "x/y/" "z.q"))
+       (test "x/y\\z.q" (make-pathname "x/y\\" "z.q"))
+       (test "x//y\\z.q" (make-pathname "x//y/" "z.q"))
+       (test "x\\y\\z.q" (make-pathname "x\\y" "z.q")))
+      (else
+       (test "x/y/z.q" (make-pathname "x/y" "z" "q"))
+       (test "x/y/z.q" (make-pathname "x/y" "z.q"))
+       (test "x/y/z.q" (make-pathname "x/y/" "z.q"))
+       (test "x/y/z.q" (make-pathname "x/y/" "z.q"))
+       (test "x/y\\/z.q" (make-pathname "x/y\\" "z.q"))
+       (test "x//y/z.q" (make-pathname "x//y/" "z.q"))
+       (test "x\\y/z.q" (make-pathname "x\\y" "z.q"))))
+
 (test 'error (handle-exceptions _ 'error (make-pathname '(#f) "foo")))
+
 (test "/x/y/z" (make-pathname #f "/x/y/z"))
-(test "/x/y/z" (make-pathname "/" "x/y/z"))
-(test "/x/y/z" (make-pathname "/x" "/y/z"))
-(test "/x/y/z" (make-pathname '("/") "x/y/z"))
-(test "/x/y/z" (make-pathname '("/" "x") "y/z"))
-(test "/x/y/z" (make-pathname '("/x" "y") "z"))
-(test "/x/y/z/" (make-pathname '("/x" "y" "z") #f))
+
+(cond (##sys#windows-platform
+       (test "\\x/y/z" (make-pathname "/" "x/y/z"))
+       (test "/x\\y/z" (make-pathname "/x" "/y/z"))
+       (test "\\x/y/z" (make-pathname '("/") "x/y/z"))
+       (test "\\x\\y/z" (make-pathname '("/" "x") "y/z"))
+       (test "/x\\y\\z" (make-pathname '("/x" "y") "z"))
+       (test "/x\\y\\z\\" (make-pathname '("/x" "y" "z") #f)))
+      (else
+       (test "/x/y/z" (make-pathname "/" "x/y/z"))
+       (test "/x/y/z" (make-pathname "/x" "/y/z"))
+       (test "/x/y/z" (make-pathname '("/") "x/y/z"))
+       (test "/x/y/z" (make-pathname '("/" "x") "y/z"))
+       (test "/x/y/z" (make-pathname '("/x" "y") "z"))
+       (test "/x/y/z/" (make-pathname '("/x" "y" "z") #f))))

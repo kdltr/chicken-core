@@ -1,6 +1,6 @@
 ;;;; setup-api.scm - build + installation API for eggs
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -155,12 +155,13 @@
   (print "Warning: cannot install as superuser with Windows") )
 
 (define (unix-sudo-install-setup)
-  (set! *copy-command*        "sudo cp -r")
-  (set! *remove-command*      "sudo rm -fr")
-  (set! *move-command*        "sudo mv")
-  (set! *chmod-command*       "sudo chmod")
-  (set! *ranlib-command*      "sudo ranlib")
-  (set! *mkdir-command*       "sudo mkdir") )
+  (let ((sudo-cmd (qs (or (get-environment-variable "SUDO") "sudo"))))
+    (set! *copy-command* (sprintf "~a cp -r" sudo-cmd))
+    (set! *remove-command* (sprintf "~a rm -rf" sudo-cmd))
+    (set! *move-command* (sprintf "~a mv" sudo-cmd))
+    (set! *chmod-command* (sprintf "~a chmod" sudo-cmd))
+    (set! *ranlib-command* (sprintf "~a ranlib" sudo-cmd))
+    (set! *mkdir-command* (sprintf "~a mkdir" sudo-cmd))))
 
 (define (user-install-setup)
   (set! *sudo* #f)
@@ -439,10 +440,13 @@
 			     (when (and (eq? (software-version) 'macosx)
 					(equal? (cadr static) from) 
 					(equal? (pathname-extension to) "a"))
-			       (run (,*ranlib-command* ,(shellpath to)) ) ))
-			   (if (deployment-mode)
-			       f
-			       (or (target-prefix to) to))))
+				   (run (,*ranlib-command* ,(shellpath to)) ) ))
+			   (cond ((deployment-mode) f)
+				 ((not (equal? (destination-prefix) (runtime-prefix)))
+				  ;; we did not append a prefix already
+				  (target-prefix to))
+				 ;; There's been destination-prefix added before
+				 (else to))))
 		       files) ) )
       (write-info id dests (supply-version info #f)) ) ) )
 
@@ -528,7 +532,7 @@
 			   cc " "
 			   (if compile-only "-c" "") " "
 			   cflags " " *target-cflags* " "
-			   fname " "
+			   (shellpath fname) " -o " (shellpath oname) " "
 			   (if compile-only
 			       "" 
 			       (conc "-L" *target-lib-home* " " ldflags " " *target-libs*) )
@@ -538,6 +542,7 @@
 		 cmd) ) ) ) )
     (when verb (print (if (zero? r) "succeeded." "failed.")))
     (ignore-errors ($system (sprintf "~A ~A" *remove-command* (shellpath fname))))
+    (ignore-errors ($system (sprintf "~A ~A" *remove-command* (shellpath oname))))
     (zero? r) ) )
 
 (define test-compile try-compile)
@@ -604,7 +609,10 @@
 	     (error 'remove-directory "cannot remove - directory not found" dir)
 	     #f))
 	(*sudo*
-	 (ignore-errors ($system (sprintf "sudo rm -fr ~a" (shellpath dir)))))
+	 (ignore-errors
+	  (let ((sudo-cmd (or (get-environment-variable "SUDO") "sudo")))
+	    ($system (sprintf "~a rm -fr ~a" (qs sudo-cmd)
+			      (shellpath dir))))))
 	(else
 	 (let walk ((dir dir))
 	   (let ((files (directory dir #t)))
@@ -620,7 +628,11 @@
 
 (define (remove-extension egg #!optional (repo (repository-path)))
   (and-let* ((files (assq 'files (read-info egg repo))))
-    (for-each remove-file* (cdr files)))
+    (for-each
+     (lambda (f)
+       (let ((p (if (absolute-pathname? f) f (make-pathname repo f))))
+	 (remove-file* p)))
+     (cdr files)))
   (remove-file* (make-pathname repo egg setup-file-extension)))
 
 (define ($system str)

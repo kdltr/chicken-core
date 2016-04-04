@@ -1,6 +1,6 @@
 ;;;; support.scm - Miscellaneous support code for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -54,6 +54,11 @@
 
 (define +logged-debugging-modes+ '(o x S))
 
+(define (test-debugging-mode mode enabled)
+  (if (symbol? mode)
+      (memq mode enabled)
+      (pair? (lset-intersection eq? mode enabled))))
+
 (define (debugging mode msg . args)
   (define (text)
     (with-output-to-string
@@ -67,15 +72,15 @@
 	(newline))))
   (define (dump txt)
     (fprintf collected-debugging-output "~a|~a" mode txt))
-  (cond ((memq mode debugging-chicken)
+  (cond ((test-debugging-mode mode debugging-chicken)
 	 (let ((txt (text)))
 	   (display txt)
 	   (flush-output)
-	   (when (memq mode +logged-debugging-modes+)
+	   (when (test-debugging-mode mode +logged-debugging-modes+)
 	     (dump txt))
 	   #t))
 	(else
-	 (when (memq mode +logged-debugging-modes+)
+	 (when (test-debugging-mode mode +logged-debugging-modes+)
 	   (dump (text)))
 	 #f)))
 
@@ -87,17 +92,13 @@
 	 (if (pair? mode) (car mode) mode)
 	 ln))
      (string-split text "\n")))
-  (define (test-mode mode set)
-    (if (symbol? mode)
-	(memq mode set)
-	(pair? (lset-intersection eq? mode set))))
-  (cond ((test-mode mode debugging-chicken)
+  (cond ((test-debugging-mode mode debugging-chicken)
 	 (let ((txt (with-output-to-string thunk)))
 	   (display txt)
 	   (flush-output)
-	   (when (test-mode mode +logged-debugging-modes+)
+	   (when (test-debugging-mode mode +logged-debugging-modes+)
 	     (collect txt))))
-	((test-mode mode +logged-debugging-modes+)
+	((test-debugging-mode mode +logged-debugging-modes+)
 	 (collect (with-output-to-string thunk)))))
 
 (define (quit msg . args)
@@ -168,7 +169,7 @@
 	((string? x) (string->symbol x))
 	(else (string->symbol (sprintf "~a" x))) ) )
 
-(define (slashify s) (string-translate (->string s) "\\" "/"))
+(define (backslashify s) (string-translate* (->string s) '(("\\" . "\\\\"))))
 
 (define (uncommentify s) (string-translate* (->string s) '(("*/" . "*_/"))))
   
@@ -580,6 +581,8 @@
 		   (map walk (cddr x)) ) ) )
 	       ((##core#inline ##core#callunit) 
 		(make-node (car x) (list (cadr x)) (map walk (cddr x))) )
+	       ((##core#debug-event) ; 2nd argument is provided by canonicalization phase
+		(make-node (car x) (cdr x) '()))
 	       ((##core#proc)
 		(make-node '##core#proc (list (cadr x) #t) '()) )
 	       ((set! ##core#set!)
@@ -1485,19 +1488,48 @@
 (define (constant-form-eval op argnodes k)
   (let* ((args (map (lambda (n) (first (node-parameters n))) argnodes))
 	 (form (cons op (map (lambda (arg) `(quote ,arg)) args))))
-    (handle-exceptions ex 
-	(begin
-	  (k #f form #f (get-condition-property ex 'exn 'message)))
-      ;; op must have toplevel binding, result must be single-valued
-      (let ((proc (##sys#slot op 0)))
-	(if (procedure? proc)
-	    (let ((results (receive (apply proc args))))
-	      (cond ((= 1 (length results))
-		     (debugging 'o "folded constant expression" form)
-		     (k #t form (car results) #f))
-		    (else 
-		     (bomb "attempt to constant-fold call to procedure that has multiple results" form))))
-	    (bomb "attempt to constant-fold call to non-procedure" form))))))
+    ;; op must have toplevel binding, result must be single-valued
+    (let ((proc (##sys#slot op 0)))
+      (if (procedure? proc)
+	  (let ((results (handle-exceptions ex
+			     (k #f form #f
+				(get-condition-property ex 'exn 'message))
+			   (receive (apply proc args)))))
+	    (cond ((node? results) ; TODO: This should not happen
+		   (k #f form #f #f))
+		  ((and (= 1 (length results))
+			(encodeable-literal? (car results)))
+		   (debugging 'o "folded constant expression" form)
+		   (k #t form (car results) #f))
+		  ((= 1 (length results)) ; not encodeable; don't fold
+		   (k #f form #f #f))
+		  (else
+		   (bomb "attempt to constant-fold call to procedure that has multiple results" form))))
+	  (bomb "attempt to constant-fold call to non-procedure" form)))))
+
+;; Is the literal small enough to be encoded?  Otherwise, it should
+;; not be constant-folded.
+(define (encodeable-literal? lit)
+  (define getsize
+    (foreign-lambda* int ((scheme-object lit))
+      "return(C_header_size(lit));"))
+  (define (fits? n)
+    (zero? (arithmetic-shift n -24)))
+  (cond ((immediate? lit))
+	((fixnum? lit))
+	((flonum? lit))
+	((symbol? lit)
+	 (let ((str (##sys#slot lit 1)))
+	   (fits? (string-length str))))
+	((##core#inline "C_byteblockp" lit)
+	 (fits? (getsize lit)))
+	(else
+	 (let ((len (getsize lit)))
+	   (and (fits? len)
+		(every
+		 encodeable-literal?
+		 (list-tabulate len (lambda (i)
+				      (##sys#slot lit i)))))))))
 
 
 ;;; Dump node structure:
@@ -1587,6 +1619,9 @@
 
 (define (export-variable sym)
   (mark-variable sym '##compiler#visibility 'exported))
+
+(define (variable-hidden? sym)
+  (eq? (##sys#get sym '##compiler#visibility) 'hidden))
 
 (define (variable-visible? sym)
   (let ((p (##sys#get sym '##compiler#visibility)))
@@ -1684,6 +1719,8 @@ Usage: chicken FILENAME OPTION ...
     -no-warnings                 disable warnings
     -debug-level NUMBER          set level of available debugging information
     -no-trace                    disable tracing information
+    -debug-info                  enable debug-information in compiled code for use
+                                  with an external debugger
     -profile                     executable emits profiling information 
     -profile-name FILENAME       name of the generated profile information file
     -accumulate-profile          executable emits profiling information in

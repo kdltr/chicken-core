@@ -1,6 +1,6 @@
 ;;;; modules.scm - module-system support
 ;
-; Copyright (c) 2011-2015, The CHICKEN Team
+; Copyright (c) 2011-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -386,6 +386,10 @@
      (lambda (nexp)
        (set-car! (cdr nexp) (merge-se (or (cadr nexp) '()) senv)))
      nexps)
+    (set-module-saved-environments!
+     mod
+     (cons (merge-se (##sys#current-environment) vexports sexps)
+	   (##sys#macro-environment)))
     (set! ##sys#module-table (cons (cons name mod) ##sys#module-table)) 
     mod))
 
@@ -585,6 +589,8 @@
 	(%srfi (r 'srfi)))
     (define (resolve sym)
       (or (lookup sym '()) sym))	;XXX really empty se?
+    (define (warn msg mod id)
+      (##sys#warn (sprintf msg mod id)))
     (define (tostr x)
       (cond ((string? x) x)
 	    ((keyword? x) (##sys#string-append (##sys#symbol->string x) ":")) ; hack
@@ -595,8 +601,9 @@
       (let* ((mod (##sys#find-module/import-library (##sys#strip-syntax spec) 'import))
 	     (vexp (module-vexports mod))
 	     (sexp (module-sexports mod))
-	     (iexp (module-iexports mod)))
-	(values (module-name mod) vexp sexp iexp)))
+	     (iexp (module-iexports mod))
+	     (name (module-name mod)))
+	(values name name vexp sexp iexp)))
     (define (import-spec spec)
       (cond ((symbol? spec) (import-name spec))
 	    ((or (not (list? spec)) (< (length spec) 2))
@@ -608,58 +615,72 @@
 	    (else
 	     (let ((head (car spec))
 		   (imports (cddr spec)))
-	       (let-values (((form impv imps impi) (import-spec (cadr spec))))
+	       (let-values (((name form impv imps impi) (import-spec (cadr spec))))
 		 (cond ((c %only head)
 			(##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
 			(let ((ids (map resolve imports)))
-			  (let loop ((ids ids) (v '()) (s '()))
+			  (let loop ((ids ids) (v '()) (s '()) (missing '()))
 			    (cond ((null? ids)
-				   (values `(,head ,form ,@imports) v s impi))
+				   (for-each
+				    (lambda (id)
+				      (warn "imported identifier doesn't exist in module ~s: ~s" name id))
+				    missing)
+				   (values name `(,head ,form ,@imports) v s impi))
 				  ((assq (car ids) impv) =>
-				   (lambda (a) 
-				     (loop (cdr ids) (cons a v) s)))
+				   (lambda (a)
+				     (loop (cdr ids) (cons a v) s missing)))
 				  ((assq (car ids) imps) =>
-				   (lambda (a) 
-				     (loop (cdr ids) v (cons a s))))
-				  (else (loop (cdr ids) v s))))))
+				   (lambda (a)
+				     (loop (cdr ids) v (cons a s) missing)))
+				  (else
+				   (loop (cdr ids) v s (cons (car ids) missing)))))))
 		       ((c %except head)
 			(##sys#check-syntax loc spec '(_ _ . #(symbol 0)))
 			(let ((ids (map resolve imports)))
-			  (let loop ((impv impv) (v '()))
+			  (let loop ((impv impv) (v '()) (ids imports))
 			    (cond ((null? impv)
-				   (let loop ((imps imps) (s '()))
+				   (let loop ((imps imps) (s '()) (ids ids))
 				     (cond ((null? imps)
-					    (values `(,head ,form ,@imports) v s impi))
-					   ((memq (caar imps) ids) (loop (cdr imps) s))
-					   (else (loop (cdr imps) (cons (car imps) s))))))
-				  ((memq (caar impv) ids) (loop (cdr impv) v))
-				  (else (loop (cdr impv) (cons (car impv) v)))))))
+					    (for-each
+					     (lambda (id)
+					       (warn "excluded identifier doesn't exist in module ~s: ~s" name id))
+					     ids)
+					    (values name `(,head ,form ,@imports) v s impi))
+					   ((memq (caar imps) ids) =>
+					    (lambda (id)
+					      (loop (cdr imps) s (##sys#delq (car id) ids))))
+					   (else
+					    (loop (cdr imps) (cons (car imps) s) ids)))))
+				  ((memq (caar impv) ids) =>
+				   (lambda (id)
+				     (loop (cdr impv) v (##sys#delq (car id) ids))))
+				  (else
+				   (loop (cdr impv) (cons (car impv) v) ids))))))
 		       ((c %rename head)
 			(##sys#check-syntax loc spec '(_ _ . #((symbol symbol) 0)))
-			(let loop ((impv impv) (imps imps) (v '()) (s '()) (ids imports))
-			  (cond ((null? impv) 
-				 (cond ((null? imps)
-					(for-each
-					 (lambda (id)
-					   (##sys#warn "renamed identifier not imported" id) )
-					 ids)
-					(values `(,head ,form ,@imports) v s impi))
-				       ((assq (caar imps) ids) =>
-					(lambda (a)
-					  (loop impv (cdr imps)
-						v
-						(cons (cons (cadr a) (cdar imps)) s)
-						(##sys#delq a ids))))
-				       (else (loop impv (cdr imps) v (cons (car imps) s) ids))))
+			(let loop ((impv impv) (v '()) (ids imports))
+			  (cond ((null? impv)
+				 (let loop ((imps imps) (s '()) (ids ids))
+				   (cond ((null? imps)
+					  (for-each
+					   (lambda (id)
+					     (warn "renamed identifier doesn't exist in module ~s: ~s" name id))
+					   (map car ids))
+					  (values name `(,head ,form ,@imports) v s impi))
+					 ((assq (caar imps) ids) =>
+					  (lambda (a)
+					    (loop (cdr imps)
+						  (cons (cons (cadr a) (cdar imps)) s)
+						  (##sys#delq a ids))))
+					 (else
+					  (loop (cdr imps) (cons (car imps) s) ids)))))
 				((assq (caar impv) ids) =>
 				 (lambda (a)
-				   (loop (cdr impv) imps
+				   (loop (cdr impv)
 					 (cons (cons (cadr a) (cdar impv)) v)
-					 s
 					 (##sys#delq a ids))))
-				(else (loop (cdr impv) imps
-					    (cons (car impv) v)
-					    s ids)))))
+				(else
+				 (loop (cdr impv) (cons (car impv) v) ids)))))
 		       ((c %prefix head)
 			(##sys#check-syntax loc spec '(_ _ _))
 			(let ((pref (caddr spec)))
@@ -668,13 +689,13 @@
 			     (##sys#string->symbol 
 			      (##sys#string-append (tostr pref) (##sys#symbol->string (car imp))))
 			     (cdr imp) ) )
-			  (values (list head form pref) (map ren impv) (map ren imps) impi)))
+			  (values name `(,head ,form ,pref) (map ren impv) (map ren imps) impi)))
 		       (else (##sys#syntax-error-hook loc "invalid import specification" spec))))))))
     (##sys#check-syntax loc x '(_ . #(_ 1)))
     (let ((cm (##sys#current-module)))
       (for-each
        (lambda (spec)
-	 (let-values (((form vsv vss vsi) (import-spec spec)))
+	 (let-values (((name form vsv vss vsi) (import-spec spec)))
 	   (when cm ; save import form
 	     (if meta?
 		 (set-module-meta-import-forms!

@@ -3,10 +3,10 @@
   =========================================
 
 
-  (c) 2008-2015, The CHICKEN Team
+  (c) 2008-2016, The CHICKEN Team
   (c) 2000-2007, Felix L. Winkelmann
 
-  version 4.10.0rc4
+  version 4.10.1
 
 
  1. Introduction
@@ -273,16 +273,18 @@
 	|   |-- chicken-profile
 	|   |-- chicken-status
 	|   |-- chicken-uninstall
- 	|   |-- libchicken.dll                        (Windows)
+	|   |-- libchicken.dll                        (Windows)
 	|   |-- csc
-	|   `-- csi
+	|   |-- csi
+	|   |-- feathers.bat                          (Windows)
+	|   `-- feathers                              (Unix)
 	|-- include
 	|   `-- chicken
 	|       |-- chicken-config.h
 	|       `-- chicken.h
 	|-- lib
 	|   |-- chicken
-	|   |   `-- 7
+	|   |   `-- 8
 	|   |       |-- chicken.import.so
 	|   |       |-- csi.import.so
 	|   |       |-- data-structures.import.so
@@ -310,17 +312,18 @@
 	|   |-- libchicken.a
 	|   |-- libchicken.dll.a                      (Windows)
 	|   |-- libchicken.dylib                      (Macintosh)
-	|   |-- libchicken.so -> libchicken.so.7      (Unix)
-	|   `-- libchicken.so.7			      (Unix)
+	|   |-- libchicken.so -> libchicken.so.8      (Unix)
+	|   `-- libchicken.so.8                       (Unix)
 	`-- share
 	    |-- chicken
 	    |   |-- doc
 	    |   |   |-- LICENSE
 	    |   |   |-- README
-	    |   |   |-- mac.r			      (Macintosh)
+	    |   |   |-- mac.r                         (Macintosh)
 	    |   |   |-- CHICKEN.icns                  (Macintosh)
 	    |   |   |-- manual-html
-            |   |   |-- chicken.png
+	    |   |   |-- chicken.png
+	    |   |   |-- feathers.tcl
 	    |   |   `-- *.html
 	    |   `-- setup.defaults
 	    `-- man
@@ -332,7 +335,8 @@
 		    |-- chicken-uninstall.1
 		    |-- chicken.1
 		    |-- csc.1
-		    `-- csi.1
+		    |-- csi.1
+		    `-- feathers.1
 
 
  3. Usage
@@ -412,6 +416,9 @@
 	    an existing CHICKEN installation in the /usr/pkg prefix.
 
         Linux:
+
+	  - If you want to build Linux binaries which use the "X32 ABI",
+	    you can pass ARCH=x32 on the Make command line.
 
 	  - Some old Linux distributions ship with a buggy version of
 	    the GNU C compiler (2.96). If the system is configured for

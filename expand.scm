@@ -1,6 +1,6 @@
 ;;;; expand.scm - The HI/LO expander
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -477,14 +477,14 @@
 	      ((define-syntax) (if f (eq? f ##sys#define-syntax-definition) (eq? s id)))
 	      ((define-values) (if f (eq? f ##sys#define-values-definition) (eq? s id)))
 	      (else (eq? s id))))))
-    (define (fini vars vals mvars mvals body)
+    (define (fini vars vals mvars body)
       (if (and (null? vars) (null? mvars))
 	  (let loop ([body2 body] [exps '()])
 	    (if (not (pair? body2)) 
 		(cons 
 		 '##core#begin
 		 body) ; no more defines, otherwise we would have called `expand'
-		(let ([x (car body2)])
+		(let ((x (car body2)))
 		  (if (and (pair? x) 
 			   (let ((d (car x)))
 			     (and (symbol? d)
@@ -494,26 +494,32 @@
 		       '##core#begin
 		       (##sys#append (reverse exps) (list (expand body2))))
 		      (loop (cdr body2) (cons x exps)) ) ) ) )
-	  (let* ((vars (reverse vars))
-		 (result 
+	  (let* ((result
 		  `(##core#let
 		    ,(##sys#map
 		      (lambda (v) (##sys#list v '(##core#undefined)))
-		      (foldl (lambda (l v) ; flatten multi-value formals
+		      ;; vars are all normalised to lambda-lists: flatten them
+		      (foldl (lambda (l v)
 			       (##sys#append l (##sys#decompose-lambda-list
 						v (lambda (a _ _) a))))
-			     vars
-			     mvars))
-		    ,@(map (lambda (v x) `(##core#set! ,v ,x)) vars (reverse vals))
-		    ,@(map ##sys#expand-multiple-values-assignment
-			   (reverse mvars)
-			   (reverse mvals) )
+			     '()
+			     (reverse vars))) ; not strictly necessary...
+		    ,@(map (lambda (var val is-mvar?)
+			     ;; Non-mvars should expand to set! for
+			     ;; efficiency, but also because they must be
+			     ;; implicit multi-value continuations.
+			     (if is-mvar?
+				 (##sys#expand-multiple-values-assignment var val)
+				 `(##core#set! ,(car var) ,val)))
+			   (reverse vars)
+			   (reverse vals)
+			   (reverse mvars))
 		    ,@body) ) )
 	    (dd `(BODY: ,result))
 	    result)))
-    (define (fini/syntax vars vals mvars mvals body)
+    (define (fini/syntax vars vals mvars body)
       (fini
-       vars vals mvars mvals
+       vars vals mvars
        (let loop ((body body) (defs '()) (done #f))
 	 (cond (done `((##core#letrec-syntax
 			,(map cdr (reverse defs)) ,@body) ))
@@ -539,60 +545,62 @@
 		   #f)))
 	       (else (loop body defs #t))))))
     (define (expand body)
-      (let loop ([body body] [vars '()] [vals '()] [mvars '()] [mvals '()])
+      ;; Each #t in "mvars" indicates an MV-capable "var".  Non-MV
+      ;; vars (#f in mvars) are 1-element lambda-lists for simplicity.
+      (let loop ((body body) (vars '()) (vals '()) (mvars '()))
 	(if (not (pair? body))
-	    (fini vars vals mvars mvals body)
+	    (fini vars vals mvars body)
 	    (let* ((x (car body))
 		   (rest (cdr body))
 		   (exp1 (and (pair? x) (car x)))
 		   (head (and exp1 (symbol? exp1) exp1)))
 	      (if (not (symbol? head))
-		  (fini vars vals mvars mvals body)
+		  (fini vars vals mvars body)
 		  (cond
 		   ((comp 'define head)
 		     (##sys#check-syntax 'define x '(_ _ . #(_ 0)) #f se)
-		     (let loop2 ([x x])
-		       (let ([head (cadr x)])
-			 (cond [(not (pair? head))
+		     (let loop2 ((x x))
+		       (let ((head (cadr x)))
+			 (cond ((not (pair? head))
 				(##sys#check-syntax 'define x '(_ variable . #(_ 0)) #f se)
 				(when (eq? (car x) head) ; see above
 				  (##sys#defjam-error x))
-				(loop rest (cons head vars)
+				(loop rest (cons (list head) vars)
 				      (cons (if (pair? (cddr x))
 						(caddr x)
 						'(##core#undefined) )
 					    vals)
-				      mvars mvals) ]
-			       [(pair? (car head))
+				      (cons #f mvars)))
+			       ((pair? (car head))
 				(##sys#check-syntax
 				 'define x '(_ (_ . lambda-list) . #(_ 1)) #f se)
 				(loop2
-				 (##sys#expand-curried-define head (cddr x) se)) ]
-			       [else
+				 (##sys#expand-curried-define head (cddr x) se)))
+			       (else
 				(##sys#check-syntax
 				 'define x
 				 '(_ (variable . lambda-list) . #(_ 1)) #f se)
 				(loop rest
-				      (cons (car head) vars)
+				      (cons (list (car head)) vars)
 				      (cons `(##core#lambda ,(cdr head) ,@(cddr x)) vals)
-				      mvars mvals) ] ) ) ) )
+				      (cons #f mvars)))))))
 		    ((comp 'define-syntax head)
 		     (##sys#check-syntax 'define-syntax x '(_ _ . #(_ 1)) se)
-		     (fini/syntax vars vals mvars mvals body) )
+		     (fini/syntax vars vals mvars body))
 		    ((comp 'define-values head)
 		     ;;XXX check for any of the variables being `define-values'
 		     (##sys#check-syntax 'define-values x '(_ lambda-list _) #f se)
-		     (loop rest vars vals (cons (cadr x) mvars) (cons (caddr x) mvals)))
+		     (loop rest (cons (cadr x) vars) (cons (caddr x) vals) (cons #t mvars)))
 		    ((comp '##core#begin head)
-		     (loop (##sys#append (cdr x) rest) vars vals mvars mvals) )
+		     (loop (##sys#append (cdr x) rest) vars vals mvars))
 		    (else
-		     (if (or (memq head vars) (memq head mvars))
-			 (fini vars vals mvars mvals body)
+		     (if (member (list head) vars)
+			 (fini vars vals mvars body)
 			 (let ((x2 (##sys#expand-0 x se cs?)))
 			   (if (eq? x x2)
-			       (fini vars vals mvars mvals body)
+			       (fini vars vals mvars body)
 			       (loop (cons x2 rest)
-				     vars vals mvars mvals) ) ) ) ) ) ) ) ) ) )
+				     vars vals mvars)))))))))))
     (expand body) ) )
 
 

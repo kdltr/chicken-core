@@ -1,6 +1,6 @@
 ;;;; profiler.scm - Support code for profiling applications
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -27,7 +27,7 @@
 
 (declare
   (unit profiler)
-  (hide ##sys#profile-name ##sys#profile-vector-list cpu-ms)
+  (hide ##sys#profile-name ##sys#profile-vector-list cpu-ms empty-file?)
   (unsafe)
   (disable-interrupts))
 
@@ -36,6 +36,10 @@
 (define-foreign-variable profile-id int "C_getpid()")
 
 (define-constant profile-info-entry-size 5)
+
+(define empty-file?
+  (foreign-lambda* bool ((scheme-object p))
+    "C_return(ftell(C_port_file(p)) == 0);"))
 
 
 ;;; Globals:
@@ -121,7 +125,10 @@
 	(##sys#print "[debug] writing profile...\n" #f ##sys#standard-error) )
       (apply
        with-output-to-file ##sys#profile-name
-       (lambda () 
+       (lambda ()
+	 (when (empty-file? (current-output-port)) ; header needed?
+	   (write 'instrumented)
+	   (write-char #\newline))
 	 (for-each
 	  (lambda (vec)
 	    (let ([len (##sys#size vec)])

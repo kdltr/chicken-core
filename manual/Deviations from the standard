@@ -7,11 +7,10 @@ Identifiers are by default case-sensitive (see [[Using the compiler]]).
 === Number of arguments to procedures and macros
 
 The maximal number of arguments that may be passed to a
-compiled procedure or macro is limited to 120 (1000 on some
-common hardware platforms like x86).
+compiled procedure or macro is limited to around 1000.
 Likewise, the maximum number of values that can be passed
 to continuations captured using {{call-with-current-continuation}}
-is 120.  This is an implementation restriction that is unlikely
+is 1000.  This is an implementation restriction that is unlikely
 to be lifted.
 
 

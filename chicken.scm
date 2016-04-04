@@ -1,6 +1,6 @@
 ;;;; chicken.scm - The CHICKEN Scheme compiler (loader/main-module)
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -27,9 +27,10 @@
 
 (declare
   (uses chicken-syntax chicken-ffi-syntax 
-	srfi-1 srfi-4 utils files extras data-structures support
-	compiler optimizer lfa2 compiler-syntax scrutinizer driver platform backend 
-	srfi-69))
+	srfi-1 srfi-4 utils files extras data-structures srfi-69
+	lolevel ; unused, but loaded to make foldable bindings available
+	support compiler optimizer lfa2 compiler-syntax scrutinizer
+	driver platform backend))
 
 
 (include "compiler-namespace")
@@ -136,7 +137,8 @@
 		 (case level
 		   ((0) (set! options (cons* 'no-lambda-info 'no-trace options)))
 		   ((1) (set! options (cons 'no-trace options)))
-		   (else (set! options (cons 'scrutinize options))))
+		   ((2) (set! options (cons 'scrutinize options)))
+		   (else (set! options (cons* 'scrutinize 'debug-info options))))
 		 (loop (cdr rest)) ) )
 	      ((memq o valid-compiler-options) (loop rest))
 	      ((memq o valid-compiler-options-with-argument)

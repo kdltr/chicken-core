@@ -26,3 +26,9 @@ return n;}
 
 (assert (handle-exceptions ex #t (bug855 '(#f)) #f))
 
+;; #1219: Specializations from databases loaded with "-types" should
+;; be applied.
+(define (specialize-me x)
+  (error "Not specialized!"))
+
+(assert (= (specialize-me 123) 123))

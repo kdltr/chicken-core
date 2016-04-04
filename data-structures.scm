@@ -1,6 +1,6 @@
 ;;; data-structures.scm - Optional data structures extensions
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without
@@ -206,7 +206,7 @@
 		      (let loop ([lst lst])
 			(and (pair? lst)
 			     (let ([a (##sys#slot lst 0)])
-			       (if (and (pair? a) (cmp (##sys#slot a 0) x))
+			       (if (and (pair? a) (cmp x (##sys#slot a 0)))
 				   a
 				   (loop (##sys#slot lst 1)) ) ) ) ) ) ] ) ] 
 	 [item (aq x lst)] )
@@ -226,7 +226,7 @@
            (let ((a (##sys#slot lst 0)))
              (cond ((not (pair? a))
                     (error 'alist-update "bad argument type" a))
-                   ((cmp (##sys#slot a 0) k)
+                   ((cmp k (##sys#slot a 0))
                     (cons (cons k v) (##sys#slot lst 1)))
                    (else
                     (cons (cons (##sys#slot a 0) (##sys#slot a 1))
@@ -244,7 +244,7 @@
 			 ((pair? lst)
 			  (let ((a (##sys#slot lst 0)))
 			    (##sys#check-pair a 'alist-ref)
-			    (if (cmp (##sys#slot a 0) x)
+			    (if (cmp x (##sys#slot a 0))
 				a
 				(loop (##sys#slot lst 1)) ) ))
 			 (else (error 'alist-ref "bad argument type" lst)) )  ) ) ) ) )

@@ -1,6 +1,6 @@
 ;;;; eval.scm - Interpreter for CHICKEN
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -1188,12 +1188,12 @@
       (let ((rp (##sys#repository-path)))
 	(define (check path)
 	  (let ((p0 (string-append path "/" p)))
-	    (and (or (and rp
-			  (not ##sys#dload-disabled)
-			  (##sys#fudge 24) ; dload?
-			  (file-exists? (##sys#string-append p0 ##sys#load-dynamic-extension)))
-		     (file-exists? (##sys#string-append p0 source-file-extension)) )
-		 p0) ) )
+	    (or (and rp
+		     (not ##sys#dload-disabled)
+		     (##sys#fudge 24) ; dload?
+		     (file-exists? (##sys#string-append p0 ##sys#load-dynamic-extension)))
+		(file-exists? (##sys#string-append p0 source-file-extension))
+		(file-exists? p0))))
 	(let loop ((paths (##sys#append
 			   (if ##sys#setup-mode '(".") '())
 			   (if rp (list rp) '())

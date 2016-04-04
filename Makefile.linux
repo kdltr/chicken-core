@@ -1,6 +1,6 @@
 # Makefile.linux - configuration for Linux -*- Makefile -*-
 #
-# Copyright (c) 2008-2015, The CHICKEN Team
+# Copyright (c) 2008-2016, The CHICKEN Team
 # Copyright (c) 2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -50,6 +50,13 @@ LIBRARIES = -lm -ldl
 NEEDS_RELINKING = yes
 USES_SONAME = yes
 
+# architectures
+
+ifeq ($(ARCH),x32)
+C_COMPILER_OPTIONS += -mx32
+LINKER_OPTIONS += -mx32
+endif
+
 # special files
 
 CHICKEN_CONFIG_H = chicken-config.h
@@ -95,9 +102,6 @@ ifdef GCHOOKS
 endif
 ifdef SYMBOLGC
 	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
-endif
-ifneq ($(HACKED_APPLY),)
-	echo "#define C_HACKED_APPLY" >>$@
 endif
 	cat chicken-defaults.h >>$@
 

@@ -3,10 +3,10 @@
 == The CHICKEN User's Manual
 
 <nowiki>
-<img style="float:right; margin-left:1em;" src="http://wiki.call-cc.org/chicken-small.png" alt="Stylized picture of a chicken" />
+<img id="big-logo" style="float:right; margin-left:1em;" src="http://wiki.call-cc.org/chicken-small.png" alt="Stylized picture of a chicken"/>
 </nowiki>
 
-This is the manual for CHICKEN Scheme, version 4.10.0rc4
+This is the manual for CHICKEN Scheme, version 4.10.1
 
 ; [[Getting started]] : What is CHICKEN and how do I use it?
 
@@ -17,6 +17,8 @@ This is the manual for CHICKEN Scheme, version 4.10.0rc4
 ; [[Using the interpreter]] : Invocation and usage of {{csi}}, the CHICKEN interpreter.
 
 ; [[Supported language]] : The language implemented by CHICKEN (deviations from the standard and extensions).
+
+; [[Debugging]] : Using "Feathers", the CHICKEN debugger.
 
 ; [[Interface to external functions and variables]] : Accessing C and C++ code and data.
 
@@ -35,4 +37,3 @@ This is the manual for CHICKEN Scheme, version 4.10.0rc4
 ; [[Acknowledgements]] : A list of some of the people that have contributed to make CHICKEN what it is.
 
 ; [[Bibliography]] : Links to documents that may be of interest.
-

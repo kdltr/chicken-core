@@ -1,6 +1,6 @@
 ; scheduler.scm - Basic scheduler for multithreading
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -30,10 +30,12 @@
   (disable-interrupts)
   (hide ready-queue-head ready-queue-tail ##sys#timeout-list
 	##sys#update-thread-state-buffer ##sys#restore-thread-state-buffer
-	remove-from-ready-queue ##sys#unblock-threads-for-i/o ##sys#force-primordial
+	remove-from-ready-queue ##sys#unblock-threads-for-i/o
+	;; This isn't hidden ATM to allow set!ing it as a hook/workaround
+	; ##sys#force-primordial
 	fdset-set fdset-test create-fdset stderr
 	##sys#clear-i/o-state-for-thread! ##sys#abandon-mutexes) 
-  (not inline ##sys#interrupt-hook)
+  (not inline ##sys#interrupt-hook ##sys#force-primordial)
   (unsafe)
   (foreign-declare #<<EOF
 #ifdef HAVE_ERRNO_H
@@ -387,25 +389,32 @@ EOF
   ((foreign-lambda void "C_prepare_fdset" int) (##sys#length ##sys#fd-list))
   (let loop ((lst ##sys#fd-list))
     (unless (null? lst)
-      (let ((fd (caar lst)))
+      (let ((fd (caar lst))
+	    (input #f)
+	    (output #f))
 	(for-each
 	 (lambda (t)
 	   (let ((p (##sys#slot t 11)))
-             (when (pair? p) ; (FD . RWFLAGS)? (can also be mutex or thread)
-               (fdset-set fd (cdr p)))))
+	     ;; XXX: This should never be false, because otherwise the
+	     ;; thread is not supposed to be on ##sys#fd-list!
+	     (when (pair? p) ; (FD . RWFLAGS)? (can also be mutex or thread)
+	       (let ((i/o (cdr p)))
+		 (case i/o
+		   ((#t #:input)
+		    (set! input #t))
+		   ((#f #:output)
+		    (set! output #t))
+		   ((#:all)
+		    (set! input #t)
+		    (set! output #t))
+		   (else
+		    (panic
+		     (sprintf "create-fdset: invalid i/o direction: ~S (fd = ~S)" i/o fd))))))))
 	 (cdar lst))
+	;; Our position in fd-list must match fdset array position, so
+	;; always add an fdset entry, even if input & output are #f.
+	((foreign-lambda void "C_fdset_add" int bool bool) fd input output)
 	(loop (cdr lst))))))
-
-(define (fdset-set fd i/o)
-  (let ((fdset-add! (foreign-lambda void "C_fdset_add" int bool bool)))
-    (dbg "setting fdset for " fd " to " i/o)
-    (case i/o
-      ((#t #:input) (fdset-add! fd #t #f))
-      ((#f #:output) (fdset-add! fd #f #t))
-      ((#:all) (fdset-add! fd #t #t))
-      (else
-       (panic
-        (sprintf "fdset-set: invalid i/o direction: ~S (fd = ~S)" i/o fd))))))
 
 (define (fdset-test inf outf i/o)
   (case i/o

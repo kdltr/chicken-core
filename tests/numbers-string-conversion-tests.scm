@@ -12,6 +12,7 @@
 ;;; It also doesn't try to support Schemes which support *only* integers or
 ;;; *only* flonums (which is also allowed by R5RS).
 ;;;
+
 (use srfi-1 ports)
 
 (define the-nan (fp/ 0.0 0.0))
@@ -343,3 +344,10 @@
  ("#b1#/2" #f)
  ("#b1#/10" 1.0 1.5 "1.0" "1." "1.5")
  )
+
+;; #1272 - Bases not in [2,36] throw errors.
+(let ((check-base (lambda (b)
+                    (string->number "123" b)
+                    (error "No error on invalid base" b))))
+  (condition-case (check-base 1)  ((exn type) 'ok))
+  (condition-case (check-base 37) ((exn type) 'ok)))

@@ -1,6 +1,6 @@
 ;;;; library.scm - R5RS library for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -131,6 +131,22 @@ shallow_equal(C_word x, C_word y)
 
   if(C_header_size(y) != len) return C_SCHEME_FALSE;      
   else return C_mk_bool(!C_memcmp((void *)x, (void *)y, len * sizeof(C_word)));
+}
+
+static C_word
+signal_debug_event(C_word mode, C_word msg, C_word args)
+{
+  C_DEBUG_INFO cell;
+  C_word av[ 3 ];
+  cell.enabled = 1;
+  cell.event = C_DEBUG_SIGNAL;
+  cell.loc = "";
+  cell.val = "";
+  av[ 0 ] = mode;
+  av[ 1 ] = msg;
+  av[ 2 ] = args;
+  C_debugger(&cell, 3, av);
+  return C_SCHEME_UNDEFINED;
 }
 EOF
 ) )
@@ -1437,30 +1453,11 @@ EOF
   (##sys#check-exact n 'integer->char)
   (##core#inline "C_make_character" (##core#inline "C_unfix" n)) )
 
-(define (char=? c1 c2)
-  (##sys#check-char c1 'char=?)
-  (##sys#check-char c2 'char=?)
-  (##core#inline "C_i_char_equalp" c1 c2) )
-
-(define (char>? c1 c2)
-  (##sys#check-char c1 'char>?)
-  (##sys#check-char c2 'char>?)
-  (##core#inline "C_i_char_greaterp" c1 c2) )
-
-(define (char<? c1 c2)
-  (##sys#check-char c1 'char<?)
-  (##sys#check-char c2 'char<?)
-  (##core#inline "C_i_char_lessp" c1 c2) )
-
-(define (char>=? c1 c2)
-  (##sys#check-char c1 'char>=?)
-  (##sys#check-char c2 'char>=?)
-  (##core#inline "C_i_char_greater_or_equal_p" c1 c2) )
-
-(define (char<=? c1 c2)
-  (##sys#check-char c1 'char<=?)
-  (##sys#check-char c2 'char<=?)
-  (##core#inline "C_i_char_less_or_equal_p" c1 c2) )
+(define (char=? c1 c2) (##core#inline "C_i_char_equalp" c1 c2))
+(define (char>? c1 c2) (##core#inline "C_i_char_greaterp" c1 c2))
+(define (char<? c1 c2) (##core#inline "C_i_char_lessp" c1 c2))
+(define (char>=? c1 c2) (##core#inline "C_i_char_greater_or_equal_p" c1 c2))
+(define (char<=? c1 c2) (##core#inline "C_i_char_less_or_equal_p" c1 c2))
 
 (define (char-upcase c)
   (##sys#check-char c 'char-upcase)
@@ -1479,16 +1476,16 @@ EOF
 (let ((char-downcase char-downcase))
   (set! char-ci=? (lambda (x y) (eq? (char-downcase x) (char-downcase y))))
   (set! char-ci>? (lambda (x y)
-		    (##core#inline "C_i_char_greaterp"
+		    (##core#inline "C_u_i_char_greaterp"
 				   (char-downcase x) (char-downcase y))))
   (set! char-ci<? (lambda (x y)
-		    (##core#inline "C_i_char_lessp"
+		    (##core#inline "C_u_i_char_lessp"
 				   (char-downcase x) (char-downcase y))))
   (set! char-ci>=? (lambda (x y)
-		     (##core#inline "C_i_char_greater_or_equal_p"
+		     (##core#inline "C_u_i_char_greater_or_equal_p"
 				    (char-downcase x) (char-downcase y))))
   (set! char-ci<=? (lambda (x y)
-		     (##core#inline "C_i_char_less_or_equal_p"
+		     (##core#inline "C_u_i_char_less_or_equal_p"
 				    (char-downcase x) (char-downcase y)))) )
 
 (define (char-upper-case? c)
@@ -1575,7 +1572,6 @@ EOF
 (define ##sys#call-with-current-continuation (##core#primitive "C_call_cc"))
 (define (##sys#call-with-direct-continuation k) (##core#app k (##core#inline "C_direct_continuation" #f)))
 (define ##sys#call-with-cthulhu (##core#primitive "C_call_with_cthulhu"))
-(define (##sys#direct-return dk x) (##core#inline "C_direct_return" dk x))
 (define values (##core#primitive "C_values"))
 (define call-with-values (##core#primitive "C_call_with_values"))
 (define ##sys#call-with-values call-with-values)
@@ -2251,42 +2247,46 @@ EOF
 (define make-parameter
   (let ((count 0))
     (lambda (init #!optional (guard (lambda (x) x)))
-      (let ((val (guard init))
-	    (i count))
+      (let* ((val (guard init))
+	     (i count)
+	     (assign (lambda (val n convert? set?)
+		       (when (fx>= i n)
+			 (set! ##sys#current-parameter-vector
+			   (##sys#vector-resize
+			    ##sys#current-parameter-vector
+			    (fx+ i 1)
+			    ##sys#snafu) ) )
+		       (let ((val (if convert? (guard val) val)))
+			 (when set?
+			   (##sys#setslot ##sys#current-parameter-vector i val))
+			 val))))
+
 	(set! count (fx+ count 1))
 	(when (fx>= i (##sys#size ##sys#default-parameter-vector))
-	  (set! ##sys#default-parameter-vector 
+	  (set! ##sys#default-parameter-vector
 	    (##sys#vector-resize
 	     ##sys#default-parameter-vector
 	     (fx+ i 1)
 	     (##core#undefined)) ) )
 	(##sys#setslot ##sys#default-parameter-vector i val)
-	(let ((assign 
-	       (lambda (val n mode)
-		 (when (fx>= i n)
-		   (set! ##sys#current-parameter-vector
-		     (##sys#vector-resize
-		      ##sys#current-parameter-vector
-		      (fx+ i 1)
-		      ##sys#snafu) ) )
-		 (let ((val (if mode val (guard val))))
-		   (##sys#setslot ##sys#current-parameter-vector i val)
-		   val))))
-	  (getter-with-setter
-	   (lambda args
-	     (let ((n (##sys#size ##sys#current-parameter-vector)))
-	       (cond ((pair? args)
-		      (assign (car args) n (optional (cdr args) #f)))
-		     ((fx>= i n)
-		      (##sys#slot ##sys#default-parameter-vector i) )
-		     (else
-		      (let ((val (##sys#slot ##sys#current-parameter-vector i)))
-			(if (eq? val ##sys#snafu)
-			    (##sys#slot ##sys#default-parameter-vector i) 
-			    val) ) ) ) ) )
-	   (lambda (val)
-	     (let ((n (##sys#size ##sys#current-parameter-vector)))
-	       (assign val n #f)))))))))
+
+	(getter-with-setter
+	 (lambda args
+	   (let ((n (##sys#size ##sys#current-parameter-vector)))
+	     (cond ((pair? args)
+		    (let-optionals (cdr args) ((convert? #t)
+					       (set? #t))
+		      (assign (car args) n convert? set?)))
+		   ((fx>= i n)
+		    (##sys#slot ##sys#default-parameter-vector i) )
+		   (else
+		    (let ((val (##sys#slot ##sys#current-parameter-vector i)))
+		      (if (eq? val ##sys#snafu)
+			  (##sys#slot ##sys#default-parameter-vector i)
+			  val) ) ) ) ) )
+	 (lambda (val)
+	   (let ((n (##sys#size ##sys#current-parameter-vector)))
+	     (assign val n #f #t))))))))
   
 
 ;;; Input:
@@ -2298,7 +2298,8 @@ EOF
   ((##sys#slot (##sys#slot port 2) 6) port) ) ; char-ready?
 
 (define (read-char #!optional (port ##sys#standard-input))
-  (##sys#read-char/port port) )
+  (##sys#check-input-port port #t 'read-char)
+  (##sys#read-char-0 port))
 
 (define (##sys#read-char-0 p)
   (let ([c (if (##sys#slot p 6)
@@ -3161,8 +3162,7 @@ EOF
 (define ##sys#print-exit (make-parameter #f))
 
 (define ##sys#print
-  (let ((string-append string-append)
-	(case-sensitive case-sensitive)
+  (let ((case-sensitive case-sensitive)
 	(keyword-style keyword-style))
     (lambda (x readable port)
       (##sys#check-output-port port #t #f)
@@ -3176,12 +3176,11 @@ EOF
 	      (let* ((len (##sys#size str))
 		     (cpp0 (current-print-length))
 		     (cpl (fx+ cpp0 len)) )
-		(if (fx>= cpl length-limit)
-		    (cond ((fx> len 3)
-			   (let ((n (fx- length-limit cpp0)))
-			     (when (fx> n 0) (outstr0 port (##sys#substring str 0 n)))
-			     (outstr0 port "...") ) )
-			  (else (outstr0 port str)) )
+		(if (fx> cpl length-limit)
+		    (let ((n (fx- length-limit cpp0)))
+		      (when (fx> n 0) (outstr0 port (##sys#substring str 0 n)))
+		      (outstr0 port "...")
+		      ((##sys#print-exit) (##sys#void)))
 		    (outstr0 port str) )
 		(current-print-length cpl) )
 	      (outstr0 port str) ) )
@@ -3195,7 +3194,7 @@ EOF
 	      (current-print-length (fx+ cpp0 1))
 	      (when (fx>= cpp0 length-limit)
 		(outstr0 port "...")
-		((##sys#print-exit) #t) )))
+		((##sys#print-exit) (##sys#void)))))
 	  ((##sys#slot (##sys#slot port 2) 2) port chr))
 
 	(define (specialchar? chr)
@@ -3951,6 +3950,8 @@ EOF
   (when (##sys#fudge 37)		; -:H given?
     (##sys#print "\n" #f ##sys#standard-error)
     (##sys#dump-heap-state))
+  (when (##sys#fudge 45)		; -:p or -:P given?
+    (##core#inline "C_i_dump_statistical_profile"))
   (let loop ()
     (let ((tasks ##sys#cleanup-tasks))
       (set! ##sys#cleanup-tasks '())
@@ -3967,8 +3968,12 @@ EOF
 
 ;;; Condition handling:
 
+(define (##sys#debugger msg . args)
+  (##core#inline "signal_debug_event" #:debugger-invocation msg args) )
+
 (define (##sys#signal-hook mode msg . args)
   (##core#inline "C_dbg_hook" #f)
+  (##core#inline "signal_debug_event" mode msg args)
   (case mode
     [(#:user-interrupt)
      (##sys#abort
