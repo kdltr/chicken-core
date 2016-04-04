@@ -34,7 +34,7 @@
   - Removed support for (define-syntax (foo e r c) ...), which was
     undocumented and not officially supported anyway.
 
-4.10.2
+4.11.0
 
 - Security fixes
   - Specialisation rules for string-{ref,set!}, bit-set?
@@ -45,6 +45,16 @@
   - CHICKEN now supports the Linux X32 ABI (thanks to Sven Hartrumpf).
 
 - Runtime system:
+  - The calling convention of CPS procedures has been changed to
+    use "argument vectors" instead of C calling convention.
+  - The C API of C_values(), C_do_apply() and how to invoke CPS
+    functions has changed.  The C_procN() macros have disappeared.
+    The manual example in "Accessing external objects" for C_values
+    has been updated.  See also the "numbers" egg for examples on
+    how to support pre- and post-4.10.1 CHICKENs simultaneously.
+  - Apply hack is no longer used; the limitation of 128 arguments
+    has been lifted for platforms which had no apply hack.
+  - Increased the "binary compatibility version" to 8.
   - Delivery of signals in other OS-level threads is now dealt with
     in a more robust way (#1232) (thanks to Joerg Wittenberger).
   - Compiled programs with large literals won't crash on startup (#1221).
@@ -62,6 +72,7 @@
   - Don't silently truncate huge literals (thanks to Claude Marinier).
 
 - Core libraries
+  - try-compile from setup-api cleans up temporary output files (#1213).
   - SRFI-18: thread-join! no longer gives an error when passed a
     thread in the "sleeping" state (thanks to Joerg Wittenberger)
   - SRFI-18: mutex-lock! will not set ownership of mutexes when
@@ -106,23 +117,6 @@
 - Syntax expander
   - Mixed internal define/define-values are now correctly ordered, so
     later defines can refer to earlier define-values (#1274).
-
-4.10.1
-
-- Core libraries
-  - try-compile from setup-api cleans up temporary output files (#1213).
-
-- Runtime system:
-  - The calling convention of CPS procedures has been changed to
-    use "argument vectors" instead of C calling convention.
-  - The C API of C_values(), C_do_apply() and how to invoke CPS
-    functions has changed.  The C_procN() macros have disappeared.
-    The manual example in "Accessing external objects" for C_values
-    has been updated.  See also the "numbers" egg for examples on
-    how to support pre- and post-4.10.1 CHICKENs simultaneously.
-  - Apply hack is no longer used; the limitation of 128 arguments
-    has been lifted for platforms which had no apply hack.
-  - Increased the "binary compatibility version" to 8.
 
 4.10.0
 
