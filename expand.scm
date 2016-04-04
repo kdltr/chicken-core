@@ -1056,26 +1056,14 @@
    '()
    (##sys#er-transformer
     (lambda (form r c)
+      (##sys#check-syntax 'define-syntax form '(_ symbol _))
       (let ((head (cadr form))
-	    (body (cddr form)) )
-	(cond ((not (pair? head))
-	       (##sys#check-syntax 'define-syntax head 'symbol)
-	       (##sys#check-syntax 'define-syntax body '#(_ 1))
-               (let ((name (or (getp head '##core#macro-alias) head)))
-                 (##sys#register-export name (##sys#current-module)))
-	       (when (c (r 'define-syntax) head)
-		 (chicken.expand#defjam-error form))
-	       `(##core#define-syntax ,head ,(car body)))
-	      (else			; DEPRECATED
-	       (##sys#check-syntax 'define-syntax head '(_ . lambda-list))
-	       (##sys#check-syntax 'define-syntax body '#(_ 1))
-	       (when (eq? (car form) (car head))
-		 (##sys#syntax-error-hook
-		  "redefinition of `define-syntax' not allowed in syntax-definition"
-		  form))
-	       `(##core#define-syntax 
-		 ,(car head)
-		 (##sys#er-transformer (##core#lambda ,(cdr head) ,@body))))))))))
+	    (body (caddr form)))
+	(let ((name (or (getp head '##core#macro-alias) head)))
+	  (##sys#register-export name (##sys#current-module)))
+	(when (c (r 'define-syntax) head)
+	  (chicken.expand#defjam-error form))
+	`(##core#define-syntax ,head ,body))))))
 
 (define (check-for-multiple-bindings bindings form loc)
   ;; assumes correct syntax
