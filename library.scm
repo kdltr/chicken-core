@@ -3711,7 +3711,7 @@ EOF
 						      [(member tok '("optional" "rest" "key"))
 						       (build-symbol (##sys#string-append "#!" tok)) ]
 						      [else
-						       (let ((a (assq (string->symbol tok) read-marks)))
+						       (let ((a (assq (string->symbol tok) ##sys#read-marks)))
 							 (if a
 							     ((##sys#slot a 1) port)
 							     (##sys#read-error
@@ -3811,6 +3811,15 @@ EOF
     ((#\f #\F) (##sys#read-char-0 port) #f)
     ((#\t #\T) (##sys#read-char-0 port) #t)
     (else (##sys#read-error port "invalid sharp-sign read syntax" char) ) ) )
+
+
+;;; Table for specially-handled read-syntax:
+;
+; - entries should be #f or a 256-element vector containing procedures
+; - each procedure is called with two arguments, a char (peeked) and a
+;   port, and should return an expression
+
+(define ##sys#read-marks '()) ; TODO move to read-syntax module
 
 
 ;;; Output:

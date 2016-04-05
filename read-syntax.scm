@@ -36,19 +36,11 @@
 
 (include "common-declarations.scm")
 
-;;; Table for specially-handled read-syntax:
-;
-; - entries should be #f or a 256-element vector containing procedures
-; - each procedure is called with two arguments, a char (peeked) and a
-;   port, and should return an expression
-
-(define read-marks '())
-
 (define (set-read-mark! sym proc)
-  (let ((a (assq sym read-marks)))
+  (let ((a (assq sym ##sys#read-marks)))
     (if a
 	(##sys#setslot a 1 proc)
-	(set! read-marks (cons (cons sym proc) read-marks)))))
+	(set! ##sys#read-marks (cons (cons sym proc) ##sys#read-marks)))))
 
 (define ((syntax-setter loc slot wrap) chr proc)
   (if (symbol? chr)
