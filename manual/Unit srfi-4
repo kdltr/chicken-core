@@ -87,10 +87,12 @@ not including {{TO}}.
 <procedure>(read-u8vector [LENGTH [PORT]])</procedure>
 
 Reads {{LENGTH}} bytes from the {{PORT}} and returns a fresh
-{{u8vector}} or less if end-of-file is encountered. {{PORT}} defaults to the
-value of {{(current-input-port)}}.
+{{u8vector}}, or as many as are available before end-of-file is
+encountered. {{PORT}} defaults to the value of {{(current-input-port)}}.
+If no bytes are available before the end-of-file, {{#!eof}} is returned.
 
-If {{LENGTH}} is {{#f}}, the vector will be filled completely until end-of-file is reached.
+If {{LENGTH}} is {{#f}}, the vector will be filled completely until
+end-of-file is reached.
 
 <procedure>(read-u8vector! LENGTH U8VECTOR [PORT [START]])</procedure>
 

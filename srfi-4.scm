@@ -816,7 +816,9 @@ EOF
 
 (define (read-u8vector #!optional n (p ##sys#standard-input))
   (let ((str (##sys#read-string/port n p)))
-    (##core#inline "C_string_to_bytevector" str)
-    (##sys#make-structure 'u8vector str)))
+    (cond ((eof-object? str) str)
+	  (else
+	   (##core#inline "C_string_to_bytevector" str)
+	   (##sys#make-structure 'u8vector str)))))
 
 (register-feature! 'srfi-4))
