@@ -975,7 +975,7 @@
 
 (chicken.read-syntax#set-read-syntax!
  (#(procedure #:clean #:enforce) chicken.read-syntax#set-read-syntax!
-  (char (or false (procedure (input-port) . *)))
+  ((or char symbol) (or false (procedure (input-port) . *)))
   undefined))
 
 (chicken.read-syntax#set-sharp-read-syntax!
