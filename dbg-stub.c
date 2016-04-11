@@ -75,11 +75,14 @@ static WSADATA wsa;
 
 #ifdef C_SIXTY_FOUR
 # define C_HEADER_BITS_SHIFT      56
+# define UWORD_COUNT_FORMAT_STRING     "%lu"
 #else
 # define C_HEADER_BITS_SHIFT      24
+# define UWORD_COUNT_FORMAT_STRING     "%u"
 #endif
 
 #define C_VALUE_CUTOFF_LIMIT      300
+#define get_header_bits(x)        ((int)(C_header_bits((x)) >> C_HEADER_BITS_SHIFT))
 
 
 struct bp_item {
@@ -370,14 +373,14 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       break;
 
     case C_DEBUG_REPLY_GET_SLOTS:
-      sscanf(rw_buffer, "(%d %ld)", &mask, &x);
+      sscanf(rw_buffer, "(%d " UWORD_COUNT_FORMAT_STRING ")", &mask, &x);
 
       if(mask >= C_VALUE_CUTOFF_LIMIT)
         mask = C_VALUE_CUTOFF_LIMIT;
 
       if((C_header_bits(x) & C_BYTEBLOCK_BIT) != 0) {
         reply = C_header_size(x);
-        sprintf(rw_buffer, "(* BLOB %ld", C_header_bits(x) >> C_HEADER_BITS_SHIFT);
+        sprintf(rw_buffer, "(* BLOB %d", get_header_bits(x));
         send_string(rw_buffer);
 
         for(n = 0; n < reply; ++n) {
@@ -392,11 +395,11 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       n = 0;
 
       if((C_header_bits(x) & C_SPECIALBLOCK_BIT) != 0) {
-        sprintf(rw_buffer, "(* SPECIAL %ld %lu", C_header_bits(x) >> C_HEADER_BITS_SHIFT,
-          C_block_item(x, 0));
+        sprintf(rw_buffer, "(* SPECIAL %d " UWORD_COUNT_FORMAT_STRING,
+                get_header_bits(x), C_block_item(x, 0));
         n = 1;
       }
-      else sprintf(rw_buffer, "(* VECTOR %ld", C_header_bits(x) >> C_HEADER_BITS_SHIFT);
+      else sprintf(rw_buffer, "(* VECTOR %d", get_header_bits(x));
 
       send_string(rw_buffer);
 
@@ -428,11 +431,12 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       send_string("(*");
 
       for(n = 0; n < 8; ++n) {
-        sprintf(rw_buffer, " %lu", (unsigned long)stats[ n ]);
+        sprintf(rw_buffer, " " UWORD_COUNT_FORMAT_STRING, (C_uword)stats[ n ]);
         send_string(rw_buffer);
       }
 
-      sprintf(rw_buffer, " %lu)\n", (unsigned long)C_stack_pointer);
+      sprintf(rw_buffer, " " UWORD_COUNT_FORMAT_STRING ")\n",
+              (C_uword)C_stack_pointer);
       send_string(rw_buffer);
       break;
 
