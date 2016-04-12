@@ -347,7 +347,8 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       break;
 
     case C_DEBUG_REPLY_GET_BYTES:
-      n = sscanf(rw_buffer, "(%d %lu %d)", &reply, &x, &mask);
+      n = sscanf(rw_buffer, "(%d " UWORD_COUNT_FORMAT_STRING " %d)",
+                 &reply, &x, &mask);
 
       if(n != 3) terminate("invalid GET_BYTES reply");
 
