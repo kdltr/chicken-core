@@ -64,7 +64,7 @@ TYPESDB=../types.db
 cp $TYPESDB test-repository/types.db
 
 compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out"
-compile2="../csc -compiler $CHICKEN -v -I${TEST_DIR}/.. -L${TEST_DIR}.. -include-path ${TEST_DIR}/.."
+compile2="../csc -compiler $CHICKEN -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 interpret="../csi -n -include-path ${TEST_DIR}/.."
 
