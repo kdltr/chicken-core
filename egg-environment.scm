@@ -7,10 +7,16 @@
 #else
 # define STATIC_CHICKEN 1
 #endif
+#ifndef DEBUGBUILD
+# define DEBUG_CHICKEN 0
+#else
+# define DEBUG_CHICKEN 1
+#endif
 EOF
 )
 
 (define staticbuild (foreign-value "STATIC_CHICKEN" bool))
+(define debugbuild (foreign-value "DEBUG_CHICKEN" bool))
 (define cross-chicken (feature? #:cross-chicken))
 (define binary-version (foreign-value "C_BINARY_VERSION" int))
 
@@ -31,14 +37,24 @@ EOF
 
 (define default-prefix (foreign-value "C_INSTALL_PREFIX" c-string))
 (define default-bindir (foreign-value "C_INSTALL_BIN_HOME" c-string))
-(define default-csc (foreign-value "C_CSC_PROGRAM" c-string))
+
+(define default-csc 
+  (string-append default-bindir "/" (foreign-value "C_CSC_PROGRAM" c-string)))
 
 (define default-sudo (or (get-environment-variable "SUDO") "sudo"))
 
+(define default-builder
+  (string-append default-bindir "/chicken-do"))
+
 (define host-repo (foreign-value "C_INSTALL_EGG_HOME" c-string))
+(define host-incdir (foreign-value "C_INSTALL_INCLUDE_HOME" c-string))
+(define host-sharedir (foreign-value "C_INSTALL_SHARE_HOME" c-string))
 
 (define target-repo
   (string-append default-libdir "/chicken/" (number->string binary-version)))
+
+(define target-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
+(define target-sharedir (foreign-value "C_TARGET_SHARE_HOME" c-string))
 
 (define host-mode #t)
 (define target-mode #t)
