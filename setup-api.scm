@@ -647,13 +647,18 @@
   (remove-file* (make-pathname repo egg setup-file-extension)))
 
 (define ($system str)
-  (let ((r (system
-	    (if *windows-shell*
-		(string-append "\"" str "\"") ; (sic) thanks to Matthew Flatt
-		str))))
-    (unless (zero? r)
-      (error
-       (sprintf "shell command failed with nonzero exit status ~a:~%~%  ~a" r str)))))
+  (let ((str (cond (*windows-shell*
+		     (string-append "\"" str "\""))
+		    ((and (eq? (software-version) 'macosx)
+			  (get-environment-variable "DYLD_LIBRARY_PATH"))
+		     => (lambda (path)
+			  (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
+					 (qs path) " " str)))
+		    (else str))))
+    (let ((r (system str)))
+      (unless (zero? r)
+	(error
+	 (sprintf "shell command failed with nonzero exit status ~a:~%~%  ~a" r str))))))
 
 (define (setup-error-handling)
   (current-exception-handler

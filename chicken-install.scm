@@ -649,7 +649,6 @@
 				(let ((cmd (make-install-command
 					    (car e+d+v) (caddr e+d+v) (> i 1)))
 				      (name (car e+d+v)))
-				  (print "  " cmd)
 				  (keep-going 
 				   (name "installing")
 				   ($system cmd))
@@ -765,12 +764,18 @@
      (gather-egg-information dir)))      
 
   (define ($system str)
-    (let ((r (system
-              (if *windows-shell*
-                  (string-append "\"" str "\"")
-                  str))))
-      (unless (zero? r)
-        (error "shell command terminated with nonzero exit code" r str))))
+    (let ((str (cond (*windows-shell*
+		     (string-append "\"" str "\""))
+		    ((and (eq? (software-version) 'macosx)
+			  (get-environment-variable "DYLD_LIBRARY_PATH"))
+		     => (lambda (path)
+			  (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
+					 (qs path) " " str)))
+		    (else str))))
+      (print "  " str)
+      (let ((r (system str)))
+	(unless (zero? r)
+	  (error "shell command terminated with nonzero exit code" r str)))))
 
   (define (installed-extensions)
     (delete-duplicates
@@ -805,7 +810,6 @@
 
   (define (command fstr . args)
     (let ((cmd (apply sprintf fstr args)))
-      (print "  " cmd)
       ($system cmd)))
 
   (define (usage code)

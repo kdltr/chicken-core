@@ -1062,10 +1062,14 @@ EOF
 (define last-exit-code #f)
 
 (define ($system str)
-  (when verbose (print str))
-  (let ((str (if windows-shell
-		 (string-append "\"" str "\"")
-		 str)))
+  (let ((str (cond (windows-shell
+		    (string-append "\"" str "\""))
+		   ((and osx (get-environment-variable "DYLD_LIBRARY_PATH"))
+		    => (lambda (path)
+			 (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
+					(qs path) " " str)))
+		   (else str))))
+    (when verbose (print str))
     (let ((raw-exit-code (if dry-run 0 (system str))))
       (unless (zero? raw-exit-code)
 	(printf "\nError: shell command terminated with non-zero exit status ~S: ~A~%" raw-exit-code str))
