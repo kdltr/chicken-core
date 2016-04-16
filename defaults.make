@@ -329,6 +329,9 @@ endif
 ifdef DEBUGBUILD
 	$(call echo, >>, $@,#define DEBUGBUILD 1)
 endif
+ifdef STATICBUILD
+	$(call echo, >>, $@,#define STATICBUILD 1)
+endif
 	$(call echo, >>, $@,#define C_CHICKEN_PROGRAM "$(CHICKEN_PROGRAM)$(EXE)")
 	$(call echo, >>, $@,#ifndef C_INSTALL_CC)
 	$(call echo, >>, $@,# define C_INSTALL_CC "$(C_COMPILER)")
