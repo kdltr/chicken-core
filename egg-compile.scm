@@ -11,10 +11,10 @@
   '(synopsis authors category license version dependencies files
     source-file csc-options test-dependencies destination linkage
     build-dependencies components foreign-dependencies link-options
-    custom-bulild))  
+    custom-bulild target host))  
 
 (define nested-items 
-  '(components))
+  '(components target host))
 
 (define named-items
   '(extension program data c-include scheme-include))
@@ -31,10 +31,9 @@
 (define windows-executable-extension ".exe")
 (define unix-object-extension ".o")
 (define windows-object-extension ".obj")
-  
-;XXX (define staticbuild (foreign-value "STATICBUILD" bool))
-(define staticbuild #f)
 
+
+;;; validate egg-information tree
 
 (define (validate-egg-info info)
   (unless (list? info) 
@@ -52,7 +51,36 @@
                 (if (memq (car item) named-items) (cddr item) (cdr item))))))
     info))
 
-(define (compile-egg-info info platform)
+
+;;; some utilities
+
+(define (object-extension platform)
+  (case platform
+    ((unix) unix-object-extension)
+    ((windows) windows-object-extension)))
+
+(define (executable-extension platform)
+  (case platform
+     ((unix) unix-executable-extension)
+     ((windows) windows-executable-extension)))
+
+(define (install-command platform)
+  (case platform
+    ((unix) "cp")
+    ((windows) "copy /y")))
+
+(define (destination-repository mode)
+  (case mode
+    ((target) target-repo)
+    ((host) host-repo)))
+
+(define (uses-compiled-import-library? mode)
+  (not (and (eq? mode 'host) staticbuild)))
+
+
+;;; compile an egg-information tree into abstract build/install operations
+
+(define (compile-egg-info info platform mode)
   (let ((exts '())
         (prgs '())
         (data '())
@@ -68,8 +96,8 @@
         (deps '())
         (lopts '())
         (opts '())
-        (objext #f)
-        (exeext #t))
+        (objext (object-extension platform))
+        (exeext (executable-extension platform)))
     (define (check-target t lst)
       (when (member t lst)
         (error "target multiply defined" t))
@@ -79,6 +107,8 @@
       files)
     (define (compile-component info)
       (case (car info)
+        ((target) (when (eq? mode 'target) (for-each compile-component (cdr info))))
+        ((host) (when (eq? mode 'host) (for-each compile-component (cdr info))))
         ((extension)
           (fluid-let ((target (check-target (cadr info) exts))
                       (deps '())
@@ -94,7 +124,11 @@
               (if staticbuild
                   (conc target ".import.scm")
                   (conc target ".import.so")))
-            (set! exts (cons (list target deps src opts lopts link cbuild) exts))))
+            (set! exts 
+              (cons (list target dependencies: deps source: src options: opts 
+                          link-options: lopts linkage: link custom: cbuild
+                          mode: mode)                         
+                    exts))))
         ((data)
           (fluid-let ((target (check-target (cadr info) data))
                       (dest #f)
@@ -102,7 +136,10 @@
             (for-each compile-data/include (cddr info))
             (let ((dest (normalize-pathname (conc dest "/"))))
               (for-each addfiles (map (cut conc dest <>) files)))
-            (set! data (cons (list target '() files dest) data))))
+            (set! data
+              (cons (list target dependencies: '() files: files 
+                          destination: dest mode: mode) 
+                    data))))                      
         ((c-include)
           (fluid-let ((target (check-target (cadr info) cinc))
                       (dest #f)
@@ -110,7 +147,10 @@
             (for-each compile-data/include (cddr info))
             (let ((dest (normalize-pathname (conc dest "/"))))
               (for-each addfiles (map (cut conc dest <>) files)))
-            (set! cinc (cons (list target '() files dest) cinc))))
+            (set! cinc
+              (cons (list target dependencies: '() files: files 
+                          destination: dest mode: mode) 
+                    cinc))))            
         ((scheme-include)
           (fluid-let ((target (check-target (cadr info) scminc))
                       (dest #f))
@@ -118,7 +158,10 @@
             (for-each compile-data/include (cddr info))
             (let ((dest (normalize-pathname (conc dest "/"))))
               (for-each addfiles (map (cut conc dest <>) files)))
-            (set! scminc (cons (list target '() files dest) scminc)))
+            (set! scminc 
+              (cons (list target dependencies: '() files: files 
+                          destination: dest mode: mode) 
+                    scminc)))           
         ((program)
           (fluid-let ((target (check-target (cadr info) prgs))
                       (deps '())
@@ -129,9 +172,17 @@
                       (opts '()))
             (for-each compile-extension/program (cddr info))
             (addfiles (conc target exeext))
-            (set! prgs (cons (list target deps src opts lopts link cbuild) prgs))))))
+            (set! prgs 
+              (cons (list target dependencies: deps source: src options: opts 
+                          link-options: lopts linkage: link custom: cbuild
+                          mode: mode)                         
+                    prgs))))))
     (define (compile-extension/program info)
       (case (car info)
+        ((target) 
+          (when (eq? mode 'target) (for-each compile-extension/program (cdr info))))
+        ((host) 
+          (when (eq? mode 'host) (for-each compile-extension/program (cdr info))))
         ((linkage) 
          (set! link (cdr info)))
         ((custom-build)
@@ -146,6 +197,8 @@
          (set! deps (append deps (map ->dep (cdr info)))))))
     (define (compile-data/include info)
       (case (car info)
+        ((target) (when (eq? mode 'target) (for-each compile-data/include (cdr info))))
+        ((host) (when (eq? mode 'host) (for-each compile-data/include (cdr info))))
         ((destination)
          (set! dest (->string (arg info 1 name?))))
         ((files) 
@@ -154,6 +207,8 @@
       (if (name? x) x (error "invalid dependency" x)))
     (define (compile info)
       (case (car info)
+        ((target) (when (eq? mode 'target) (for-each compile (cdr info))))
+        ((host) (when (eq? mode 'host) (for-each compile (cdr info))))
         ((components) (for-each compile-component (cdr info)))))
     (define (arg info n #!optional (pred (constantly #t)))
       (when (< (length info) n)
@@ -177,13 +232,6 @@
                          (assq dep scminc)
                          (error "unknown component dependency" dep name))))
               deps))
-    (case platform
-      ((unix) 
-        (set! objext unix-object-extension)
-        (set! exeext unix-executable-extension))
-      ((windows) 
-        (set! objext windows-object-extension)
-        (set! exeext windows-executable-extension)))
     ;; collect information
     (for-each compile info)
     ;; sort topologically, by dependencies
@@ -191,7 +239,9 @@
                    (topological-sort          
                      (map (lambda (dep)
                             (cons (car dep) 
-                                  (filter-deps (car dep) (cadr dep))))
+                                  (filter-deps 
+                                    (car dep)                                       
+                                    (get-keyword dependencies: (cdr dep)))))
                           exts)
                       dep=?))))
       ;; generate + return build/install commands
@@ -201,7 +251,7 @@
           (foldr
             (lambda (t cmds)
               (let* ((data (assq t exts))
-                     (link (list-ref data 5)))
+                     (link (get-keyword linkage: (cdr data))))
                 (append
                   (if (memq 'static link) 
                       `((compile-static-extension ,@data))
@@ -209,12 +259,14 @@
                   (if (memq 'dynamic link) 
                       `((compile-dynamic-extension ,@data))
                       '())
-                  `((compile-import-library ,@data))
+                  (if (uses-compiled-import-library? mode)
+                      `((compile-import-library ,@data))
+                      '())
                   cmds)))
             '() order)
           (foldr
             (lambda (prg cmds)   
-              (let ((link (list-ref prg 5)))
+              (let ((link (get-keyword linkage: (cdr prg))))
                 (append
                   (if (memq 'static link) 
                        `((compile-static-program ,@prg))
@@ -227,7 +279,22 @@
             prgs))
         ;; installation commands
         (append
-          (map (lambda (ext) `(install-extension ,@ext)) exts)
+          (append-map
+            (lambda (ext)          
+              (let ((link (get-keyword linkage: (cdr ext))))
+                (if (memq 'static link)
+                    `((install-static-extension ,@ext))
+                    '())
+                (if (memq 'dynamic link)
+                    `((install-dynamic-extension ,@ext))
+                    '())))
+             exts)
+          (append-map
+            (lambda (ext) 
+              (if (uses-compiled-import-library? (get-keyword mode: ext))
+                  `((install-import-library ,@ext))
+                  '()))
+            exts)
           (map (lambda (prg) `(install-program ,@prg)) prgs)
           (map (lambda (data) `(install-data ,@data)) data)
           (map (lambda (cinc) `(install-c-include ,@cinc)) cinc)
@@ -236,50 +303,113 @@
         (cons `(installed-files ,@ifiles) info)))))
 
 
-;;; shell code generation
+;;; shell code generation - build operations
 
-(define (gen-compile-static-extension platform name deps src opts lopts link cbuild)
-  ...)
+(define (gen-compile-static-extension name #!key mode platform dependencies source 
+                                      options custom)
+  (let ((cmd (or custom 
+                 (conc default-csc " -D compiling-extension -c -J -unit " name
+                       " -D compiling-static-extension")))
+        (out (quotearg (target-file (conc name (object-extension platform)) mode)))
+        (src (quotearg (or source (conc name ".scm")))))
+    (conc (slashify default-builder) " " out " " cmd (arglist options) 
+          " " src " -o " out " : "
+          src (arglist dependencies))))
 
-(define (gen-compile-dynamic-extension platform name deps src opts lopts link cbuild)
-  ...)
+(define (gen-compile-dynamic-extension name #!key mode platform dependencies mode
+                                       source options link-options custom)
+  (let ((cmd (or custom 
+                 (conc default-csc " -D compiling-extension -J -s")))
+        (out (quotearg (target-file (conc name ".so") mode)))
+        (src (quotearg (or source (conc name ".scm")))))
+    (conc (slashify default-builder) " " out " " cmd (arglist options)
+          (arglist link-options) " " src " -o " out " : "
+          src (arglist dependencies))))
 
-(define (gen-compile-import-library platform name deps src opts lopts link cbuild)
-  ...)
+(define (gen-compile-import-library name #!key platform dependencies source kmode
+                                    options link-options custom)
+  (let ((cmd (or custom (conc default-csc " -s")))
+        (out (quotearg (target-file (conc name ".import.so") mode)))
+        (src (quotearg (or source (conc name ".import.scm")))))
+    (conc (slashify default-builder) " " out " " cmd (arglist options)
+          (arglist link-options) " " src " -o " out " : "
+          src (arglist dependencies))))
 
-(define (gen-compile-dynamic-program platform name deps src opts lopts link cbuild)
-  ...)
+(define (gen-compile-dynamic-program name #!key platform dependencies source mode
+                                     options link-options custom)
+  (let ((cmd (or custom default-csc))
+        (out (quotearg 
+               (target-file (conc name (executable-extension platform)) mode)))
+        (src (quotearg (or source (conc name ".scm")))))
+    (conc (slashify default-builder) " " out " " cmd (arglist options)
+          (arglist link-options) " " src " -o " out " : "
+          src (arglist dependencies))))
 
-(define (gen-compile-static-program platform name deps src opts lopts link cbuild)
-  ...)
+(define (gen-compile-static-program name #!key platform dependencies source
+                                    options link-options custom mode)
+  (let ((cmd (or custom (conc default-csc " -static-libs")))
+        (out (quotearg 
+               (target-file (conc name (executable-extension platform)) mode)))
+        (src (quotearg (or source (conc name ".scm")))))
+    (conc (slashify default-builder) " " out " " cmd (arglist options)
+          (arglist link-options) " " src " -o " out " : "
+          src (arglist dependencies))))
 
-(define (gen-install-extension platform name deps src opts lopts link cbuild)
-  ...)
 
-(define (gen-install-program platform name deps src opts lopts link cbuild)
-  ...)
+;; installation operations
 
-(define (gen-install-data platform name deps files dest)
-  ...)
+(define (gen-install-static-extension name #!key platform mode)
+  (let* ((cmd (install-command platform))
+         (ext (object-extension platform))
+         (out (quotearg (target-file (conc name ext) mode)))
+         (dest (destination-repository mode)))
+    (conc cmd " " out " " (quotearg (conc dest "/" name ext)))))
 
-(define (gen-install-c-include platform name deps files dest)
-  ...)
+(define (gen-install-dynamic-extension name #!key platform mode)
+  (let ((cmd (install-command platform))
+        (out (quotearg (target-file (conc name ".so") mode)))
+        (dest (destination-repository mode)))
+    (conc cmd " " out " " (quotearg (conc dest "/" name ".so")))))
 
-(define (gen-install-scheme-include platform name deps files dest)
-  ...)
+(define (gen-install-import-library name #!key platform mode)
+  (let ((cmd (install-command platform))
+        (out (quotearg (target-file (conc name ".import.so") mode)))
+        (dest (destination-repository mode)))
+    (conc cmd " " out " " (quotearg (conc dest "/" name ".import.so")))))
+
+(define (gen-install-program name #!key platform mode)
+  (let* ((cmd (install-command platform))
+         (ext (executable-extension platform))
+         (out (quotearg (target-file (conc name ext) mode)))
+         (dest (destination-repository mode)))
+    (conc cmd " " out " " (quotearg (conc dest "/" name ext)))))
+
+(define (gen-install-data name #!key platform files destination)
+  (let* ((cmd (install-command platform))
+         (dest (or dest (if (eq? mode 'target) target-sharedir host-sharedir))))
+    (conc cmd (arglist files) " " (quotearg dest))))
+
+(define (gen-install-c-include name #!key platform deps files dest)
+  (let* ((cmd (install-command platform))
+         (dest (or dest (if (eq? mode 'target) target-incdir host-incdir))))
+    (conc cmd " " (arglist files) " " (quotearg dest))))
 
 (define command-table
   `((compile-static-extension ,gen-compile-static-extension)
     (compile-dynamic-extension ,gen-compile-dynamic-extension)
     (compile-dynamic-program ,gen-compile-dynamic-program)
     (compile-static-program ,gen-compile-static-program)
-    (install-extension ,gen-install-extension)
+    (install-static-extension ,gen-install-static-extension)
+    (install-dynamic-extension ,gen-install-dynamic-extension)
+    (install-import-library ,gen-install-import-library)
     (install-data ,gen-install-data)
     (compile-import-library ,gen-compile-import-library)
     (install-data ,gen-install-data)
     (install-c-include ,gen-install-c-include)
-    (install-scheme-include ,gen-install-scheme-include)
+    (install-scheme-include ,gen-install-data)))  ;; might be extended
 
+
+;;; Generate shell or batch commands from abstract build/install operations
 
 (define (generate-shell-commands platform cmds dest prefix suffix)
   (with-output-to-file dest
@@ -288,7 +418,8 @@
       (for-each
         (lambda (cmd)
           (cond ((assq (car cmd) command-table)
-                  => (lambda (op) (apply (cadr op) platform (cdr cmd))))
+                  => (lambda (op) 
+                       (apply (cadr op) (cons* platform: platform (cddr cmd)))))
                 (else (error "invalid command" cmd))))
         cmds)
       (suffix))))
@@ -298,7 +429,7 @@
 
 (define (quotearg str)
   (let ((lst (string->list str)))
-    (if (foldl char-whitespace? #f lst)
+    (if (any char-whitespace? lst)
         (string-append "\"" str "\"")
         str)))
 
@@ -315,8 +446,14 @@
       (string-append "\"" str "\"")
       str))
 
+(define (target-file fname mode)
+  (if (eq? mode 'target) (string-append fname ".target") fname))
+
+(define (arglist lst)
+  (apply conc (map (lambda (x) (conc " " (quotearg x))) lst)))
+
 
 ;;
 
 (set! hyde (with-input-from-file "hyde.egg" read))
-(pp (receive (compile-egg-info hyde 'unix)))
+(pp (receive (compile-egg-info hyde 'unix 'host)))
