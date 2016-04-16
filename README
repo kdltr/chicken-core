@@ -148,9 +148,6 @@
         the final lines before Make's "error; exit" output.  If the
         check fails on unmodified sources, please file a bugreport.
 
-        Currently "make check" only works if you have installed
-        CHICKEN.
-
     2.5. Optional features
 
         You can further enable various optional features by adding
@@ -432,15 +429,6 @@
 	  - If you want to build Linux binaries which use the "X32 ABI",
 	    you can pass ARCH=x32 on the Make command line.
 
-	  - Some old Linux distributions ship with a buggy version of
-	    the GNU C compiler (2.96). If the system is configured for
-	    kernel recompilation, then an alternative GCC version is
-	    available under the name `kgcc' (GCC 2.96 can not recompile
-	    the kernel). CHICKEN's configuration script should normally
-	    be able to handle this problem, but you have to remember to
-	    compile your translated Scheme files with `kgcc' instead of
-	    `gcc'.
-
           - There have been reports where the library directory
 	    "/usr/lib64" could not be found at build-time on a Fedora
 	    12 system. If you build a 64-bit version of CHICKEN and
@@ -478,18 +466,6 @@
             subdirectories, respectively. To override these locations,
             set XCODE_DEVELOPER and XCODE_TOOL_PATH on the make(3)
             command line.
-
-	  - On 10.6 and 10.7, CHICKEN may incorrectly select a 32-bit build
-	    environment when it should be building 64-bit, resulting in a
-	    build error.  This occurs when you have a 32-bit kernel and a
-	    64-bit gcc (that is, on Core 2 Duo systems running 10.6 Desktop).
-	    If this bites you, you'll get the following error or similar:
-
-	      apply-hack.x86.S:35:suffix or operands invalid for `call'
-
-	    As a workaround, manually force the build into 64-bit mode:
-
-	      make PLATFORM=macosx ARCH=x86-64
 
 	  - CHICKEN will normally select a 32-bit or 64-bit build
 	    automatically when you use the normal build step:
@@ -599,14 +575,6 @@
 	    preparing the next test.
 	    To work around this in Windows Defender (the default),
 	    disable "realtime protection" under tools->options.
-
-	  - gcc 3.4 shows sometimes warnings of the form
-
-	      easyffi.c: In function `f_11735':
-	      easyffi.c:18697: warning: `noreturn' function does return
-
-	    when compiling the system or compiled Scheme files. These
-	    warnings are bogus and can be ignored.
 
 	AIX:
 
