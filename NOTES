@@ -2,24 +2,35 @@ NOTES (new install)
 ===============
 
 
-* TODO Create branch
-
 * Complete egg-info compilation
 ** TODO Shell-script (batch-file) generation
-    - respect settings in chicken-config.h
-** TODO Ise "linkage" declaration for extensions + programs
+    - respect settings in chicken-config.h (STATICBUILD, etc.)
+        - see egg-environment.scm
+** Link-options are passed directly to csc
+    - is this right?
+** TODO Use "linkage" declaration for extensions + programs
     - add default compile/link options depending on linkage in code-generators.
-** TODO Obtain "executable-extension" somehow
-    - should be able to run for all platforms, so use global setting that can be modified by cmdline.
+** TODO What should the default optimization options be?
+    - also for compiled import libraries.
+    - respect DEBUGBUILD?
 ** TODO Do validation of egg-info at some stage
-** TODO A chicken built with STATICBUILD needs to install import libs as source
-    - see use of "addfiles" for extension.
-    - can this be figured out from chicken-config.h?
 
 * TODO repository-path
     - allow multiple locations?
     - might be needed anyway, unless components are to be usable only when installed.
     - CHICKEN_REPOSITORY
+    - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
+      installation target.
+
+* Setup features
+** TODO Keep binaries + intermediate files.   
+** TODO "keep-going" mode.
+** TODO "-feature" + "-no-feature"
+** TODO Hack for OSX SIP?
+
+* TODO "build-dependencies" 
+    - toplevel deps that are needed during build, override "dependencies", if given.
+    - or is the intent differently? Ask moritz.
 
 * TODO Extract download stuff
 
@@ -27,28 +38,26 @@ NOTES (new install)
 
 * TODO Check what cmdline options to retain
 ** TODO Option for explicitly generating Windows/UNIX build/install scripts
+    - i.e. selecting target platform.
 
 * Things to resolve
-** TODO setup-info files
-    - add installed files of all components.
-        - collect when compiling commands and return updated egg-info as 3rd result.
-        - new egg-info (setup-info) can be stored in build-directory.
-        - respect obj-extensions for platform.
-        - default dests: share/chicken, include
-        - separate commands for build/install obj + so
-    - one for the whole egg (use "components" to find associated parts).
-    - "extension-information"
+** setup-info files
+*** one for the whole egg (use "components" to find associated parts).
+*** TODO Fix "extension-information"
+    - syntax-only extensions.
+    - on a statically built chicken, import-libs need to be installed as source.
 ** TODO setup.defaults
 ** TODO Retrieval from local directory
-** TODO Cross-build + cross-chickens
-    - "-target"/"-host"
-** TODO CHICKEN_PREFIX?
+** Cross-build + cross-chickens
+*** TODO Allow compilation in different build-dirs to avoid stale binaries.
+
+* TODO Drop CHICKEN_PREFIX
 
 * Drop
 ** TODO svn transport
 ** TODO deployment
 
-* TODO Remove setup-api/setup-download
+* TODO Remove setup-api/setup-download from repo
 
 * Build/install scripts
 ** TODO fully sh(1) compatible
@@ -61,13 +70,13 @@ NOTES (new install)
         - http://www.cplusplus.com/forum/windows/3398/ and
           http://www.cplusplus.com/forum/beginner/1988/3/#msg14102
 ** TODO Consider making this powerful enough to build chicken
+    - needs support for object-files (C or Scheme) and building libraries.
 ** TODO Handle case where program and extension in egg have same name
     - e.g. "hyde" in hyde egg.
-    - can we ignore this, if source files have different names, just compiling exe/so directly should
+    - can we ignore this? if source files have different names, just compiling exe/so directly should
       work.
 
 * Install scripts
-** TODO fully sh(1) compatible
 ** TODO Allow overrriding DESTDIR, PREFIX
 ** TODO Install setup-info
 ** TODO Use install(1) ?
@@ -80,3 +89,5 @@ NOTES (new install)
 * TODO Copyright headers
 
 * TODO Documentation
+    - remove old and obsolete stuff (deployment, dropped options, etc.)
+    - chicken-do
