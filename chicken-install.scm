@@ -36,7 +36,8 @@
 	  chicken.irregex
 	  chicken.ports
 	  chicken.posix
-	  chicken.pretty-print)
+	  chicken.pretty-print
+	  (only chicken.utils qs))
 
   (include "mini-srfi-1.scm")
 
