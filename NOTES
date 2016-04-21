@@ -3,17 +3,12 @@ NOTES (new install)
 
 
 * Complete egg-info compilation
-** TODO Shell-script (batch-file) generation
-    - respect settings in chicken-config.h (STATICBUILD, etc.)
-        - see egg-environment.scm
-** Link-options are passed directly to csc
-    - is this right?
-** TODO Use "linkage" declaration for extensions + programs
-    - add default compile/link options depending on linkage in code-generators.
 ** TODO What should the default optimization options be?
     - also for compiled import libraries.
     - respect DEBUGBUILD?
 ** TODO Do validation of egg-info at some stage
+** TODO Ensure destination directories exist
+** TODO Install commands must respect DESTDIR.
 
 * TODO repository-path
     - allow multiple locations?
@@ -21,6 +16,10 @@ NOTES (new install)
     - CHICKEN_REPOSITORY
     - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
       installation target.
+
+* Issues
+** Link-options are passed directly to csc
+    - is this right?
 
 * Setup features
 ** TODO Keep binaries + intermediate files.   
@@ -32,9 +31,18 @@ NOTES (new install)
     - toplevel deps that are needed during build, override "dependencies", if given.
     - or is the intent differently? Ask moritz.
 
-* TODO Extract download stuff
+* Download/build directories
+** TODO download into cache dir (".chicken-install-download")
+** TODO build in temp dir (".chicken-install build")
+    - remove if not "-k" and all goes well.
+        - use different name (or ".") in case of "-k"?
+    - print directories on failure?
+** TODO special mode if installing directory from source dir
 
-* TODO Temporary directory for saving scripts + intermediate files
+* TODO Extract download stuff
+** TODO Drop extension listing
+** TODO Simplify "local" transport
+    - no tag or trunk directories.
 
 * TODO Check what cmdline options to retain
 ** TODO Option for explicitly generating Windows/UNIX build/install scripts
@@ -44,12 +52,11 @@ NOTES (new install)
 ** setup-info files
 *** one for the whole egg (use "components" to find associated parts).
 *** TODO Fix "extension-information"
-    - syntax-only extensions.
-    - on a statically built chicken, import-libs need to be installed as source.
+*** TODO syntax-only extensions
 ** TODO setup.defaults
 ** TODO Retrieval from local directory
-** Cross-build + cross-chickens
-*** TODO Allow compilation in different build-dirs to avoid stale binaries.
+** TODO Cross-build + cross-chickens
+    - needs to compile egg info twice (host- + target-mode).
 
 * TODO Drop CHICKEN_PREFIX
 
