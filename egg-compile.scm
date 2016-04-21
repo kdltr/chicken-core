@@ -1,12 +1,6 @@
 ;;;; egg-info processing and compilation
 
 
-(import (chicken))
-(import (chicken data-structures))
-(import (chicken pretty-print))
-(import (chicken files))
-
-
 (define valid-items
   '(synopsis authors category license version dependencies files
     source-file csc-options test-dependencies destination linkage
@@ -118,12 +112,13 @@
                       (lopts '())
                       (opts '()))
             (for-each compile-extension/program (cddr info))
-            (addfiles 
-              (if (memq 'static link) (conc target objext) '())
-              (if (memq 'dynamic link) (conc target ".so") '())
-              (if staticbuild
-                  (conc target ".import.scm")
-                  (conc target ".import.so")))
+            (let ((dest (destination-repository mode)))
+              (addfiles 
+                (if (memq 'static link) (conc dest "/" target objext) '())
+                (if (memq 'dynamic link) (conc dest "/" target ".so") '())
+                (if (uses-compiled-import-library? mode)
+                    (conc dest "/" target ".import.so")
+                    (conc dest "/" target ".import.scm"))))
             (set! exts 
               (cons (list target dependencies: deps source: src options: opts 
                           link-options: lopts linkage: link custom: cbuild
@@ -134,7 +129,9 @@
                       (dest #f)
                       (files '()))
             (for-each compile-data/include (cddr info))
-            (let ((dest (normalize-pathname (conc dest "/"))))
+            (let* ((dest (or dest 
+                             (if (eq? mode 'target) target-sharedir host-sharedir)))
+                   (dest (normalize-pathname (conc dest "/"))))
               (for-each addfiles (map (cut conc dest <>) files)))
             (set! data
               (cons (list target dependencies: '() files: files 
@@ -145,7 +142,9 @@
                       (dest #f)
                       (files '()))
             (for-each compile-data/include (cddr info))
-            (let ((dest (normalize-pathname (conc dest "/"))))
+            (let* ((dest (or dest 
+                             (if (eq? mode 'target) target-incdir host-incdir)))
+                   (dest (normalize-pathname (conc dest "/"))))
               (for-each addfiles (map (cut conc dest <>) files)))
             (set! cinc
               (cons (list target dependencies: '() files: files 
@@ -156,7 +155,9 @@
                       (dest #f))
                       (files '()))
             (for-each compile-data/include (cddr info))
-            (let ((dest (normalize-pathname (conc dest "/"))))
+            (let* ((dest (or dest
+                             (if (eq? mode 'target) target-sharedir host-sharedir)))
+                   (dest (normalize-pathname (conc dest "/"))))
               (for-each addfiles (map (cut conc dest <>) files)))
             (set! scminc 
               (cons (list target dependencies: '() files: files 
@@ -171,7 +172,8 @@
                       (lopts '())
                       (opts '()))
             (for-each compile-extension/program (cddr info))
-            (addfiles (conc target exeext))
+            (let ((dest (if (eq? mode 'target) target-bindir host-bindir)))
+              (addfiles (conc dest "/" target exeext)))
             (set! prgs 
               (cons (list target dependencies: deps source: src options: opts 
                           link-options: lopts linkage: link custom: cbuild
@@ -289,12 +291,11 @@
                     `((install-dynamic-extension ,@ext))
                     '())))
              exts)
-          (append-map
-            (lambda (ext) 
-              (if (uses-compiled-import-library? (get-keyword mode: ext))
-                  `((install-import-library ,@ext))
-                  '()))
-            exts)
+          (map (lambda (ext) 
+                  (if (uses-compiled-import-library? (get-keyword mode: ext))
+                     `(install-import-library ,@ext)
+                     `(install-import-library-source ,@ext)))
+               exts)
           (map (lambda (prg) `(install-program ,@prg)) prgs)
           (map (lambda (data) `(install-data ,@data)) data)
           (map (lambda (cinc) `(install-c-include ,@cinc)) cinc)
@@ -363,36 +364,42 @@
          (ext (object-extension platform))
          (out (quotearg (target-file (conc name ext) mode)))
          (dest (destination-repository mode)))
-    (conc cmd " " out " " (quotearg (conc dest "/" name ext)))))
+    (conc cmd " " out " " (quotearg (slashify (conc dest "/" name ext))))))
 
 (define (gen-install-dynamic-extension name #!key platform mode)
   (let ((cmd (install-command platform))
         (out (quotearg (target-file (conc name ".so") mode)))
         (dest (destination-repository mode)))
-    (conc cmd " " out " " (quotearg (conc dest "/" name ".so")))))
+    (conc cmd " " out " " (quotearg (slashify (conc dest "/" name ".so"))))))
 
 (define (gen-install-import-library name #!key platform mode)
   (let ((cmd (install-command platform))
         (out (quotearg (target-file (conc name ".import.so") mode)))
         (dest (destination-repository mode)))
-    (conc cmd " " out " " (quotearg (conc dest "/" name ".import.so")))))
+    (conc cmd " " out " " (quotearg (slashify (conc dest "/" name ".import.so"))))))
+
+(define (gen-install-import-library-source name #!key platform mode)
+  (let ((cmd (install-command platform))
+        (out (quotearg (target-file (conc name ".import.scm") mode)))
+        (dest (destination-repository mode)))
+    (conc cmd " " out " " (quotearg (slashify (conc dest "/" name ".import.scm"))))))
 
 (define (gen-install-program name #!key platform mode)
   (let* ((cmd (install-command platform))
          (ext (executable-extension platform))
          (out (quotearg (target-file (conc name ext) mode)))
-         (dest (destination-repository mode)))
-    (conc cmd " " out " " (quotearg (conc dest "/" name ext)))))
+         (dest (if (eq? mode 'target) target-bindir host-bindir9)))
+    (conc cmd " " out " " (quotearg (slashify (conc dest "/" name ext))))))
 
 (define (gen-install-data name #!key platform files destination)
   (let* ((cmd (install-command platform))
          (dest (or dest (if (eq? mode 'target) target-sharedir host-sharedir))))
-    (conc cmd (arglist files) " " (quotearg dest))))
+    (conc cmd (arglist files) " " (quotearg (slashify dest)))))
 
 (define (gen-install-c-include name #!key platform deps files dest)
   (let* ((cmd (install-command platform))
          (dest (or dest (if (eq? mode 'target) target-incdir host-incdir))))
-    (conc cmd " " (arglist files) " " (quotearg dest))))
+    (conc cmd " " (arglist files) " " (quotearg (slashify dest)))))
 
 (define command-table
   `((compile-static-extension ,gen-compile-static-extension)
@@ -402,6 +409,7 @@
     (install-static-extension ,gen-install-static-extension)
     (install-dynamic-extension ,gen-install-dynamic-extension)
     (install-import-library ,gen-install-import-library)
+    (install-import-library-source ,gen-install-import-library-source)
     (install-data ,gen-install-data)
     (compile-import-library ,gen-compile-import-library)
     (install-data ,gen-install-data)
