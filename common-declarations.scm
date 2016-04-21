@@ -34,7 +34,7 @@
   (er-macro-transformer
    (lambda (x r c)
      (cond-expand
-       (chicken-5 `(void))
+       (chicken-5 `(##core#undefined))
        (chicken-4 `(##core#inline_allocate ("C_a_i_provide" 8) ',(cadr x)))))))
 
 (cond-expand
