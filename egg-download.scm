@@ -1,0 +1,218 @@
+;;;; egg download
+
+
+(define +default-tcp-connect-timeout+ 30000) ; 30 seconds
+(define +default-tcp-read/write-timeout+ 30000) ; 30 seconds
+(define +url-regex+ "(http://)?([^/:]+)(:([^:/]+))?(/.*)?")
+
+(tcp-connect-timeout +default-tcp-connect-timeout+)
+(tcp-read-timeout +default-tcp-read/write-timeout+)
+(tcp-write-timeout +default-tcp-read/write-timeout+)
+
+(define user-agent (conc "chicken-install " (chicken-version)))
+(define mode 'default)
+(define quiet #f)
+
+
+;; Simpler replacement for SRFI-13's string-suffix?
+(define (string-suffix? suffix s)
+  (let ((len-s (string-length s))
+        (len-suffix (string-length suffix)))
+     (and (not (< len-s len-suffix))
+          (string=? suffix
+   	            (substring s (- len-s len-suffix))))))
+
+
+(define (d fstr . args)
+  (let ((port (if quiet (current-error-port) (current-output-port))))
+    (apply fprintf port fstr args)
+    (flush-output port) ) )
+
+(define (deconstruct-url url)
+  (let ((m (irregex-match +url-regex+ url)))
+    (values
+     (if m (irregex-match-substring m 2) url)
+     (if (and m (irregex-match-substring m 3))
+         (let ((port (irregex-match-substring m 4)))
+           (or (string->number port)
+	       (error "not a valid port" port)))
+	 80)
+     (or (and m (irregex-match-substring m 5))
+         "/"))))
+
+(define (download-egg egg url #!key version destination tests
+                      proxy-host proxy-port proxy-user-pass)
+  (receive (host port locn) (deconstruct-url url)
+    (let* ((locn (conc locn
+		    "?name=" egg
+		    "&release=" (##sys#fudge 41)
+		    (if version (string-append "&version=" version) "")
+		    "&mode=" mode
+		    (if tests "&tests=yes" "")))
+	   (eggdir (make-pathname destination egg))
+	   (pre-existing-dir? (file-exists? eggdir)) )
+	(unless pre-existing-dir? (create-directory eggdir))
+	(handle-exceptions exn
+	    (begin (unless pre-existing-dir? (remove-directory eggdir))
+		   (signal exn))
+	 (let ((fversion	(http-fetch host port locn eggdir proxy-host
+                           proxy-port proxy-user-pass)))
+	   ;; If we get here then version of egg exists
+	   (values eggdir (or fversion version "")) )) ) ))
+
+(define (http-fetch host port locn dest proxy-host proxy-port proxy-user-pass)
+  (let-values (((in out)
+    	         (http-connect host port locn proxy-host proxy-port
+                               proxy-user-pass)))
+    (http-retrieve-files in out dest)))
+
+(define (http-connect host port locn proxy-host proxy-port proxy-user-pass)
+  (d "connecting to host ~s, port ~a ~a...~%" host port
+     (if proxy-host
+         (sprintf "(via ~a:~a) " proxy-host proxy-port)
+         ""))
+  (let-values (((in out)
+                  (tcp-connect (or proxy-host host) (or proxy-port port))))
+    (d "requesting ~s ...~%" locn)
+    (let ((req (make-HTTP-GET/1.1 locn user-agent host 
+                        port: port accept: "*/*"
+			proxy-host: proxy-host proxy-port: proxy-port)))
+      (display req out)
+      (flush-output out)
+      (d "reading response ...~%")
+      (let* ((chunked #f)
+             (h1 (read-line in))
+             (response-match (match-http-response h1)))
+        (d "~a~%" h1)
+        ;;XXX handle redirects here
+        (if (response-match-code? response-match 407)
+            (let-values (((inpx outpx) (tcp-connect proxy-host proxy-port)))
+	      (set! in inpx) (set! out outpx)
+	      (display
+	        (make-HTTP-GET/1.1 
+		  locn *chicken-install-user-agent* host port: port 
+                  accept: "*/*"
+		  proxy-host: proxy-host proxy-port: proxy-port 
+		  proxy-user-pass: proxy-user-pass)
+		out)
+	      (unless (response-match-code? response-match 200)
+		(network-failure "invalid response from server" h1)))
+	    (let loop ()
+    	      (let ((ln (read-line in)))
+	        (unless (equal? ln "")
+		  (when (match-chunked-transfer-encoding ln) (set! chunked #t))
+		  (d "~a~%" ln)
+		  (loop) ) ) ) )
+	(when chunked
+	  (d "reading chunks ")
+	  (let ((data (read-chunks in)))
+	    (close-input-port in)
+	    (set! in (open-input-string data))) ) )
+      (values in out))))
+
+(define (http-retrieve-files in out dest)
+  (d "reading files ...~%")
+  (let ((version #f))
+    (define (skip)
+      (let ((ln (read-line in)))
+        (cond ((or (eof-object? ln)
+   	           (irregex-match " *#!eof *" ln))
+	        (open-input-string ""))
+	       ((irregex-match " *#\\|[- ]*([^- ]*) *\\|#.*" ln) =>
+	         (lambda (m)
+		   (let ((v (irregex-match-substring m 1)))
+		     (cond ((or (string=? "" v) (string=? "#f" v)))
+			   ((and version (not (string=? v version)))
+			    (warning "files versions are not identical" 
+                              ln version)     
+			    (set! version #f))
+			   (else
+			    (set! version v)))
+		     (open-input-string ln))))
+	       ((irregex-match "^[ ]*\\(error .*\\)[ ]*$" ln)
+		 (open-input-string ln)) ; get-files deals with errors
+	       ((irregex-match '(* ("\x09\x0a\x0b\x0c\x0d\x20\xa0")) ln)
+		 (skip)) ; Blank line.
+	       (else
+		 (error "unrecognized file-information - possibly corrupt transmission" 
+			ln)))))
+    (let get-files ((files '()))
+      (let* ((ins (skip))
+	      (name (read ins)))
+        (cond ((and (pair? name) (eq? 'error (car name)))
+            	   (throw-server-error (cadr name) (cddr name)))
+	      ((or (eof-object? name) (not name))
+	        (close-input-port in)
+	        (close-output-port out)
+	        version)
+	      ((not (string? name))
+	        (error "invalid file name - possibly corrupt transmission" 
+                       name) )         
+	      ((string-suffix? "/" name)
+	        (d "  ~a~%" name)
+	        (create-directory (make-pathname dest name))
+	        (get-files files) )
+	      (else
+	        (d "  ~a~%" name)
+	        (let* ((size (read ins))
+	      	       (data (read-string size in)) )
+		  (with-output-to-file (make-pathname dest name)
+                    (cut display data) #:binary ) )
+		(get-files (cons name files)) ) ) ) ) ))
+
+(define (throw-server-error msg args)
+  (abort
+   (make-composite-condition
+    (make-property-condition
+     'exn
+     'message (string-append "[Server] " msg)
+     'arguments args)
+    (make-property-condition 'setup-download-error))))
+
+(define (read-chunks in)
+  (let get-chunks ((data '()))
+    (let ((size (string->number (read-line in) 16)))
+      (cond ((not size)
+	       (error "invalid response from server - please try again"))
+            ((zero? size)
+               (d "~%")
+	       (string-intersperse (reverse data) ""))
+	    (else
+	       (let ((chunk (read-string size in)))
+		 (d ".")
+		 (read-line in)
+		 (get-chunks (cons chunk data)) ) ) ) ) ))
+
+(define (match-http-response rsp)
+  (and (string? rsp)
+       (irregex-match "HTTP/[0-9.]+\\s+([0-9]+)\\s+.*" rsp)) )
+
+(define (response-match-code? mrsp code)
+  (and mrsp (string=? (number->string code) 
+                      (irregex-match-substring mrsp 1))) )
+
+(define (match-chunked-transfer-encoding ln)
+  (irregex-match "[Tt]ransfer-[Ee]ncoding:\\s*chunked.*" ln) )
+
+(define (make-HTTP-GET/1.1 location user-agent host
+                           #!key
+                           (port 80)
+                           (connection "close")
+                           (accept "*")
+                           (content-length 0)
+                     	     proxy-host proxy-port proxy-user-pass)
+  (conc
+     "GET " 
+     (if proxy-host 
+	 (string-append "http://" host location)
+	 location)
+     " HTTP/1.1" "\r\n"
+     "Connection: " connection "\r\n"
+     "User-Agent: " user-agent "\r\n"
+     "Accept: " accept "\r\n"
+     "Host: " host #\: port "\r\n"
+     (if proxy-user-pass
+         (string-append "Proxy-Authorization: Basic " proxy-user-pass "\r\n")
+         "")
+     "Content-length: " content-length "\r\n"
+     "\r\n") )
