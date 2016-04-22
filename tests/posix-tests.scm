@@ -1,4 +1,7 @@
-(use files posix lolevel)
+(import (chicken pathname)
+        (chicken files)
+        (chicken posix)
+        (chicken lolevel))
 
 (define-syntax assert-error
   (syntax-rules ()

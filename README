@@ -301,6 +301,7 @@
 	|   |       |-- chicken.internal.import.so
 	|   |       |-- chicken.io.import.so
 	|   |       |-- chicken.irregex.import.so
+	|   |       |-- chicken.pathname.import.so
 	|   |       |-- chicken.ports.import.so
 	|   |       |-- chicken.posix.import.so
 	|   |       |-- chicken.pretty-print.import.so

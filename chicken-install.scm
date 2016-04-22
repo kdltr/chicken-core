@@ -34,6 +34,7 @@
 	  chicken.format
 	  chicken.io
 	  chicken.irregex
+	  chicken.pathname
 	  chicken.ports
 	  chicken.posix
 	  chicken.pretty-print
@@ -60,6 +61,7 @@
       "chicken.keyword.import.so"
       "chicken.locative.import.so"
       "chicken.lolevel.import.so"
+      "chicken.pathname.import.so"
       "chicken.ports.import.so"
       "chicken.posix.import.so"
       "chicken.pretty-print.import.so"

@@ -92,6 +92,7 @@ irregex-utils.scm
 lfa2.c
 chicken.compiler.lfa2.import.scm
 lfa2.scm
+pathname.scm
 posixunix.scm
 posixwin.scm
 posix-common.scm
@@ -287,6 +288,8 @@ chicken.locative.import.scm
 chicken.locative.import.c
 chicken.lolevel.import.scm
 chicken.lolevel.import.c
+chicken.pathname.import.scm
+chicken.pathname.import.c
 chicken.ports.import.scm
 chicken.ports.import.c
 chicken.posix.import.scm

@@ -27,7 +27,7 @@
 
 (declare
   (unit posix)
-  (uses scheduler irregex extras files ports)
+  (uses scheduler irregex pathname ports)
   (disable-interrupts)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
 
@@ -89,9 +89,9 @@
 
 (import scheme chicken)
 (import chicken.bitwise
-	chicken.files
 	chicken.foreign
 	chicken.irregex
+	chicken.pathname
 	chicken.ports
 	chicken.time)
 

@@ -2,7 +2,9 @@
 
 (include "test.scm")
 
-(use files posix data-structures)
+(import (chicken pathname)
+        (chicken posix)
+        (chicken data-structures))
 
 (define program-path
   (cond-expand

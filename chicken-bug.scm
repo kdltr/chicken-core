@@ -26,11 +26,11 @@
 (declare (block))
 
 (import chicken.data-structures
-	chicken.files
 	chicken.foreign
 	chicken.format
 	chicken.io
 	chicken.keyword
+	chicken.pathname
 	chicken.ports
 	chicken.posix
 	chicken.time)

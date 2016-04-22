@@ -63,7 +63,7 @@
 
 (declare
   (unit posix)
-  (uses data-structures scheduler irregex extras files ports)
+  (uses scheduler data-structures irregex pathname ports)
   (disable-interrupts)
   (hide $quote-args-list $exec-setup $exec-teardown)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook)
@@ -715,9 +715,9 @@ EOF
 (import scheme chicken)
 (import chicken.bitwise
 	chicken.data-structures
-	chicken.files
 	chicken.foreign
 	chicken.irregex
+	chicken.pathname
 	chicken.ports
 	chicken.random
 	chicken.time)

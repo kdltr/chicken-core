@@ -1573,27 +1573,29 @@
 
 ;; files
 
+(chicken.files#create-temporary-directory (#(procedure #:clean #:enforce) chicken.files#create-temporary-directory () string))
+(chicken.files#create-temporary-file (#(procedure #:clean #:enforce) chicken.files#create-temporary-file (#!optional string) string))
 (chicken.files#delete-file* (#(procedure #:clean #:enforce) chicken.files#delete-file* (string) *))
 (chicken.files#file-copy (#(procedure #:clean #:enforce) chicken.files#file-copy (string string #!optional * fixnum) fixnum))
 (chicken.files#file-move (#(procedure #:clean #:enforce) chicken.files#file-move (string string #!optional * fixnum) fixnum))
-(chicken.files#make-pathname (#(procedure #:clean #:enforce) chicken.files#make-pathname ((or string (list-of string) false) #!optional (or string false) (or string false)) string))
-(chicken.files#directory-null? (#(procedure #:clean #:enforce) chicken.files#directory-null? (string) boolean))
-(chicken.files#make-absolute-pathname (#(procedure #:clean #:enforce) chicken.files#make-absolute-pathname (* #!optional string string) string))
-(chicken.files#create-temporary-directory (#(procedure #:clean #:enforce) chicken.files#create-temporary-directory () string))
-(chicken.files#create-temporary-file (#(procedure #:clean #:enforce) chicken.files#create-temporary-file (#!optional string) string))
-(chicken.files#decompose-directory (#(procedure #:clean #:enforce) chicken.files#decompose-directory (string) * * *))
-(chicken.files#decompose-pathname (#(procedure #:clean #:enforce) chicken.files#decompose-pathname (string) * * *))
-(chicken.files#absolute-pathname? (#(procedure #:clean #:enforce) chicken.files#absolute-pathname? (string) boolean))
-(chicken.files#pathname-directory (#(procedure #:clean #:enforce) chicken.files#pathname-directory (string) *))
-(chicken.files#pathname-extension (#(procedure #:clean #:enforce) chicken.files#pathname-extension (string) *))
-(chicken.files#pathname-file (#(procedure #:clean #:enforce) chicken.files#pathname-file (string) *))
-(chicken.files#pathname-replace-directory (#(procedure #:clean #:enforce) chicken.files#pathname-replace-directory (string string) string))
-(chicken.files#pathname-replace-extension (#(procedure #:clean #:enforce) chicken.files#pathname-replace-extension (string string) string))
-(chicken.files#pathname-replace-file (#(procedure #:clean #:enforce) chicken.files#pathname-replace-file (string string) string))
-(chicken.files#pathname-strip-directory (#(procedure #:clean #:enforce) chicken.files#pathname-strip-directory (string) string))
-(chicken.files#pathname-strip-extension (#(procedure #:clean #:enforce) chicken.files#pathname-strip-extension (string) string))
-(chicken.files#normalize-pathname (#(procedure #:clean #:enforce) chicken.files#normalize-pathname (string #!optional symbol) string))
 
+;; pathname
+
+(chicken.pathname#absolute-pathname? (#(procedure #:clean #:enforce) chicken.pathname#absolute-pathname? (string) boolean))
+(chicken.pathname#decompose-directory (#(procedure #:clean #:enforce) chicken.pathname#decompose-directory (string) * * *))
+(chicken.pathname#decompose-pathname (#(procedure #:clean #:enforce) chicken.pathname#decompose-pathname (string) * * *))
+(chicken.pathname#directory-null? (#(procedure #:clean #:enforce) chicken.pathname#directory-null? (string) boolean))
+(chicken.pathname#make-absolute-pathname (#(procedure #:clean #:enforce) chicken.pathname#make-absolute-pathname (* #!optional string string) string))
+(chicken.pathname#make-pathname (#(procedure #:clean #:enforce) chicken.pathname#make-pathname ((or string (list-of string) false) #!optional (or string false) (or string false)) string))
+(chicken.pathname#normalize-pathname (#(procedure #:clean #:enforce) chicken.pathname#normalize-pathname (string #!optional symbol) string))
+(chicken.pathname#pathname-directory (#(procedure #:clean #:enforce) chicken.pathname#pathname-directory (string) *))
+(chicken.pathname#pathname-extension (#(procedure #:clean #:enforce) chicken.pathname#pathname-extension (string) *))
+(chicken.pathname#pathname-file (#(procedure #:clean #:enforce) chicken.pathname#pathname-file (string) *))
+(chicken.pathname#pathname-replace-directory (#(procedure #:clean #:enforce) chicken.pathname#pathname-replace-directory (string string) string))
+(chicken.pathname#pathname-replace-extension (#(procedure #:clean #:enforce) chicken.pathname#pathname-replace-extension (string string) string))
+(chicken.pathname#pathname-replace-file (#(procedure #:clean #:enforce) chicken.pathname#pathname-replace-file (string string) string))
+(chicken.pathname#pathname-strip-directory (#(procedure #:clean #:enforce) chicken.pathname#pathname-strip-directory (string) string))
+(chicken.pathname#pathname-strip-extension (#(procedure #:clean #:enforce) chicken.pathname#pathname-strip-extension (string) string))
 
 ;; irregex
 

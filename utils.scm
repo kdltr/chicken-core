@@ -27,7 +27,7 @@
 
 (declare
   (unit utils)
-  (uses data-structures posix files)
+  (uses data-structures posix files pathname)
   (fixnum)
   (disable-interrupts) )
 
@@ -42,6 +42,7 @@
 	chicken.files
 	chicken.foreign
 	chicken.format
+	chicken.pathname
 	chicken.posix)
 
 (include "common-declarations.scm")

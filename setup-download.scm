@@ -39,6 +39,7 @@
 	  chicken.format
 	  chicken.io
 	  chicken.irregex
+	  chicken.pathname
 	  chicken.posix
 	  chicken.tcp
 	  chicken.utils)

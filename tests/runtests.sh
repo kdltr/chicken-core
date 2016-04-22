@@ -53,6 +53,7 @@ for x in \
     chicken.keyword.import.so \
     chicken.locative.import.so \
     chicken.lolevel.import.so \
+    chicken.pathname.import.so \
     chicken.ports.import.so \
     chicken.posix.import.so \
     chicken.pretty-print.import.so \
@@ -76,7 +77,7 @@ FAST_OPTIONS="-O5 -d0 -b -disable-interrupts"
 COMPILE_OPTIONS="-compiler ${TEST_DIR}/../chicken -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -rpath ${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 
 TEST_DIR_SEXPR=`../csi -n -include-path .. -e "(use posix) (write (current-directory))"`
-SETUP_PREFIX="-e (use files setup-api)"
+SETUP_PREFIX="-e (use (chicken pathname) setup-api)"
 SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"csc\" (make-pathname ${TEST_DIR_SEXPR} \"../csc\"))"
 SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"chicken\" (make-pathname ${TEST_DIR_SEXPR} \"../chicken\"))"
 SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"csi\" (make-pathname ${TEST_DIR_SEXPR} \"../csi\"))"

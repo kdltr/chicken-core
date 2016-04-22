@@ -28,9 +28,9 @@
 
 (import chicken.posix
 	chicken.data-structures
-	chicken.files
 	chicken.foreign
 	chicken.format
+	chicken.pathname
 	chicken.utils)
 
 (include "mini-srfi-1.scm")

@@ -268,8 +268,8 @@ DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise fixnum flonum format gc io \
 	keyword locative posix pretty-print random time
 DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
-	eval expand files internal irregex lolevel ports read-syntax \
-	repl tcp utils
+	eval expand files internal irregex lolevel pathname ports \
+	read-syntax repl tcp utils
 
 # targets
 

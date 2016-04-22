@@ -29,7 +29,7 @@
 ;; Same goes for "backend" and "platform".
 (declare
   (unit batch-driver)
-  (uses extras data-structures files
+  (uses extras data-structures pathname
 	support compiler-syntax compiler optimizer
 	;; TODO: Backend should be configurable
 	scrutinizer lfa2 c-platform c-backend user-pass))
@@ -39,9 +39,9 @@
 
 (import chicken scheme
 	chicken.data-structures
-	chicken.files
 	chicken.format
 	chicken.gc
+	chicken.pathname
 	chicken.pretty-print
 	chicken.time
 	chicken.compiler.support
