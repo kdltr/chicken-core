@@ -12853,7 +12853,7 @@ static C_regparm C_word C_fcall decode_literal2(C_word **ptr, C_char **str,
       return (C_word)(*(*str - 1));
 
     case C_FIXNUM_BIT:
-      val = (C_uword)*((*str)++) << 24; /* always big endian */
+      val = (C_uword)(signed char)*((*str)++) << 24; /* always big endian */
       val |= ((C_uword)*((*str)++) & 0xff) << 16;
       val |= ((C_uword)*((*str)++) & 0xff) << 8;
       val |= ((C_uword)*((*str)++) & 0xff);
