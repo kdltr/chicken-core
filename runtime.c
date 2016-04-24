@@ -329,7 +329,8 @@ C_TLS C_word
   *C_temporary_stack,
   *C_temporary_stack_bottom,
   *C_temporary_stack_limit,
-  *C_stack_limit;
+  *C_stack_limit,         /* "Soft" limit, may be reset to force GC */
+  *C_stack_hard_limit;    /* Actual stack limit */
 C_TLS C_long
   C_timer_interrupt_counter,
   C_initial_timer_interrupt_period;
@@ -410,7 +411,6 @@ static C_TLS C_word
   **collectibles,
   **collectibles_top,
   **collectibles_limit,
-  *saved_stack_limit,
   **mutation_stack_bottom,
   **mutation_stack_limit,
   **mutation_stack_top,
@@ -1233,10 +1233,11 @@ void C_do_resize_stack(C_word stack)
     stack_size = stack;
 
 #if C_STACK_GROWS_DOWNWARD
-    C_stack_limit = (C_word *)((C_byte *)C_stack_limit - diff);
+    C_stack_hard_limit = (C_word *)((C_byte *)C_stack_hard_limit - diff);
 #else
-    C_stack_limit = (C_word *)((C_byte *)C_stack_limit + diff);
+    C_stack_hard_limit = (C_word *)((C_byte *)C_stack_hard_limit + diff);
 #endif
+    C_stack_limit = C_stack_hard_limit;
   }
 }
 
@@ -1472,10 +1473,11 @@ C_word CHICKEN_run(void *toplevel)
   if(profiling) set_profile_timer(profile_frequency);
 
 #if C_STACK_GROWS_DOWNWARD
-  C_stack_limit = (C_word *)((C_byte *)C_stack_pointer - stack_size);
+  C_stack_hard_limit = (C_word *)((C_byte *)C_stack_pointer - stack_size);
 #else
-  C_stack_limit = (C_word *)((C_byte *)C_stack_pointer + stack_size);
+  C_stack_hard_limit = (C_word *)((C_byte *)C_stack_pointer + stack_size);
 #endif
+  C_stack_limit = C_stack_hard_limit;
 
   stack_bottom = C_stack_pointer;
 
@@ -2026,12 +2028,13 @@ void C_fcall C_callback_adjust_stack(C_word *a, int size)
 	    a, stack_bottom, C_stack_limit);
 
 #if C_STACK_GROWS_DOWNWARD
-    C_stack_limit = (C_word *)((C_byte *)a - stack_size);
+    C_stack_hard_limit = (C_word *)((C_byte *)a - stack_size);
     stack_bottom = a + size;
 #else
-    C_stack_limit = (C_word *)((C_byte *)a + stack_size);
+    C_stack_hard_limit = (C_word *)((C_byte *)a + stack_size);
     stack_bottom = a;
 #endif
+    C_stack_limit = C_stack_hard_limit;
 
     if(debug_mode)
       C_dbg(C_text("debug"), C_text("new:      \t%p (bottom) - %p (limit)\n"),
@@ -3782,7 +3785,7 @@ void handle_interrupt(void *trampoline)
 
   /* Restore state to the one at the time of the interrupt: */
   C_temporary_stack = C_temporary_stack_bottom;
-  C_stack_limit = saved_stack_limit;
+  C_stack_limit = C_stack_hard_limit;
   
   /* Invoke high-level interrupt handler: */
   reason = C_fix(pending_interrupts[ --pending_interrupts_count ]);
@@ -4598,22 +4601,14 @@ C_regparm void C_fcall C_paranoid_check_for_interrupt(void)
 
 C_regparm void C_fcall C_raise_interrupt(int reason)
 {
-  /*
-   * Save the value of C_stack_limit from before the interrupt is queued
-   * to ensure that multiple signals only ever cause saved_stack_limit
-   * to be assigned a value from when pending_interrupts_count was zero.
-   */
-  C_word *stack_limit = C_stack_limit;
-
   if(C_interrupts_enabled) {
     if(pending_interrupts_count == 0 && !handling_interrupts) {
       pending_interrupts[ pending_interrupts_count++ ] = reason;
       /*
-       * Force the next stack check to fail by faking a "full" stack.
-       * This causes save_and_reclaim() to be called, which invokes
-       * handle_interrupt(), which restores the stack limit.
+       * Force the next "soft" stack check to fail by faking a "full"
+       * stack.  This causes save_and_reclaim() to be called, which
+       * invokes handle_interrupt(), which restores the stack limit.
        */
-      saved_stack_limit = stack_limit;
       C_stack_limit = stack_bottom;
       interrupt_time = C_cpu_milliseconds();
     } else if(pending_interrupts_count < MAX_PENDING_INTERRUPTS) {
