@@ -63,6 +63,8 @@
   - Compiled programs with large literals won't crash on startup (#1221).
   - Comparisons of closures now behave in a stable way, whether or not
     the code was compiled with the -no-lambda-info option (#1041).
+  - The signal handling code can no longer trigger "stack overflow" or
+    "recursion too deep or circular data encountered" errors (#1283).
 
 - Compiler:
   - Specializations on implicit "or" types like "number" or "boolean" now

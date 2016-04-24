@@ -1146,8 +1146,8 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
-				      if(_sp < (C_byte *)C_stack_limit && \
-					 ((C_byte *)C_stack_limit - _sp) > C_STACK_RESERVE) \
+				      if(_sp < (C_byte *)C_stack_hard_limit && \
+					 ((C_byte *)C_stack_hard_limit - _sp) > C_STACK_RESERVE) \
 					err; }				\
 				    while(0);}
 
@@ -1158,8 +1158,8 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
-				      if(_sp > (C_byte *)C_stack_limit && \
-					 (_sp - (C_byte *)C_stack_limit) > C_STACK_RESERVE) \
+				      if(_sp > (C_byte *)C_stack_hard_limit && \
+					 (_sp - (C_byte *)C_stack_hard_limit) > C_STACK_RESERVE) \
 					err; }				\
 				    while(0);}
 
@@ -1717,6 +1717,7 @@ C_varextern C_TLS C_word
   *C_temporary_stack_bottom,
   *C_temporary_stack_limit,
   *C_stack_limit,
+  *C_stack_hard_limit,
   *C_scratchspace_start,
   *C_scratchspace_top,
   *C_scratchspace_limit,
