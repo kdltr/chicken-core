@@ -231,6 +231,7 @@
           (copy (if *windows-shell*
                     "copy"
                     "cp -r")))
+      (create-directory dir #t)
       (print "copying required files to " dir " ...")
       (for-each
        (lambda (f)
