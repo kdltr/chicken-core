@@ -92,6 +92,7 @@ irregex-utils.scm
 lfa2.c
 chicken.compiler.lfa2.import.scm
 lfa2.scm
+pathname.c
 pathname.scm
 posixunix.scm
 posixwin.scm
