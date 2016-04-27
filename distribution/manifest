@@ -259,6 +259,8 @@ chicken.compiler.user-pass.import.scm
 chicken.compiler.user-pass.import.c
 chicken.continuation.import.scm
 chicken.continuation.import.c
+chicken.csi.import.scm
+chicken.csi.import.c
 chicken.data-structures.import.scm
 chicken.data-structures.import.c
 chicken.eval.import.scm
@@ -309,8 +311,6 @@ chicken.utils.import.scm
 chicken.utils.import.c
 srfi-4.import.scm
 srfi-4.import.c
-csi.import.scm
-csi.import.c
 setup-download.scm
 setup-api.scm
 chicken-status.scm

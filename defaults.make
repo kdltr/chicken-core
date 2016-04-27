@@ -262,7 +262,7 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 
 # import libraries
 
-PRIMITIVE_IMPORT_LIBRARIES = chicken csi chicken.foreign
+PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.csi chicken.foreign
 DYNAMIC_IMPORT_LIBRARIES = setup-api setup-download srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise fixnum flonum format gc io \
 	keyword locative posix pretty-print random time

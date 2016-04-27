@@ -40,7 +40,7 @@
   (define (bar) 99))
 
 (define foo-env (module-environment 'foo))
-(define csi-env (module-environment 'csi))
+(define csi-env (module-environment '(chicken csi)))
 (define format-env (module-environment 'format))
 
 (test-equal (eval '(bar) foo-env) 99)

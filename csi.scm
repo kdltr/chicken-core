@@ -28,7 +28,8 @@
 (declare
   (usual-integrations)
   (disable-interrupts)
-  (compile-syntax)
+  (fixnum-arithmetic)
+  (always-bound ##sys#windows-platform)
   (foreign-declare #<<EOF
 #include <signal.h>
 
@@ -40,20 +41,11 @@
 EOF
 ) )
 
-(include "banner")
+(module chicken.csi
+  (editor-command toplevel-command set-describer!)
 
-(declare
-  (always-bound
-    ##sys#windows-platform)
-  (hide parse-option-string bytevector-data member* canonicalize-args
-	describer-table dirseparator? circular-list? improper-pairs?
-	show-frameinfo selected-frame select-frame copy-from-frame
-	findall command-table default-editor csi-eval print-usage
-	print-banner run hexdump chop-separator lookup-script-file report
-	describe dump tty-input? history-list history-count
-	history-add history-ref history-clear history-show) )
-
-(import chicken.data-structures
+(import chicken scheme
+	chicken.data-structures
 	chicken.foreign
 	chicken.format
 	chicken.gc
@@ -63,6 +55,7 @@ EOF
 	chicken.pretty-print
 	chicken.repl)
 
+(include "banner.scm")
 
 ;;; Parameters:
 
@@ -136,23 +129,6 @@ EOF
 
 (define (print-banner)
   (newline)
-  ;;UNUSED BECAUSE IT IS STUPID
-  #;(when (and (tty-input?) (##sys#fudge 11))
-    (let* ((t (string-copy +product+))
-	   (len (string-length t))
-	   (c (make-string len #\x08)))
-      (do ((i (sub1 (* 2 len)) (sub1 i)))
-	  ((zero? i))
-	(let* ((p (abs (- i len)))
-	       (o (string-ref t p)))
-	  (string-set! t p #\@)
-	  (print* t)
-	  (string-set! t p o)
-	  (let ((t0 (+ (current-milliseconds) 20)))
-	    (let loop ()		; crude, but doesn't need srfi-18
-	      (when (< (current-milliseconds) t0)
-		(loop))))
-	  (print* c) ) ) ) )
   (print +product+)
   (print +banner+ (chicken-version #t) "\n") )
 
@@ -160,9 +136,7 @@ EOF
 ;;; Reader for REPL history:
 
 (set! ##sys#user-read-hook
-  (let ([read-char read-char]
-	[read read]
-	[old-hook ##sys#user-read-hook] )
+  (let ((old-hook ##sys#user-read-hook))
     (lambda (char port)
       (cond [(or (char=? #\) char) (char-whitespace? char))
 	     `',(history-ref (fx- history-count 1)) ]
@@ -190,8 +164,6 @@ EOF
 
 
 ;;; Find script in PATH (only used for Windows/DOS):
-
-(define @ #f)
 
 (define lookup-script-file 
   (let* ([buf (make-string 256)]
@@ -298,14 +270,11 @@ EOF
 	(load-noisily load-noisily)
 	(read read)
 	(read-line read-line)
-	(length length)
 	(display display)
-	(write write)
 	(string-split string-split)
 	(printf printf)
 	(expand expand)
 	(pretty-print pretty-print)
-	(integer? integer?)
 	(values values) )
     (lambda (form)
       (cond ((eof-object? form) (exit))
@@ -466,7 +435,6 @@ EOF
 
 (define report
   (let ((printf printf)
-	(chop chop)
 	(sort sort)
 	(with-output-to-port with-output-to-port)
 	(current-output-port current-output-port) 
@@ -811,8 +779,7 @@ EOF
 ;;; Frame-info operations:
 
 (define show-frameinfo
-  (let ((write-char write-char)
-	(newline newline)
+  (let ((newline newline)
 	(display display))
     (lambda (fn)
       (define (prin1 x)
@@ -1141,11 +1108,8 @@ EOF
 			     (newline ##sys#standard-error)
 			     (eval x)))))
 		   (when (equal? "-ss" scr)
-		     (call-with-values (cut main (command-line-arguments))
-		       (lambda results
-			 (exit
-			  (if (and (pair? results) (fixnum? (car results)))
-			      (car results)
-			      0) ) ) ) ) ) ) ) ) ) ) ) )
+		     (receive rs ((eval 'main) (command-line-arguments))
+		       (let ((r (optional rs)))
+			 (exit (if (fixnum? r) r 0)))))))))))))
 
-(run)
+(run))

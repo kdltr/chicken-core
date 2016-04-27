@@ -46,6 +46,7 @@
     ;;XXX keep this up-to-date!
     '("chicken.bitwise.import.so"
       "chicken.continuation.import.so"
+      "chicken.csi.import.so"
       "chicken.data-structures.import.so"
       "chicken.eval.import.so"
       "chicken.expand.import.so"
@@ -72,7 +73,6 @@
       "chicken.tcp.import.so"
       "chicken.time.import.so"
       "chicken.utils.import.so"
-      "csi.import.so"
       "setup-api.import.so"
       "setup-api.so"
       "setup-download.so"
