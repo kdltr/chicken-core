@@ -3978,8 +3978,7 @@ EOF
 				[else (outchr port x)] ) ) ] 
 		       [else (outchr port x)] ) )
 		((##core#inline "C_fixnump" x) (outstr port (##sys#number->string x)))
-		((eq? x (##sys#slot '##sys#arbitrary-unbound-symbol 0))
-		 (outstr port "#<unbound value>") )
+		((##core#inline "C_unboundvaluep" x) (outstr port "#<unbound value>"))
 		((not (##core#inline "C_blockp" x)) (outstr port "#<invalid immediate object>"))
 		((##core#inline "C_forwardedp" x) (outstr port "#<invalid forwarded object>"))
 		((##core#inline "C_symbolp" x)
@@ -5034,7 +5033,7 @@ EOF
   (##core#inline "C_update_pointer" addr vec) )
 
 (define (##sys#symbol-has-toplevel-binding? s)
-  (not (eq? (##sys#slot s 0) (##sys#slot '##sys#arbitrary-unbound-symbol 0))) )
+  (##core#inline "C_boundp" s))
 
 (define (##sys#copy-bytes from to offset1 offset2 bytes)
   (##core#inline 

@@ -621,8 +621,8 @@ EOF
 	    ((bignum? x)
 	     (fprintf out "exact large integer ~S~%  #x~X~%  #o~O~%  #b~B~%"
 	       x x x x) )
-	    ((eq? x (##sys#slot '##sys#arbitrary-unbound-symbol 0))
-	     (fprintf out "unbound value~%") )
+	    ((##core#inline "C_unboundvaluep" x)
+	     (fprintf out "unbound value~%"))
 	    ((flonum? x) (fprintf out "inexact rational number ~S~%" x))
 	    ((ratnum? x) (fprintf out "exact ratio ~S~%" x))
 	    ((cplxnum? x) (fprintf out "~A complex number ~S~%"

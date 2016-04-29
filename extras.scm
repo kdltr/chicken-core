@@ -359,7 +359,7 @@
 					    [else (out (make-string 1 obj) col)] ) ) ) )
 	    ((##core#inline "C_undefinedp" obj) (out "#<unspecified>" col))
 	    ((##core#inline "C_anypointerp" obj) (out (##sys#pointer->string obj) col))
-	    ((eq? obj (##sys#slot '##sys#arbitrary-unbound-symbol 0))
+	    ((##core#inline "C_unboundvaluep" obj)
 	     (out "#<unbound value>" col) )
 	    ((##sys#generic-structure? obj)
 	     (let ([o (open-output-string)])

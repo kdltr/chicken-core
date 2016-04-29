@@ -206,11 +206,7 @@
 (define ##sys#eval-debug-level (make-parameter 1))
 
 (define compile-to-closure
-  (let ([write write]
-	[reverse reverse]
-	[with-input-from-file with-input-from-file]
-	[unbound (##sys#slot '##sys#arbitrary-unbound-symbol 0)]
-	[display display] )
+  (let ((reverse reverse))
     (lambda (exp env se #!optional cntr evalenv static)
 
       (define (find-id id se)		; ignores macro bindings
