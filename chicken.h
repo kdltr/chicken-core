@@ -1225,7 +1225,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_fixnum_xor(n1, n2)            (((n1) ^ (n2)) | C_FIXNUM_BIT)
 #define C_fixnum_not(n)                 ((~(n)) | C_FIXNUM_BIT)
 #define C_fixnum_shift_left(n1, n2)     (C_fix(((C_uword)C_unfix(n1) << (C_uword)C_unfix(n2))))
-#define C_fixnum_shift_right(n1, n2)    (((n1) >> C_unfix(n2)) | C_FIXNUM_BIT)
+#define C_fixnum_shift_right(n1, n2)    (((n1) >> (C_uword)C_unfix(n2)) | C_FIXNUM_BIT)
 /* XXX TODO OBSOLETE, but still used by C_fixnum_negate, which is fxneg */
 #define C_u_fixnum_negate(n)            (-(n) + 2 * C_FIXNUM_BIT)
 #define C_fixnum_negate(n)              (C_u_fixnum_negate(n) | C_FIXNUM_BIT)
