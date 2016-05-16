@@ -1902,25 +1902,28 @@ EOF
       (##core#inline "C_i_check_port_2" x 0 #t (car loc))
       (##core#inline "C_i_check_port" x 0 #t) ) )
 
-(define (current-input-port . arg)
-  (when (pair? arg)
-    (let ([p (car arg)])
+(define (current-input-port . args)
+  (when (pair? args)
+    (let ((p (car args)))
       (##sys#check-port p 'current-input-port)
-      (set! ##sys#standard-input p) ))
+      (let-optionals (cdr args) ((convert? #t) (set? #t))
+	(when set? (set! ##sys#standard-input p))) ) )
   ##sys#standard-input)
 
-(define (current-output-port . arg)
-  (when (pair? arg)
-    (let ([p (car arg)])
+(define (current-output-port . args)
+  (when (pair? args)
+    (let ((p (car args)))
       (##sys#check-port p 'current-output-port)
-      (set! ##sys#standard-output p) ) )
+      (let-optionals (cdr args) ((convert? #t) (set? #t))
+	(when set? (set! ##sys#standard-output p))) ) )
   ##sys#standard-output)
 
-(define (current-error-port . arg)
-  (when (pair? arg)
-    (let ([p (car arg)])
+(define (current-error-port . args)
+  (when (pair? args)
+    (let ((p (car args)))
       (##sys#check-port p 'current-error-port)
-      (set! ##sys#standard-error p) ) )
+      (let-optionals (cdr args) ((convert? #t) (set? #t))
+	(when set? (set! ##sys#standard-error p))) ) )
   ##sys#standard-error)
 
 (define (##sys#tty-port? port)
@@ -4095,9 +4098,13 @@ EOF
       thunk
       (lambda () (set! ##sys#current-exception-handler oldh)) ) ) )
 
-(define (current-exception-handler #!optional proc)
-  (when proc
-    (set! ##sys#current-exception-handler proc))
+(define (current-exception-handler . args)
+  (when (pair? args)
+    (let ((proc (car args)))
+      (##sys#check-closure proc 'current-exception-handler)
+      (let-optionals (cdr args) ((convert? #t) (set? #t))
+	(when set?
+	  (set! ##sys#current-exception-handler proc))) ) )
   ##sys#current-exception-handler)
 
 (define (make-property-condition kind . props)

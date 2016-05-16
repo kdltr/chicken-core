@@ -624,14 +624,14 @@
 (output-port? (#(procedure #:pure #:predicate output-port) output-port? (*) boolean))
 
 (current-input-port
- (#(procedure #:clean #:enforce) current-input-port (#!optional input-port) input-port)
+ (#(procedure #:clean #:enforce) current-input-port (#!optional input-port boolean boolean) input-port)
  ((input-port) (let ((#(tmp1) #(1))) 
 		 (let ((#(tmp2) (set! ##sys#standard-input #(tmp1))))
 		   #(tmp1))))
  (() ##sys#standard-input))
 
 (current-output-port
- (#(procedure #:clean #:enforce) current-output-port (#!optional output-port) output-port)
+ (#(procedure #:clean #:enforce) current-output-port (#!optional output-port boolean boolean) output-port)
  ((output-port) (let ((#(tmp1) #(1)))
 		  (let ((#(tmp2) (set! ##sys#standard-output #(tmp1))))
 		    #(tmp1))))
@@ -786,14 +786,14 @@
 (cpu-time (#(procedure #:clean) cpu-time () fixnum fixnum))
 
 (current-error-port
- (#(procedure #:clean #:enforce) current-error-port (#!optional output-port) output-port)
+ (#(procedure #:clean #:enforce) current-error-port (#!optional output-port boolean boolean) output-port)
  ((output-port) (let ((#(tmp1) #(1))) 
 		  (let ((#(tmp2) (set! ##sys#standard-error #(tmp1))))
 		    #(tmp1))))
  (() ##sys#standard-error))
 
 (current-exception-handler
- (#(procedure #:clean #:enforce) current-exception-handler (#!optional (procedure (*) noreturn)) procedure)
+ (#(procedure #:clean #:enforce) current-exception-handler (#!optional (procedure (*) noreturn) boolean boolean) procedure)
  ((procedure) (let ((#(tmp1) #(1))) 
 		(let ((#(tmp2) (set! ##sys#current-exception-handler #(tmp1))))
 		  #(tmp1))))
