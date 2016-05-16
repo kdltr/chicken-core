@@ -541,6 +541,27 @@ A
 
   (assert (equal? (list "1" "2") (list (a) (b)))) )
 
+;; Special-cased parameters are reset correctly (#1285, regression
+;; caused by fix for #1227)
+
+(let ((original-input (current-input-port))
+      (original-output (current-output-port))
+      (original-error (current-error-port))
+      (original-exception-handler (current-exception-handler)))
+  (call-with-output-string
+   (lambda (out)
+     (call-with-input-string
+      "foo"
+      (lambda (in)
+	(parameterize ((current-output-port out)
+		       (current-error-port out)
+		       (current-input-port in)
+		       (current-exception-handler void))
+	  (void))))))
+  (assert (equal? original-input (current-input-port)))
+  (assert (equal? original-output (current-output-port)))
+  (assert (equal? original-error (current-error-port)))
+  (assert (equal? original-exception-handler (current-exception-handler))))
 
 ;;; vector and blob limits
 
