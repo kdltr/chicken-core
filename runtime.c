@@ -972,7 +972,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(C_peek_uint64);
   C_pte(C_context_switch);
   C_pte(C_register_finalizer);
-  C_pte(C_locative_ref);
+  C_pte(C_locative_ref); /* OBSOLETE */
   C_pte(C_copy_closure);
   C_pte(C_dump_heap_state);
   C_pte(C_filter_heap_objects);
@@ -12376,7 +12376,7 @@ C_regparm C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_w
   return (C_word)loc;
 }
 
-
+/* DEPRECATED */
 void C_ccall C_locative_ref(C_word c, C_word *av)
 {
   C_word
@@ -12419,6 +12419,33 @@ void C_ccall C_locative_ref(C_word c, C_word *av)
   }
 }
 
+C_regparm C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc)
+{
+  C_word *ptr;
+
+  if(C_immediatep(loc) || C_block_header(loc) != C_LOCATIVE_TAG)
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-ref", loc);
+
+  ptr = (C_word *)C_block_item(loc, 0);
+
+  if(ptr == NULL) barf(C_LOST_LOCATIVE_ERROR, "locative-ref", loc);
+
+  switch(C_unfix(C_block_item(loc, 2))) {
+  case C_SLOT_LOCATIVE: return *ptr;
+  case C_CHAR_LOCATIVE: return C_make_character(*((char *)ptr));
+  case C_U8_LOCATIVE: return C_fix(*((unsigned char *)ptr));
+  case C_S8_LOCATIVE: return C_fix(*((char *)ptr));
+  case C_U16_LOCATIVE: return C_fix(*((unsigned short *)ptr));
+  case C_S16_LOCATIVE: return C_fix(*((short *)ptr));
+  case C_U32_LOCATIVE: return C_unsigned_int_to_num(a, *((C_u32 *)ptr));
+  case C_S32_LOCATIVE: return C_int_to_num(a, *((C_s32 *)ptr));
+  case C_U64_LOCATIVE: return C_uint64_to_num(a, *((C_u64 *)ptr));
+  case C_S64_LOCATIVE: return C_int64_to_num(a, *((C_s64 *)ptr));
+  case C_F32_LOCATIVE: return C_flonum(a, *((float *)ptr));
+  case C_F64_LOCATIVE: return C_flonum(a, *((double *)ptr));
+  default: panic(C_text("bad locative type"));
+  }
+}
 
 C_regparm C_word C_fcall C_i_locative_set(C_word loc, C_word x)
 {

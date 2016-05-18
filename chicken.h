@@ -1967,7 +1967,7 @@ C_fctexport C_cpsproc(C_register_finalizer) C_noret;
 C_fctexport C_cpsproc(C_set_dlopen_flags) C_noret;
 C_fctexport C_cpsproc(C_dload) C_noret;
 C_fctexport C_cpsproc(C_become) C_noret;
-C_fctexport C_cpsproc(C_locative_ref) C_noret;
+C_fctexport C_cpsproc(C_locative_ref) C_noret; /* DEPRECATED */
 C_fctexport C_cpsproc(C_call_with_cthulhu) C_noret;
 C_fctexport C_cpsproc(C_copy_closure) C_noret;
 C_fctexport C_cpsproc(C_dump_heap_state) C_noret;
@@ -2086,6 +2086,7 @@ C_fctexport C_word C_fcall C_i_char_greaterp(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_char_lessp(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_char_greater_or_equal_p(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_char_less_or_equal_p(C_word x, C_word y) C_regparm;
+C_fctexport C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_locative_set(C_word loc, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_locative_to_object(C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_word object, C_word index, C_word weak) C_regparm;

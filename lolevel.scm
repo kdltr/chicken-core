@@ -589,7 +589,8 @@ EOF
 
 (define locative-ref
   (getter-with-setter
-   (##core#primitive "C_locative_ref")
+   (lambda (loc)
+     (##core#inline_allocate ("C_a_i_locative_ref" 6) loc))
    locative-set!
    "(locative-ref loc)"))
 

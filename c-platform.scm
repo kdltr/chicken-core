@@ -430,7 +430,6 @@
 (rewrite 'call-with-values 13 2 "C_call_with_values" #t)
 (rewrite '##sys#call-with-values 13 2 "C_u_call_with_values" #f)
 (rewrite '##sys#call-with-values 13 2 "C_call_with_values" #t)
-(rewrite 'chicken.locative#locative-ref 13 1 "C_locative_ref" #t)
 (rewrite 'chicken.continuation#continuation-graft 13 2 "C_continuation_graft" #t)
 
 (rewrite 'caar 2 1 "C_u_i_caar" #f)
@@ -749,6 +748,7 @@
 (rewrite 'chicken.lolevel#address->pointer 16 1 "C_a_i_address_to_pointer" #f 2)
 (rewrite 'chicken.lolevel#pointer->address 16 1 "C_a_i_pointer_to_address" #f words-per-flonum)
 (rewrite 'chicken.lolevel#pointer+ 16 2 "C_a_u_i_pointer_inc" #f 2)
+(rewrite 'chicken.locative#locative-ref 16 1 "C_a_i_locative_ref" #t 6)
 
 (rewrite 'chicken.lolevel#pointer-u8-ref 2 1 "C_u_i_pointer_u8_ref" #f)
 (rewrite 'chicken.lolevel#pointer-s8-ref 2 1 "C_u_i_pointer_s8_ref" #f)
