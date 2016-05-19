@@ -657,7 +657,8 @@ chicken-status.c: chicken-status.scm \
 		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm \
 		setup-api.import.scm
-chicken-install.c: chicken-install.scm \
+#XXX new-install.scm -> chicken-install.scm
+chicken-install.c: new-install.scm \
 		chicken.data-structures.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
@@ -666,9 +667,7 @@ chicken-install.c: chicken-install.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm \
 		chicken.posix.import.scm \
-		chicken.pretty-print.import.scm \
-		setup-api.import.scm \
-		setup-download.import.scm
+		chicken.pretty-print.import.scm
 chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.data-structures.import.scm \
 		chicken.files.import.scm \
@@ -847,7 +846,8 @@ csi.c: $(SRCDIR)csi.scm $(SRCDIR)banner.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@
 chicken-profile.c: $(SRCDIR)chicken-profile.scm $(SRCDIR)mini-srfi-1.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-chicken-install.c: $(SRCDIR)chicken-install.scm $(SRCDIR)mini-srfi-1.scm
+#XXX new-install -> chicken-install.scm
+chicken-install.c: $(SRCDIR)new-install.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-compile.scm $(SRCDIR)egg-download.scm $(SRCDIR)egg-environment.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
 chicken-uninstall.c: $(SRCDIR)chicken-uninstall.scm $(SRCDIR)mini-srfi-1.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 

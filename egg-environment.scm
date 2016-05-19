@@ -47,12 +47,14 @@ EOF
   (string-append default-bindir "/chicken-do"))
 
 (define host-repo (foreign-value "C_INSTALL_EGG_HOME" c-string))
+(define host-bindir (foreign-value "C_INSTALL_BIN_HOME" c-string))
 (define host-incdir (foreign-value "C_INSTALL_INCLUDE_HOME" c-string))
 (define host-sharedir (foreign-value "C_INSTALL_SHARE_HOME" c-string))
 
 (define target-repo
   (string-append default-libdir "/chicken/" (number->string binary-version)))
 
+(define target-bindir (foreign-value "C_TARGET_BIN_HOME" c-string))
 (define target-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
 (define target-sharedir (foreign-value "C_TARGET_SHARE_HOME" c-string))
 

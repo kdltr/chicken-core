@@ -4,22 +4,20 @@
 ;; version-number of the defaults file - checked by "chicken-install"
 ;  when defaults are loaded
 
-(version 1)
+(version 2)
 
 
 ;; list of servers in the order in which they will be processed
 ;
-; (server (location URL) (transport TRANSPORT))
+; (server (location URL))
 ;
 ; URL may be an alias (see below) or a real URL
 
 (server
- (location "kitten-technologies")
- (transport http))
+ (location "kitten-technologies"))
 
 (server
- (location "call-cc")
- (transport http))
+ (location "call-cc"))
 
 
 ;; extensions-mappings

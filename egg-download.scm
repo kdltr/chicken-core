@@ -10,23 +10,6 @@
 (tcp-write-timeout +default-tcp-read/write-timeout+)
 
 (define user-agent (conc "chicken-install " (chicken-version)))
-(define mode 'default)
-(define quiet #f)
-
-
-;; Simpler replacement for SRFI-13's string-suffix?
-(define (string-suffix? suffix s)
-  (let ((len-s (string-length s))
-        (len-suffix (string-length suffix)))
-     (and (not (< len-s len-suffix))
-          (string=? suffix
-   	            (substring s (- len-s len-suffix))))))
-
-
-(define (d fstr . args)
-  (let ((port (if quiet (current-error-port) (current-output-port))))
-    (apply fprintf port fstr args)
-    (flush-output port) ) )
 
 (define (deconstruct-url url)
   (let ((m (irregex-match +url-regex+ url)))
@@ -39,26 +22,6 @@
 	 80)
      (or (and m (irregex-match-substring m 5))
          "/"))))
-
-(define (download-egg egg url #!key version destination tests
-                      proxy-host proxy-port proxy-user-pass)
-  (receive (host port locn) (deconstruct-url url)
-    (let* ((locn (conc locn
-		    "?name=" egg
-		    "&release=" (##sys#fudge 41)
-		    (if version (string-append "&version=" version) "")
-		    "&mode=" mode
-		    (if tests "&tests=yes" "")))
-	   (eggdir (make-pathname destination egg))
-	   (pre-existing-dir? (file-exists? eggdir)) )
-	(unless pre-existing-dir? (create-directory eggdir))
-	(handle-exceptions exn
-	    (begin (unless pre-existing-dir? (remove-directory eggdir))
-		   (signal exn))
-	 (let ((fversion	(http-fetch host port locn eggdir proxy-host
-                           proxy-port proxy-user-pass)))
-	   ;; If we get here then version of egg exists
-	   (values eggdir (or fversion version "")) )) ) ))
 
 (define (http-fetch host port locn dest proxy-host proxy-port proxy-user-pass)
   (let-values (((in out)
@@ -90,7 +53,7 @@
 	      (set! in inpx) (set! out outpx)
 	      (display
 	        (make-HTTP-GET/1.1 
-		  locn *chicken-install-user-agent* host port: port 
+		  locn user-agent host port: port 
                   accept: "*/*"
 		  proxy-host: proxy-host proxy-port: proxy-port 
 		  proxy-user-pass: proxy-user-pass)
@@ -140,7 +103,7 @@
       (let* ((ins (skip))
 	      (name (read ins)))
         (cond ((and (pair? name) (eq? 'error (car name)))
-            	   (throw-server-error (cadr name) (cddr name)))
+            	   (server-error (cadr name) (cddr name)))
 	      ((or (eof-object? name) (not name))
 	        (close-input-port in)
 	        (close-output-port out)
@@ -160,14 +123,14 @@
                     (cut display data) #:binary ) )
 		(get-files (cons name files)) ) ) ) ) ))
 
-(define (throw-server-error msg args)
+(define (server-error msg args)
   (abort
-   (make-composite-condition
-    (make-property-condition
-     'exn
-     'message (string-append "[Server] " msg)
-     'arguments args)
-    (make-property-condition 'setup-download-error))))
+     (make-composite-condition
+      (make-property-condition
+       'exn
+       'message (string-append "[Server] " msg)
+       'arguments args)
+      (make-property-condition 'setup-download-error))))
 
 (define (read-chunks in)
   (let get-chunks ((data '()))
@@ -216,3 +179,55 @@
          "")
      "Content-length: " content-length "\r\n"
      "\r\n") )
+
+(define (network-failure msg . args)
+  (signal
+     (make-composite-condition
+      (make-property-condition
+       'exn
+       'message "invalid response from server"
+       'arguments args)
+      (make-property-condition 'http-fetch))) )
+
+
+;; entry point
+
+(define (download-egg egg url #!key version destination tests
+                      proxy-host proxy-port proxy-user-pass)
+  (receive (host port locn) (deconstruct-url url)
+    (let* ((locn (conc locn
+		    "?name=" egg
+		    "&release=" (##sys#fudge 41)
+		    (if version (string-append "&version=" version) "")
+		    "&mode=default"
+		    (if tests "&tests=yes" "")))
+	   (eggdir (make-pathname destination egg)))
+        (let ((fversion	(http-fetch host port locn eggdir proxy-host
+                                    proxy-port proxy-user-pass)))
+	  ;; If we get here then version of egg exists
+	  (values eggdir (or fversion version "")) )) ) )
+
+(define (try-download name url #!key version destination tests username
+                      password proxy-host proxy-port proxy-user-pass)
+  (condition-case
+     (download-egg
+         name url
+         version: version
+         destination: destination
+         tests: tests
+         username: username
+         password: password
+	 proxy-host: proxy-host
+	 proxy-port: proxy-port
+	 proxy-user-pass: proxy-user-pass)
+    ((exn net)
+       (print "TCP connect timeout")
+       (values #f "") )
+    ((exn http-fetch)
+       (print "HTTP protocol error")
+       (values #f "") )
+    (e (exn setup-download-error)
+	 (print "Server error:")
+	 (print-error-message e) 
+	 (values #f ""))
+    (e () (abort e) )))
