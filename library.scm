@@ -1903,28 +1903,31 @@ EOF
       (##core#inline "C_i_check_port" x 0 #t) ) )
 
 (define (current-input-port . args)
-  (when (pair? args)
-    (let ((p (car args)))
-      (##sys#check-port p 'current-input-port)
-      (let-optionals (cdr args) ((convert? #t) (set? #t))
-	(when set? (set! ##sys#standard-input p))) ) )
-  ##sys#standard-input)
+  (if (null? args)
+      ##sys#standard-input
+      (let ((p (car args)))
+	(##sys#check-port p 'current-input-port)
+	(let-optionals (cdr args) ((convert? #t) (set? #t))
+	  (when set? (set! ##sys#standard-input p)))
+	p)))
 
 (define (current-output-port . args)
-  (when (pair? args)
-    (let ((p (car args)))
-      (##sys#check-port p 'current-output-port)
-      (let-optionals (cdr args) ((convert? #t) (set? #t))
-	(when set? (set! ##sys#standard-output p))) ) )
-  ##sys#standard-output)
+  (if (null? args)
+      ##sys#standard-output
+      (let ((p (car args)))
+	(##sys#check-port p 'current-output-port)
+	(let-optionals (cdr args) ((convert? #t) (set? #t))
+	  (when set? (set! ##sys#standard-output p)))
+	p)))
 
 (define (current-error-port . args)
-  (when (pair? args)
-    (let ((p (car args)))
-      (##sys#check-port p 'current-error-port)
-      (let-optionals (cdr args) ((convert? #t) (set? #t))
-	(when set? (set! ##sys#standard-error p))) ) )
-  ##sys#standard-error)
+  (if (null? args)
+      ##sys#standard-error
+      (let ((p (car args)))
+	(##sys#check-port p 'current-error-port)
+	(let-optionals (cdr args) ((convert? #t) (set? #t))
+	  (when set? (set! ##sys#standard-error p)))
+	p)))
 
 (define (##sys#tty-port? port)
   (and (not (zero? (##sys#peek-unsigned-integer port 0)))
@@ -4099,13 +4102,13 @@ EOF
       (lambda () (set! ##sys#current-exception-handler oldh)) ) ) )
 
 (define (current-exception-handler . args)
-  (when (pair? args)
-    (let ((proc (car args)))
-      (##sys#check-closure proc 'current-exception-handler)
-      (let-optionals (cdr args) ((convert? #t) (set? #t))
-	(when set?
-	  (set! ##sys#current-exception-handler proc))) ) )
-  ##sys#current-exception-handler)
+  (if (null? args)
+      ##sys#current-exception-handler
+      (let ((proc (car args)))
+	(##sys#check-closure proc 'current-exception-handler)
+	(let-optionals (cdr args) ((convert? #t) (set? #t))
+	  (when set? (set! ##sys#current-exception-handler proc)))
+	proc)))
 
 (define (make-property-condition kind . props)
   (##sys#make-structure
