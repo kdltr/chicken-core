@@ -852,7 +852,7 @@
 	  (##sys#meta-macro-environment (##sys#macro-environment))
 	  (##sys#macro-environment oldme)))))
 
-(define ##sys#eval-handler 
+(define eval-handler
   (make-parameter
    (lambda (x #!optional env)
      (let ((se (##sys#current-environment)))
@@ -867,7 +867,7 @@
 	     (else
 	      ((##sys#compile-to-closure x '() se #f #f #f) '() ) ) ) ) )))
 
-(define eval-handler ##sys#eval-handler)
+(define ##sys#eval-handler eval-handler)
 
 (define (eval x . env)
   (apply (##sys#eval-handler) 
@@ -1163,22 +1163,18 @@
 		   (check (##sys#substring p 0 (fx- n 1))) ]
 		  [else p] ) ) ) ) ) ) )
 
-(define ##sys#repository-path
-  (let ((rpath
-	 (if (##sys#fudge 22)		; private repository?
-	     (foreign-value "C_private_repository_path()" c-string)
-	     (or (get-environment-variable repository-environment-variable)
-		 (##sys#chicken-prefix 
-		  (##sys#string-append 
-		   "lib/chicken/"
-		   (##sys#number->string (##sys#fudge 42))) )
-		 install-egg-home))))
-    (lambda (#!optional val)
-      (if val
-	  (set! rpath val)
-	  rpath))))
+(define repository-path
+  (make-parameter
+   (if (##sys#fudge 22) ; private repository?
+       (foreign-value "C_private_repository_path()" c-string)
+       (or (get-environment-variable repository-environment-variable)
+	   (##sys#chicken-prefix
+	    (##sys#string-append
+	     "lib/chicken/"
+	     (##sys#number->string (##sys#fudge 42))))
+	   install-egg-home))))
 
-(define repository-path ##sys#repository-path)
+(define ##sys#repository-path repository-path)
 
 (define ##sys#setup-mode #f)
 
