@@ -143,19 +143,19 @@
     list-ref abs char-ready? peek-char list->string string->list
     current-input-port current-output-port) )
 
-(define-constant flonum-bindings
+(define-constant +flonum-bindings+
   (map (lambda (x) (symbol-append 'chicken.flonum# x))
        '(fp/? fp+ fp- fp* fp/ fp> fp< fp= fp>= fp<= fpmin fpmax fpneg fpgcd
 	 fpfloor fpceiling fptruncate fpround fpsin fpcos fptan fpasin fpacos
 	 fpatan fpatan2 fpexp fpexpt fplog fpsqrt fpabs fpinteger?)))
 
-(define-constant fixnum-bindings
+(define-constant +fixnum-bindings+
   (map (lambda (x) (symbol-append 'chicken.fixnum# x))
        '(fx* fx*? fx+ fx+? fx- fx-? fx/ fx/? fx< fx<= fx= fx> fx>= fxand
 	 fxeven? fxgcd fxior fxlen fxmax fxmin fxmod fxneg fxnot fxodd?
 	 fxrem fxshl fxshr fxxor)))
 
-(define-constant extended-bindings
+(define-constant +extended-bindings+
   '(bignum? cplxnum? fixnum? flonum? ratnum?
     chicken.bitwise#integer-length
     chicken.bitwise#bitwise-and chicken.bitwise#bitwise-not
@@ -217,7 +217,7 @@
     chicken.format#printf chicken.format#sprintf chicken.format#fprintf))
 
 (set! default-extended-bindings
-  (append fixnum-bindings flonum-bindings extended-bindings))
+  (append +fixnum-bindings+ +flonum-bindings+ +extended-bindings+))
 
 (set! internal-bindings
   '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set!
