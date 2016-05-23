@@ -342,7 +342,7 @@
     (##sys#check-syntax 'set!-values form '(_ lambda-list _))
     (##sys#expand-multiple-values-assignment (cadr form) (caddr form)))))
 
-(set! ##sys#define-values-definition
+(set! chicken.expand#define-values-definition
   (##sys#extend-macro-environment
    'define-values '()
    (##sys#er-transformer

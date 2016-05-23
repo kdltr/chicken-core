@@ -467,9 +467,9 @@
 ;
 ; This code is disgustingly complex.
 
-(define ##sys#define-definition)
-(define ##sys#define-syntax-definition)
-(define ##sys#define-values-definition)
+(define chicken.expand#define-definition)
+(define chicken.expand#define-syntax-definition)
+(define chicken.expand#define-values-definition)
 
 (define ##sys#canonicalize-body
   (lambda (body #!optional (se (##sys#current-environment)) cs?)
@@ -477,9 +477,9 @@
       (let ((f (lookup id se)))
 	(or (eq? s f)
 	    (case s
-	      ((define) (if f (eq? f ##sys#define-definition) (eq? s id)))
-	      ((define-syntax) (if f (eq? f ##sys#define-syntax-definition) (eq? s id)))
-	      ((define-values) (if f (eq? f ##sys#define-values-definition) (eq? s id)))
+	      ((define) (if f (eq? f chicken.expand#define-definition) (eq? s id)))
+	      ((define-syntax) (if f (eq? f chicken.expand#define-syntax-definition) (eq? s id)))
+	      ((define-values) (if f (eq? f chicken.expand#define-values-definition) (eq? s id)))
 	      (else (eq? s id))))))
     (define (fini vars vals mvars body)
       (if (and (null? vars) (null? mvars))
