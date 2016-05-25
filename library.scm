@@ -4572,15 +4572,18 @@ EOF
 	      (when msg
 		(##sys#print ": " #f ##sys#standard-error)
 		(##sys#print msg #f ##sys#standard-error) )
-	      (cond [(fx= 1 (length args))
-		     (##sys#print ": " #f ##sys#standard-error)
-		     (##sys#print (##sys#slot args 0) #t ##sys#standard-error) ]
-		    [else
-		     (##sys#for-each
-		      (lambda (x)
-			(##sys#print #\newline #f ##sys#standard-error)
-			(##sys#print x #t ##sys#standard-error) )
-		      args) ] )
+	      (##sys#with-print-length-limit
+	       400
+	       (lambda ()
+		 (cond [(fx= 1 (length args))
+			(##sys#print ": " #f ##sys#standard-error)
+			(##sys#print (##sys#slot args 0) #t ##sys#standard-error)]
+		       [else
+			(##sys#for-each
+			 (lambda (x)
+			   (##sys#print #\newline #f ##sys#standard-error)
+			   (##sys#print x #t ##sys#standard-error))
+			 args)])))
 	      (##sys#print #\newline #f ##sys#standard-error)
 	      (print-call-chain ##sys#standard-error)
 	      (when (and ##sys#break-on-error (##sys#symbol-has-toplevel-binding? 'chicken.repl#repl))
@@ -4662,7 +4665,7 @@ EOF
        '(user-interrupt)
        '() ) ) ]
     [(#:warning #:notice)
-     (##sys#print 
+     (##sys#print
       (if (eq? mode #:warning) "\nWarning: " "\nNote: ")
       #f ##sys#standard-error)
      (##sys#print msg #f ##sys#standard-error)
@@ -4671,10 +4674,13 @@ EOF
 	 (##sys#print ": " #f ##sys#standard-error))
      (for-each
       (lambda (x)
-	(##sys#print x #t ##sys#standard-error)
-	(##sys#write-char-0 #\newline ##sys#standard-error) )
-      args) 
-     (##sys#flush-output ##sys#standard-error) ] 
+	(##sys#with-print-length-limit
+	 400
+	 (lambda ()
+	   (##sys#print x #t ##sys#standard-error)
+	   (##sys#write-char-0 #\newline ##sys#standard-error))))
+      args)
+     (##sys#flush-output ##sys#standard-error)]
     [else
      (when (and (symbol? msg) (null? args))
        (set! msg (##sys#symbol->string msg)) )

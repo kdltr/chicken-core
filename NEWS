@@ -45,6 +45,8 @@
 - Runtime system:
   - C_locative_ref has been deprecated in favor of C_a_i_locative_ref,
     which is faster because it is inlined (#1260, thanks to Kooda).
+  - The default error handler now truncates very long condition
+    messages (thanks to Lemonboy).
 
 4.11.0
 
