@@ -1,6 +1,6 @@
 ;;; c-backend.scm - C-generating backend for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -59,10 +59,12 @@
 
 ;;; Generate target code:
 
-(define (generate-code literals lliterals lambda-table out source-file dynamic db)
+(define (generate-code literals lliterals lambda-table out source-file dynamic db
+                       dbg-info-table)
+  (let ((non-av-proc #f))
+
   ;; Don't truncate floating-point precision!
   (flonum-print-precision (+ flonum-maximum-decimal-exponent 1))
-  (let ()
 
     ;; Some helper procedures
 
@@ -226,23 +228,30 @@
 	     (let* ((args (cdr subs))
 		    (n (length args))
 		    (nc i)
-		    (nf (add1 n)) 
-		    (p2 (pair? (cdr params)))
-		    (name (and p2 (second params)))
+		    (nf (add1 n))
+		    (dbi (first params))
+		    (safe-to-call (second params))
+		    (p2 (pair? (cddr params)))
+		    (name (and p2 (third params)))
 		    (name-str (source-info->string name))
-		    (call-id (and p2 (pair? (cddr params)) (third params))) 
-		    (customizable (and call-id (fourth params)))
+		    (call-id (and p2 (pair? (cdddr params)) (fourth params)))
+		    (customizable (and call-id (fifth params)))
 		    (empty-closure (and customizable (zero? (lambda-literal-closure-size (find-lambda call-id)))))
 		    (fn (car subs)) )
 	       (when name
-		 (if emit-trace-info
-		     (gen #t "C_trace(\"" (slashify name-str) "\");")
-		     (gen #t "/* " (uncommentify name-str) " */") ) )
+		 (cond (emit-debug-info
+			(when dbi
+			  (gen #t "C_debugger(&(C_debug_info[" dbi "]),"
+			       (if non-av-proc "0,NULL" "c,av") ");")))
+		       (emit-trace-info
+			(gen #t "C_trace(\"" (backslashify name-str) "\");"))
+		       (else
+			(gen #t "/* " (uncommentify name-str) " */") ) ) )
 	       (cond ((eq? '##core#proc (node-class fn))
+		      (gen #\{)
+		      (push-args args i "0")
 		      (let ([fpars (node-parameters fn)])
-			(gen #t (first fpars) #\( nf ",0,") )
-		      (expr-args args i)
-		      (gen ");") )
+			(gen #t (first fpars) #\( nf ",av2);}") ))
 		     (call-id
 		      (cond ((and (eq? call-id (lambda-literal-id ll))
 				  (lambda-literal-looping ll) )
@@ -264,21 +273,27 @@
 			       (gen #t #\t nc #\=)
 			       (expr fn i)
 			       (gen #\;) )
-			     (gen #t call-id #\()
-			     (unless customizable (gen nf #\,))
-			     (unless empty-closure (gen #\t nc #\,))
-			     (expr-args args i)
-			     (gen ");") ) ) )
+			     (cond (customizable
+				    (gen #t call-id #\()
+				    (unless empty-closure (gen #\t nc #\,))
+				    (expr-args args i)
+				    (gen ");") )
+				   (else
+				    (gen #\{)
+				    (push-args args i (and (not empty-closure) (string-append "t" (number->string nc))))
+				    (gen #t call-id #\()
+				    (unless customizable (gen nf #\,))
+				    (gen "av2);}") ) ) )))
 		     ((and (eq? '##core#global (node-class fn))
 			   (not unsafe) 
 			   (not no-procedure-checks)
-			   (not (first params)))
+			   (not safe-to-call))
 		      (let* ((gparams (node-parameters fn))
 			     (index (first gparams))
 			     (safe (second gparams)) 
 			     (block (third gparams)) 
 			     (carg #f))
-			(gen #t "((C_proc" nf ")")
+			(gen #t "{C_proc tp=(C_proc)")
 			(cond (no-global-procedure-checks
 			       (set! carg
 				 (if block
@@ -290,9 +305,8 @@
 			       (if safe
 				   (gen "C_fast_retrieve_proc(" carg ")")
 				   (gen "C_retrieve2_symbol_proc(" carg "," 
-					(c-ify-string (##sys#symbol->qualified-string
-						       (fourth gparams))) #\)) ) )
-			      (safe 
+					(c-ify-string (##sys#symbol->qualified-string (fourth gparams))) #\)) ) )
+			      (safe
 			       (set! carg 
 				 (string-append "*((C_word*)lf[" (number->string index) "]+1)"))
 			       (gen "C_fast_retrieve_proc(" carg ")"))
@@ -300,20 +314,19 @@
 			       (set! carg 
 				 (string-append "*((C_word*)lf[" (number->string index) "]+1)"))
 			       (gen "C_fast_retrieve_symbol_proc(lf[" index "])") ))
-			(gen ")(" nf #\, carg #\,)
-			(expr-args args i)
-			(gen ");") ) )
+			(gen #\;)
+			(push-args args i carg)
+			(gen #t "tp(" nf ",av2);}")))
 		     (else
 		      (gen #t #\t nc #\=)
 		      (expr fn i)
-		      (gen #\; #t
-			   "((C_proc" nf ")")
-		      (if (or unsafe no-procedure-checks (first params))
+		      (gen ";{")
+		      (push-args args i (string-append "t" (number->string nc)))
+		      (gen #t "((C_proc)")
+		      (if (or unsafe no-procedure-checks safe-to-call)
 			  (gen "(void*)(*((C_word*)t" nc "+1))")
 			  (gen "C_fast_retrieve_proc(t" nc ")") )
-		      (gen ")(" nf ",t" nc #\,)
-		      (expr-args args i)
-		      (gen ");") ) ) ) )
+		      (gen ")(" nf ",av2);}") ) ) ) )
 	  
 	    ((##core#recurse) 
 	     (let* ([n (length subs)]
@@ -365,9 +378,9 @@
 	     ;;  one unused variable:
 	     (let* ((n (length subs))
 		    (nf (+ n 1)) )
-	       (gen #t "C_" (first params) "_toplevel(" nf ",C_SCHEME_UNDEFINED,")
-	       (expr-args subs i)
-	       (gen ");") ) )
+	       (gen #\{)
+	       (push-args subs i "C_SCHEME_UNDEFINED")
+	       (gen #t "C_" (first params) "_toplevel(" nf ",av2);}")))
 
 	    ((##core#return)
 	     (gen #t "return(")
@@ -378,6 +391,10 @@
 	     (gen (first params) #\()
 	     (expr-args subs i)
 	     (gen #\)) )
+
+	    ((##core#debug-event)
+	     (gen "C_debugger(&(C_debug_info[" (first params) "]),"
+                  (if non-av-proc "0,NULL" "c,av") ")"))
 
 	    ((##core#inline_allocate)
 	     (gen (first params) "(&a," (length subs))
@@ -456,6 +473,31 @@
 	   (expr (car xs) i) )
 	 args) )
 
+      (define (push-args args i selfarg)
+	(let* ((n (length args))
+	       (avl (+ n (if selfarg 1 0)))
+	       (caller-has-av? (not (or (lambda-literal-customizable ll)
+					(lambda-literal-direct ll)))))
+	  ;; Try to re-use argvector from current function if it is
+	  ;; large enough.  push-args gets used only for functions in
+	  ;; CPS context, so callee never returns to current function.
+	  ;; And even so, av[] is already copied into temporaries.
+	  (cond (caller-has-av?
+		 (gen #t "C_word *av2;")
+		 (gen #t "if(c >= " avl ") {")
+		 (gen #t "  av2=av; /* Re-use our own argvector */")
+		 (gen #t "} else {")
+		 (gen #t "  av2=C_alloc(" avl ");")
+		 (gen #t "}"))
+		(else (gen #t "C_word av2[" avl "];")))
+	  (when selfarg (gen #t "av2[0]=" selfarg ";"))
+	  (do ((j (if selfarg 1 0) (add1 j))
+	       (args args (cdr args)))
+	      ((null? args))
+	    (gen #t "av2[" j "]=")
+	    (expr (car args) i)
+	    (gen ";"))))
+
       (expr node temps) )
   
     (define (header)
@@ -506,7 +548,7 @@
 	(for-each 
 	 (lambda (uu) 
 	   (gen #t "C_noret_decl(C_" uu "_toplevel)"
-		#t "C_externimport void C_ccall C_" uu "_toplevel(C_word c,C_word d,C_word k) C_noret;"))
+		#t "C_externimport void C_ccall C_" uu "_toplevel(C_word c,C_word *av) C_noret;"))
 	 used-units)
 	(unless (zero? n)
 	  (gen #t #t "static C_TLS C_word lf[" n "];") )
@@ -530,65 +572,44 @@
 	    (gen "};")))))
   
     (define (prototypes)
-      (let ([large-signatures '()])
-	(gen #t)
-	(##sys#hash-table-for-each
-	 (lambda (id ll)
-	   (let* ([n (lambda-literal-argument-count ll)]
-		  [customizable (lambda-literal-customizable ll)] 
-		  [empty-closure (and customizable (zero? (lambda-literal-closure-size ll)))]
-		  [varlist (intersperse (make-variable-list (if empty-closure (sub1 n) n) "t") #\,)]
-		  [rest (lambda-literal-rest-argument ll)]
-		  [rest-mode (lambda-literal-rest-argument-mode ll)]
-		  [direct (lambda-literal-direct ll)] 
-		  [allocated (lambda-literal-allocated ll)] )
-	     (when (>= n small-parameter-limit)
-	       (set! large-signatures (lset-adjoin = large-signatures (add1 n))) )
-	     (gen #t)
-	     (for-each
-	      (lambda (s) 
-		(when (>= s small-parameter-limit)
-		  (set! large-signatures (lset-adjoin = large-signatures (add1 s))) ) )
-	      (lambda-literal-callee-signatures ll) )
-	     (cond [(not (eq? 'toplevel id))
-		    (gen "C_noret_decl(" id ")" #t)
-		    (gen "static ")
-		    (gen (if direct "C_word " "void "))
-		    (if customizable
-			(gen "C_fcall ")
-			(gen "C_ccall ") )
-		    (gen id) ]
-		   [else
-		    (let ((uname (if unit-name (string-append unit-name "_toplevel") "toplevel")))
-		      (gen "C_noret_decl(C_" uname ")" #t)
-		      (gen "C_externexport void C_ccall ")
-		      (gen "C_" uname) ) ] )
-	     (gen #\()
-	     (unless customizable (gen "C_word c,"))
-	     (when (and direct (not (zero? allocated)))
-	       (gen "C_word *a")
-	       (when (pair? varlist) (gen #\,)) )
-	     (apply gen varlist)
-	     (cond [rest
-		    (gen ",...) C_noret;")
-		    (if (not (eq? rest-mode 'none))
-			(begin
-			  (gen #t "C_noret_decl(" id ")" 
-			       #t "static void C_ccall " id "r(")
-			  (apply gen varlist)
-			  (gen ",C_word t" (+ n 1) ") C_noret;") ) ) ]
-		   [else 
-		    (gen #\))
-		    ;;(when customizable (gen " C_c_regparm"))
-		    (unless direct (gen " C_noret"))
-		    (gen #\;) ] ) ) )
-	 lambda-table) 
-	(for-each
-	 (lambda (s)
-	   (gen #t "typedef void (*C_proc" s ")(C_word")
-	   (for-each gen (make-list s ",C_word"))
-	   (gen ") C_noret;") )
-	 large-signatures) ) )
+      (gen #t)
+      (##sys#hash-table-for-each
+       (lambda (id ll)
+	 (let* ((n (lambda-literal-argument-count ll))
+		(customizable (lambda-literal-customizable ll)) 
+		(empty-closure (and customizable (zero? (lambda-literal-closure-size ll))))
+		(varlist (intersperse (make-variable-list (if empty-closure (sub1 n) n) "t") #\,))
+		(rest (lambda-literal-rest-argument ll))
+		(rest-mode (lambda-literal-rest-argument-mode ll))
+		(direct (lambda-literal-direct ll)) 
+		(allocated (lambda-literal-allocated ll)) )
+	   (gen #t)
+	   (cond ((not (eq? 'toplevel id))
+		  (gen "C_noret_decl(" id ")" #t)
+		  (gen "static ")
+		  (gen (if direct "C_word " "void "))
+		  (if customizable
+		      (gen "C_fcall ")
+		      (gen "C_ccall ") )
+		  (gen id) )
+		 (else
+		  (let ((uname (if unit-name (string-append unit-name "_toplevel") "toplevel")))
+		    (gen "C_noret_decl(C_" uname ")" #t) ;XXX what's this for?
+		    (gen "C_externexport void C_ccall ")
+		    (gen "C_" uname) ) ) )
+	   (gen #\()
+	   (unless customizable (gen "C_word c,"))
+	   (when (and direct (not (zero? allocated)))
+	     (gen "C_word *a")
+	     (when (pair? varlist) (gen #\,)) )
+	   (if (or customizable direct)
+	       (apply gen varlist)
+	       (gen "C_word *av"))
+	   (gen #\))
+	   ;;(when customizable (gen " C_c_regparm"))
+	   (unless direct (gen " C_noret"))
+	   (gen #\;) ))
+       lambda-table) )
   
     (define (trampolines)
       (let ([ns '()]
@@ -596,33 +617,10 @@
 	    [nsrv '()] )
 
 	(define (restore n)
-	  (do ((i (- n 1) (- i 1))
-	       (j 0 (+ j 1)) )
-	      ((negative? i))
-	    (gen #t "C_word t" i "=C_pick(" j ");") ) 
-	  (gen #t "C_adjust_stack(-" n ");") )
-
-	(define (emitter vflag)
-	  (lambda (n)
-	    (gen #t #t "C_noret_decl(tr" n #\r (if vflag #\v "") ")"
-		 #t "static void C_fcall tr" n #\r (if vflag #\v ""))
-	    (gen "(C_proc" n " k) C_regparm C_noret;")
-	    (gen #t "C_regparm static void C_fcall tr" n #\r)
-	    (when vflag (gen #\v))
-	    (gen "(C_proc" n " k){"
-		 #t "int n;"
-		 #t "C_word *a,t" n #\;)
-	    (restore n)
-	    (gen #t "n=C_rest_count(0);")
-	    (if vflag
-		(gen #t "a=C_alloc(n+1);")
-		(gen #t "a=C_alloc(n*3);") )
-	    (gen #t #\t n "=C_restore_rest")
-	    (when vflag (gen "_vector"))
-	    (gen "(a,n);")
-	    (gen #t "(k)(")
-	    (apply gen (intersperse (make-argument-list (+ n 1) "t") #\,))
-	    (gen ");}") ) )
+	  (do ((i 0 (add1 i))
+	       (j (sub1 n) (sub1 j)))
+	      ((>= i n))
+	    (gen #t "C_word t" i "=av[" j "];")))
 
 	(##sys#hash-table-for-each
 	 (lambda (id ll)
@@ -632,33 +630,16 @@
 		  [customizable (lambda-literal-customizable ll)]
 		  [empty-closure (and customizable (zero? (lambda-literal-closure-size ll)))] )
 	     (when empty-closure (set! argc (sub1 argc)))
-	     (unless (lambda-literal-direct ll)
-	       (cond [customizable
-		      (gen #t #t "C_noret_decl(tr" id ")"
-			   #t "static void C_fcall tr" id "(void *dummy) C_regparm C_noret;")
-		      (gen #t "C_regparm static void C_fcall tr" id "(void *dummy){")
-		      (restore argc)
-		      (gen #t id #\()
-		      (let ([al (make-argument-list argc "t")])
-			(apply gen (intersperse al #\,)) )
-		      (gen ");}") ]
-		     [(or rest (> (lambda-literal-allocated ll) 0) (lambda-literal-external ll))
-		      (if (and rest (not (eq? rest-mode 'none)))
-			  (set! nsr (lset-adjoin = nsr argc)) 
-			  (set! ns (lset-adjoin = ns argc)) ) ] ) ) ) )
-	 lambda-table)
-	(for-each
-	 (lambda (n)
-	   (gen #t #t "C_noret_decl(tr" n ")"
-		#t "static void C_fcall tr" n "(C_proc" n " k) C_regparm C_noret;")
-	   (gen #t "C_regparm static void C_fcall tr" n "(C_proc" n " k){")
-	   (restore n)
-	   (gen #t "(k)(" n #\,)
-	   (apply gen (intersperse (make-argument-list n "t") #\,))
-	   (gen ");}") )
-	 ns)
-	(for-each (emitter #f) nsr)
-	(for-each (emitter #t) nsrv) ) )
+	     (when (and (not (lambda-literal-direct ll)) customizable)
+	       (gen #t #t "C_noret_decl(tr" id ")"
+		    #t "static void C_ccall tr" id "(C_word c,C_word *av) C_noret;")
+	       (gen #t "static void C_ccall tr" id "(C_word c,C_word *av){")
+	       (restore argc)
+	       (gen #t id #\()
+	       (let ([al (make-argument-list argc "t")])
+		 (apply gen (intersperse al #\,)) )
+	       (gen ");}") )))
+	 lambda-table)))
   
     (define (literal-frame)
       (do ([i 0 (add1 i)]
@@ -673,7 +654,7 @@
       (cond [(immediate? lit) 0]
 	    [(string? lit) 0]
 	    [(number? lit) words-per-flonum]
-	    [(symbol? lit) 10]		; size of symbol, and possibly a bucket
+	    [(symbol? lit) 7]		; size of symbol, and possibly a bucket
 	    [(pair? lit) (+ 3 (literal-size (car lit)) (literal-size (cdr lit)))]
 	    [(vector? lit) (+ 1 (vector-length lit) (reduce + 0 (map literal-size (vector->list lit))))]
 	    [(block-variable-literal? lit) 0]
@@ -748,6 +729,7 @@
 	 (let* ((n (lambda-literal-argument-count ll))
 		(rname (real-name id db))
 		(demand (lambda-literal-allocated ll))
+		(max-av (apply max 0 (lambda-literal-callee-signatures ll)))
 		(rest (lambda-literal-rest-argument ll))
 		(customizable (lambda-literal-customizable ll))
 		(empty-closure (and customizable (zero? (lambda-literal-closure-size ll))))
@@ -779,21 +761,22 @@
 		  (gen "static C_TLS int toplevel_initialized=0;")
 		  (unless unit-name
 		    (gen #t "C_main_entry_point") )
-		  (gen #t "C_noret_decl(toplevel_trampoline)"
-		       #t "static void C_fcall toplevel_trampoline(void *dummy) C_regparm C_noret;"
-		       #t "C_regparm static void C_fcall toplevel_trampoline(void *dummy){"
-		       #t "C_" topname "(2,C_SCHEME_UNDEFINED,C_restore);}"
-		       #t #t "void C_ccall C_" topname) ] )
+		  (gen #t #t "void C_ccall C_" topname) ] )
 	   (gen #\()
 	   (unless customizable (gen "C_word c,"))
 	   (when (and direct (not (zero? demand))) 
 	     (gen "C_word *a")
 	     (when (pair? varlist) (gen #\,)) )
-	   (apply gen varlist)
-	   (when rest (gen ",..."))
+	   (if (or customizable direct)
+	       (apply gen varlist)
+	       (gen "C_word *av"))
 	   (gen "){")
 	   (when (eq? rest-mode 'none) (set! rest #f))
 	   (gen #t "C_word tmp;")
+	   (unless (or customizable direct)
+	     (do ((i 0 (add1 i)))
+		 ((>= i n))
+	       (gen #t "C_word t" i "=av[" i "];")))
 	   (if rest
 	       (gen #t "C_word t" n #\;) ; To hold rest-list if demand is met
 	       (begin
@@ -805,12 +788,14 @@
 		  (lambda (ubt)
 		    (gen #t (utype (cdr ubt)) #\space (car ubt) #\;))
 		  ubtemps)))
-	   (cond [(eq? 'toplevel id) 
+	   (cond ((eq? 'toplevel id)
 		  (let ([ldemand (fold (lambda (lit n) (+ n (literal-size lit))) 0 literals)]
 			[llen (length literals)] )
 		    (gen #t "C_word *a;"
-			 #t "if(toplevel_initialized) C_kontinue(t1,C_SCHEME_UNDEFINED);"
+			 #t "if(toplevel_initialized) {C_kontinue(t1,C_SCHEME_UNDEFINED);}"
 			 #t "else C_toplevel_entry(C_text(\"" topname "\"));")
+		    (when emit-debug-info
+		      (gen #t "C_register_debug_info(C_debug_info);"))
 		    (when disable-stack-overflow-checking
 		      (gen #t "C_disable_overflow_check=1;") )
 		    (unless unit-name
@@ -819,89 +804,66 @@
 			     #t "C_heap_size_is_fixed=1;"))
 		      (when target-stack-size
 			(gen #t "C_resize_stack(" target-stack-size ");") ) )
-		    (gen #t "C_check_nursery_minimum(" demand ");"
-			 #t "if(!C_demand(" demand ")){"
+		    (gen #t "C_check_nursery_minimum(C_calculate_demand(" demand ",c," max-av "));"
+			 #t "if(!C_demand(C_calculate_demand(" demand ",c," max-av "))){"
+			 #t "C_save_and_reclaim((void*)C_" topname ",c,av);}"
+			 #t "toplevel_initialized=1;"
+			 #t "if(!C_demand_2(" ldemand ")){"
 			 #t "C_save(t1);"
-			 #t "C_reclaim((void*)toplevel_trampoline,NULL);}"
-			 #t "toplevel_initialized=1;")
-		    (gen #t "if(!C_demand_2(" ldemand ")){"
-			 #t "C_save(t1);"
-			 #t "C_rereclaim2(" ldemand "*sizeof(C_word), 1);"
-			 #t "t1=C_restore;}")
-		    (gen #t "a=C_alloc(" demand ");")
+			 #t "C_rereclaim2(" ldemand "*sizeof(C_word),1);"
+			 #t "t1=C_restore;}"
+			 #t "a=C_alloc(" demand ");")
 		    (when (not (zero? llen))
 		      (gen #t "C_initialize_lf(lf," llen ");")
 		      (literal-frame)
-		      (gen #t "C_register_lf2(lf," llen ",create_ptable());") ) ) ]
-		 [rest
-		  (gen #t "va_list v;")
-		  (gen #t "C_word *a,c2=c;")
-		  (gen #t "C_save_rest(")
-		  (if (> n 0)
-		      (gen #\t (- n 1))
-		      (gen "c") )
-		  (gen ",c2," n ");")
+		      (gen #t "C_register_lf2(lf," llen ",create_ptable());"))
+		    (gen #\{) ) )
+		 (rest
+		  (gen #t "C_word *a;")
 		  (when (and (not unsafe) (not no-argc-checks) (> n 2) (not empty-closure))
 		    (gen #t "if(c<" n ") C_bad_min_argc_2(c," n ",t0);") )
 		  (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-		  (gen #t "if(!C_demand(c*C_SIZEOF_PAIR+" demand ")){") ]
-		 [else
-		  (cond [(and (not direct) (> demand 0))
-			 (if looping
-			     (gen #t "C_word *a;"
-				  #t "loop:"
-				  #t "a=C_alloc(" demand ");")
-			     (gen #t "C_word ab[" demand "],*a=ab;") ) ]
-			[else
-			 (unless direct (gen #t "C_word *a;"))
-			 (when (and direct (not unsafe) (not disable-stack-overflow-checking))
-			   (gen #t "C_stack_overflow_check;") )
-			 (when looping (gen #t "loop:")) ] )
+		  (gen #t "if(!C_demand(C_calculate_demand((c-" n ")*C_SIZEOF_PAIR +" demand ",c," max-av "))){"))
+		 (else
+		  (unless direct (gen #t "C_word *a;"))
+		  (when (and direct (not unsafe) (not disable-stack-overflow-checking))
+		    (gen #t "C_stack_overflow_check;"))
+		  (when looping (gen #t "loop:"))
 		  (when (and external (not unsafe) (not no-argc-checks) (not customizable))
 		    ;; (not customizable) implies empty-closure
 		    (if (eq? rest-mode 'none)
 			(when (> n 2) (gen #t "if(c<" n ") C_bad_min_argc_2(c," n ",t0);"))
 			(gen #t "if(c!=" n ") C_bad_argc_2(c," n ",t0);") ) )
-		  (when (and (not direct) (or external (> demand 0)))
-		    (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-		    (if (and looping (> demand 0))
-			(gen #t "if(!C_stack_probe(a)){")
-			(gen #t "if(!C_stack_probe(&a)){") ) ) ] )
-	   (when (and (not (eq? 'toplevel id))
-		      (not direct)
-		      (or rest external (> demand 0)) )
-	     (cond [rest
-		    (gen #t (if (> nec 0) "C_save_and_reclaim" "C_reclaim") "((void*)tr" n #\r)
-		    (gen ",(void*)" id "r")
-		    (when (> nec 0)
-		      (gen #\, nec #\,)
-		      (apply gen arglist) )
-		    (gen ");}"
-			 #t "else{"
-			 #t "a=C_alloc((c-" n ")*3);")
-		    (gen #t "t" n "=C_restore_rest(a,C_rest_count(0));")
-		    (gen #t id "r(")
-		    (apply gen (intersperse (make-argument-list n "t") #\,))
-		    (gen ",t" n ");}}")
-		    ;; Create secondary routine (no demand-check or argument-count-parameter):
-		    (gen #t #t "static void C_ccall " id "r(")
-		    (apply gen varlist)
-		    (gen ",C_word t" n "){")
-		    (gen #t "C_word tmp;")
-		    (do ([i (+ n 1) (+ i 1)]
-			 [j temps (- j 1)] )
-			((zero? j))
-		      (gen #t "C_word t" i #\;) )
-		    (when (> demand 0) (gen #t "C_word *a=C_alloc(" demand ");")) ]
-		   [else 
-		    (gen #t (if (> nec 0) "C_save_and_reclaim" "C_reclaim") "((void*)tr")
-		    (if customizable 
-			(gen id ",NULL")
-			(gen n ",(void*)" id) )
-		    (when (> nec 0)
-		      (gen #\, nec #\,)
-		      (apply gen arglist) )
-		    (gen ");}") ] ) )
+		  (cond ((not direct)
+			 ;; The interrupt handler may fill the stack, so we only
+			 ;; check for an interrupt when the procedure is restartable
+			 (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
+			 (gen #t "if(!C_demand(C_calculate_demand("
+			      demand
+			      (if customizable ",0," ",c,")
+			      max-av "))){"))
+			(else
+			 (gen #\{)))))
+	   (cond ((and (not (eq? 'toplevel id)) (not direct))
+		  (cond (rest
+			 (gen #t "C_save_and_reclaim((void*)" id ",c,av);}"
+			      #t "a=C_alloc((c-" n ")*C_SIZEOF_PAIR+" demand ");")
+			 (gen #t "t" n "=C_build_rest(&a,c," n ",av);")
+			 (do ((i (+ n 1) (+ i 1))
+			      (j temps (- j 1)))
+			     ((zero? j))
+			   (gen #t "C_word t" i #\;)))
+			(else
+			 (cond ((and customizable (> nec 0))
+				(gen #t "C_save_and_reclaim_args((void *)tr" id #\, nec #\,)
+				(apply gen arglist)
+				(gen ");}"))
+			       (else
+				(gen "C_save_and_reclaim((void *)" id #\, n ",av);}")))
+			 (when (> demand 0)
+			   (gen #t "a=C_alloc(" demand ");")))))
+		 (else (gen #\})))
+           (set! non-av-proc customizable)
 	   (expression
 	    (lambda-literal-body ll)
 	    (if rest
@@ -920,14 +882,32 @@
     (prototypes)
     (generate-foreign-callback-stubs foreign-callback-stubs db)
     (trampolines)
+    (when emit-debug-info
+      (emit-debug-table dbg-info-table))
     (procedures)
-    (emit-procedure-table-info lambda-table source-file)
+    (emit-procedure-table lambda-table source-file)
     (trailer) ) )
+
+
+;;; Emit global tables for debug-info
+
+(define (emit-debug-table dbg-info-table)
+  (gen #t #t "static C_DEBUG_INFO C_debug_info[]={")
+  (for-each
+   (lambda (info)
+     (gen #t "{" (second info) ",0,")
+     (for-each
+      (lambda (x)
+	(gen "\"" (backslashify (->string x)) "\","))
+      (cddr info))
+     (gen "},"))
+   (sort dbg-info-table (lambda (i1 i2) (< (car i1) (car i2)))))
+  (gen #t "{0,0,NULL,NULL}};\n"))
 
 
 ;;; Emit procedure table:
 
-(define (emit-procedure-table-info lambda-table sf)
+(define (emit-procedure-table lambda-table sf)
   (gen #t #t "#ifdef C_ENABLE_PTABLES"
        #t "static C_PTABLE_ENTRY ptable[" (add1 (##sys#hash-table-size lambda-table)) "] = {")
   (##sys#hash-table-for-each
@@ -1012,7 +992,6 @@
 	    [rname (real-name2 id db)]
 	    [types (foreign-stub-argument-types stub)]
 	    [n (length types)]
-	    [varlist (intersperse (cons "C_word C_buf" (make-variable-list n "C_a")) #\,)]
 	    [rtype (foreign-stub-return-type stub)] 
 	    [sname (foreign-stub-name stub)] 
 	    [body (foreign-stub-body stub)]
@@ -1026,16 +1005,17 @@
        (when body
 	 (gen #t "#define return(x) C_cblock C_r = (" rconv 
 	      "(x))); goto C_ret; C_cblockend"))
-       (if cps
-	   (gen #t "C_noret_decl(" id ")"
-		#t "static void C_ccall " id "(C_word C_c,C_word C_self,C_word C_k,")
-	   (gen #t "static C_word C_fcall " id #\() )
-       (apply gen varlist)
-       (if cps
-	   (gen ") C_noret;" #t "static void C_ccall " id "(C_word C_c,C_word C_self,C_word C_k,")
-	   (gen ") C_regparm;" #t "C_regparm static C_word C_fcall " id #\() )
-       (apply gen varlist)
-       (gen "){")
+       (cond (cps
+	      (gen #t "C_noret_decl(" id ")"
+		   #t "static void C_ccall " id "(C_word C_c,C_word *C_av){"
+		   #t "C_word C_k=C_av[1],C_buf=C_av[2];")
+	      (do ((i 0 (add1 i)))
+		  ((>= i n))
+		(gen #t "C_word C_a" i "=C_av[" (+ i 3) "];")))
+	     (else
+	      (gen #t "C_regparm static C_word C_fcall " id #\()
+	      (apply gen (intersperse (cons "C_word C_buf" (make-variable-list n "C_a")) #\,))
+	      (gen "){")))
        (gen #t "C_word C_r=C_SCHEME_UNDEFINED,*C_a=(C_word*)C_buf;")
        (for-each
 	(lambda (type index name)
@@ -1121,8 +1101,8 @@
 	  (lambda (v t)
 	    (gen #t "x=" (foreign-result-conversion t "a") v ");"
 		 #t "C_save(x);") )
-	  vlist 
-	  argtypes)
+	  (reverse vlist)
+	  (reverse argtypes))
 	 (unless (eq? 'void rtype)
 	   (gen #t "return " (foreign-argument-conversion rtype)) )
 	 (gen "C_callback_wrapper((void *)" id #\, n #\))
@@ -1382,10 +1362,15 @@ return((C_header_bits(lit) >> 24) & 0xff);
     (foreign-lambda* int ((scheme-object lit))
       "return(C_header_size(lit));"))
   (define (encode-size n)
-    ;; only handles sizes in the 24-bit range!
-    (string (integer->char (bitwise-and #xff (arithmetic-shift n -16)))
-	    (integer->char (bitwise-and #xff (arithmetic-shift n -8)))
-	    (integer->char (bitwise-and #xff n))))
+    (if (not (zero? (arithmetic-shift n -24)))
+	;; Unfortunately we can't do much more to help the user.
+	;; Printing the literal is not helpful because it's *huge*,
+	;; and we have no line number information here.
+	(quit "Encoded literal size of ~S is too large (must fit in 24 bits)" n)
+	(string
+	 (integer->char (bitwise-and #xff (arithmetic-shift n -16)))
+	 (integer->char (bitwise-and #xff (arithmetic-shift n -8)))
+	 (integer->char (bitwise-and #xff n)))))
   (define (finish str)		   ; can be taken out at a later stage
     (string-append (string #\xfe) str))
   (finish

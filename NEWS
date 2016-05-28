@@ -1,3 +1,89 @@
+4.11.0
+
+- Security fixes
+  - Specialisation rules for string-{ref,set!}, bit-set?
+    and move-memory no longer use unchecked C functions which could
+    result in undefined behaviour, including buffer overruns (#1216).
+
+- Platform support
+  - CHICKEN now supports the Linux X32 ABI (thanks to Sven Hartrumpf).
+
+- Runtime system:
+  - The calling convention of CPS procedures has been changed to
+    use "argument vectors" instead of C calling convention.
+  - The C API of C_values(), C_do_apply() and how to invoke CPS
+    functions has changed.  The C_procN() macros have disappeared.
+    The manual example in "Accessing external objects" for C_values
+    has been updated.  See also the "numbers" egg for examples on
+    how to support pre- and post-4.10.1 CHICKENs simultaneously.
+  - Apply hack is no longer used; the limitation of 128 arguments
+    has been lifted for platforms which had no apply hack.
+  - Increased the "binary compatibility version" to 8.
+  - Delivery of signals in other OS-level threads is now dealt with
+    in a more robust way (#1232) (thanks to Joerg Wittenberger).
+  - Compiled programs with large literals won't crash on startup (#1221).
+  - Comparisons of closures now behave in a stable way, whether or not
+    the code was compiled with the -no-lambda-info option (#1041).
+  - The signal handling code can no longer trigger "stack overflow" or
+    "recursion too deep or circular data encountered" errors (#1283).
+
+- Compiler:
+  - Specializations on implicit "or" types like "number" or "boolean" now
+    work, removing the requirement for the inferred types to match
+    declared types exactly.  Specializations are matched from first to
+    last to resolve ambiguities (#1214).
+  - Compiler rewrites for char{<,>,<=,>=,=}? are now safe (#1122).
+  - When requesting to emit import libraries that don't exist, the
+     compiler now gives an error instead of quietly continuing (#1188).
+  - Don't silently truncate huge literals (thanks to Claude Marinier).
+
+- Core libraries
+  - try-compile from setup-api cleans up temporary output files (#1213).
+  - SRFI-18: thread-join! no longer gives an error when passed a
+    thread in the "sleeping" state (thanks to Joerg Wittenberger)
+  - SRFI-18: mutex-lock! will not set ownership of mutexes when
+    passed #f as the owner (#1231), not disown a mutex from owner if
+    locking fails for timeout and not keep the last thread which held
+    a mutex until the next lock (thanks to Joerg Wittenberger).
+  - SRFI-39: When a parameter's "guard" procedure raises an exception,
+    "parameterize" now correctly resets the original values of all
+    parameters (fixes #1227, thanks to Joo ChurlSoo).
+  - Irregex has been updated to 0.9.4, which fixes severe performance
+    problems with {n,m} repeating patterns (thanks to Caolan McMahon).
+  - Unit "posix": The following posix procedures now work on port
+    objects: file-stat, file-size, file-owner, file-permissions,
+    file-modification-time, file-access-time, file-change-time,
+    file-type and all procedures using file-type. These are:
+    regular-file?, symbolic-link?, block-device?, character-device?
+    fifo? and socket?.
+  - Unit "posix": When "file-close" is interrupted it will retry,
+    to avoid leaking descriptors (thanks to Joerg Wittenberger).
+  - Unit "data-structures": alist-{update[!],ref} were made consistent
+    with srfi-1 in the argument order of comparison procedures.
+  - Unit "lolevel": locative-ref has been fixed for locatives of u32
+    and s32vectors (thanks to Joerg Wittenberger for pointing this out).
+  - string->number now signals exceptions if passed a bad base instead
+    of segfaulting (#1272; reported by "Tilpner" on IRC).
+
+- Tools
+  - A debugger is now available, known as "feathers", which allows
+    basic source-level debugging of compiled Scheme code.
+  - A statistical profiler has been added, enabling sampling-based
+    runtime profiling of compiled programs.
+  - "chicken-install"
+    - When installing eggs in deploy mode, already satisfied
+      dependencies aren't reinstalled every time (#1106).
+  - "chicken-uninstall"
+    - -prefix and -deploy options were added, matching chicken-install.
+  - "chicken-status"
+    - -prefix and -deploy options were added, matching chicken-install.
+  - The -sudo and -s options for chicken-install and chicken-uninstall
+    now honor a "SUDO" environment variable (thanks to Timo Myyrä).
+
+- Syntax expander
+  - Mixed internal define/define-values are now correctly ordered, so
+    later defines can refer to earlier define-values (#1274).
+
 4.10.0
 
 - Security fixes

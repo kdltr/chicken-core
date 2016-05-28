@@ -1,6 +1,6 @@
 ;;;; setup-download.scm
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -355,6 +355,8 @@
 			   (else
 			    (set! version v)))
 		     (open-input-string ln))))
+		((irregex-match "^[ ]*\\(error .*\\)[ ]*$" ln)
+		 (open-input-string ln)) ; get-files deals with errors
 		((string-every char-set:whitespace ln)
 		 (skip))
 		(else

@@ -1,6 +1,6 @@
 ;;;; srfi-1.import.scm - import library for "srfi-1" module
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -66,6 +66,7 @@
    first
    fold
    fold-right
+   for-each
    fourth
    iota
    last

@@ -31,7 +31,7 @@ Operations used with {{file-control}}.
 <constant>fileno/stdout</constant><br>
 <constant>fileno/stderr</constant>
 
-Standard I/O file descriptor numbers, used with procedures 
+Standard I/O file descriptor numbers, used with procedures
 such as {{open-input-file*}} which take file descriptors.
 
 ==== Open flags
@@ -52,8 +52,8 @@ such as {{open-input-file*}} which take file descriptors.
 <constant>open/binary</constant><br>
 <constant>open/text</constant>
 
-Open flags used with the {{file-open}} procedure.  {{open/read}} is a 
-convenience synonym for {{open/rdonly}}, as is {{open/write}} 
+Open flags used with the {{file-open}} procedure.  {{open/read}} is a
+convenience synonym for {{open/rdonly}}, as is {{open/write}}
 for {{open/wronly}}.
 
 ==== Permission bits
@@ -131,7 +131,7 @@ Files beginning with {{.}} are included only if {{SHOW-DOTFILES?}} is given and 
 <procedure>(directory? FILE)</procedure>
 
 Returns {{#t}} if {{FILE}} designates directory. Otherwise, it returns {{#f}}.
-{{FILE}} may be a pathname or a file-descriptor.
+{{FILE}} may be a pathname, a file-descriptor or a port object.
 
 ==== glob
 
@@ -253,8 +253,8 @@ Creates a FIFO with the name {{FILENAME}} and the permission bits
 
 <procedure>(fifo? FILE)</procedure>
 
-Returns {{#t}} if {{FILE}} names a FIFO. {{FILE}} may be a filename
-or a file-descriptor.
+Returns {{#t}} if {{FILE}} names a FIFO. {{FILE}} may be a filename,
+a port or a file-descriptor.
 
 
 === File descriptors and low-level I/O
@@ -389,7 +389,9 @@ this port. Otherwise an error is signaled.
 
 Returns time (in seconds) of the last access, modification or change of {{FILE}}. {{FILE}}
 may be a filename or a file-descriptor. If the file does not exist,
-an error is signaled. 
+an error is signaled.
+
+{{file-access-time}}, {{file-change-time}} and {{file-modification-time}} also accept a port object as their argument.
 
 {{(set! (file-modification-time FILE) SECONDS)}} sets the access- and modification
 time of {{FILE}} to {{SECONDS}}.
@@ -466,6 +468,8 @@ the status of the referenced file is returned;
 however, if the optional argument {{LINK}} is given and
 not {{#f}}, the status of the link itself is returned.
 
+{{FILE}} may be a filename, port or file-descriptor.
+
 Note that for very large files, the {{file-size}} value may be an
 inexact integer.
 
@@ -481,22 +485,22 @@ port or a file-descriptor.
 <procedure>(file-size FILE)</procedure>
 
 Returns the size of the file designated by {{FILE}}.  {{FILE}}
-may be a filename or a file-descriptor.  If the file does not exist,
+may be a filename, a file-descriptor or a port object.  If the file does not exist,
 an error is signaled. Note that for very large files, {{file-size}} may
 return an inexact integer.
 
 ==== regular-file?
 
-<procedure>(regular-file? FILENAME)</procedure>
+<procedure>(regular-file? FILE)</procedure>
 
-Returns true, if {{FILENAME}} names a regular file (not a directory, socket, etc.)  This operation follows symbolic links; use either {{symbolic-link?}} or {{file-type}} if you need to test for symlinks.
+Returns true, if {{FILE}} names a regular file (not a directory, socket, etc.)  This operation follows symbolic links; use either {{symbolic-link?}} or {{file-type}} if you need to test for symlinks. {{FILE}} may refer to a filename, file descriptor or ports object.
 
 ==== file-owner
 
 <procedure>(file-owner FILE)</procedure>
 
-Returns the user-id of {{FILE}}.  {{FILE}} may be a filename
-or a file-descriptor.
+Returns the user-id of {{FILE}}.  {{FILE}} may be a filename, a file-descriptor
+or a port object.
 
 ==== file-permissions
 
@@ -504,7 +508,7 @@ or a file-descriptor.
 
 Returns the permission bits for {{FILE}}. You can test this value
 by performing bitwise operations on the result and the {{perm/...}}
-values.  {{FILE}} may be a filename or a file-descriptor.
+values.  {{FILE}} may be a filename, a file-descriptor or a port object.
 
 ==== file-read-access?
 ==== file-write-access?
@@ -522,8 +526,8 @@ write or execute permissions on the file named {{FILENAME}}.
 
 <procedure>(file-type FILE [LINK [ERROR]])</procedure>
 
-Returns the file-type for {{FILE}}, which should be a filename or
-file-descriptor. If {{LINK}} is given and true, symbolic-links are
+Returns the file-type for {{FILE}}, which should be a filename, a file-descriptor
+or a port object. If {{LINK}} is given and true, symbolic-links are
 not followed:
 
   regular-file
@@ -534,7 +538,7 @@ not followed:
   character-device
   block-device
 
-Note that not all types are supported on every platform. 
+Note that not all types are supported on every platform.
 If {{ERROR}} is given and true, {{file-type}} signals an
 error if the file does not exist.
 
@@ -547,8 +551,8 @@ error if the file does not exist.
 <procedure>(block-device? FILE)</procedure><br>
 <procedure>(socket? FILE)</procedure>
 
-These procedures return {{#t}} if {{FILE}} given is of the 
-appropriate type. {{FILE}} may be a filename or a file-descriptor.
+These procedures return {{#t}} if {{FILE}} given is of the
+appropriate type. {{FILE}} may be a filename, a file-descriptor or a port object.
 Note that these operations follow symbolic links. If the file does
 not exist, {{#f}} is returned.
 
@@ -641,14 +645,14 @@ Get or set the process group ID of the process specified by {{PID}}.
 
 Replaces the running process with a new process image from the program
 stored at {{PATHNAME}}, using the C library function {{execvp(3)}}.
-If the optional argument {{ARGUMENT-LIST}} is given, then it should 
+If the optional argument {{ARGUMENT-LIST}} is given, then it should
 contain a list of strings which are passed as arguments to the subprocess.
-If the optional argument {{ENVIRONMENT-LIST}} is supplied, then the library 
+If the optional argument {{ENVIRONMENT-LIST}} is supplied, then the library
 function {{execve(2)}} is used, and the environment passed in
 {{ENVIRONMENT-LIST}} (which should be of the form {{("<NAME>=<VALUE>" ...)}}
 is given to the invoked process. Note that {{execvp(3)}} respects the
 current setting of the {{PATH}} environment variable while {{execve(3)}} does not.
- 
+
 This procedure never returns; it either replaces the process with a new one
 or it raises an exception in case something went wrong executing the program.
 
@@ -760,10 +764,11 @@ the session ID.
 
 ==== symbolic-link?
 
-<procedure>(symbolic-link? FILENAME)</procedure>
+<procedure>(symbolic-link? FILE)</procedure>
 
-Returns true, if {{FILENAME}} names a symbolic link. If no such file exists, {{#f}}
+Returns true, if {{FILE}} names a symbolic link. If no such file exists, {{#f}}
 is returned.  This operation does not follow symbolic links itself.
+{{FILE}} could be a filename, file descriptor or port object.
 
 ==== create-symbolic-link
 
@@ -1033,7 +1038,7 @@ nothing happens.
 === Memory mapped I/O
 
 Memory mapped I/O takes the contents of a file descriptor and places them in memory.
- 
+
 ==== memory-mapped-file?
 
 <procedure>(memory-mapped-file? X)</procedure>
@@ -1245,19 +1250,24 @@ These variables contain error codes as returned by {{errno}}.
 
 Recursively traverses the contents of {{DIRECTORY}} (which should be a
 string) and invokes the procedure {{action}} for all files in which
-the procedure {{test}} is true.  {{test}} may be a procedure of one
-argument or an irregex object, regex string or SRE expression that
-will be matched with a full pathname using {{irregex-match}}.
+the procedure {{test}} is true.
+
+{{test}} may be a procedure of one argument or an irregex object,
+regex string or SRE expression that will be matched with a full
+pathname using {{irregex-match}}. {{test}} defaults to {{(constantly
+#t)}}.
+
+
 {{action}} should be a procedure of two arguments: the currently
 encountered file and the result of the previous invocation of
 {{action}}, or, if this is the first invocation, the value of
-{{seed}}. {{test}} defaults to {{(constantly #t)}}, {{action}}
-defaults to {{cons}}, {{seed}} defaults to {{()}}.  {{limit}} should
-be a procedure of one argument that is called for each nested
-directory and which should return true, if that directory is to be
-traversed recursively. {{limit}} may also be an exact integer that
-gives the maximum recursion depth. For example, a depth of {{0}} means
-that only files in the top-level, specified directory are to be
+{{seed}}. {{action}} defaults to {{cons}}, {{seed}} defaults to {{()}}.
+
+{{limit}} should be a procedure of one argument that is called for
+each nested directory and which should return true, if that directory
+is to be traversed recursively. {{limit}} may also be an exact integer
+that gives the maximum recursion depth. For example, a depth of {{0}}
+means that only files in the top-level, specified directory are to be
 traversed. In this case, all nested directories are ignored.
 {{limit}} may also be {{#f}} (the default), which is equivalent to
 {{(constantly #t)}}.
@@ -1278,7 +1288,7 @@ has a different signature:
   (find-files DIRECTORY [TEST [ACTION [SEED [LIMIT]]]])
 
 The old signature was supported until CHICKEN 4.7.3 for compatibility reasons,
-at which point it became invalid.  The optional arguments are ignored 
+at which point it became invalid.  The optional arguments are ignored
 and use their default values, and no warning is issued.  One symptom is
 that your {{TEST}} does not work, returning every file.
 

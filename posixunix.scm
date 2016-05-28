@@ -1,6 +1,6 @@
 ;;;; posixunix.scm - Miscellaneous file- and process-handling routines
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -514,8 +514,12 @@ EOF
 (define file-close
   (lambda (fd)
     (##sys#check-exact fd 'file-close)
-    (when (fx< (##core#inline "C_close" fd) 0)
-      (posix-error #:file-error 'file-close "cannot close file" fd) ) ) )
+    (let loop ()
+      (when (fx< (##core#inline "C_close" fd) 0)
+	(select _errno
+	  ((_eintr) (##sys#dispatch-interrupt loop))
+	  (else
+	   (posix-error #:file-error 'file-close "cannot close file" fd)))))))
 
 (define file-read
   (lambda (fd size . buffer)
@@ -1351,7 +1355,7 @@ EOF
   (define (setup port args loc)
     (let-optionals* args ([start 0]
                           [len #t] )
-      (##sys#check-port port loc)
+      (##sys#check-open-port port loc)
       (##sys#check-number start loc)
       (if (eq? #t len)
           (set! len 0)
@@ -1573,6 +1577,8 @@ EOF
 (define process-fork
   (let ((fork (foreign-lambda int "C_fork")))
     (lambda (#!optional thunk killothers)
+      ;; flush all stdio streams before fork
+      ((foreign-lambda int "C_fflush" c-pointer) #f)
       (let ((pid (fork)))
 	(when (fx= -1 pid) 
 	  (posix-error #:process-error 'process-fork "cannot create child process"))
@@ -1582,7 +1588,7 @@ EOF
 		 (lambda (thunk) (thunk)))
 	     (lambda ()
 	       (thunk)
-	       ((foreign-lambda void "_exit" int) 0) ))
+	       (exit 0)))
 	    pid)))))
 
 (define process-execute

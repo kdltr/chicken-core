@@ -172,16 +172,19 @@ executed in a ''primitive'' CPS context, which means it will not
 actually return, but call its continuation on exit. This means that code
 inside this form may allocate Scheme data on the C stack (the
 ''nursery'') with {{C_alloc}} (see below). You can return multiple
-values inside the body of the {{foreign-primitive}} form by calling this
-C function:
+values inside the body of the {{foreign-primitive}} form by using
+the following C code:
 
 <enscript highlight=scheme>
-C_values(N + 2, C_SCHEME_UNDEFINED, C_k, X1, ...)
+C_word av[N + 2] = { C_SCHEME_UNDEFINED, C_k, X1, ... };
+C_values(N + 2, av);
 </enscript>
 
-where {{N}} is the number of values to be returned, and {{X1, ...}} are the
-results, which should be Scheme data objects. When returning multiple values, the
-return-type should be omitted.
+where {{N}} is the number of values to be returned, and {{X1, ...}}
+are the results, which should be Scheme data objects. When returning
+multiple values, the return-type should be omitted.  Of course, if you
+have to dynamically compute the values, you do not have to use C's
+array initialization syntax, but you can just assign them one by one.
 
 Returning just a single value can still be done via the {{C_return(...)}} macro.
 

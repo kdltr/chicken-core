@@ -1,6 +1,6 @@
 ;;;; csc.scm - Driver program for the CHICKEN compiler - felix -*- Scheme -*-
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -27,7 +27,7 @@
 
 (declare
   (block)
-  (uses data-structures ports srfi-1 srfi-13 utils files extras))
+  (uses posix data-structures ports srfi-1 srfi-13 utils files extras))
 
 (define-foreign-variable INSTALL_BIN_HOME c-string "C_INSTALL_BIN_HOME")
 (define-foreign-variable INSTALL_CC c-string "C_INSTALL_CC")
@@ -63,6 +63,7 @@
 (define-foreign-variable BINARY_VERSION int "C_BINARY_VERSION")
 (define-foreign-variable POSTINSTALL_PROGRAM c-string "C_INSTALL_POSTINSTALL_PROGRAM")
 
+(define windows-shell WINDOWS_SHELL)
 
 ;;; Parameters:
 
@@ -88,15 +89,22 @@
       (make-pathname (list chicken-prefix dir) str)
       default) )
 
+(define (back-slash->forward-slash path)
+  (if windows-shell
+      (string-translate path #\\ #\/)
+      path))
+
 (define (quotewrap str)
+  (qs (back-slash->forward-slash (normalize-pathname str))))
+
+(define (quotewrap-no-slash-trans str)
   (qs (normalize-pathname str)))
 
 (define home
-  (quotewrap 
-   (prefix "" "share" (if host-mode INSTALL_SHARE_HOME TARGET_SHARE_HOME))))
+  (prefix "" "share" (if host-mode INSTALL_SHARE_HOME TARGET_SHARE_HOME)))
 
 (define translator
-  (quotewrap 
+  (quotewrap
    (prefix "chicken" "bin"
 	   (make-pathname
 	    INSTALL_BIN_HOME
@@ -116,7 +124,6 @@
 (define shared-library-extension ##sys#load-dynamic-extension)
 (define default-translation-optimization-options '())
 (define pic-options (if (or mingw cygwin) '("-DPIC") '("-fPIC" "-DPIC")))
-(define windows-shell WINDOWS_SHELL)
 (define generate-manifest #f)
 
 (define libchicken (string-append "lib" INSTALL_LIB_NAME))
@@ -146,7 +153,7 @@
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
     -emit-all-import-libraries -setup-mode -no-elevation -no-module-registration
     -no-procedure-checks-for-usual-bindings -module
-    -specialize -strict-types -clustering -lfa2
+    -specialize -strict-types -clustering -lfa2 -debug-info
     -no-procedure-checks-for-toplevel-bindings))
 
 (define-constant complex-options
@@ -215,11 +222,10 @@
 
 (define default-library-files 
   (list
-   (quotewrap
-    (prefix default-library "lib"
-	    (string-append
-	     (if host-mode INSTALL_LIB_HOME TARGET_LIB_HOME)
-	     (string-append "/" default-library)))) ))
+   (prefix default-library "lib"
+	   (string-append
+	    (if host-mode INSTALL_LIB_HOME TARGET_LIB_HOME)
+	    (string-append "/" default-library)))) )
 
 (define default-shared-library-files 
   (list (string-append "-l" (if host-mode INSTALL_LIB_NAME TARGET_LIB_NAME))))
@@ -240,10 +246,10 @@
 
 (define builtin-compile-options
   (append
-   (if include-dir (list (conc "-I\"" include-dir "\"")) '())
+   (if include-dir (list (conc "-I" include-dir)) '())
    (cond ((get-environment-variable "CHICKEN_C_INCLUDE_PATH") => 
 	  (lambda (path) 
-	    (map (cut string-append "-I\"" <> "\"") (string-split path ":;"))))
+	    (map (cut string-append "-I" <>) (map quotewrap (string-split path ":;")))))
 	 (else '()))))
 
 (define compile-only-flag "-c")
@@ -263,25 +269,25 @@
   (append
    (cond (elf
 	  (list
-	   (conc "-L\"" library-dir "\"")
-	   (conc " -Wl,-R\""
+	   (conc "-L" library-dir)
+	   (conc " -Wl,-R"
 		 (if deployed
 		     "\\$ORIGIN"
-		     (prefix "" "lib"
-			     (if host-mode
-				 INSTALL_LIB_HOME
-				 TARGET_RUN_LIB_HOME)))
-		 "\"")) )
-		 (aix
-		  (list (conc "-Wl,-R\"" library-dir "\"")))
+		     (quotewrap
+		      (prefix "" "lib"
+			      (if host-mode
+				  INSTALL_LIB_HOME
+				  TARGET_RUN_LIB_HOME)))))))
+	 (aix
+	  (list (conc "-Wl,-R\"" library-dir "\"")))
 	 (else
-	  (list (conc "-L\"" library-dir "\""))))
+	  (list (conc "-L" library-dir))))
    (if (and deployed (memq (software-version) '(freebsd openbsd netbsd)))
        (list "-Wl,-z,origin")
        '())
    (cond ((get-environment-variable "CHICKEN_C_LIBRARY_PATH") => 
 	  (lambda (path) 
-	    (map (cut string-append "-L\"" <> "\"") (string-split path ":;"))))
+	    (map (cut string-append "-L" <>) (string-split path ":;"))))
 	 (else '()))))
 	
 (define target-filename #f)
@@ -364,9 +370,11 @@ Usage: #{csc} FILENAME | OPTION ...
   Debugging options:
 
     -w  -no-warnings               disable warnings
-    -d0 -d1 -d2 -debug-level NUMBER
+    -d0 -d1 -d2 -d3 -debug-level NUMBER
                                    set level of available debugging information
     -no-trace                      disable rudimentary debugging information
+    -debug-info                    enable debug-information in compiled code for use
+                                    with an external debugger
     -profile                       executable emits profiling information 
     -accumulate-profile            executable emits profiling information in
                                     append mode
@@ -575,8 +583,8 @@ EOF
 		  (sprintf
 		      "~A ~A ~A" 
 		      (if windows-shell "move" "mv")
-		    (quotewrap target-filename)
-		    (quotewrap (string-append target-filename ".old")))))
+		    ((if windows-shell quotewrap-no-slash-trans quotewrap) target-filename)
+		    ((if windows-shell quotewrap-no-slash-trans quotewrap) (string-append target-filename ".old")))))
 	       (run-linking)) ) ]
 	  [else
 	   (let* ([arg (car args)]
@@ -687,6 +695,7 @@ EOF
 	       [(|-d0|) (set! rest (cons* "-debug-level" "0" rest))]
 	       [(|-d1|) (set! rest (cons* "-debug-level" "1" rest))]
 	       [(|-d2|) (set! rest (cons* "-debug-level" "2" rest))]
+	       [(|-d3|) (set! rest (cons* "-debug-level" "3" rest))]
 	       [(-dry-run) 
 		(set! verbose #t)
 		(set! dry-run #t)]
@@ -992,8 +1001,8 @@ EOF
      (if windows-shell 
 	 "copy /Y"
 	 "cp")
-     (quotewrap from)
-     (quotewrap to))))
+     ((if windows-shell quotewrap-no-slash-trans quotewrap) from)
+     ((if windows-shell quotewrap-no-slash-trans quotewrap) to))))
 
 (define (linker-options)
   (string-append
@@ -1042,10 +1051,14 @@ EOF
 (define last-exit-code #f)
 
 (define ($system str)
-  (when verbose (print str))
-  (let ((str (if windows-shell
-		 (string-append "\"" str "\"")
-		 str)))
+  (let ((str (cond (windows-shell
+		    (string-append "\"" str "\""))
+		   ((and osx (get-environment-variable "DYLD_LIBRARY_PATH"))
+		    => (lambda (path)
+			 (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
+					(qs path) " " str)))
+		   (else str))))
+    (when verbose (print str))
     (let ((raw-exit-code (if dry-run 0 (system str))))
       (unless (zero? raw-exit-code)
 	(printf "\nError: shell command terminated with non-zero exit status ~S: ~A~%" raw-exit-code str))

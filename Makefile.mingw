@@ -1,6 +1,6 @@
 # Makefile.mingw - configuration for MinGW (no MSYS) -*- Makefile -*-
 #
-# Copyright (c) 2008-2015, The CHICKEN Team
+# Copyright (c) 2008-2016, The CHICKEN Team
 # Copyright (c) 2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -35,12 +35,6 @@ WINDOWS = 1
 WINDOWS_SHELL = 1
 UNAME_SYS = MinGW
 
-ifeq ($(ARCH),x86)
-HACKED_APPLY ?= 1
-else
-HACKED_APPLY =
-endif
-
 # file extensions
 
 SO = .dll
@@ -68,11 +62,11 @@ LIBCHICKEN_SO_LINKER_OPTIONS = -Wl,--out-implib,lib$(PROGRAM_PREFIX)chicken$(PRO
 LIBCHICKEN_SO_LIBRARIES = -lm -lws2_32 
 LIBCHICKEN_IMPORT_LIBRARY = lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX).dll.a
 MAKEDIR_COMMAND_OPTIONS =
+GENERATE_DEBUGGER = type $< >$@ & echo wish $(DATADIR)\feathers.tcl %1 %2 %3 %4 %5 %6 %7 %8 %9 >>$@
 
 # special files
 
 CHICKEN_CONFIG_H = chicken-config.h
-APPLY_HACK_OBJECT = apply-hack.$(ARCH)$(O)
 POSIXFILE = posixwin
 
 # select default and internal settings
@@ -109,9 +103,6 @@ ifdef GCHOOKS
 endif
 ifdef SYMBOLGC
 	echo #define C_COLLECT_ALL_SYMBOLS >>$@
-endif
-ifneq ($(HACKED_APPLY),)
-	echo #define C_HACKED_APPLY >>$@
 endif
 	type chicken-defaults.h >>$@
 

@@ -331,6 +331,10 @@ accessor macros instead).
 
  [C function] C_word C_string2 (C_word **ptr, char *zero_terminated_string)
 
+===== C_intern
+
+ [C function] C_word C_intern (C_word **ptr, int length, char *string)
+
 ===== C_intern2
 
  [C function] C_word C_intern2 (C_word **ptr, char *zero_terminated_string)

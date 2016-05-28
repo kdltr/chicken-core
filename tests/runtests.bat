@@ -12,6 +12,8 @@ set FAST_OPTIONS=-O5 -d0 -b -disable-interrupts
 set PATH=%cd%\..;%PATH%
 
 set TYPESDB=..\types.db
+rem Increase this when tests start failing on "inexplicable" diffs
+set FCBUFSIZE=500
 
 set compile=..\csc -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -o a.out
 set compile2=..\csc -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/..
@@ -47,14 +49,14 @@ if errorlevel 1 exit /b 1
 rem this is sensitive to gensym-names, so make it optional
 if not exist scrutiny.expected copy /Y scrutiny.out scrutiny.expected
 
-fc /w scrutiny.expected scrutiny.out
+fc /lb%FCBUFSIZE% /w scrutiny.expected scrutiny.out
 if errorlevel 1 exit /b 1
 
 %compile% scrutiny-tests-2.scm -A -scrutinize -analyze-only -verbose 2>scrutiny-2.out
 if errorlevel 1 exit /b 1
 
 if not exist scrutiny-2.expected copy /Y scrutiny-2.out scrutiny-2.expected
-fc /w scrutiny-2.expected scrutiny-2.out
+fc /lb%FCBUFSIZE% /w scrutiny-2.expected scrutiny-2.out
 if errorlevel 1 exit /b 1
 
 %compile% scrutiny-tests-3.scm -specialize -block
@@ -73,7 +75,7 @@ del /f /q foo.types foo.import.*
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile% specialization-test-2.scm -types foo.types -specialize -debug ox
+%compile% specialization-test-2.scm -types foo.types -types specialization-test-2.types -feature chicken-bootstrap -specialize -debug ox
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
@@ -138,13 +140,13 @@ if errorlevel 1 exit /b 1
 echo ======================================== dynamic-wind tests ...
 %interpret% -s dwindtst.scm >dwindtst.out
 if errorlevel 1 exit /b 1
-fc /w dwindtst.expected dwindtst.out
+fc /lb%FCBUFSIZE% /w dwindtst.expected dwindtst.out
 if errorlevel 1 exit /b 1
 %compile% dwindtst.scm
 if errorlevel 1 exit /b 1
 a.out >dwindtst.out
 if errorlevel 1 exit /b 1
-fc /w dwindtst.expected dwindtst.out
+fc /lb%FCBUFSIZE% /w dwindtst.expected dwindtst.out
 if errorlevel 1 exit /b 1
 echo *** Skipping "feeley-dynwind" for now ***
 rem %interpret% -s feeley-dynwind.scm
@@ -418,6 +420,10 @@ echo 0 >tmpdir\.dotfile
 %interpret% -R posix -e "(delete-directory \"tmpdir\" #t)"
 if errorlevel 1 exit /b 1
 
+echo ======================================== find-files tests ...
+%interpret% -bnq test-find-files.scm
+if errorlevel 1 exit /b 1
+
 echo ======================================== regular expression tests ...
 %interpret% -bnq test-irregex.scm
 if errorlevel 1 exit /b 1
@@ -430,6 +436,17 @@ for %%s in (100000 120000 200000 250000 300000 350000 400000 450000 500000) do (
   ..\chicken -ignore-repository ..\utils.scm -:s%%s -output-file tmp.c -include-path %TEST_DIR%/.. 
   if errorlevel 1 exit /b 1
 )
+
+echo ======================================== heap literal stress test ...
+%compile% heap-literal-stress-test.scm
+if errorlevel 1 exit /b 1
+
+for %%s in (100000 120000 200000 250000 300000 350000 400000 450000 500000) do (
+  echo %%s
+  a.out -:hi%%s
+  if errorlevel 1 exit /b 1
+)
+
 
 echo ======================================== symbol-GC tests ...
 %compile% symbolgc-tests.scm

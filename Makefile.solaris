@@ -1,6 +1,6 @@
 # Makefile.solaris - configuration for Solaris -*- Makefile -*-
 #
-# Copyright (c) 2008-2015, The CHICKEN Team
+# Copyright (c) 2008-2016, The CHICKEN Team
 # Copyright (c) 2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -124,9 +124,6 @@ ifdef GCHOOKS
 endif
 ifdef SYMBOLGC
 	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
-endif
-ifneq ($(HACKED_APPLY),)
-	echo "#define C_HACKED_APPLY" >>$@
 endif
 	cat chicken-defaults.h >>$@
 

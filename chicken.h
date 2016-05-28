@@ -1,7 +1,6 @@
-
 /* chicken.h - General headerfile for compiler generated executables
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -38,7 +37,7 @@
 #define ___CHICKEN
 
 #define C_MAJOR_VERSION   4
-#define C_MINOR_VERSION   10
+#define C_MINOR_VERSION   11
 
 #ifndef _ISOC99_SOURCE
 # define _ISOC99_SOURCE
@@ -103,6 +102,12 @@
 
 #if defined(__MINGW64__) || defined(_WIN64)
 # define C_LLP
+#endif
+
+/* Declare base Win32 version for access to Timer Queue functions. */
+
+#ifdef __MINGW32__
+# define _WIN32_WINNT 0x0500
 #endif
 
 
@@ -496,6 +501,7 @@ static inline int isinf_ld (long double x)
 #define C_SIZEOF_BUCKET           3
 #define C_SIZEOF_LOCATIVE         5
 #define C_SIZEOF_PORT             16
+#define C_SIZEOF_CLOSURE(n)       ((n)+1)
 
 /* Fixed size types have pre-computed header tags */
 #define C_PAIR_TAG                (C_PAIR_TYPE | (C_SIZEOF_PAIR - 1))
@@ -775,77 +781,12 @@ typedef struct C_ptable_entry_struct
   void *ptr;
 } C_PTABLE_ENTRY;
 
-#ifdef __x86_64__
-# define C_AMD64_ABI_WEIRDNESS      , ...
-#else
-# define C_AMD64_ABI_WEIRDNESS
-#endif
-
-/* C_WORD_p<P>_<B>: List of ((2 ** P) * B) 'C_word' parameters */
-#define C_WORD_p0_0
-#define C_WORD_p1_0
-#define C_WORD_p2_0
-#define C_WORD_p3_0
-#define C_WORD_p4_0
-#define C_WORD_p5_0
-#define C_WORD_p6_0
-#define C_WORD_p7_0
-#define C_WORD_p0_1     C_word,
-#define C_WORD_p1_1     C_word, C_word,
-#define C_WORD_p2_1     C_WORD_p1_1 C_WORD_p1_1
-#define C_WORD_p3_1     C_WORD_p2_1 C_WORD_p2_1
-#define C_WORD_p4_1     C_WORD_p3_1 C_WORD_p3_1
-#define C_WORD_p5_1     C_WORD_p4_1 C_WORD_p4_1
-#define C_WORD_p6_1     C_WORD_p5_1 C_WORD_p5_1
-#define C_WORD_p7_1     C_WORD_p6_1 C_WORD_p6_1
-
-/* DECL_C_PROC_p0 (n0,  p7,p6,p5,p4,p3,p2,p1,p0):
- *  declare function C_proc<n0>, which have <n0> 'C_word' parameters
- *  (not counting last 'C_word C_AMD64_ABI_WEIRDNESS' one).
- *  We must have:   n0 = SUM (i = 7 to 0, p<i> * (1 << i)).
- * DECL_C_PROC_p<N+1> (...):
- *  declare 2 as much functions as DECL_C_PROC_p<N>...
- */
-#define DECL_C_PROC_p0( n0,  p7,p6,p5,p4,p3,p2,p1,p0) \
-    typedef void (C_ccall *C_proc##n0) (C_WORD_p7_##p7 C_WORD_p6_##p6 \
-                                        C_WORD_p5_##p5 C_WORD_p4_##p4 \
-                                        C_WORD_p3_##p3 C_WORD_p2_##p2 \
-                                        C_WORD_p1_##p1 C_WORD_p0_##p0 \
-                                        C_word C_AMD64_ABI_WEIRDNESS) C_noret;
-#define DECL_C_PROC_p1( n0,n1,  p7,p6,p5,p4,p3,p2,p1) \
-        DECL_C_PROC_p0 (n0,  p7,p6,p5,p4,p3,p2,p1,0) \
-        DECL_C_PROC_p0 (n1,  p7,p6,p5,p4,p3,p2,p1,1)
-#define DECL_C_PROC_p2( n0,n1,n2,n3,  p7,p6,p5,p4,p3,p2) \
-        DECL_C_PROC_p1 (n0,n1,  p7,p6,p5,p4,p3,p2,0) \
-        DECL_C_PROC_p1 (n2,n3,  p7,p6,p5,p4,p3,p2,1)
-#define DECL_C_PROC_p3( n0,n1,n2,n3,n4,n5,n6,n7,  p7,p6,p5,p4,p3) \
-        DECL_C_PROC_p2 (n0,n1,n2,n3,  p7,p6,p5,p4,p3,0) \
-        DECL_C_PROC_p2 (n4,n5,n6,n7,  p7,p6,p5,p4,p3,1)
-
-DECL_C_PROC_p1 (2,3,  0,0,0,0,0,0,1)
-DECL_C_PROC_p2 (4,5,6,7,  0,0,0,0,0,1)
-DECL_C_PROC_p3 (8,9,10,11,12,13,14,15,    0,0,0,0,1)
-DECL_C_PROC_p3 (16,17,18,19,20,21,22,23,  0,0,0,1,0)
-DECL_C_PROC_p3 (24,25,26,27,28,29,30,31,  0,0,0,1,1)
-DECL_C_PROC_p3 (32,33,34,35,36,37,38,39,  0,0,1,0,0)
-DECL_C_PROC_p3 (40,41,42,43,44,45,46,47,  0,0,1,0,1)
-DECL_C_PROC_p3 (48,49,50,51,52,53,54,55,  0,0,1,1,0)
-DECL_C_PROC_p3 (56,57,58,59,60,61,62,63,  0,0,1,1,1)
-DECL_C_PROC_p1 (64,65,  0,1,0,0,0,0,0)
-DECL_C_PROC_p0 (66,  0,1,0,0,0,0,1,0)
-DECL_C_PROC_p0 (67,  0,1,0,0,0,0,1,1)
-DECL_C_PROC_p2 (68,69,70,71,  0,1,0,0,0,1)
-DECL_C_PROC_p3 (72,73,74,75,76,77,78,79,  0,1,0,0,1)
-DECL_C_PROC_p3 (80,81,82,83,84,85,86,87,  0,1,0,1,0)
-DECL_C_PROC_p3 (88,89,90,91,92,93,94,95,  0,1,0,1,1)
-DECL_C_PROC_p3 (96,97,98,99,100,101,102,103,  0,1,1,0,0)
-DECL_C_PROC_p3 (104,105,106,107,108,109,110,111,  0,1,1,0,1)
-DECL_C_PROC_p3 (112,113,114,115,116,117,118,119,  0,1,1,1,0)
-DECL_C_PROC_p3 (120,121,122,123,124,125,126,127,  0,1,1,1,1)
-DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
+typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 
 /* Macros: */
+
+#define C_cpsproc(name)   C_ccall void name(C_word c, C_word *av) C_noret
 
 #define CHICKEN_gc_root_ref(root)      (((C_GC_ROOT *)(root))->value)
 #define CHICKEN_gc_root_set(root, x)   C_mutate2(&((C_GC_ROOT *)(root))->value, (x))
@@ -864,7 +805,7 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 /* This is word-size dependent: */
 #ifdef C_SIXTY_FOUR
 # define C_align(n)                C_align8(n)
-# define C_wordstobytes(n)         ((n) << 3)
+# define C_wordstobytes(n)         ((C_uword)(n) << 3)
 # define C_bytestowords(n)         (((n) + 7) >> 3)
 # define C_wordsperdouble(n)       (n)
 # define C_WORD_MIN                LONG_MIN
@@ -872,9 +813,9 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 # define C_UWORD_MAX               ULONG_MAX
 #else
 # define C_align(n)                C_align4(n)
-# define C_wordstobytes(n)         ((n) << 2)
+# define C_wordstobytes(n)         ((C_uword)(n) << 2)
 # define C_bytestowords(n)         (((n) + 3) >> 2)
-# define C_wordsperdouble(n)       ((n) << 1)
+# define C_wordsperdouble(n)       ((C_uword)(n) << 1)
 # define C_WORD_MIN                INT_MIN
 # define C_WORD_MAX                INT_MAX
 # define C_UWORD_MAX               UINT_MAX
@@ -966,6 +907,7 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 # define C_fflush                   fflush
 # define C_getchar                  getchar
 # define C_exit                     exit
+# define C__exit                    _exit
 # define C_dlopen                   dlopen
 # define C_dlclose                  dlclose
 # define C_dlsym                    dlsym
@@ -974,7 +916,7 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 # define C_fputs                    fputs
 # define C_fputc                    fputc
 # define C_putchar                  putchar
-# if (defined getc_unlocked || _POSIX_C_SOURCE >= 199506L)
+# if (defined getc_unlocked || _POSIX_C_SOURCE >= 199506L) && !defined(__MINGW32__)
 #  define C_getc                    getc_unlocked
 # else
 #  define C_getc                    getc
@@ -1064,13 +1006,9 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 #define C_make_header(type, size)  ((C_header)(((type) & C_HEADER_BITS_MASK) | ((size) & C_HEADER_SIZE_MASK)))
 #define C_symbol_value(x)          (C_block_item(x, 0))
 #define C_save(x)	           (*(--C_temporary_stack) = (C_word)(x))
-#define C_adjust_stack(n)          (C_temporary_stack -= (n))
 #define C_rescue(x, i)             (C_temporary_stack[ i ] = (x))
-#define C_save_rest(s, c, n)  	   do { if((C_temporary_stack - (c - (n))) < C_temporary_stack_limit) C_temp_stack_overflow(); for(va_start(v, s); c-- > (n); C_save(va_arg(v, C_word))); }while(0)
-#define C_rest_count(c)            ((C_temporary_stack_bottom - C_temporary_stack) - (c))
 #define C_restore                  (*(C_temporary_stack++))
 #define C_heaptop                  ((C_word **)(&C_fromspace_top))
-#define C_pick(n)                  (C_temporary_stack[ n ])
 #define C_drop(n)                  (C_temporary_stack += (n))
 #define C_alloc(n)                 ((C_word *)C_alloca((n) * sizeof(C_word)))
 #if defined (__llvm__) && defined (__GNUC__)
@@ -1086,7 +1024,8 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 #endif
 #define C_stack_pointer_test       ((C_word *)C_alloca(1))
 #define C_demand_2(n)              (((C_word *)C_fromspace_top + (n)) < (C_word *)C_fromspace_limit)
-#define C_fix(n)                   (((C_word)(n) << C_FIXNUM_SHIFT) | C_FIXNUM_BIT)
+#define C_calculate_demand(n,c,m)  ((n) + (((c) > (m)) ? 0 : (m)))
+#define C_fix(n)                   ((C_word)((C_uword)(n) << C_FIXNUM_SHIFT) | C_FIXNUM_BIT)
 #define C_unfix(x)                 C_CHECKp(x,C_fixnump(C_VAL1(x)),((C_VAL1(x)) >> C_FIXNUM_SHIFT))
 #define C_make_character(c)        (((((C_uword)(c)) & C_CHAR_BIT_MASK) << C_CHAR_SHIFT) | C_CHARACTER_BITS)
 #define C_character_code(x)        C_CHECKp(x,C_charp(C_VAL1(x)),((C_word)(C_VAL1(x)) >> C_CHAR_SHIFT) & C_CHAR_BIT_MASK)
@@ -1102,7 +1041,7 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 #define C_mk_nbool(x)              ((x) ? C_SCHEME_FALSE : C_SCHEME_TRUE)
 #define C_port_file(p)             C_CHECKp(p,C_portp(C_VAL1(p)),(C_FILEPTR)C_block_item(C_VAL1(p), 0))
 #define C_data_pointer(b)          C_CHECKp(b,C_blockp((C_word)C_VAL1(b)),(void *)(((C_SCHEME_BLOCK *)(C_VAL1(b)))->data))
-#define C_fitsinfixnump(n)         (((n) & C_INT_SIGN_BIT) == (((n) & C_INT_TOP_BIT) << 1))
+#define C_fitsinfixnump(n)         (((n) & C_INT_SIGN_BIT) == ((C_uword)((n) & C_INT_TOP_BIT) << 1))
 #define C_ufitsinfixnump(n)        (((n) & (C_INT_SIGN_BIT | (C_INT_SIGN_BIT >> 1))) == 0)
 #define C_quickflonumtruncate(n)   (C_fix((C_word)C_flonum_magnitude(n)))
 #define C_and(x, y)                (C_truep(x) ? (y) : C_SCHEME_FALSE)
@@ -1141,23 +1080,25 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 
 #if C_STACK_GROWS_DOWNWARD
 # define C_demand(n)              (C_stress && ((C_word)(C_stack_pointer - C_stack_limit) > (n)))
+/* OBSOLETE: */
 # define C_stack_probe(p)         (C_stress && ((C_word *)(p) >= C_stack_limit))
 
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
-				      if(_sp < (C_byte *)C_stack_limit && \
-					 ((C_byte *)C_stack_limit - _sp) > C_STACK_RESERVE) \
+				      if(_sp < (C_byte *)C_stack_hard_limit && \
+					 ((C_byte *)C_stack_hard_limit - _sp) > C_STACK_RESERVE) \
 					err; }				\
 				    while(0);}
 
 #else
 # define C_demand(n)              (C_stress && ((C_word)(C_stack_limit - C_stack_pointer) > (n)))
+/* OBSOLETE: */
 # define C_stack_probe(p)         (C_stress && ((C_word *)(p) < C_stack_limit))
 
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
-				      if(_sp > (C_byte *)C_stack_limit && \
-					 (_sp - (C_byte *)C_stack_limit) > C_STACK_RESERVE) \
+				      if(_sp > (C_byte *)C_stack_hard_limit && \
+					 (_sp - (C_byte *)C_stack_hard_limit) > C_STACK_RESERVE) \
 					err; }				\
 				    while(0);}
 
@@ -1220,7 +1161,7 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 #define C_fixnum_or(n1, n2)             (C_u_fixnum_or(n1, n2) | C_FIXNUM_BIT)
 #define C_fixnum_xor(n1, n2)            (((n1) ^ (n2)) | C_FIXNUM_BIT)
 #define C_fixnum_not(n)                 ((~(n)) | C_FIXNUM_BIT)
-#define C_fixnum_shift_left(n1, n2)     (C_fix(C_unfix(n1) << C_unfix(n2)))
+#define C_fixnum_shift_left(n1, n2)     (C_fix(((C_uword)C_unfix(n1) << (C_uword)C_unfix(n2))))
 #define C_fixnum_shift_right(n1, n2)    (((n1) >> C_unfix(n2)) | C_FIXNUM_BIT)
 #define C_u_fixnum_negate(n)            (-(n) + 2 * C_FIXNUM_BIT)
 #define C_fixnum_negate(n)              (C_u_fixnum_negate(n) | C_FIXNUM_BIT)
@@ -1257,11 +1198,11 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 
 #define C_fix_to_char(x)                (C_make_character(C_unfix(x)))
 #define C_char_to_fix(x)                (C_fix(C_character_code(x)))
-#define C_i_char_equalp(x, y)           C_mk_bool(C_character_code(x) == C_character_code(y))
-#define C_i_char_greaterp(x, y)         C_mk_bool(C_character_code(x) > C_character_code(y))
-#define C_i_char_lessp(x, y)            C_mk_bool(C_character_code(x) < C_character_code(y))
-#define C_i_char_greater_or_equal_p(x, y)  C_mk_bool(C_character_code(x) >= C_character_code(y))
-#define C_i_char_less_or_equal_p(x, y)  C_mk_bool(C_character_code(x) <= C_character_code(y))
+#define C_u_i_char_equalp(x, y)         C_mk_bool(C_character_code(x) == C_character_code(y))
+#define C_u_i_char_greaterp(x, y)       C_mk_bool(C_character_code(x) > C_character_code(y))
+#define C_u_i_char_lessp(x, y)          C_mk_bool(C_character_code(x) < C_character_code(y))
+#define C_u_i_char_greater_or_equal_p(x, y) C_mk_bool(C_character_code(x) >= C_character_code(y))
+#define C_u_i_char_less_or_equal_p(x, y) C_mk_bool(C_character_code(x) <= C_character_code(y))
 #define C_substring_copy(s1, s2, start1, end1, start2) \
                                         (C_memmove((C_char *)C_data_pointer(s2) + C_unfix(start2), \
                                                    (C_char *)C_data_pointer(s1) + C_unfix(start1), \
@@ -1287,7 +1228,8 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 #define C_pointer_address(x)            ((C_byte *)C_block_item((x), 0))
 #define C_block_address(ptr, n, x)      C_a_unsigned_int_to_num(ptr, n, x)
 #define C_offset_pointer(x, y)          (C_pointer_address(x) + (y))
-#define C_kontinue(k, r)                ((C_proc2)(void *)C_block_item(k,0))(2, (k), (r))
+#define C_do_apply(c, av)               ((C_proc)(void *)C_block_item((av)[0], 0))((c), (av))
+#define C_kontinue(k, r)                do { C_word avk[ 2 ]; avk[ 0 ] = (k); avk[ 1 ] = (r); ((C_proc)(void *)C_block_item((k),0))(2, avk); } while(0)
 #define C_fetch_byte(x, p)              (((unsigned C_byte *)C_data_pointer(x))[ p ])
 #define C_poke_integer(x, i, n)         (C_set_block_item(x, C_unfix(i), C_num_to_int(n)), C_SCHEME_UNDEFINED)
 #define C_pointer_to_block(p, x)        (C_set_block_item(p, 0, (C_word)C_data_pointer(x)), C_SCHEME_UNDEFINED)
@@ -1295,8 +1237,6 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 #define C_update_pointer(p, ptr)        (C_set_block_item(ptr, 0, C_num_to_unsigned_int(p)), C_SCHEME_UNDEFINED)
 #define C_copy_pointer(from, to)        (C_set_block_item(to, 0, C_block_item(from, 0)), C_SCHEME_UNDEFINED)
 #define C_pointer_to_object(ptr)        C_block_item(ptr, 0)
-
-#define C_direct_return(dk, x)          (C_kontinue(dk, x), C_SCHEME_UNDEFINED)
 
 #ifdef C_SIXTY_FOUR
 # define C_poke_integer_32(x, i, n)     (((C_s32 *)C_data_pointer(x))[ C_unfix(i) ] = C_unfix(n), C_SCHEME_UNDEFINED)
@@ -1350,7 +1290,7 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 
 #ifdef HAVE_STATEMENT_EXPRESSIONS
 # define C_a_i(a, n)                    ({C_word *tmp = *a; *a += (n); tmp;})
-# define C_a_i_cons(a, n, car, cdr)     ({C_word tmp = (C_word)(*a); (*a)[0] = C_PAIR_TYPE | 2; *a += 3; \
+# define C_a_i_cons(a, n, car, cdr)     ({C_word tmp = (C_word)(*a); (*a)[0] = C_PAIR_TYPE | 2; *a += C_SIZEOF_PAIR; \
                                           C_set_block_item(tmp, 0, car); C_set_block_item(tmp, 1, cdr); tmp;})
 #else
 # define C_a_i_cons(a, n, car, cdr)     C_a_pair(a, car, cdr)
@@ -1640,6 +1580,29 @@ DECL_C_PROC_p0 (128,  1,0,0,0,0,0,0,0)
 #define C_i_true3(dummy1, dummy2, dummy3)  ((dummy1), (dummy2), (dummy3), C_SCHEME_TRUE)
 
 
+/* debug client interface */
+
+typedef struct C_DEBUG_INFO {
+  int event;
+  int enabled;
+  C_char *loc;
+  C_char *val;
+} C_DEBUG_INFO;
+
+#define C_DEBUG_CALL                0
+#define C_DEBUG_GLOBAL_ASSIGN       1
+#define C_DEBUG_GC                  2
+#define C_DEBUG_ENTRY               3
+#define C_DEBUG_SIGNAL              4
+#define C_DEBUG_CONNECT             5
+#define C_DEBUG_LISTEN              6
+#define C_DEBUG_INTERRUPTED         7
+
+#define C_debugger(cell, c, av)     (C_debugger_hook != NULL ? C_debugger_hook(cell, c, av, __FILE__, __LINE__) : C_SCHEME_UNDEFINED)
+
+C_fctexport void C_register_debug_info(C_DEBUG_INFO *);
+
+
 /* Variables: */
 
 C_varextern C_TLS time_t C_startup_time_seconds;
@@ -1647,7 +1610,8 @@ C_varextern C_TLS C_word
   *C_temporary_stack,
   *C_temporary_stack_bottom,
   *C_temporary_stack_limit,
-  *C_stack_limit;
+  *C_stack_limit,
+  *C_stack_hard_limit;
 C_varextern C_TLS C_long
   C_timer_interrupt_counter,
   C_initial_timer_interrupt_period;
@@ -1663,10 +1627,11 @@ C_varextern C_TLS void *C_restart_address;
 C_varextern C_TLS int C_entry_point_status;
 C_varextern C_TLS int C_gui_mode;
 
-C_varextern C_TLS void (C_fcall *C_restart_trampoline)(void *proc) C_regparm C_noret;
+C_varextern C_TLS void *C_restart_trampoline;
 C_varextern C_TLS void (*C_pre_gc_hook)(int mode);
 C_varextern C_TLS void (*C_post_gc_hook)(int mode, C_long ms);
 C_varextern C_TLS void (*C_panic_hook)(C_char *msg);
+C_varextern C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, char *cloc, int cln);
 
 C_varextern C_TLS int
   C_abort_on_thread_exceptions,
@@ -1676,6 +1641,7 @@ C_varextern C_TLS int
   C_heap_size_is_fixed,
   C_max_pending_finalizers,
   C_trace_buffer_size,
+  C_debugging,
   C_main_argc;
 C_varextern C_TLS C_uword
   C_heap_growth,
@@ -1743,8 +1709,7 @@ C_fctexport C_word C_fcall C_h_intern(C_word *slot, int len, C_char *str) C_regp
 C_fctexport C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_intern2(C_word **ptr, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_intern3(C_word **ptr, C_char *str, C_word value) C_regparm;
-C_fctexport C_word C_fcall C_restore_rest(C_word *ptr, int num) C_regparm;
-C_fctexport C_word C_fcall C_restore_rest_vector(C_word *ptr, int num) C_regparm;
+C_fctexport C_word C_fcall C_build_rest(C_word **ptr, C_word c, C_word n, C_word *av) C_regparm;
 C_fctexport void C_bad_memory(void) C_noret;
 C_fctexport void C_bad_memory_2(void) C_noret;
 C_fctexport void C_bad_argc(int c, int n) C_noret;
@@ -1769,9 +1734,10 @@ C_fctexport C_word C_fcall C_swigmpointer(C_word **ptr, void *mp, void *sdata) C
 C_fctexport C_word C_vector(C_word **ptr, int n, ...);
 C_fctexport C_word C_structure(C_word **ptr, int n, ...);
 C_fctexport C_word C_fcall C_mutate_slot(C_word *slot, C_word val) C_regparm;
-C_fctexport void C_fcall C_reclaim(void *trampoline, void *proc) C_regparm C_noret;
-C_fctexport void C_save_and_reclaim(void *trampoline, void *proc, int n, ...) C_noret;
-C_fctexport void C_fcall C_rereclaim2(C_uword size, int double_plus) C_regparm;
+C_fctexport void C_fcall C_reclaim(void *trampoline, C_word c) C_regparm C_noret;
+C_fctexport void C_save_and_reclaim(void *trampoline, int n, C_word *av) C_noret;
+C_fctexport void C_save_and_reclaim_args(void *trampoline, int n, ...) C_noret;
+C_fctexport void C_fcall C_rereclaim2(C_uword size, int relative_resize) C_regparm;
 C_fctexport void C_unbound_variable(C_word sym);
 C_fctexport C_word C_fcall C_retrieve2(C_word val, char *name) C_regparm;
 C_fctexport void *C_fcall C_retrieve2_symbol_proc(C_word val, char *name) C_regparm;
@@ -1787,7 +1753,7 @@ C_fctexport C_word C_message(C_word msg);
 C_fctexport C_word C_fcall C_equalp(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_set_gc_report(C_word flag) C_regparm;
 C_fctexport C_word C_fcall C_start_timer(void) C_regparm;
-C_fctexport C_word C_exit_runtime(C_word code);
+C_fctexport C_word C_exit_runtime(C_word code) C_noret;
 C_fctexport C_word C_fcall C_set_print_precision(C_word n) C_regparm;
 C_fctexport C_word C_fcall C_get_print_precision(void) C_regparm;
 C_fctexport C_word C_fcall C_read_char(C_word port) C_regparm;
@@ -1814,65 +1780,65 @@ C_fctexport C_word C_dbg_hook(C_word x);
 C_fctexport void C_use_private_repository(C_char *path);
 C_fctexport C_char *C_private_repository_path();
 
-C_fctimport void C_ccall C_toplevel(C_word c, C_word self, C_word k) C_noret;
-C_fctimport void C_ccall C_invalid_procedure(int c, C_word self, ...) C_noret;
-C_fctexport void C_ccall C_stop_timer(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_apply(C_word c, C_word closure, C_word k, C_word fn, ...) C_noret;
-C_fctexport void C_ccall C_do_apply(C_word n, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_call_cc(C_word c, C_word closure, C_word k, C_word cont) C_noret;
-C_fctexport void C_ccall C_continuation_graft(C_word c, C_word closure, C_word k, C_word kk, C_word proc) C_noret;
-C_fctexport void C_ccall C_values(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_apply_values(C_word c, C_word closure, C_word k, C_word lst) C_noret;
-C_fctexport void C_ccall C_call_with_values(C_word c, C_word closure, C_word k, C_word thunk, C_word kont) C_noret;
-C_fctexport void C_ccall C_u_call_with_values(C_word c, C_word closure, C_word k, C_word thunk, C_word kont) C_noret;
-C_fctexport void C_ccall C_times(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_plus(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_minus(C_word c, C_word closure, C_word k, C_word n1, ...) C_noret;
-C_fctexport void C_ccall C_divide(C_word c, C_word closure, C_word k, C_word n1, ...) C_noret;
-C_fctexport void C_ccall C_nequalp(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_greaterp(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_lessp(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_greater_or_equal_p(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_less_or_equal_p(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_expt(C_word c, C_word closure, C_word k, C_word n1, C_word n2) C_noret;
-C_fctexport void C_ccall C_gc(C_word c, C_word closure, C_word k, ...) C_noret;
-C_fctexport void C_ccall C_open_file_port(C_word c, C_word closure, C_word k, C_word port, C_word channel, C_word mode) C_noret;
-C_fctexport void C_ccall C_allocate_vector(C_word c, C_word closure, C_word k, C_word size, C_word type, C_word init, C_word align8) C_noret;
-C_fctexport void C_ccall C_string_to_symbol(C_word c, C_word closure, C_word k, C_word string) C_noret;
-C_fctexport void C_ccall C_build_symbol(C_word c, C_word closure, C_word k, C_word string) C_noret;
-C_fctexport void C_ccall C_flonum_fraction(C_word c, C_word closure, C_word k, C_word n) C_noret;
-C_fctexport void C_ccall C_flonum_rat(C_word c, C_word closure, C_word k, C_word n) C_noret;
-C_fctexport void C_ccall C_quotient(C_word c, C_word closure, C_word k, C_word n1, C_word n2) C_noret;
-C_fctexport void C_ccall C_number_to_string(C_word c, C_word closure, C_word k, C_word num, ...) C_noret;
-C_fctexport void C_ccall C_fixnum_to_string(C_word c, C_word closure, C_word k, C_word num) C_noret;
-C_fctexport void C_ccall C_make_structure(C_word c, C_word closure, C_word k, C_word type, ...) C_noret;
-C_fctexport void C_ccall C_make_symbol(C_word c, C_word closure, C_word k, C_word name) C_noret;
-C_fctexport void C_ccall C_make_pointer(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_make_tagged_pointer(C_word c, C_word closure, C_word k, C_word tag) C_noret;
-C_fctexport void C_ccall C_ensure_heap_reserve(C_word c, C_word closure, C_word k, C_word n) C_noret;
-C_fctexport void C_ccall C_return_to_host(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_get_symbol_table_info(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_get_memory_info(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_context_switch(C_word c, C_word closure, C_word k, C_word state) C_noret;
-C_fctexport void C_ccall C_peek_signed_integer(C_word c, C_word closure, C_word k, C_word v, C_word index) C_noret;
-C_fctexport void C_ccall C_peek_unsigned_integer(C_word c, C_word closure, C_word k, C_word v, C_word index) C_noret;
-C_fctexport void C_ccall C_decode_seconds(C_word c, C_word closure, C_word k, C_word secs, C_word mode) C_noret;
-C_fctexport void C_ccall C_software_type(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_machine_type(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_machine_byte_order(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_software_version(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_build_platform(C_word c, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_register_finalizer(C_word c, C_word closure, C_word k, C_word x, C_word proc) C_noret;
-C_fctexport void C_ccall C_set_dlopen_flags(C_word c, C_word closure, C_word k, C_word now, C_word global) C_noret;
-C_fctexport void C_ccall C_dload(C_word c, C_word closure, C_word k, C_word name, C_word entry) C_noret;
-C_fctexport void C_ccall C_become(C_word c, C_word closure, C_word k, C_word table) C_noret;
-C_fctexport void C_ccall C_locative_ref(C_word c, C_word closure, C_word k, C_word loc) C_noret;
-C_fctexport void C_ccall C_call_with_cthulhu(C_word c, C_word self, C_word k, C_word proc) C_noret;
-C_fctexport void C_ccall C_copy_closure(C_word c, C_word closure, C_word k, C_word proc) C_noret;
-C_fctexport void C_ccall C_dump_heap_state(C_word x, C_word closure, C_word k) C_noret;
-C_fctexport void C_ccall C_filter_heap_objects(C_word x, C_word closure, C_word k, C_word func,
-					       C_word vector, C_word userarg) C_noret;
+C_fctimport C_cpsproc(C_toplevel) C_noret;
+C_fctimport C_cpsproc(C_invalid_procedure) C_noret;
+C_fctexport C_cpsproc(C_stop_timer) C_noret;
+C_fctexport C_cpsproc(C_apply) C_noret;
+C_fctexport C_cpsproc(C_call_cc) C_noret;
+C_fctexport C_cpsproc(C_continuation_graft) C_noret;
+C_fctexport C_cpsproc(C_values) C_noret;
+C_fctexport C_cpsproc(C_apply_values) C_noret;
+C_fctexport C_cpsproc(C_call_with_values) C_noret;
+C_fctexport C_cpsproc(C_u_call_with_values) C_noret;
+C_fctexport C_cpsproc(C_times) C_noret;
+C_fctexport C_cpsproc(C_plus) C_noret;
+C_fctexport C_cpsproc(C_minus) C_noret;
+C_fctexport C_cpsproc(C_divide) C_noret;
+C_fctexport C_cpsproc(C_nequalp) C_noret;
+C_fctexport C_cpsproc(C_greaterp) C_noret;
+C_fctexport C_cpsproc(C_lessp) C_noret;
+C_fctexport C_cpsproc(C_greater_or_equal_p) C_noret;
+C_fctexport C_cpsproc(C_less_or_equal_p) C_noret;
+C_fctexport C_cpsproc(C_expt) C_noret;
+C_fctexport C_cpsproc(C_gc) C_noret;
+C_fctexport C_cpsproc(C_open_file_port) C_noret;
+C_fctexport C_cpsproc(C_allocate_vector) C_noret;
+C_fctexport C_cpsproc(C_string_to_symbol) C_noret;
+C_fctexport C_cpsproc(C_build_symbol) C_noret;
+C_fctexport C_cpsproc(C_flonum_fraction) C_noret;
+C_fctexport C_cpsproc(C_flonum_rat) C_noret;
+C_fctexport C_cpsproc(C_quotient) C_noret;
+C_fctexport C_cpsproc(C_number_to_string) C_noret;
+C_fctexport C_cpsproc(C_fixnum_to_string) C_noret;
+C_fctexport C_cpsproc(C_make_structure) C_noret;
+C_fctexport C_cpsproc(C_make_symbol) C_noret;
+C_fctexport C_cpsproc(C_make_pointer) C_noret;
+C_fctexport C_cpsproc(C_make_tagged_pointer) C_noret;
+C_fctexport C_cpsproc(C_ensure_heap_reserve) C_noret;
+C_fctexport C_cpsproc(C_return_to_host) C_noret;
+C_fctexport C_cpsproc(C_get_symbol_table_info) C_noret;
+C_fctexport C_cpsproc(C_get_memory_info) C_noret;
+C_fctexport C_cpsproc(C_context_switch) C_noret;
+C_fctexport C_cpsproc(C_peek_signed_integer) C_noret;
+C_fctexport C_cpsproc(C_peek_unsigned_integer) C_noret;
+C_fctexport C_cpsproc(C_decode_seconds) C_noret;
+C_fctexport C_cpsproc(C_software_type) C_noret;
+C_fctexport C_cpsproc(C_machine_type) C_noret;
+C_fctexport C_cpsproc(C_machine_byte_order) C_noret;
+C_fctexport C_cpsproc(C_software_version) C_noret;
+C_fctexport C_cpsproc(C_build_platform) C_noret;
+C_fctexport C_cpsproc(C_register_finalizer) C_noret;
+C_fctexport C_cpsproc(C_set_dlopen_flags) C_noret;
+C_fctexport C_cpsproc(C_dload) C_noret;
+C_fctexport C_cpsproc(C_become) C_noret;
+C_fctexport C_cpsproc(C_locative_ref) C_noret;
+C_fctexport C_cpsproc(C_call_with_cthulhu) C_noret;
+C_fctexport C_cpsproc(C_copy_closure) C_noret;
+C_fctexport C_cpsproc(C_dump_heap_state) C_noret;
+C_fctexport C_cpsproc(C_filter_heap_objects) C_noret;
+
 C_fctexport time_t C_fcall C_seconds(C_long *ms) C_regparm;
+C_fctexport C_word C_i_dump_statistical_profile();
 C_fctexport C_word C_a_i_list(C_word **a, int c, ...);
 C_fctexport C_word C_a_i_string(C_word **a, int c, ...);
 C_fctexport C_word C_a_i_record(C_word **a, int c, ...);
@@ -1952,6 +1918,11 @@ C_fctexport C_word C_fcall C_i_not_pair_p_2(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_null_list_p(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_string_null_p(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_null_pointerp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_char_equalp(C_word x, C_word y) C_regparm;
+C_fctexport C_word C_fcall C_i_char_greaterp(C_word x, C_word y) C_regparm;
+C_fctexport C_word C_fcall C_i_char_lessp(C_word x, C_word y) C_regparm;
+C_fctexport C_word C_fcall C_i_char_greater_or_equal_p(C_word x, C_word y) C_regparm;
+C_fctexport C_word C_fcall C_i_char_less_or_equal_p(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_locative_set(C_word loc, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_locative_to_object(C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_word object, C_word index, C_word weak) C_regparm;
@@ -2009,8 +1980,8 @@ C_fctexport void *C_lookup_procedure_ptr(C_char *id);
 C_fctexport C_char *C_executable_path();
 
 #ifdef C_SIXTY_FOUR
-C_fctexport void C_ccall C_peek_signed_integer_32(C_word c, C_word closure, C_word k, C_word v, C_word index) C_noret;
-C_fctexport void C_ccall C_peek_unsigned_integer_32(C_word c, C_word closure, C_word k, C_word v, C_word index) C_noret;
+C_fctexport C_cpsproc(C_peek_signed_integer_32);
+C_fctexport C_cpsproc(C_peek_unsigned_integer_32);
 #else
 # define C_peek_signed_integer_32    C_peek_signed_integer
 # define C_peek_unsigned_integer_32  C_peek_unsigned_integer
@@ -2018,6 +1989,8 @@ C_fctexport void C_ccall C_peek_unsigned_integer_32(C_word c, C_word closure, C_
 
 C_fctexport C_word C_fcall C_decode_literal(C_word **ptr, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_i_pending_interrupt(C_word dummy) C_regparm;
+
+C_fctexport void *C_get_statistics(void);
 
 /* defined in eval.scm: */
 C_fctexport  void  CHICKEN_get_error_message(char *buf,int bufsize);
@@ -2031,7 +2004,7 @@ C_fctexport  int  CHICKEN_eval_string(char * str,C_word *result);
 C_fctexport  int  CHICKEN_eval(C_word exp,C_word *result);
 C_fctexport  int  CHICKEN_yield();
 
-C_fctexport void C_default_5fstub_toplevel(C_word c,C_word d,C_word k) C_noret;
+C_fctexport C_cpsproc(C_default_5fstub_toplevel);
 
 
 /* Inline functions: */
@@ -2525,7 +2498,6 @@ C_fast_retrieve(C_word sym)
 
   return val;
 }
-
 
 C_inline void *
 C_fast_retrieve_proc(C_word closure)

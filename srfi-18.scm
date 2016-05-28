@@ -1,6 +1,6 @@
 ;;;; srfi-18.scm - Simple thread unit - felix
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -183,7 +183,7 @@
 		   (##sys#make-structure 
 		    'condition '(uncaught-exception)
 		    (list '(uncaught-exception . reason) (##sys#slot thread 7)) ) ) ) )
-		((blocked ready)
+		((blocked ready sleeping)
                  (if limit
                      (return
                       (if tosupplied
@@ -272,49 +272,53 @@
 	 (let ([ct ##sys#current-thread])
 	   (define (switch)
              (dbg ct " sleeping on mutex " (mutex-name mutex))
+	     (##sys#setslot ct 11 mutex)
 	     (##sys#setslot mutex 3 (##sys#append (##sys#slot mutex 3) (list ct)))
 	     (##sys#schedule) )
 	   (define (check)
 	     (when (##sys#slot mutex 4)	; abandoned
-	       (return
-		(##sys#signal
-		 (##sys#make-structure 'condition '(abandoned-mutex-exception) '()))) ) )
-	   (dbg ct ": locking " (mutex-name mutex))
+	       (return (##sys#signal (##sys#make-structure 'condition '(abandoned-mutex-exception) (list (##sys#slot mutex 1))))) ) )
+	   (define (assign)
+	     (##sys#setislot ct 11 #f)
+	     (check)
+	     (if (and threadsup (not thread))
+		 (begin
+		   (##sys#setislot mutex 2 #f)
+		   (##sys#setislot mutex 5 #t) )
+		 (let* ([t (or thread ct)]
+			[ts (##sys#slot t 3)] )
+		   (if (or (eq? 'terminated ts) (eq? 'dead ts))
+		       (begin
+			 (##sys#setislot mutex 2 #f)
+			 (##sys#setislot mutex 5 #f)
+			 (##sys#setislot mutex 4 #t)
+			 (check))
+		       (begin
+			 (##sys#setslot mutex 2 t)
+			 (##sys#setislot mutex 5 #t)
+			 (##sys#setslot t 8 (cons mutex (##sys#slot t 8))) ) ) ) )
+	     (return #t))
+	   (dbg ct ": locking " mutex)
 	   (cond [(not (##sys#slot mutex 5))
-		  (if (and threadsup (not thread))
-		      (begin
-			(##sys#setislot mutex 2 #f)
-			(##sys#setislot mutex 5 #t) )
-		      (let* ([t (or thread ct)]
-			     [ts (##sys#slot t 3)] )
-			(if (or (eq? 'terminated ts) (eq? 'dead ts))
-			    (##sys#setislot mutex 4 #t)
-			    (begin
-			      (##sys#setislot mutex 5 #t)
-			      (##sys#setslot t 8 (cons mutex (##sys#slot t 8)))
-			      (##sys#setslot t 11 mutex)
-			      (##sys#setslot mutex 2 t) ) ) ) )
-		  (check)
-		  (return #t) ]
+		  (assign) ]
 		 [limit
 		  (check)
 		  (##sys#setslot
 		   ct 1 
 		   (lambda ()
-		     (##sys#setslot mutex 3 (##sys#delq ct (##sys#slot mutex 3)))
-		     (unless (##sys#slot ct 13)  ; not unblocked by timeout
-		       (##sys#remove-from-timeout-list ct))
-		     (check)
-		     (##sys#setslot ct 8 (cons mutex (##sys#slot ct 8)))
-		     (##sys#setslot ct 11 #f)
-		     (##sys#setslot mutex 2 thread)
-		     (return #f) ))
+		     (if (##sys#slot ct 13)  ; unblocked by timeout
+			 (begin
+			   (##sys#setslot mutex 3 (##sys#delq ct (##sys#slot mutex 3)))
+			   (##sys#setislot ct 11 #f)
+			   (return #f))
+			 (begin
+			   (##sys#remove-from-timeout-list ct)
+			   (assign))) ))
 		  (##sys#thread-block-for-timeout! ct limit)
 		  (switch) ]
 		 [else
 		  (##sys#setslot ct 3 'sleeping)
-		  (##sys#setslot ct 11 mutex)
-		  (##sys#setslot ct 1 (lambda () (check) (return #t)))
+		  (##sys#setslot ct 1 assign)
 		  (switch) ] ) ) ) ) ) ) )
 
 (define mutex-unlock!
@@ -334,6 +338,7 @@
 	   (##sys#setislot mutex 5 #f)	; blocked
 	   (let ((t (##sys#slot mutex 2)))
 	     (when t
+	       (##sys#setislot mutex 2 #f)
 	       (##sys#setslot t 8 (##sys#delq mutex (##sys#slot t 8))))) ; unown from owner
 	   (when cvar
 	     (##sys#setslot cvar 2 (##sys#append (##sys#slot cvar 2) (##sys#list ct)))
@@ -341,11 +346,12 @@
 	     (cond (limit
 		    (##sys#setslot 
 		     ct 1
-		     (lambda () 
-		       (##sys#setslot cvar 2 (##sys#delq ct (##sys#slot cvar 2)))
-		       (##sys#setslot ct 11 #f) ; block object
+		     (lambda ()
+		       (##sys#setislot ct 11 #f)
 		       (if (##sys#slot ct 13) ; unblocked by timeout
-			   (return #f)
+			   (begin
+			     (##sys#setslot cvar 2 (##sys#delq ct (##sys#slot cvar 2)))
+			     (return #f))
 			   (begin
 			     (##sys#remove-from-timeout-list ct)
 			     (return #t))) ) )
@@ -354,15 +360,17 @@
 		    (##sys#setslot ct 1 (lambda () (return #t)))
 		    (##sys#setslot ct 3 'sleeping)) ) )
 	   (unless (null? waiting)
-	     (let* ([wt (##sys#slot waiting 0)]
-		    [wts (##sys#slot wt 3)] )
+	     (let* ((wt (##sys#slot waiting 0))
+		    (wts (##sys#slot wt 3)) )
 	       (##sys#setslot mutex 3 (##sys#slot waiting 1))
 	       (##sys#setislot mutex 5 #t)
-	       (when (or (eq? wts 'blocked) (eq? wts 'sleeping))
-		 (##sys#setslot mutex 2 wt)
-		 (##sys#setslot wt 8 (cons mutex (##sys#slot wt 8)))
-		 (##sys#setslot wt 11 #f)
-		 (when (eq? wts 'sleeping) (##sys#add-to-ready-queue wt) ) ) ) )
+	       (case wts
+		 ((blocked sleeping)
+		  (##sys#setslot wt 11 #f)
+		  (##sys#add-to-ready-queue wt))
+		 (else
+		  (##sys#error 'mutex-unlock "Internal scheduler error: unknown thread state: "
+			       wt wts))) ) )
 	   (if (eq? (##sys#slot ct 3) 'running)
 	       (return #t)
 	       (##sys#schedule)) ) ) ) ) ))

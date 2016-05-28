@@ -64,7 +64,7 @@ TYPESDB=../types.db
 cp $TYPESDB test-repository/types.db
 
 compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out"
-compile2="../csc -compiler $CHICKEN -v -I${TEST_DIR}/.. -L${TEST_DIR}.. -include-path ${TEST_DIR}/.."
+compile2="../csc -compiler $CHICKEN -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 interpret="../csi -n -include-path ${TEST_DIR}/.."
 
@@ -113,7 +113,7 @@ rm -f foo.types foo.import.*
 $compile specialization-test-1.scm -emit-type-file foo.types -specialize \
   -debug ox -emit-import-library foo
 ./a.out
-$compile specialization-test-2.scm -types foo.types -specialize -debug ox
+$compile specialization-test-2.scm -types foo.types -types specialization-test-2.types -feature chicken-bootstrap -specialize -debug ox
 ./a.out
 rm -f foo.types foo.import.*
 
@@ -344,6 +344,9 @@ rm -fr tmpdir
 mkdir tmpdir
 touch tmpdir/.dotfile
 
+echo "======================================== find-files tests ..."
+$interpret -bnq test-find-files.scm
+
 if test -z "$MSYSTEM"; then
     ln -s /usr tmpdir/symlink
 fi
@@ -362,6 +365,13 @@ echo "======================================== compiler/nursery stress test ..."
 for s in 100000 120000 200000 250000 300000 350000 400000 450000 500000; do
     echo "  $s"
     ../chicken -ignore-repository ../utils.scm -:s$s -output-file tmp.c -include-path ${TEST_DIR}/..
+done
+
+echo "======================================== heap literal stress test ..."
+$compile heap-literal-stress-test.scm
+for s in 100000 120000 200000 250000 300000 350000 400000 450000 500000; do
+  echo "  $s"
+  ./a.out -:d -:g -:hi$s
 done
 
 echo "======================================== symbol-GC tests ..."

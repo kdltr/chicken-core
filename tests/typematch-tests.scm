@@ -27,54 +27,59 @@
 
 (define (bar) 42)
 
-(define-syntax m
+(define-syntax type<=
   (er-macro-transformer
    (lambda (x r c)
      (let ((t1 (cadr x))
 	   (t2 (caddr x))
-	   (foo1 (gensym 'foo1))
-	   (foo2 (gensym 'foo2)))
+	   (foo (gensym 'foo)))
        `(begin
 	  (print ',t1 " = " ',t2)
-	  (: ,foo1 (-> ,t1))
-	  (: ,foo2 (-> ,t2))
-	  (define (,foo1) (bar))
-	  (define (,foo2) (bar))
-	  (compiler-typecase (,foo1)
-	    (,t2 'ok))
-	  (print ',t2 " = " ',t1)
-	  (compiler-typecase (,foo2)
-	    (,t1 'ok)))))))
+	  (: ,foo (-> ,t1))
+	  (define (,foo) (bar))
+	  (compiler-typecase (,foo)
+	    (,t2 'ok)))))))
 
-(define-syntax mx
-  (syntax-rules ()
-    ((_ t x) 
-     (begin
-       (print 'x " = " 't)
-       (compiler-typecase
-	x
-	(t 'ok))))))
+(define-syntax type>
+  (er-macro-transformer
+   (lambda (x r c)
+     (let ((t1 (cadr x))
+	   (t2 (caddr x))
+	   (foo (gensym 'foo)))
+       `(begin
+	  (print ',t1 " != " ',t2)
+	  (: ,foo (-> ,t1))
+	  (define (,foo) (bar))
+	  (compiler-typecase (,foo)
+	    (,t2 (bomb))
+	    (else 'ok)))))))
+
+(define-syntax m
+  (er-macro-transformer
+   (lambda (x r c)
+     (let ((t1 (cadr x))
+	   (t2 (caddr x)))
+       `(begin
+	  (type<= ,t1 ,t2)
+	  (type<= ,t2 ,t1))))))
 
 (define-syntax mn
   (er-macro-transformer
    (lambda (x r c)
      (let ((t1 (cadr x))
-	   (t2 (caddr x))
-	   (foo1 (gensym 'foo1))
-	   (foo2 (gensym 'foo2)))
+	   (t2 (caddr x)))
        `(begin
-	  (print ',t1 " != " ',t2)
-	  (: ,foo1 (-> ,t1))
-	  (: ,foo2 (-> ,t2))
-	  (define (,foo1) (bar))
-	  (define (,foo2) (bar))
-	  (compiler-typecase (,foo1)
-	    (,t2 (bomb))
-	    (else 'ok))
-	  (print ',t2 " != " ',t1)
-	  (compiler-typecase (,foo2)
-	    (,t1 (bomb))
-	    (else 'ok)))))))
+	  (type> ,t1 ,t2)
+	  (type> ,t2 ,t1))))))
+
+(define-syntax mx
+  (syntax-rules ()
+    ((_ t x)
+     (begin
+       (print 'x " = " 't)
+       (compiler-typecase
+	x
+	(t 'ok))))))
 
 (define-syntax ms
   (er-macro-transformer
@@ -174,7 +179,14 @@
 (checkp pointer-vector? (make-pointer-vector 1) pointer-vector)
 (checkp pointer? (address->pointer 1) pointer)
 
-(mn list null)
+(type<= null list)
+(type<= (list *) list)
+(type<= (vector *) vector)
+
+(type> list null)
+(type> list (list *))
+(type> vector (vector *))
+
 (mn pair null)
 (mn pair list)
 
@@ -208,9 +220,14 @@
 (mx list   (cddr-alike l))
 (mx fixnum (cddr-alike p))
 
+(ms '(1 . 2) '() pair)
 (ms '(1 2) '() pair)
+(ms '(1) '() pair)
+(ms '() '(1) (not pair))
 (ms '() '(1 2) (not pair))
 (ms '() '(1 . 2) (not pair))
+(ms '() '(1 . 2) list)
+(ms '(1 . 2) '() (not list))
 (ms '(1 2) '(1 . 2) (pair * pair))
 (ms '(1 2) '(1 . 2) (pair * list))
 (ms '(1 2) '(1 2 3) (pair * (pair * null)))
@@ -332,3 +349,7 @@
 	    (fixnum 'not-ok)
 	    (else 'ok))))
 
+(assert ; clause order is respected
+ (compiler-typecase 1
+   (number #t)
+   (fixnum #f)))

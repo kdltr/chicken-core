@@ -28,8 +28,8 @@ Lisp dialects, Scheme features
 
 In contrast to Common Lisp, Scheme is very minimal, and tries to
 include only those features absolutely necessary in programming. In
-contrast to Emacs Lisp, Scheme is not anchored into any one program
-(Emacs), and has a somewhat more modern language design. 
+contrast to Emacs Lisp, Scheme is not anchored into a single program
+(Emacs), and has a more modern language design.
 
 Scheme is defined in a document called ''The Revised^5 Report on the
 Algorithmic Language Scheme'', or ''R5RS'' for short. (Yes, it really
@@ -168,6 +168,9 @@ communication.  For other topic-specific mailing lists (e.g.,
 announcements, security) and discussion groups, see
 [[http://wiki.call-cc.org/discussion-groups|http://wiki.call-cc.org/discussion-groups]].
 
+There is also an IRC channel ({{#chicken}}) on
+[[http://freenode.net|Freenode]].
+
 === Installing CHICKEN
 
 CHICKEN is available as C sources. Refer to the
@@ -284,7 +287,7 @@ To invoke the CHICKEN interpreter, you use the {{csi}} command.
  $ csi
  
  CHICKEN
- (c) 2008-2015, The CHICKEN Team
+ (c) 2008-2016, The CHICKEN Team
  (c) 2000-2007, Felix L. Winkelmann
  Version 4.9.0.1 (stability/4.9.0) (rev 8b3189b)
  linux-unix-gnu-x86-64 [ 64bit manyargs dload ptables ]
@@ -401,7 +404,7 @@ organize your {{PATH}} according to the task at hand.)
 
 Compiled code can be intermixed with interpreted code on systems that
 support dynamic loading, which includes modern versions of *BSD,
-Linux, Mac OS X, Solaris, and Windows. 
+Linux, Mac OS X, Solaris, and Windows.
 
 We can compile our factorial function, producing a file named
 {{fact.so}} (''shared object'' in Linux-ese, the same file type is

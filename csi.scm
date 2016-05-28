@@ -1,6 +1,6 @@
 ;;;; csi.scm - Interpreter stub for CHICKEN
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -334,7 +334,7 @@ EOF
 				[xn (eval n)] )
 			   (dump xe xn) ) )
 			((r) (report))
-			((q) (##sys#quit-hook))
+			((q) (##sys#quit-hook #f))
 			((l)
 			 (let ((fns (string-split (read-line))))
 			   (for-each load fns)

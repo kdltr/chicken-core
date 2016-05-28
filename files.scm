@@ -1,6 +1,6 @@
 ;;;; files.scm - File and pathname operations
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -147,7 +147,7 @@ EOF
       (set! absolute-pathname-root (lambda (pn) (irregex-match rx pn)))
       (set! root-origin (lambda (rt) (and rt (irregex-match-substring rt 1))))
       (set! root-directory (lambda (rt) (and rt (irregex-match-substring rt 2)))) )
-    (let ((rx (irregex "([\\/\\\\]).*")))
+    (let ((rx (irregex "(/).*")))
       (set! absolute-pathname-root (lambda (pn) (irregex-match rx pn)))
       (set! root-origin (lambda (rt) #f))
       (set! root-directory (lambda (rt) (and rt (irregex-match-substring rt 1)))) ) )
@@ -156,7 +156,10 @@ EOF
   (##sys#check-string pn 'absolute-pathname?)
   (irregex-match-data? (absolute-pathname-root pn)) )
 
-(define-inline (*char-pds? ch) (memq ch '(#\\ #\/)))
+(define-inline (*char-pds? ch) 
+  (if ##sys#windows-platform 
+      (memq ch '(#\\ #\/))
+      (eq? #\/ ch)))
 
 (define (chop-pds str)
   (and str
@@ -171,7 +174,7 @@ EOF
 (define make-pathname)
 (define make-absolute-pathname)
 
-(let ()
+(let ((pds (if ##sys#windows-platform "\\" "/")))
 
   (define (conc-dirs dirs)
     (##sys#check-list dirs 'make-pathname)
@@ -183,7 +186,7 @@ EOF
 		(loop (cdr strs))
 		(string-append 
 		 (chop-pds (car strs))
-		 "/"
+		 pds
 		 (loop (cdr strs))) ) ) ) ) )
 
   (define (canonicalize-dirs dirs)
@@ -221,12 +224,16 @@ EOF
        (let ((dir (canonicalize-dirs dirs)))
 	 (if (absolute-pathname? dir)
 	     dir
-	     (##sys#string-append "/"dir)) )
+	     (##sys#string-append pds dir)) )
        file ext) ) ) )
 
 (define decompose-pathname
-  (let* ([patt1 "^(.*[\\/\\\\])?([^\\/\\\\]+)(\\.([^\\/\\\\.]+))$"]
-	 [patt2 "^(.*[\\/\\\\])?((\\.)?[^\\/\\\\]+)$"]
+  (let* ((patt1 (if ##sys#windows-platform
+                    "^(.*[\\/\\\\])?([^\\/\\\\]+)(\\.([^\\/\\\\.]+))$"
+                    "^(.*/)?([^/]+)(\\.([^/.]+))$"))
+	 (patt2 (if ##sys#windows-platform
+                    "^(.*[\\/\\\\])?((\\.)?[^\\/\\\\]+)$"
+                    "^(.*/)?((\\.)?[^/]+)$"))
 	 [rx1 (irregex patt1)]
 	 [rx2 (irregex patt2)]
 	 [strip-pds
@@ -361,6 +368,10 @@ EOF
             (else (cons part parts) ) ) )
     (lambda (path #!optional (platform bldplt))
       (let ((sep (if (eq? platform 'windows) #\\ #\/)))
+        (define (pds? c)
+          (if (eq? platform 'windows)
+              (memq c '(#\/ #\\))
+              (eq? c #\/)))
 	(##sys#check-string path 'normalize-pathname)
 	(let ((len (##sys#size path))
 	      (type #f)
@@ -387,7 +398,7 @@ EOF
 			   (when drive
 			     (set! r (##sys#string-append drive r)))
 			   r))))
-		  ((*char-pds? (string-ref path i))
+		  ((pds? (string-ref path i))
 		   (when (not type)
 		     (set! type (if (fx= i prev) 'abs 'rel)))
 		   (if (fx= i prev)
@@ -397,7 +408,7 @@ EOF
 			     (addpart (##sys#substring path prev i) parts))))
 		  ((and (null? parts) 
 			(char=? (string-ref path i) #\:)
-			(eq? 'windows platform))
+			(eq? platform 'windows))
 		   (set! drive (##sys#substring path 0 (fx+ i 1)))
 		   (loop (fx+ i 1) (fx+ i 1) '()))
 		  (else (loop (fx+ i 1) prev parts)) ) ) ) ) ) ) )
@@ -409,7 +420,7 @@ EOF
 (define split-directory
   (lambda (loc dir keep?)
     (##sys#check-string dir loc)
-    (string-split dir "/\\" keep?) ) )
+    (string-split dir (if ##sys#windows-platform "/\\" "/") keep?) ) )
 
 ;; Directory string or list only contains path-separators
 ;; and/or current-directory (".") names.

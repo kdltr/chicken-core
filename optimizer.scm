@@ -1,6 +1,6 @@
 ;;;; optimizer.scm - The CHICKEN Scheme compiler (optimizations)
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -329,28 +329,27 @@
 			     llist args (first (node-subexpressions lval)) #f db
 			     void)
 			    fids gae) ) )
-			((variable-mark var '##compiler#pure)
-			 ;; callee is side-effect free
-			 (or (and-let* ((k (car args))
-					((eq? '##core#variable (node-class k)))
-					(kvar (first (node-parameters k)))
-					(lval (and (not (test kvar 'unknown)) 
-						   (test kvar 'value))) 
-					((eq? '##core#lambda (node-class lval)))
-					(llist (third (node-parameters lval)))
-					((or (test (car llist) 'unused)
-					     (and (not (test (car llist) 'references))
-						  (not (test (car llist) 'assigned)))))
-					((not (any (cut expression-has-side-effects? <> db)
-						   (cdr args) ))))
-			       (debugging 
-				'o
-				"removed call to pure procedure with unused result"
-				info)
-			       (make-node
-				'##core#call (list #t)
-				(list k (make-node '##core#undefined '() '())) ) ) 
-			     (walk-generic n class params subs fids gae #f)) )
+			((and-let* (((variable-mark var '##compiler#pure))
+				    ((eq? '##core#variable (node-class (car args))))
+				    (kvar (first (node-parameters (car args))))
+				    (lval (and (not (test kvar 'unknown))
+					       (test kvar 'value)))
+				    ((eq? '##core#lambda (node-class lval)))
+				    (llist (third (node-parameters lval)))
+				    ((or (test (car llist) 'unused)
+					 (and (not (test (car llist) 'references))
+					      (not (test (car llist) 'assigned))))))
+			   ;; callee is side-effect free
+			   (not (any (cut expression-has-side-effects? <> db)
+				     (cdr args))))
+			 (debugging
+			  'o
+			  "removed call to pure procedure with unused result"
+			  info)
+			 (make-node
+			  '##core#call (list #t)
+			  (list (car args)
+				(make-node '##core#undefined '() '()))))
 			((and lval
 			      (eq? '##core#lambda (node-class lval)))
 			 ;; callee is a lambda

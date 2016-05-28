@@ -1,6 +1,6 @@
 ;;;; scrutinizer.scm - The CHICKEN Scheme compiler (local flow analysis)
 ;
-; Copyright (c) 2009-2015, The CHICKEN Team
+; Copyright (c) 2009-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -84,7 +84,7 @@
 ; global symbol properties:
 ;
 ;   ##compiler#type            ->  TYPESPEC
-;   ##compiler#declared-type   ->  BOOL
+;   ##compiler#type-source     ->  'db | 'local | 'inference
 ;   ##compiler#predicate       ->  TYPESPEC
 ;   ##compiler#specializations ->  (SPECIALIZATION ...)
 ;   ##compiler#local-specializations ->  (SPECIALIZATION ...)
@@ -112,10 +112,10 @@
 (define-constant +maximal-union-type-length+ 20)
 (define-constant +maximal-complex-object-constructor-result-type-length+ 256)
 
+(define-inline (unrename-type x) (strip-syntax x))
 
 (define specialization-statistics '())
 (define trail '())
-
 
 (define (multiples n)
   (if (= n 1) "" "s"))
@@ -123,6 +123,16 @@
 (define (walked-result n)
   (first (node-parameters n)))		; assumes ##core#the/result node
 
+(define (node-line-number n)
+  (case (node-class n)
+    ((##core#call)
+     (let ((params (node-parameters n)))
+       (and (pair? (cdr params))
+	    (pair? (cadr params)) ; debug-info has line-number information?
+	    (source-info->line (cadr params)))))
+    ((##core#typecase)
+     (car (node-parameters n)))
+    (else #f)))
 
 (define (scrutinize node db complain specialize)
   (let ((blist '())			; (((VAR . FLOW) TYPE) ...)
@@ -164,16 +174,13 @@
 	     (lambda (a)
 	       (cond
 		((eq? a 'deprecated)
-		 (report
-		  loc
-		  (sprintf "use of deprecated `~a'" id))
+		 (report loc "use of deprecated `~a'" id)
 		 '(*))
 		((and (pair? a) (eq? (car a) 'deprecated))
 		 (report
 		  loc
-		  (sprintf 
-		      "use of deprecated `~a' - consider `~a'"
-		    id (cadr a)))
+		  "use of deprecated `~a' - consider `~a'"
+		  id (cadr a))
 		 '(*))
 		(else (list a)))))
 	    (else '(*))))
@@ -190,15 +197,15 @@
       (cond ((blist-type id flow) => list)
 	    ((and (not strict-variable-types)
 		  (get db id 'assigned) 
-		  (not (variable-mark id '##compiler#declared-type)))
+		  (not (variable-mark id '##compiler#type-source)))
 	     '(*))
 	    ((assq id e) =>
 	     (lambda (a)
 	       (cond ((eq? 'undefined (cdr a))
-		      #;(report 
+		      #;(report
 		       loc
-		       (sprintf "access to variable `~a' which has an undefined value"
-			 (real-name id db)))
+		       "access to variable `~a' which has an undefined value"
+		       (real-name id db))
 		      '(*))
 		     (else (list (cdr a))))))
 	    (else (global-result id loc))))
@@ -215,15 +222,14 @@
     (define (always-true t loc x)
       (let ((f (always-true1 t)))
 	(when f
-	  (report-notice 
+	  (report-notice
 	   loc
-	   (sprintf
-	       "expected value of type boolean in conditional but were given a value of type\n  `~a' which is always true:~%~%~a"
-	     t
-	     (pp-fragment x))))
+	   "expected a value of type boolean in conditional, but \
+	    was given a value of type `~a' which is always true:~%~%~a"
+	   t (pp-fragment x)))
 	f))
 
-    (define (single what tv loc)
+    (define (single node what tv loc)
       (if (eq? '* tv)
 	  '*
 	  (let ((n (length tv)))
@@ -231,30 +237,35 @@
 		  ((zero? n)
 		   (report
 		    loc
-		    (sprintf "expected ~a a single result, but were given zero results" what))
+		    "~aexpected a single result ~a, but received zero results"
+		    (node-source-prefix node) what)
 		   'undefined)
 		  (else
 		   (report
 		    loc
-		    (sprintf "expected ~a a single result, but were given ~a result~a"
-		      what n (multiples n)))
+		    "~aexpected a single result ~a, but received ~a result~a"
+		    (node-source-prefix node) what n (multiples n))
 		   (first tv))))))
 
-    (define (report-notice loc desc #!optional (show complain))
-      (when show
+    (define (report-notice loc msg . args)
+      (when complain
 	(##sys#notice
-	 (conc (location-name loc) desc))))
+	 (conc (location-name loc)
+	       (sprintf "~?" msg (map unrename-type args))))))
 
-    (define (report loc desc #!optional (show complain))
-      (when show
+    (define (report loc msg . args)
+      (when complain
 	(warning
-	 (conc (location-name loc) desc))))
+	 (conc (location-name loc)
+	       (sprintf "~?" msg (map unrename-type args))))))
 
-    (define (report-error loc desc #!optional (show complain))
-      (when show
-	(warning 
-	 (conc (location-name loc) desc)))
-      (set! errors #t))
+    (define (report-error loc msg . args)
+      (set! errors #t)
+      (apply report loc msg args))
+
+    (define (node-source-prefix n)
+      (let ((line (node-line-number n)))
+       (if (not line) "" (sprintf "(~a) " line))))
 
     (define (location-name loc)
       (define (lname loc1)
@@ -292,23 +303,16 @@
 	   (pp (fragment x))))))
 
     (define (get-specializations name)
-      (let* ((a (variable-mark name '##compiler#specializations))
-	     (b (variable-mark name '##compiler#local-specializations))
+      (let* ((a (variable-mark name '##compiler#local-specializations))
+	     (b (variable-mark name '##compiler#specializations))
 	     (c (append (or a '()) (or b '()))))
 	(and (pair? c) c)))
 
     (define (call-result node args e loc params typeenv)
       (define (pname)
-	(sprintf "~ain procedure call to `~s', " 
-	  (if (and (pair? params)
-		   (pair? (cdr params))
-		   (pair? (cadr params))) ; sourceinfo has line-number information?
-	      (let ((n (source-info->line (cadr params))))
-		(if n
-		    (sprintf "(~a) " n)
-		    ""))
-	      "")
-	  (fragment (first (node-subexpressions node)))))
+	(sprintf "~ain procedure call to `~s', "
+		 (node-source-prefix node)
+		 (fragment (first (node-subexpressions node)))))
       (let* ((actualtypes (map walked-result args))
 	     (ptype (car actualtypes))
 	     (pptype? (procedure-type? ptype))
@@ -320,23 +324,21 @@
 	(cond ((and (not pptype?) (not (match-types xptype ptype typeenv)))
 	       (report
 		loc
-		(sprintf
-		    "~aexpected a value of type `~a', but was given a value of type `~a'"
-		  (pname) 
-		  (resolve xptype typeenv)
-		  (resolve ptype typeenv)))
+		"~aexpected a value of type `~a' but was given a value of type `~a'"
+		(pname)
+		(resolve xptype typeenv)
+		(resolve ptype typeenv))
 	       (values '* #f))
 	      (else
 	       (let-values (((atypes values-rest ok alen)
 			     (procedure-argument-types ptype nargs typeenv)))
 		 (unless ok
-		   (report 
+		   (report
 		    loc
-		    (sprintf
-			"~aexpected ~a argument~a, but was given ~a argument~a"
-		      (pname)
-		      alen (multiples alen)
-		      nargs (multiples nargs))))
+		    "~aexpected ~a argument~a but was given ~a argument~a"
+		    (pname)
+		    alen (multiples alen)
+		    nargs (multiples nargs)))
 		 (do ((actualtypes (cdr actualtypes) (cdr actualtypes))
 		      (atypes atypes (cdr atypes))
 		      (i 1 (add1 i)))
@@ -347,12 +349,11 @@
 			    typeenv)
 		     (report
 		      loc
-		      (sprintf
-			  "~aexpected argument #~a of type `~a', but was given an argument of type `~a'"
-			(pname) 
-			i
-			(resolve (car atypes) typeenv)
-			(resolve (car actualtypes) typeenv)))))
+		      "~aexpected argument #~a of type `~a' but was given an argument of type `~a'"
+		      (pname)
+		      i
+		      (resolve (car atypes) typeenv)
+		      (resolve (car actualtypes) typeenv))))
 		 (when (noreturn-procedure-type? ptype)
 		   (set! noreturn #t))
 		 (let ((r (procedure-result-types ptype values-rest (cdr actualtypes) typeenv)))
@@ -362,13 +363,12 @@
 		       (cond ((and (fx= 1 nargs) 
 				   (variable-mark pn '##compiler#predicate)) =>
 				   (lambda (pt)
-				     (cond ((match-argument-types
-					     (list pt) (cdr actualtypes) typeenv #f #t)
+				     (cond ((match-argument-types (list pt) (cdr actualtypes) typeenv)
 					    (report-notice
 					     loc
-					     (sprintf 
-						 "~athe predicate is called with an argument of type\n  `~a' and will always return true"
-					       (pname) (cadr actualtypes)))
+					     "~athe predicate is called with an argument of type `~a' \
+					      and will always return true"
+					     (pname) (cadr actualtypes))
 					    (when specialize
 					      (specialize-node!
 					       node (cdr args)
@@ -376,13 +376,12 @@
 					      (set! op (list pn pt))))
 					   ((begin
 					      (trail-restore trail0 typeenv)
-					      (match-argument-types
-					       (list `(not ,pt)) (cdr actualtypes) typeenv #f #t))
+					      (match-argument-types (list `(not ,pt)) (cdr actualtypes) typeenv))
 					    (report-notice
 					     loc
-					     (sprintf 
-						 "~athe predicate is called with an argument of type\n  `~a' and will always return false"
-					       (pname) (cadr actualtypes)))
+					     "~athe predicate is called with an argument of type `~a' \
+					      and will always return false"
+					     (pname) (cadr actualtypes))
 					    (when specialize
 					      (specialize-node!
 					       node (cdr args)
@@ -398,9 +397,7 @@
 					      (tenv2 (append
 						      (append-map type-typeenv stype)
 						      typeenv)))
-					 (cond ((match-argument-types
-						 stype (cdr actualtypes) tenv2
-						 #t)
+					 (cond ((match-argument-types stype (cdr actualtypes) tenv2)
 						(set! op (cons pn (car spec)))
 						(set! typeenv tenv2)
 						(let* ((r2 (and (pair? (cddr spec))
@@ -445,7 +442,7 @@
     (define (initial-argument-types dest vars argc)
       (if (and dest 
 	       strict-variable-types
-	       (variable-mark dest '##compiler#declared-type))
+	       (variable-mark dest '##compiler#type-source))
 	  (let* ((ptype (variable-mark dest '##compiler#type))
 		 (typeenv (type-typeenv ptype)))
 	    (if (procedure-type? ptype)
@@ -490,7 +487,7 @@
 			(tst (first subs))
 			(nor-1 noreturn))
 		    (set! noreturn #f)
-		    (let* ((rt (single "in conditional" (walk tst e loc #f #f flow tags) loc))
+		    (let* ((rt (single n "in conditional" (walk tst e loc #f #f flow tags) loc))
 			   (c (second subs))
 			   (a (third subs))
 			   (nor0 noreturn))
@@ -525,9 +522,8 @@
 					       (not (= (length r1) (length r2))))
 					  (report
 					   loc
-					   (sprintf
-					       "branches in conditional expression differ in the number of results:~%~%~a"
-					     (pp-fragment n)))
+					   "branches in conditional expression differ in the number of results:~%~%~a"
+					   (pp-fragment n))
 					  '*)
 					 (nor1 r2)
 					 (nor2 r1)
@@ -544,7 +540,8 @@
 			(walk (car body) (append e2 e) loc dest tail flow ctags)
 			(let* ((var (car vars))
 			       (val (car body))
-			       (t (single 
+			       (t (single
+				   n
 				   (sprintf "in `let' binding of `~a'" (real-name var))
 				   (walk val e loc var #f flow #f) 
 				   loc)))
@@ -577,12 +574,12 @@
 					 #f #t (list initial-tag) #f)))
 			   #;(when (and specialize
 				      dest
-				      (variable-mark dest '##compiler#declared-type)
+				      (variable-mark dest '##compiler#type-source)
 				      (not unsafe))
 			     (debugging 'x "checks argument-types" dest) ;XXX
 			     ;; [1] this is subtle: we don't want argtype-checks to be 
 			     ;; generated for toplevel defs other than user-declared ones. 
-			     ;; But since the ##compiler#declared-type mark is set AFTER 
+			     ;; But since the ##compiler#type-source mark is set AFTER
 			     ;; the lambda has been walked (see below, [2]), nothing is added.
 			     (generate-type-checks! n dest vars inits))
 			   (list
@@ -611,7 +608,8 @@
 		 ((set! ##core#set!)
 		  (let* ((var (first params))
 			 (type (variable-mark var '##compiler#type))
-			 (rt (single 
+			 (rt (single
+			      n
 			      (sprintf "in assignment to `~a'" var)
 			      (walk (first subs) e loc var #f flow #f)
 			      loc))
@@ -626,10 +624,9 @@
 			       (not (match-types type rt typeenv)))
 		      ((if strict-variable-types report-error report)
 		       loc
-		       (sprintf 
-			   "assignment of value of type `~a' to toplevel variable `~a' does not match declared type `~a'"
-			 rt var type)
-		       #t))
+		       "assignment of value of type `~a' to toplevel variable `~a' \
+			does not match declared type `~a'"
+		       rt var type))
 		    (when (and (not type) ;XXX global declaration could allow this
 			       (not b)
 			       (not (eq? '* rt))
@@ -647,7 +644,7 @@
 			      ;; [2] sets property, but lambda has already been walked,
 			      ;; so no type-checks are generated (see also [1], above)
 			      ;; note that implicit declarations are not enforcing
-			      (mark-variable var '##compiler#declared-type)
+			      (mark-variable var '##compiler#type-source 'inference)
 			      (mark-variable var '##compiler#type rt))))))
 		    (when b
 		      (cond ((eq? 'undefined (cdr b)) (set-cdr! b rt))
@@ -659,10 +656,8 @@
 			       (unless (compatible-types? ot rt)
 				 (report
 				  loc
-				  (sprintf 
-				      "variable `~a' of type `~a' was modified to a value of type `~a'"
-				    var ot rt)
-				  #t)))))
+				  "variable `~a' of type `~a' was modified to a value of type `~a'"
+				  var ot rt)))))
 		      ;; don't use "add-to-blist" since the current operation does not affect aliases
 		      (let ((t (if (or strict-variable-types
 				       (not (get db var 'captured)))
@@ -689,7 +684,8 @@
 				      (make-node
 				       '##core#the/result
 				       (list
-					(single 
+					(single
+					 n
 					 (sprintf 
 					     "in ~a of procedure call `~s'"
 					   (if (zero? i)
@@ -806,23 +802,21 @@
 			  ((null? rt)
 			   (report
 			    loc
-			    (sprintf
-				"expression returns zero values but is declared to have a single result of type `~a'"
-			      t)))
+			    "expression returns zero values but is declared to have \
+			     a single result of type `~a'" t))
 			  (else
 			   (when (> (length rt) 1)
 			     (report
 			      loc
-			      (sprintf 
-				  "expression returns ~a values but is declared to have a single result"
-				(length rt))))
+			      "expression returns ~a values but is declared to have \
+			       a single result" (length rt)))
 			   (when (and (second params)
-				      (not (type<=? t (first rt))))
+				      (not (compatible-types? t (first rt))))
 			     ((if strict-variable-types report-error report-notice)
 			      loc
-			      (sprintf
-				  "expression returns a result of type `~a', but is declared to return `~a', which is not a subtype"
-				(first rt) t)))))
+			      "expression returns a result of type `~a' but is \
+			       declared to return `~a', which is not compatible"
+			      (first rt) t))))
 		    (list t)))
 		 ((##core#typecase)
 		  (let* ((ts (walk (first subs) e loc #f #f flow ctags))
@@ -833,9 +827,7 @@
 		      (cond ((null? types)
 			     (quit "~a~ano clause applies in `compiler-typecase' for expression of type `~s':~a" 
 				   (location-name loc)
-				   (if (first params) 
-				       (sprintf "(~a) " (first params))
-				       "")
+				   (node-source-prefix n)
 				   (car ts)
 				   (string-concatenate
 				    (map (lambda (t) (sprintf "\n    ~a" t))
@@ -908,10 +900,9 @@
 
 ;;; Type-matching
 ;
-; - "exact" means: first argument must match second one exactly
 ; - "all" means: all elements in `or'-types in second argument must match
 
-(define (match-types t1 t2 typeenv #!optional exact all)
+(define (match-types t1 t2 typeenv #!optional all)
 
   (define (match-args args1 args2)
     (d "match args: ~s <-> ~s" args1 args2)
@@ -934,7 +925,7 @@
 	    ((match1 (car args1) (car args2))
 	     (loop (cdr args1) (cdr args2) opt1 opt2))
 	    (else #f))))
-  
+
   (define (match-rest rtype args opt)	;XXX currently ignores `opt'
     (let-values (((head tail) (break (cut eq? '#!rest <>) args)))
       (and (every			
@@ -948,11 +939,9 @@
     (memq a '(#!rest #!optional)))
 
   (define (match-results results1 results2)
-    (cond ((null? results1) 
-	   (or (null? results2)
-	       (and (not exact) (eq? '* results2))))
-	  ((eq? '* results1))
-	  ((eq? '* results2) (not exact))
+    (cond ((eq? '* results1))
+	  ((eq? '* results2) (not all))
+	  ((null? results1) (null? results2))
 	  ((null? results2) #f)
 	  ((and (memq (car results1) '(undefined noreturn))
 		(memq (car results2) '(undefined noreturn))))
@@ -961,8 +950,7 @@
 	  (else #f)))
 
   (define (rawmatch1 t1 t2)
-    (fluid-let ((exact #f)
-		(all #f))
+    (fluid-let ((all #f))
       (match1 t1 t2)))
 
   (define (match1 t1 t2)
@@ -1007,18 +995,16 @@
 		    #t)
 		   (else #f))))
 	  ((eq? t1 '*))
-	  ((eq? t2 '*) (and (not exact) (not all)))
+	  ((eq? t2 '*) (not all))
 	  ((eq? t1 'undefined) #f)
 	  ((eq? t2 'undefined) #f)
 	  ((and (pair? t1) (eq? 'not (car t1)))
-	   (fluid-let ((exact #f)
-		       (all #f))
-	     (let* ((trail0 trail)
-		    (m (match1 (cadr t1) t2)))
-	       (trail-restore trail0 typeenv)
-	       (not m))))
+	   (let* ((trail0 trail)
+		  (m (rawmatch1 (cadr t1) t2)))
+	     (trail-restore trail0 typeenv)
+	     (not m)))
 	  ((and (pair? t2) (eq? 'not (car t2)))
-	   (and (not exact)
+	   (and (not all)
 		(let* ((trail0 trail)
 		       (m (match1 t1 (cadr t2))))
 		  (trail-restore trail0 typeenv)
@@ -1028,8 +1014,8 @@
 	  ((and (pair? t2) (eq? 'or (car t2)))
 	   (over-all-instantiations
 	    (cdr t2)
-	    typeenv 
-	    (or exact all)
+	    typeenv
+	    all
 	    (lambda (t) (match1 t1 t))))
 	  ;; s.a.
 	  ((and (pair? t1) (eq? 'or (car t1))) 
@@ -1042,39 +1028,28 @@
 	   (match1 (third t1) t2)) ; assumes typeenv has already been extracted
 	  ((and (pair? t2) (eq? 'forall (car t2)))
 	   (match1 t1 (third t2))) ; assumes typeenv has already been extracted
-	  ((eq? t1 'noreturn) (not exact))
-	  ((eq? t2 'noreturn) (not exact))
-	  ((eq? t1 'boolean)
-	   (and (not exact)
-		(match1 '(or true false) t2)))
-	  ((eq? t2 'boolean)
-	   (and (not exact)
-		(match1 t1 '(or true false))))
-	  ((eq? t1 'number) 
-	   (and (not exact)
-		(match1 '(or fixnum float) t2)))
-	  ((eq? t2 'number)
-	   (and (not exact)
-		(match1 t1 '(or fixnum float))))
-	  ((eq? 'procedure t1)
-	   (and (pair? t2)
-		(eq? 'procedure (car t2))))
-	  ((eq? 'procedure t2) 
-	   (and (not exact)
-		(pair? t1)
-		(eq? 'procedure (car t1))))
+	  ((eq? t1 'noreturn))
+	  ((eq? t2 'noreturn))
+	  ((eq? t1 'boolean) (match1 '(or true false) t2))
+	  ((eq? t2 'boolean) (match1 t1 '(or true false)))
+	  ((eq? t1 'number) (match1 '(or fixnum float) t2))
+	  ((eq? t2 'number) (match1 t1 '(or fixnum float)))
 	  ((eq? t1 'pair) (match1 '(pair * *) t2))
 	  ((eq? t2 'pair) (match1 t1 '(pair * *)))
 	  ((eq? t1 'list) (match1 '(list-of *) t2))
 	  ((eq? t2 'list) (match1 t1 '(list-of *)))
 	  ((eq? t1 'vector) (match1 '(vector-of *) t2))
 	  ((eq? t2 'vector) (match1 t1 '(vector-of *)))
+	  ((eq? 'procedure t1)
+	   (and (pair? t2) (eq? 'procedure (car t2))))
+	  ((eq? 'procedure t2)
+	   (and (not all)
+		(pair? t1) (eq? 'procedure (car t1))))
 	  ((eq? t1 'null)
-	   (and (not exact) (not all)
+	   (and (not all)
 		(pair? t2) (eq? 'list-of (car t2))))
 	  ((eq? t2 'null)
-	   (and (not exact)
-		(pair? t1) (eq? 'list-of (car t1))))
+	   (and (pair? t1) (eq? 'list-of (car t1))))
 	  ((and (pair? t1) (pair? t2) (eq? (car t1) (car t2)))
 	   (case (car t1)
 	     ((procedure)
@@ -1095,8 +1070,7 @@
 	   (and (pair? t2)
 		(case (car t2)
 		  ((list-of)
-		   (and (not exact)
-			(not all)
+		   (and (not all)
 			(match1 (second t1) (second t2))
 			(match1 (third t1) t2)))
 		  ((list)
@@ -1111,7 +1085,7 @@
 	   (and (pair? t1)
 		(case (car t1)
 		  ((list-of)
-		   (and (not exact)
+		   (and (not all)
 			(match1 (second t1) (second t2))
 			(match1 t1 (third t2))))
 		  ((list)
@@ -1122,61 +1096,46 @@
 				    `(list ,@(cddr t1)))
 				(third t2))))
 		  (else #f))))
-	  ((and (pair? t1) (eq? 'list-of (car t1)))
-	   (or (eq? 'null t2)
-	       (and (pair? t2)
-		    (case (car t2)
-		      ((list)
-		       (let ((t1 (second t1)))
-			 (over-all-instantiations
-			  (cdr t2)
-			  typeenv
-			  #t
-			  (lambda (t) (match1 t1 t)))))
-		      (else #f)))))
 	  ((and (pair? t1) (eq? 'list (car t1)))
-	   (and (pair? t2)
-		(case (car t2)
-		  ((list-of)
-		   (and (not exact) 
-			(not all)
-			(let ((t2 (second t2)))
-			  (over-all-instantiations
-			   (cdr t1)
-			   typeenv 
-			   #t
-			   (lambda (t) (match1 t t2))))))
-		  (else #f))))
+	   (and (not all)
+		(pair? t2) (eq? 'list-of (car t2))
+		(over-all-instantiations
+		 (cdr t1)
+		 typeenv
+		 #t
+		 (cute match1 <> (second t2)))))
+	  ((and (pair? t1) (eq? 'list-of (car t1)))
+	   (and (pair? t2) (eq? 'list (car t2))
+		(over-all-instantiations
+		 (cdr t2)
+		 typeenv
+		 #t
+		 (cute match1 (second t1) <>))))
 	  ((and (pair? t1) (eq? 'vector (car t1)))
-	   (and (not exact) (not all)
-		(pair? t2)
-		(eq? 'vector-of (car t2))
-		(let ((t2 (second t2)))
-		  (over-all-instantiations
-		   (cdr t1)
-		   typeenv
-		   #t
-		   (lambda (t) (match1 t t2))))))
-	  ((and (pair? t2) (eq? 'vector (car t2)))
-	   (and (pair? t1)
-		(eq? 'vector-of (car t1))
-		(let ((t1 (second t1)))
-		  (over-all-instantiations
-		   (cdr t2)
-		   typeenv 
-		   #t
-		   (lambda (t) (match1 t1 t))))))
+	   (and (not all)
+		(pair? t2) (eq? 'vector-of (car t2))
+		(over-all-instantiations
+		 (cdr t1)
+		 typeenv
+		 #t
+		 (cute match1 <> (second t2)))))
+	  ((and (pair? t1) (eq? 'vector-of (car t1)))
+	   (and (pair? t2) (eq? 'vector (car t2))
+		(over-all-instantiations
+		 (cdr t2)
+		 typeenv
+		 #t
+		 (cute match1 (second t1) <>))))
 	  (else #f)))
 
   (let ((m (match1 t1 t2)))
-    (dd "    match~a~a ~a <-> ~a -> ~a  te: ~s" 
-	(if exact " (exact)" "") 
+    (dd "    match~a ~a <-> ~a -> ~a  te: ~s"
 	(if all " (all)" "") 
 	t1 t2 m typeenv)
     m))
 
 
-(define (match-argument-types typelist atypes typeenv #!optional exact all)
+(define (match-argument-types typelist atypes typeenv)
   ;; this doesn't need optional: it is only used for predicate- and specialization
   ;; matching
   (let loop ((tl typelist) (atypes atypes))
@@ -1186,9 +1145,9 @@
 	  ((eq? (car tl) '#!rest)
 	   (every 
 	    (lambda (at)
-	      (match-types (cadr tl) at typeenv exact all))
+	      (match-types (cadr tl) at typeenv #t))
 	    atypes))
-	  ((match-types (car tl) (car atypes) typeenv exact all)
+	  ((match-types (car tl) (car atypes) typeenv #t)
 	   (loop (cdr tl) (cdr atypes)))
 	  (else #f))))
 
@@ -1209,12 +1168,6 @@
 	    ((pair? x)
 	     (cons (subst (car x)) (subst (cdr x))))
 	    (else x)))
-    (define (rename v)
-      (cond ((assq v typeenv) => cdr)
-	    (else
-	     (let ((new (gensym v)))
-	       (set! typeenv (alist-cons v new typeenv))
-	       new))))
     (define (simplify t)
       ;;(dd "simplify/rec: ~s" t)
       (call/cc 
@@ -1226,7 +1179,9 @@
 		     (set! typeenv
 		       (append (map (lambda (v)
 				      (let ((v (if (symbol? v) v (first v))))
-					(cons v (gensym v))) )
+					(let ((v* (gensym v)))
+					  (mark-variable v* '##core#real-name v)
+					  (cons v v*))))
 				    typevars)
 			       typeenv))
 		     (set! constraints 
@@ -1337,7 +1292,6 @@
 				     (lambda (c)
 				       (list v (simplify (cadr c)))))
 				    (else v)))))
-				     
 		     typeenv)
 		   ,(subst t2))))
       (dd "simplify: ~a -> ~a" t t2)
@@ -1808,13 +1762,24 @@
 	   ;; correct, because type variables have to be renamed:
 	   (let-values (((t pred pure) (validate-type new name)))
 	     (unless t
-	       (warning "invalid type specification" name new))
+	       (warning
+		(sprintf "invalid type specification for `~a': ~a"
+			 name
+			 (unrename-type new))))
 	     (when (and old (not (compatible-types? old t)))
 	       (warning
 		(sprintf
-		    "type-definition `~a' for toplevel binding `~a' conflicts with previously loaded type `~a'"
-		  name new old)))
+		 "type definition for toplevel binding `~a' \
+		  conflicts with previously loaded type:\
+		  ~n  New type:      ~a\
+		  ~n  Original type: ~a"
+		 name (unrename-type old) (unrename-type new))))
 	     (mark-variable name '##compiler#type t)
+	     ;; We only allow db-loaded types to affect core code
+	     ;; because core isn't properly namespaced.  User code may
+	     ;; unwittingly redefine core procedures, causing issues.
+	     (when (feature? #:chicken-bootstrap)
+	       (mark-variable name '##compiler#type-source 'db))
 	     (when specs
 	       (install-specializations name specs)))))
        (read-file dbfile))
@@ -1828,7 +1793,7 @@
       (##sys#hash-table-for-each
        (lambda (sym plist)
 	 (when (and (variable-visible? sym)
-		    (variable-mark sym '##compiler#declared-type))
+		    (memq (variable-mark sym '##compiler#type-source) '(local inference)))
 	   (let ((specs (or (variable-mark sym '##compiler#specializations) '()))
 		 (type (variable-mark sym '##compiler#type))
 		 (pred (variable-mark sym '##compiler#predicate))

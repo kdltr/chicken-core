@@ -15,6 +15,8 @@ csc.c
 csi.c
 eval.c
 data-structures.c
+dbg-stub.c
+debugger-client.c
 ports.c
 files.c
 extras.c
@@ -38,6 +40,10 @@ stub.c
 support.c
 tcp.c
 utils.c
+feathers.in
+feathers.bat.in
+feathers.tcl
+feathers.1
 buildversion
 buildbranch
 c-backend.scm
@@ -60,6 +66,7 @@ csibatch.bat
 eval.scm
 extras.scm
 data-structures.scm
+debugger-client.scm
 ports.scm
 files.scm
 chicken-bug.1
@@ -98,6 +105,7 @@ tests/thread-list.scm
 tests/data-structures-tests.scm
 tests/environment-tests.scm
 tests/gobble.scm
+tests/heap-literal-stress-test.scm
 tests/test-optional.scm
 tests/arithmetic-test.scm
 tests/arithmetic-test.32.expected
@@ -140,6 +148,7 @@ tests/module-tests.scm
 tests/module-tests-2.scm
 tests/test-finalizers.scm
 tests/test-finalizers-2.scm
+tests/test-find-files.scm
 tests/module-tests-compiled.scm
 tests/scrutiny-tests.scm
 tests/scrutiny-tests-strict.scm
@@ -172,6 +181,7 @@ tests/loopy-loop.scm
 tests/r5rs_pitfalls.scm
 tests/specialization-test-1.scm
 tests/specialization-test-2.scm
+tests/specialization-test-2.types
 tests/test-irregex.scm
 tests/re-tests.txt
 tests/lolevel-tests.scm
@@ -209,10 +219,6 @@ tests/signal-tests.scm
 tests/version-tests.scm
 tweaks.scm
 utils.scm
-apply-hack.x86.S
-apply-hack.x86-64.S
-apply-hack.ppc.darwin.S
-apply-hack.ppc.sysv.S
 Makefile
 Makefile.android
 Makefile.aix
@@ -314,6 +320,7 @@ manual-html/Bibliography.html
 manual-html/Bugs and limitations.html
 manual-html/C interface.html
 manual-html/Callbacks.html
+manual-html/Debugging.html
 manual-html/Exceptions.html
 manual-html/Cross development.html
 manual-html/Data representation.html

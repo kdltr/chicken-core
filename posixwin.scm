@@ -1,6 +1,6 @@
 ;;;; posixwin.scm - Miscellaneous file- and process-handling routines, available on Windows
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -743,9 +743,12 @@ EOF
 (define file-close
   (lambda (fd)
     (##sys#check-exact fd 'file-close)
-    (when (fx< (##core#inline "C_close" fd) 0)
-      (##sys#update-errno)
-      (##sys#signal-hook #:file-error 'file-close "cannot close file" fd) ) ) )
+    (let loop ()
+      (when (fx< (##core#inline "C_close" fd) 0)
+	(select _errno
+	  ((_eintr) (##sys#dispatch-interrupt loop))
+	  (else
+	   (posix-error #:file-error 'file-close "cannot close file" fd)))))))
 
 (define file-read
   (lambda (fd size . buffer)

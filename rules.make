@@ -1,6 +1,6 @@
 # rules.make - basic build rules -*- Makefile -*-
 #
-# Copyright (c) 2008-2015, The CHICKEN Team
+# Copyright (c) 2008-2016, The CHICKEN Team
 # Copyright (c) 2000-2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -37,7 +37,7 @@ SETUP_API_OBJECTS_1 = setup-api setup-download
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
        library eval data-structures ports files extras lolevel utils tcp srfi-1 srfi-4 srfi-13 \
-       srfi-14 srfi-18 srfi-69 $(POSIXFILE) irregex scheduler \
+       srfi-14 srfi-18 srfi-69 $(POSIXFILE) irregex scheduler debugger-client \
        profiler stub expand modules chicken-syntax chicken-ffi-syntax build-version
 LIBCHICKEN_OBJECTS_1 = $(LIBCHICKEN_SCHEME_OBJECTS_1) runtime
 LIBCHICKEN_SHARED_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=$(O))
@@ -61,7 +61,7 @@ ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1 = \
 ## TODO: Shouldn't these manpages match their program names (ie CSI_PROGRAM etc)?
 MANPAGES = \
 	chicken.1 csc.1 csi.1 chicken-install.1 chicken-uninstall.1 \
-	chicken-status.1 chicken-profile.1 chicken-bug.1
+	chicken-status.1 chicken-profile.1 chicken-bug.1 feathers.1
 
 # Not all programs built are installed(?) This is the master list that takes
 # care of which programs should actually be installed/uninstalled
@@ -177,13 +177,6 @@ endef
 $(foreach obj, $(COMPILER_OBJECTS_1),\
           $(eval $(call declare-static-compiler-object,$(obj))))
 
-# assembler objects
-
-ifneq ($(HACKED_APPLY),)
-$(APPLY_HACK_OBJECT): $(SRCDIR)apply-hack.$(ARCH)$(ASM)
-	$(ASSEMBLER) $(ASSEMBLER_OPTIONS) $(ASSEMBLER_COMPILE_OPTION) $< $(ASSEMBLER_OUTPUT)
-endif
-
 # program objects
 
 define declare-utility-program-object
@@ -221,24 +214,24 @@ $(foreach obj, $(ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1),\
 
 libs: $(TARGETLIBS)
 
-lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(SO): $(LIBCHICKEN_SHARED_OBJECTS) $(APPLY_HACK_OBJECT)
+lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(SO): $(LIBCHICKEN_SHARED_OBJECTS)
 	$(LINKER) $(LINKER_OPTIONS) $(LINKER_LINK_SHARED_LIBRARY_OPTIONS) $(LIBCHICKEN_SO_LINKER_OPTIONS) \
 	  $(LINKER_OUTPUT) $^ $(LIBCHICKEN_SO_LIBRARIES)
 ifdef USES_SONAME
 	ln -sf $(LIBCHICKEN_SO_FILE) $(LIBCHICKEN_SO_FILE).$(BINARYVERSION)
 endif
 
-cyg$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)-0.dll: $(LIBCHICKEN_SHARED_OBJECTS) $(APPLY_HACK_OBJECT)
+cyg$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)-0.dll: $(LIBCHICKEN_SHARED_OBJECTS)
 	$(LINKER) -shared -o $(LIBCHICKEN_SO_FILE) -Wl,--dll -Wl,--add-stdcall-alias \
 	    -Wl,--enable-stdcall-fixup -Wl,--warn-unresolved-symbols \
 	    -Wl,--dll-search-prefix=cyg -Wl,--allow-multiple-definition \
 	    -Wl,--allow-shlib-undefined \
 	    -Wl,--out-implib=libchicken.dll.a -Wl,--export-all-symbols \
 	    -Wl,--enable-auto-import \
-	    -Wl,--whole-archive $(LIBCHICKEN_SHARED_OBJECTS) $(APPLY_HACK_OBJECT) \
+	    -Wl,--whole-archive $(LIBCHICKEN_SHARED_OBJECTS) \
 	    -Wl,--no-whole-archive $(LIBCHICKEN_SO_LIBRARIES)
 
-lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A): $(APPLY_HACK_OBJECT) $(LIBCHICKEN_STATIC_OBJECTS)
+lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A): $(LIBCHICKEN_STATIC_OBJECTS)
 	$(LIBRARIAN) $(LIBRARIAN_OPTIONS) $(LIBRARIAN_OUTPUT) $^
 
 # import libraries and extensions
@@ -285,6 +278,12 @@ endef
 
 $(eval $(call declare-program-from-object,$(CSI_STATIC_EXECUTABLE),csi))
 $(eval $(call declare-program-from-object,$(CHICKEN_BUG_PROGRAM)$(EXE),chicken-bug))
+
+
+# scripts
+
+$(CHICKEN_DEBUGGER_PROGRAM): $(SRCDIR)feathers$(SCRIPT_EXT).in
+	$(GENERATE_DEBUGGER)
 
 
 # installation
@@ -367,6 +366,9 @@ install-bin: $(TARGETS) install-libs install-dev
 		$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) \
 		$(prog)$(EXE) "$(DESTDIR)$(IBINDIR)" $(NL))
 
+	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) $(CHICKEN_DEBUGGER_PROGRAM) \
+	  "$(DESTDIR)$(BINDIR)" $(NL)
+
 ifdef STATICBUILD
 	$(foreach lib,$(IMPORT_LIBRARIES),\
 		$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) \
@@ -421,6 +423,7 @@ install-other-files:
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)README "$(DESTDIR)$(IDOCDIR)"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)LICENSE "$(DESTDIR)$(IDOCDIR)"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)setup.defaults "$(DESTDIR)$(IDATADIR)"
+	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)feathers.tcl "$(DESTDIR)$(DATADIR)"
 
 install-wrappers:
 ifeq ($(WRAPPERDIR),)
@@ -436,7 +439,7 @@ uninstall:
 	$(foreach prog,$(INSTALLED_PROGRAMS),\
 		$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS)\
 		"$(DESTDIR)$(IBINDIR)$(SEP)$(prog)$(EXE)" $(NL))
-
+	$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) "$(DESTDIR)$(IBINDIR)$(SEP)$(CHICKEN_DEBUGGER_PROGRAM)"
 	$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) "$(DESTDIR)$(ILIBDIR)$(SEP)lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A)"
 	$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) "$(DESTDIR)$(ILIBDIR)$(SEP)lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(SO)"
 ifdef USES_SONAME
@@ -551,6 +554,8 @@ profiler.c: $(SRCDIR)profiler.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) 
 stub.c: $(SRCDIR)stub.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) 
+debugger-client.c: $(SRCDIR)debugger-client.scm $(SRCDIR)common-declarations.scm dbg-stub.c
+	$(bootstrap-lib)
 build-version.c: $(SRCDIR)build-version.scm buildbranch buildid \
 	  $(SRCDIR)buildversion buildtag.h
 	$(bootstrap-lib)
@@ -675,7 +680,7 @@ bench: $(CHICKEN_SHARED_EXECUTABLE) $(CSI_SHARED_EXECUTABLE) $(CSC_PROGRAM)$(EXE
 boot-chicken:
 	"$(MAKE)" PLATFORM=$(PLATFORM) PREFIX=/nowhere CONFIG= \
 	  CHICKEN=$(CHICKEN) PROGRAM_SUFFIX=-boot-stage1 STATICBUILD=1 \
-	  C_COMPILER_OPTIMIZATION_OPTIONS="$(C_COMPILER_OPTIMIZATION_OPTIONS)" C_HACKED_APPLY= BUILDING_CHICKEN_BOOT=1 \
+	  C_COMPILER_OPTIMIZATION_OPTIONS="$(C_COMPILER_OPTIMIZATION_OPTIONS)" BUILDING_CHICKEN_BOOT=1 \
 	  confclean chicken-boot-stage1$(EXE)
 	"$(MAKE)" PLATFORM=$(PLATFORM) PREFIX=/nowhere CONFIG= \
 	  CHICKEN=.$(SEP)chicken-boot-stage1$(EXE) PROGRAM_SUFFIX=-boot \

@@ -1,6 +1,6 @@
 ;;;; eval.scm - Interpreter for CHICKEN
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -852,7 +852,7 @@
 	  (##sys#meta-macro-environment (##sys#macro-environment))
 	  (##sys#macro-environment oldme)))))
 
-(define ##sys#eval-handler 
+(define eval-handler
   (make-parameter
    (lambda (x #!optional env)
      (let ((se (##sys#current-environment)))
@@ -867,7 +867,7 @@
 	     (else
 	      ((##sys#compile-to-closure x '() se #f #f #f) '() ) ) ) ) )))
 
-(define eval-handler ##sys#eval-handler)
+(define ##sys#eval-handler eval-handler)
 
 (define (eval x . env)
   (apply (##sys#eval-handler) 
@@ -1163,22 +1163,18 @@
 		   (check (##sys#substring p 0 (fx- n 1))) ]
 		  [else p] ) ) ) ) ) ) )
 
-(define ##sys#repository-path
-  (let ((rpath
-	 (if (##sys#fudge 22)		; private repository?
-	     (foreign-value "C_private_repository_path()" c-string)
-	     (or (get-environment-variable repository-environment-variable)
-		 (##sys#chicken-prefix 
-		  (##sys#string-append 
-		   "lib/chicken/"
-		   (##sys#number->string (##sys#fudge 42))) )
-		 install-egg-home))))
-    (lambda (#!optional val)
-      (if val
-	  (set! rpath val)
-	  rpath))))
+(define repository-path
+  (make-parameter
+   (if (##sys#fudge 22) ; private repository?
+       (foreign-value "C_private_repository_path()" c-string)
+       (or (get-environment-variable repository-environment-variable)
+	   (##sys#chicken-prefix
+	    (##sys#string-append
+	     "lib/chicken/"
+	     (##sys#number->string (##sys#fudge 42))))
+	   install-egg-home))))
 
-(define repository-path ##sys#repository-path)
+(define ##sys#repository-path repository-path)
 
 (define ##sys#setup-mode #f)
 
@@ -1188,12 +1184,12 @@
       (let ((rp (##sys#repository-path)))
 	(define (check path)
 	  (let ((p0 (string-append path "/" p)))
-	    (and (or (and rp
-			  (not ##sys#dload-disabled)
-			  (##sys#fudge 24) ; dload?
-			  (file-exists? (##sys#string-append p0 ##sys#load-dynamic-extension)))
-		     (file-exists? (##sys#string-append p0 source-file-extension)) )
-		 p0) ) )
+	    (or (and rp
+		     (not ##sys#dload-disabled)
+		     (##sys#fudge 24) ; dload?
+		     (file-exists? (##sys#string-append p0 ##sys#load-dynamic-extension)))
+		(file-exists? (##sys#string-append p0 source-file-extension))
+		(file-exists? p0))))
 	(let loop ((paths (##sys#append
 			   (if ##sys#setup-mode '(".") '())
 			   (if rp (list rp) '())

@@ -1,6 +1,6 @@
 ;;;; types.db - Type-information for core library functions -*- Scheme -*-
 ;
-; Copyright (c) 2009-2015, The CHICKEN Team
+; Copyright (c) 2009-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -174,40 +174,43 @@
 (reverse (forall (a) (#(procedure #:clean #:enforce) reverse ((list-of a)) (list-of a)))
          ((null) (null) (let ((#(tmp) #(1))) '())))
 
-(memq (forall (a b) (#(procedure #:clean) memq (a (list-of b)) (or false (list-of b))))
+(memq (forall (a b) (#(procedure #:clean) memq (a (list-of b))
+                     (or false (pair a (list-of b)))))
       ((* null) (let ((#(tmp) #(1))) '#f))
       ((* list) (##core#inline "C_u_i_memq" #(1) #(2))))
 
-(memv (forall (a b) (#(procedure #:clean) memv (a (list-of b)) (or false (list-of b))))
+(memv (forall (a b) (#(procedure #:clean) memv (a (list-of b))
+                     (or false (pair a (list-of b)))))
       ((* null) (let ((#(tmp) #(1))) '#f))
       (((or symbol procedure immediate) list)
        (##core#inline "C_u_i_memq" #(1) #(2))))
 
-(member (forall (a b) (#(procedure #:clean) member
-		       (a (list-of b) #!optional (procedure (b a) *)) ; sic
-		       (or false (list-of b))))
+(member
+ (forall (a b) (#(procedure #:clean) member
+		(a (list-of b) #!optional (procedure (a b) *)) ; sic
+		(or false (list-of b))))
 	((* null) (let ((#(tmp) #(1))) '#f))
 	(((or symbol procedure immediate) list)
 	 (##core#inline "C_u_i_memq" #(1) #(2)))
 	((* (list-of (or symbol procedure immediate)))
 	 (##core#inline "C_u_i_memq" #(1) #(2))))
 
-(assq (forall (a b) (#(procedure #:clean) assq (* (list-of (pair a b)))
-		     (or false (pair a b))))
+(assq (forall (a b c) (#(procedure #:clean) assq (a (list-of (pair b c)))
+		       (or false (pair a c))))
       ((* null) (let ((#(tmp) #(1))) '#f))
       ((* (list-of pair)) (##core#inline "C_u_i_assq" #(1) #(2))))
 
-(assv (forall (a b) (#(procedure #:clean) assv (* (list-of (pair a b))) 
-		     (or false (pair a b))))
+(assv (forall (a b c) (#(procedure #:clean) assv (a (list-of (pair b c)))
+		       (or false (pair a c))))
       ((* null) (let ((#(tmp) #(1))) '#f))
       (((or symbol immediate procedure) (list-of pair))
        (##core#inline "C_u_i_assq" #(1) #(2)))
       ((* (list-of (pair (or symbol procedure immediate) *)))
        (##core#inline "C_u_i_assq" #(1) #(2))))
 
-(assoc (forall (a b c) (#(procedure #:clean) assoc (a (list-of (pair b c))
-						      #!optional (procedure (b a) *)) ; sic
-			(or false (pair b c))))
+(assoc (forall (a b c) (#(procedure #:clean) assoc
+			(a (list-of (pair b c)) #!optional (procedure (a b) *))
+			(or false (pair b c))))   ; sic
        ((* null) (let ((#(tmp) #(1))) '#f))
        (((or symbol procedure immediate) (list-of pair))
 	(##core#inline "C_u_i_assq" #(1) #(2)))
@@ -505,12 +508,17 @@
 
 (char? (#(procedure #:pure #:predicate char) char? (*) boolean))
 
-;; we could rewrite these, but this is done by the optimizer anyway (safe)
-(char=? (#(procedure #:clean #:enforce) char=? (char char) boolean))
-(char>? (#(procedure #:clean #:enforce) char>? (char char) boolean))
-(char<? (#(procedure #:clean #:enforce) char<? (char char) boolean))
-(char>=? (#(procedure #:clean #:enforce) char>=? (char char) boolean))
-(char<=? (#(procedure #:clean #:enforce) char<=? (char char) boolean))
+;; safe rewrites are already done by the optimizer
+(char=? (#(procedure #:clean #:enforce) char=? (char char) boolean)
+	((char char) (##core#inline "C_u_i_char_equalp" #(1) #(2))))
+(char>? (#(procedure #:clean #:enforce) char>? (char char) boolean)
+	((char char) (##core#inline "C_u_i_char_greaterp" #(1) #(2))))
+(char<? (#(procedure #:clean #:enforce) char<? (char char) boolean)
+	((char char) (##core#inline "C_u_i_char_lessp" #(1) #(2))))
+(char>=? (#(procedure #:clean #:enforce) char>=? (char char) boolean)
+	 ((char char) (##core#inline "C_u_i_char_greater_or_equal_p" #(1) #(2))))
+(char<=? (#(procedure #:clean #:enforce) char<=? (char char) boolean)
+	 ((char char) (##core#inline "C_u_i_char_less_or_equal_p" #(1) #(2))))
 
 (char-ci=? (#(procedure #:clean #:enforce) char-ci=? (char char) boolean))
 (char-ci<? (#(procedure #:clean #:enforce) char-ci<? (char char) boolean))
@@ -551,10 +559,10 @@
 	       ((string) (##sys#size #(1))))
 
 (string-ref (#(procedure #:clean #:enforce) string-ref (string fixnum) char)
-	    ((string fixnum) (##core#inline "C_subchar" #(1) #(2))))
+	    ((string fixnum) (##core#inline "C_i_string_ref" #(1) #(2))))
 
 (string-set! (#(procedure #:enforce) string-set! (string fixnum char) undefined)
-	     ((string fixnum char) (##core#inline "C_setsubchar" #(1) #(2) #(3))))
+	     ((string fixnum char) (##core#inline "C_i_string_set" #(1) #(2) #(3))))
 
 (string-append (#(procedure #:clean #:enforce) string-append (#!rest string) string)
 	       ((string string) (##sys#string-append #(1) #(2))))
@@ -616,14 +624,14 @@
 (output-port? (#(procedure #:pure #:predicate output-port) output-port? (*) boolean))
 
 (current-input-port
- (#(procedure #:clean #:enforce) current-input-port (#!optional input-port) input-port)
+ (#(procedure #:clean #:enforce) current-input-port (#!optional input-port boolean boolean) input-port)
  ((input-port) (let ((#(tmp1) #(1))) 
 		 (let ((#(tmp2) (set! ##sys#standard-input #(tmp1))))
 		   #(tmp1))))
  (() ##sys#standard-input))
 
 (current-output-port
- (#(procedure #:clean #:enforce) current-output-port (#!optional output-port) output-port)
+ (#(procedure #:clean #:enforce) current-output-port (#!optional output-port boolean boolean) output-port)
  ((output-port) (let ((#(tmp1) #(1)))
 		  (let ((#(tmp2) (set! ##sys#standard-output #(tmp1))))
 		    #(tmp1))))
@@ -726,12 +734,12 @@
       ((float) (float) 
        (##core#inline_allocate ("C_a_i_flonum_plus" 4) #(1) '1.0)))
 
-(argc+argv (#(procedure #:clean) argc+argv () fixnum (list-of string) fixnum))
+(argc+argv (#(procedure #:clean) argc+argv () fixnum pointer))
 (argv (#(procedure #:clean) argv () (list-of string)))
 (arithmetic-shift (#(procedure #:clean #:enforce) arithmetic-shift (number number) number))
 
 (bit-set? (#(procedure #:clean #:enforce) bit-set? (number fixnum) boolean)
-	  ((fixnum fixnum) (##core#inline "C_u_i_bit_setp" #(1) #(2))))
+	  ((fixnum fixnum) (##core#inline "C_i_bit_setp" #(1) #(2))))
 
 (bitwise-and (#(procedure #:clean #:enforce) bitwise-and (#!rest number) number)
 	     ((fixnum fixnum) (fixnum)
@@ -770,7 +778,7 @@
 (condition->list (#(procedure #:clean #:enforce) condition->list ((struct condition)) (list-of (pair symbol *))))
 (continuation-capture (#(procedure #:enforce) continuation-capture ((procedure ((struct continuation)) . *)) *))
 (continuation-graft (#(procedure #:clean #:enforce) continuation-graft ((struct continuation) (procedure () . *)) *))
-(continuation-return (#(procedure #:enforce) continuation-return (procedure #!rest) . *)) ;XXX make return type more specific?
+(continuation-return (#(procedure #:enforce) continuation-return ((struct continuation) #!rest) . *)) ;XXX make return type more specific?
 
 (continuation? (#(procedure #:pure #:predicate (struct continuation)) continuation? (*) boolean))
 
@@ -778,14 +786,14 @@
 (cpu-time (#(procedure #:clean) cpu-time () fixnum fixnum))
 
 (current-error-port
- (#(procedure #:clean #:enforce) current-error-port (#!optional output-port) output-port)
+ (#(procedure #:clean #:enforce) current-error-port (#!optional output-port boolean boolean) output-port)
  ((output-port) (let ((#(tmp1) #(1))) 
 		  (let ((#(tmp2) (set! ##sys#standard-error #(tmp1))))
 		    #(tmp1))))
  (() ##sys#standard-error))
 
 (current-exception-handler
- (#(procedure #:clean #:enforce) current-exception-handler (#!optional (procedure (*) noreturn)) procedure)
+ (#(procedure #:clean #:enforce) current-exception-handler (#!optional (procedure (*) noreturn) boolean boolean) procedure)
  ((procedure) (let ((#(tmp1) #(1))) 
 		(let ((#(tmp2) (set! ##sys#current-exception-handler #(tmp1))))
 		  #(tmp1))))
@@ -1197,9 +1205,19 @@
 (->string (procedure ->string (*) string)
 	  ((string) #(1)))
 
-(alist-ref (#(procedure #:clean #:enforce) alist-ref (* (list-of pair) #!optional (procedure (* *) *) *) *))
-(alist-update! (#(procedure #:enforce) alist-update! (* * (list-of pair) #!optional (procedure (* *) *)) *))
-(alist-update (#(procedure #:clean #:enforce) alist-update (* * (list-of pair) #!optional (procedure (* *) *) *) *))
+(alist-ref (forall (a b c d) (#(procedure #:clean) alist-ref (a (list-of (pair b c)) #!optional (procedure (a b) *) d) (or false c d))))
+
+(alist-update!
+ (forall (a b c d)
+	 (#(procedure) alist-update!
+	  (a b (list-of (pair c d)) #!optional (procedure (a c) *))
+	  (list-of (pair c (or b d))))))
+
+(alist-update
+ (forall (a b c d)
+         (#(procedure #:clean) alist-update
+          (a b (list-of (pair c d)) #!optional (procedure (a c) *))
+          (list-of (pair c (or b d))))))
 
 (any? (#(procedure #:pure) any? (*) boolean)
       ((*) (let ((#(tmp) #(1))) '#t)))
@@ -1254,7 +1272,11 @@
 (queue-remove! (#(procedure #:clean #:enforce) queue-remove! ((struct queue)) *))
 (queue? (#(procedure #:pure #:predicate (struct queue)) queue? (*) boolean))
 
-(rassoc (#(procedure #:clean #:enforce) rassoc (* (list-of pair) #!optional (procedure (* *) *)) *))
+(rassoc
+ (forall (a b c) (#(procedure #:clean) rassoc
+                  (a (list-of (pair b c)) #!optional (procedure (a b) *))
+                  (or false (pair b c)))))
+
 (reverse-string-append (#(procedure #:clean #:enforce) reverse-string-append ((list-of string)) string))
 
 (sort
@@ -1488,19 +1510,7 @@
 (make-record-instance (#(procedure #:clean) make-record-instance (symbol #!rest) *))
 (make-weak-locative (#(procedure #:clean #:enforce) make-weak-locative (* #!optional fixnum) locative))
 
-(move-memory! (#(procedure #:enforce) move-memory! (* * #!optional fixnum fixnum fixnum) *)
-	      ((pointer pointer fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) '0 '0))
-	      ((pointer pointer fixnum fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) '0 #(4)))
-	      ((pointer pointer fixnum fixnum fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) #(5) #(4)))
-	      ((locative locative fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) '0 '0))
-	      ((locative locative fixnum fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) '0 #(4)))
-	      ((locative locative fixnum fixnum fixnum)
-	       (##core#inline "C_copy_ptr_memory" #(2) #(1) #(3) #(5) #(4))))
+(move-memory! (#(procedure #:enforce) move-memory! (* * #!optional fixnum fixnum fixnum) *))
 
 (mutate-procedure!
  (#(procedure #:enforce) mutate-procedure! (procedure (procedure (procedure) . *)) procedure))
@@ -1858,10 +1868,21 @@
 
 ;; srfi-1
 
-(alist-cons (forall (a b c) (#(procedure #:clean) alist-cons (a b (list-of c)) (pair a (pair b (list-of c))))))
-(alist-copy (forall (a) (#(procedure #:clean #:enforce) alist-copy ((list-of a)) (list-of a))))
-(alist-delete (forall (a b) (#(procedure #:enforce) alist-delete (a (list-of b) #!optional (procedure (a b) *)) list)))
-(alist-delete! (forall (a b) (#(procedure #:enforce) alist-delete! (a (list-of b) #!optional (procedure (a b) *)) undefined)))
+(alist-cons
+ (forall (a b c) (#(procedure #:pure) alist-cons (a b (list-of c))
+		  (pair (pair a b) (list-of c)))))
+(alist-copy
+ (forall (a b) (#(procedure #:clean #:enforce) alist-copy
+		((list-of (pair a b))) (list-of (pair a b)))))
+(alist-delete
+ (forall (a b c) (#(procedure #:clean) alist-delete
+		  (a (list-of (pair b c)) #!optional (procedure (a b) *))
+		  (list-of (pair b c)))))
+(alist-delete!
+ (forall (a b c) (#(procedure) alist-delete!
+		  (a (list-of (pair b c)) #!optional (procedure (a b) *))
+		  (list-of (pair b c)))))
+
 (any (forall (a) (#(procedure #:enforce) any ((procedure (a #!rest) *) (list-of a) #!rest list) *)))
 (append! (#(procedure #:enforce) append! (#!rest list) list))
 
@@ -2638,7 +2659,7 @@
 (tcp-accept-ready? (#(procedure #:clean #:enforce) tcp-accept-ready? ((struct tcp-listener)) boolean))
 (tcp-accept-timeout (#(procedure #:clean #:enforce) tcp-accept-timeout (#!optional (or false number)) (or false number)))
 (tcp-addresses (#(procedure #:clean #:enforce) tcp-addresses (port) string string))
-(tcp-buffer-size (#(procedure #:clean #:enforce) tcp-buffer-size (#!optional fixnum) fixnum))
+(tcp-buffer-size (#(procedure #:clean #:enforce) tcp-buffer-size (#!optional (or false fixnum)) (or false fixnum)))
 (tcp-close (#(procedure #:clean #:enforce) tcp-close ((struct tcp-listener)) undefined))
 (tcp-connect (#(procedure #:clean #:enforce) tcp-connect (string #!optional fixnum) input-port output-port))
 (tcp-connect-timeout (#(procedure #:clean #:enforce) tcp-connect-timeout (#!optional (or false number)) (or false number)))

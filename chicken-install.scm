@@ -1,6 +1,6 @@
 ;;;; chicken-install.scm
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -110,9 +110,15 @@
   (define *hacks* '())
 
   (define (repo-path)
-    (if (and *cross-chicken* (not *host-extension*))
-	(make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
-	(repository-path)))
+    (if *deploy*
+	*prefix*
+	(if (and *cross-chicken* (not *host-extension*))
+	    (make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
+	    (if *prefix*
+		(make-pathname
+		 *prefix*
+		 (sprintf "lib/chicken/~a" (##sys#fudge 42)))
+		(repository-path)))))
 
   (define (get-prefix #!optional runtime)
     (cond ((and *cross-chicken*
@@ -200,10 +206,11 @@
         '()))
 
   (define (init-repository dir)
-    (let ((src (repository-path))
+    (let ((src (repo-path))
           (copy (if *windows-shell*
                     "copy"
                     "cp -r")))
+      (create-directory dir #t)
       (print "copying required files to " dir " ...")
       (for-each
        (lambda (f)
@@ -217,7 +224,12 @@
 		 (or (member xs ##sys#core-library-modules)
 		     (member xs ##sys#core-syntax-modules))))
            (chicken-version) )
-          ((extension-information x) =>
+	  ;; Duplication of (extension-information) to get custom
+	  ;; prefix.  This should be fixed.
+          ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
+		  (sf (make-pathname (repo-path) ep "setup-info")))
+	     (and (file-exists? sf)
+		  (with-input-from-file sf read))) =>
            (lambda (info)
              (let ((a (assq 'version info)))
                (if a
@@ -233,12 +245,9 @@
 
   (define (check-dependency dep)
     (cond ((or (symbol? dep) (string? dep))
-	   (values
-	    (if *deploy*
-		(->string dep)
-		(and (not (ext-version dep))
-		     (->string dep)))
-	    #f))
+	   (values (and (not (ext-version dep))
+			(->string dep))
+		   #f))
 	  ((and (list? dep) (eq? 'or (car dep)))
 	   (let scan ((ordeps (cdr dep)) (bestm #f) (bestu #f))
 	     (if (null? ordeps)
@@ -260,10 +269,8 @@
 	  ((and (list? dep) (= 2 (length dep))
 		(or (string? (car dep)) (symbol? (car dep))))
 	   (let ((v (ext-version (car dep))))
-	     (cond ((or *deploy* (not v))
-		    (values
-		     (->string (car dep))
-		     #f))
+	     (cond ((not v)
+		    (values (->string (car dep)) #f))
 		   ((not (version>=? v (->string (cadr dep))))
 		    (cond ((string=? "chicken" (->string (car dep)))
 			   (if *force*
@@ -513,6 +520,11 @@
 		 (and (not (any loop (cdr p))) (fail)))
 		(else (error "invalid `platform' property" name (cadr platform))))))))
 
+  (define (back-slash->forward-slash path)
+    (if *windows-shell*
+	(string-translate path #\\ #\/)
+	path))
+
   (define (make-install-command egg-name egg-version dep?)
     (conc
      *csi*
@@ -535,12 +547,12 @@
      (let ((prefix (get-prefix)))
        (if prefix
 	   (sprintf " -e \"(destination-prefix \\\"~a\\\")\"" 
-	     (normalize-pathname prefix 'unix))
+	     (back-slash->forward-slash (normalize-pathname prefix)))
 	   ""))
      (let ((prefix (get-prefix #t)))
        (if prefix
 	   (sprintf " -e \"(runtime-prefix \\\"~a\\\")\"" 
-	     (normalize-pathname prefix 'unix))
+	     (back-slash->forward-slash (normalize-pathname prefix)))
 	   ""))
      (if (pair? *csc-features*)
 	 (sprintf " -e \"(extra-features '~s)\"" *csc-features*)
@@ -626,7 +638,6 @@
 				(let ((cmd (make-install-command
 					    (car e+d+v) (caddr e+d+v) (> i 1)))
 				      (name (car e+d+v)))
-				  (print "  " cmd)
 				  (keep-going 
 				   (name "installing")
 				   ($system cmd))
@@ -670,20 +681,22 @@
         (remove-directory tmpdir))))
 
   (define (update-db)
-    (let* ((files (glob (make-pathname (repository-path) "*.import.*")))
+    (let* ((files (glob (make-pathname (repo-path) "*.import.so")
+			(make-pathname (repo-path) "*.import.scm")))
            (tmpdir (create-temporary-directory))
-           (dbfile (make-pathname tmpdir +module-db+))
-           (rx (irregex ".*/([^/]+)\\.import\\.(scm|so)")))
+           (dbfile (make-pathname tmpdir +module-db+)))
       (print "loading import libraries ...")
       (fluid-let ((##sys#warnings-enabled #f))
         (for-each
-         (lambda (f)
-           (let ((m (irregex-match rx f)))
+         (lambda (path)
+           (let* ((file (pathname-strip-directory path))
+		  (import-name (pathname-strip-extension file))
+		  (module-name (pathname-strip-extension import-name)))
 	     (handle-exceptions ex
 		 (print-error-message 
 		  ex (current-error-port) 
-		  (sprintf "Failed to import from `~a'" f))
-	       (eval `(import ,(string->symbol (irregex-match-substring m 1)))))))
+		  (sprintf "Failed to import from `~a'" file))
+	       (eval `(import ,(string->symbol module-name))))))
          files))
       (print "generating database")
       (let ((db
@@ -704,7 +717,7 @@
         (with-output-to-file dbfile
           (lambda ()
             (for-each (lambda (x) (write x) (newline)) db)))
-        (copy-file dbfile (make-pathname (repository-path) +module-db+))
+        (copy-file dbfile (make-pathname (repo-path) +module-db+))
         (remove-directory tmpdir))))
 
   (define (apply-mappings eggs)
@@ -736,12 +749,18 @@
      (gather-egg-information dir)))      
 
   (define ($system str)
-    (let ((r (system
-              (if *windows-shell*
-                  (string-append "\"" str "\"")
-                  str))))
-      (unless (zero? r)
-        (error "shell command terminated with nonzero exit code" r str))))
+    (let ((str (cond (*windows-shell*
+		     (string-append "\"" str "\""))
+		    ((and (eq? (software-version) 'macosx)
+			  (get-environment-variable "DYLD_LIBRARY_PATH"))
+		     => (lambda (path)
+			  (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
+					 (qs path) " " str)))
+		    (else str))))
+      (print "  " str)
+      (let ((r (system str)))
+	(unless (zero? r)
+	  (error "shell command terminated with nonzero exit code" r str)))))
 
   (define (installed-extensions)
     (delete-duplicates
@@ -776,7 +795,6 @@
 
   (define (command fstr . args)
     (let ((cmd (apply sprintf fstr args)))
-      (print "  " cmd)
       ($system cmd)))
 
   (define (usage code)
@@ -792,7 +810,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
   -l   -location LOCATION       install from given location instead of default
   -t   -transport TRANSPORT     use given transport instead of default
        -proxy HOST[:PORT]       download via HTTP proxy
-  -s   -sudo                    use sudo(1) for filesystem operations
+  -s   -sudo                    use external command to elevate privileges for filesystem operations
   -r   -retrieve                only retrieve egg into current directory, don't install
   -n   -no-install              do not install, just build (implies `-keep')
   -p   -prefix PREFIX           change installation prefix to PREFIX
@@ -816,7 +834,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
        -show-depends            display a list of egg dependencies for the given egg(s)
        -show-foreign-depends    display a list of foreign dependencies for the given egg(s)
 
-chicken-install recognizes the http_proxy, and proxy_auth environment variables, if set.
+chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
 
 EOF
 );|
@@ -841,13 +859,16 @@ EOF
     (let ((update #f)
 	  (scan #f)
 	  (listeggs #f)
+	  (print-repository #f)
           (rx (irregex "([^:]+):(.+)")))
       (setup-proxy (get-environment-variable "http_proxy"))
       (let loop ((args args) (eggs '()))
         (cond ((null? args)
-               (cond ((and *deploy* (not *prefix*))
-		      (error 
-		       "`-deploy' only makes sense in combination with `-prefix DIRECTORY`"))
+	       (when *deploy*
+		 (unless *prefix*
+		   (error
+		    "`-deploy' only makes sense in combination with `-prefix DIRECTORY`")))
+	       (cond (print-repository (print (repo-path)))
 		     (update (update-db))
 		     (scan (scan-directory scan))
                      (else
@@ -901,8 +922,8 @@ EOF
                             (string=? arg "--help"))
                         (usage 0))
                        ((string=? arg "-repository")
-                        (print (repository-path))
-                        (exit 0))
+                        (set! print-repository #t)
+                        (loop (cdr args) eggs))
                        ((string=? arg "-force")
                         (set! *force* #t)
                         (loop (cdr args) eggs))
