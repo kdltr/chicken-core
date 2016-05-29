@@ -403,9 +403,7 @@
 (define line-number-database-2 #f)
 (define immutable-constants '())
 (define inline-table #f)
-(define inline-table-used #f)
 (define constant-table #f)
-(define constants-used #f)
 (define inline-substitutions-enabled #f)
 (define direct-call-ids '())
 (define first-analysis #t)
@@ -530,30 +528,30 @@
     (let ((x (lookup x0 se)))
       (d `(RESOLVE-VARIABLE: ,x0 ,x ,(map (lambda (x) (car x)) se)))
       (cond ((not (symbol? x)) x0)	; syntax?
-	    [(and constants-used (##sys#hash-table-ref constant-table x))
-	     => (lambda (val) (walk (car val) e se dest ldest h #f)) ]
-	    [(and inline-table-used (##sys#hash-table-ref inline-table x))
-	     => (lambda (val) (walk val e se dest ldest h #f)) ]
-	    [(assq x foreign-variables)
+	    ((##sys#hash-table-ref constant-table x)
+	     => (lambda (val) (walk (car val) e se dest ldest h #f)))
+	    ((##sys#hash-table-ref inline-table x)
+	     => (lambda (val) (walk val e se dest ldest h #f)))
+	    ((assq x foreign-variables)
 	     => (lambda (fv)
-		  (let* ([t (second fv)]
-			 [ft (final-foreign-type t)]
-			 [body `(##core#inline_ref (,(third fv) ,t))] )
+		  (let* ((t (second fv))
+			 (ft (final-foreign-type t))
+			 (body `(##core#inline_ref (,(third fv) ,t))))
 		    (walk
 		     (foreign-type-convert-result
 		      (finish-foreign-result ft body)
 		      t)
-		     e se dest ldest h #f)))]
-	    [(assq x location-pointer-map)
+		     e se dest ldest h #f))))
+	    ((assq x location-pointer-map)
 	     => (lambda (a)
-		  (let* ([t (third a)]
-			 [ft (final-foreign-type t)]
-			 [body `(##core#inline_loc_ref (,t) ,(second a))] )
+		  (let* ((t (third a))
+			 (ft (final-foreign-type t))
+			 (body `(##core#inline_loc_ref (,t) ,(second a))))
 		    (walk
 		     (foreign-type-convert-result
 		      (finish-foreign-result ft body)
 		      t)
-		     e se dest ldest h #f))) ]
+		     e se dest ldest h #f))))
 	    ((##sys#get x '##core#primitive))
 	    ((not (memq x e)) (##sys#alias-global-hook x #f h)) ; only if global
 	    (else x))))
@@ -607,11 +605,11 @@
 	       (cond ((not (eq? x xexpanded))
 		      (walk xexpanded e se dest ldest h ln))
 
-		     [(and inline-table-used (##sys#hash-table-ref inline-table name))
+		     ((##sys#hash-table-ref inline-table name)
 		      => (lambda (val)
-			   (walk (cons val (cdr x)) e se dest ldest h ln)) ]
+			   (walk (cons val (cdr x)) e se dest ldest h ln)))
 
-		     [else
+		     (else
 		      (case name
 
 			((##core#if)
@@ -1219,7 +1217,6 @@
 			 (let* ((name (second x))
 				(val `(##core#lambda ,@(cdaddr x))))
 			     (##sys#hash-table-set! inline-table name val)
-			     (set! inline-table-used #t)
 			     '(##core#undefined)))
 
 			((##core#define-constant)
@@ -1235,7 +1232,6 @@
 					   (eval
 					    `(##core#let
 					      ,defconstant-bindings ,valexp))))))
-			   (set! constants-used #t)
 			   (set! defconstant-bindings
 			     (cons (list name `(##core#quote ,val)) defconstant-bindings))
 			   (cond ((collapsable-literal? val)
@@ -1373,7 +1369,7 @@
 			      line-number-database-2
 			      head2
 			      (cons name (alist-cons x2 ln (if old (cdr old) '()))) ) )
-			   x2) ) ) ] ) ) ) )
+			   x2))))))))
 
 	  ((not (list? x))
 	   (##sys#syntax-error/context "malformed expression" x) )
