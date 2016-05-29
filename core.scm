@@ -1223,9 +1223,9 @@
 			     '(##core#undefined)))
 
 			((##core#define-constant)
-			 (let* ([name (second x)]
-				[valexp (third x)]
-				[val (handle-exceptions ex
+			 (let* ((name (second x))
+				(valexp (third x))
+				(val (handle-exceptions ex
 					 ;; could show line number here
 					 (quit-compiling "error in constant evaluation of ~S for named constant `~S'"
 					       valexp name)
@@ -1234,20 +1234,20 @@
 					   valexp
 					   (eval
 					    `(##core#let
-					      ,defconstant-bindings ,valexp)) ) ) ] )
+					      ,defconstant-bindings ,valexp))))))
 			   (set! constants-used #t)
 			   (set! defconstant-bindings
-			     (cons (list name `',val)  defconstant-bindings))
+			     (cons (list name `(##core#quote ,val)) defconstant-bindings))
 			   (cond ((collapsable-literal? val)
-				  (##sys#hash-table-set! constant-table name (list val))
-				  '(##core#undefined) )
+				  (##sys#hash-table-set! constant-table name (list `(##core#quote ,val)))
+				  '(##core#undefined))
 				 ((basic-literal? val)
-				  (let ([var (gensym "constant")])
+				  (let ((var (gensym "constant")))
 				    (##sys#hash-table-set! constant-table name (list var))
 				    (hide-variable var)
 				    (mark-variable var '##compiler#constant)
 				    (mark-variable var '##compiler#always-bound)
-				    (walk `(define ,var ',val) e se #f #f h ln) ) )
+				    (walk `(define ,var (##core#quote ,val)) e se #f #f h ln)))
 				 (else
 				  (quit-compiling "invalid compile-time value for named constant `~S'"
 					name)))))

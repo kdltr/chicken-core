@@ -39,6 +39,9 @@
 
 4.11.1
 
+- Compiler:
+  - define-constant now correctly keeps symbol values quoted.
+
 - Runtime system:
   - C_locative_ref has been deprecated in favor of C_a_i_locative_ref,
     which is faster because it is inlined (#1260, thanks to Kooda).
