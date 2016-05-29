@@ -529,7 +529,7 @@
       (d `(RESOLVE-VARIABLE: ,x0 ,x ,(map (lambda (x) (car x)) se)))
       (cond ((not (symbol? x)) x0)	; syntax?
 	    ((##sys#hash-table-ref constant-table x)
-	     => (lambda (val) (walk (car val) e se dest ldest h #f)))
+	     => (lambda (val) (walk val e se dest ldest h #f)))
 	    ((##sys#hash-table-ref inline-table x)
 	     => (lambda (val) (walk val e se dest ldest h #f)))
 	    ((assq x foreign-variables)
@@ -1235,11 +1235,11 @@
 			   (set! defconstant-bindings
 			     (cons (list name `(##core#quote ,val)) defconstant-bindings))
 			   (cond ((collapsable-literal? val)
-				  (##sys#hash-table-set! constant-table name (list `(##core#quote ,val)))
+				  (##sys#hash-table-set! constant-table name `(##core#quote ,val))
 				  '(##core#undefined))
 				 ((basic-literal? val)
 				  (let ((var (gensym "constant")))
-				    (##sys#hash-table-set! constant-table name (list var))
+				    (##sys#hash-table-set! constant-table name var)
 				    (hide-variable var)
 				    (mark-variable var '##compiler#constant)
 				    (mark-variable var '##compiler#always-bound)
