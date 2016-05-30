@@ -4986,12 +4986,8 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
   case C_fix(37):		/* heap-dump enabled? */
     return C_mk_bool(dump_heap_on_exit);
 
-  case C_fix(38):		/* SVN revision of built sources */
-#ifdef C_SVN_REVISION
-    return C_fix(C_SVN_REVISION);
-#else
-    return C_fix(0);
-#endif
+  case C_fix(38):		/* unused */
+    return C_SCHEME_FALSE;      /* used to be SVN revision */
 
   case C_fix(39):		/* is this a cross-chicken? */
 #if defined(C_CROSS_CHICKEN) && C_CROSS_CHICKEN
