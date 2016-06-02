@@ -190,7 +190,9 @@
                           toval
                           (##sys#signal
                            (##sys#make-structure 'condition '(join-timeout-exception) '())) ) )
-                     (##sys#thread-block-for-termination! ct thread) ) )
+                     (begin
+		       (##sys#thread-block-for-termination! ct thread)
+		       (##sys#schedule) ) ))
                 (else
                  (##sys#error 'thread-join!
                               "Internal scheduler error: unknown thread state"
