@@ -53,11 +53,11 @@
    file-position set-file-position! file-read file-read-access?
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr
-   fileno/stdin fileno/stdout find-files get-groups get-host-name glob
-   group-information initialize-groups local-time->seconds
-   local-timezone-abbreviation open-input-file* open-input-pipe
-   open-output-file* open-output-pipe open/append open/binary open/creat
-   open/excl open/fsync open/noctty open/nonblock open/rdonly open/rdwr
+   fileno/stdin fileno/stdout find-files get-host-name glob
+   local-time->seconds local-timezone-abbreviation
+   open-input-file* open-input-pipe open-output-file* open-output-pipe
+   open/append open/binary open/creat open/excl open/fsync
+   open/noctty open/nonblock open/rdonly open/rdwr
    open/read open/sync open/text open/trunc open/write open/wronly
    parent-process-id perm/irgrp perm/iroth perm/irusr perm/irwxg
    perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
@@ -66,7 +66,7 @@
    process-group-id process-run process-signal process-wait
    read-symbolic-link regular-file? seconds->local-time seconds->string
    seconds->utc-time seek/cur seek/end seek/set set-alarm!
-   set-buffering-mode! set-groups! set-root-directory!
+   set-buffering-mode! set-root-directory!
    set-signal-handler! set-signal-mask! signal-handler
    signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
    signal/alrm signal/break signal/chld signal/cont signal/fpe
@@ -106,10 +106,6 @@ static C_TLS int C_wait_status;
 #if defined(__sun) && defined(__SVR4)
 # include <sys/tty.h>
 # include <termios.h>
-#endif
-
-#ifdef HAVE_GRP_H
-#include <grp.h>
 #endif
 
 #include <sys/mman.h>
@@ -170,15 +166,6 @@ static C_TLS struct utsname C_utsname;
 static C_TLS struct flock C_flock;
 static C_TLS DIR *temphandle;
 static C_TLS struct passwd *C_user;
-#ifdef HAVE_GRP_H
-static C_TLS struct group *C_group;
-#else
-static C_TLS struct {
-  char *gr_name, gr_passwd;
-  int gr_gid;
-  char *gr_mem[ 1 ];
-} C_group = { "", "", 0, { "" } };
-#endif
 
 /* Android doesn't provide pw_gecos in the passwd struct */
 #ifdef __ANDROID__
@@ -225,13 +212,6 @@ static C_TLS struct stat C_statbuf;
 #define C_do_readlink(f, b)    C_fix(readlink(C_data_pointer(f), C_data_pointer(b), FILENAME_MAX))
 #define C_getpwnam(n)       C_mk_bool((C_user = getpwnam((char *)C_data_pointer(n))) != NULL)
 #define C_getpwuid(u)       C_mk_bool((C_user = getpwuid(C_unfix(u))) != NULL)
-#if !defined(__ANDROID__) && defined(HAVE_GRP_H)
-#define C_getgrnam(n)       C_mk_bool((C_group = getgrnam((char *)C_data_pointer(n))) != NULL)
-#define C_getgrgid(u)       C_mk_bool((C_group = getgrgid(C_unfix(u))) != NULL)
-#else
-#define C_getgrnam(n)       C_SCHEME_FALSE
-#define C_getgrgid(n)       C_SCHEME_FALSE
-#endif
 #define C_pipe(d)           C_fix(pipe(C_pipefds))
 #define C_truncate(f, n)    C_fix(truncate((char *)C_data_pointer(f), C_num_to_int(n)))
 #define C_ftruncate(f, n)   C_fix(ftruncate(C_unfix(f), C_num_to_int(n)))
@@ -385,12 +365,6 @@ C_tm_get( C_word v, void *tm )
 
 #define C_strptime(s, f, v, stm) \
         (strptime(C_c_string(s), C_c_string(f), ((struct tm *)(stm))) ? C_tm_get((v), (stm)) : C_SCHEME_FALSE)
-
-static gid_t *C_groups = NULL;
-
-#define C_get_gid(n)      C_fix(C_groups[ C_unfix(n) ])
-#define C_set_gid(n, id)  (C_groups[ C_unfix(n) ] = C_unfix(id), C_SCHEME_UNDEFINED)
-#define C_set_groups(n)   C_fix(setgroups(C_unfix(n), C_groups))
 
 #if !defined(__ANDROID__) && defined(TIOCGWINSZ)
 static int get_tty_size(int p, int *rows, int *cols)
@@ -971,80 +945,6 @@ EOF
 
 (define (current-effective-user-name)
   (car (user-information (current-effective-user-id))) )
-
-(define-foreign-variable _group-name nonnull-c-string "C_group->gr_name")
-(define-foreign-variable _group-passwd nonnull-c-string "C_group->gr_passwd")
-(define-foreign-variable _group-gid int "C_group->gr_gid")
-
-(define group-member
-  (foreign-lambda* c-string ([int i])
-    "C_return(C_group->gr_mem[ i ]);") )
-
-(define (group-information group #!optional as-vector)
-  (let ([r (if (fixnum? group)
-               (##core#inline "C_getgrgid" group)
-               (begin
-                 (##sys#check-string group 'group-information)
-                 (##core#inline "C_getgrnam" (##sys#make-c-string group 'group-information)) ) ) ] )
-    (and r
-         ((if as-vector vector list)
-          _group-name
-          _group-passwd
-          _group-gid
-          (let loop ([i 0])
-            (let ([n (group-member i)])
-              (if n
-                  (cons n (loop (fx+ i 1)))
-                  '() ) ) ) ) ) ) )
-
-(define _get-groups
-  (foreign-lambda* int ([int n])
-    "C_return(getgroups(n, C_groups));") )
-
-(define _ensure-groups
-  (foreign-lambda* bool ([int n])
-    "if(C_groups != NULL) C_free(C_groups);"
-    "C_groups = (gid_t *)C_malloc(sizeof(gid_t) * n);"
-    "if(C_groups == NULL) C_return(0);"
-    "else C_return(1);") )
-
-(define (get-groups)
-  (let ([n (foreign-value "getgroups(0, C_groups)" int)])
-    (when (fx< n 0)
-      (##sys#update-errno)
-      (##sys#error 'get-groups "cannot retrieve supplementary group ids") )
-    (unless (_ensure-groups n)
-      (##sys#error 'get-groups "out of memory") )
-    (when (fx< (_get-groups n) 0)
-      (##sys#update-errno)
-      (##sys#error 'get-groups "cannot retrieve supplementary group ids") )
-    (let loop ([i 0])
-      (if (fx>= i n)
-          '()
-          (cons (##core#inline "C_get_gid" i) (loop (fx+ i 1))) ) ) ) )
-
-(define (set-groups! lst0)
-  (unless (_ensure-groups (length lst0))
-    (##sys#error 'set-groups! "out of memory") )
-  (do ([lst lst0 (##sys#slot lst 1)]
-       [i 0 (fx+ i 1)] )
-      ((null? lst)
-       (when (fx< (##core#inline "C_set_groups" i) 0)
-       (##sys#update-errno)
-       (##sys#error 'set-groups! "cannot set supplementary group ids" lst0) ) )
-    (let ([n (##sys#slot lst 0)])
-      (##sys#check-fixnum n 'set-groups!)
-      (##core#inline "C_set_gid" i n) ) ) )
-
-(define initialize-groups
-  (let ([init (foreign-lambda int "initgroups" c-string int)])
-    (lambda (user id)
-      (##sys#check-string user 'initialize-groups)
-      (##sys#check-fixnum id 'initialize-groups)
-      (when (fx< (init user id) 0)
-      (##sys#update-errno)
-      (##sys#error 'initialize-groups "cannot initialize supplementary group ids" user id) ) ) ) )
-
 
 ;;; Permissions and owners:
 

@@ -32,7 +32,7 @@
 ; file-select
 ; symbolic-link?
 ; set-signal-mask!  signal-mask	 signal-masked?	 signal-mask!  signal-unmask!
-; user-information group-information  get-groups  set-groups!  initialize-groups
+; user-information
 ; change-directory*
 ; change-file-owner
 ; current-user-id  current-group-id  current-effective-user-id	current-effective-group-id
@@ -88,7 +88,6 @@
 
 static C_TLS char *C_exec_args[ ARG_MAX ];
 static C_TLS char *C_exec_env[ ENV_MAX ];
-static C_TLS struct group *C_group;
 static C_TLS int C_pipefds[ 2 ];
 static C_TLS time_t C_secs;
 
@@ -677,11 +676,11 @@ EOF
    file-position set-file-position! file-read file-read-access?
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr
-   fileno/stdin fileno/stdout find-files get-groups get-host-name glob
-   group-information initialize-groups local-time->seconds
-   local-timezone-abbreviation open-input-file* open-input-pipe
-   open-output-file* open-output-pipe open/append open/binary open/creat
-   open/excl open/fsync open/noctty open/nonblock open/rdonly open/rdwr
+   fileno/stdin fileno/stdout find-files get-host-name glob
+   local-time->seconds local-timezone-abbreviation
+   open-input-file* open-input-pipe open-output-file* open-output-pipe
+   open/append open/binary open/creat open/excl open/fsync
+   open/noctty open/nonblock open/rdonly open/rdwr
    open/read open/sync open/text open/trunc open/write open/wronly
    parent-process-id perm/irgrp perm/iroth perm/irusr perm/irwxg
    perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
@@ -690,7 +689,7 @@ EOF
    process-group-id process-run process-signal process-wait
    read-symbolic-link regular-file? seconds->local-time seconds->string
    seconds->utc-time seek/cur seek/end seek/set set-alarm!
-   set-buffering-mode! set-groups! set-root-directory!
+   set-buffering-mode! set-root-directory!
    set-signal-handler! set-signal-mask! signal-handler
    signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
    signal/alrm signal/break signal/chld signal/cont signal/fpe
@@ -1399,9 +1398,6 @@ EOF
 (define-unimplemented file-test-lock)
 (define-unimplemented file-truncate)
 (define-unimplemented file-unlock)
-(define-unimplemented get-groups)
-(define-unimplemented group-information)
-(define-unimplemented initialize-groups)
 (define-unimplemented parent-process-id)
 (define-unimplemented process-fork)
 (define-unimplemented process-group-id)
@@ -1409,7 +1405,6 @@ EOF
 (define-unimplemented read-symbolic-link)
 (define-unimplemented set-alarm!)
 (define-unimplemented set-group-id!)
-(define-unimplemented set-groups!)
 (define-unimplemented set-process-group-id!)
 (define-unimplemented set-root-directory!)
 (define-unimplemented set-signal-mask!)

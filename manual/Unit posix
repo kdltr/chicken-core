@@ -838,41 +838,6 @@ Get or set the real group-id of the current process.
 Get or set the effective group-id of the current process.
 ID can be found, then {{#f}} is returned.
 
-==== group-information
-
-<procedure>(group-information GROUP)</procedure>
-
-If {{GROUP}} specifies a valid group-name or group-id, then this
-procedure returns a list of four values: the group-name, the encrypted group password,
-the group ID and a list of the names of all group members. If no group with the
-given name or ID exists, then {{#f}} is returned.
-
-==== get-groups
-
-<procedure>(get-groups)</procedure>
-
-Returns a list with the supplementary group IDs of the current user.
-
-
-=== Changing user & group information
-
-==== set-groups!
-
-<procedure>(set-groups! GIDLIST)</procedure>
-
-Sets the supplementrary group IDs of the current user to the IDs given in the list {{GIDLIST}}.
-
-Only the superuser may invoke this procedure.
-
-==== initialize-groups
-
-<procedure>(initialize-groups USERNAME BASEGID)</procedure>
-
-Sets the supplementrary group IDs of the current user to the IDs from the user with name {{USERNAME}}
-(a string), including {{BASEGID}}.
-
-Only the superuser may invoke this procedure.
-
 
 === Record locking
 
@@ -1302,9 +1267,7 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{file-unlock}} : {{fcntl}}
 ; {{file-write}} : {{write}}
 ; {{file-write-access?}} : {{access}}
-; {{get-groups}} : {{getgroups}}
 ; {{get-host-name}} : {{gethostname}}
-; {{initialize-groups}} : {{initgroups}}
 ; {{local-time->seconds}} : {{mktime}}
 ; {{local-timezone-abbreviation}} : {{localtime}}
 ; {{open-input-file*}} : {{fdopen}}
@@ -1326,7 +1289,6 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{set-alarm!}} : {{alarm}}
 ; {{set-buffering-mode!}} : {{setvbuf}}
 ; {{set-file-position!}} : {{fseek/seek}}
-; {{set-groups!}} : {{setgroups}}
 ; {{set-signal-mask!}} : {{sigprocmask}}
 ; {{set-group-id!}} : {{setgid}}
 ; {{set-user-id!}} : {{setuid}}
@@ -1380,7 +1342,7 @@ Microsoft tools or with MinGW):
  file-select file-control
  signal/... (except signal/term, signal/int, signal/fpe, signal/ill, signal/segv, signal/abrt, signal/break)
  set-signal-mask!  signal-mask  signal-masked?  signal-mask!  signal-unmask!
- user-information  group-information  get-groups  set-groups!  initialize-groups
+ user-information
  errno/wouldblock
  change-directory*
  change-file-owner
