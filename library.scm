@@ -41,7 +41,7 @@
 	##sys#string->compnum ##sys#internal-gcd)
   (not inline ##sys#user-read-hook ##sys#error-hook ##sys#signal-hook ##sys#schedule
        ##sys#default-read-info-hook ##sys#infix-list-hook ##sys#sharp-number-hook
-       ##sys#user-print-hook ##sys#user-interrupt-hook ##sys#unit-hook)
+       ##sys#user-print-hook ##sys#user-interrupt-hook)
   (foreign-declare #<<EOF
 #include <errno.h>
 #include <float.h>
@@ -4435,10 +4435,6 @@ EOF
 (when (##sys#fudge 28) (set! ##sys#features (cons #:ptables ##sys#features)))
 (when (##sys#fudge 39) (set! ##sys#features (cons #:cross-chicken ##sys#features)))
 (when (##sys#fudge 3) (set! ##sys#features (cons #:64bit ##sys#features)))
-
-(define ##sys#unit-hook
-  (lambda (id)
-    (##sys#put! id '##core#unit #t)))
 
 (set! ##sys#features
   (let ((major (##sys#string-append "chicken-" (##sys#number->string (##sys#fudge 41)))))
