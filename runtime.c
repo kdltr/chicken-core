@@ -4549,12 +4549,12 @@ C_regparm C_word C_fcall C_a_i_provide(C_word **a, int c, C_word id)
     C_snprintf(buffer, C_header_size(str) + 1, C_text("%s"), (C_char *) C_data_pointer(str));
     C_dbg(C_text("debug"), C_text("providing %s...\n"), buffer);
   }
-  return C_a_i_putprop(a, 3, id, core_provided_symbol, C_SCHEME_TRUE);
+  return C_a_i_putprop(a, 3, core_provided_symbol, id, C_SCHEME_TRUE);
 }
 
 C_regparm C_word C_fcall C_i_providedp(C_word id)
 {
-  return C_i_getprop(id, core_provided_symbol, C_SCHEME_FALSE);
+  return C_i_getprop(core_provided_symbol, id, C_SCHEME_FALSE);
 }
 
 C_word C_halt(C_word msg)
