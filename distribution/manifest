@@ -291,6 +291,8 @@ chicken.locative.import.scm
 chicken.locative.import.c
 chicken.lolevel.import.scm
 chicken.lolevel.import.c
+chicken.memory.import.scm
+chicken.memory.import.c
 chicken.pathname.import.scm
 chicken.pathname.import.c
 chicken.ports.import.scm

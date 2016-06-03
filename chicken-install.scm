@@ -63,6 +63,7 @@
       "chicken.keyword.import.so"
       "chicken.locative.import.so"
       "chicken.lolevel.import.so"
+      "chicken.memory.import.so"
       "chicken.pathname.import.so"
       "chicken.ports.import.so"
       "chicken.posix.import.so"

@@ -36,29 +36,23 @@
 EOF
 ) )
 
-(module chicken.lolevel
-  (address->pointer align-to-word allocate block-ref block-set!
-   extend-procedure extended-procedure? free
-   make-pointer-vector make-record-instance
-   move-memory! mutate-procedure! number-of-bytes number-of-slots
-   object->pointer object-become! object-copy pointer+ pointer->address
+(include "common-declarations.scm")
+
+(module chicken.memory
+  (address->pointer align-to-word allocate free make-pointer-vector
+   move-memory! object->pointer pointer+ pointer->address
    pointer->object pointer-f32-ref pointer-f32-set! pointer-f64-ref
    pointer-f64-set! pointer-like? pointer-s16-ref pointer-s16-set!
    pointer-s32-ref pointer-s32-set! pointer-s64-ref pointer-s64-set!
    pointer-s8-ref pointer-s8-set! pointer-tag pointer-u16-ref
-   pointer-u16-set! pointer-u32-ref pointer-u32-set!
-   pointer-u64-ref pointer-u64-set! pointer-u8-ref pointer-u8-set!
-   pointer-vector pointer-vector-fill! pointer-vector-length
-   pointer-vector-ref pointer-vector-set! pointer-vector?
-   pointer=? pointer? procedure-data
-   record->vector record-instance-length record-instance-slot
-   record-instance-slot-set! record-instance-type record-instance?
-   set-procedure-data! tag-pointer tagged-pointer? vector-like?)
+   pointer-u16-set! pointer-u32-ref pointer-u32-set! pointer-u64-ref
+   pointer-u64-set! pointer-u8-ref pointer-u8-set! pointer-vector
+   pointer-vector-fill! pointer-vector-length pointer-vector-ref
+   pointer-vector-set! pointer-vector? pointer=? pointer? tag-pointer
+   tagged-pointer?)
 
 (import scheme chicken)
 (import chicken.foreign)
-
-(include "common-declarations.scm")
 
 
 ;;; Helpers:
@@ -195,23 +189,6 @@ EOF
 			(typerr to)] ) ) ]
 	      [else
 	       (typerr from)] ) ) ) ) )
-
-
-;;; Copy arbitrary object:
-
-(define (object-copy x)
-  (let copy ([x x])
-    (cond [(not (##core#inline "C_blockp" x)) x]
-	  [(symbol? x) (##sys#intern-symbol (##sys#slot x 1))]
-	  [else
-	    (let* ([n (##sys#size x)]
-		   [words (if (##core#inline "C_byteblockp" x) (##core#inline "C_words" n) n)]
-		   [y (##core#inline "C_copy_block" x (##sys#make-vector words))] )
-	      (unless (or (##core#inline "C_byteblockp" x) (symbol? x))
-		(do ([i (if (##core#inline "C_specialp" x) 1 0) (fx+ i 1)])
-		    [(fx>= i n)]
-		  (##sys#setslot y i (copy (##sys#slot y i))) ) )
-	      y) ] ) ) )
 
 
 ;;; Pointer operations:
@@ -358,6 +335,107 @@ EOF
    "(pointer-f64-ref p)"))
 
 
+;;; pointer vectors
+
+(define make-pointer-vector
+  (let ((unset (list 'unset)))
+    (lambda (n #!optional (init unset))
+      (##sys#check-exact n 'make-pointer-vector)
+      (let* ((mul (##sys#fudge 7))	; wordsize
+	     (size (fx* n mul))
+	     (buf (##sys#make-blob size)))
+	(unless (eq? init unset)
+	  (when init
+	    (##sys#check-pointer init 'make-pointer-vector))
+	  (do ((i 0 (fx+ i 1)))
+	      ((fx>= i n))
+	    (pv-buf-set! buf i init)))
+	(##sys#make-structure 'pointer-vector n buf)))))
+
+(define (pointer-vector? x)
+  (##sys#structure? x 'pointer-vector))
+
+(define (pointer-vector . ptrs)
+  (let* ((n (length ptrs))
+	 (pv (make-pointer-vector n))
+	 (buf (##sys#slot pv 2)))	; buf
+    (do ((ptrs ptrs (cdr ptrs))
+	 (i 0 (fx+ i 1)))
+	((null? ptrs) pv)
+      (let ((ptr (car ptrs)))
+	(##sys#check-pointer ptr 'pointer-vector)
+	(pv-buf-set! buf i ptr)))))
+
+(define (pointer-vector-fill! pv ptr)
+  (##sys#check-structure pv 'pointer-vector 'pointer-vector-fill!)
+  (when ptr (##sys#check-pointer ptr 'pointer-vector-fill!))
+  (let ((buf (##sys#slot pv 2))		; buf
+	(n (##sys#slot pv 1)))		; n
+    (do ((i 0 (fx+ i 1)))
+	((fx>= i n))
+      (pv-buf-set! buf i ptr))))
+
+(define pv-buf-ref
+  (foreign-lambda* c-pointer ((scheme-object buf) (unsigned-int i))
+    "C_return(*((void **)C_data_pointer(buf) + i));"))
+
+(define pv-buf-set!
+  (foreign-lambda* void ((scheme-object buf) (unsigned-int i) (c-pointer ptr))
+    "*((void **)C_data_pointer(buf) + i) = ptr;"))
+
+(define (pointer-vector-set! pv i ptr)
+  (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
+  (##sys#check-exact i 'pointer-vector-ref)
+  (##sys#check-range i 0 (##sys#slot pv 1)) ; len
+  (when ptr (##sys#check-pointer ptr 'pointer-vector-set!))
+  (pv-buf-set! (##sys#slot pv 2) i ptr))
+
+(define pointer-vector-ref
+  (getter-with-setter
+   (lambda (pv i)
+     (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
+     (##sys#check-exact i 'pointer-vector-ref)
+     (##sys#check-range i 0 (##sys#slot pv 1)) ; len
+     (pv-buf-ref (##sys#slot pv 2) i))	; buf
+   pointer-vector-set!
+   "(pointer-vector-ref pv i)"))
+
+(define (pointer-vector-length pv)
+  (##sys#check-structure pv 'pointer-vector 'pointer-vector-length)
+  (##sys#slot pv 1))
+
+) ; chicken.memory
+
+
+(module chicken.lolevel
+  (block-ref block-set! extend-procedure extended-procedure?
+   make-record-instance mutate-procedure! number-of-bytes
+   number-of-slots object-become! object-copy procedure-data
+   record->vector record-instance-length record-instance-slot
+   record-instance-slot-set! record-instance-type record-instance?
+   set-procedure-data! vector-like?)
+
+(import scheme chicken)
+(import chicken.foreign)
+
+
+;;; Copy arbitrary object:
+
+(define (object-copy x)
+  (let copy ((x x))
+    (cond ((not (##core#inline "C_blockp" x)) x)
+	  ((symbol? x) (##sys#intern-symbol (##sys#slot x 1)))
+	  (else
+	   (let* ((n (##sys#size x))
+		  (words (if (##core#inline "C_byteblockp" x) (##core#inline "C_words" n) n))
+		  (y (##core#inline "C_copy_block" x (##sys#make-vector words))))
+	     (unless (or (##core#inline "C_byteblockp" x) (symbol? x))
+	       (do ((i (if (##core#inline "C_specialp" x) 1 0) (fx+ i 1)))
+		   ((fx>= i n))
+		 (##sys#setslot y i (copy (##sys#slot y i)))))
+	     y)))))
+
+
 ;;; Procedures extended with data:
 
 ; Unique id for extended-procedures
@@ -480,77 +558,8 @@ EOF
     (##sys#become! (list (cons old (proc new))))
     new ) )
 
-
-;;; pointer vectors
-
-(define make-pointer-vector
-  (let ((unset (list 'unset)))
-    (lambda (n #!optional (init unset))
-      (##sys#check-exact n 'make-pointer-vector)
-      (let* ((mul (##sys#fudge 7))	; wordsize
-	     (size (fx* n mul))
-	     (buf (##sys#make-blob size)))
-	(unless (eq? init unset)
-	  (when init
-	    (##sys#check-pointer init 'make-pointer-vector))
-	  (do ((i 0 (fx+ i 1)))
-	      ((fx>= i n))
-	    (pv-buf-set! buf i init)))
-	(##sys#make-structure 'pointer-vector n buf)))))
-
-(define (pointer-vector? x) 
-  (##sys#structure? x 'pointer-vector))
-
-(define (pointer-vector . ptrs)
-  (let* ((n (length ptrs))
-	 (pv (make-pointer-vector n))
-	 (buf (##sys#slot pv 2)))	; buf
-    (do ((ptrs ptrs (cdr ptrs))
-	 (i 0 (fx+ i 1)))
-	((null? ptrs) pv)
-      (let ((ptr (car ptrs)))
-	(##sys#check-pointer ptr 'pointer-vector)
-	(pv-buf-set! buf i ptr)))))
-
-(define (pointer-vector-fill! pv ptr)
-  (##sys#check-structure pv 'pointer-vector 'pointer-vector-fill!)
-  (when ptr (##sys#check-pointer ptr 'pointer-vector-fill!))
-  (let ((buf (##sys#slot pv 2))		; buf
-	(n (##sys#slot pv 1)))		; n
-    (do ((i 0 (fx+ i 1)))
-	((fx>= i n))
-      (pv-buf-set! buf i ptr))))
-
-(define pv-buf-ref
-  (foreign-lambda* c-pointer ((scheme-object buf) (unsigned-int i))
-    "C_return(*((void **)C_data_pointer(buf) + i));"))
-
-(define pv-buf-set!
-  (foreign-lambda* void ((scheme-object buf) (unsigned-int i) (c-pointer ptr))
-    "*((void **)C_data_pointer(buf) + i) = ptr;"))
-
-(define (pointer-vector-set! pv i ptr)
-  (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
-  (##sys#check-exact i 'pointer-vector-ref)
-  (##sys#check-range i 0 (##sys#slot pv 1)) ; len
-  (when ptr (##sys#check-pointer ptr 'pointer-vector-set!))
-  (pv-buf-set! (##sys#slot pv 2) i ptr))
-
-(define pointer-vector-ref
-  (getter-with-setter
-   (lambda (pv i)
-     (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
-     (##sys#check-exact i 'pointer-vector-ref)
-     (##sys#check-range i 0 (##sys#slot pv 1)) ; len
-     (pv-buf-ref (##sys#slot pv 2) i))	; buf
-   pointer-vector-set!
-   "(pointer-vector-ref pv i)"))
-
-(define (pointer-vector-length pv)
-  (##sys#check-structure pv 'pointer-vector 'pointer-vector-length)
-  (##sys#slot pv 1))
-
 ) ; chicken.lolevel
+
 
 (module chicken.locative
   (locative? make-locative make-weak-locative

@@ -530,6 +530,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.io,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.pretty-print,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.random,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.locative,lolevel))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.memory,lolevel))
 
 chicken.c: chicken.scm mini-srfi-1.scm \
 		chicken.compiler.batch-driver.import.scm \
@@ -820,7 +821,8 @@ files.c: $(SRCDIR)files.scm $(SRCDIR)common-declarations.scm
 lolevel.c: $(SRCDIR)lolevel.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
 	-emit-import-library chicken.locative \
-	-emit-import-library chicken.lolevel
+	-emit-import-library chicken.lolevel \
+	-emit-import-library chicken.memory
 tcp.c: $(SRCDIR)tcp.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.tcp
 srfi-4.c: $(SRCDIR)srfi-4.scm $(SRCDIR)common-declarations.scm

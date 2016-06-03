@@ -296,12 +296,13 @@
 	|   |       |-- chicken.foreign.import.so
 	|   |       |-- chicken.format.import.so
 	|   |       |-- chicken.gc.import.so
-	|   |       |-- chicken.keyword.import.so
-	|   |       |-- chicken.locative.import.so
-	|   |       |-- chicken.lolevel.import.so
 	|   |       |-- chicken.internal.import.so
 	|   |       |-- chicken.io.import.so
 	|   |       |-- chicken.irregex.import.so
+	|   |       |-- chicken.keyword.import.so
+	|   |       |-- chicken.locative.import.so
+	|   |       |-- chicken.lolevel.import.so
+	|   |       |-- chicken.memory.import.so
 	|   |       |-- chicken.pathname.import.so
 	|   |       |-- chicken.ports.import.so
 	|   |       |-- chicken.posix.import.so

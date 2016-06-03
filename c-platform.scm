@@ -181,31 +181,31 @@
     srfi-4#blob->u32vector/shared srfi-4#blob->s32vector/shared
     srfi-4#blob->u64vector/shared srfi-4#blob->s64vector/shared
     srfi-4#blob->f32vector/shared srfi-4#blob->f64vector/shared
-    chicken.lolevel#make-record-instance
+    chicken.lolevel#number-of-slots chicken.lolevel#make-record-instance
     chicken.lolevel#block-ref chicken.lolevel#block-set!
-    chicken.lolevel#u8vector-ref chicken.lolevel#s8vector-ref
-    chicken.lolevel#u16vector-ref chicken.lolevel#s16vector-ref
-    chicken.lolevel#u32vector-ref chicken.lolevel#s32vector-ref
-    chicken.lolevel#u64vector-ref chicken.lolevel#s64vector-ref
-    chicken.lolevel#f32vector-ref chicken.lolevel#f64vector-ref
-    chicken.lolevel#f32vector-set! chicken.lolevel#f64vector-set!
-    chicken.lolevel#u8vector-set! chicken.lolevel#s8vector-set!
-    chicken.lolevel#u16vector-set! chicken.lolevel#s16vector-set!
-    chicken.lolevel#u32vector-set! chicken.lolevel#s32vector-set!
-    chicken.lolevel#u64vector-set! chicken.lolevel#s64vector-set!
+    chicken.memory#u8vector-ref chicken.memory#s8vector-ref
+    chicken.memory#u16vector-ref chicken.memory#s16vector-ref
+    chicken.memory#u32vector-ref chicken.memory#s32vector-ref
+    chicken.memory#u64vector-ref chicken.memory#s64vector-ref
+    chicken.memory#f32vector-ref chicken.memory#f64vector-ref
+    chicken.memory#f32vector-set! chicken.memory#f64vector-set!
+    chicken.memory#u8vector-set! chicken.memory#s8vector-set!
+    chicken.memory#u16vector-set! chicken.memory#s16vector-set!
+    chicken.memory#u32vector-set! chicken.memory#s32vector-set!
+    chicken.memory#u64vector-set! chicken.memory#s64vector-set!
     chicken.locative#locative-ref chicken.locative#locative-set!
     chicken.locative#locative->object chicken.locative#locative?
-    chicken.lolevel#pointer->object chicken.lolevel#pointer+
-    chicken.lolevel#address->pointer chicken.lolevel#pointer->address
-    chicken.lolevel#pointer=? chicken.lolevel#number-of-slots
-    chicken.lolevel#pointer-u8-ref chicken.lolevel#pointer-s8-ref
-    chicken.lolevel#pointer-u16-ref chicken.lolevel#pointer-s16-ref
-    chicken.lolevel#pointer-u32-ref chicken.lolevel#pointer-s32-ref
-    chicken.lolevel#pointer-f32-ref chicken.lolevel#pointer-f64-ref
-    chicken.lolevel#pointer-u8-set! chicken.lolevel#pointer-s8-set!
-    chicken.lolevel#pointer-u16-set! chicken.lolevel#pointer-s16-set!
-    chicken.lolevel#pointer-u32-set! chicken.lolevel#pointer-s32-set!
-    chicken.lolevel#pointer-f32-set! chicken.lolevel#pointer-f64-set!
+    chicken.memory#pointer+ chicken.memory#pointer=?
+    chicken.memory#address->pointer chicken.memory#pointer->address
+    chicken.memory#pointer->object chicken.memory#object->pointer
+    chicken.memory#pointer-u8-ref chicken.memory#pointer-s8-ref
+    chicken.memory#pointer-u16-ref chicken.memory#pointer-s16-ref
+    chicken.memory#pointer-u32-ref chicken.memory#pointer-s32-ref
+    chicken.memory#pointer-f32-ref chicken.memory#pointer-f64-ref
+    chicken.memory#pointer-u8-set! chicken.memory#pointer-s8-set!
+    chicken.memory#pointer-u16-set! chicken.memory#pointer-s16-set!
+    chicken.memory#pointer-u32-set! chicken.memory#pointer-s32-set!
+    chicken.memory#pointer-f32-set! chicken.memory#pointer-f64-set!
     chicken.data-structures#o
     chicken.data-structures#substring-index
     chicken.data-structures#substring-index-ci
@@ -745,28 +745,28 @@
 (rewrite '##sys#vector 16 #f "C_a_i_vector" #t #t)
 (rewrite '##sys#make-structure 16 #f "C_a_i_record" #t #t #t)
 (rewrite 'string 16 #f "C_a_i_string" #t #t) ; the last #t is actually too much, but we don't care
-(rewrite 'chicken.lolevel#address->pointer 16 1 "C_a_i_address_to_pointer" #f 2)
-(rewrite 'chicken.lolevel#pointer->address 16 1 "C_a_i_pointer_to_address" #f words-per-flonum)
-(rewrite 'chicken.lolevel#pointer+ 16 2 "C_a_u_i_pointer_inc" #f 2)
+(rewrite 'chicken.memory#address->pointer 16 1 "C_a_i_address_to_pointer" #f 2)
+(rewrite 'chicken.memory#pointer->address 16 1 "C_a_i_pointer_to_address" #f words-per-flonum)
+(rewrite 'chicken.memory#pointer+ 16 2 "C_a_u_i_pointer_inc" #f 2)
 (rewrite 'chicken.locative#locative-ref 16 1 "C_a_i_locative_ref" #t 6)
 
-(rewrite 'chicken.lolevel#pointer-u8-ref 2 1 "C_u_i_pointer_u8_ref" #f)
-(rewrite 'chicken.lolevel#pointer-s8-ref 2 1 "C_u_i_pointer_s8_ref" #f)
-(rewrite 'chicken.lolevel#pointer-u16-ref 2 1 "C_u_i_pointer_u16_ref" #f)
-(rewrite 'chicken.lolevel#pointer-s16-ref 2 1 "C_u_i_pointer_s16_ref" #f)
-(rewrite 'chicken.lolevel#pointer-u8-set! 2 2 "C_u_i_pointer_u8_set" #f)
-(rewrite 'chicken.lolevel#pointer-s8-set! 2 2 "C_u_i_pointer_s8_set" #f)
-(rewrite 'chicken.lolevel#pointer-u16-set! 2 2 "C_u_i_pointer_u16_set" #f)
-(rewrite 'chicken.lolevel#pointer-s16-set! 2 2 "C_u_i_pointer_s16_set" #f)
-(rewrite 'chicken.lolevel#pointer-u32-set! 2 2 "C_u_i_pointer_u32_set" #f)
-(rewrite 'chicken.lolevel#pointer-s32-set! 2 2 "C_u_i_pointer_s32_set" #f)
-(rewrite 'chicken.lolevel#pointer-f32-set! 2 2 "C_u_i_pointer_f32_set" #f)
-(rewrite 'chicken.lolevel#pointer-f64-set! 2 2 "C_u_i_pointer_f64_set" #f)
+(rewrite 'chicken.memory#pointer-u8-ref 2 1 "C_u_i_pointer_u8_ref" #f)
+(rewrite 'chicken.memory#pointer-s8-ref 2 1 "C_u_i_pointer_s8_ref" #f)
+(rewrite 'chicken.memory#pointer-u16-ref 2 1 "C_u_i_pointer_u16_ref" #f)
+(rewrite 'chicken.memory#pointer-s16-ref 2 1 "C_u_i_pointer_s16_ref" #f)
+(rewrite 'chicken.memory#pointer-u8-set! 2 2 "C_u_i_pointer_u8_set" #f)
+(rewrite 'chicken.memory#pointer-s8-set! 2 2 "C_u_i_pointer_s8_set" #f)
+(rewrite 'chicken.memory#pointer-u16-set! 2 2 "C_u_i_pointer_u16_set" #f)
+(rewrite 'chicken.memory#pointer-s16-set! 2 2 "C_u_i_pointer_s16_set" #f)
+(rewrite 'chicken.memory#pointer-u32-set! 2 2 "C_u_i_pointer_u32_set" #f)
+(rewrite 'chicken.memory#pointer-s32-set! 2 2 "C_u_i_pointer_s32_set" #f)
+(rewrite 'chicken.memory#pointer-f32-set! 2 2 "C_u_i_pointer_f32_set" #f)
+(rewrite 'chicken.memory#pointer-f64-set! 2 2 "C_u_i_pointer_f64_set" #f)
 
-(rewrite 'chicken.lolevel#pointer-u32-ref 16 1 "C_a_u_i_pointer_u32_ref" #f words-per-flonum)
-(rewrite 'chicken.lolevel#pointer-s32-ref 16 1 "C_a_u_i_pointer_s32_ref" #f words-per-flonum)
-(rewrite 'chicken.lolevel#pointer-f32-ref 16 1 "C_a_u_i_pointer_f32_ref" #f words-per-flonum)
-(rewrite 'chicken.lolevel#pointer-f64-ref 16 1 "C_a_u_i_pointer_f64_ref" #f words-per-flonum)
+(rewrite 'chicken.memory#pointer-u32-ref 16 1 "C_a_u_i_pointer_u32_ref" #f words-per-flonum)
+(rewrite 'chicken.memory#pointer-s32-ref 16 1 "C_a_u_i_pointer_s32_ref" #f words-per-flonum)
+(rewrite 'chicken.memory#pointer-f32-ref 16 1 "C_a_u_i_pointer_f32_ref" #f words-per-flonum)
+(rewrite 'chicken.memory#pointer-f64-ref 16 1 "C_a_u_i_pointer_f64_ref" #f words-per-flonum)
 
 (rewrite
  '##sys#setslot 8
@@ -836,7 +836,7 @@
 (rewrite '##sys#setbyte 17 3 "C_setbyte")
 (rewrite '##sys#peek-fixnum 17 2 "C_peek_fixnum")
 (rewrite '##sys#peek-byte 17 2 "C_peek_byte")
-(rewrite 'chicken.lolevel#pointer->object 17 2 "C_pointer_to_object")
+(rewrite 'chicken.memory#pointer->object 17 2 "C_pointer_to_object")
 (rewrite '##sys#setislot 17 3 "C_i_set_i_slot")
 (rewrite '##sys#poke-integer 17 3 "C_poke_integer")
 (rewrite '##sys#poke-double 17 3 "C_poke_double")
@@ -973,14 +973,14 @@
     (srfi-4#f64vector-ref . srfi-4#f64vector-set!)
     (chicken.locative#locative-ref . chicken.locative#locative-set!)
     (chicken.lolevel#block-ref . chicken.lolevel#block-set!)
-    (chicken.lolevel#pointer-u8-ref . chicken.lolevel#pointer-u8-set!)
-    (chicken.lolevel#pointer-s8-ref . chicken.lolevel#pointer-s8-set!)
-    (chicken.lolevel#pointer-u16-ref . chicken.lolevel#pointer-u16-set!)
-    (chicken.lolevel#pointer-s16-ref . chicken.lolevel#pointer-s16-set!)
-    (chicken.lolevel#pointer-u32-ref . chicken.lolevel#pointer-u32-set!)
-    (chicken.lolevel#pointer-s32-ref . chicken.lolevel#pointer-s32-set!)
-    (chicken.lolevel#pointer-f32-ref . chicken.lolevel#pointer-f32-set!)
-    (chicken.lolevel#pointer-f64-ref . chicken.lolevel#pointer-f64-set!)))
+    (chicken.memory#pointer-u8-ref . chicken.memory#pointer-u8-set!)
+    (chicken.memory#pointer-s8-ref . chicken.memory#pointer-s8-set!)
+    (chicken.memory#pointer-u16-ref . chicken.memory#pointer-u16-set!)
+    (chicken.memory#pointer-s16-ref . chicken.memory#pointer-s16-set!)
+    (chicken.memory#pointer-u32-ref . chicken.memory#pointer-u32-set!)
+    (chicken.memory#pointer-s32-ref . chicken.memory#pointer-s32-set!)
+    (chicken.memory#pointer-f32-ref . chicken.memory#pointer-f32-set!)
+    (chicken.memory#pointer-f64-ref . chicken.memory#pointer-f64-set!)))
 
 (rewrite
  '##sys#setter 8

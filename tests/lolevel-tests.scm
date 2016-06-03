@@ -1,6 +1,6 @@
 ;;;; Unit lolevel testing
 
-(require-extension format locative lolevel srfi-4)
+(use chicken.memory format locative lolevel srfi-4)
 
 (define-syntax assert-error
   (syntax-rules ()

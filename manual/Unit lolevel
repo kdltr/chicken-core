@@ -7,9 +7,6 @@
 This unit provides a number of handy low-level operations. '''Use
 at your own risk.'''
 
-This unit uses the {{srfi-4}} and {{extras}} units.
-
-
 
 === Foreign pointers
 
@@ -21,6 +18,8 @@ The abstract class of ''pointer'' is divided into 2 categories:
 
 Note that Locatives, while technically pointers, are not considered a ''pointer
 object'', but a ''pointer-like object''. The distinction is artificial.
+
+Pointer operations are provided by the {{(chicken memory)}} module.
 
 
 ==== address->pointer
@@ -128,11 +127,13 @@ Use of anything other than an integer or pointer object as an argument is
 questionable.
 
 
-
 === SRFI-4 Foreign pointers
 
 These procedures actually accept a pointer-like object as the {{POINTER}} argument.
 However, as usual, use of anything other than a pointer object is questionable.
+
+SRFI-4 pointer operations are provided by the {{(chicken memory)}} module.
+
 
 ==== pointer-u8-ref
 
@@ -288,6 +289,8 @@ Stores the 64-bit floating-point number {{N}} at the address designated by {{POI
 
 ''Tagged'' pointers are foreign pointer objects with an extra tag object.
 
+Tagged pointer operations are provided by the {{(chicken memory)}} module.
+
 
 ==== tag-pointer
 
@@ -323,6 +326,9 @@ error is signalled.
 foreign pointer objects. All procedures defined below that accept
 a pointer object allow {{#f}} as an alternative representation of
 the {{NULL}}-pointer.
+
+Pointer vectors are provided by the {{(chicken memory)}} module.
+
 
 ==== make-pointer-vector 
 
@@ -554,6 +560,8 @@ The additional fourth and fifth argument specify starting offsets (in bytes)
 for the source and destination arguments.
 
 Signals an error if any of the above constraints is violated.
+
+This procedure is provided by the {{(chicken memory)}} module.
 
 
 === Record instance
