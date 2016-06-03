@@ -33,7 +33,6 @@
 ; symbolic-link?
 ; set-signal-mask!  signal-mask	 signal-masked?	 signal-mask!  signal-unmask!
 ; user-information group-information  get-groups  set-groups!  initialize-groups
-; errno/wouldblock
 ; change-directory*
 ; change-file-owner
 ; current-user-id  current-group-id  current-effective-user-id	current-effective-group-id
@@ -669,16 +668,9 @@ EOF
    current-effective-group-id current-effective-user-id
    current-effective-user-name get-environment-variables
    current-group-id current-process-id current-user-id current-user-name
-   delete-directory directory directory? duplicate-fileno errno/2big
-   errno/acces errno/again errno/badf errno/busy errno/child
-   errno/deadlk errno/dom errno/exist errno/fault errno/fbig errno/ilseq
-   errno/intr errno/inval errno/io errno/isdir errno/mfile errno/mlink
-   errno/nametoolong errno/nfile errno/nodev errno/noent errno/noexec
-   errno/nolck errno/nomem errno/nospc errno/nosys errno/notdir
-   errno/notempty errno/notty errno/nxio errno/perm errno/pipe
-   errno/range errno/rofs errno/spipe errno/srch errno/wouldblock
-   errno/xdev #;fcntl/dupfd #;fcntl/getfd #;fcntl/getfl #;fcntl/setfd
-   #;fcntl/setfl fifo? file-access-time file-change-time
+   delete-directory directory directory? duplicate-fileno
+   #;fcntl/dupfd #;fcntl/getfd #;fcntl/getfl #;fcntl/setfd #;fcntl/setfl
+   fifo? file-access-time file-change-time
    file-creation-mode file-close #;file-control file-execute-access?
    file-link file-lock file-lock/blocking file-mkstemp
    file-modification-time file-open file-owner file-permissions
@@ -1026,48 +1018,6 @@ EOF
     signal/term signal/int signal/fpe signal/ill
     signal/segv signal/abrt signal/break))
 
-
-;;; More errno codes:
-
-
-(define errno/perm _eperm)
-(define errno/noent _enoent)
-(define errno/srch _esrch)
-(define errno/intr _eintr)
-(define errno/io _eio)
-(define errno/noexec _enoexec)
-(define errno/badf _ebadf)
-(define errno/child _echild)
-(define errno/nomem _enomem)
-(define errno/acces _eacces)
-(define errno/fault _efault)
-(define errno/busy _ebusy)
-(define errno/exist _eexist)
-(define errno/notdir _enotdir)
-(define errno/isdir _eisdir)
-(define errno/inval _einval)
-(define errno/mfile _emfile)
-(define errno/nospc _enospc)
-(define errno/spipe _espipe)
-(define errno/pipe _epipe)
-(define errno/again _eagain)
-(define errno/rofs _erofs)
-(define errno/nxio _enxio)
-(define errno/2big _e2big)
-(define errno/xdev _exdev)
-(define errno/nodev _enodev)
-(define errno/nfile _enfile)
-(define errno/notty _enotty)
-(define errno/fbig _efbig)
-(define errno/mlink _emlink)
-(define errno/dom _edom)
-(define errno/range _erange)
-(define errno/deadlk _edeadlk)
-(define errno/nametoolong _enametoolong)
-(define errno/nolck _enolck)
-(define errno/nosys _enosys)
-(define errno/notempty _enotempty)
-(define errno/ilseq _eilseq)
 
 ;;; Permissions and owners:
 
@@ -1473,8 +1423,6 @@ EOF
 (define-unimplemented utc-time->seconds)
 (define-unimplemented string->time)
 
-(define errno/wouldblock 0)
-
 (define (fifo? _) #f)
 
 (define open/fsync 0)
@@ -1485,4 +1433,47 @@ EOF
 (define perm/isuid 0)
 (define perm/isvtx 0)
 
-)
+) ; chicken.posix
+
+(module chicken.errno *
+(import scheme chicken)
+(export errno)
+(define errno/wouldblock 0) ; undefined on mingw
+(define errno/2big _e2big)
+(define errno/acces _eacces)
+(define errno/again _eagain)
+(define errno/badf _ebadf)
+(define errno/busy _ebusy)
+(define errno/child _echild)
+(define errno/deadlk _edeadlk)
+(define errno/dom _edom)
+(define errno/exist _eexist)
+(define errno/fault _efault)
+(define errno/fbig _efbig)
+(define errno/ilseq _eilseq)
+(define errno/intr _eintr)
+(define errno/inval _einval)
+(define errno/io _eio)
+(define errno/isdir _eisdir)
+(define errno/mfile _emfile)
+(define errno/mlink _emlink)
+(define errno/nametoolong _enametoolong)
+(define errno/nfile _enfile)
+(define errno/nodev _enodev)
+(define errno/noent _enoent)
+(define errno/noexec _enoexec)
+(define errno/nolck _enolck)
+(define errno/nomem _enomem)
+(define errno/nospc _enospc)
+(define errno/nosys _enosys)
+(define errno/notdir _enotdir)
+(define errno/notempty _enotempty)
+(define errno/notty _enotty)
+(define errno/nxio _enxio)
+(define errno/perm _eperm)
+(define errno/pipe _epipe)
+(define errno/range _erange)
+(define errno/rofs _erofs)
+(define errno/spipe _espipe)
+(define errno/srch _esrch)
+(define errno/xdev _exdev))

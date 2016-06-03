@@ -44,16 +44,9 @@
    current-effective-group-id current-effective-user-id
    current-effective-user-name get-environment-variables
    current-group-id current-process-id current-user-id current-user-name
-   delete-directory directory directory? duplicate-fileno errno/2big
-   errno/acces errno/again errno/badf errno/busy errno/child
-   errno/deadlk errno/dom errno/exist errno/fault errno/fbig errno/ilseq
-   errno/intr errno/inval errno/io errno/isdir errno/mfile errno/mlink
-   errno/nametoolong errno/nfile errno/nodev errno/noent errno/noexec
-   errno/nolck errno/nomem errno/nospc errno/nosys errno/notdir
-   errno/notempty errno/notty errno/nxio errno/perm errno/pipe
-   errno/range errno/rofs errno/spipe errno/srch errno/wouldblock
-   errno/xdev fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd
-   fcntl/setfl fifo? file-access-time file-change-time
+   delete-directory directory directory? duplicate-fileno
+   fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd fcntl/setfl
+   fifo? file-access-time file-change-time
    file-creation-mode file-close file-control file-execute-access?
    file-link file-lock file-lock/blocking file-mkstemp
    file-modification-time file-open file-owner file-permissions
@@ -1053,49 +1046,6 @@ EOF
       (##sys#error 'initialize-groups "cannot initialize supplementary group ids" user id) ) ) ) )
 
 
-;;; More errno codes:
-
-(define errno/perm _eperm)
-(define errno/noent _enoent)
-(define errno/srch _esrch)
-(define errno/intr _eintr)
-(define errno/io _eio)
-(define errno/noexec _enoexec)
-(define errno/badf _ebadf)
-(define errno/child _echild)
-(define errno/nomem _enomem)
-(define errno/acces _eacces)
-(define errno/fault _efault)
-(define errno/busy _ebusy)
-(define errno/notdir _enotdir)
-(define errno/isdir _eisdir)
-(define errno/inval _einval)
-(define errno/mfile _emfile)
-(define errno/nospc _enospc)
-(define errno/spipe _espipe)
-(define errno/pipe _epipe)
-(define errno/again _eagain)
-(define errno/rofs _erofs)
-(define errno/exist _eexist)
-(define errno/wouldblock _ewouldblock)
-
-(define errno/2big 0)
-(define errno/deadlk 0)
-(define errno/dom 0)
-(define errno/fbig 0)
-(define errno/ilseq 0)
-(define errno/mlink 0)
-(define errno/nametoolong 0)
-(define errno/nfile 0)
-(define errno/nodev 0)
-(define errno/nolck 0)
-(define errno/nosys 0)
-(define errno/notempty 0)
-(define errno/notty 0)
-(define errno/nxio 0)
-(define errno/range 0)
-(define errno/xdev 0)
-
 ;;; Permissions and owners:
 
 (define change-file-mode
@@ -1819,4 +1769,48 @@ EOF
       (when (fx< (chroot dir) 0)
         (posix-error #:file-error 'set-root-directory! "unable to change root directory" dir) ) ) ) )
 
-)
+) ; chicken.posix
+
+(module chicken.errno *
+(import scheme chicken)
+(export errno)
+;; XXX TODO why aren't these set?
+(define errno/2big 0)
+(define errno/deadlk 0)
+(define errno/dom 0)
+(define errno/fbig 0)
+(define errno/ilseq 0)
+(define errno/mlink 0)
+(define errno/nametoolong 0)
+(define errno/nfile 0)
+(define errno/nodev 0)
+(define errno/nolck 0)
+(define errno/nosys 0)
+(define errno/notempty 0)
+(define errno/notty 0)
+(define errno/nxio 0)
+(define errno/range 0)
+(define errno/xdev 0)
+(define errno/acces _eacces)
+(define errno/again _eagain)
+(define errno/badf _ebadf)
+(define errno/busy _ebusy)
+(define errno/child _echild)
+(define errno/exist _eexist)
+(define errno/fault _efault)
+(define errno/intr _eintr)
+(define errno/inval _einval)
+(define errno/io _eio)
+(define errno/isdir _eisdir)
+(define errno/mfile _emfile)
+(define errno/noent _enoent)
+(define errno/noexec _enoexec)
+(define errno/nomem _enomem)
+(define errno/nospc _enospc)
+(define errno/notdir _enotdir)
+(define errno/perm _eperm)
+(define errno/pipe _epipe)
+(define errno/rofs _erofs)
+(define errno/spipe _espipe)
+(define errno/srch _esrch)
+(define errno/wouldblock _ewouldblock))

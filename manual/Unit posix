@@ -1157,6 +1157,7 @@ defaults to {{0}}.
 
 These variables contain error codes as returned by {{errno}}.
 
+They are provided by the {{(chicken errno)}} module.
 
 === Finding files
 

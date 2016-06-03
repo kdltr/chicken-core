@@ -519,6 +519,7 @@ $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
 
 # special cases for modules not corresponding directly to units
 $(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.errno,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.fixnum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.flonum,library))
@@ -799,9 +800,13 @@ extras.c: $(SRCDIR)extras.scm $(SRCDIR)common-declarations.scm
 	-emit-import-library chicken.pretty-print \
 	-emit-import-library chicken.random
 posixunix.c: $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.posix
+	$(bootstrap-lib) \
+	-emit-import-library chicken.errno \
+	-emit-import-library chicken.posix
 posixwin.c: $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.posix
+	$(bootstrap-lib) \
+	-emit-import-library chicken.errno \
+	-emit-import-library chicken.posix
 irregex.c: $(SRCDIR)irregex.scm $(SRCDIR)irregex-core.scm $(SRCDIR)irregex-utils.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.irregex
 chicken-syntax.c: $(SRCDIR)chicken-syntax.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm

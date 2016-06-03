@@ -48,6 +48,7 @@
       "chicken.continuation.import.so"
       "chicken.csi.import.so"
       "chicken.data-structures.import.so"
+      "chicken.errno.import.so"
       "chicken.eval.import.so"
       "chicken.expand.import.so"
       "chicken.files.import.so"
