@@ -51,6 +51,7 @@
       "chicken.errno.import.so"
       "chicken.eval.import.so"
       "chicken.expand.import.so"
+      "chicken.file.import.so"
       "chicken.files.import.so"
       "chicken.fixnum.import.so"
       "chicken.flonum.import.so"

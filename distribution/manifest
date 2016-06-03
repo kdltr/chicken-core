@@ -24,6 +24,7 @@ data-structures.c
 dbg-stub.c
 debugger-client.c
 ports.c
+file.c
 files.c
 extras.c
 internal.c
@@ -77,6 +78,7 @@ extras.scm
 data-structures.scm
 debugger-client.scm
 ports.scm
+file.scm
 files.scm
 chicken-bug.mdoc
 chicken-bug.scm
@@ -276,6 +278,8 @@ chicken.eval.import.scm
 chicken.eval.import.c
 chicken.expand.import.scm
 chicken.expand.import.c
+chicken.file.import.scm
+chicken.file.import.c
 chicken.files.import.scm
 chicken.files.import.c
 chicken.fixnum.import.scm

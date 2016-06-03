@@ -36,10 +36,10 @@ VPATH=$(SRCDIR)
 SETUP_API_OBJECTS_1 = setup-api setup-download
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
-       library eval read-syntax repl data-structures pathname ports files \
-       extras lolevel utils tcp srfi-4 continuation $(POSIXFILE) internal \
-       irregex scheduler debugger-client profiler stub expand modules \
-       chicken-syntax chicken-ffi-syntax build-version
+       library eval read-syntax repl data-structures pathname ports file \
+       files extras lolevel utils tcp srfi-4 continuation $(POSIXFILE) \
+       internal irregex scheduler debugger-client profiler stub expand \
+       modules chicken-syntax chicken-ffi-syntax build-version
 LIBCHICKEN_OBJECTS_1 = $(LIBCHICKEN_SCHEME_OBJECTS_1) runtime
 LIBCHICKEN_SHARED_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=$(O))
 LIBCHICKEN_STATIC_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=-static$(O))
@@ -744,6 +744,9 @@ eval.c: eval.scm \
 		chicken.keyword.import.scm
 repl.c: repl.scm \
 		chicken.eval.import.scm
+file.c: file.scm \
+		chicken.files.import.scm \
+		chicken.posix.import.scm
 files.c: files.scm \
 		chicken.data-structures.import.scm \
 		chicken.io.import.scm \
@@ -823,6 +826,8 @@ pathname.c: $(SRCDIR)pathname.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.pathname
 ports.c: $(SRCDIR)ports.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.ports
+file.c: $(SRCDIR)file.scm $(SRCDIR)common-declarations.scm
+	$(bootstrap-lib) -emit-import-library chicken.file
 files.c: $(SRCDIR)files.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.files
 lolevel.c: $(SRCDIR)lolevel.scm $(SRCDIR)common-declarations.scm
