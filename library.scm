@@ -3719,12 +3719,9 @@ EOF
 	 (if ##sys#build-branch (string-append " (" ##sys#build-branch ")") "")
 	 (if ##sys#build-id (string-append " (rev " ##sys#build-id ")") "")
 	 "\n"
-	 (get-config)
 	 (if (zero? (##sys#size spec))
 	     ""
-	     (string-append " [" spec " ]") )
-	 "\n"
-	 (or (##sys#build-tag) "")))
+	     (string-append "[" spec " ]") ) ) )
       ##sys#build-version) )
 
 

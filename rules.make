@@ -45,7 +45,7 @@ LIBCHICKEN_STATIC_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=-static$(O))
 
 COMPILER_OBJECTS_1 = \
 	chicken batch-driver compiler optimizer lfa2 compiler-syntax scrutinizer support \
-	c-platform c-backend
+	c-platform c-backend deterministic-build
 COMPILER_OBJECTS        = $(COMPILER_OBJECTS_1:=$(O))
 COMPILER_STATIC_OBJECTS = $(COMPILER_OBJECTS_1:=-static$(O))
 
@@ -573,7 +573,7 @@ $(foreach obj, $(IMPORT_LIBRARIES),\
 define declare-bootstrap-compiler-object
 $(1).c: $$(SRCDIR)$(1).scm $$(SRCDIR)compiler-namespace.scm \
 	  $$(SRCDIR)private-namespace.scm $$(SRCDIR)tweaks.scm
-	$$(CHICKEN) $$< $$(CHICKEN_COMPILER_OPTIONS) -output-file $$@ 
+	$$(CHICKEN) $$< $$(CHICKEN_COMPILER_OPTIONS) -explicit-use -output-file $$@
 endef
 
 $(foreach obj, $(COMPILER_OBJECTS_1),\

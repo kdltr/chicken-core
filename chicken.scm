@@ -26,7 +26,7 @@
 
 
 (declare
-  (uses chicken-syntax chicken-ffi-syntax 
+  (uses deterministic-build library eval chicken-syntax chicken-ffi-syntax
 	srfi-1 srfi-4 utils files extras data-structures srfi-69
 	lolevel ; unused, but loaded to make foldable bindings available
 	support compiler optimizer lfa2 compiler-syntax scrutinizer
