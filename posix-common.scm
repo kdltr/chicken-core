@@ -686,6 +686,10 @@ EOF
 
 (define (current-process-id) (##sys#fudge 33))
 
+(define (process-sleep n)
+  (##sys#check-fixnum n 'process-sleep)
+  (##core#inline "C_process_sleep" n))
+
 (define process-wait
   (lambda args
     (let-optionals* args ([pid #f] [nohang #f])

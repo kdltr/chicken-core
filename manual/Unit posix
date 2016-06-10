@@ -744,9 +744,9 @@ which any data written to will be received as input in the sub-process,
 the process-id of the started sub-process, and an input port from
 which data written by the sub-process to {{stderr}} can be read.
 
-==== sleep
+==== process-sleep
 
-<procedure>(sleep SECONDS)</procedure>
+<procedure>(process-sleep SECONDS)</procedure>
 
 Puts the process to sleep for {{SECONDS}}. Returns either 0 if
 the time has completely elapsed, or the number of remaining seconds,
@@ -1279,6 +1279,7 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{process-fork}} : {{fork}}
 ; {{process-group-id}} : {{getpgid}}
 ; {{process-signal}} : {{kill}}
+; {{process-sleep}} : {{sleep}}
 ; {{process-wait}} : {{waitpid}}
 ; {{close-input-pipe}} : {{pclose}}
 ; {{close-output-pipe}} : {{pclose}}
@@ -1294,7 +1295,6 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{set-user-id!}} : {{setuid}}
 ; {{set-root-directory!}} : {{chroot}}
 ; {{set-environment-variable!}} : {{setenv/putenv}}
-; {{sleep}} : {{sleep}}
 ; {{system-information}} : {{uname}}
 ; {{terminal-name}} : {{ttyname}}
 ; {{terminal-port?}} : {{isatty}}

@@ -63,7 +63,7 @@
    perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
    perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr pipe/buf
    port->fileno process process* process-execute process-fork
-   process-group-id process-run process-signal process-wait
+   process-group-id process-run process-signal process-sleep process-wait
    read-symbolic-link regular-file? seconds->local-time seconds->string
    seconds->utc-time seek/cur seek/end seek/set set-alarm!
    set-buffering-mode! set-root-directory!
@@ -74,7 +74,7 @@
    signal/pipe signal/prof signal/quit signal/segv signal/stop
    signal/term signal/trap signal/tstp signal/urg signal/usr1
    signal/usr2 signal/vtalrm signal/winch signal/xcpu signal/xfsz
-   signals-list sleep block-device? character-device? fifo? socket?
+   signals-list block-device? character-device? fifo? socket?
    string->time symbolic-link? system-information terminal-name
    terminal-port? terminal-size time->string user-information
    set-environment-variable! unset-environment-variable!
@@ -220,7 +220,6 @@ static C_TLS struct stat C_statbuf;
 #define C_setvbuf(p, m, s)  C_fix(setvbuf(C_port_file(p), NULL, C_unfix(m), C_unfix(s)))
 #define C_test_access(fn, m)     C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_close(fd)         C_fix(close(C_unfix(fd)))
-#define C_sleep             sleep
 #define C_umask(m)          C_fix(umask(C_unfix(m)))
 
 #define C_lstat(fn)         C_fix(lstat((char *)C_data_pointer(fn), &C_statbuf))
@@ -1507,8 +1506,6 @@ EOF
 	       [else (##core#inline "C_WSTOPSIG" _wait-status)] ) )) ) )
 
 (define parent-process-id (foreign-lambda int "C_getppid"))
-
-(define sleep (foreign-lambda int "C_sleep" int))
 
 (define process-signal
   (lambda (id . sig)

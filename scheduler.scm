@@ -36,7 +36,7 @@
 	; ##sys#force-primordial
 	remove-from-ready-queue fdset-test create-fdset stderr delq
 	##sys#clear-i/o-state-for-thread! ##sys#abandon-mutexes) 
-  (not inline ##sys#interrupt-hook ##sys#force-primordial)
+  (not inline ##sys#interrupt-hook ##sys#sleep-hook ##sys#force-primordial)
   (unsafe)
   (foreign-declare #<<EOF
 #ifdef HAVE_ERRNO_H
@@ -580,6 +580,26 @@ EOF
     (##sys#remove-from-timeout-list t)
     (##sys#clear-i/o-state-for-thread! t)
     (##sys#thread-basic-unblock! t) ) )
+
+
+;;; Put a thread to sleep:
+
+(define (##sys#thread-sleep! tm)
+  (##sys#call-with-current-continuation
+   (lambda (return)
+     (let ((ct ##sys#current-thread))
+       (##sys#setslot ct 1 (lambda () (return (##core#undefined))))
+       (##sys#thread-block-for-timeout! ct tm)
+       (##sys#schedule)))))
+
+
+;;; Override `sleep` in library.scm to operate on the current thread:
+
+(set! ##sys#sleep-hook
+  (lambda (n)
+    (##sys#thread-sleep!
+     (+ (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)
+	(* 1000.0 n)))))
 
 
 ;;; Kill all threads in fd-, io- and timeout-lists and assign one thread as the

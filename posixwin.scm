@@ -356,7 +356,6 @@ process_wait(C_word h, C_word t)
 }
 
 #define C_process_wait(p, t) (process_wait(C_unfix(p), C_truep(t)) ? C_SCHEME_TRUE : C_SCHEME_FALSE)
-#define C_sleep(t) (Sleep(C_unfix(t) * 1000), C_fix(0))
 
 static int C_fcall
 get_hostname()
@@ -686,7 +685,7 @@ EOF
    perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
    perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr pipe/buf
    port->fileno process process* process-execute process-fork
-   process-group-id process-run process-signal process-wait
+   process-group-id process-run process-signal process-sleep process-wait
    read-symbolic-link regular-file? seconds->local-time seconds->string
    seconds->utc-time seek/cur seek/end seek/set set-alarm!
    set-buffering-mode! set-root-directory!
@@ -697,7 +696,7 @@ EOF
    signal/pipe signal/prof signal/quit signal/segv signal/stop
    signal/term signal/trap signal/tstp signal/urg signal/usr1
    signal/usr2 signal/vtalrm signal/winch signal/xcpu signal/xfsz
-   signals-list sleep block-device? character-device? fifo? socket?
+   signals-list block-device? character-device? fifo? socket?
    string->time symbolic-link? system-information terminal-name
    terminal-port? terminal-size time->string user-information
    set-environment-variable! unset-environment-variable!
@@ -1336,10 +1335,6 @@ EOF
   (if (##core#inline "C_process_wait" pid nohang)
     (values pid #t _exstatus)
     (values -1 #f #f) ) )
-
-(define (sleep s)
-  (##sys#check-fixnum s 'sleep)
-  (##core#inline "C_sleep" s))
 
 (define-foreign-variable _hostname c-string "C_hostname")
 (define-foreign-variable _osver c-string "C_osver")

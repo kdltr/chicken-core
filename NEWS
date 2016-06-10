@@ -25,6 +25,9 @@
   - Added the `executable-pathname` procedure for retrieving a path to
     the currently-running executable.
   - Removed all support for SWIG.
+  - `sleep` now suspends the current thread when threading is enabled,
+    otherwise it sleeps the process. The new `process-sleep` procedure
+    in unit posix can be used to sleep the process unconditionally.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

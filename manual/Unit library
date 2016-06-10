@@ -648,6 +648,16 @@ of the last top-level form. Note that finalizers for unreferenced finalized
 data are run before exit procedures.
 
 
+==== sleep
+
+<procedure>(sleep SECONDS)</procedure>
+
+Puts the program to sleep for {{SECONDS}}. If the scheduler is loaded
+(for example when srfi-18 is in use) then only the calling thread is put
+to sleep and other threads may continue executing. Otherwise, the whole
+process is put to sleep.
+
+
 ==== software-type
 
 <procedure>(software-type)</procedure>

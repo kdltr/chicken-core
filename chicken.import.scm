@@ -168,6 +168,7 @@
    signal
    signum
    singlestep
+   sleep
    software-type
    software-version
    string->blob

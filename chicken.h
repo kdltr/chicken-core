@@ -1597,14 +1597,17 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_ub_i_pointer_f32_set(p, n)    (*((float *)(p)) = (n))
 #define C_ub_i_pointer_f64_set(p, n)    (*((double *)(p)) = (n))
 
+#if defined(_WIN32) && !defined(__CYGWIN__)
+# define C_process_sleep(n) (Sleep(C_unfix(n) * 1000), C_fix(0))
+#else
+# define C_process_sleep(n) C_fix(sleep(C_unfix(n)))
+#endif
+
 #ifdef C_PRIVATE_REPOSITORY
 # define C_private_repository()         C_use_private_repository(C_executable_dirname())
 #else
 # define C_private_repository()
 #endif
-
-/* left for backwards-compatibility */
-#define C_gui_nongui_marker
 
 #ifdef C_GUI
 # define C_set_gui_mode                 C_gui_mode = 1

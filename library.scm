@@ -39,8 +39,9 @@
 	make-complex flonum->ratnum ratnum
 	+maximum-allowed-exponent+ mantexp->dbl ldexp round-quotient
 	##sys#string->compnum ##sys#internal-gcd)
-  (not inline ##sys#user-read-hook ##sys#error-hook ##sys#signal-hook ##sys#schedule
-       ##sys#default-read-info-hook ##sys#infix-list-hook ##sys#sharp-number-hook
+  (not inline ##sys#user-read-hook ##sys#error-hook ##sys#signal-hook
+       ##sys#sleep-hook ##sys#schedule ##sys#default-read-info-hook
+       ##sys#infix-list-hook ##sys#sharp-number-hook
        ##sys#user-print-hook ##sys#user-interrupt-hook)
   (foreign-declare #<<EOF
 #include <errno.h>
@@ -5159,6 +5160,17 @@ EOF
 
 (define (##sys#kill-other-threads thunk)
   (thunk))	     ; does nothing, will be modified by scheduler.scm
+
+
+;;; Sleeping:
+
+(define (##sys#sleep-hook n) ; modified by scheduler.scm
+  (##core#inline "C_process_sleep" n))
+
+(define (sleep n)
+  (##sys#check-fixnum n 'sleep)
+  (##sys#sleep-hook n)
+  (##core#undefined))
 
 
 ;;; Interrupt-handling:

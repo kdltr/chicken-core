@@ -1302,6 +1302,7 @@
 	 (##core#inline "C_u_i_integer_signum" (##sys#slot #(1) '1)))
 	((cplxnum) ((or float cplxnum)) (##sys#extended-signum #(1))))
 
+(sleep (#(procedure #:clean #:enforce) sleep (fixnum) undefined))
 (software-type (#(procedure #:pure) software-type () symbol))
 (software-version (#(procedure #:pure) software-version () symbol))
 (string->blob (#(procedure #:clean #:enforce) string->blob (string) blob))
@@ -2059,7 +2060,7 @@
 (chicken.posix#signal/xcpu fixnum)
 (chicken.posix#signal/xfsz fixnum)
 (chicken.posix#signals-list list)
-(chicken.posix#sleep (#(procedure #:clean #:enforce) chicken.posix#sleep (fixnum) fixnum))
+(chicken.posix#process-sleep (#(procedure #:clean #:enforce) chicken.posix#process-sleep (fixnum) fixnum))
 (chicken.posix#block-device? (#(procedure #:clean #:enforce) chicken.posix#block-device? ((or string fixnum)) boolean))
 (chicken.posix#character-device? (#(procedure #:clean #:enforce) chicken.posix#character-device? ((or string fixnum)) boolean))
 (chicken.posix#fifo? (#(procedure #:clean #:enforce) chicken.posix#fifo? ((or string fixnum)) boolean))
