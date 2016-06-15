@@ -20,6 +20,7 @@ NOTES (new install)
 *** TODO print repository
 *** TODO retrieve egg
     - also support recursive retrieve?
+*** TODO Comment all toplevel procedures
 
 * TODO repository-path
     - allow multiple locations?
@@ -27,6 +28,9 @@ NOTES (new install)
     - CHICKEN_REPOSITORY
     - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
       installation target.
+
+* Installation
+    - unlink .so's before overwriting them.
 
 * Issues
 ** Link-options are passed directly to csc
@@ -51,6 +55,7 @@ NOTES (new install)
 ** TODO download into cache dir (".chicken-install.download")
     - in HOME, or PWD?
     - when does it become stale?
+    - sjamaan recoommends retrieving current egg-versions every time.
 ** TODO build in temp dir (".chicken-install.build")
     - remove if not "-k" and all goes well.
         - use different name (or ".") in case of "-k"?

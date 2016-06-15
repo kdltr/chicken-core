@@ -24,10 +24,17 @@
          "/"))))
 
 (define (http-fetch host port locn dest proxy-host proxy-port proxy-user-pass)
-  (let-values (((in out)
+  (let-values (((in out _)
     	         (http-connect host port locn proxy-host proxy-port
                                proxy-user-pass)))
     (http-retrieve-files in out dest)))
+
+(define (http-query host port locn proxy-host proxy-port proxy-user-pass)
+  (let-values (((in out len)
+    	         (http-connect host port locn proxy-host proxy-port
+                               proxy-user-pass)))
+    (close-output-port out)
+    (http-retrieve-response in len)))
 
 (define (http-connect host port locn proxy-host proxy-port proxy-user-pass)
   (d "connecting to host ~s, port ~a ~a...~%" host port
@@ -44,6 +51,7 @@
       (flush-output out)
       (d "reading response ...~%")
       (let* ((chunked #f)
+             (datalen #f)
              (h1 (read-line in))
              (response-match (match-http-response h1)))
         (d "~a~%" h1)
@@ -63,15 +71,18 @@
 	    (let loop ()
     	      (let ((ln (read-line in)))
 	        (unless (equal? ln "")
-		  (when (match-chunked-transfer-encoding ln) (set! chunked #t))
+		  (cond ((match-chunked-transfer-encoding ln)
+                         (set! chunked #t))
+                        ((match-content-length ln) =>
+                         (lambda (sz) (set! datalen sz))))
 		  (d "~a~%" ln)
 		  (loop) ) ) ) )
 	(when chunked
 	  (d "reading chunks ")
 	  (let ((data (read-chunks in)))
 	    (close-input-port in)
-	    (set! in (open-input-string data))) ) )
-      (values in out))))
+	    (set! in (open-input-string data))) )
+        (values in out datalen)))))
 
 (define (http-retrieve-files in out dest)
   (d "reading files ...~%")
@@ -123,6 +134,12 @@
                     (cut display data) #:binary ) )
 		(get-files (cons name files)) ) ) ) ) ))
 
+(define (http-retrieve-response in len)
+  (d "reading response ...~%")
+  (let ((data (read-string len in)))
+    (close-input-port in)
+    data))
+
 (define (server-error msg args)
   (abort
      (make-composite-condition
@@ -157,6 +174,10 @@
 (define (match-chunked-transfer-encoding ln)
   (irregex-match "[Tt]ransfer-[Ee]ncoding:\\s*chunked.*" ln) )
 
+(define (match-content-length ln)
+  (let ((m (irregex-match "[Cc]ontent-[Ll]ength:\\s*([0-9]+).*" ln)))
+    (and m (string->number (irregex-match-substring m 1)))))
+
 (define (make-HTTP-GET/1.1 location user-agent host
                            #!key
                            (port 80)
@@ -190,34 +211,58 @@
       (make-property-condition 'http-fetch))) )
 
 
-;; entry point
+;; entry points
+
+(define (list-versions egg url)
+  (receive (host port locn) (deconstruct-url url)
+    (let ((locn (conc locn
+                      "?name=" egg
+                      "&release=" (##sys#fudge 41)
+                      "&mode=default"
+                      "&listversions=1")))
+      (let ((data	(http-query host port locn proxy-host
+                              proxy-port proxy-user-pass)))
+        (string-split data)))))
+
+(define (try-list-versions name url #!key
+                           proxy-host proxy-port proxy-user-pass)
+  (condition-case (list-versions name url)
+    ((exn net)
+       (print "TCP connect timeout")
+       #f)
+    ((exn http-fetch)
+       (print "HTTP protocol error")
+       #f)
+    (e (exn setup-download-error)
+	 (print "Server error:")
+	 (print-error-message e) 
+	 #f)
+    (e () (abort e) )))
 
 (define (download-egg egg url #!key version destination tests
                       proxy-host proxy-port proxy-user-pass)
   (receive (host port locn) (deconstruct-url url)
     (let* ((locn (conc locn
-		    "?name=" egg
-		    "&release=" (##sys#fudge 41)
-		    (if version (string-append "&version=" version) "")
-		    "&mode=default"
-		    (if tests "&tests=yes" "")))
+                       "?name=" egg
+                       "&release=" (##sys#fudge 41)
+                       (if version (string-append "&version=" version) "")
+                       "&mode=default"
+                       (if tests "&tests=yes" "")))
 	   (eggdir (make-pathname destination egg)))
         (let ((fversion	(http-fetch host port locn eggdir proxy-host
                                     proxy-port proxy-user-pass)))
 	  ;; If we get here then version of egg exists
 	  (values eggdir (or fversion version "")) )) ) )
 
-(define (try-download name url #!key version destination tests username
-                      password proxy-host proxy-port proxy-user-pass)
+(define (try-download name url #!key version destination tests 
+                      proxy-host proxy-port proxy-user-pass)
   (condition-case
      (download-egg
          name url
          version: version
          destination: destination
          tests: tests
-         username: username
-         password: password
-	 proxy-host: proxy-host
+ 	 proxy-host: proxy-host
 	 proxy-port: proxy-port
 	 proxy-user-pass: proxy-user-pass)
     ((exn net)
