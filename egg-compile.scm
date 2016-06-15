@@ -46,6 +46,20 @@
     info))
 
 
+;;; load egg-info from file and perform validation
+
+(define (load-egg-info fname)
+  (with-input-from-file fname
+    (lambda () (validate-egg-info (read)))))
+
+
+;;; lookup specific entries in egg-information
+
+(define (get-egg-property info prop #!optional default)
+  (let ((p (assq prop info)))
+    (or (and p (cadr p)) default)))
+
+
 ;;; some utilities
 
 (define (object-extension platform)
@@ -58,10 +72,12 @@
      ((unix) unix-executable-extension)
      ((windows) windows-executable-extension)))
 
-(define (install-command platform)
+(define (copy-directory-command platform)
   (case platform
     ((unix) "cp")
     ((windows) "xcopy /y")))
+
+(define install-command copy-directory-command)
 
 (define (destination-repository mode)
   (case mode
