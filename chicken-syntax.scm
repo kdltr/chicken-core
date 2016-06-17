@@ -728,7 +728,9 @@
 
 (##sys#extend-macro-environment
  'let-optionals* 
- `((null? . ,(##sys#primitive-alias 'null?)))
+ `((null? . ,(##sys#primitive-alias 'null?))
+   (car . ,(##sys#primitive-alias 'car))
+   (cdr . ,(##sys#primitive-alias 'cdr)))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'let-optionals* form '(_ _ list . _))
@@ -741,17 +743,17 @@
       (let ((rvar (r 'tmp)))
 	`(##core#let
 	  ((,rvar ,args))
-	  ,(let loop ([args rvar] [vardefs var/defs])
+	  ,(let loop ((args rvar) (vardefs var/defs))
 	     (if (null? vardefs)
 		 `(##core#let () ,@body)
-		 (let ([head (car vardefs)])
+		 (let ((head (car vardefs)))
 		   (if (pair? head)
 		       (let ((rvar2 (r 'tmp2)))
 			 `(##core#let ((,(car head) (##core#if (,%null? ,args)
 							       ,(cadr head)
 							       (,%car ,args)))
 				       (,rvar2 (##core#if (,%null? ,args) 
-							  '()
+							  (##core#quote ())
 							  (,%cdr ,args))) )
 				      ,(loop rvar2 (cdr vardefs)) ) )
 		       `(##core#let ((,head ,args)) ,@body) ) ) ) ) ) ) ))))

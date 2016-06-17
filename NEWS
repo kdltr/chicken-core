@@ -55,6 +55,12 @@
   - The default error handler now truncates very long condition
     messages (thanks to Lemonboy).
 
+- Syntax expander
+  - DSSSL lambda lists have improved hygiene, so they don't need
+    the chicken or scheme modules to be imported in full (#806).
+  - The let-optionals* macro no longer needs "quote", "car" and "cdr"
+    to be imported and bound to their default values (#806).
+
 4.11.0
 
 - Security fixes
