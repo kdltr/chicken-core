@@ -336,17 +336,18 @@
 	   [else (loop (cdr llist))] ) ) ) )
 
 (define ##sys#expand-extended-lambda-list
-  (let ([reverse reverse])
+  (let ((reverse reverse))
     (lambda (llist0 body errh se)
       (define (err msg) (errh msg llist0))
       (define (->keyword s) (string->keyword (##sys#slot s 1)))
-      (let ([rvar #f]
-	    [hasrest #f] 
-	    (%let* (macro-alias 'let* se))
+      (let ((rvar #f)
+	    (hasrest #f)
+	    ;; These might not exist in se, use default or chicken env:
+	    (%let* (macro-alias 'let* ##sys#default-macro-environment))
 	    (%lambda '##core#lambda)
-	    (%opt (macro-alias 'optional se))
-	    (%let-optionals* (macro-alias 'let-optionals* se))
-	    (%let (macro-alias 'let se)))
+	    (%opt (macro-alias 'optional ##sys#chicken-macro-environment))
+	    (%let-optionals* (macro-alias 'let-optionals* ##sys#chicken-macro-environment))
+	    (%let '##core#let))
 	(let loop ([mode 0]		; req=0, opt=1, rest=2, key=3, end=4
 		   [req '()]
 		   [opt '()]

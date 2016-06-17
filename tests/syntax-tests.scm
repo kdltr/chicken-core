@@ -247,7 +247,7 @@
 
 ;;; strip-syntax on renamed module identifiers, as well as core identifiers
 (module foo (bar)
-  (import chicken scheme)
+  (import scheme)
 
   (define bar 1))
 
@@ -489,7 +489,7 @@
 ;;; incorrect lookup for keyword variables in DSSSL llists
 
 (module broken-keyword-var ()
-  (import scheme chicken)
+  (import scheme (only chicken assert))
   ((lambda (#!key string) (assert (not string))))) ; refered to R5RS `string'
 
 ;;; Missing check for keyword and optional variable types in DSSSL llists
@@ -517,7 +517,7 @@
 (define x 99)
 
 (module primitive-assign ()
-  (import scheme chicken)
+  (import scheme (only chicken assert setter))
   (let ((x 100)) (set! x 20) (assert (= x 20)))
   (set! setter 123))
 
@@ -627,7 +627,7 @@
 
 (module m2 (s3 s4)
 
-  (import chicken scheme)
+  (import scheme)
 
   (define-syntax s3 (syntax-rules () ((_ x) (list x))))
 
@@ -844,18 +844,31 @@
 (f (eval '(lambda ((x 0) #!rest r1) 'foo)))
 (f (eval '(lambda (x #!rest (r1 0)) 'foo)))
 
+;; "optional" expansion should not rely on user imports (hygiene)
+(t '(1 2)
+   (eval '(module x ()
+	    (import (only scheme lambda list))
+	    ((lambda (x #!optional (y 0)) (list x y)) 1 2))))
+
 ;; Dotted list syntax can be mixed in
 (t '(1 2 3 4 (5 6))
    ((lambda (x y #!optional o1 o2 . r) (list x y o1 o2 r))
     1 2 3 4 5 6))
 
+;; More DSSSL hygiene issues, from #806
+(module dsssl-extended-lambda-list-hygiene ()
+  (import (prefix scheme s/))
+  (s/define (foo #!optional bar #!rest qux #!key baz)
+	    (s/list bar baz qux)))
+
 ;;; import not seen, if explicitly exported and renamed:
 
 (module rfoo (rbar rbaz)
-(import scheme chicken)
+(import scheme)
 
 (define (rbaz x)
-  (print x))
+  (display x)
+  (newline) )
 
 (define-syntax rbar
   (syntax-rules ()
@@ -1047,7 +1060,7 @@
 ;; an identifier to something imported for the runtime environment
 
 (module foonumbers (+)
-  (import (except scheme +) chicken)
+  (import (except scheme +) (only chicken error))
   (define (+ . _) (error "failed.")))
 
 (import foonumbers)
@@ -1106,7 +1119,7 @@ take
 ;;       definitions, causing the module to be unresolvable.
 
 (module foo ()
-  (import chicken scheme)
+  (import scheme)
   (define-syntax bar
     (syntax-rules ()
       ((_) (begin (define req 1) (display req) (newline)))))
@@ -1118,7 +1131,7 @@ take
 ;; and some Schemes (at least Gauche) behave the same way.  I think it's
 ;; broken, since it's unhygienic.
 #;(module foo ()
-  (import chicken scheme)
+  (import scheme)
   (define req 1)
   (define-syntax bar
     (syntax-rules ()
