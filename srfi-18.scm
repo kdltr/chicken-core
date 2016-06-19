@@ -193,7 +193,7 @@
                      (##sys#thread-block-for-termination! ct thread) ) )
                 (else
                  (##sys#error 'thread-join!
-                              "Internal scheduler error: unknown thread state: "
+                              "Internal scheduler error: unknown thread state"
                               ct (##sys#slot thread 3)) ) ) ) )
 	   (##sys#thread-block-for-termination! ct thread)
 	   (##sys#schedule) ) ) ) ) ) )
@@ -369,7 +369,7 @@
 		  (##sys#setslot wt 11 #f)
 		  (##sys#add-to-ready-queue wt))
 		 (else
-		  (##sys#error 'mutex-unlock "Internal scheduler error: unknown thread state: "
+		  (##sys#error 'mutex-unlock "Internal scheduler error: unknown thread state"
 			       wt wts))) ) )
 	   (if (eq? (##sys#slot ct 3) 'running)
 	       (return #t)
