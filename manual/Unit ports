@@ -72,9 +72,9 @@ be a procedure of no arguments. {{FLUSH}} (if provided) is called
 for flushing the output port.
 
 
-==== with-error-output-to-port
+==== with-error-to-port
 
-<procedure>(with-error-output-to-port PORT THUNK)</procedure>
+<procedure>(with-error-to-port PORT THUNK)</procedure>
 
 Call procedure {{THUNK}} with the current error output-port
 temporarily bound to {{PORT}}.
@@ -120,6 +120,14 @@ bound to an input-string-port with the contents of {{STRING}}.
 
 Call procedure {{THUNK}} with the current output-port temporarily
 bound to a string-output-port and return the accumulated output string.
+
+==== with-error-to-string
+
+<procedure>(with-error-to-string THUNK)</procedure>
+
+Call procedure {{THUNK}} with the current error output-port
+temporarily bound to a string-output-port and return the accumulated
+output string.
 
 
 === Port iterators

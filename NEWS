@@ -28,6 +28,9 @@
   - `sleep` now suspends the current thread when threading is enabled,
     otherwise it sleeps the process. The new `process-sleep` procedure
     in unit posix can be used to sleep the process unconditionally.
+  - `with-error-output-to-port' from the ports module has been renamed
+    to the more common `with-error-to-port', and `with-error-to-string'
+    has been added for completeness (thanks to Michael Silver).
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

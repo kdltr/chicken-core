@@ -47,11 +47,12 @@
    port-fold
    make-broadcast-port
    make-concatenated-port
-   with-error-output-to-port
+   with-error-to-port
    with-input-from-port
    with-input-from-string
    with-output-to-port
-   with-output-to-string)
+   with-output-to-string
+   with-error-to-string)
 
 (import scheme chicken)
 (import chicken.io)
@@ -183,17 +184,17 @@
 
 (define (with-input-from-port port thunk)
   (##sys#check-input-port port #t 'with-input-from-port)
-  (fluid-let ([##sys#standard-input port])
+  (fluid-let ((##sys#standard-input port))
     (thunk) ) )
 
 (define (with-output-to-port port thunk)
   (##sys#check-output-port port #t 'with-output-to-port)
-  (fluid-let ([##sys#standard-output port])
+  (fluid-let ((##sys#standard-output port))
     (thunk) ) )
 
-(define (with-error-output-to-port port thunk)
-  (##sys#check-output-port port #t 'with-error-output-to-port)
-  (fluid-let ([##sys#standard-error port])
+(define (with-error-to-port port thunk)
+  (##sys#check-output-port port #t 'with-error-to-port)
+  (fluid-let ((##sys#standard-error port))
     (thunk) ) )
 
 ;;; Extended string-port operations:
@@ -216,10 +217,15 @@
 
 (define with-output-to-string
   (lambda (thunk)
-    (fluid-let ([##sys#standard-output (open-output-string)])
+    (fluid-let ((##sys#standard-output (open-output-string)))
       (thunk) 
       (get-output-string ##sys#standard-output) ) ) )
 
+(define with-error-to-string
+  (lambda (thunk)
+    (fluid-let ((##sys#standard-error (open-output-string)))
+      (thunk)
+      (get-output-string ##sys#standard-error) ) ) )
 
 ;;; Custom ports:
 ;

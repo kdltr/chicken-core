@@ -1847,11 +1847,12 @@
 (chicken.ports#port-fold (#(procedure #:enforce) chicken.ports#port-fold ((procedure (* *) *) * (procedure () *)) *))
 (chicken.ports#make-broadcast-port (#(procedure #:clean #:enforce) chicken.ports#make-broadcast-port (#!rest output-port) output-port))
 (chicken.ports#make-concatenated-port (#(procedure #:clean #:enforce) chicken.ports#make-concatenated-port (port #!rest input-port) input-port))
-(chicken.ports#with-error-output-to-port (#(procedure #:enforce) chicken.ports#with-error-output-to-port (output-port (procedure () . *)) . *))
+(chicken.ports#with-error-to-port (#(procedure #:enforce) chicken.ports#with-error-to-port (output-port (procedure () . *)) . *))
 (chicken.ports#with-input-from-port (#(procedure #:enforce) chicken.ports#with-input-from-port (input-port (procedure () . *)) . *))
 (chicken.ports#with-input-from-string (#(procedure #:enforce) chicken.ports#with-input-from-string (string (procedure () . *)) . *))
 (chicken.ports#with-output-to-port (#(procedure #:enforce) chicken.ports#with-output-to-port (output-port (procedure () . *)) . *))
-(chicken.ports#with-output-to-string (#(procedure #:enforce) chicken.ports#with-output-to-string ((procedure () . *)) . *))
+(chicken.ports#with-output-to-string (#(procedure #:enforce) chicken.ports#with-output-to-string ((procedure () . *)) string))
+(chicken.ports#with-error-to-string (#(procedure #:enforce) chicken.ports#with-error-to-string ((procedure () . *)) string))
 
 ;; errno
 
