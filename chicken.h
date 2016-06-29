@@ -2246,7 +2246,10 @@ C_mutate2(C_word *slot, C_word val) /* OBSOLETE */
 
 C_inline C_word C_permanentp(C_word x)
 {
-  return C_mk_bool(!C_immediatep(x) && !C_in_stackp(x) && !C_in_heapp(x));
+  return C_mk_bool(!C_immediatep(x) &&
+                   !C_in_stackp(x) &&
+                   !C_in_heapp(x) &&
+                   !C_in_scratchspacep(x));
 }
 
 
