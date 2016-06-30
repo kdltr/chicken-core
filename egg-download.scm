@@ -248,7 +248,7 @@
                        (if version (string-append "&version=" version) "")
                        "&mode=default"
                        (if tests "&tests=yes" "")))
-	   (eggdir (make-pathname destination egg)))
+	   (eggdir destination))
         (let ((fversion	(http-fetch host port locn eggdir proxy-host
                                     proxy-port proxy-user-pass)))
 	  ;; If we get here then version of egg exists

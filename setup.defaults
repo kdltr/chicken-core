@@ -9,15 +9,12 @@
 
 ;; list of servers in the order in which they will be processed
 ;
-; (server (location URL))
+; (server URL)
 ;
 ; URL may be an alias (see below) or a real URL
 
-(server
- (location "kitten-technologies"))
-
-(server
- (location "call-cc"))
+(server "kitten-technologies")
+(server "call-cc")
 
 
 ;; extensions-mappings
