@@ -16,7 +16,7 @@
 (import (chicken time))
 (import (chicken pretty-print))
 
-(define +defaults-version+ 1)
+(define +defaults-version+ 2)
 (define +module-db+ "modules.db")
 (define +defaults-file+ "setup.defaults")
 (define +short-options+ '(#\r #\h))
@@ -30,7 +30,8 @@
 (include "egg-compile.scm")
 (include "egg-download.scm")
 
-(define quiet #f)
+(define user-defaults #f)
+(define quiet #f)  ;XXX
 (define default-servers '())
 (define default-locations '())
 (define mappings '())
@@ -41,6 +42,7 @@
 (define proxy-port #f)
 (define proxy-user-pass #f)
 (define retrieve-only #f)
+(define list-versions-only #f)
 (define canonical-eggs '())
 (define run-tests #f)
   
@@ -67,6 +69,7 @@
 ;; usage information
   
 (define (usage code)
+  (print "usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...")
   ;;XXX  
   (exit code))
   
@@ -82,9 +85,10 @@
    	            (substring s (- len-s len-suffix))))))
 
 (define (d fstr . args)
-  (let ((port (if quiet (current-error-port) (current-output-port))))
-    (apply fprintf port fstr args)
-    (flush-output port) ) )
+  (unless quiet
+    (let ((port (current-error-port)))
+      (apply fprintf port fstr args)
+      (flush-output port) ) ))
 
 (define (version>=? v1 v2)
   (define (version->list v)
@@ -109,7 +113,8 @@
 ;; load defaults file ("setup.defaults")
 
 (define (load-defaults)
-  (let ((deff (make-pathname host-sharedir +defaults-file+)))
+  (let ((deff (or user-defaults
+                  (make-pathname host-sharedir +defaults-file+))))
       (define (broken x)
 	(error "invalid entry in defaults file" deff x))
       (cond ((not (file-exists? deff)) '())
@@ -132,7 +137,7 @@
 			 ))
 		  ((server)
 		   (set! default-servers
-		     (append default-servers (list (cdr x)))))
+		     (append default-servers (cdr x))))
 		  ((map)
 		   (set! mappings
 		     (append
@@ -232,8 +237,11 @@
     (define (fetch)
       (when (file-exists? cached)
         (delete-directory cached #t))
+      (create-directory cached)
       (fetch-egg-sources name version cached)
       (with-output-to-file status (cut write current-status)))
+    (unless (file-exists? cache-directory)
+      (create-directory cache-directory))
     (cond ((not (probe-dir cached)) (fetch))
           ((and (file-exists? status)
                 (not (equal? current-status 
@@ -249,12 +257,20 @@
                (values cached (get-egg-property info 'version))))
             (else (values cached version))))))
     
+(define (resolve-location name)
+  (cond ((assoc name aliases) => 
+         (lambda (a)
+           (let ((new (cdr a)))
+             (d "resolving alias `~a' to: ~a~%" name new)
+             (resolve-location new))))
+        (else name)))
+
 (define (fetch-egg-sources name version dest)
   (let loop ((locs default-locations))
     (cond ((null? locs)
            (let loop ((srvs default-servers))
              (receive (dir ver)
-               (try-download name (car srvs) 
+               (try-download name (resolve-location (car srvs))
                              version: version 
                              destination: dest
                              tests: run-tests 
@@ -317,15 +333,52 @@
                     (cons (list name dir ver) canonical-eggs)))))))
      eggs)
   (unless retrieve-only
+    ;;XXX recursive retrieval of dependencies...
     (error "to be implemented"))) ; XXX
 
   
+;; list available egg versions
+  
+(define (list-egg-versions eggs)
+  (let ((srvs (map resolve-location default-servers)))
+    (let loop1 ((eggs eggs))
+      (unless (null? eggs)
+        (let* ((egg (car eggs))
+               (name (if (pair? egg) (car egg) egg)))
+          (let loop2 ((srvs srvs))
+            (and (pair? srvs)
+                 (let ((versions (try-list-versions name (car srvs))))
+                   (or (and versions 
+                            (begin
+                              (printf "~a:" name)
+                              (for-each (cut printf " ~a" <>) versions)))
+                       (loop2 (cdr srvs))))))
+          (loop1 (cdr eggs)))))))
+
+  
+;; perform installation of retrieved eggs
+  
+(define (install-canonical-eggs)
+  ...
+  )
+
 ;; command line parsing and selection of operations
   
 (define (perform-actions eggs)
-  (let ((eggs (apply-mappings eggs)))
-    ;;XXX...
-    (retrieve-eggs eggs)))
+  (load-defaults)
+  (cond ((null? eggs)
+         (set! canonical-eggs 
+           (map (lambda (fname)
+                  (list (pathname-file fname) (current-directory) #f))
+             (glob "*.egg")))
+         (install-canonical-eggs))
+        (else
+          (let ((eggs (apply-mappings eggs)))
+            (cond (list-versions-only (list-egg-versions eggs))
+                  ;;XXX other actions...
+                  (else 
+                    (retrieve-eggs eggs)
+                    (install-canonical-eggs)))))))
 
 (define (main args)
   (setup-proxy (get-environment-variable "http_proxy"))
@@ -338,7 +391,17 @@
             (cond ((member arg '("-h" "-help" "--help"))
                    (usage 0))
                   ((equal? arg "-test")
-                   (set! run-tests #t))
+                   (set! run-tests #t)
+                   (loop (cdr args)))
+                  ((member arg '("-r" "-retrieve"))
+                   (set! retrieve-only #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-list-versions")
+                   (set! list-versions-only #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-defaults")
+                   (set! user-defaults (cadr args))
+                   (loop (cddr args)))
 
                   ;;XXX 
                   
@@ -358,9 +421,10 @@
                        (alist-cons
                          (irregex-match-substring m 1)
                          (irregex-match-substring m 2)
-                         eggs))))
+                         eggs))
+                     (loop (cdr args))))
                   (else 
-                    (set! eggs (cons arg args))
+                    (set! eggs (cons arg eggs))
                     (loop (cdr args)))))))))
 
 (main (command-line-arguments))
