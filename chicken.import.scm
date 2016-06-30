@@ -114,6 +114,7 @@
    getter-with-setter
    implicit-exit-handler
    infinite?
+   input-port-open?
    (ir-macro-transformer . chicken.expand#ir-macro-transformer)
    keyword-style
    (load-library . chicken.eval#load-library)
@@ -135,6 +136,7 @@
    on-exit
    open-input-string
    open-output-string
+   output-port-open?
    parentheses-synonyms
    port-closed?
    port-name

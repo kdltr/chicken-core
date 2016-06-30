@@ -33,6 +33,8 @@
   - `with-error-output-to-port' from the ports module has been renamed
     to the more common `with-error-to-port', and `with-error-to-string'
     has been added for completeness (thanks to Michael Silver).
+  - New `input-port-open?` and `output-port-open?` procedures have been
+    added for testing whether a port is open in a specific direction.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

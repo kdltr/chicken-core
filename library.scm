@@ -2506,6 +2506,14 @@ EOF
   (and (##core#inline "C_blockp" x)
        (##core#inline "C_output_portp" x)))
 
+(define (input-port-open? p)
+  (##sys#check-input-port p 'input-port-open?)
+  (##core#inline "C_input_port_openp" p))
+
+(define (output-port-open? p)
+  (##sys#check-output-port p 'output-port-open?)
+  (##core#inline "C_output_port_openp" p))
+
 (define (port-closed? p)
   (##sys#check-port p 'port-closed?)
   (fx= (##sys#slot p 8) 0))
@@ -2761,10 +2769,9 @@ EOF
   (define (close port inp loc)
     (##sys#check-port port loc)
     ; repeated closing is ignored
-    (let* ((old-closed (##sys#slot port 8))
-	   (new-closed (fxand old-closed (fxnot (if inp 1 2)))))
-      (unless (fx= new-closed old-closed) ; already closed?
-	(##sys#setislot port 8 new-closed)
+    (let ((direction (if inp 1 2)))
+      (when (##core#inline "C_port_openp" port direction)
+	(##sys#setislot port 8 (fxand (##sys#slot port 8) (fxnot direction)))
 	((##sys#slot (##sys#slot port 2) 4) port inp))))
 
   (set! open-input-file (lambda (name . mode) (open name #t mode 'open-input-file)))
@@ -2857,12 +2864,12 @@ EOF
   (##sys#setslot port 3 name) )
 
 (define (##sys#port-line port)
-  (and (fxodd? (##sys#slot port 1)) ; input port?
+  (and (##core#inline "C_input_portp" port)
        (##sys#slot port 4) ) )
 
 (define (port-position #!optional (port ##sys#standard-input))
   (##sys#check-port port 'port-position)
-  (if (fxodd? (##sys#slot port 1)) ; input port?
+  (if (##core#inline "C_input_portp" port)
       (##sys#values (##sys#slot port 4) (##sys#slot port 5))
       (##sys#error 'port-position "cannot compute position of port" port) ) )
 

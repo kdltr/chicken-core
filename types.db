@@ -756,6 +756,9 @@
 (open-output-file (#(procedure #:clean #:enforce) open-output-file (string #!rest symbol) output-port))
 (close-input-port (#(procedure #:enforce) close-input-port (input-port) undefined))
 (close-output-port (#(procedure #:enforce) close-output-port (output-port) undefined))
+(input-port-open? (#(procedure #:enforce) input-port-open? (input-port) boolean))
+(output-port-open? (#(procedure #:enforce) output-port-open? (output-port) boolean))
+
 (read (#(procedure #:enforce) read (#!optional input-port) *))
 
 (eof-object? (#(procedure #:pure #:predicate eof) eof-object? (*) boolean))

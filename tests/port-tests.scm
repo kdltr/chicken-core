@@ -95,6 +95,13 @@ EOF
      (lambda (in) (read-char in)))
     (get-output-string out))))
 
+;; {input,output}-port-open?
+
+(assert (input-port-open? (open-input-string "abc")))
+(assert (output-port-open? (open-output-string)))
+(assert-error (input-port-open? (open-output-string)))
+(assert-error (output-port-open? (open-input-string "abc")))
+
 ;; direction-specific port closure
 
 (let* ((n 0)
@@ -102,26 +109,26 @@ EOF
 			   (constantly #t)
 			   (lambda () (set! n (add1 n))))))
   (close-output-port p)
-  (assert (not (port-closed? p)))
+  (assert (input-port-open? p))
   (assert (= n 0))
   (close-input-port p)
-  (assert (port-closed? p))
+  (assert (not (input-port-open? p)))
   (assert (= n 1))
   (close-input-port p)
-  (assert (port-closed? p))
+  (assert (not (input-port-open? p)))
   (assert (= n 1)))
 
 (let* ((n 0)
        (p (make-output-port (lambda () (display #\a))
 			    (lambda () (set! n (add1 n))))))
   (close-input-port p)
-  (assert (not (port-closed? p)))
+  (assert (output-port-open? p))
   (assert (= n 0))
   (close-output-port p)
-  (assert (port-closed? p))
+  (assert (not (output-port-open? p)))
   (assert (= n 1))
   (close-output-port p)
-  (assert (port-closed? p))
+  (assert (not (output-port-open? p)))
   (assert (= n 1)))
 
 ;; fill buffers

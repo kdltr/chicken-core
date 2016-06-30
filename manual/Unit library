@@ -341,11 +341,21 @@ different behavior.
 Write buffered output to the given output-port. {{PORT}} defaults
 to the value of {{(current-output-port)}}.
 
+==== input-port-open?
+
+<procedure>(input-port-open? PORT)</procedure>
+
+Is the given {{PORT}} open for input?
+
+<procedure>(output-port-open? PORT)</procedure>
+
+Is the given {{PORT}} open for output?
+
 ==== port-closed?
 
 <procedure>(port-closed? PORT)</procedure>
 
-Is the given {{PORT}} closed?
+Is the given {{PORT}} closed (in all directions)?
 
 ==== port-name
 
