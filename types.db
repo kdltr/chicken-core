@@ -1849,6 +1849,7 @@
  (forall (a b) (#(procedure #:enforce) chicken.ports#port-map ((procedure (a) b) (procedure () a)) (list-of b))))
 
 (chicken.ports#port-fold (#(procedure #:enforce) chicken.ports#port-fold ((procedure (* *) *) * (procedure () *)) *))
+(chicken.ports#make-bidirectional-port (#(procedure #:clean #:enforce) chicken.ports#make-bidirectional-port (input-port output-port) (refine (input output) port)))
 (chicken.ports#make-broadcast-port (#(procedure #:clean #:enforce) chicken.ports#make-broadcast-port (#!rest output-port) output-port))
 (chicken.ports#make-concatenated-port (#(procedure #:clean #:enforce) chicken.ports#make-concatenated-port (port #!rest input-port) input-port))
 (chicken.ports#with-error-to-port (#(procedure #:enforce) chicken.ports#with-error-to-port (output-port (procedure () . *)) . *))

@@ -45,6 +45,7 @@
    port-for-each
    port-map
    port-fold
+   make-bidirectional-port
    make-broadcast-port
    make-concatenated-port
    with-error-to-port
@@ -288,5 +289,33 @@
 	   (port (##sys#make-port 2 class "(custom)" 'custom)))
       (##sys#set-port-data! port data) 
       port) ) )
+
+(define (make-bidirectional-port i o)
+  (let* ((class (vector
+		 (lambda (_)             ; read-char
+		   (read-char i))
+		 (lambda (_)             ; peek-char
+		   (peek-char i))
+		 (lambda (_ c)           ; write-char
+		   (write-char c o))
+		 (lambda (_ s)           ; write-string
+		   (write-string s #f o))
+		 (lambda (_ d)           ; close
+		   (case d
+		     ((1) (close-input-port i))
+		     ((2) (close-output-port o))))
+		 (lambda (_)             ; flush-output
+		   (flush-output o))
+		 (lambda (_)             ; char-ready?
+		   (char-ready? i))
+		 (lambda (_ n d s)       ; read-string!
+		   (read-string! n d i s))
+		 (lambda (_ l)           ; read-line
+		   (read-line i l))
+		 (lambda ()              ; read-buffered
+		   (read-buffered i))))
+	 (port (##sys#make-port 3 class "(bidirectional)" 'bidirectional)))
+    (##sys#set-port-data! port (vector #f))
+    port))
 
 )

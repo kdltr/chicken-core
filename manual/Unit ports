@@ -167,6 +167,15 @@ as {{(READ FROM)}} and {{(WRITE X TO)}}, respectively.
 
 === Funky ports
 
+==== make-bidirectional-port
+
+<procedure>(make-bidirectional-port INPUT-PORT OUTPUT-PORT)</procedure>
+
+Returns a joint input/output port that proxies port operations to the
+given {{INPUT-PORT}} and {{OUTPUT-PORT}}, respectively. This port
+satisfies both {{input-port?}} and {{output-port?}}, and its two
+directions may be closed independently.
+
 ==== make-broadcast-port
 
 <procedure>(make-broadcast-port PORT ...)</procedure>

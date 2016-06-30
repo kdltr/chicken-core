@@ -2772,7 +2772,7 @@ EOF
     (let ((direction (if inp 1 2)))
       (when (##core#inline "C_port_openp" port direction)
 	(##sys#setislot port 8 (fxand (##sys#slot port 8) (fxnot direction)))
-	((##sys#slot (##sys#slot port 2) 4) port inp))))
+	((##sys#slot (##sys#slot port 2) 4) port direction))))
 
   (set! open-input-file (lambda (name . mode) (open name #t mode 'open-input-file)))
   (set! open-output-file (lambda (name . mode) (open name #f mode 'open-output-file)))

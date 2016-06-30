@@ -33,6 +33,9 @@
   - `with-error-output-to-port' from the ports module has been renamed
     to the more common `with-error-to-port', and `with-error-to-string'
     has been added for completeness (thanks to Michael Silver).
+  - A new `make-bidirectional-port' procedure has been added to the
+    ports unit that will combine separate input- and output- ports into
+    a single bidirectional port.
   - New `input-port-open?` and `output-port-open?` procedures have been
     added for testing whether a port is open in a specific direction.
 
