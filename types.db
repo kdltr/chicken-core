@@ -729,22 +729,24 @@
 (call-with-current-continuation
  (#(procedure #:enforce) call-with-current-continuation ((procedure (procedure) . *)) . *))
 
-(input-port? (#(procedure #:pure #:predicate input-port) input-port? (*) boolean))
-(output-port? (#(procedure #:pure #:predicate output-port) output-port? (*) boolean))
+(input-port? (#(procedure #:pure #:predicate (refine (input) port)) input-port? (*) boolean))
+(output-port? (#(procedure #:pure #:predicate (refine (output) port)) output-port? (*) boolean))
 
 (current-input-port
  (#(procedure #:clean #:enforce) current-input-port (#!optional input-port boolean boolean) input-port)
- ((input-port) (let ((#(tmp1) #(1))) 
-		 (let ((#(tmp2) (set! ##sys#standard-input #(tmp1))))
-		   #(tmp1))))
- (() ##sys#standard-input))
+ (() ##sys#standard-input)
+ (((refine (input) port))
+  (let ((#(tmp1) #(1)))
+    (let ((#(tmp2) (set! ##sys#standard-input #(tmp1))))
+      #(tmp1)))))
 
 (current-output-port
  (#(procedure #:clean #:enforce) current-output-port (#!optional output-port boolean boolean) output-port)
- ((output-port) (let ((#(tmp1) #(1)))
-		  (let ((#(tmp2) (set! ##sys#standard-output #(tmp1))))
-		    #(tmp1))))
- (() ##sys#standard-output))
+ (() ##sys#standard-output)
+ (((refine (output) port))
+  (let ((#(tmp1) #(1)))
+    (let ((#(tmp2) (set! ##sys#standard-output #(tmp1))))
+      #(tmp1)))))
 
 (call-with-input-file
     (procedure call-with-input-file (string (procedure (input-port) . *) #!rest) . *))
@@ -1251,7 +1253,7 @@
 
 (port-position (#(procedure #:clean #:enforce) port-position (#!optional port) fixnum fixnum))
 
-(port? (#(procedure #:pure #:predicate (or input-port output-port)) port? (*) boolean))
+(port? (#(procedure #:pure #:predicate port) port? (*) boolean))
 
 (port-closed? (#(procedure #:clean #:enforce) port-closed? (port) boolean)
 	      ((port) (eq? (##sys#slot #(1) '8) '0)))
@@ -1399,10 +1401,9 @@
 		     ((procedure *) (let ((#(tmp) #(1))) '#t)))
 
 (##sys#check-port 
- (#(procedure #:clean #:enforce) ##sys#check-port ((or input-port output-port) #!optional *)
-  *)
- (((or input-port output-port)) (let ((#(tmp) #(1))) '#t))
- (((or input-port output-port) *) (let ((#(tmp) #(1))) '#t)))
+ (#(procedure #:clean #:enforce) ##sys#check-port ((or input-port output-port) #!optional *) *)
+ (((or (refine (input) port) (refine (output) port))) (let ((#(tmp) #(1))) '#t))
+ (((or (refine (input) port) (refine (output) port)) *) (let ((#(tmp) #(1))) '#t)))
 
 (##sys#check-input-port
  (#(procedure #:clean #:enforce) ##sys#check-input-port (input-port * #!optional *) *)

@@ -129,6 +129,7 @@
 (check + 1.2 procedure)
 (check '#(1) 1.2 vector)
 (check '() 1 null)
+(check (current-input-port) 1.2 port)
 (check (current-input-port) 1.2 input-port)
 (check (make-blob 10) 1.2 blob)
 (check (address->pointer 0) 1.2 pointer)
@@ -184,7 +185,9 @@
 (checkp condition? (##sys#make-structure 'condition) (struct condition))
 (checkp fixnum? 1 fixnum)
 (checkp flonum? 1.2 float)
+(checkp port? (current-input-port) port)
 (checkp input-port? (current-input-port) input-port)
+(checkp output-port? (current-output-port) output-port)
 (checkp pointer-vector? (make-pointer-vector 1) pointer-vector)
 (checkp pointer? (address->pointer 1) pointer)
 
@@ -196,6 +199,16 @@
 (type> list (list *))
 (type> vector (vector *))
 
+(define-type x (struct x))
+
+(type<= (refine (a) x) x)
+(type<= (refine (a b) x) (refine (a) x))
+(type<= (refine (a) false) (refine (a) boolean))
+
+(type> (refine (a) x) (refine (b) x))
+(type> (refine (a) x) (refine (a b) x))
+(type> (refine (a) boolean) (refine (a) false))
+
 (mn pair null)
 (mn pair list)
 
@@ -205,6 +218,11 @@
 
 (mx (forall (a) (procedure (#!rest a) a)) +)
 (mx (list fixnum) '(1))
+
+(mx port (open-input-string "foo"))
+(mx input-port (open-input-string "bar"))
+(mx port (open-output-string))
+(mx output-port (open-output-string))
 
 ;;; pairs
 
@@ -337,6 +355,15 @@
 
 (compiler-typecase (f4 '(1))
   (fixnum 'ok))
+
+(assert
+ (eq? 'ok (compiler-typecase (the port xxx)
+	    ((not port) 'no)
+	    ((not input-port) 'no)
+	    ((not output-port) 'no)
+	    (input-port 'no)
+	    (output-port 'no)
+	    (port 'ok))))
 
 (assert
  (eq? 'ok (compiler-typecase (f4 1)

@@ -182,7 +182,7 @@
 (let ((x _))
   (if (char-or-string? x)
       (symbol? x)   ; should report with x = (or char string)
-      (string? x))) ; should not report
+      (string? x))) ; should report with x = (not (or char string))
 
 (let ((x (the fixnum _)))
   (if (char-or-string? x)

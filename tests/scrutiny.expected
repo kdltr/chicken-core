@@ -114,6 +114,9 @@ Note: at toplevel:
   (scrutiny-tests.scm:184) in procedure call to `symbol?', the predicate is called with an argument of type `(or char string)' and will always return false
 
 Note: at toplevel:
+  (scrutiny-tests.scm:185) in procedure call to `string?', the predicate is called with an argument of type `(not (or char string))' and will always return false
+
+Note: at toplevel:
   (scrutiny-tests.scm:188) in procedure call to `char-or-string?', the predicate is called with an argument of type `fixnum' and will always return false
 
 Note: at toplevel:
