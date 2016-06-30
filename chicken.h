@@ -674,20 +674,21 @@ static inline int isinf_ld (long double x)
 #define C_BAD_ARGUMENT_TYPE_NO_LOCATIVE_ERROR         38
 #define C_BAD_ARGUMENT_TYPE_NO_PORT_ERROR             39
 #define C_BAD_ARGUMENT_TYPE_PORT_DIRECTION_ERROR      40
-/* unused                                             41 */
-#define C_PORT_CLOSED_ERROR                           42
-#define C_ASCIIZ_REPRESENTATION_ERROR                 43
-#define C_MEMORY_VIOLATION_ERROR                      44
-#define C_FLOATING_POINT_EXCEPTION_ERROR              45
-#define C_ILLEGAL_INSTRUCTION_ERROR                   46
-#define C_BUS_ERROR                                   47
-#define C_BAD_ARGUMENT_TYPE_NO_EXACT_ERROR            48
-#define C_BAD_ARGUMENT_TYPE_NO_INEXACT_ERROR          49
-#define C_BAD_ARGUMENT_TYPE_NO_REAL_ERROR             50
-#define C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR 51
-#define C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR    52
-#define C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION        53
-#define C_BAD_ARGUMENT_TYPE_COMPLEX_ABS               54
+#define C_BAD_ARGUMENT_TYPE_PORT_NO_INPUT_ERROR       41
+#define C_BAD_ARGUMENT_TYPE_PORT_NO_OUTPUT_ERROR      42
+#define C_PORT_CLOSED_ERROR                           43
+#define C_ASCIIZ_REPRESENTATION_ERROR                 44
+#define C_MEMORY_VIOLATION_ERROR                      45
+#define C_FLOATING_POINT_EXCEPTION_ERROR              46
+#define C_ILLEGAL_INSTRUCTION_ERROR                   47
+#define C_BUS_ERROR                                   48
+#define C_BAD_ARGUMENT_TYPE_NO_EXACT_ERROR            49
+#define C_BAD_ARGUMENT_TYPE_NO_INEXACT_ERROR          50
+#define C_BAD_ARGUMENT_TYPE_NO_REAL_ERROR             51
+#define C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR 52
+#define C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR    53
+#define C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION        54
+#define C_BAD_ARGUMENT_TYPE_COMPLEX_ABS               55
 
 /* Platform information */
 #if defined(C_BIG_ENDIAN)

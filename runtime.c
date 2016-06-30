@@ -1887,6 +1887,16 @@ void barf(int code, char *loc, ...)
     c = 1;
     break;
 
+  case C_BAD_ARGUMENT_TYPE_PORT_NO_INPUT_ERROR:
+    msg = C_text("bad argument type - not an input-port");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_PORT_NO_OUTPUT_ERROR:
+    msg = C_text("bad argument type - not an output-port");
+    c = 1;
+    break;
+
   case C_PORT_CLOSED_ERROR:
     msg = C_text("port already closed");
     c = 1;
@@ -7067,7 +7077,14 @@ C_regparm C_word C_fcall C_i_check_port_2(C_word x, C_word dir, C_word open, C_w
 
   if((C_block_item(x, 1) & dir) != dir) {	/* slot #1: I/O direction mask */
     error_location = loc;
-    barf(C_BAD_ARGUMENT_TYPE_PORT_DIRECTION_ERROR, NULL, x);
+    switch (dir) {
+    case C_fix(1):
+      barf(C_BAD_ARGUMENT_TYPE_PORT_NO_INPUT_ERROR, NULL, x);
+    case C_fix(2):
+      barf(C_BAD_ARGUMENT_TYPE_PORT_NO_OUTPUT_ERROR, NULL, x);
+    default:
+      barf(C_BAD_ARGUMENT_TYPE_PORT_DIRECTION_ERROR, NULL, x);
+    }
   }
 
   if(open == C_SCHEME_TRUE) {
