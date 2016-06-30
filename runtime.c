@@ -1882,13 +1882,8 @@ void barf(int code, char *loc, ...)
     c = 1;
     break;
 
-  case C_BAD_ARGUMENT_TYPE_NO_INPUT_PORT_ERROR:
-    msg = C_text("bad argument type - not an input-port");
-    c = 1;
-    break;
-
-  case C_BAD_ARGUMENT_TYPE_NO_OUTPUT_PORT_ERROR:
-    msg = C_text("bad argument type - not an output-port");
+  case C_BAD_ARGUMENT_TYPE_PORT_DIRECTION_ERROR:
+    msg = C_text("bad argument type - not a port of the correct type");
     c = 1;
     break;
 
@@ -7062,39 +7057,21 @@ C_regparm C_word C_fcall C_i_check_list_2(C_word x, C_word loc)
 }
 
 
-C_regparm C_word C_fcall C_i_check_port_2(C_word x, C_word input, C_word open, C_word loc)
+C_regparm C_word C_fcall C_i_check_port_2(C_word x, C_word dir, C_word open, C_word loc)
 {
-  int inp;
 
   if(C_immediatep(x) || C_header_bits(x) != C_PORT_TYPE) {
     error_location = loc;
     barf(C_BAD_ARGUMENT_TYPE_NO_PORT_ERROR, NULL, x);
   }
 
-  inp = C_block_item(x, 1) == C_SCHEME_TRUE;	/* slot #1: I/O flag */
-
-  switch(input) {
-  case C_SCHEME_TRUE:
-    if(!inp) {
-      error_location = loc;
-      barf(C_BAD_ARGUMENT_TYPE_NO_INPUT_PORT_ERROR, NULL, x);
-    }
-
-    break;
-
-  case C_SCHEME_FALSE:
-    if(inp) {
-      error_location = loc;
-      barf(C_BAD_ARGUMENT_TYPE_NO_OUTPUT_PORT_ERROR, NULL, x);
-    }
-
-    break;
-
-    /* any other value: omit direction check */
+  if((C_block_item(x, 1) & dir) != dir) {	/* slot #1: I/O direction mask */
+    error_location = loc;
+    barf(C_BAD_ARGUMENT_TYPE_PORT_DIRECTION_ERROR, NULL, x);
   }
 
   if(open == C_SCHEME_TRUE) {
-    if(C_block_item(x, 8) != C_SCHEME_FALSE) {	/* slot #8: closed flag */
+    if(C_block_item(x, 8) == C_FIXNUM_BIT) {	/* slot #8: closed mask */
       error_location = loc;
       barf(C_PORT_CLOSED_ERROR, NULL, x);
     }

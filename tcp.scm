@@ -657,10 +657,7 @@ EOF
 
 (define (tcp-abandon-port p)
   (##sys#check-open-port p 'tcp-abandon-port)
-  (##sys#setislot
-   (##sys#port-data p)
-   (if (##sys#slot p 1) 1 2)
-   #t) )
+  (##sys#setislot (##sys#port-data p) (##sys#slot p 1) #t))
 
 (define (tcp-listener-fileno l)
   (##sys#check-structure l 'tcp-listener 'tcp-listener-fileno)

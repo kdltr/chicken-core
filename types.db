@@ -1251,7 +1251,7 @@
 (port? (#(procedure #:pure #:predicate (or input-port output-port)) port? (*) boolean))
 
 (port-closed? (#(procedure #:clean #:enforce) port-closed? (port) boolean)
-	      ((port) (##sys#slot #(1) '8)))
+	      ((port) (eq? (##sys#slot #(1) '8) '0)))
 
 (print (procedure print (#!rest *) undefined))
 (print-call-chain (#(procedure #:clean #:enforce) print-call-chain (#!optional output-port fixnum * string) undefined))
@@ -1403,13 +1403,13 @@
 
 (##sys#check-input-port
  (#(procedure #:clean #:enforce) ##sys#check-input-port (input-port * #!optional *) *)
- ((* *) (##core#inline "C_i_check_port" #(1) '#t #(2)))
- ((* * *) (##core#inline "C_i_check_port_2" #(1) '#t #(2) #(3))))
+ ((* *) (##core#inline "C_i_check_port" #(1) '1 #(2)))
+ ((* * *) (##core#inline "C_i_check_port_2" #(1) '1 #(2) #(3))))
 
 (##sys#check-output-port
  (#(procedure #:clean #:enforce) ##sys#check-output-port (output-port * #!optional *) *)
- ((* *) (##core#inline "C_i_check_port" #(1) '#f #(2)))
- ((* * *) (##core#inline "C_i_check_port_2" #(1) '#f #(2) #(3))))
+ ((* *) (##core#inline "C_i_check_port" #(1) '2 #(2)))
+ ((* * *) (##core#inline "C_i_check_port_2" #(1) '2 #(2) #(3))))
 
 (##sys#check-open-port
  (#(procedure #:clean #:enforce) ##sys#check-open-port ((or input-port output-port) #!optional *) *)

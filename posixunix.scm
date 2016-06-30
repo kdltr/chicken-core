@@ -662,7 +662,7 @@ EOF
   (define (check loc cmd inp r)
     (if (##sys#null-pointer? r)
 	(posix-error #:file-error loc "cannot open pipe" cmd)
-	(let ([port (##sys#make-port inp ##sys#stream-port-class "(pipe)" 'stream)])
+	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(pipe)" 'stream)))
 	  (##core#inline "C_set_file_ptr" port r)
 	  port) ) )
   (set! open-input-pipe
@@ -1122,12 +1122,10 @@ EOF
 		   (lambda ()		; char-ready?
 		     (or (fx< bufpos buflen)
 			 (ready?)) )
-		   (lambda ()	      ; close
-					; Do nothing when closed already
-		     (unless (##sys#slot this-port 8)
-		       (when (fx< (##core#inline "C_close" fd) 0)
-			 (posix-error #:file-error loc "cannot close" fd nam) )
-		       (on-close) ) )
+		   (lambda ()		; close
+		     (when (fx< (##core#inline "C_close" fd) 0)
+		       (posix-error #:file-error loc "cannot close" fd nam))
+		     (on-close))
 		   (lambda ()		; peek-char
 		     (when (fx>= bufpos buflen)
 		       (fetch))
@@ -1233,11 +1231,10 @@ EOF
 		(make-output-port
 		 (lambda (str)		; write-string
 		   (store str) )
-		 (lambda ()	      ; close - do nothing when closed already
-		   (unless (##sys#slot this-port 8)
-		     (when (fx< (##core#inline "C_close" fd) 0)
-		       (posix-error #:file-error loc "cannot close" fd nam) )
-		     (on-close) ) )
+		 (lambda ()		; close
+		   (when (fx< (##core#inline "C_close" fd) 0)
+		     (posix-error #:file-error loc "cannot close" fd nam))
+		   (on-close))
 		 (lambda ()		; flush
 		   (store #f) ) )] )
 	(set-port-name! this-port nam)

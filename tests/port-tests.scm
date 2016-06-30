@@ -95,6 +95,35 @@ EOF
      (lambda (in) (read-char in)))
     (get-output-string out))))
 
+;; direction-specific port closure
+
+(let* ((n 0)
+       (p (make-input-port (constantly #\a)
+			   (constantly #t)
+			   (lambda () (set! n (add1 n))))))
+  (close-output-port p)
+  (assert (not (port-closed? p)))
+  (assert (= n 0))
+  (close-input-port p)
+  (assert (port-closed? p))
+  (assert (= n 1))
+  (close-input-port p)
+  (assert (port-closed? p))
+  (assert (= n 1)))
+
+(let* ((n 0)
+       (p (make-output-port (lambda () (display #\a))
+			    (lambda () (set! n (add1 n))))))
+  (close-input-port p)
+  (assert (not (port-closed? p)))
+  (assert (= n 0))
+  (close-output-port p)
+  (assert (port-closed? p))
+  (assert (= n 1))
+  (close-output-port p)
+  (assert (port-closed? p))
+  (assert (= n 1)))
+
 ;; fill buffers
 (with-input-from-file "compiler.scm" read-string)
 

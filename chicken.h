@@ -673,8 +673,8 @@ static inline int isinf_ld (long double x)
 #define C_BAD_ARGUMENT_TYPE_NO_BOOLEAN_ERROR          37
 #define C_BAD_ARGUMENT_TYPE_NO_LOCATIVE_ERROR         38
 #define C_BAD_ARGUMENT_TYPE_NO_PORT_ERROR             39
-#define C_BAD_ARGUMENT_TYPE_NO_INPUT_PORT_ERROR       40
-#define C_BAD_ARGUMENT_TYPE_NO_OUTPUT_PORT_ERROR      41
+#define C_BAD_ARGUMENT_TYPE_PORT_DIRECTION_ERROR      40
+/* unused                                             41 */
 #define C_PORT_CLOSED_ERROR                           42
 #define C_ASCIIZ_REPRESENTATION_ERROR                 43
 #define C_MEMORY_VIOLATION_ERROR                      44
@@ -1180,6 +1180,8 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_vectorp(x)              C_mk_bool(C_header_bits(x) == C_VECTOR_TYPE)
 #define C_bytevectorp(x)          C_mk_bool(C_header_bits(x) == C_BYTEVECTOR_TYPE)
 #define C_portp(x)                C_mk_bool(C_header_bits(x) == C_PORT_TYPE)
+#define C_input_portp(x)          C_mk_bool(C_header_bits(x) == C_PORT_TYPE && C_block_item(x, 1) & 0x2)
+#define C_output_portp(x)         C_mk_bool(C_header_bits(x) == C_PORT_TYPE && C_block_item(x, 1) & 0x4)
 #define C_structurep(x)           C_mk_bool(C_header_bits(x) == C_STRUCTURE_TYPE)
 #define C_locativep(x)            C_mk_bool(C_block_header(x) == C_LOCATIVE_TAG)
 #define C_charp(x)                C_mk_bool(((x) & C_IMMEDIATE_TYPE_BITS) == C_CHARACTER_BITS)

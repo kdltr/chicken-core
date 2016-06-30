@@ -2494,36 +2494,34 @@ EOF
 
 ;;; Ports:
 
-(define (port? x) (##core#inline "C_i_portp" x))
-
-(define-inline (%port? x)
+(define (port? x)
   (and (##core#inline "C_blockp" x)
-       (##core#inline "C_portp" x)) )
+       (##core#inline "C_portp" x)))
 
 (define (input-port? x)
-  (and (%port? x)
-       (##sys#slot x 1) ) )
+  (and (##core#inline "C_blockp" x)
+       (##core#inline "C_input_portp" x)))
 
 (define (output-port? x)
-  (and (%port? x)
-       (not (##sys#slot x 1)) ) )
+  (and (##core#inline "C_blockp" x)
+       (##core#inline "C_output_portp" x)))
 
 (define (port-closed? p)
   (##sys#check-port p 'port-closed?)
-  (##sys#slot p 8))
+  (fx= (##sys#slot p 8) 0))
 
 
 ;;; Port layout:
 ;
 ; 0:  FP (special)
-; 1:  input/output (bool)
+; 1:  direction (fixnum)
 ; 2:  class (vector of procedures)
 ; 3:  name (string)
 ; 4:  row (fixnum)
 ; 5:  col (fixnum)
 ; 6:  EOF (bool)
 ; 7:  type ('stream | 'custom | 'string | 'socket)
-; 8:  closed (bool)
+; 8:  closed (fixnum)
 ; 9:  data
 ; 10-15: reserved, port class specific
 ;
@@ -2548,6 +2546,7 @@ EOF
     (##sys#setislot port 4 1)
     (##sys#setislot port 5 0)
     (##sys#setslot port 7 type)
+    (##sys#setslot port 8 i/o)
     port) )
 
 ;;; Stream ports:
@@ -2585,7 +2584,7 @@ EOF
 	    (##core#inline "C_display_char" p c) )
 	  (lambda (p s)			; write-string
 	    (##core#inline "C_display_string" p s) )
-	  (lambda (p)			; close
+	  (lambda (p d)			; close
 	    (##core#inline "C_close_file" p)
 	    (##sys#update-errno) )
 	  (lambda (p)			; flush-output
@@ -2656,9 +2655,9 @@ EOF
 
 (define ##sys#open-file-port (##core#primitive "C_open_file_port"))
 
-(define ##sys#standard-input (##sys#make-port #t ##sys#stream-port-class "(stdin)" 'stream))
-(define ##sys#standard-output (##sys#make-port #f ##sys#stream-port-class "(stdout)" 'stream))
-(define ##sys#standard-error (##sys#make-port #f ##sys#stream-port-class "(stderr)" 'stream))
+(define ##sys#standard-input (##sys#make-port 1 ##sys#stream-port-class "(stdin)" 'stream))
+(define ##sys#standard-output (##sys#make-port 2 ##sys#stream-port-class "(stdout)" 'stream))
+(define ##sys#standard-error (##sys#make-port 2 ##sys#stream-port-class "(stderr)" 'stream))
 
 (##sys#open-file-port ##sys#standard-input 0 #f)
 (##sys#open-file-port ##sys#standard-output 1 #f)
@@ -2666,13 +2665,13 @@ EOF
 
 (define (##sys#check-input-port x open . loc)
   (if (pair? loc)
-      (##core#inline "C_i_check_port_2" x #t open (car loc))
-      (##core#inline "C_i_check_port" x #t open) ) )
+      (##core#inline "C_i_check_port_2" x 1 open (car loc))
+      (##core#inline "C_i_check_port" x 1 open)))
 
 (define (##sys#check-output-port x open . loc)
   (if (pair? loc)
-      (##core#inline "C_i_check_port_2" x #f open (car loc))
-      (##core#inline "C_i_check_port" x #f open) ) )
+      (##core#inline "C_i_check_port_2" x 2 open (car loc))
+      (##core#inline "C_i_check_port" x 2 open)))
 
 (define (##sys#check-port x . loc)
   (if (pair? loc)
@@ -2753,24 +2752,25 @@ EOF
                (##sys#error loc "cannot use append mode with input file")
                (set! fmode "a") ) ]
             [else (##sys#error loc "invalid file option" o)] ) ) )
-      (let ([port (##sys#make-port inp ##sys#stream-port-class name 'stream)])
+      (let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class name 'stream)))
         (unless (##sys#open-file-port port name (##sys#string-append fmode bmode))
           (##sys#update-errno)
           (##sys#signal-hook #:file-error loc (##sys#string-append "cannot open file - " strerror) name) )
         port) ) )
 
-  (define (close port loc)
+  (define (close port inp loc)
     (##sys#check-port port loc)
-    ;; repeated closing is ignored
-    (unless (##sys#slot port 8)		; closed?
-      ((##sys#slot (##sys#slot port 2) 4) port) ; close
-      (##sys#setislot port 8 #t) )
-    (##core#undefined) )
+    ; repeated closing is ignored
+    (let* ((old-closed (##sys#slot port 8))
+	   (new-closed (fxand old-closed (fxnot (if inp 1 2)))))
+      (unless (fx= new-closed old-closed) ; already closed?
+	(##sys#setislot port 8 new-closed)
+	((##sys#slot (##sys#slot port 2) 4) port inp))))
 
   (set! open-input-file (lambda (name . mode) (open name #t mode 'open-input-file)))
   (set! open-output-file (lambda (name . mode) (open name #f mode 'open-output-file)))
-  (set! close-input-port (lambda (port) (close port 'close-input-port)))
-  (set! close-output-port (lambda (port) (close port 'close-output-port))) )
+  (set! close-input-port (lambda (port) (close port #t 'close-input-port)))
+  (set! close-output-port (lambda (port) (close port #f 'close-output-port))))
 
 (define call-with-input-file
   (let ([open-input-file open-input-file]
@@ -2857,12 +2857,12 @@ EOF
   (##sys#setslot port 3 name) )
 
 (define (##sys#port-line port)
-  (and (##sys#slot port 1) 
+  (and (fxodd? (##sys#slot port 1)) ; input port?
        (##sys#slot port 4) ) )
 
 (define (port-position #!optional (port ##sys#standard-input))
   (##sys#check-port port 'port-position)
-  (if (##sys#slot port 1) 
+  (if (fxodd? (##sys#slot port 1)) ; input port?
       (##sys#values (##sys#slot port 4) (##sys#slot port 5))
       (##sys#error 'port-position "cannot compute position of port" port) ) )
 
@@ -4071,9 +4071,10 @@ EOF
 		 (outstr port (##sys#lambda-info->string x))
 		 (outchr port #\>) )
 		((##core#inline "C_portp" x)
-		 (if (##sys#slot x 1)
-		     (outstr port "#<input port \"")
-		     (outstr port "#<output port \"") )
+		 (case (##sys#slot x 1)
+		   ((1)  (outstr port "#<input port \""))
+		   ((2)  (outstr port "#<output port \""))
+		   (else (outstr port "#<port \"")))
 		 (outstr port (##sys#slot x 3))
 		 (outstr port "\">") )
 		((##core#inline "C_vectorp" x)
@@ -4295,14 +4296,14 @@ EOF
 
 (define (open-input-string string)
   (##sys#check-string string 'open-input-string)
-  (let ([port (##sys#make-port #t ##sys#string-port-class "(string)" 'string)])
+  (let ((port (##sys#make-port 1 ##sys#string-port-class "(string)" 'string)))
     (##sys#setislot port 11 (##core#inline "C_block_size" string))
     (##sys#setislot port 10 0)
     (##sys#setslot port 12 string)
     port ) )
 
 (define (open-output-string)
-  (let ([port (##sys#make-port #f ##sys#string-port-class "(string)" 'string)])
+  (let ((port (##sys#make-port 2 ##sys#string-port-class "(string)" 'string)))
     (##sys#setislot port 10 0)
     (##sys#setislot port 11 output-string-initial-size)
     (##sys#setslot port 12 (##sys#make-string output-string-initial-size))
@@ -4905,8 +4906,7 @@ EOF
 	((37) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a boolean" args))
 	((38) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a locative" args))
 	((39) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a port" args))
-	((40) (apply ##sys#signal-hook #:type-error loc "bad argument type - not an input-port" args))
-	((41) (apply ##sys#signal-hook #:type-error loc "bad argument type - not an output-port" args))
+	((40) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a port of the correct type" args))
 	((42) (apply ##sys#signal-hook #:file-error loc "port already closed" args))
 	((43) (apply ##sys#signal-hook #:type-error loc "cannot represent string with NUL bytes as C string" args))
 	((44) (apply ##sys#signal-hook #:memory-error loc "segmentation violation" args))

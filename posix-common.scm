@@ -380,7 +380,7 @@ EOF
   (define (check loc fd inp r)
     (if (##sys#null-pointer? r)
         (posix-error #:file-error loc "cannot open file" fd)
-        (let ([port (##sys#make-port inp ##sys#stream-port-class "(fdport)" 'stream)])
+        (let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(fdport)" 'stream)))
           (##core#inline "C_set_file_ptr" port r)
           port) ) )
   (set! open-input-file*

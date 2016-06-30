@@ -6,6 +6,8 @@
     now return exact numbers where possible, so code relying on flonums
     being returned may need to be changed if rational numbers do not
     provide the desired performance.
+  - Port directionality has been generalized from a simple input/output
+    flag to a bitmap, to allow for multidirectional ports.
 
 - Compiler
   - Fixed an off by one allocation problem in generated C code for (list ...).

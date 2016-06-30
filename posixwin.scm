@@ -882,7 +882,7 @@ EOF
     (##sys#update-errno)
     (if (##sys#null-pointer? r)
 	(##sys#signal-hook #:file-error "cannot open pipe" cmd)
-	(let ([port (##sys#make-port inp ##sys#stream-port-class "(pipe)" 'stream)])
+	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(pipe)" 'stream)))
 	  (##core#inline "C_set_file_ptr" port r)
 	  port) ) )
   (set! open-input-pipe
@@ -1072,7 +1072,7 @@ EOF
     (##sys#update-errno)
     (if (##sys#null-pointer? r)
 	(##sys#signal-hook #:file-error "cannot open file" fd)
-	(let ([port (##sys#make-port inp ##sys#stream-port-class "(fdport)" 'stream)])
+	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(fdport)" 'stream)))
 	  (##core#inline "C_set_file_ptr" port r)
 	  port) ) )
   (set! open-input-file*
