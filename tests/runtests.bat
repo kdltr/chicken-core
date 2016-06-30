@@ -55,6 +55,7 @@ a.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== scrutiny tests ...
+%compile% scrutinizer-tests.scm -analyze-only
 %compile% typematch-tests.scm -specialize -w
 if errorlevel 1 exit /b 1
 a.out

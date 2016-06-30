@@ -114,6 +114,7 @@ $compile null.scm -profile -profile-name TEST.profile
 $CHICKEN_PROFILE TEST.profile
 
 echo "======================================== scrutiny tests ..."
+$compile scrutinizer-tests.scm -analyze-only
 $compile typematch-tests.scm -specialize -no-warnings
 ./a.out
 
