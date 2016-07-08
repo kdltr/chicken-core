@@ -158,7 +158,7 @@
 ; [quote {<exp>}]
 ; [let {<variable>} <exp-v> <exp>]
 ; [##core#lambda {<id> <mode> (<variable>... [. <variable>]) <size>} <exp>]
-; [set! {<variable>} <exp>]
+; [set! {<variable> [always-immediate?]} <exp>]
 ; [##core#undefined {}]
 ; [##core#primitive {<name>}]
 ; [##core#inline {<op>} <exp>...]
@@ -1759,11 +1759,13 @@
                                       (list (car vars))
                                       (list r (loop (cdr vars) (cdr vals))) )) ) ) ) ) )
 	((lambda ##core#lambda) (cps-lambda (gensym-f-id) (first params) subs k))
-	((set!) (let ((t1 (gensym 't)))
+	((set!) (let* ((t1 (gensym 't))
+		       (immediate? (and (pair? (cdr params)) (cadr params)))
+		       (new-params (list (first params) immediate?)))
 		  (walk (car subs)
 			(lambda (r)
 			  (make-node 'let (list t1)
-				     (list (make-node 'set! (list (first params)) (list r))
+				     (list (make-node 'set! new-params (list r))
 					   (k (varnode t1)) ) ) ) ) ) )
 	((##core#foreign-callback-wrapper)
 	 (let ([id (gensym-f-id)]
@@ -2448,11 +2450,12 @@
 			  cvars) ) ) ) ) ) ) ) )
 
 	  ((set!)
-	   (let* ([var (first params)]
-		  [val (first subs)]
-		  [cval (node-class val)]
-		  [immf (or (and (eq? 'quote cval) (immediate? (first (node-parameters val))))
-			    (eq? '##core#undefined cval) ) ] )
+	   (let* ((var (first params))
+		  (val (first subs))
+		  (cval (node-class val))
+		  (immf (or (and (eq? 'quote cval) (immediate? (first (node-parameters val))))
+			    (and (pair? (cdr params)) (second params))
+			    (eq? '##core#undefined cval))))
 	     (cond ((posq var closure)
 		    => (lambda (i)
 			 (if (test var 'boxed)
@@ -2474,7 +2477,7 @@
 		     (list (varnode var)
 			   (transform val here closure) ) ) )
 		   (else (make-node
-			  'set! (list var)
+			  'set! (list var immf)
 			  (list (transform val here closure) ) ) ) ) ) )
 
 	  ((##core#primitive) 
@@ -2713,18 +2716,19 @@
 		    (walk (second subs) e e-count here boxes) ) ) ) )
 
 	  ((set!)
-	   (let ([var (first params)]
-		 [val (first subs)] )
+	   (let ((var (first params))
+		 (val (first subs)))
 	     (cond ((posq var e)
 		    => (lambda (i)
                          (make-node '##core#setlocal
                                     (list (fx- e-count (fx+ i 1)))
                                     (list (walk val e e-count here boxes)) ) ) )
 		   (else
-		    (let* ([cval (node-class val)]
-			   [blockvar (not (variable-visible? var))]
-			   [immf (or (and (eq? cval 'quote) (immediate? (first (node-parameters val))))
-				     (eq? '##core#undefined cval) ) ] )
+		    (let* ((cval (node-class val))
+			   (blockvar (not (variable-visible? var)))
+			   (immf (or (and (eq? cval 'quote) (immediate? (first (node-parameters val))))
+				     (and (pair? (cdr params)) (second params))
+				     (eq? '##core#undefined cval))))
 		      (when blockvar (set! fastsets (add1 fastsets)))
 		      (make-node
 		       (if immf '##core#setglobal_i '##core#setglobal)
