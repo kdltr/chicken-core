@@ -161,6 +161,7 @@
 	(aliased '())
 	(noreturn #f)
 	(dropped-branches 0)
+	(assigned-immediates 0)
 	(errors #f)
 	(safe-calls 0))
 
@@ -258,6 +259,20 @@
 	(report-notice
 	 loc "~ain conditional, test expression will always return false:~%~%~a"
 	 (node-source-prefix test-node) (pp-fragment if-node))
+	#t))
+
+    (define (always-immediate1 t)
+      (cond ((pair? t)
+	     (case (car t)
+	       ((or) (every always-immediate1 (cdr t)))
+	       ((forall) (always-immediate1 (third t)))
+	       (else #f)))
+	    ((memq t '(eof null fixnum char boolean undefined)) #t)
+	    (else #f)))
+
+    (define (always-immediate var t loc)
+      (and-let* ((_ (always-immediate1 t)))
+	(d "assignment to var ~a in ~a is always immediate" var loc)
 	#t))
 
     (define (single node what tv loc)
@@ -694,6 +709,11 @@
 				   (set-cdr! (car bl) t)
 				   (loop (cdr bl) (eq? fl (cdaar bl)))))
 				(else (loop (cdr bl) f))))))
+
+		    (when (always-immediate var rt loc)
+		      (set! assigned-immediates (add1 assigned-immediates))
+		      (set-cdr! params '(#t)))
+
 		    '(undefined)))
 		 ((##core#primitive ##core#inline_ref) '*)
 		 ((##core#call)
@@ -870,6 +890,8 @@
 	(debugging '(o e) "safe calls" safe-calls))
       (when (positive? dropped-branches)
 	(debugging '(o e) "dropped branches" dropped-branches))
+      (when (positive? assigned-immediates)
+	(debugging '(o e) "assignments to immediate values" assigned-immediates))
       (when errors
 	(quit-compiling "some variable types do not satisfy strictness"))
       rn)))
