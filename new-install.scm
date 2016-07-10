@@ -44,7 +44,10 @@
 (define retrieve-only #f)
 (define list-versions-only #f)
 (define canonical-eggs '())
+(define dependencies '())
+(define checked-eggs '())
 (define run-tests #f)
+(define force-install #f)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -52,7 +55,9 @@
       'unix))
 
 (define current-status 
-  (list (get-environment-variable "CSC_OPTIONS")))      ;XXX more?
+  (list (get-environment-variable "CSC_OPTIONS")
+        (get-environment-variable "LD_LIBRARY_PATH")
+        (get-environment-variable "DYLD_LIBRARY_PATH")))      ;XXX more?
 
 (define (probe-dir dir)
   (and dir (file-exists? dir) (directory? dir) dir))
@@ -333,9 +338,164 @@
                     (cons (list name dir ver) canonical-eggs)))))))
      eggs)
   (unless retrieve-only
-    ;;XXX recursive retrieval of dependencies...
-    (error "to be implemented"))) ; XXX
+    (for-each
+      (lambda (e+d+v)
+        (unless (member (car e+d+v) checked-eggs)
+          (set! checked-eggs (cons (car e+d+v) checked-eggs))
+          (let* ((fname (make-pathname (cadr e+d+v) (car e+d+v) +egg-extension+))
+                 (info (load-egg-info fname)))
+            (d "checking platform for `~a'~%" (car e+d+v))
+            (check-platform (car e+d+v) info)
+            (d "checking dependencies for `~a'~%" (car e+d+v))
+            (let-values (((missing upgrade) 
+                          (outdated-dependencies (car e+d+v) info)))
+              (set! missing (apply-mappings missing))
+              (set! dependencies
+                (cons (cons (car e+d+v)
+                            (map (lambda (mu)
+                                   (if (pair? mu)
+                                       (car mu)
+                                       mu))
+                              (append missing upgrade)))
+                      dependencies))
+              (when (pair? missing)
+                (print " missing: " (string-intersperse missing ", "))
+                (retrieve-eggs missing))
+              (when (and (pair? upgrade)
+                         (or force-install
+                             (replace-extension-question e+d+v upgrade)))
+                (let ((ueggs (unzip1 upgrade)))
+                  (d " upgrade: ~a~%" (string-intersperse ueggs ", "))
+                  ;; XXX think about this...
+                  #;(for-each
+                    (lambda (e)
+                      (d "removing previously installed extension `~a'" e)
+                      (remove-extension e) )
+                    ueggs)
+                  (retrieve-eggs ueggs) ) ) ) ) ) )
+      canonical-eggs)))
 
+(define (outdated-dependencies egg info)
+  (let ((ds (get-egg-dependencies info)))
+    (for-each
+      (lambda (h) (set! ds (h egg ds)))
+      hacks)
+    (let loop ((deps ds) (missing '()) (upgrade '()))
+      (if (null? deps)
+          (values (reverse missing) (reverse upgrade))
+          (let ((dep (car deps))
+                (rest (cdr deps)))
+            (let-values (((m u) (check-dependency dep)))
+              (loop rest
+                    (if m (cons m missing) missing)
+                    (if u (cons u upgrade) upgrade))))))))
+
+(define (get-egg-dependencies info)
+  (append (get-egg-property info 'dependencies '())
+          (if run-tests (get-egg-property info 'test-dependencies '()))))
+
+(define (check-dependency dep)
+  (cond ((or (symbol? dep) (string? dep))
+         (values (and (not (ext-version dep)) (->string dep))
+                 #f))
+        ((and (list? dep) (eq? 'or (car dep)))
+         (let scan ((ordeps (cdr dep)) (bestm #f) (bestu #f))
+           (if (null? ordeps)
+               (values (cond (bestu #f)	; upgrade overrides new
+                             (bestm bestm)
+                             (else #f))
+                       bestu)
+               (let-values (((m u) (check-dependency (car ordeps))))
+                 (if (and (not m) (not u))
+                     (values #f #f)
+                     (scan (cdr ordeps)
+                           (if (and m (not bestm))
+                               m
+                               bestm)
+                           (if (and u (not bestu))
+                               u
+                               bestu)))))))
+        ((and (list? dep) (= 2 (length dep))
+              (or (string? (car dep)) (symbol? (car dep))))
+         (let ((v (ext-version (car dep))))
+           (cond ((not v)
+                  (values (->string (car dep)) #f))
+                 ((not (version>=? v (->string (cadr dep))))
+                  (cond ((string=? "chicken" (->string (car dep)))
+                         (if force-install
+                             (values #f #f)
+                             (error
+                               (string-append 
+                                 "Your CHICKEN version is not recent enough to use this extension - version "
+                                 (cadr dep) 
+				 " or newer is required"))))
+                        (else
+                          (values #f
+                                  (cons (->string (car dep)) (->string (cadr dep)))))))
+                 (else (values #f #f)))))
+        (else
+          (warning "invalid dependency syntax in extension meta information"
+                   dep)
+          (values #f #f))))
+
+(define (check-platform name info)
+  (define (fail)
+    (error "extension is not targeted for this system" name))
+  (unless cross-chicken
+    (and-let* ((platform (get-egg-property info 'platform)))
+      (let loop ((p platform))
+        (cond ((symbol? p) 
+               (or (feature? p) (fail)))
+              ((not (list? p))
+               (error "invalid `platform' property" name platform))
+              ((and (eq? 'not (car p)) (pair? (cdr p)))
+               (and (not (loop (cadr p))) (fail)))
+              ((eq? 'and (car p))
+               (and (every loop (cdr p)) (fail)))
+              ((eq? 'or (car p))
+               (and (not (any loop (cdr p))) (fail)))
+              (else (error "invalid `platform' property" name platform)))))))
+
+(define (replace-extension-question e+d+v upgrade)
+  (print (string-intersperse
+           (append
+             (list "The following installed extensions are outdated, because `"
+                   (car e+d+v)
+                   "' requires later versions:\n")
+                   (filter-map
+                     (lambda (e)
+                       (cond ((assq (string->symbol (car e)) override) =>
+                              (lambda (a)
+                                (unless (equal? (cadr a) (cdr e))
+                                  (warning
+                                    (sprintf "version `~a' of extension `~a' overrides required version `~a'"
+                                             (cadr a) (car a) (cdr e))))
+                                #f))
+                             (else
+                               (conc
+                                     "  " (car e)
+                                     " (" (let ((v (assq 'version (extension-information (car e))))) 
+                                            (if v (cadr v) "???"))
+                                         " -> " (cdr e) ")"
+                                     #\newline) )))
+                     upgrade)
+                   '("\nDo you want to replace the existing extensions ? (yes/no/abort) "))
+            ""))
+  (flush-output)
+  (let loop ()
+    (let ((r (trim (read-line))))
+      (cond ((string=? r "yes"))
+            ((string=? r "no") #f)
+            ((string=? r "abort") (exit 1))
+            (else (loop))))))
+  
+(define (trim str)
+  (define (left lst)
+    (cond ((null? lst) '())
+          ((char-whitespace? (car lst)) (left (cdr lst)))
+          (else (cons (car lst) (left (cdr lst))))))
+  (list->string (reverse (left (reverse (left (string->list str)))))))
+  
   
 ;; list available egg versions
   
@@ -358,9 +518,9 @@
   
 ;; perform installation of retrieved eggs
   
-(define (install-canonical-eggs)
-  ...
-  )
+(define (install-eggs)
+  ;; ...
+  #f)
 
 ;; command line parsing and selection of operations
   
@@ -371,14 +531,14 @@
            (map (lambda (fname)
                   (list (pathname-file fname) (current-directory) #f))
              (glob "*.egg")))
-         (install-canonical-eggs))
+         (install-eggs))
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
                   ;;XXX other actions...
                   (else 
                     (retrieve-eggs eggs)
-                    (install-canonical-eggs)))))))
+                    (install-eggs)))))))
 
 (define (main args)
   (setup-proxy (get-environment-variable "http_proxy"))
@@ -402,6 +562,9 @@
                   ((equal? arg "-defaults")
                    (set! user-defaults (cadr args))
                    (loop (cddr args)))
+                  ((equal? arg "-force")
+                   (set! force-install #t)
+                   (loop (cdr args)))
 
                   ;;XXX 
                   

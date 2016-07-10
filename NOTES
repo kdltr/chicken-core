@@ -6,9 +6,6 @@ NOTES (new install)
 ** TODO What should the default optimization options be?
     - also for compiled import libraries.
     - respect DEBUGBUILD?
-** TODO Do validation of egg-info at some stage
-** TODO Ensure destination directories exist
-** TODO Install commands must respect DESTDIR.
 
 * Implement minimal "chicken-install"
 ** TODO rename new-install.scm later
@@ -21,16 +18,16 @@ NOTES (new install)
 *** TODO retrieve egg
     - also support recursive retrieve?
 *** TODO Comment all toplevel procedures
+*** TODO Add usage information
 
 * TODO repository-path
     - allow multiple locations?
-    - might be needed anyway, unless components are to be usable only when installed.
     - CHICKEN_REPOSITORY
     - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
       installation target.
 
 * Installation
-    - unlink .so's before overwriting them.
+** TODO unlink .so's before overwriting them.
 
 * Issues
 ** Link-options are passed directly to csc
@@ -41,10 +38,7 @@ NOTES (new install)
 ** TODO drop "keep-going" mode.
 ** TODO "-feature" + "-no-feature"
 ** TODO Hack for OSX SIP?
-** TODO drop csi's -setup-mode
 ** TODO reinstall, no-install?
-
-* csi
 ** TODO Drop -setup-mode
 
 * TODO "build-dependencies" 
@@ -52,25 +46,13 @@ NOTES (new install)
     - or is the intent differently? Ask moritz.
 
 * Download/build directories
-** TODO download into cache dir (".chicken-install.download")
-    - in HOME, or PWD?
-    - when does it become stale?
-    - sjamaan recoommends retrieving current egg-versions every time.
-** TODO build in temp dir (".chicken-install.build")
-    - remove if not "-k" and all goes well.
-        - use different name (or ".") in case of "-k"?
-    - print directories on failure?
 ** TODO special mode if installing directory from source dir
+** TODO handle egg-files given on command-line
 
 * TODO Add/remove files
     - update distribution/manifest
     - add: egg-download.scm egg-compile.scm egg-environment.scm
     - rm: setup-api.scm setup-download.scm
-
-* TODO Extract download stuff
-** TODO Drop extension listing
-** TODO Simplify "local" transport
-    - no tag or trunk directories.
 
 * TODO Check what cmdline options to retain
 ** TODO Option for explicitly generating Windows/UNIX build/install scripts
@@ -80,19 +62,12 @@ NOTES (new install)
 ** setup-info files
 *** one for the whole egg (use "components" to find associated parts).
 *** TODO Fix "extension-information"
-*** TODO syntax-only extensions
-** TODO setup.defaults
-** TODO Retrieval from local directory
+*** TODO syntax-only extensions 
+    - i.e. matchable (is it?)
 ** TODO Cross-build + cross-chickens
     - needs to compile egg info twice (host- + target-mode).
 
 * TODO Drop CHICKEN_PREFIX
-
-* Drop
-** TODO svn transport
-** TODO deployment
-
-* TODO Remove setup-api/setup-download from repo
 
 * Build/install scripts
 ** TODO fully sh(1) compatible
