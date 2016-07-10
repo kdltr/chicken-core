@@ -694,6 +694,7 @@
 (vector-ref (forall (a) (#(procedure #:clean #:enforce #:foldable) vector-ref ((vector-of a) fixnum) a)))
 (##sys#vector-ref (forall (a) (#(procedure #:clean #:enforce #:foldable) ##sys#vector-ref ((vector-of a) fixnum) a)))
 
+;; special-cased (see scrutinizer.scm)
 (vector-set! (#(procedure #:enforce) vector-set! (vector fixnum *) undefined))
 
 ;; special cased (see scrutinizer.scm)

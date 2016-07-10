@@ -155,6 +155,15 @@
 (define (walked-result n)
   (first (node-parameters n)))		; assumes ##core#the/result node
 
+(define (type-always-immediate? t)
+  (cond ((pair? t)
+	 (case (car t)
+	   ((or) (every type-always-immediate? (cdr t)))
+	   ((forall) (type-always-immediate? (third t)))
+	   (else #f)))
+	((memq t '(eof null fixnum char boolean undefined)) #t)
+	(else #f)))
+
 
 (define (scrutinize node db complain specialize strict block-compilation)
   (let ((blist '())			; (((VAR . FLOW) TYPE) ...)
@@ -261,17 +270,8 @@
 	 (node-source-prefix test-node) (pp-fragment if-node))
 	#t))
 
-    (define (always-immediate1 t)
-      (cond ((pair? t)
-	     (case (car t)
-	       ((or) (every always-immediate1 (cdr t)))
-	       ((forall) (always-immediate1 (third t)))
-	       (else #f)))
-	    ((memq t '(eof null fixnum char boolean undefined)) #t)
-	    (else #f)))
-
     (define (always-immediate var t loc)
-      (and-let* ((_ (always-immediate1 t)))
+      (and-let* ((_ (type-always-immediate? t)))
 	(d "assignment to var ~a in ~a is always immediate" var loc)
 	#t))
 
@@ -2148,22 +2148,49 @@
 	rtypes)))
 
 (let ()
+  (define (known-length-vector-index node args expected-argcount)
+    (and-let* ((subs (node-subexpressions node))
+	       ((= (length subs) (add1 expected-argcount)))
+	       (arg1 (walked-result (second args)))
+	       ((pair? arg1))
+	       ((eq? 'vector (car arg1)))
+	       (index (third subs))
+	       ((eq? 'quote (node-class index)))
+	       (val (first (node-parameters index)))
+	       ((fixnum? val))
+	       ((>= val 0))
+	       ;; XXX could warn on failure (but needs location)
+	       ((< val (length (cdr arg1)))))
+      val))
+
+  ;; These are a bit hacky, since they mutate the node.  These special
+  ;; cases are really only intended for determining result types...
   (define (vector-ref-result-type node args rtypes)
-    (or (and-let* ((subs (node-subexpressions node))
-                   ((= (length subs) 3))
-                   (arg1 (walked-result (second args)))
-                   ((pair? arg1))
-                   ((eq? 'vector (car arg1)))
-                   (index (third subs))
-                   ((eq? 'quote (node-class index)))
-                   (val (first (node-parameters index)))
-                   ((fixnum? val))
-                   ((>= val 0))
-                   ((< val (length (cdr arg1))))) ;XXX could warn on failure (but needs location)
-          (list (list-ref (cdr arg1) val)))
+    (or (and-let* ((index (known-length-vector-index node args 2))
+		   (arg1 (walked-result (second args)))
+		   (vector (second (node-subexpressions node))))
+	  (mutate-node! node `(##sys#slot ,vector ',index))
+	  (list (list-ref (cdr arg1) index)))
 	rtypes))
+
   (define-special-case vector-ref vector-ref-result-type)
-  (define-special-case ##sys#vector-ref vector-ref-result-type))
+  (define-special-case ##sys#vector-ref vector-ref-result-type)
+
+  (define-special-case vector-set!
+    (lambda (node args rtypes)
+      (or (and-let* ((index (known-length-vector-index node args 3))
+		     (subs (node-subexpressions node))
+		     (vector (second subs))
+		     (new-value (fourth subs))
+		     (new-value-type (walked-result (fourth args)))
+		     (setter (if (type-always-immediate? new-value-type)
+				 '##sys#setislot
+				 '##sys#setslot)))
+	    (mutate-node! node `(,setter ,vector ',index ,new-value))
+	    '(undefined))
+	  rtypes))))
+
+;; TODO: Also special-case vector-length?  Makes little sense though.
 
 
 ;;; List-related special cases
