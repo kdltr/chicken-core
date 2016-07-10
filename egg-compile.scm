@@ -5,7 +5,7 @@
   '(synopsis authors category license version dependencies files
     source-file csc-options test-dependencies destination linkage
     build-dependencies components foreign-dependencies link-options
-    custom-bulild target host))  
+    custom-bulild target host platform))  
 
 (define nested-items 
   '(components target host))
@@ -43,7 +43,8 @@
             ((memq (car item) nested-items)
              (validate-egg-info 
                (if (memq (car item) named-items) (cddr item) (cdr item))))))
-    info))
+    info)
+  info)
 
 
 ;;; load egg-info from file and perform validation
