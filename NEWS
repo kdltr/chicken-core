@@ -2,6 +2,9 @@
 
 - Compiler:
   - define-constant now correctly keeps symbol values quoted.
+  - Warnings are now emitted when using vector-{ref,set!} or one
+    of take, drop, list-ref or list-tail with an out of range index
+    for vectors and lists of a definitely known length.
 
 - Runtime system:
   - C_locative_ref has been deprecated in favor of C_a_i_locative_ref,

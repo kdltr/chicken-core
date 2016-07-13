@@ -133,6 +133,23 @@
 	((memq t '(eof null fixnum char boolean undefined)) #t)
 	(else #f)))
 
+(define (node-source-prefix n)
+  (let ((line (node-line-number n)))
+    (if (not line) "" (sprintf "(~a) " line))))
+
+(define (location-name loc)
+  (define (lname loc1)
+    (if loc1
+	(sprintf "procedure `~a'" (real-name loc1))
+	"unknown procedure"))
+  (cond ((null? loc) "at toplevel:\n  ")
+	((null? (cdr loc))
+	 (sprintf "in toplevel ~a:\n  " (lname (car loc))))
+	(else
+	 (let rec ((loc loc))
+	   (if (null? (cdr loc))
+	       (location-name loc)
+	       (sprintf "in local ~a,\n  ~a" (lname (car loc)) (rec (cdr loc))))))))
 
 (define (scrutinize node db complain specialize)
   (let ((blist '())			; (((VAR . FLOW) TYPE) ...)
@@ -273,24 +290,6 @@
     (define (report-error loc msg . args)
       (set! errors #t)
       (apply report loc msg args))
-
-    (define (node-source-prefix n)
-      (let ((line (node-line-number n)))
-	(if (not line) "" (sprintf "(~a) " line))))
-
-    (define (location-name loc)
-      (define (lname loc1)
-	(if loc1
-	    (sprintf "procedure `~a'" (real-name loc1))
-	    "unknown procedure"))
-      (cond ((null? loc) "at toplevel:\n  ")
-	    ((null? (cdr loc))
-	     (sprintf "in toplevel ~a:\n  " (lname (car loc))))
-	    (else
-	     (let rec ((loc loc))
-	       (if (null? (cdr loc))
-		   (location-name loc)
-		   (sprintf "in local ~a,\n  ~a" (lname (car loc)) (rec (cdr loc))))))))
 
     (define add-loc cons)
 
@@ -805,7 +804,7 @@
 						 '##compiler#special-result-type))
 					   => (lambda (srt)
 						(dd "  hardcoded special result-type: ~a" var)
-						(set! r (srt n args r))))))))
+						(set! r (srt n args loc r))))))))
 			      subs
 			      (cons 
 			       fn
@@ -2181,7 +2180,7 @@
      (##sys#put! 'name '##compiler#special-result-type handler))))
 
 (define-special-case ##sys#make-structure
-  (lambda (node args rtypes)
+  (lambda (node args loc rtypes)
     (or (and-let* ((subs (node-subexpressions node))
                    ((>= (length subs) 2))
                    (arg1 (second subs))
@@ -2196,7 +2195,17 @@
 	rtypes)))
 
 (let ()
-  (define (known-length-vector-index node args expected-argcount)
+  ;; TODO: Complain argument not available here, so we can't use the
+  ;; standard "report" defined above.  However, ##sys#enable-warnings
+  ;; and "complain" (do-scrutinize) are always true together, except
+  ;; that "complain" will be false while ##sys#enable-warnings is true
+  ;; on "no-usual-integrations", so perhaps get rid of "complain"?
+  (define (report loc msg . args)
+    (warning
+     (conc (location-name loc)
+	   (sprintf "~?" msg (map unrename-type args)))))
+
+  (define (known-length-vector-index node args loc expected-argcount)
     (and-let* ((subs (node-subexpressions node))
 	       ((= (length subs) (add1 expected-argcount)))
 	       (arg1 (walked-result (second args)))
@@ -2205,16 +2214,23 @@
 	       (index (third subs))
 	       ((eq? 'quote (node-class index)))
 	       (val (first (node-parameters index)))
-	       ((fixnum? val))
-	       ((>= val 0))
-	       ;; XXX could warn on failure (but needs location)
-	       ((< val (length (cdr arg1)))))
-      val))
+	       ((fixnum? val)) ; Standard type warning otherwise
+	       (vector-length (length (cdr arg1))))
+      (if (and (>= val 0) (< val vector-length))
+	  val
+	  (begin
+	    (report
+	     loc "~ain procedure call to `~s', index ~a out of range \
+                   for vector of length ~a"
+	     (node-source-prefix node)
+	     ;; TODO: It might make more sense to use "pname" here
+	     (first (node-parameters (first subs))) val vector-length)
+	    #f))))
 
   ;; These are a bit hacky, since they mutate the node.  These special
   ;; cases are really only intended for determining result types...
-  (define (vector-ref-result-type node args rtypes)
-    (or (and-let* ((index (known-length-vector-index node args 2))
+  (define (vector-ref-result-type node args loc rtypes)
+    (or (and-let* ((index (known-length-vector-index node args loc 2))
 		   (arg1 (walked-result (second args)))
 		   (vector (second (node-subexpressions node))))
 	  (mutate-node! node `(##sys#slot ,vector ',index))
@@ -2225,8 +2241,8 @@
   (define-special-case ##sys#vector-ref vector-ref-result-type)
 
   (define-special-case vector-set!
-    (lambda (node args rtypes)
-      (or (and-let* ((index (known-length-vector-index node args 3))
+    (lambda (node args loc rtypes)
+      (or (and-let* ((index (known-length-vector-index node args loc 3))
 		     (subs (node-subexpressions node))
 		     (vector (second subs))
 		     (new-value (fourth subs))
@@ -2248,6 +2264,11 @@
 ;   list-ref, list-tail, drop, take
 
 (let ()
+  ;; See comment in vector (let) just above this
+  (define (report loc msg . args)
+    (warning
+     (conc (location-name loc)
+	   (sprintf "~?" msg (map unrename-type args)))))
 
   (define (list-or-null a)
     (if (null? a) 'null `(list ,@a)))
@@ -2275,16 +2296,25 @@
 	  (else #f)))
 
   (define (list+index-call-result-type-special-case k)
-    (lambda (node args rtypes)
+    (lambda (node args loc rtypes)
       (or (and-let* ((subs (node-subexpressions node))
 		     ((= (length subs) 3))
 		     (arg1 (walked-result (second args)))
 		     (index (third subs))
 		     ((eq? 'quote (node-class index)))
 		     (val (first (node-parameters index)))
-		     ((fixnum? val))
-		     ((>= val 0)))
-	    (split-list-type arg1 val k))
+		     ((fixnum? val))) ; Standard type warning otherwise
+	    (or (and (>= val 0) (split-list-type arg1 val k))
+		(begin
+		  (report
+		   loc "~ain procedure call to `~s', index ~a out of \
+                        range for list of type ~a"
+		   (node-source-prefix node)
+		   ;; TODO: It might make more sense to use
+		   ;; "pname" here
+		   (first (node-parameters (first subs)))
+		   val arg1)
+		  #f)))
 	  rtypes)))
 
   (define-special-case list-ref
@@ -2306,27 +2336,27 @@
      (lambda (_ result-type) (list result-type)))))
 
 (define-special-case list
-  (lambda (node args rtypes)
+  (lambda (node args loc rtypes)
     (if (null? (cdr args))
 	'(null)
 	`((list ,@(map walked-result (cdr args)))))))
 
 (define-special-case ##sys#list
-  (lambda (node args rtypes)
+  (lambda (node args loc rtypes)
     (if (null? (cdr args))
 	'(null)
 	`((list ,@(map walked-result (cdr args)))))))
 
 (define-special-case vector
-  (lambda (node args rtypes)
+  (lambda (node args loc rtypes)
     `((vector ,@(map walked-result (cdr args))))))
 
 (define-special-case ##sys#vector
-  (lambda (node args rtypes)
+  (lambda (node args loc rtypes)
     `((vector ,@(map walked-result (cdr args))))))
 
 (define-special-case reverse
-  (lambda (node args rtypes)
+  (lambda (node args loc rtypes)
     (or (and-let* ((subs (node-subexpressions node))
 		   ((= (length subs) 2))
 		   (arg1 (walked-result (second args)))
@@ -2342,7 +2372,7 @@
 (let ()
 
   (define (complex-object-constructor-result-type-special-case type)
-    (lambda (node args rtypes)
+    (lambda (node args loc rtypes)
       (or (and-let* ((subs (node-subexpressions node))
 		     (fill (case (length subs)
 			     ((2) '*)

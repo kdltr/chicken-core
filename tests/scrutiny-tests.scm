@@ -207,3 +207,67 @@
 (let ((f (the (null -> *) _))) (f (make-list x))) ; no warning
 (let ((f (the (list -> *) _))) (f (cons 1 2)))    ; warning
 (let ((f (the (list -> *) _))) (f (cons 1 x)))    ; no warning
+
+
+;; Indexing into vectors or lists of known size.
+;;
+;; TODO: The specific vector or list type will be smashed to just
+;; "vector" or "(or pair null)" after the first operation.  This is
+;; why the let is repeated; otherwise we won't get the warnings for
+;; subsequent references.  For vectors this is overly pessimistic.
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-ref-warn1) (vector-ref v1 -1)))
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-ref-warn2) (vector-ref v1 3)))
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-ref-warn3) (vector-ref v1 4)))
+
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-ref-nowarn1) (vector-ref v1 0)))
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-ref-nowarn2) (vector-ref v1 2)))
+
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-ref-standard-warn1) (vector-ref v1 'bad)))
+
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-set!-warn1) (vector-set! v1 -1 'whatever)))
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-set!-warn2) (vector-set! v1 3 'whatever)))
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-set!-warn3) (vector-set! v1 4 'whatever)))
+
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-set!-nowarn1) (vector-set! v1 0 'whatever)))
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-set!-nowarn2) (vector-set! v1 2 'whatever)))
+
+(let ((v1 (vector 'a 'b 'c)))
+  (define (vector-set!-standard-warn1) (vector-set! v1 'bad 'whatever)))
+
+(let ((l1 (list 'a 'b 'c)))
+  (define (list-ref-warn1) (list-ref l1 -1)))
+(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-warn2) (list-ref l2 -1)))
+(let ((l1 (list 'a 'b 'c)))
+  (define (list-ref-warn3) (list-ref l1 3)))
+(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-warn4) (list-ref l2 3)))
+(let ((l1 (list 'a 'b 'c)))
+  (define (list-ref-warn5) (list-ref l1 4)))
+(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-warn6) (list-ref l2 4)))
+
+(let ((l1 (list 'a 'b 'c)))
+  (define (list-ref-nowarn1) (list-ref l1 0)))
+(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-nowarn2) (list-ref l2 0)))
+(let ((l1 (list 'a 'b 'c)))
+  (define (list-ref-nowarn3) (list-ref l1 2)))
+(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-nowarn4) (list-ref l2 2)))
+
+(let ((l1 (list 'a 'b 'c)))
+  (define (list-ref-standard-warn1) (list-ref l1 'bad)))
+(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-standard-warn2) (list-ref l2 'bad)))
