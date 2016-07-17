@@ -24,6 +24,7 @@
 (define +timestamp-file+ "TIMESTAMP")
 (define +status-file+ "STATUS")
 (define +egg-extension+ "egg")
+(define +egg-info-extension+ "egg.info")
 
 (include "mini-srfi-1.scm")
 (include "egg-environment.scm")
@@ -48,6 +49,8 @@
 (define checked-eggs '())
 (define run-tests #f)
 (define force-install #f)
+(define host-extension cross-chicken)
+(define target-extension cross-chicken)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -69,7 +72,13 @@
                      (probe-dir "/Temp")
                      ".")
                  ".chicken-install.cache"))
-  
+
+(define (repo-path)
+  (destination-repository
+    (if (and cross-chicken (not host-extension))
+        'target
+        'host)))
+
   
 ;; usage information
   
@@ -438,6 +447,20 @@
                    dep)
           (values #f #f))))
 
+(define (ext-version x)
+  (cond ((or (eq? x 'chicken) (equal? x "chicken"))
+         (chicken-version))
+        ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
+                (sf (make-pathname (repo-path) ep +egg-info-extension+)))
+           (and (file-exists? sf)
+                (load-egg-info sf #f))) =>
+         (lambda (info)
+           (let ((a (assq 'version info)))
+             (if a
+                 (->string (cadr a))
+                 "0.0.0"))))
+        (else #f)))
+
 (define (check-platform name info)
   (define (fail)
     (error "extension is not targeted for this system" name))
@@ -564,6 +587,12 @@
                    (loop (cddr args)))
                   ((equal? arg "-force")
                    (set! force-install #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-host")
+                   (set! target-extension #f)
+                   (loop (cdr args)))
+                  ((equal? arg "-target")
+                   (set! host-extension #f)
                    (loop (cdr args)))
 
                   ;;XXX 

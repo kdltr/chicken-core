@@ -49,9 +49,13 @@
 
 ;;; load egg-info from file and perform validation
 
-(define (load-egg-info fname)
+(define (load-egg-info fname #!optional (validate #t))
   (with-input-from-file fname
-    (lambda () (validate-egg-info (read)))))
+    (lambda () 
+      (let ((info (read)))
+        (if validate
+            (validate-egg-info info)
+            info)))))
 
 
 ;;; lookup specific entries in egg-information
