@@ -1,0 +1,268 @@
+.\"  Copyright (c) 2007-2016, The CHICKEN Team
+.\"  All rights reserved.
+.\"
+.\"  Redistribution and use in source and binary forms, with or without
+.\"  modification, are permitted provided that the following conditions
+.\"  are met:
+.\"  1. Redistributions of source code must retain the above copyright
+.\"     notice, this list of conditions and the following disclaimer.
+.\"  2. Redistributions in binary form must reproduce the above copyright
+.\"     notice, this list of conditions and the following disclaimer in the
+.\"     documentation and/or other materials provided with the distribution.
+.\"  3. The name of the authors may not be used to endorse or promote products
+.\"     derived from this software without specific prior written permission.
+.\"
+.\"  THIS SOFTWARE IS PROVIDED BY THE AUTHORS ``AS IS'' AND ANY EXPRESS OR
+.\"  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+.\"  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+.\"  IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+.\"  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+.\"  NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+.\"  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+.\"  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+.\"  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+.\"  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+.\"
+.\"
+.Dd Mar 25, 2016
+.Dt CHICKEN 1
+.Os
+.Sh NAME
+.Nm chicken
+.Nd A Scheme-to-C translator
+.Sh SYNOPSIS
+.Nm
+.Op Ar FILENAME \(ba OPTION ...
+.Sh DESCRIPTION
+.Nm
+is a compiler and interpreter for the programming language Scheme
+supporting most of the features as described in the
+Revised^5 Report on the Algorithmic Language Scheme.
+The
+.Nm
+program is the basic Scheme-to-C translator used in this system.
+For a more convenient interface, see
+.Xr csc 1 .
+.Pp
+.Ar FILENAME
+should be a complete source file name with extension, or
+.Dq -
+for standard input.
+.Ar OPTION
+may be one of the following:
+.Pp
+General options:
+.Bl -tag -width Ds
+.It Fl help
+display usage and exit
+.It Fl version
+display compiler version and exit
+.It Fl release
+print release number and exit
+.It Fl verbose
+display information on compilation progress
+.El
+.Pp
+File and pathname options:
+.Bl -tag -width Ds
+.It Fl output-file Ar FILENAME
+specifies output-filename, default is
+.Dq out.c .
+.It Fl include-path Ar PATHNAME
+specifies alternative path for included files
+.It Fl to-stdout
+write compiled file to stdout instead of file
+.El
+.Pp
+Language options:
+.Bl -tag -width Ds
+.It Fl feature Ar SYMBOL
+register feature identifier
+It Fl no-feature Ar SYMBOL
+disable built-in feature identifier
+.El
+.Pp
+Syntax related options:
+.Bl -tag -width Ds
+.It Fl case-insensitive
+don't preserve case of read symbols
+.It Fl keyword-style Ar STYLE
+allow alternative keyword syntax
+.Po prefix, suffix or none Pc
+.It Fl no-parentheses-synonyms
+disables list delimiter synonyms
+.It Fl no-symbol-escape
+disables support for escaped symbols
+.It Fl r5rs-syntax
+disables the CHICKEN extensions to R5RS syntax
+.It Fl compile-syntax
+macros are made available at run-time
+.It Fl emit-import-library Ar MODULE
+write compile-time module information into separate file
+.It Fl emit-all-import-libraries
+emit import-libraries for all defined modules
+.It Fl no-module-registration
+do not generate module registration code
+It Fl no-compiler-syntax
+disable expansion of compiler-macros
+.It Fl module
+wrap compiled code into implicit module
+.El
+.Pp
+Translation options:
+.Bl -tag -width Ds
+.It Fl explicit-use
+do not use units
+.Sq library
+and
+.Sq eval
+by default
+.It Fl check-syntax
+stop compilation after macro-expansion
+.It Fl analyze-only
+stop compilation after first analysis pass
+.El
+.Pp
+Debugging options:
+.Bl -tag -width Ds
+.It Fl no-warnings
+disable warnings
+.It Fl debug-level Ar NUMBER
+set level of available debugging information
+.It Fl no-trace
+disable tracing information
+.It Fl profile
+executable emits profiling information
+.It Fl profile-name Ar FILENAME
+name of the generated profile information file
+.It Fl accumulate-profile
+executable emits profiling information in append mode
+.It Fl no-lambda-info
+omit additional procedure-information
+.It Fl types Ar FILENAME
+load additional type database
+.It Fl emit-type-file Ar FILENAME
+write type-declaration information into file
+.El
+.Pp
+Optimization options:
+.Bl -tag -width Ds
+.It Fl optimize-level Ar NUMBER
+enable certain sets of optimization options
+.It Fl optimize-leaf-routines
+enable leaf routine optimization
+.It Fl no-usual-integrations
+standard procedures may be redefined
+.It Fl unsafe
+disable all safety checks
+.It Fl local
+assume globals are only modified in current file
+.It Fl block
+enable block-compilation
+.It Fl disable-interrupts
+disable interrupts in compiled code
+.It Fl fixnum-arithmetic
+assume all numbers are fixnums
+.It Fl disable-stack-overflow-checks
+disables detection of stack-overflows
+.It Fl inline
+enable inlining
+.It Fl inline-limit Ar LIMIT
+set inlining threshold
+.It Fl inline-global
+enable cross-module inlining
+.It Fl specialize
+perform type-based specialization of primitive calls
+.It Fl emit-inline-file Ar FILENAME
+ generate file with globally inlinable procedures
+.Po implies Fl inline Fl local Pc
+.It Fl consult-inline-file Ar FILENAME
+explicitly load inline file
+.It Fl no-argc-checks
+disable argument count checks
+.It Fl no-bound-checks
+disable bound variable checks
+.It Fl no-procedure-checks
+disable procedure call checks
+.It Fl no-procedure-checks-for-usual-bindings
+disable procedure call checks only for usual bindings
+.It Fl no-procedure-checks-for-toplevel-bindings
+disable procedure call checks for toplevel bindings
+.It Fl strict-types
+assume variable do not change their type
+.It Fl clustering
+combine groups of local procedures into dispatch loop
+.It Fl lfa2
+perform additional lightweight flow-analysis pass
+.El
+.Pp
+Configuration options:
+.Bl -tag -width Ds
+.It Fl unit Ar NAME
+compile file as a library unit
+.It Fl uses Ar NAME
+declare library unit as used.
+.It Fl heap-size Ar NUMBER
+specifies heap-size of compiled executable
+.It Fl nursery Ar NUMBER Fl stack-size Ar NUMBER
+specifies nursery size of compiled executable
+.It Fl extend Ar FILENAME
+load file before compilation commences
+.It Fl prelude Ar EXPRESSION
+add expression to front of source file
+.It Fl postlude Ar EXPRESSION
+add expression to end of source file
+.It Fl prologue Ar FILENAME
+include file before main source file
+.It Fl epilogue Ar FILENAME
+include file after main source file
+.It Fl dynamic
+compile as dynamically loadable code
+.It Fl require-extension Ar NAME
+require and import extension NAME
+.El
+.Pp
+Obscure options:
+.Bl -tag -width Ds
+.It Fl debug Ar MODES
+display debugging output for the given modes
+.It Fl raw
+do not generate implicit init- and exit code
+.It Fl emit-external-prototypes-first
+emit prototypes for callbacks before foreign declarations
+.It Fl ignore-repository
+do not refer to repository for extensions
+.It Fl setup-mode
+prefer the current directory when locating extensions
+.El
+.Sh ENVIRONMENT
+Following environment variables change the behaviour of
+.Nm
+.Bl -tag -width CHICKEN_INSTALL_PREFIX
+.It Ev CHICKEN_PREFIX
+Is used as a prefix directory for support files, include-files and libraries.
+.It Ev CHICKEN_INCLUDE_PATH
+Contains one or more pathnames where the compiler should additionally look for
+include-files, separated by \; characters.
+.It Ev CHICKEN_OPTIONS
+Holds a string of default compiler options that should apply to every invocation of
+.Nm .
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr chicken 1 ,
+.Xr chicken-bug 1 ,
+.Xr chicken-install 1 ,
+.Xr chicken-uninstall 1
+.Pp
+More information can be found in the
+.Lk http://wiki.call-cc.org/manual/index "CHICKEN User's Manual".
+.Sh AUTHORS
+.An The CHICKEN Team
+.Sh BUGS
+Submit bug reports by e-mail to
+.Mt chicken-janitors@nongnu.org ,
+preferrably using the
+.Xr chicken-bug 1
+tool.

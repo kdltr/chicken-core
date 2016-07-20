@@ -223,6 +223,7 @@ A ?= .a
 # EXE ?=
 SO ?= .so
 ASM ?= .S
+MAN ?= .mdoc
 
 # special files
 

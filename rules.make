@@ -61,8 +61,8 @@ ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1 = \
 
 ## TODO: Shouldn't these manpages match their program names (ie CSI_PROGRAM etc)?
 MANPAGES = \
-	chicken.1 csc.1 csi.1 chicken-install.1 chicken-uninstall.1 \
-	chicken-status.1 chicken-profile.1 chicken-bug.1 feathers.1
+	chicken csc csi chicken-install chicken-uninstall \
+	chicken-status chicken-profile chicken-bug feathers
 
 # Not all programs built are installed(?) This is the master list that takes
 # care of which programs should actually be installed/uninstalled
@@ -422,7 +422,7 @@ install-other-files:
 	$(MAKEDIR_COMMAND) $(MAKEDIR_COMMAND_OPTIONS) "$(DESTDIR)$(IDATADIR)"
 	$(foreach obj, $(MANPAGES), \
 		$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) \
-		$(SRCDIR)$(obj) "$(DESTDIR)$(IMAN1DIR)" $(NL))
+		$(SRCDIR)$(obj)$(MAN) "$(DESTDIR)$(IMAN1DIR)$(SEP)$(obj).1" $(NL))
 	$(MAKEDIR_COMMAND) $(MAKEDIR_COMMAND_OPTIONS) "$(DESTDIR)$(IDOCDIR)$(SEP)manual"
 	-$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)manual-html$(SEP)* "$(DESTDIR)$(IDOCDIR)$(SEP)manual"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)README "$(DESTDIR)$(IDOCDIR)"
