@@ -717,6 +717,7 @@ posixunix.c: posixunix.scm \
 		chicken.bitwise.import.scm \
 		chicken.foreign.import.scm \
 		chicken.irregex.import.scm \
+		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
 		chicken.ports.import.scm \
 		chicken.time.import.scm
@@ -724,6 +725,7 @@ posixwin.c: posixwin.scm \
 		chicken.bitwise.import.scm \
 		chicken.foreign.import.scm \
 		chicken.irregex.import.scm \
+		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
 		chicken.ports.import.scm \
 		chicken.time.import.scm
