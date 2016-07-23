@@ -63,9 +63,9 @@
 
 (declare
   (unit posix)
-  (uses scheduler irregex extras files ports)
+  (uses scheduler irregex extras files ports lolevel)
   (disable-interrupts)
-  (hide $quote-args-list $exec-setup $exec-teardown)
+  (hide quote-arg-string)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook)
   (foreign-declare #<<EOF
 #ifndef WIN32_LEAN_AND_MEAN
@@ -81,14 +81,8 @@
 #include <utime.h>
 #include <winsock2.h>
 
-#define ARG_MAX		256
 #define PIPE_BUF	512
-#ifndef ENV_MAX
-# define ENV_MAX	1024
-#endif
 
-static C_TLS char *C_exec_args[ ARG_MAX ];
-static C_TLS char *C_exec_env[ ENV_MAX ];
 static C_TLS struct group *C_group;
 static C_TLS int C_pipefds[ 2 ];
 static C_TLS time_t C_secs;
@@ -218,39 +212,12 @@ readdir(DIR * dir)
 
 #define C_lstat(fn)	    C_stat(fn)
 
-static void C_fcall
-C_set_arg_string(char **where, int i, char *dat, int len)
-{
-    char *ptr;
-    if (dat)
-    {
-	ptr = (char *)C_malloc(len + 1);
-	C_memcpy(ptr, dat, len);
-	ptr[ len ] = '\0';
-        /* Can't barf() here, so the NUL byte check happens in Scheme */
-    }
-    else
-	ptr = NULL;
-    where[ i ] = ptr;
-}
-
-static void C_fcall
-C_free_arg_string(char **where) {
-  while (*where) C_free(*(where++));
-}
-
-#define C_set_exec_arg(i, a, len)	C_set_arg_string(C_exec_args, i, a, len)
-#define C_set_exec_env(i, a, len)	C_set_arg_string(C_exec_env, i, a, len)
-
-#define C_free_exec_args()		(C_free_arg_string(C_exec_args), C_SCHEME_TRUE)
-#define C_free_exec_env()		(C_free_arg_string(C_exec_env), C_SCHEME_TRUE)
-
-#define C_execvp(f)	    C_fix(execvp(C_data_pointer(f), (const char *const *)C_exec_args))
-#define C_execve(f)	    C_fix(execve(C_data_pointer(f), (const char *const *)C_exec_args, (const char *const *)C_exec_env))
+#define C_u_i_execvp(f,a)   C_fix(execvp(C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a)))
+#define C_u_i_execve(f,a,e) C_fix(execve(C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a), (const char *const *)C_c_pointer_vector_or_null(e)))
 
 /* MS replacement for the fork-exec pair */
-#define C_spawnvp(m, f)	    C_fix(spawnvp(C_unfix(m), C_data_pointer(f), (const char *const *)C_exec_args))
-#define C_spawnvpe(m, f)    C_fix(spawnvpe(C_unfix(m), C_data_pointer(f), (const char *const *)C_exec_args, (const char *const *)C_exec_env))
+#define C_u_i_spawnvp(m,f,a) C_fix(spawnvp(C_unfix(m), C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a)))
+#define C_u_i_spawnvpe(m,f,a,e) C_fix(spawnvpe(C_unfix(m), C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a), (const char *const *)C_c_pointer_vector_or_null(e)))
 
 #define C_open(fn, fl, m)   C_fix(open(C_c_string(fn), C_unfix(fl), C_unfix(m)))
 #define C_read(fd, b, n)    C_fix(read(C_unfix(fd), C_data_pointer(b), C_unfix(n)))
@@ -1161,74 +1128,45 @@ EOF
 ; Windows uses a commandline style for process arguments. Thus any
 ; arguments with embedded whitespace will parse incorrectly. Must
 ; string-quote such arguments.
-(define $quote-args-list
-  (lambda (lst exactf)
-    (if exactf
-	lst
-	(let ([needs-quoting?
-					; This is essentially (string-any char-whitespace? s) but we don't
-					; want a SRFI-13 dependency. (Do we?)
-	       (lambda (s)
-		 (let ([len (string-length s)])
-		   (let loop ([i 0])
-		     (cond
-		      [(fx= i len) #f]
-		      [(char-whitespace? (string-ref s i)) #t]
-		      [else (loop (fx+ i 1))]))))])
-	  (let loop ([ilst lst] [olst '()])
-	    (if (null? ilst)
-		(##sys#fast-reverse olst)
-		(let ([str (car ilst)])
-		  (loop
-		   (cdr ilst)
-		   (cons
-		    (if (needs-quoting? str) (string-append "\"" str "\"") str)
-		    olst)) ) ) ) ) ) ) )
+(define quote-arg-string
+  (let ((needs-quoting?
+	 ;; This is essentially (string-any char-whitespace? s) but we
+	 ;; don't want a SRFI-13 dependency. (Do we?)
+	 (lambda (s)
+	   (let ((len (string-length s)))
+	     (let loop ((i 0))
+	       (cond
+		((fx= i len) #f)
+		((char-whitespace? (string-ref s i)) #t)
+		(else (loop (fx+ i 1)))))))))
+    (lambda (str)
+      (if (needs-quoting? str) (string-append "\"" str "\"") str))))
 
-(define $exec-setup
-  ;; NOTE: We use c-string here instead of scheme-object.
-  ;; Because set_exec_* make a copy, this implies a double copy.
-  ;; At least it's secure, we can worry about performance later, if at all
-  (let ([setarg (foreign-lambda void "C_set_exec_arg" int c-string int)]
-	[setenv (foreign-lambda void "C_set_exec_env" int c-string int)]
-	[build-exec-argvec
-	  (lambda (loc lst argvec-setter idx)
-	    (if lst
-	      (begin
-		(##sys#check-list lst loc)
-		(do ([l lst (cdr l)]
-		     [i idx (fx+ i 1)] )
-		    ((null? l) (argvec-setter i #f 0))
-		  (let ([s (car l)])
-		    (##sys#check-string s loc)
-		    (argvec-setter i s (##sys#size s)) ) ) )
-	      (argvec-setter idx #f 0) ) )])
-    (lambda (loc filename arglst envlst exactf)
-      (##sys#check-string filename loc)
-      (let ([s (pathname-strip-directory filename)])
-	(setarg 0 s (##sys#size s)) )
-      (build-exec-argvec loc (and arglst ($quote-args-list arglst exactf)) setarg 1)
-      (build-exec-argvec loc envlst setenv 0)
-      (##core#inline "C_flushall")
-      (##sys#make-c-string filename loc) ) ) )
+(define (process-execute filename #!optional (arglist '()) envlist exactf)
+  (let ((argconv (if exactf (lambda (x) x) quote-arg-string)))
+    (call-with-exec-args
+     'process-execute filename argconv arglist envlist
+     (lambda (prg argbuf envbuf)
+       (##core#inline "C_flushall")
+       (let ((r (if envbuf
+		    (##core#inline "C_u_i_execve" prg argbuf envbuf)
+		    (##core#inline "C_u_i_execvp" prg argbuf))))
+	 (when (fx= r -1)
+	   (posix-error #:process-error 'process-execute "cannot execute process" filename)))))))
 
-(define ($exec-teardown loc msg filename res)
-  (##sys#update-errno)
-  (##core#inline "C_free_exec_args")
-  (##core#inline "C_free_exec_env")
-  (if (fx= res -1)
-      (##sys#error loc msg filename)
-      res ) )
+(define (process-spawn mode filename #!optional (arglist '()) envlist exactf)
+  (let ((argconv (if exactf (lambda (x) x) quote-arg-string)))
+    (##sys#check-exact mode 'process-spawn)
 
-(define (process-execute filename #!optional arglst envlst exactf)
-  (let ([prg ($exec-setup 'process-execute filename arglst envlst exactf)])
-    ($exec-teardown 'process-execute "cannot execute process" filename
-      (if envlst (##core#inline "C_execve" prg) (##core#inline "C_execvp" prg))) ) )
-
-(define (process-spawn mode filename #!optional arglst envlst exactf)
-  (let ([prg ($exec-setup 'process-spawn filename arglst envlst exactf)])
-    ($exec-teardown 'process-spawn "cannot spawn process" filename
-      (if envlst (##core#inline "C_spawnvpe" mode prg) (##core#inline "C_spawnvp" mode prg))) ) )
+    (call-with-exec-args
+     'process-spawn filename argconv arglist envlist
+     (lambda (prg argbuf envbuf)
+       (##core#inline "C_flushall")
+       (let ((r (if envbuf
+		    (##core#inline "C_u_i_spawnvpe" mode prg argbuf envbuf)
+		    (##core#inline "C_u_i_spawnvp" mode prg argbuf))))
+	 (when (fx= r -1)
+	   (posix-error #:process-error 'process-spawn "cannot spawn process" filename)))))))
 
 (define-foreign-variable _shlcmd c-string "C_shlcmd")
 
@@ -1277,7 +1215,11 @@ EOF
     ; information for the system drives. i.e !C:=...
     ; For now any environment is ignored.
     (lambda (loc cmd args env stdoutf stdinf stderrf #!optional exactf)
-      (let ([cmdlin (string-intersperse ($quote-args-list (cons cmd args) exactf))])
+      (let* ((arglist (cons cmd args))
+	     (cmdlin (string-intersperse
+		      (if exactf
+			  arglist
+			  (map quote-arg-string arglist)))))
 	(let-location ([handle int -1]
 		       [stdin_fd int -1] [stdout_fd int -1] [stderr_fd int -1])
 	  (let ([res

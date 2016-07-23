@@ -1,5 +1,11 @@
 4.11.1
 
+- Security fixes
+  - Fix buffer overrun due to excessively long argument or
+    environment lists in process-execute and process-spawn (#1308).
+    This also removes unnecessary limitations on the length of
+    these lists (thanks to Vasilij Schneidermann).
+
 - Compiler:
   - define-constant now correctly keeps symbol values quoted.
   - Warnings are now emitted when using vector-{ref,set!} or one
