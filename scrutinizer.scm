@@ -2332,6 +2332,58 @@
 	  `((list ,@(reverse (cdr arg1)))))
 	rtypes)))
 
+(let ()
+  ;; See comment in vector (let)
+  (define (report loc msg . args)
+    (warning
+     (conc (location-name loc)
+	   (sprintf "~?" msg (map type-name args)))))
+
+  (define (append-special-case node args loc rtypes)
+    (define (potentially-proper-list? l) (match-types l 'list '()))
+
+    (define (derive-result-type)
+      (let lp ((arg-types (cdr args))
+	       (index 1))
+	(if (null? arg-types)
+	    'null
+	    (let ((arg1 (walked-result (car arg-types))))
+	      (cond
+	       ((and (pair? arg1) (eq? (car arg1) 'list))
+		(and-let* ((rest-t (lp (cdr arg-types) (add1 index))))
+		  ;; decanonicalize, then recanonicalize to make it
+		  ;; easy to append a variety of types.
+		  (canonicalize-list-type
+		   (foldl (lambda (rest t) `(pair ,t ,rest))
+			  rest-t (reverse (cdr arg1))))))
+
+	       ((and (pair? arg1) (eq? (car arg1) 'list-of))
+		(and-let* ((rest-t (lp (cdr arg-types) (add1 index))))
+		  ;; list-of's length unsurety is "contagious"
+		  (simplify-type `(or ,arg1 ,rest-t))))
+
+	       ;; TODO: (append (pair x (pair y z)) lst) =>
+	       ;; (pair x (pair y (or z lst)))
+	       ;; This is trickier than it sounds!
+
+	       (else
+		;; The final argument may be an atom or improper list
+		(unless (or (null? (cdr arg-types))
+			    (potentially-proper-list? arg1))
+		  (report
+		   loc "~ain procedure call to `~a', argument #~a is \
+			of type ~a but expected a proper list"
+		   (node-source-prefix node)
+		   (first (node-parameters
+			   (first (node-subexpressions node))))
+		   index arg1))
+		#f))))))
+    (cond ((derive-result-type) => list)
+	  (else rtypes)))
+
+  (define-special-case append append-special-case)
+  (define-special-case ##sys#append append-special-case))
+
 ;;; Special cases for make-list/make-vector with a known size
 ;
 ; e.g. (make-list 3 #\a) => (list char char char)

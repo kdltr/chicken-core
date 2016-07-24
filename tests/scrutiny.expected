@@ -206,4 +206,10 @@ Warning: in toplevel procedure `list-ref-type-warn2':
 Warning: in toplevel procedure `list-ref-type-warn3':
   (scrutiny-tests.scm:289) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
 
+Warning: in toplevel procedure `append-result-type-warn1':
+  (scrutiny-tests.scm:301) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `append-result-type-warn2':
+  (scrutiny-tests.scm:306) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+
 Warning: redefinition of standard binding: car
