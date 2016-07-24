@@ -295,3 +295,19 @@
   (define (list-ref-type-nowarn2) (add1 (list-ref l2 1))))
 (let ((l3 (the (list-of fixnum) '(1 2 3))))
   (define (list-ref-type-nowarn3) (add1 (list-ref l3 1))))
+
+;; Test type preservation of append (TODO: decouple from list-ref)
+(let ((l1 (append (list 'x 'y) (list 1 2 (eval '(list))))))
+  (define (append-result-type-warn1) (add1 (list-ref l1 1))))
+;; This currently doesn't warn because pair types aren't joined yet
+#;(let ((l2 (append (cons 'x (cons 'y (eval '(list)))) (list 'x 'y))))
+  (define (append-result-type-warn2) (add1 (list-ref l2 1))))
+(let ((l3 (append (the (list-of symbol) '(x y)) '(a b))))
+  (define (append-result-type-warn2) (add1 (list-ref l3 3))))
+
+(let ((l1 (append (list 1 2) (list 'x 'y (eval '(list))))))
+  (define (append-result-type-nowarn1) (add1 (list-ref l1 1))))
+(let ((l2 (append (cons 1 (cons 2 (eval '(list)))) (list 'x))))
+  (define (append-result-type-nowarn2) (add1 (list-ref l2 1))))
+(let ((l3 (append (the (list-of fixnum) '(1 2)) '(x y))))
+  (define (append-result-type-nowarn3) (add1 (list-ref l3 1))))
