@@ -230,27 +230,68 @@
 ;; otherwise we won't get the warnings for subsequent references.
 (let ((l1 (list 'a 'b 'c)))
   (define (list-ref-warn1) (list-ref l1 -1)))
+;; This warns regardless of not knowing the length of the list
 (let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
   (define (list-ref-warn2) (list-ref l2 -1)))
+;; Not knowing the length of a "list-of" is not an issue here
+(let ((l3 (the (list-of symbol) '(x y z))))
+  (define (list-ref-warn3) (list-ref l3 -1)))
 (let ((l1 (list 'a 'b 'c)))
-  (define (list-ref-warn3) (list-ref l1 3)))
-(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
-  (define (list-ref-warn4) (list-ref l2 3)))
+  (define (list-ref-warn4) (list-ref l1 3)))
+;; This can't warn: it strictly doesn't know the length of the list.
+;; The eval could return a list of length >= 1!
+#;(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-warn5) (list-ref l2 3)))
 (let ((l1 (list 'a 'b 'c)))
   (define (list-ref-warn5) (list-ref l1 4)))
-(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+;; Same as above
+#;(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
   (define (list-ref-warn6) (list-ref l2 4)))
 
+;; We add the second check to ensure that we don't give false warnings
+;; for smashed types, because we don't know the original size.
 (let ((l1 (list 'a 'b 'c)))
-  (define (list-ref-nowarn1) (list-ref l1 0)))
+  (define (list-ref-nowarn1) (list-ref l1 0))
+  (define (list-ref-nowarn2) (list-ref l1 0)))
 (let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
-  (define (list-ref-nowarn2) (list-ref l2 0)))
+  (define (list-ref-nowarn3) (list-ref l2 0))
+  (define (list-ref-nowarn4) (list-ref l2 0)))
 (let ((l1 (list 'a 'b 'c)))
-  (define (list-ref-nowarn3) (list-ref l1 2)))
+  (define (list-ref-nowarn5) (list-ref l1 2))
+  (define (list-ref-nowarn6) (list-ref l1 2)))
 (let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
-  (define (list-ref-nowarn4) (list-ref l2 2)))
+  (define (list-ref-nowarn7) (list-ref l2 2))
+  (define (list-ref-nowarn8) (list-ref l2 2)))
+;; Verify that we don't give bogus warnings, like mentioned above.
+(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-nowarn9) (list-ref l2 5)))
+;; We don't know the length of a "list-of", so we can't warn
+(let ((l3 (the (list-of symbol) '(x y z))))
+  (define (list-ref-nowarn10) (list-ref l3 100)))
 
+;; The second check here should still give a warning, this has
+;; nothing to do with component smashing.
 (let ((l1 (list 'a 'b 'c)))
-  (define (list-ref-standard-warn1) (list-ref l1 'bad)))
+  (define (list-ref-standard-warn1) (list-ref l1 'bad))
+  (define (list-ref-standard-warn2) (list-ref l1 'bad)))
 (let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
-  (define (list-ref-standard-warn2) (list-ref l2 'bad)))
+  (define (list-ref-standard-warn3) (list-ref l2 'bad))
+  (define (list-ref-standard-warn4) (list-ref l2 'bad)))
+
+;; Test type preservation of list-ref
+(let ((l1 (list 'a 'b 'c)))
+  (define (list-ref-type-warn1) (add1 (list-ref l1 1))))
+(let ((l2 (cons 'a (cons 'b (cons 'c (eval '(list)))))))
+  (define (list-ref-type-warn2) (add1 (list-ref l2 1))))
+;; This is handled by the list-ref entry in types.db, *not* the
+;; special-cased code.
+(let ((l3 (the (list-of symbol) '(a b c))))
+  (define (list-ref-type-warn3) (add1 (list-ref l3 1))))
+
+;; Sanity check
+(let ((l1 (list 1 2 3)))
+  (define (list-ref-type-nowarn1) (add1 (list-ref l1 1))))
+(let ((l2 (cons 1 (cons 2 (cons 3 (eval '(list)))))))
+  (define (list-ref-type-nowarn2) (add1 (list-ref l2 1))))
+(let ((l3 (the (list-of fixnum) '(1 2 3))))
+  (define (list-ref-type-nowarn3) (add1 (list-ref l3 1))))

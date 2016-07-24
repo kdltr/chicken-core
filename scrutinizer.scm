@@ -2232,6 +2232,7 @@
 
   ;; Split a list or pair type form at index i, calling k with the two
   ;; sections of the type or returning #f if it doesn't match that far.
+  ;; Note that "list-of" is handled by "forall" entries in types.db
   (define (split-list-type l i k)
     (cond ((not (pair? l))
 	   (and (fx= i 0) (eq? l 'null) (k l l)))
@@ -2252,6 +2253,13 @@
 		   (else #f))))
 	  (else #f)))
 
+  ;; canonicalize-list-type will have taken care of converting (pair
+  ;; (pair ...)) to (list ...) or (list-of ...) for proper lists.
+  (define (proper-list-type-length t)
+    (cond ((eq? t 'null) 0)
+	  ((and (pair? t) (eq? (car t) 'list)) (length (cdr t)))
+	  (else #f)))
+
   (define (list+index-call-result-type-special-case k)
     (lambda (node args loc rtypes)
       (or (and-let* ((subs (node-subexpressions node))
@@ -2261,17 +2269,27 @@
 		     ((eq? 'quote (node-class index)))
 		     (val (first (node-parameters index)))
 		     ((fixnum? val))) ; Standard type warning otherwise
-	    (or (and (>= val 0) (split-list-type arg1 val k))
-		(begin
-		  (report
-		   loc "~ain procedure call to `~a', index ~a out of \
-                        range for list of type ~a"
-		   (node-source-prefix node)
-		   ;; TODO: It might make more sense to use
-		   ;; "pname" here
-		   (first (node-parameters (first subs)))
-		   val arg1)
-		  #f)))
+	    ;; TODO: It might make sense to use "pname" when reporting
+	    (cond ((negative? val)
+		   ;; Negative indices should always generate a warning
+		   (report
+		    loc "~ain procedure call to `~a', index ~a is \
+                        negative, which is never valid"
+		    (node-source-prefix node)
+		    (first (node-parameters (first subs))) val)
+		   #f)
+		  ((split-list-type arg1 val k))
+		  ;; Warn only if it's a known proper list.  This avoids
+		  ;; false warnings due to component smashing.
+		  ((proper-list-type-length arg1) =>
+		   (lambda (length)
+		     (report
+		      loc "~ain procedure call to `~a', index ~a out of \
+                        range for proper list of length ~a"
+		      (node-source-prefix node)
+		      (first (node-parameters (first subs))) val length)
+		     #f))
+		  (else #f)))
 	  rtypes)))
 
   (define-special-case list-ref

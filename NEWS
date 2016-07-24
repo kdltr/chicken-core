@@ -57,7 +57,7 @@
   - define-constant now correctly keeps symbol values quoted.
   - Warnings are now emitted when using vector-{ref,set!} or one
     of take, drop, list-ref or list-tail with an out of range index
-    for vectors and lists of a definitely known length.
+    for vectors and proper lists of a definitely known length.
   - The scrutinizer will no longer drop knowledge of the length of a
     vector.  It still drops types of its contents (which may be mutated).
 
