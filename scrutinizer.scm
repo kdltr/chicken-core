@@ -2177,7 +2177,7 @@
 	  val
 	  (begin
 	    (report
-	     loc "~ain procedure call to `~s', index ~a out of range \
+	     loc "~ain procedure call to `~a', index ~a out of range \
                    for vector of length ~a"
 	     (node-source-prefix node)
 	     ;; TODO: It might make more sense to use "pname" here
@@ -2264,7 +2264,7 @@
 	    (or (and (>= val 0) (split-list-type arg1 val k))
 		(begin
 		  (report
-		   loc "~ain procedure call to `~s', index ~a out of \
+		   loc "~ain procedure call to `~a', index ~a out of \
                         range for list of type ~a"
 		   (node-source-prefix node)
 		   ;; TODO: It might make more sense to use
