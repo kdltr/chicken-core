@@ -957,6 +957,7 @@
 (##sys#register-module-alias 'keyword 'chicken.keyword)
 (##sys#register-module-alias 'locative 'chicken.locative)
 (##sys#register-module-alias 'lolevel 'chicken.lolevel)
+(##sys#register-module-alias 'memory 'chicken.memory)
 (##sys#register-module-alias 'ports 'chicken.ports)
 (##sys#register-module-alias 'posix 'chicken.posix)
 (##sys#register-module-alias 'pretty-print 'chicken.pretty-print)
