@@ -343,7 +343,7 @@ EOF
 		     (number->string n 16)
 		     "."
 		     (##sys#number->string (##sys#fudge 33)))))) ; PID
-	  (if (directory-exists? pn) 
+	  (if (file-exists? pn)
 	      (loop)
 	      (let ((r (##core#inline "C_mkdir" (##sys#make-c-string pn 'create-temporary-directory))))
 		(if (eq? r 0)
