@@ -10295,7 +10295,7 @@ void C_ccall allocate_vector_2(C_word c, C_word *av)
 static C_word allocate_tmp_bignum(C_word size, C_word negp, C_word initp)
 {
   C_word *mem = C_malloc(C_wordstobytes(C_SIZEOF_BIGNUM(C_unfix(size)))),
-          bigvec = (C_word)(mem + C_SIZEOF_STRUCTURE(2));
+          bigvec = (C_word)(mem + C_SIZEOF_BIGNUM_WRAPPER);
   if (mem == NULL) abort();     /* TODO: panic */
   
   C_block_header_init(bigvec, C_STRING_TYPE | C_wordstobytes(C_unfix(size)+1));
