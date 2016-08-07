@@ -464,7 +464,7 @@ static inline int isinf_ld (long double x)
 # define C_PAIR_TYPE              (0x0300000000000000L)
 # define C_CLOSURE_TYPE           (0x0400000000000000L | C_SPECIALBLOCK_BIT)
 # define C_FLONUM_TYPE            (0x0500000000000000L | C_BYTEBLOCK_BIT | C_8ALIGN_BIT)
-/*       unused                   (0x0600000000000000L ...) */
+# define C_BIGNUM_TYPE            (0x0600000000000000L) /* Just the wrapper */
 # define C_PORT_TYPE              (0x0700000000000000L | C_SPECIALBLOCK_BIT)
 # define C_STRUCTURE_TYPE         (0x0800000000000000L)
 # define C_POINTER_TYPE           (0x0900000000000000L | C_SPECIALBLOCK_BIT)
@@ -494,7 +494,7 @@ static inline int isinf_ld (long double x)
 # else
 #  define C_FLONUM_TYPE           (0x05000000 | C_BYTEBLOCK_BIT | C_8ALIGN_BIT)
 # endif
-/*       unused                   (0x06000000 ...) */
+# define C_BIGNUM_TYPE            (0x06000000) /* Just the wrapper */
 # define C_PORT_TYPE              (0x07000000 | C_SPECIALBLOCK_BIT)
 # define C_STRUCTURE_TYPE         (0x08000000)
 # define C_POINTER_TYPE           (0x09000000 | C_SPECIALBLOCK_BIT)
@@ -526,11 +526,11 @@ static inline int isinf_ld (long double x)
 #define C_SIZEOF_STRUCTURE(n)     ((n)+1)
 #define C_SIZEOF_CLOSURE(n)       ((n)+1)
 #define C_SIZEOF_INTERNAL_BIGNUM_VECTOR(n) (C_SIZEOF_VECTOR((n)+1))
-#define C_internal_bignum_vector(b)        (C_block_item(b,1))
+#define C_internal_bignum_vector(b)        (C_block_item(b,0))
 
 /* This is for convenience and allows flexibility in representation */
 #define C_SIZEOF_FIX_BIGNUM       C_SIZEOF_BIGNUM(1)
-#define C_SIZEOF_BIGNUM_WRAPPER   C_SIZEOF_STRUCTURE(2)
+#define C_SIZEOF_BIGNUM_WRAPPER   2
 #define C_SIZEOF_BIGNUM(n)        (C_SIZEOF_INTERNAL_BIGNUM_VECTOR(n)+C_SIZEOF_BIGNUM_WRAPPER)
 
 /* Fixed size types have pre-computed header tags */
@@ -541,6 +541,7 @@ static inline int isinf_ld (long double x)
 #define C_TAGGED_POINTER_TAG      (C_TAGGED_POINTER_TYPE | (C_SIZEOF_TAGGED_POINTER - 1))
 #define C_SYMBOL_TAG              (C_SYMBOL_TYPE | (C_SIZEOF_SYMBOL - 1))
 #define C_FLONUM_TAG              (C_FLONUM_TYPE | sizeof(double))
+#define C_BIGNUM_TAG              (C_BIGNUM_TYPE | 1)
 #define C_STRUCTURE3_TAG          (C_STRUCTURE_TYPE | 3)
 #define C_STRUCTURE2_TAG          (C_STRUCTURE_TYPE | 2)
 
@@ -1174,7 +1175,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_forwardedp(x)           C_mk_bool((C_block_header(x) & C_GC_FORWARDING_BIT) != 0)
 #define C_immp(x)                 C_mk_bool(C_immediatep(x))
 #define C_flonump(x)              C_mk_bool(C_block_header(x) == C_FLONUM_TAG)
-#define C_bignump(x)              C_mk_bool(C_block_header(x) == C_STRUCTURE2_TAG && C_block_item(x, 0) == C_bignum_type_tag)
+#define C_bignump(x)              C_mk_bool(C_block_header(x) == C_BIGNUM_TAG)
 #define C_stringp(x)              C_mk_bool(C_header_bits(x) == C_STRING_TYPE)
 #define C_symbolp(x)              C_mk_bool(C_block_header(x) == C_SYMBOL_TAG)
 #define C_pairp(x)                C_mk_bool(C_block_header(x) == C_PAIR_TAG)
@@ -1735,7 +1736,6 @@ C_varextern C_TLS C_word
   *C_scratchspace_top,
   *C_scratchspace_limit,
    C_scratch_usage,
-   C_bignum_type_tag,
    C_ratnum_type_tag,
    C_cplxnum_type_tag;
 C_varextern C_TLS C_long
@@ -2438,6 +2438,15 @@ C_inline C_word C_ratnum(C_word **ptr, C_word x, C_word y)
   return C_a_i_record3(ptr, 2, C_ratnum_type_tag, x, y);
 }
 
+C_inline C_word C_a_i_bignum_wrapper(C_word **ptr, C_word vec)
+{
+  C_word *p = *ptr, *p0 = p; 
+
+  *(p++) = C_BIGNUM_TAG;
+  *(p++) = vec;
+  *ptr = p;
+  return (C_word)p0;
+}
 
 /* Silly (this is not normalized) but in some cases needed internally */
 C_inline C_word C_bignum0(C_word **ptr)
@@ -2448,7 +2457,7 @@ C_inline C_word C_bignum0(C_word **ptr)
   *(p++) = 0; /* zero is always positive */
   *ptr = p;
 
-  return C_a_i_record2(ptr, 2, C_bignum_type_tag, p0);
+  return C_a_i_bignum_wrapper(ptr, p0);
 }
 
 C_inline C_word C_bignum1(C_word **ptr, int negp, C_uword d1)
@@ -2460,7 +2469,7 @@ C_inline C_word C_bignum1(C_word **ptr, int negp, C_uword d1)
   *(p++) = d1;
   *ptr = p;
 
-  return C_a_i_record2(ptr, 2, C_bignum_type_tag, p0);
+  return C_a_i_bignum_wrapper(ptr, p0);
 }
 
 /* Here d1, d2, ... are low to high (ie, little endian)! */
@@ -2474,14 +2483,12 @@ C_inline C_word C_bignum2(C_word **ptr, int negp, C_uword d1, C_uword d2)
   *(p++) = d2;
   *ptr = p;
 
-  return C_a_i_record2(ptr, 2, C_bignum_type_tag, p0);
+  return C_a_i_bignum_wrapper(ptr, p0);
 }
 
 C_inline C_word C_i_bignump(C_word x)
 {
-  return C_mk_bool(!C_immediatep(x) &&
-                   C_block_header(x) == C_STRUCTURE2_TAG &&
-                   C_block_item(x, 0) == C_bignum_type_tag);
+  return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_BIGNUM_TAG);
 }
 
 
@@ -2749,9 +2756,8 @@ C_inline C_word basic_eqvp(C_word x, C_word y)
            ((C_block_header(x) == C_FLONUM_TAG &&
              C_flonum_magnitude(x) == C_flonum_magnitude(y)) ||
 
-            (C_block_header(x) == C_STRUCTURE2_TAG &&
-             C_block_item(x, 0) == C_bignum_type_tag &&
-             C_block_item(y, 0) == C_bignum_type_tag &&
+            (C_block_header(x) == C_BIGNUM_TAG &&
+             C_block_header(y) == C_BIGNUM_TAG &&
              C_i_bignum_cmp(x, y) == C_fix(0)))));
 }
 
@@ -2821,7 +2827,7 @@ C_inline C_word C_i_numberp(C_word x)
   return C_mk_bool((x & C_FIXNUM_BIT) ||
                    (!C_immediatep(x) && 
                     (C_block_header(x) == C_FLONUM_TAG ||
-                     C_truep(C_bignump(x)) ||
+                     C_block_header(x) == C_BIGNUM_TAG ||
                      (C_block_header(x) == C_STRUCTURE3_TAG &&
                       (C_block_item(x, 0) == C_ratnum_type_tag ||
                        C_block_item(x, 0) == C_cplxnum_type_tag)))));
@@ -2833,7 +2839,7 @@ C_inline C_word C_i_realp(C_word x)
   return C_mk_bool((x & C_FIXNUM_BIT) ||
                    (!C_immediatep(x) && 
                     (C_block_header(x) == C_FLONUM_TAG ||
-                     C_truep(C_bignump(x)) ||
+                     C_block_header(x) == C_BIGNUM_TAG ||
                      (C_block_header(x) == C_STRUCTURE3_TAG &&
                       C_block_item(x, 0) == C_ratnum_type_tag))));
 }
@@ -2849,7 +2855,7 @@ C_inline C_word C_i_rationalp(C_word x)
     double n = C_flonum_magnitude(x);
     return C_mk_bool(!C_isinf(n) && !C_isnan(n));
   } else {
-    return C_mk_bool(C_truep(C_bignump(x)) ||
+    return C_mk_bool(C_block_header(x) == C_BIGNUM_TAG ||
                      (C_block_header(x) == C_STRUCTURE3_TAG &&
                       C_block_item(x, 0) == C_ratnum_type_tag));
   }

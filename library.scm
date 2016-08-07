@@ -984,7 +984,7 @@ EOF
 (import chicken.flonum)
 
 (define-inline (integer-negate x)
-  (##core#inline_allocate ("C_s_a_u_i_integer_negate" 6) x))
+  (##core#inline_allocate ("C_s_a_u_i_integer_negate" 5) x))
 
 (define = (##core#primitive "C_nequalp"))
 (define > (##core#primitive "C_greaterp"))
@@ -1109,7 +1109,7 @@ EOF
 (define signum (##core#primitive "C_signum"))
 
 (define-inline (%flo->int x)
-  (##core#inline_allocate ("C_s_a_u_i_flo_to_int" 6) x))
+  (##core#inline_allocate ("C_s_a_u_i_flo_to_int" 5) x))
 
 (define (flonum->ratnum x)
   ;; Try to multiply by two until we reach an integer
@@ -1160,20 +1160,20 @@ EOF
 (define bitwise-and (##core#primitive "C_bitwise_and"))
 (define bitwise-ior (##core#primitive "C_bitwise_ior"))
 (define bitwise-xor (##core#primitive "C_bitwise_xor"))
-(define (bitwise-not n) (##core#inline_allocate ("C_s_a_i_bitwise_not" 6) n))
+(define (bitwise-not n) (##core#inline_allocate ("C_s_a_i_bitwise_not" 5) n))
 (define (bit-set? n i) (##core#inline "C_i_bit_setp" n i))
 (define (integer-length x) (##core#inline "C_i_integer_length" x))
 (define (arithmetic-shift n m)
-  (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 6) n m)))
+  (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 5) n m)))
 
 (import chicken.bitwise)
 
 ;;; Basic arithmetic:
 
 (define-inline (%integer-gcd a b)
-  (##core#inline_allocate ("C_s_a_u_i_integer_gcd" 6) a b))
+  (##core#inline_allocate ("C_s_a_u_i_integer_gcd" 5) a b))
 
-(define (abs x) (##core#inline_allocate ("C_s_a_i_abs" 10) x))
+(define (abs x) (##core#inline_allocate ("C_s_a_i_abs" 9) x))
 
 (define (/ arg1 . args)
   (if (null? args) 
@@ -1186,7 +1186,7 @@ EOF
 		  (##sys#/-2 x (##sys#slot args 0))) ) ) ) )
 
 (define-inline (%integer-quotient a b)
-  (##core#inline_allocate ("C_s_a_u_i_integer_quotient" 6) a b))
+  (##core#inline_allocate ("C_s_a_u_i_integer_quotient" 5) a b))
 
 (define (##sys#/-2 x y)
   (when (eq? y 0)
@@ -1302,9 +1302,9 @@ EOF
         (exact->inexact result)
         result)))
 
-(define (quotient a b) (##core#inline_allocate ("C_s_a_i_quotient" 6) a b))
-(define (remainder a b) (##core#inline_allocate ("C_s_a_i_remainder" 6) a b))
-(define (modulo a b) (##core#inline_allocate ("C_s_a_i_modulo" 6) a b))
+(define (quotient a b) (##core#inline_allocate ("C_s_a_i_quotient" 5) a b))
+(define (remainder a b) (##core#inline_allocate ("C_s_a_i_remainder" 5) a b))
+(define (modulo a b) (##core#inline_allocate ("C_s_a_i_modulo" 5) a b))
 (define quotient&remainder (##core#primitive "C_quotient_and_remainder"))
 
 ;; Modulo's sign follows y (whereas remainder's sign follows x)
@@ -1770,7 +1770,7 @@ EOF
                    (end (or hashes digits)))
               (and-let* ((end)
                          (num (##core#inline_allocate
-			       ("C_s_a_i_digits_to_integer" 3)
+			       ("C_s_a_i_digits_to_integer" 2)
 			       str start (car end) radix neg?)))
                 (when hashes            ; Eeewww. Feeling dirty yet?
                   (set! seen-hashes? #t)
@@ -1785,7 +1785,7 @@ EOF
                               (end (scan-digits start)))
                      (go-inexact!)
                      (cons (##core#inline_allocate
-			    ("C_s_a_i_digits_to_integer" 3)
+			    ("C_s_a_i_digits_to_integer" 2)
 			    str start (car end) radix (eq? sign 'neg))
                            (cdr end)))))))
          (scan-decimal-tail             ; The part after the decimal dot

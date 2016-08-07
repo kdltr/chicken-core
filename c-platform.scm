@@ -584,11 +584,11 @@
 
 (rewrite 'abs 14 'fixnum 1 "C_fixnum_abs" "C_fixnum_abs")
 
-(rewrite 'chicken.bitwise#bitwise-and 21 -1 "C_fixnum_and" "C_u_fixnum_and" "C_s_a_i_bitwise_and" 6)
-(rewrite 'chicken.bitwise#bitwise-xor 21 0 "C_fixnum_xor" "C_fixnum_xor" "C_s_a_i_bitwise_xor" 6)
-(rewrite 'chicken.bitwise#bitwise-ior 21 0 "C_fixnum_or" "C_u_fixnum_or" "C_s_a_i_bitwise_ior" 6)
+(rewrite 'chicken.bitwise#bitwise-and 21 -1 "C_fixnum_and" "C_u_fixnum_and" "C_s_a_i_bitwise_and" 5)
+(rewrite 'chicken.bitwise#bitwise-xor 21 0 "C_fixnum_xor" "C_fixnum_xor" "C_s_a_i_bitwise_xor" 5)
+(rewrite 'chicken.bitwise#bitwise-ior 21 0 "C_fixnum_or" "C_u_fixnum_or" "C_s_a_i_bitwise_ior" 5)
 
-(rewrite 'chicken.bitwise#bitwise-not 22 1 "C_s_a_i_bitwise_not" #t 6 "C_fixnum_not")
+(rewrite 'chicken.bitwise#bitwise-not 22 1 "C_s_a_i_bitwise_not" #t 5 "C_fixnum_not")
 
 (rewrite 'chicken.flonum#fp+ 16 2 "C_a_i_flonum_plus" #f words-per-flonum)
 (rewrite 'chicken.flonum#fp- 16 2 "C_a_i_flonum_difference" #f words-per-flonum)
@@ -674,12 +674,12 @@
 (rewrite 'lcm 18 1)
 (rewrite 'list 18 '())
 
-(rewrite '+ 16 2 "C_s_a_i_plus" #t 36)
-(rewrite '- 16 2 "C_s_a_i_minus" #t 36)
-(rewrite '* 16 2 "C_s_a_i_times" #t 40)
-(rewrite 'quotient 16 2 "C_s_a_i_quotient" #t 6)
-(rewrite 'remainder 16 2 "C_s_a_i_remainder" #t 6)
-(rewrite 'modulo 16 2 "C_s_a_i_modulo" #t 6)
+(rewrite '+ 16 2 "C_s_a_i_plus" #t 32)
+(rewrite '- 16 2 "C_s_a_i_minus" #t 32)
+(rewrite '* 16 2 "C_s_a_i_times" #t 36)
+(rewrite 'quotient 16 2 "C_s_a_i_quotient" #t 5)
+(rewrite 'remainder 16 2 "C_s_a_i_remainder" #t 5)
+(rewrite 'modulo 16 2 "C_s_a_i_modulo" #t 5)
 
 (rewrite '= 17 2 "C_i_nequalp")
 (rewrite '> 17 2 "C_i_greaterp")
@@ -829,7 +829,7 @@
 			 (make-node '##core#inline
 				    '("C_i_fixnum_arithmetic_shift") callargs)
 			 (make-node '##core#inline_allocate
-				    (list "C_s_a_i_arithmetic_shift" 6)
+				    (list "C_s_a_i_arithmetic_shift" 5)
 				    callargs) ) ) ) ) ) ) ) )
 
 (rewrite '##sys#byte 17 2 "C_subbyte")

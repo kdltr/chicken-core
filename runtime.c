@@ -340,7 +340,6 @@ C_TLS C_word
   *C_scratchspace_top,
   *C_scratchspace_limit,
    C_scratch_usage,
-   C_bignum_type_tag,
    C_ratnum_type_tag,
    C_cplxnum_type_tag;
 C_TLS C_long
@@ -1126,7 +1125,6 @@ void initialize_symbol_table(void)
   for(i = 0; i < symbol_table->size; symbol_table->table[ i++ ] = C_SCHEME_END_OF_LIST);
 
   /* Obtain reference to hooks for later: */
-  C_bignum_type_tag = C_intern2(C_heaptop, C_text("\003sysbignum"));
   C_ratnum_type_tag = C_intern2(C_heaptop, C_text("\003sysratnum"));
   C_cplxnum_type_tag = C_intern2(C_heaptop, C_text("\003syscplxnum"));
   core_provided_symbol = C_intern2(C_heaptop, C_text("\004coreprovided"));
@@ -2688,7 +2686,7 @@ C_regparm C_word C_fcall C_static_bignum(C_word **ptr, int len, C_char *str)
   C_block_header_init(bigvec, C_STRING_TYPE | C_wordstobytes(size + 1));
   C_set_block_item(bigvec, 0, negp);
   /* This needs to be allocated at ptr, not dptr, because GC moves type tag */
-  bignum = C_a_i_record2(ptr, 2, C_bignum_type_tag, bigvec);
+  bignum = C_a_i_bignum_wrapper(ptr, bigvec);
 
   retval = str_to_bignum(bignum, str, str + len, 16);
   if (retval & C_FIXNUM_BIT)
@@ -3609,7 +3607,6 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
 C_regparm void C_fcall mark_system_globals(void)
 {
-  mark(&C_bignum_type_tag);
   mark(&C_ratnum_type_tag);
   mark(&C_cplxnum_type_tag);
   mark(&core_provided_symbol);
@@ -3944,7 +3941,6 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 
 C_regparm void C_fcall remark_system_globals(void)
 {
-  remark(&C_bignum_type_tag);
   remark(&C_ratnum_type_tag);
   remark(&C_cplxnum_type_tag);
   remark(&core_provided_symbol);
@@ -5978,7 +5974,7 @@ C_regparm C_word C_fcall C_i_vector_set(C_word v, C_word i, C_word x)
   return C_SCHEME_UNDEFINED;
 }
 
-/* This needs at most C_SIZEOF_FIX_BIGNUM + C_SIZEOF_STRUCTURE(3) so 10 words */
+/* This needs at most C_SIZEOF_FIX_BIGNUM + C_SIZEOF_STRUCTURE(3) so 9 words */
 C_regparm C_word C_fcall
 C_s_a_i_abs(C_word **ptr, C_word n, C_word x)
 {
@@ -6039,7 +6035,7 @@ C_regparm C_word C_fcall C_a_i_abs(C_word **a, int c, C_word x)
 
 /* The maximum this can allocate is a cplxnum which consists of two
  * ratnums that consist of 2 fix bignums each.  So that's
- * C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_FIX_BIGNUM * 4 = 36 words!
+ * C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_FIX_BIGNUM * 4 = 32 words!
  */
 C_regparm C_word C_fcall
 C_s_a_i_negate(C_word **ptr, C_word n, C_word x)
@@ -7765,7 +7761,7 @@ cplx_times(C_word **ptr, C_word rx, C_word ix, C_word ry, C_word iy)
 {
   /* Allocation here is kind of tricky: Each intermediate result can
    * be at most a ratnum consisting of two bignums (2 digits), so
-   * C_SIZEOF_STRUCTURE(3) + C_SIZEOF_BIGNUM(2) = 11 words
+   * C_SIZEOF_STRUCTURE(3) + C_SIZEOF_BIGNUM(2) = 10 words
    */
   C_word ab[(C_SIZEOF_STRUCTURE(3) + C_SIZEOF_BIGNUM(2))*6], *a = ab,
          r1, r2, i1, i2, r, i;
@@ -7796,7 +7792,7 @@ cplx_times(C_word **ptr, C_word rx, C_word ix, C_word ry, C_word iy)
  * number result, where both real and imag parts consist of ratnums.
  * The maximum size of those ratnums is if they consist of two bignums
  * from a fixnum multiplication (2 digits each), so we're looking at
- * C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_BIGNUM(2) * 4 = 40 words!
+ * C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_BIGNUM(2) * 4 = 36 words!
  */
 C_regparm C_word C_fcall
 C_s_a_i_times(C_word **ptr, C_word n, C_word x, C_word y)
@@ -8241,7 +8237,7 @@ static C_word rat_plusmin_rat(C_word **ptr, C_word x, C_word y, integer_plusmin_
  * number result, where both real and imag parts consist of ratnums.
  * The maximum size of those ratnums is if they consist of two "fix
  * bignums", so we're looking at C_SIZEOF_STRUCTURE(3) * 3 +
- * C_SIZEOF_FIX_BIGNUM * 4 = 36 words!
+ * C_SIZEOF_FIX_BIGNUM * 4 = 32 words!
  */
 C_regparm C_word C_fcall
 C_s_a_i_plus(C_word **ptr, C_word n, C_word x, C_word y)
@@ -8503,7 +8499,7 @@ static C_word bignum_minus_unsigned(C_word **ptr, C_word x, C_word y)
   return C_bignum_simplify(res);
 }
 
-/* Like C_s_a_i_plus, this needs at most 36 words */
+/* Like C_s_a_i_plus, this needs at most 32 words */
 C_regparm C_word C_fcall
 C_s_a_i_minus(C_word **ptr, C_word n, C_word x, C_word y)
 {
@@ -10309,7 +10305,7 @@ static C_word allocate_tmp_bignum(C_word size, C_word negp, C_word initp)
              0, C_wordstobytes(C_unfix(size)));
   }
 
-  return C_a_i_record2(&mem, 2, C_bignum_type_tag, bigvec);
+  return C_a_i_bignum_wrapper(&mem, bigvec);
 }
 
 C_regparm C_word C_fcall
@@ -10325,7 +10321,7 @@ C_allocate_scratch_bignum(C_word **ptr, C_word size, C_word negp, C_word initp)
              0, C_wordstobytes(C_unfix(size)));
   }
 
-  big = C_a_i_record2(ptr, 2, C_bignum_type_tag, bigvec);
+  big = C_a_i_bignum_wrapper(ptr, bigvec);
   C_mutate_scratch_slot(&C_internal_bignum_vector(big), bigvec);
   return big;
 }
