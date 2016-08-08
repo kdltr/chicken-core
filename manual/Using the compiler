@@ -41,6 +41,7 @@ the source text should be read from standard input.
      -debug-level 0             is equivalent to -no-trace -no-lambda-info
      -debug-level 1             is equivalent to -no-trace
      -debug-level 2             is the default behaviour
+     -debug-level 3             is equivalent to -debug-info
 
 ; -disable-interrupts : Equivalent to the {{(disable-interrupts)}} declaration. No interrupt-checks are generated for compiled programs.
 
