@@ -6491,7 +6491,7 @@ void C_ccall C_bitwise_xor(C_word c, C_word *av)
   /* C_word closure = av[ 0 ]; */
   C_word k = av[ 1 ];
   C_word next_val, result, prev_result;
-  C_word ab[2][C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_FIX_BIGNUM * 4], *a;
+  C_word ab[2][C_SIZEOF_BIGNUM_WRAPPER], *a;
 
   c -= 2; 
   av += 2;
