@@ -470,9 +470,9 @@ static inline int isinf_ld (long double x)
 # define C_POINTER_TYPE           (0x0900000000000000L | C_SPECIALBLOCK_BIT)
 # define C_LOCATIVE_TYPE          (0x0a00000000000000L | C_SPECIALBLOCK_BIT)
 # define C_TAGGED_POINTER_TYPE    (0x0b00000000000000L | C_SPECIALBLOCK_BIT)
-/*       unused                   (0x0c00000000000000L ...) */
+# define C_RATNUM_TYPE            (0x0c00000000000000L)
 # define C_LAMBDA_INFO_TYPE       (0x0d00000000000000L | C_BYTEBLOCK_BIT)
-/*       unused                   (0x0e00000000000000L ...) */
+# define C_CPLXNUM_TYPE           (0x0e00000000000000L)
 /*       unused                   (0x0f00000000000000L ...) */
 #else
 # define C_INT_SIGN_BIT           0x80000000
@@ -500,9 +500,9 @@ static inline int isinf_ld (long double x)
 # define C_POINTER_TYPE           (0x09000000 | C_SPECIALBLOCK_BIT)
 # define C_LOCATIVE_TYPE          (0x0a000000 | C_SPECIALBLOCK_BIT)
 # define C_TAGGED_POINTER_TYPE    (0x0b000000 | C_SPECIALBLOCK_BIT)
-/*       unused                   (0x0c000000 ...) */
+# define C_RATNUM_TYPE            (0x0c000000)
 # define C_LAMBDA_INFO_TYPE       (0x0d000000 | C_BYTEBLOCK_BIT)
-/*       unused                   (0x0e000000 ...) */
+# define C_CPLXNUM_TYPE           (0x0e000000)
 /*       unused                   (0x0f000000 ...) */
 #endif
 #define C_VECTOR_TYPE             0x00000000
@@ -523,6 +523,8 @@ static inline int isinf_ld (long double x)
 #define C_SIZEOF_VECTOR(n)        ((n) + 1)
 #define C_SIZEOF_LOCATIVE         5
 #define C_SIZEOF_PORT             16
+#define C_SIZEOF_RATNUM           3
+#define C_SIZEOF_CPLXNUM          3
 #define C_SIZEOF_STRUCTURE(n)     ((n)+1)
 #define C_SIZEOF_CLOSURE(n)       ((n)+1)
 #define C_SIZEOF_INTERNAL_BIGNUM_VECTOR(n) (C_SIZEOF_VECTOR((n)+1))
@@ -542,8 +544,8 @@ static inline int isinf_ld (long double x)
 #define C_SYMBOL_TAG              (C_SYMBOL_TYPE | (C_SIZEOF_SYMBOL - 1))
 #define C_FLONUM_TAG              (C_FLONUM_TYPE | sizeof(double))
 #define C_BIGNUM_TAG              (C_BIGNUM_TYPE | 1)
-#define C_STRUCTURE3_TAG          (C_STRUCTURE_TYPE | 3)
-#define C_STRUCTURE2_TAG          (C_STRUCTURE_TYPE | 2)
+#define C_RATNUM_TAG              (C_RATNUM_TYPE | 2)
+#define C_CPLXNUM_TAG             (C_CPLXNUM_TYPE | 2)
 
 /* Locative subtypes */
 #define C_SLOT_LOCATIVE           0
@@ -1307,6 +1309,10 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_block_size(x)                 C_fix(C_header_size(x))
 #define C_u_i_bignum_size(b)            C_fix(C_bignum_size(b))
 #define C_a_u_i_big_to_flo(p, n, b)     C_flonum(p, C_bignum_to_double(b))
+#define C_u_i_ratnum_num(r)             C_block_item((r), 0)
+#define C_u_i_ratnum_denom(r)           C_block_item((r), 1)
+#define C_u_i_cplxnum_real(c)           C_block_item((c), 0)
+#define C_u_i_cplxnum_imag(c)           C_block_item((c), 1)
 #define C_pointer_address(x)            ((C_byte *)C_block_item((x), 0))
 #define C_block_address(ptr, n, x)      C_a_unsigned_int_to_num(ptr, n, x)
 #define C_offset_pointer(x, y)          (C_pointer_address(x) + (y))
@@ -1378,7 +1384,9 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 # define C_a_i_cons(a, n, car, cdr)     C_a_pair(a, car, cdr)
 #endif /* HAVE_STATEMENT_EXPRESSIONS */
 
-#define C_a_i_flonum(ptr, i, n)         C_flonum(ptr, n)
+#define C_a_i_flonum(ptr, c, n)         C_flonum(ptr, n)
+#define C_a_i_ratnum(ptr, c, n, d)      C_ratnum(ptr, n, d)
+#define C_a_i_cplxnum(ptr, c, r, i)     C_cplxnum(ptr, r, i)
 #define C_a_i_data_mpointer(ptr, n, x)  C_mpointer(ptr, C_data_pointer(x))
 #define C_a_i_fix_to_flo(p, n, f)       C_flonum(p, C_unfix(f))
 #define C_cast_to_flonum(n)             ((double)(n))
@@ -1735,9 +1743,7 @@ C_varextern C_TLS C_word
   *C_scratchspace_start,
   *C_scratchspace_top,
   *C_scratchspace_limit,
-   C_scratch_usage,
-   C_ratnum_type_tag,
-   C_cplxnum_type_tag;
+   C_scratch_usage;
 C_varextern C_TLS C_long
   C_timer_interrupt_counter,
   C_initial_timer_interrupt_period;
@@ -2428,14 +2434,26 @@ C_inline C_word C_a_i_record8(C_word **ptr, int n, C_word x1, C_word x2, C_word 
   return (C_word)p0;
 }
 
-C_inline C_word C_cplxnum(C_word **ptr, C_word x, C_word y)
+C_inline C_word C_cplxnum(C_word **ptr, C_word r, C_word i)
 {
-  return C_a_i_record3(ptr, 2, C_cplxnum_type_tag, x, y);
+  C_word *p = *ptr, *p0 = p; 
+
+  *(p++) = C_CPLXNUM_TAG;
+  *(p++) = r;
+  *(p++) = i;
+  *ptr = p;
+  return (C_word)p0;
 }
 
-C_inline C_word C_ratnum(C_word **ptr, C_word x, C_word y)
+C_inline C_word C_ratnum(C_word **ptr, C_word n, C_word d)
 {
-  return C_a_i_record3(ptr, 2, C_ratnum_type_tag, x, y);
+  C_word *p = *ptr, *p0 = p; 
+
+  *(p++) = C_RATNUM_TAG;
+  *(p++) = n;
+  *(p++) = d;
+  *ptr = p;
+  return (C_word)p0;
 }
 
 C_inline C_word C_a_i_bignum_wrapper(C_word **ptr, C_word vec)
@@ -2766,12 +2784,10 @@ C_inline C_word C_i_eqvp(C_word x, C_word y)
    return C_mk_bool(basic_eqvp(x, y) ||
                     (!C_immediatep(x) && !C_immediatep(y) &&
                      C_block_header(x) == C_block_header(y) &&
-                     C_block_header(x) == C_STRUCTURE3_TAG &&
-                     (C_block_item(x, 0) == C_ratnum_type_tag ||
-                      C_block_item(x, 0) == C_cplxnum_type_tag) &&
-                     C_block_item(x, 0) == C_block_item(y, 0) &&
-                     basic_eqvp(C_block_item(x, 1), C_block_item(y, 1)) &&
-                     basic_eqvp(C_block_item(x, 2), C_block_item(y, 2))));
+                     (C_block_header(x) == C_RATNUM_TAG ||
+                      C_block_header(x) == C_CPLXNUM_TAG) &&
+                     basic_eqvp(C_block_item(x, 0), C_block_item(y, 0)) &&
+                     basic_eqvp(C_block_item(x, 1), C_block_item(y, 1))));
 }
 
 C_inline C_word C_i_symbolp(C_word x)
@@ -2828,9 +2844,8 @@ C_inline C_word C_i_numberp(C_word x)
                    (!C_immediatep(x) && 
                     (C_block_header(x) == C_FLONUM_TAG ||
                      C_block_header(x) == C_BIGNUM_TAG ||
-                     (C_block_header(x) == C_STRUCTURE3_TAG &&
-                      (C_block_item(x, 0) == C_ratnum_type_tag ||
-                       C_block_item(x, 0) == C_cplxnum_type_tag)))));
+                     C_block_header(x) == C_RATNUM_TAG ||
+                     C_block_header(x) == C_CPLXNUM_TAG)));
 }
 
 /* All numbers are real, except for cplxnums */
@@ -2840,8 +2855,7 @@ C_inline C_word C_i_realp(C_word x)
                    (!C_immediatep(x) && 
                     (C_block_header(x) == C_FLONUM_TAG ||
                      C_block_header(x) == C_BIGNUM_TAG ||
-                     (C_block_header(x) == C_STRUCTURE3_TAG &&
-                      C_block_item(x, 0) == C_ratnum_type_tag))));
+                     C_block_header(x) == C_RATNUM_TAG)));
 }
 
 /* All finite real numbers are rational */
@@ -2856,8 +2870,7 @@ C_inline C_word C_i_rationalp(C_word x)
     return C_mk_bool(!C_isinf(n) && !C_isnan(n));
   } else {
     return C_mk_bool(C_block_header(x) == C_BIGNUM_TAG ||
-                     (C_block_header(x) == C_STRUCTURE3_TAG &&
-                      C_block_item(x, 0) == C_ratnum_type_tag));
+                     C_block_header(x) == C_RATNUM_TAG);
   }
 }
 
@@ -2892,18 +2905,16 @@ C_inline C_word C_u_i_exactp(C_word x)
     return C_SCHEME_TRUE;
   } else if (C_block_header(x) == C_FLONUM_TAG) {
     return C_SCHEME_FALSE;
-  } else if (C_block_header(x) != C_STRUCTURE3_TAG) {
-    return C_SCHEME_FALSE;
-  } else if (C_block_item(x, 0) == C_ratnum_type_tag) {
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
     return C_SCHEME_TRUE;
-  } else if (C_block_item(x, 0) != C_cplxnum_type_tag) {
-    return C_SCHEME_FALSE;
-  } else {
-    x = C_block_item(x, 1);
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    x = C_u_i_cplxnum_real(x);
     /* r and i are always the same exactness, and we assume they
      * always store a number.
      */
     return C_mk_bool(C_immediatep(x) || (C_block_header(x) != C_FLONUM_TAG));
+  } else {
+    return C_SCHEME_FALSE;
   }
 }
 
@@ -2913,12 +2924,11 @@ C_inline C_word C_u_i_inexactp(C_word x)
     return C_SCHEME_FALSE;
   } else if (C_block_header(x) == C_FLONUM_TAG) {
     return C_SCHEME_TRUE;
-  } else if (C_block_header(x) != C_STRUCTURE3_TAG ||
-             C_block_item(x, 0) != C_cplxnum_type_tag) {
-    return C_SCHEME_FALSE;
-  } else {
-    x = C_block_item(x, 1); /* r and i are always the same exactness */
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    x = C_u_i_cplxnum_real(x); /* r and i are always the same exactness */
     return C_mk_bool(!C_immediatep(x) && (C_block_header(x) == C_FLONUM_TAG));
+  } else {
+    return C_SCHEME_FALSE;
   }
 }
 
@@ -2945,16 +2955,12 @@ C_inline C_word C_i_flonump(C_word x)
 
 C_inline C_word C_i_cplxnump(C_word x)
 {
-  return C_mk_bool(!C_immediatep(x) &&
-                   C_block_header(x) == C_STRUCTURE3_TAG &&
-                   C_block_item(x, 0) == C_cplxnum_type_tag);
+  return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_CPLXNUM_TAG);
 }
 
 C_inline C_word C_i_ratnump(C_word x)
 {
-  return C_mk_bool(!C_immediatep(x) &&
-                   C_block_header(x) == C_STRUCTURE3_TAG &&
-                   C_block_item(x, 0) == C_ratnum_type_tag);
+  return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_RATNUM_TAG);
 }
 
 /* TODO: Is this correctly named?  Shouldn't it accept an argcount? */

@@ -339,9 +339,7 @@ C_TLS C_word
   *C_scratchspace_start,
   *C_scratchspace_top,
   *C_scratchspace_limit,
-   C_scratch_usage,
-   C_ratnum_type_tag,
-   C_cplxnum_type_tag;
+   C_scratch_usage;
 C_TLS C_long
   C_timer_interrupt_counter,
   C_initial_timer_interrupt_period;
@@ -1125,8 +1123,6 @@ void initialize_symbol_table(void)
   for(i = 0; i < symbol_table->size; symbol_table->table[ i++ ] = C_SCHEME_END_OF_LIST);
 
   /* Obtain reference to hooks for later: */
-  C_ratnum_type_tag = C_intern2(C_heaptop, C_text("\003sysratnum"));
-  C_cplxnum_type_tag = C_intern2(C_heaptop, C_text("\003syscplxnum"));
   core_provided_symbol = C_intern2(C_heaptop, C_text("\004coreprovided"));
   interrupt_hook_symbol = C_intern2(C_heaptop, C_text("\003sysinterrupt-hook"));
   error_hook_symbol = C_intern2(C_heaptop, C_text("\003syserror-hook"));
@@ -3607,8 +3603,6 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
 C_regparm void C_fcall mark_system_globals(void)
 {
-  mark(&C_ratnum_type_tag);
-  mark(&C_cplxnum_type_tag);
   mark(&core_provided_symbol);
   mark(&interrupt_hook_symbol);
   mark(&error_hook_symbol);
@@ -3941,8 +3935,6 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 
 C_regparm void C_fcall remark_system_globals(void)
 {
-  remark(&C_ratnum_type_tag);
-  remark(&C_cplxnum_type_tag);
   remark(&core_provided_symbol);
   remark(&interrupt_hook_symbol);
   remark(&error_hook_symbol);
@@ -5322,14 +5314,11 @@ C_regparm C_word C_fcall C_i_nanp(C_word x)
     return C_u_i_flonum_nanp(x);
   } else if (C_truep(C_bignump(x))) {
     return C_SCHEME_FALSE;
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG) {
-    if (C_block_item(x, 0) == C_ratnum_type_tag)
-      return C_SCHEME_FALSE;
-    else if (C_block_item(x, 0) == C_cplxnum_type_tag)
-      return C_mk_bool(C_truep(C_i_nanp(C_block_item(x, 1))) ||
-		       C_truep(C_i_nanp(C_block_item(x, 2))));
-    else
-      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "nan?", x);
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_mk_bool(C_truep(C_i_nanp(C_u_i_cplxnum_real(x))) ||
+		     C_truep(C_i_nanp(C_u_i_cplxnum_imag(x))));
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "nan?", x);
   }
@@ -5345,14 +5334,11 @@ C_regparm C_word C_fcall C_i_finitep(C_word x)
     return C_u_i_flonum_finitep(x);
   } else if (C_truep(C_bignump(x))) {
     return C_SCHEME_TRUE;
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG) {
-    if (C_block_item(x, 0) == C_ratnum_type_tag)
-      return C_SCHEME_TRUE;
-    else if (C_block_item(x, 0) == C_cplxnum_type_tag)
-      return C_and(C_i_finitep(C_block_item(x, 1)),
-		   C_i_finitep(C_block_item(x, 2)));
-    else
-      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "finite?", x);
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_TRUE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_and(C_i_finitep(C_u_i_cplxnum_real(x)),
+		 C_i_finitep(C_u_i_cplxnum_imag(x)));
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "finite?", x);
   }
@@ -5368,14 +5354,11 @@ C_regparm C_word C_fcall C_i_infinitep(C_word x)
     return C_u_i_flonum_infinitep(x);
   } else if (C_truep(C_bignump(x))) {
     return C_SCHEME_FALSE;
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG) {
-    if (C_block_item(x, 0) == C_ratnum_type_tag)
-      return C_SCHEME_FALSE;
-    else if (C_block_item(x, 0) == C_cplxnum_type_tag)
-      return C_mk_bool(C_truep(C_i_infinitep(C_block_item(x, 1))) ||
-                       C_truep(C_i_infinitep(C_block_item(x, 2))));
-    else
-      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "infinite?", x);
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_mk_bool(C_truep(C_i_infinitep(C_u_i_cplxnum_real(x))) ||
+                     C_truep(C_i_infinitep(C_u_i_cplxnum_imag(x))));
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "infinite?", x);
   }
@@ -5391,13 +5374,10 @@ C_regparm C_word C_fcall C_i_exactp(C_word x)
     return C_SCHEME_FALSE;
   } else if (C_truep(C_bignump(x))) {
     return C_SCHEME_TRUE;
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG) {
-    if (C_block_item(x, 0) == C_ratnum_type_tag)
-      return C_SCHEME_TRUE;
-    else if (C_block_item(x, 0) == C_cplxnum_type_tag)
-      return C_i_exactp(C_block_item(x, 1)); /* Exactness of i and r matches */
-    else
-      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "exact?", x);
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_TRUE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_i_exactp(C_u_i_cplxnum_real(x)); /* Exactness of i and r matches */
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "exact?", x);
   }
@@ -5414,13 +5394,10 @@ C_regparm C_word C_fcall C_i_inexactp(C_word x)
     return C_SCHEME_TRUE;
   } else if (C_truep(C_bignump(x))) {
     return C_SCHEME_FALSE;
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG) {
-    if (C_block_item(x, 0) == C_ratnum_type_tag)
-      return C_SCHEME_FALSE;
-    else if (C_block_item(x, 0) == C_cplxnum_type_tag)
-      return C_i_inexactp(C_block_item(x, 1)); /* Exactness of i and r matches */
-    else
-      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "inexact?", x);
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_i_inexactp(C_u_i_cplxnum_real(x)); /* Exactness of i and r matches */
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "inexact?", x);
   }
@@ -5435,10 +5412,9 @@ C_regparm C_word C_fcall C_i_zerop(C_word x)
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "zero?", x);
   } else if (C_block_header(x) == C_FLONUM_TAG) {
     return C_mk_bool(C_flonum_magnitude(x) == 0.0);
-  } else if (C_truep(C_bignump(x)) ||
-             (C_block_header(x) == C_STRUCTURE3_TAG &&
-	      (C_block_item(x, 0) == C_ratnum_type_tag ||
-	       C_block_item(x, 0) == C_cplxnum_type_tag))) {
+  } else if (C_block_header(x) == C_BIGNUM_TAG ||
+             C_block_header(x) == C_RATNUM_TAG ||
+             C_block_header(x) == C_CPLXNUM_TAG) {
     return C_SCHEME_FALSE;
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "zero?", x);
@@ -5465,11 +5441,9 @@ C_regparm C_word C_fcall C_i_positivep(C_word x)
     return C_mk_bool(C_flonum_magnitude(x) > 0.0);
   else if (C_truep(C_bignump(x)))
     return C_mk_nbool(C_bignum_negativep(x));
-  else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-           (C_block_item(x, 0) == C_ratnum_type_tag))
-    return C_i_integer_positivep(C_block_item(x, 1));
-  else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-           (C_block_item(x, 0) == C_cplxnum_type_tag))
+  else if (C_block_header(x) == C_RATNUM_TAG)
+    return C_i_integer_positivep(C_u_i_ratnum_num(x));
+  else if (C_block_header(x) == C_CPLXNUM_TAG)
     barf(C_BAD_ARGUMENT_TYPE_NO_REAL_ERROR, "positive?", x);
   else
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "positive?", x);
@@ -5498,11 +5472,9 @@ C_regparm C_word C_fcall C_i_negativep(C_word x)
     return C_mk_bool(C_flonum_magnitude(x) < 0.0);
   else if (C_truep(C_bignump(x)))
     return C_mk_bool(C_bignum_negativep(x));
-  else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-           (C_block_item(x, 0) == C_ratnum_type_tag))
-    return C_i_integer_negativep(C_block_item(x, 1));
-  else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-           (C_block_item(x, 0) == C_cplxnum_type_tag))
+  else if (C_block_header(x) == C_RATNUM_TAG)
+    return C_i_integer_negativep(C_u_i_ratnum_num(x));
+  else if (C_block_header(x) == C_CPLXNUM_TAG)
     barf(C_BAD_ARGUMENT_TYPE_NO_REAL_ERROR, "negative?", x);
   else
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "negative?", x);
@@ -5974,7 +5946,7 @@ C_regparm C_word C_fcall C_i_vector_set(C_word v, C_word i, C_word x)
   return C_SCHEME_UNDEFINED;
 }
 
-/* This needs at most C_SIZEOF_FIX_BIGNUM + C_SIZEOF_STRUCTURE(3) so 9 words */
+/* This needs at most C_SIZEOF_FIX_BIGNUM + max(C_SIZEOF_RATNUM, C_SIZEOF_CPLXNUM) so 7 words */
 C_regparm C_word C_fcall
 C_s_a_i_abs(C_word **ptr, C_word n, C_word x)
 {
@@ -5986,12 +5958,10 @@ C_s_a_i_abs(C_word **ptr, C_word n, C_word x)
     return C_a_i_flonum_abs(ptr, 1, x);
   } else if (C_truep(C_bignump(x))) {
     return C_s_a_u_i_integer_abs(ptr, 1, x);
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-             (C_block_item(x, 0) == C_ratnum_type_tag)) {
-    return C_ratnum(ptr, C_s_a_u_i_integer_abs(ptr, 1, C_block_item(x, 1)),
-                    C_block_item(x, 2));
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-             (C_block_item(x, 0) == C_cplxnum_type_tag)) {
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_ratnum(ptr, C_s_a_u_i_integer_abs(ptr, 1, C_u_i_ratnum_num(x)),
+                    C_u_i_ratnum_denom(x));
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
     barf(C_BAD_ARGUMENT_TYPE_COMPLEX_ABS, "abs", x);
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "abs", x);
@@ -6035,7 +6005,7 @@ C_regparm C_word C_fcall C_a_i_abs(C_word **a, int c, C_word x)
 
 /* The maximum this can allocate is a cplxnum which consists of two
  * ratnums that consist of 2 fix bignums each.  So that's
- * C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_FIX_BIGNUM * 4 = 32 words!
+ * C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM * 2 + C_SIZEOF_FIX_BIGNUM * 4 = 29 words!
  */
 C_regparm C_word C_fcall
 C_s_a_i_negate(C_word **ptr, C_word n, C_word x)
@@ -6048,14 +6018,12 @@ C_s_a_i_negate(C_word **ptr, C_word n, C_word x)
     return C_a_i_flonum_negate(ptr, 1, x);
   } else if (C_truep(C_bignump(x))) {
     return C_s_a_u_i_integer_negate(ptr, 1, x);
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-             (C_block_item(x, 0) == C_ratnum_type_tag)) {
-    return C_ratnum(ptr, C_s_a_u_i_integer_negate(ptr, 1, C_block_item(x, 1)),
-                    C_block_item(x, 2));
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-             (C_block_item(x, 0) == C_cplxnum_type_tag)) {
-    return C_cplxnum(ptr, C_s_a_i_negate(ptr, 1, C_block_item(x, 1)),
-                     C_s_a_i_negate(ptr, 1, C_block_item(x, 2)));
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_ratnum(ptr, C_s_a_u_i_integer_negate(ptr, 1, C_u_i_ratnum_num(x)),
+                    C_u_i_ratnum_denom(x));
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_cplxnum(ptr, C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_real(x)),
+                     C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(x)));
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", x);
   }
@@ -7669,13 +7637,13 @@ static C_word rat_times_integer(C_word **ptr, C_word rat, C_word i)
   case C_fix(0): return C_fix(0);
   case C_fix(1): return rat;
   case C_fix(-1):
-    num = C_s_a_u_i_integer_negate(ptr, 1, C_block_item(rat, 1));
-    return C_ratnum(ptr, num , C_block_item(rat, 2));
+    num = C_s_a_u_i_integer_negate(ptr, 1, C_u_i_ratnum_num(rat));
+    return C_ratnum(ptr, num , C_u_i_ratnum_denom(rat));
   /* default: CONTINUE BELOW */
   }
 
-  num = C_block_item(rat, 1);
-  denom = C_block_item(rat, 2);
+  num = C_u_i_ratnum_num(rat);
+  denom = C_u_i_ratnum_denom(rat);
 
   /* a/b * c/d = a*c / b*d  [with b = 1] */
   /*  =  ((a / g) * c) / (d / g) */
@@ -7711,10 +7679,10 @@ static C_word rat_times_rat(C_word **ptr, C_word x, C_word y)
          num, denom, xnum, xdenom, ynum, ydenom,
          g1, g2, a_div_g1, b_div_g2, c_div_g2, d_div_g1;
 
-  xnum = C_block_item(x, 1);
-  xdenom = C_block_item(x, 2);
-  ynum = C_block_item(y, 1);
-  ydenom = C_block_item(y, 2);
+  xnum = C_u_i_ratnum_num(x);
+  xdenom = C_u_i_ratnum_denom(x);
+  ynum = C_u_i_ratnum_num(y);
+  ydenom = C_u_i_ratnum_denom(y);
 
   /* a/b * c/d = a*c / b*d  [generic] */
   /*   = ((a / g1) * (c / g2)) / ((b / g2) * (d / g1)) */
@@ -7761,9 +7729,9 @@ cplx_times(C_word **ptr, C_word rx, C_word ix, C_word ry, C_word iy)
 {
   /* Allocation here is kind of tricky: Each intermediate result can
    * be at most a ratnum consisting of two bignums (2 digits), so
-   * C_SIZEOF_STRUCTURE(3) + C_SIZEOF_BIGNUM(2) = 10 words
+   * C_SIZEOF_RATNUM + C_SIZEOF_BIGNUM(2) = 9 words
    */
-  C_word ab[(C_SIZEOF_STRUCTURE(3) + C_SIZEOF_BIGNUM(2))*6], *a = ab,
+  C_word ab[(C_SIZEOF_RATNUM + C_SIZEOF_BIGNUM(2))*6], *a = ab,
          r1, r2, i1, i2, r, i;
 
   /* a+bi * c+di = (a*c - b*d) + (a*d + b*c)i */
@@ -7792,7 +7760,7 @@ cplx_times(C_word **ptr, C_word rx, C_word ix, C_word ry, C_word iy)
  * number result, where both real and imag parts consist of ratnums.
  * The maximum size of those ratnums is if they consist of two bignums
  * from a fixnum multiplication (2 digits each), so we're looking at
- * C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_BIGNUM(2) * 4 = 36 words!
+ * C_SIZEOF_RATNUM * 3 + C_SIZEOF_BIGNUM(2) * 4 = 33 words!
  */
 C_regparm C_word C_fcall
 C_s_a_i_times(C_word **ptr, C_word n, C_word x, C_word y)
@@ -7806,15 +7774,11 @@ C_s_a_i_times(C_word **ptr, C_word n, C_word x, C_word y)
       return C_flonum(ptr, (double)C_unfix(x) * C_flonum_magnitude(y));
     } else if (C_truep(C_bignump(y))) {
       return C_s_a_u_i_integer_times(ptr, 2, x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return rat_times_integer(ptr, y, x);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        return cplx_times(ptr, x, C_fix(0),
-                          C_block_item(y, 1), C_block_item(y, 2));
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_times_integer(ptr, y, x);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      return cplx_times(ptr, x, C_fix(0),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
     }
@@ -7829,16 +7793,12 @@ C_s_a_i_times(C_word **ptr, C_word n, C_word x, C_word y)
       return C_a_i_flonum_times(ptr, 2, x, y);
     } else if (C_truep(C_bignump(y))) {
       return C_flonum(ptr, C_flonum_magnitude(x) * C_bignum_to_double(y));
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return C_s_a_i_times(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word ab[C_SIZEOF_FLONUM], *a = ab;
-        return cplx_times(ptr, x, C_flonum(&a, 0.0),
-                          C_block_item(y, 1), C_block_item(y, 2));
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return C_s_a_i_times(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word ab[C_SIZEOF_FLONUM], *a = ab;
+      return cplx_times(ptr, x, C_flonum(&a, 0.0),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
     }
@@ -7851,52 +7811,39 @@ C_s_a_i_times(C_word **ptr, C_word n, C_word x, C_word y)
       return C_flonum(ptr, C_bignum_to_double(x) * C_flonum_magnitude(y));
     } else if (C_truep(C_bignump(y))) {
       return C_s_a_u_i_integer_times(ptr, 2, x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return rat_times_integer(ptr, y, x);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        return cplx_times(ptr, x, C_fix(0),
-                          C_block_item(y, 1), C_block_item(y, 2));
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_times_integer(ptr, y, x);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      return cplx_times(ptr, x, C_fix(0),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
     }
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG) {
-    if (C_block_item(x, 0) == C_ratnum_type_tag) {
-      if (y & C_FIXNUM_BIT) {
-        return rat_times_integer(ptr, x, y);
-      } else if (C_immediatep(y)) {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
-      } else if (C_block_header(y) == C_FLONUM_TAG) {
-        return C_s_a_i_times(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
-      } else if (C_truep(C_bignump(y))) {
-        return rat_times_integer(ptr, x, y);
-      } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-        if (C_block_item(y, 0) == C_ratnum_type_tag) {
-          return rat_times_rat(ptr, x, y);
-        } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-          return cplx_times(ptr, x, C_fix(0),
-                            C_block_item(y, 1),C_block_item(y, 2));
-        } else {
-          barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
-        }
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
-      }
-    } else if (C_block_item(x, 0) == C_cplxnum_type_tag) {
-      if (!C_immediatep(y) && C_block_header(y) == C_STRUCTURE3_TAG &&
-          C_block_item(y, 0) == C_cplxnum_type_tag) {
-        return cplx_times(ptr, C_block_item(x, 1), C_block_item(x, 2),
-                          C_block_item(y, 1), C_block_item(y, 2));
-      } else {
-        C_word ab[C_SIZEOF_FLONUM], *a = ab, yi;
-        yi = C_truep(C_i_flonump(y)) ? C_flonum(&a,0) : C_fix(0);
-        return cplx_times(ptr, C_block_item(x, 1), C_block_item(x, 2), y, yi);
-      }
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return rat_times_integer(ptr, x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_s_a_i_times(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
+    } else if (C_truep(C_bignump(y))) {
+      return rat_times_integer(ptr, x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+        return rat_times_rat(ptr, x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      return cplx_times(ptr, x, C_fix(0),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
     } else {
-      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", x);
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    }
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    if (!C_immediatep(y) && C_block_header(y) == C_CPLXNUM_TAG) {
+      return cplx_times(ptr, C_u_i_cplxnum_real(x), C_u_i_cplxnum_imag(x),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
+    } else {
+      C_word ab[C_SIZEOF_FLONUM], *a = ab, yi;
+      yi = C_truep(C_i_flonump(y)) ? C_flonum(&a,0) : C_fix(0);
+      return cplx_times(ptr, C_u_i_ratnum_num(x), C_u_i_ratnum_denom(x), y, yi);
     }
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", x);
@@ -8041,7 +7988,7 @@ void C_ccall C_times(C_word c, C_word *av)
   C_word next_val,
     result = C_fix(1),
     prev_result = result;
-  C_word ab[2][C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_BIGNUM(2) * 4], *a;
+  C_word ab[2][C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM*2 + C_SIZEOF_BIGNUM(2) * 4], *a;
 
   c -= 2; 
   av += 2;
@@ -8146,15 +8093,15 @@ static C_word rat_plusmin_integer(C_word **ptr, C_word rat, C_word i, integer_pl
 
   if (i == C_fix(0)) return rat;
 
-  num = C_block_item(rat, 1);
-  denom = C_block_item(rat, 2);
+  num = C_u_i_ratnum_num(rat);
+  denom = C_u_i_ratnum_denom(rat);
 
   /* a/b [+-] c/d = (a*d [+-] b*c)/(b*d) | d = 1: (num + denom * i) / denom */
   tmp = C_s_a_u_i_integer_times(&a, 2, denom, i);
   res = plusmin_op(&a, 2, num, tmp);
   res = move_buffer_object(ptr, ab, res);
   clear_buffer_object(ab, tmp);
-  return C_ratnum(ptr, res, C_block_item(rat, 2));
+  return C_ratnum(ptr, res, denom);
 }
 
 /* This is needed only for minus: plus is commutative but minus isn't. */
@@ -8163,8 +8110,8 @@ static C_word integer_minus_rat(C_word **ptr, C_word i, C_word rat)
   C_word ab[C_SIZEOF_FIX_BIGNUM+C_SIZEOF_BIGNUM(2)], *a = ab,
          num, denom, tmp, res;
 
-  num = C_block_item(rat, 1);
-  denom = C_block_item(rat, 2);
+  num = C_u_i_ratnum_num(rat);
+  denom = C_u_i_ratnum_denom(rat);
 
   if (i == C_fix(0))
     return C_ratnum(ptr, C_s_a_u_i_integer_negate(ptr, 1, num), denom);
@@ -8174,15 +8121,15 @@ static C_word integer_minus_rat(C_word **ptr, C_word i, C_word rat)
   res = C_s_a_u_i_integer_minus(&a, 2, tmp, num);
   res = move_buffer_object(ptr, ab, res);
   clear_buffer_object(ab, tmp);
-  return C_ratnum(ptr, res, C_block_item(rat, 2));
+  return C_ratnum(ptr, res, denom);
 }
 
 /* This is pretty braindead and ugly */
 static C_word rat_plusmin_rat(C_word **ptr, C_word x, C_word y, integer_plusmin_op plusmin_op)
 {
   C_word ab[C_SIZEOF_FIX_BIGNUM*6 + C_SIZEOF_BIGNUM(2)*2], *a = ab,
-         xnum = C_block_item(x, 1), ynum = C_block_item(y, 1),
-         xdenom = C_block_item(x, 2), ydenom = C_block_item(y, 2),
+         xnum = C_u_i_ratnum_num(x), ynum = C_u_i_ratnum_num(y),
+         xdenom = C_u_i_ratnum_denom(x), ydenom = C_u_i_ratnum_denom(y),
          xnorm, ynorm, tmp_r, g1, ydenom_g1, xdenom_g1, norm_sum, g2, len,
          res_num, res_denom;
 
@@ -8236,8 +8183,8 @@ static C_word rat_plusmin_rat(C_word **ptr, C_word x, C_word y, integer_plusmin_
 /* The maximum size this needs is that required to store a complex
  * number result, where both real and imag parts consist of ratnums.
  * The maximum size of those ratnums is if they consist of two "fix
- * bignums", so we're looking at C_SIZEOF_STRUCTURE(3) * 3 +
- * C_SIZEOF_FIX_BIGNUM * 4 = 32 words!
+ * bignums", so we're looking at C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM *
+ * 2 + C_SIZEOF_FIX_BIGNUM * 4 = 29 words!
  */
 C_regparm C_word C_fcall
 C_s_a_i_plus(C_word **ptr, C_word n, C_word x, C_word y)
@@ -8251,18 +8198,14 @@ C_s_a_i_plus(C_word **ptr, C_word n, C_word x, C_word y)
       return C_flonum(ptr, (double)C_unfix(x) + C_flonum_magnitude(y));
     } else if (C_truep(C_bignump(y))) {
       return C_s_a_u_i_integer_plus(ptr, 2, x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return rat_plusmin_integer(ptr, y, x, C_s_a_u_i_integer_plus);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_block_item(y, 1)),
-               imag = C_block_item(y, 2);
-        if (C_truep(C_u_i_inexactp(real_sum)))
-          imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-        return C_cplxnum(ptr, real_sum, imag);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_plusmin_integer(ptr, y, x, C_s_a_u_i_integer_plus);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_u_i_cplxnum_imag(y);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
     }
@@ -8277,18 +8220,14 @@ C_s_a_i_plus(C_word **ptr, C_word n, C_word x, C_word y)
       return C_a_i_flonum_plus(ptr, 2, x, y);
     } else if (C_truep(C_bignump(y))) {
       return C_flonum(ptr, C_flonum_magnitude(x)+C_bignum_to_double(y));
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return C_s_a_i_plus(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_block_item(y, 1)),
-               imag = C_block_item(y, 2);
-        if (C_truep(C_u_i_inexactp(real_sum)))
-          imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-        return C_cplxnum(ptr, real_sum, imag);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return C_s_a_i_plus(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_u_i_cplxnum_imag(y);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
     }
@@ -8301,63 +8240,50 @@ C_s_a_i_plus(C_word **ptr, C_word n, C_word x, C_word y)
       return C_flonum(ptr, C_bignum_to_double(x)+C_flonum_magnitude(y));
     } else if (C_truep(C_bignump(y))) {
       return C_s_a_u_i_integer_plus(ptr, 2, x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return rat_plusmin_integer(ptr, y, x, C_s_a_u_i_integer_plus);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_block_item(y, 1)),
-               imag = C_block_item(y, 2);
-        if (C_truep(C_u_i_inexactp(real_sum)))
-          imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-        return C_cplxnum(ptr, real_sum, imag);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_plusmin_integer(ptr, y, x, C_s_a_u_i_integer_plus);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_u_i_cplxnum_imag(y);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
     }
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG) {
-    if (C_block_item(x, 0) == C_ratnum_type_tag) {
-      if (y & C_FIXNUM_BIT) {
-        return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_plus);
-      } else if (C_immediatep(y)) {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
-      } else if (C_block_header(y) == C_FLONUM_TAG) {
-        return C_s_a_i_plus(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
-      } else if (C_truep(C_bignump(y))) {
-        return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_plus);
-      } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-        if (C_block_item(y, 0) == C_ratnum_type_tag) {
-          return rat_plusmin_rat(ptr, x, y, C_s_a_u_i_integer_plus);
-        } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-          C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_block_item(y, 1)),
-                 imag = C_block_item(y, 2);
-          if (C_truep(C_u_i_inexactp(real_sum)))
-            imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-          return C_cplxnum(ptr, real_sum, imag);
-        } else {
-          barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
-        }
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
-      }
-    } else if (C_block_item(x, 0) == C_cplxnum_type_tag) {
-      if (!C_immediatep(y) && C_block_header(y) == C_STRUCTURE3_TAG &&
-          C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word real_sum, imag_sum;
-        real_sum = C_s_a_i_plus(ptr, 2, C_block_item(x, 1), C_block_item(y, 1));
-        imag_sum = C_s_a_i_plus(ptr, 2, C_block_item(x, 2), C_block_item(y, 2));
-        if (C_truep(C_u_i_zerop(imag_sum))) return real_sum;
-        else return C_cplxnum(ptr, real_sum, imag_sum);
-      } else {
-        C_word real_sum = C_s_a_i_plus(ptr, 2, C_block_item(x, 1), y),
-               imag = C_block_item(x, 2);
-        if (C_truep(C_u_i_inexactp(real_sum)))
-          imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-        return C_cplxnum(ptr, real_sum, imag);
-      }
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_plus);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_s_a_i_plus(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
+    } else if (C_truep(C_bignump(y))) {
+      return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_plus);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_plusmin_rat(ptr, x, y, C_s_a_u_i_integer_plus);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_u_i_cplxnum_imag(y);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
     } else {
-      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", x);
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    }
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    if (!C_immediatep(y) && C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum, imag_sum;
+      real_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_real(x), C_u_i_cplxnum_real(y));
+      imag_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_imag(x), C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_zerop(imag_sum))) return real_sum;
+      else return C_cplxnum(ptr, real_sum, imag_sum);
+    } else {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_real(x), y),
+             imag = C_u_i_cplxnum_imag(x);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
     }
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", x);
@@ -8397,7 +8323,7 @@ void C_ccall C_plus(C_word c, C_word *av)
   C_word next_val,
     result = C_fix(0),
     prev_result = result;
-  C_word ab[2][C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_FIX_BIGNUM * 4], *a;
+  C_word ab[2][C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM*2 + C_SIZEOF_FIX_BIGNUM * 4], *a;
 
   c -= 2; 
   av += 2;
@@ -8499,7 +8425,7 @@ static C_word bignum_minus_unsigned(C_word **ptr, C_word x, C_word y)
   return C_bignum_simplify(res);
 }
 
-/* Like C_s_a_i_plus, this needs at most 32 words */
+/* Like C_s_a_i_plus, this needs at most 29 words */
 C_regparm C_word C_fcall
 C_s_a_i_minus(C_word **ptr, C_word n, C_word x, C_word y)
 {
@@ -8512,18 +8438,14 @@ C_s_a_i_minus(C_word **ptr, C_word n, C_word x, C_word y)
       return C_flonum(ptr, (double)C_unfix(x) - C_flonum_magnitude(y));
     } else if (C_truep(C_bignump(y))) {
       return C_s_a_u_i_integer_minus(ptr, 2, x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return integer_minus_rat(ptr, x, y);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_block_item(y, 1)),
-               imag = C_s_a_i_negate(ptr, 1, C_block_item(y, 2));
-        if (C_truep(C_u_i_inexactp(real_diff)))
-          imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-        return C_cplxnum(ptr, real_diff, imag);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return integer_minus_rat(ptr, x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
     }
@@ -8538,18 +8460,14 @@ C_s_a_i_minus(C_word **ptr, C_word n, C_word x, C_word y)
       return C_a_i_flonum_difference(ptr, 2, x, y);
     } else if (C_truep(C_bignump(y))) {
       return C_flonum(ptr, C_flonum_magnitude(x)-C_bignum_to_double(y));
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return C_s_a_i_minus(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_block_item(y, 1)),
-               imag = C_s_a_i_negate(ptr, 1, C_block_item(y, 2));
-        if (C_truep(C_u_i_inexactp(real_diff)))
-          imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-        return C_cplxnum(ptr, real_diff, imag);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return C_s_a_i_minus(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
     }
@@ -8562,63 +8480,50 @@ C_s_a_i_minus(C_word **ptr, C_word n, C_word x, C_word y)
       return C_flonum(ptr, C_bignum_to_double(x)-C_flonum_magnitude(y));
     } else if (C_truep(C_bignump(y))) {
       return C_s_a_u_i_integer_minus(ptr, 2, x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return integer_minus_rat(ptr, x, y);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_block_item(y, 1)),
-               imag = C_s_a_i_negate(ptr, 1, C_block_item(y, 2));
-        if (C_truep(C_u_i_inexactp(real_diff)))
-          imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-        return C_cplxnum(ptr, real_diff, imag);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return integer_minus_rat(ptr, x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
     }
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG) {
-    if (C_block_item(x, 0) == C_ratnum_type_tag) {
-      if (y & C_FIXNUM_BIT) {
-        return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_minus);
-      } else if (C_immediatep(y)) {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
-      } else if (C_block_header(y) == C_FLONUM_TAG) {
-        return C_s_a_i_minus(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
-      } else if (C_truep(C_bignump(y))) {
-        return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_minus);
-      } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-        if (C_block_item(y, 0) == C_ratnum_type_tag) {
-          return rat_plusmin_rat(ptr, x, y, C_s_a_u_i_integer_minus);
-        } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-          C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_block_item(y, 1)),
-                 imag = C_s_a_i_negate(ptr, 1, C_block_item(y, 2));
-          if (C_truep(C_u_i_inexactp(real_diff)))
-            imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-          return C_cplxnum(ptr, real_diff, imag);
-        } else {
-          barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
-        }
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
-      }
-    } else if (C_block_item(x, 0) == C_cplxnum_type_tag) {
-      if (!C_immediatep(y) && C_block_header(y) == C_STRUCTURE3_TAG &&
-          C_block_item(y, 0) == C_cplxnum_type_tag) {
-        C_word real_diff, imag_diff;
-        real_diff = C_s_a_i_minus(ptr,2,C_block_item(x, 1),C_block_item(y, 1));
-        imag_diff = C_s_a_i_minus(ptr,2,C_block_item(x, 2),C_block_item(y, 2));
-        if (C_truep(C_u_i_zerop(imag_diff))) return real_diff;
-        else return C_cplxnum(ptr, real_diff, imag_diff);
-      } else {
-        C_word real_diff = C_s_a_i_minus(ptr, 2, C_block_item(x, 1), y),
-               imag = C_block_item(x, 2);
-        if (C_truep(C_u_i_inexactp(real_diff)))
-          imag = C_a_i_exact_to_inexact(ptr, 1, imag);
-        return C_cplxnum(ptr, real_diff, imag);
-      }
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_minus);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_s_a_i_minus(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
+    } else if (C_truep(C_bignump(y))) {
+      return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_minus);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_plusmin_rat(ptr, x, y, C_s_a_u_i_integer_minus);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
     } else {
-      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", x);
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    }
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    if (!C_immediatep(y) && C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff, imag_diff;
+      real_diff = C_s_a_i_minus(ptr,2,C_u_i_cplxnum_real(x),C_u_i_cplxnum_real(y));
+      imag_diff = C_s_a_i_minus(ptr,2,C_u_i_cplxnum_imag(x),C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_zerop(imag_diff))) return real_diff;
+      else return C_cplxnum(ptr, real_diff, imag_diff);
+    } else {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, C_u_i_cplxnum_real(x), y),
+             imag = C_u_i_cplxnum_imag(x);
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
     }
   } else {
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", x);
@@ -8656,7 +8561,7 @@ void C_ccall C_minus(C_word c, C_word *av)
   /* C_word closure = av[ 0 ]; */
   C_word k = av[ 1 ];
   C_word next_val, result, prev_result;
-  C_word ab[2][C_SIZEOF_STRUCTURE(3) * 3 + C_SIZEOF_FIX_BIGNUM * 4], *a;
+  C_word ab[2][C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM*2 + C_SIZEOF_FIX_BIGNUM * 4], *a;
 
   if (c < 3) {
     C_bad_min_argc(c, 3);
@@ -9460,13 +9365,13 @@ static C_word rat_cmp(C_word x, C_word y)
 
   /* Check for 1 or 0; if x or y is this, the other must be the ratnum */
   if (x == C_fix(0)) {	      /* Only the sign of y1 matters */
-    return basic_cmp(x, C_block_item(y, 1), "ratcmp", 0);
+    return basic_cmp(x, C_u_i_ratnum_num(y), "ratcmp", 0);
   } else if (x == C_fix(1)) { /* x1*y1 <> x2*y2 --> y2 <> y1 | x1/x2 = 1/1 */
-    return basic_cmp(C_block_item(y, 2), C_block_item(y, 1), "ratcmp", 0);
+    return basic_cmp(C_u_i_ratnum_denom(y), C_u_i_ratnum_num(y), "ratcmp", 0);
   } else if (y == C_fix(0)) { /* Only the sign of x1 matters */
-    return basic_cmp(C_block_item(x, 1), y, "ratcmp", 0);
+    return basic_cmp(C_u_i_ratnum_num(x), y, "ratcmp", 0);
   } else if (y == C_fix(1)) { /* x1*y1 <> x2*y2 --> x1 <> x2 | y1/y2 = 1/1 */
-    return basic_cmp(C_block_item(x, 1), C_block_item(x, 2), "ratcmp", 0);
+    return basic_cmp(C_u_i_ratnum_num(x), C_u_i_ratnum_denom(x), "ratcmp", 0);
   }
 
   /* Extract components x=x1/x2 and y=y1/y2 */
@@ -9474,16 +9379,16 @@ static C_word rat_cmp(C_word x, C_word y)
     x1 = x;
     x2 = C_fix(1);
   } else {
-    x1 = C_block_item(x, 1);
-    x2 = C_block_item(x, 2);
+    x1 = C_u_i_ratnum_num(x);
+    x2 = C_u_i_ratnum_denom(x);
   }
 
   if (y & C_FIXNUM_BIT || C_truep(C_bignump(y))) {
     y1 = y;
     y2 = C_fix(1);
   } else {
-    y1 = C_block_item(y, 1);
-    y2 = C_block_item(y, 2);
+    y1 = C_u_i_ratnum_num(y);
+    y2 = C_u_i_ratnum_denom(y);
   }
 
   /* We only want to deal with bignums (this is tricky enough) */
@@ -9656,7 +9561,7 @@ static C_word rat_flo_cmp(C_word ratnum, C_word flonum)
 
     i = f; /* TODO: split i and f so it'll work for denormalized flonums */
 
-    num = C_block_item(ratnum, 1);
+    num = C_u_i_ratnum_num(ratnum);
     negp = C_i_negativep(num);
 
     if (C_truep(negp) && i >= 0.0) { /* Save some time if signs differ */
@@ -9664,7 +9569,7 @@ static C_word rat_flo_cmp(C_word ratnum, C_word flonum)
     } else if (!C_truep(negp) && i <= 0.0) { /* num is never 0 */
       return C_fix(1);
     } else {
-      denom = C_block_item(ratnum, 2);
+      denom = C_u_i_ratnum_denom(ratnum);
       i_int = C_s_a_u_i_flo_to_int(&a, 1, C_flonum(&a, i));
 
       /* Multiply the scaled flonum integer by the denominator, and
@@ -9711,16 +9616,12 @@ static C_word basic_cmp(C_word x, C_word y, char *loc, int eqp)
     } else if (C_truep(C_bignump(y))) {
       C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab;
       return C_i_bignum_cmp(C_a_u_i_fix_to_big(&a, x), y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        if (eqp) return C_SCHEME_FALSE;
-        else return rat_cmp(x, y);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        if (eqp) return C_SCHEME_FALSE;
-        else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else return rat_cmp(x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
     }
@@ -9737,15 +9638,11 @@ static C_word basic_cmp(C_word x, C_word y, char *loc, int eqp)
       else return C_fix((a < b) ? -1 : ((a > b) ? 1 : 0));
     } else if (C_truep(C_bignump(y))) {
       return flo_int_cmp(x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        return flo_rat_cmp(x, y);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-	if (eqp) return C_SCHEME_FALSE;
-        else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return flo_rat_cmp(x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
     }
@@ -9759,21 +9656,16 @@ static C_word basic_cmp(C_word x, C_word y, char *loc, int eqp)
       return int_flo_cmp(x, y);
     } else if (C_truep(C_bignump(y))) {
       return C_i_bignum_cmp(x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG) {
-      if (C_block_item(y, 0) == C_ratnum_type_tag) {
-        if (eqp) return C_SCHEME_FALSE;
-        else return rat_cmp(x, y);
-      } else if (C_block_item(y, 0) == C_cplxnum_type_tag) {
-        if (eqp) return C_SCHEME_FALSE;
-        else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
-      } else {
-        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
-      }
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else return rat_cmp(x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
     }
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-             (C_block_item(x, 0) == C_ratnum_type_tag)) {
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
     if (y & C_FIXNUM_BIT) {
       if (eqp) return C_SCHEME_FALSE;
       else return rat_cmp(x, y);
@@ -9784,26 +9676,23 @@ static C_word basic_cmp(C_word x, C_word y, char *loc, int eqp)
     } else if (C_truep(C_bignump(y))) {
       if (eqp) return C_SCHEME_FALSE;
       else return rat_cmp(x, y);
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG &&
-               (C_block_item(y, 0) == C_ratnum_type_tag)) {
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
       if (eqp) {
-        return C_and(C_and(C_i_integer_equalp(C_block_item(x, 1),
-                                              C_block_item(y, 1)),
-                           C_i_integer_equalp(C_block_item(x, 2),
-                                              C_block_item(y, 2))),
+        return C_and(C_and(C_i_integer_equalp(C_u_i_ratnum_num(x),
+                                              C_u_i_ratnum_num(y)),
+                           C_i_integer_equalp(C_u_i_ratnum_denom(x),
+                                              C_u_i_ratnum_denom(y))),
                      C_fix(0));
       } else {
         return rat_cmp(x, y);
       }
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG &&
-               (C_block_item(y, 0) == C_cplxnum_type_tag)) {
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
       if (eqp) return C_SCHEME_FALSE;
       else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
     }
-  } else if (C_block_header(x) == C_STRUCTURE3_TAG &&
-             (C_block_item(x, 0) == C_cplxnum_type_tag)) {
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
     if (!eqp) {
       barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, x);
     } else if (y & C_FIXNUM_BIT) {
@@ -9812,13 +9701,11 @@ static C_word basic_cmp(C_word x, C_word y, char *loc, int eqp)
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
     } else if (C_block_header(y) == C_FLONUM_TAG ||
                C_truep(C_bignump(x)) ||
-               (C_block_header(y) == C_STRUCTURE3_TAG &&
-                C_block_item(y, 0) == C_ratnum_type_tag)) {
+               C_block_header(y) == C_RATNUM_TAG) {
       return C_SCHEME_FALSE;
-    } else if (C_block_header(y) == C_STRUCTURE3_TAG &&
-               (C_block_item(y, 0) == C_cplxnum_type_tag)) {
-      return C_and(C_and(C_i_nequalp(C_block_item(x, 1), C_block_item(y, 1)),
-                         C_i_nequalp(C_block_item(x, 2), C_block_item(y, 2))),
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      return C_and(C_and(C_i_nequalp(C_u_i_cplxnum_real(x), C_u_i_cplxnum_real(y)),
+                         C_i_nequalp(C_u_i_cplxnum_imag(x), C_u_i_cplxnum_imag(y))),
                    C_fix(0));
     } else {
       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
@@ -10665,7 +10552,7 @@ void C_ccall C_string_to_symbol(C_word c, C_word *av)
 }
 
 /* This will usually return a flonum, but it may also return a cplxnum
- * consisting of two flonums, making for a total of 12 words.
+ * consisting of two flonums, making for a total of 11 words.
  */
 C_regparm C_word C_fcall 
 C_a_i_exact_to_inexact(C_word **ptr, int c, C_word n)
@@ -10678,19 +10565,17 @@ C_a_i_exact_to_inexact(C_word **ptr, int c, C_word n)
     return n;
   } else if (C_truep(C_bignump(n))) {
     return C_a_u_i_big_to_flo(ptr, c, n);
-  } else if (C_block_header(n) == C_STRUCTURE3_TAG &&
-             (C_block_item(n, 0) == C_cplxnum_type_tag)) {
-    return C_cplxnum(ptr, C_a_i_exact_to_inexact(ptr, 1, C_block_item(n, 1)),
-                     C_a_i_exact_to_inexact(ptr, 1, C_block_item(n, 2)));
+  } else if (C_block_header(n) == C_CPLXNUM_TAG) {
+    return C_cplxnum(ptr, C_a_i_exact_to_inexact(ptr, 1, C_u_i_cplxnum_real(n)),
+                     C_a_i_exact_to_inexact(ptr, 1, C_u_i_cplxnum_imag(n)));
   /* The horribly painful case: ratnums */
-  } else if (C_block_header(n) == C_STRUCTURE3_TAG &&
-             (C_block_item(n, 0) == C_ratnum_type_tag)) {
+  } else if (C_block_header(n) == C_RATNUM_TAG) {
     /* This tries to keep the numbers within representable ranges and
      * tries to drop as few significant digits as possible by bringing
      * the two numbers to within the same powers of two.  See
      * algorithms M & N in Knuth, 4.2.1.
      */
-     C_word num = C_block_item(n, 1), denom = C_block_item(n, 2),
+     C_word num = C_u_i_ratnum_num(n), denom = C_u_i_ratnum_denom(n),
              /* e = approx. distance between the numbers in powers of 2.
               * ie, 2^e-1 < n/d < 2^e+1 (e is the *un*biased value of
               * e_w in M2.  TODO: What if b!=2 (ie, flonum-radix isn't 2)?

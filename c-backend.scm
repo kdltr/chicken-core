@@ -690,6 +690,13 @@
 		 (if (>= i n)
 		     s
 		     (loop (add1 i) (+ s (literal-size (##sys#slot lit i)))) ) ) ) )
+	    ;; We could access rat/cplx slots directly, but let's not.
+	    ((ratnum? lit) (+ (##sys#size lit)
+			      (literal-size (numerator lit))
+			      (literal-size (denominator lit))))
+	    ((cplxnum? lit) (+ (##sys#size lit)
+			       (literal-size (real-part lit))
+			       (literal-size (imag-part lit))))
 	    (else (bad-literal lit))) )
 
     (define (gen-lit lit to)

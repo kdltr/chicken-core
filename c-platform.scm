@@ -674,9 +674,9 @@
 (rewrite 'lcm 18 1)
 (rewrite 'list 18 '())
 
-(rewrite '+ 16 2 "C_s_a_i_plus" #t 32)
-(rewrite '- 16 2 "C_s_a_i_minus" #t 32)
-(rewrite '* 16 2 "C_s_a_i_times" #t 36)
+(rewrite '+ 16 2 "C_s_a_i_plus" #t 29)
+(rewrite '- 16 2 "C_s_a_i_minus" #t 29)
+(rewrite '* 16 2 "C_s_a_i_times" #t 33)
 (rewrite 'quotient 16 2 "C_s_a_i_quotient" #t 5)
 (rewrite 'remainder 16 2 "C_s_a_i_remainder" #t 5)
 (rewrite 'modulo 16 2 "C_s_a_i_modulo" #t 5)

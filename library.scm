@@ -1016,15 +1016,15 @@ EOF
 
 ;;; Complex numbers
 
-(define-inline (%cplxnum-real c) (##sys#slot c 1))
-(define-inline (%cplxnum-imag c) (##sys#slot c 2))
+(define-inline (%cplxnum-real c) (##core#inline "C_u_i_cplxnum_real" c))
+(define-inline (%cplxnum-imag c) (##core#inline "C_u_i_cplxnum_imag" c))
 
 (define (make-complex r i)
   (if (or (eq? i 0) (and (##core#inline "C_i_flonump" i) (fp= i 0.0)))
       r
-      (##sys#make-structure '##sys#cplxnum
-			    (if (inexact? i) (exact->inexact r) r)
-			    (if (inexact? r) (exact->inexact i) i)) ) )
+      (##core#inline_allocate ("C_a_i_cplxnum" 3)
+			      (if (inexact? i) (exact->inexact r) r)
+			      (if (inexact? r) (exact->inexact i) i)) ) )
 
 (define (make-rectangular r i)
   (##sys#check-real r 'make-rectangular)
@@ -1066,9 +1066,9 @@ EOF
 
 ;;; Rational numbers
 
-(define-inline (%ratnum-numerator c) (##sys#slot c 1))
-(define-inline (%ratnum-denominator c) (##sys#slot c 2))
-(define-inline (%make-ratnum r i) (##sys#make-structure '##sys#ratnum r i))
+(define-inline (%ratnum-numerator r) (##core#inline "C_u_i_ratnum_num" r))
+(define-inline (%ratnum-denominator r) (##core#inline "C_u_i_ratnum_denom" r))
+(define-inline (%make-ratnum n d) (##core#inline_allocate ("C_a_i_ratnum" 3) n d))
 
 (define (ratnum m n)
   (cond
@@ -1173,7 +1173,7 @@ EOF
 (define-inline (%integer-gcd a b)
   (##core#inline_allocate ("C_s_a_u_i_integer_gcd" 5) a b))
 
-(define (abs x) (##core#inline_allocate ("C_s_a_i_abs" 9) x))
+(define (abs x) (##core#inline_allocate ("C_s_a_i_abs" 7) x))
 
 (define (/ arg1 . args)
   (if (null? args) 

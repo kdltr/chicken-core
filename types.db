@@ -264,7 +264,7 @@
 
 (zero? (#(procedure #:clean #:enforce #:foldable) zero? (number) boolean)
        ((integer) (eq? #(1) '0))
-       (((or cplxnum ratnum)) '#f)
+       (((or cplxnum ratnum)) (let ((#(tmp) #(1))) '#f))
        ((number) (##core#inline "C_u_i_zerop" #(1)))
        ((*) (##core#inline "C_i_zerop" #(1))))
 
@@ -321,14 +321,14 @@
    ((integer integer) (integer)
     (##core#inline_allocate ("C_s_a_u_i_integer_plus" 5) #(1) #(2)))
    ((* *) (number)
-    (##core#inline_allocate ("C_s_a_i_plus" 32) #(1) #(2))))
+    (##core#inline_allocate ("C_s_a_i_plus" 29) #(1) #(2))))
 
 (- (#(procedure #:clean #:enforce #:foldable) - (number #!rest number) number)
    ((fixnum) (integer) (##core#inline_allocate ("C_a_i_fixnum_negate" 5) #(1)))
    ((integer) (integer)
     (##core#inline_allocate ("C_s_a_u_i_integer_negate" 5) #(1)))
    ((float) (float) (##core#inline_allocate ("C_a_i_flonum_negate" 4) #(1)))
-   ((*) (*) (##core#inline_allocate ("C_s_a_i_negate" 32) #(1)))
+   ((*) (*) (##core#inline_allocate ("C_s_a_i_negate" 29) #(1)))
    ((float fixnum) (float)
     (##core#inline_allocate 
      ("C_a_i_flonum_difference" 4) 
@@ -346,7 +346,7 @@
    ((integer integer) (integer)
     (##core#inline_allocate ("C_s_a_u_i_integer_minus" 5) #(1) #(2)))
    ((* *) (number)
-    (##core#inline_allocate ("C_s_a_i_minus" 32) #(1) #(2))))
+    (##core#inline_allocate ("C_s_a_i_minus" 29) #(1) #(2))))
 
 (* (#(procedure #:clean #:enforce #:foldable) * (#!rest number) number)
    (() (fixnum) '1)
@@ -374,7 +374,7 @@
    ((integer integer) (integer)
     (##core#inline_allocate ("C_s_a_u_i_integer_times" 5) #(1) #(2)))
    ((* *) (number)
-    (##core#inline_allocate ("C_s_a_i_times" 36) #(1) #(2))))
+    (##core#inline_allocate ("C_s_a_i_times" 33) #(1) #(2))))
 
 (/ (#(procedure #:clean #:enforce #:foldable) / (number #!rest number) number)
    ((float fixnum) (float)
@@ -515,7 +515,7 @@
      ((integer) (integer)
       (##core#inline_allocate ("C_s_a_u_i_integer_abs" 5) #(1)))
      ((*) (*)
-      (##core#inline_allocate ("C_s_a_i_abs" 9) #(1))))
+      (##core#inline_allocate ("C_s_a_i_abs" 7) #(1))))
 
 (floor (#(procedure #:clean #:enforce #:foldable) floor ((or integer ratnum float)) (or integer ratnum float))
        ((fixnum) (fixnum) #(1))
@@ -544,7 +544,7 @@
 (exact->inexact (#(procedure #:clean #:enforce #:foldable) exact->inexact (number) (or float cplxnum))
 		((float) (float) #(1))
 		((fixnum) (float) (##core#inline_allocate ("C_a_i_fix_to_flo" 4) #(1)))
-		((number) (##core#inline_allocate ("C_a_i_exact_to_inexact" 12) #(1))))
+		((number) (##core#inline_allocate ("C_a_i_exact_to_inexact" 11) #(1))))
 
 (inexact->exact (#(procedure #:clean #:enforce #:foldable) inexact->exact (number) (or integer ratnum))
 		((fixnum) (fixnum) #(1))
@@ -810,19 +810,19 @@
 
 (real-part (#(procedure #:clean #:enforce #:foldable) real-part (number) (or integer float ratnum))
 	   (((or fixnum float bignum ratnum)) #(1))
-	   ((cplxnum) (##sys#slot #(1) '1)))
+	   ((cplxnum) (##core#inline "C_u_i_cplxnum_real" #(1))))
 
 (imag-part (#(procedure #:clean #:enforce #:foldable) imag-part (number) (or integer float ratnum))
 	   (((or fixnum bignum ratnum)) (let ((#(tmp) #(1))) '0))
 	   ((float) (let ((#(tmp) #(1))) '0.0))
-	   ((cplxnum) (##sys#slot #(1) '2)))
+	   ((cplxnum) (##core#inline "C_u_i_cplxnum_imag" #(1))))
 
 (magnitude (#(procedure #:clean #:enforce #:foldable) magnitude (number) number)
 	   ((fixnum) (integer) (##core#inline_allocate ("C_a_i_fixnum_abs" 5) #(1)))
 	   ((integer) (##core#inline_allocate ("C_s_a_u_i_integer_abs" 5) #(1)))
 	   ((float) (float) (##core#inline_allocate ("C_a_i_flonum_abs" 4) #(1)))
 	   (((or fixnum float bignum ratnum))
-	    (##core#inline_allocate ("C_s_a_i_abs" 9) #(1))))
+	    (##core#inline_allocate ("C_s_a_i_abs" 7) #(1))))
 
 (angle (#(procedure #:clean #:enforce #:foldable) angle (number) float)
        ((float) (##core#inline_allocate ("C_a_i_flonum_atan2" 4) '0.0 #(1)))
@@ -830,22 +830,24 @@
                           ("C_a_i_flonum_atan2" 4)
                           '0.0
                           (##core#inline_allocate ("C_a_i_fix_to_flo" 4) #(1))))
-       ((cplxnum) (##core#inline_allocate
-		   ("C_a_i_flonum_atan2" 4)
-		   (##core#inline_allocate ("C_a_i_exact_to_inexact" 12)
-					   (##sys#slot #(1) '2))
-		   (##core#inline_allocate ("C_a_i_exact_to_inexact" 12)
-					   (##sys#slot #(1) '1)))))
+       ((cplxnum)
+	(let ((#(tmp) #(1)))
+	  (##core#inline_allocate
+	   ("C_a_i_flonum_atan2" 4)
+	   (##core#inline_allocate ("C_a_i_exact_to_inexact" 11)
+				   (##core#inline "C_u_i_cplxnum_imag" #(tmp)))
+	   (##core#inline_allocate ("C_a_i_exact_to_inexact" 11)
+				   (##core#inline "C_u_i_cplxnum_real" #(tmp)))))))
 
 (numerator (#(procedure #:clean #:enforce #:foldable) numerator ((or float integer ratnum)) (or float integer))
 	   ((fixnum) (fixnum) #(1))
 	   ((bignum) (bignum) #(1))
 	   ((integer) (integer) #(1))
-	   ((ratnum) (integer) (##sys#slot #(1) '1)))
+	   ((ratnum) (integer) (##core#inline "C_u_i_ratnum_num" #(1))))
 
 (denominator (#(procedure #:clean #:enforce #:foldable) denominator ((or float integer ratnum)) (or float integer))
 	     ((integer) (fixnum) (let ((#(tmp) #(1))) '1))
-	     ((ratnum) (integer) (##sys#slot #(1) '2)))
+	     ((ratnum) (integer) (##core#inline "C_u_i_ratnum_denom" #(1))))
 
 ;; eval
 
@@ -885,7 +887,7 @@
       ((float) (float) 
        (##core#inline_allocate ("C_a_i_flonum_plus" 4) #(1) '1.0))
       ((*) (number)
-       (##core#inline_allocate ("C_s_a_i_plus" 32) #(1) '1)))
+       (##core#inline_allocate ("C_s_a_i_plus" 29) #(1) '1)))
 
 (argc+argv (#(procedure #:clean) argc+argv () fixnum pointer))
 (argv (#(procedure #:clean) argv () (list-of string)))
@@ -1308,7 +1310,8 @@
 	((float) (float)
 	 (##core#inline_allocate ("C_a_u_i_flonum_signum" 4) #(1)))
 	((ratnum) (fixnum)
-	 (##core#inline "C_u_i_integer_signum" (##sys#slot #(1) '1)))
+	 (##core#inline "C_u_i_integer_signum"
+			(##core#inline "C_u_i_ratnum_num" #(1))))
 	((cplxnum) ((or float cplxnum)) (##sys#extended-signum #(1))))
 
 (sleep (#(procedure #:clean #:enforce) sleep (fixnum) undefined))
@@ -1326,7 +1329,7 @@
       ((float) (float) 
        (##core#inline_allocate ("C_a_i_flonum_difference" 4) #(1) '1.0))
       ((*) (number)
-       (##core#inline_allocate ("C_s_a_i_minus" 32) #(1) '1)))
+       (##core#inline_allocate ("C_s_a_i_minus" 29) #(1) '1)))
 
 (subvector (forall (a) (#(procedure #:clean #:enforce) subvector ((vector-of a) fixnum #!optional fixnum) (vector-of a))))
 (symbol-escape (#(procedure #:clean) symbol-escape (#!optional *) *))
