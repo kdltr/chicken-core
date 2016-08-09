@@ -314,8 +314,8 @@
 (define (find-object-files name)
 
   (define (locate-object-file filename repo)
-    (let ((f (##sys#resolve-include-filename filename '() repo)))
-      (and (file-exists? f) (list f))))
+    (and-let* ((f (##sys#resolve-include-filename filename '() repo #f)))
+      (list f)))
 
   (define (static-extension-information name)
     (and-let* ((info  (extension-information name))

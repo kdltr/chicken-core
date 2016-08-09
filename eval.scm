@@ -626,10 +626,11 @@
 			   e #f tf cntr se))
 
 			 ((##core#include)
-			  (compile
-			   `(##core#begin
-			     ,@(##sys#include-forms-from-file (cadr x)))
-			   e #f tf cntr se))
+			  (##sys#include-forms-from-file
+			   (cadr x)
+			   (caddr x)
+			   (lambda (forms)
+			     (compile `(##core#begin ,@forms) e #f tf cntr se))))
 
 			 ((##core#let-module-alias)
 			  (##sys#with-module-aliases
@@ -919,12 +920,30 @@
 			  (fx+ argc 1) ) ] ) ) ) ) )
 
 
+;;; Pathname helpers:
+
+(define path-separators
+  (if ##sys#windows-platform '(#\\ #\/) '(#\/)))
+
+(define (path-separator-index/right s)
+  (let loop ((i (fx- (##sys#size s) 1)))
+    (if (memq (##core#inline "C_subchar" s i) path-separators)
+	i
+	(and (fx< 0 i) (loop (fx- i 1))))))
+
+(define (make-relative-pathname from file)
+  (let ((i (and (string? from)
+		(positive? (##sys#size file)) ; XXX probably an error?
+		(not (memq (##core#inline "C_subchar" file 0) path-separators))
+		(path-separator-index/right from))))
+    (if (not i) file (string-append (##sys#substring from 0 i) "/" file))))
+
+
 ;;; Loading source/object files:
 
 (define load-verbose (make-parameter (##sys#fudge 13)))
 
-(define ##sys#current-source-filename #f)
-(define ##sys#current-load-path "")
+(define ##sys#current-load-filename #f)
 (define ##sys#dload-disabled #f)
 
 (define-foreign-variable _dlerror c-string "C_dlerror")
@@ -967,17 +986,10 @@
       (define evalproc
 	(or evaluator eval))
 
-      (define (has-slash? str)
-	(let loop ((i (fx- (##sys#size str) 1)))
-	  (if (memq (##core#inline "C_subchar" str i) '(#\\ #\/))
-	      i
-	      (and (fx< 0 i)
-		   (loop (fx- i 1))))))
-
       ;; dload doesn't consider filenames without slashes to be paths,
       ;; so we prepend a dot to force a relative pathname.
       (define (dload-path path)
-	(if (has-slash? path)
+	(if (path-separator-index/right path)
 	    path
 	    (##sys#string-append "./" path)))
 
@@ -996,17 +1008,12 @@
 	      ((not (string? input))
 	       (##sys#signal-hook #:type-error 'load "bad argument type - not a port or string" input))
 	      ((##sys#file-exists? input #t #f 'load) input)
+	      ((let ((f (##sys#string-append input ##sys#load-dynamic-extension)))
+		 (and dload? (##sys#file-exists? f #t #f 'load) f)))
+	      ((let ((f (##sys#string-append input source-file-extension)))
+		 (and (##sys#file-exists? f #t #f 'load) f)))
 	      (else
-	       (let ((fname2 (##sys#string-append input ##sys#load-dynamic-extension)))
-		 (if (and dload? (##sys#file-exists? fname2 #t #f 'load))
-		     fname2
-		     (let ((fname3 (##sys#string-append input source-file-extension)))
-		       (if (##sys#file-exists? fname3 #t #f 'load)
-			   fname3
-			   input)))))))
-
-      (when (and (string? input) (not fname))
-	(##sys#signal-hook #:file-error 'load "cannot open file" input))
+	       (##sys#signal-hook #:file-error 'load "cannot open file" input))))
 
       (when (and (load-verbose) fname)
 	(display "; loading ")
@@ -1018,11 +1025,8 @@
 	  (call-with-current-continuation
 	   (lambda (abrt)
 	     (fluid-let ((##sys#read-error-with-line-number #t)
-			 (##sys#current-source-filename fname)
-			 (##sys#current-load-path
-			  (and fname
-			       (let ((i (has-slash? fname)))
-				 (if i (##sys#substring fname 0 (fx+ i 1)) "")))))
+			 (##sys#current-load-filename fname)
+			 (##sys#current-source-filename fname))
 	       (let ((in (if fname (open-input-file fname) input)))
 		 (##sys#dynamic-wind
 		  (lambda () #f)
@@ -1060,9 +1064,7 @@
 
 (define (load-relative filename . evaluator)
   (load/internal
-   (if (memq (string-ref filename 0) '(#\\ #\/))
-       filename
-       (##sys#string-append ##sys#current-load-path filename))
+   (make-relative-pathname ##sys#current-load-filename filename)
    (optional evaluator #f)))
 
 (define (load-noisily filename #!key (evaluator #f) (time #f) (printer #f))
@@ -1128,16 +1130,19 @@
   (let ((with-input-from-file with-input-from-file)
 	(read read)
 	(reverse reverse))
-    (lambda (fname)
-      (let ((path (##sys#resolve-include-filename fname #t #f)))
-	(when (load-verbose) (print "; including " path " ..."))
+    (lambda (filename source k)
+      (let ((path (##sys#resolve-include-filename filename #t #f source)))
+	(when (not path)
+	  (##sys#signal-hook #:file-error 'include "cannot open file" filename))
+	(when (load-verbose)
+	  (print "; including " path " ..."))
 	(with-input-from-file path
 	  (lambda ()
 	    (fluid-let ((##sys#current-source-filename path))
 	      (do ((x (read) (read))
-		   (xs '() (cons x xs)) )
-		  ((eof-object? x) 
-		   (reverse xs))) ) ) ) ) ) ) )
+		   (xs '() (cons x xs)))
+		  ((eof-object? x)
+		   (k (reverse xs)))))))))))
 
 
 ;;; Extensions:
@@ -1390,7 +1395,7 @@
   (let ((string-append string-append) )
     (define (exists? fname)
       (##sys#file-exists? fname #t #f #f))
-    (lambda (fname exts repo)
+    (lambda (fname exts repo source)
       (define (test-extensions fname lst)
 	(if (null? lst)
 	    (and (exists? fname) fname)
@@ -1408,7 +1413,7 @@
 		(list ##sys#load-dynamic-extension source-file-extension))
 	       (else                   ; prefer source
 		(list source-file-extension ##sys#load-dynamic-extension)))))
-      (or (test fname)
+      (or (test (make-relative-pathname source fname))
 	  (let loop ((paths (if repo
 				(##sys#append 
 				 ##sys#include-pathnames 
@@ -1417,7 +1422,7 @@
 				       (list (##sys#repository-path))
 				       '())))
 				##sys#include-pathnames) ) )
-	    (cond ((eq? paths '()) fname)
+	    (cond ((eq? paths '()) #f)
 		  ((test (string-append (##sys#slot paths 0)
 					"/"
 					fname) ) )

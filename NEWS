@@ -38,6 +38,8 @@
     a single bidirectional port.
   - New `input-port-open?` and `output-port-open?` procedures have been
     added for testing whether a port is open in a specific direction.
+  - An `include-relative` form has been added to the chicken module.
+    This works like `load-relative` but for textual inclusion.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

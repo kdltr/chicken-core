@@ -169,7 +169,14 @@
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'include form '(_ string))
-    `(##core#include ,(cadr form)))))
+    `(##core#include ,(cadr form) #f))))
+
+(##sys#extend-macro-environment
+ 'include-relative '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'include-relative form '(_ string))
+    `(##core#include ,(cadr form) ,##sys#current-source-filename))))
 
 (##sys#extend-macro-environment
  'assert '()

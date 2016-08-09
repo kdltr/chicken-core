@@ -437,7 +437,10 @@
     (let ([extends (collect-options 'extend)])
       (dribble "Loading compiler extensions...")
       (for-each
-       (lambda (f) (load (##sys#resolve-include-filename f #f #t))) 
+       (lambda (e)
+	 (let ((f (##sys#resolve-include-filename e #f #t #f)))
+	   (when (not f) (quit-compiling "cannot load extension: ~a" e))
+	   (load f)))
        extends) )
     (set! ##sys#features (delete #:compiler-extension ##sys#features))
     (set! ##sys#features (cons '#:compiling ##sys#features))
@@ -561,7 +564,9 @@
 	   (print-expr "source" '|1| forms)
 	   (begin-time)
 	   ;; Canonicalize s-expressions
-	   (let* ((exps0 (map canonicalize-expression
+	   (let* ((exps0 (map (lambda (x)
+				(fluid-let ((##sys#current-source-filename filename))
+				  (canonicalize-expression x)))
 			      (let ((forms (append initforms forms)))
 				(if (not module-name)
 				    forms
@@ -647,8 +652,7 @@
 		   (for-each
 		    (lambda (id)
 		      (and-let* ((ifile (##sys#resolve-include-filename
-					 (symbol->string id) '(".inline") #t))
-				 ((file-exists? ifile)))
+					 (symbol->string id) '(".inline") #t #f)))
 			(dribble "Loading inline file ~a ..." ifile)
 			(load-inline-file ifile)))
 		    mreq))

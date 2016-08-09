@@ -74,6 +74,9 @@
 (define-inline (putp sym prop val)
   (##core#inline_allocate ("C_a_i_putprop" 8) sym prop val))
 
+;;; Source file tracking
+
+(define ##sys#current-source-filename #f)
 
 ;;; Syntactic environments
 
@@ -1521,7 +1524,7 @@
 		     (if (and (pair? body) 
 			      (null? (cdr body))
 			      (string? (car body)))
-			 `((##core#include ,(car body)))
+			 `((##core#include ,(car body) ,##sys#current-source-filename))
 			 body))))))))))
 
 (##sys#extend-macro-environment

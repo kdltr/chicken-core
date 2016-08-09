@@ -435,6 +435,21 @@ $compile locative-stress-test.scm
 echo "======================================== syntax-rules stress test ..."
 time $interpret -bnq syntax-rule-stress-test.scm
 
+echo "======================================== include test ..."
+mkdir -p a/b
+echo > a/b/ok.scm
+echo '(include "a/b/ok.scm")' > a/b/include.scm
+$compile -analyze-only a/b/include.scm
+echo '(include "b/ok.scm")' > a/b/include.scm
+$compile -analyze-only a/b/include.scm -include-path a
+echo '(include-relative "ok.scm")' > a/b/include.scm
+$compile -analyze-only a/b/include.scm
+echo '(include-relative "b/ok.scm")' > a/include.scm
+$compile -analyze-only a/include.scm
+echo '(include-relative "b/ok.scm")' > a/b/include.scm
+$compile -analyze-only a/b/include.scm -include-path a
+rm -r a
+
 echo "======================================== executable tests ..."
 $compile executable-tests.scm
 ./a.out "$TEST_DIR/a.out"

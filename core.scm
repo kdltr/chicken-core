@@ -111,7 +111,7 @@
 ; (##core#lambda ({<variable>}+ [. <variable>]) <body>)
 ; (##core#set! <variable> <exp>)
 ; (##core#begin <exp> ...)
-; (##core#include <string>)
+; (##core#include <string> <string> | #f)
 ; (##core#loop-lambda <llist> <body>)
 ; (##core#undefined)
 ; (##core#primitive <name>)
@@ -902,11 +902,12 @@
 				 bs) ) ) ) )
 
 		       ((##core#include)
-			(walk
-			 `(##core#begin
-			   ,@(fluid-let ((##sys#default-read-info-hook read-info-hook))
-			       (##sys#include-forms-from-file (cadr x))))
-			 e se dest ldest h ln))
+			(fluid-let ((##sys#default-read-info-hook read-info-hook))
+			  (##sys#include-forms-from-file
+			   (cadr x)
+			   (caddr x)
+			   (lambda (forms)
+			     (walk `(##core#begin ,@forms) e se dest ldest h ln)))))
 
 		       ((##core#let-module-alias)
 			(##sys#with-module-aliases
