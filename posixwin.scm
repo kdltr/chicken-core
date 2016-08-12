@@ -1173,7 +1173,8 @@ EOF
 		    (##core#inline "C_u_i_spawnvpe" mode prg argbuf envbuf)
 		    (##core#inline "C_u_i_spawnvp" mode prg argbuf))))
 	 (when (fx= r -1)
-	   (posix-error #:process-error 'process-spawn "cannot spawn process" filename)))))))
+	   (posix-error #:process-error 'process-spawn "cannot spawn process" filename))
+	 r)))))
 
 (define-foreign-variable _shlcmd c-string "C_shlcmd")
 
