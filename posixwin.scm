@@ -652,10 +652,10 @@ EOF
    perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
    perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr pipe/buf
    port->fileno process process* process-execute process-fork
-   process-group-id process-run process-signal process-sleep process-wait
-   read-symbolic-link regular-file? seconds->local-time seconds->string
-   seconds->utc-time seek/cur seek/end seek/set set-alarm!
-   set-buffering-mode! set-root-directory!
+   process-group-id process-run process-signal process-sleep
+   process-spawn process-wait read-symbolic-link regular-file?
+   seconds->local-time seconds->string seconds->utc-time seek/cur
+   seek/end seek/set set-alarm! set-buffering-mode! set-root-directory!
    set-signal-handler! set-signal-mask! signal-handler
    signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
    signal/alrm signal/break signal/chld signal/cont signal/fpe
@@ -663,7 +663,8 @@ EOF
    signal/pipe signal/prof signal/quit signal/segv signal/stop
    signal/term signal/trap signal/tstp signal/urg signal/usr1
    signal/usr2 signal/vtalrm signal/winch signal/xcpu signal/xfsz
-   signals-list block-device? character-device? fifo? socket?
+   signals-list spawn/overlay spawn/wait spawn/nowait spawn/nowaito
+   spawn/detach block-device? character-device? fifo? socket?
    string->time symbolic-link? system-information terminal-name
    terminal-port? terminal-size time->string user-information
    set-environment-variable! unset-environment-variable!
