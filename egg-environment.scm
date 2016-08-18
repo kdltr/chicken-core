@@ -41,10 +41,8 @@ EOF
 (define default-csc 
   (string-append default-bindir "/" (foreign-value "C_CSC_PROGRAM" c-string)))
 
-(define default-sudo (or (get-environment-variable "SUDO") "sudo"))
-
-(define default-builder
-  (string-append default-bindir "/chicken-do"))
+(define default-builder 
+  (make-pathname default-bindir (foreign-value "C_CHICKEN_DO_PROGRAM" c-string)))
 
 (define host-repo (foreign-value "C_INSTALL_EGG_HOME" c-string))
 (define host-bindir (foreign-value "C_INSTALL_BIN_HOME" c-string))
@@ -58,5 +56,4 @@ EOF
 (define target-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
 (define target-sharedir (foreign-value "C_TARGET_SHARE_HOME" c-string))
 
-(define host-mode #t)
-(define target-mode #t)
+(define +egg-info-extension+ ".egg-info") 
