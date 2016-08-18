@@ -33,7 +33,7 @@
 (include "egg-download.scm")
 
 (define user-defaults #f)
-(define quiet #f)  ;XXX
+(define quiet #t)
 (define default-servers '())
 (define default-locations '())
 (define mappings '())
@@ -62,6 +62,8 @@
 (define current-status 
   (list (get-environment-variable "CSC_OPTIONS")
         (get-environment-variable "LD_LIBRARY_PATH")
+        (get-environment-variable "CHICKEN_INCLUDE_PATH")
+        (get-environment-variable "CHICKEN_REPOSITORY")
         (get-environment-variable "DYLD_LIBRARY_PATH")))      ;XXX more?
 
 (define (probe-dir dir)
@@ -572,10 +574,10 @@
                   (iscript (make-pathname dir name 
                                           (install-script-extension 'host
                                                                     platform))))
-              (generate-shell-commands platform build bscript
+              (generate-shell-commands platform build bscript dir
                                        (build-prefix 'host name info)
                                        (build-suffix 'host name info))
-              (generate-shell-commands platform install iscript
+              (generate-shell-commands platform install iscript dir
                                        (install-prefix 'host name info)
                                        (install-suffix 'host name info))
               (run-script dir bscript platform)
@@ -587,10 +589,10 @@
                   (iscript (make-pathname dir name 
                                           (install-script-extension 'target 
                                                                     platform))))
-              (generate-shell-commands platform build bscript
+              (generate-shell-commands platform build bscript dir
                                        (build-prefix 'target name info)
                                        (build-suffix 'target name info))
-              (generate-shell-commands platform install iscript
+              (generate-shell-commands platform install iscript dir
                                        (install-prefix 'target name info)
                                        (install-suffix 'target name info))
               (run-script dir bscript platform)
@@ -673,6 +675,9 @@
                    (loop (cdr args)))
                   ((equal? arg "-n")
                    (set! do-not-build #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-v")
+                   (set! quiet #f)
                    (loop (cdr args)))
 
                   ;;XXX 

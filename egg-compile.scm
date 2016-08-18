@@ -93,9 +93,10 @@
 (define install-command copy-directory-command)
 
 (define (destination-repository mode)
-  (case mode
-    ((target) target-repo)
-    ((host) host-repo)))
+  (or (get-environment-variable "CHICKEN_REPOSITORY")
+      (case mode
+        ((target) target-repo)
+        ((host) host-repo))))
 
 (define (uses-compiled-import-library? mode)
   (not (and (eq? mode 'host) staticbuild)))
@@ -336,122 +337,151 @@
 ;;; shell code generation - build operations
 
 (define (gen-compile-static-extension name #!key mode platform dependencies source 
-                                      (options '()) custom)
-  (let ((cmd (or custom 
-                 (conc default-csc " -D compiling-extension -c -J -unit " name
-                       " -D compiling-static-extension")))
-        (out (quotearg (target-file (conc name (object-extension platform)) mode)))
-        (src (quotearg (or source (conc name ".scm")))))
-    (print (slashify default-builder platform) " " out " " cmd (arglist options) 
+                                      (options '()) custom srcdir)
+  (let* ((cmd (or custom 
+                  (conc default-csc " -D compiling-extension -c -J -unit " name
+                        " -D compiling-static-extension")))
+         (sname (prefix srcdir name))
+         (ssname (and source (prefix srcdir source)))
+         (out (quotearg (target-file (conc sname (object-extension platform)) mode)))
+         (src (quotearg (or ssname (conc sname ".scm")))))
+    (print (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir (arglist options) 
            " " src " -o " out " : "
            src (arglist dependencies))))
 
 (define (gen-compile-dynamic-extension name #!key mode platform dependencies mode
                                        source (options '()) (link-options '()) 
-                                       custom)
-  (let ((cmd (or custom 
-                 (conc default-csc " -D compiling-extension -J -s")))
-        (out (quotearg (target-file (conc name ".so") mode)))
-        (src (quotearg (or source (conc name ".scm")))))
-    (print (slashify default-builder platform) " " out " " cmd (arglist options)
+                                       custom srcdir)
+  (let* ((cmd (or custom 
+                  (conc default-csc " -D compiling-extension -J -s")))
+         (sname (prefix srcdir name))
+         (ssname (and source (prefix srcdir source)))
+         (out (quotearg (target-file (conc sname ".so") mode)))
+         (src (quotearg (or ssname (conc sname ".scm")))))
+    (print (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
 (define (gen-compile-import-library name #!key platform dependencies source mode
                                     (options '()) (link-options '())
-                                    custom)
-  (let ((cmd (or custom (conc default-csc " -s")))
-        (out (quotearg (target-file (conc name ".import.so") mode)))
-        (src (quotearg (or source (conc name ".import.scm")))))
-    (print (slashify default-builder platform) " " out " " cmd (arglist options)
+                                    custom srcdir)
+  (let* ((cmd (or custom (conc default-csc " -s")))
+         (sname (prefix srcdir name))
+         (ssname (and source (prefix srcdir source)))
+         (out (quotearg (target-file (conc sname ".import.so") mode)))
+         (src (quotearg (or source (conc sname ".import.scm")))))
+    (print (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
 (define (gen-compile-dynamic-program name #!key platform dependencies source mode
                                      (options '()) (link-options '())
-                                     custom)
-  (let ((cmd (or custom default-csc))
-        (out (quotearg 
-               (target-file (conc name (executable-extension platform)) mode)))
-        (src (quotearg (or source (conc name ".scm")))))
-    (print (slashify default-builder platform) " " out " " cmd (arglist options)
+                                     custom srcdir)
+  (let* ((cmd (or custom default-csc))
+         (sname (prefix srcdir name))
+         (ssname (and source (prefix srcdir source)))
+         (out (quotearg (target-file (conc sname
+                                           (executable-extension platform)) 
+                                     mode)))
+         (src (quotearg (or ssname (conc sname ".scm")))))
+    (print (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
 (define (gen-compile-static-program name #!key platform dependencies source
                                     (options '()) (link-options '())
-                                    custom mode)
-  (let ((cmd (or custom (conc default-csc " -static-libs")))
-        (out (quotearg 
-               (target-file (conc name (executable-extension platform)) mode)))
-        (src (quotearg (or source (conc name ".scm")))))
-    (print (slashify default-builder platform) " " out " " cmd (arglist options)
+                                    custom mode srcdir)
+  (let* ((cmd (or custom (conc default-csc " -static-libs")))
+         (sname (prefix srcdir name))
+         (ssname (and source (prefix srcdir source)))
+         (out (quotearg (target-file (conc sname
+                                           (executable-extension platform)) 
+                                     mode)))
+         (src (quotearg (or ssname (conc sname ".scm")))))
+    (print (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
 
 ;; installation operations
 
-(define (gen-install-static-extension name #!key platform mode)
+(define (gen-install-static-extension name #!key platform mode srcdir)
   (let* ((cmd (install-command platform))
          (mkdir (mkdir-command platform))
          (ext (object-extension platform))
-         (out (quotearg (target-file (conc name ext) mode)))
+         (sname (prefix srcdir name))
+         (out (quotearg (target-file (conc sname ext) mode)))
          (dest (destination-repository mode))
          (dfile (quotearg dest platform)))
     (print mkdir " " dfile)
-    (print cmd " " out " " (quotearg (slashify dest "/" name ext) platform))))
+    (print cmd " " out " " (quotearg (slashify (conc dest "/" name ext) platform)))))
 
-(define (gen-install-dynamic-extension name #!key platform mode)
+(define (gen-install-dynamic-extension name #!key platform mode srcdir)
   (let* ((cmd (install-command platform))
-         (out (quotearg (target-file (conc name ".so") mode)))
+         (mkdir (mkdir-command platform))
+         (sname (prefix srcdir name))
+         (out (quotearg (target-file (conc sname ".so") mode)))
          (ext (object-extension platform))
          (dest (destination-repository mode))
          (dfile (quotearg (slashify dest platform))))
     (print mkdir " " dfile)
-    (print cmd " " out " " (quotearg (slashify dest "/" name ".so") platform))))
+    (print cmd " " out " "
+           (quotearg (slashify (conc dest "/" name ".so") platform)))))
 
-(define (gen-install-import-library name #!key platform mode)
+(define (gen-install-import-library name #!key platform mode srcdir)
   (let* ((cmd (install-command platform))
-         (out (quotearg (target-file (conc name ".import.so") mode)))
+         (mkdir (mkdir-command platform))
+         (sname (prefix srcdir name))
+         (out (quotearg (target-file (conc sname ".import.so") mode)))
          (dest (destination-repository mode))
          (dfile (quotearg (slashify dest platform))))
     (print mkdir " " dfile)
     (print cmd " " out " " 
            (quotearg (slashify (conc dest "/" name ".import.so") platform)))))
 
-(define (gen-install-import-library-source name #!key platform mode)
+(define (gen-install-import-library-source name #!key platform mode srcdir)
   (let* ((cmd (install-command platform))
-         (out (quotearg (target-file (conc name ".import.scm") mode)))
+         (mkdir (mkdir-command platform))
+         (sname (prefix srcdir name))
+         (out (quotearg (target-file (conc sname ".import.scm") mode)))
          (dest (destination-repository mode))
          (dfile (quotearg (slashify dest platform))))
     (print mkdir " " dfile)
     (print cmd " " out " " 
           (quotearg (slashify (conc dest "/" name ".import.scm") platform)))))
 
-(define (gen-install-program name #!key platform mode)
+(define (gen-install-program name #!key platform mode srcdir)
   (let* ((cmd (install-command platform))
+         (mkdir (mkdir-command platform))
          (ext (executable-extension platform))
-         (out (quotearg (target-file (conc name ext) mode)))
+         (sname (prefix srcdir name))
+         (out (quotearg (target-file (conc sname ext) mode)))
          (dest (if (eq? mode 'target) target-bindir host-bindir))
          (dfile (quotearg (slashify dest platform))))
     (print mkdir " " dfile)
     (print cmd " " out " "
            (quotearg (slashify (conc dest "/" name ext) platform)))))
 
-(define (gen-install-data name #!key platform files destination mode)
+(define (gen-install-data name #!key platform files destination mode srcdir)
   (let* ((cmd (install-command platform))
+         (mkdir (mkdir-command platform))
          (dest (or destination (if (eq? mode 'target) target-sharedir host-sharedir)))
          (dfile (quotearg (slashify dest platform))))
     (print mkdir " " dfile)
-    (print cmd (arglist files) " " dfile)))
+    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " dfile)))
 
-(define (gen-install-c-include name #!key platform deps files dest mode)
+(define (gen-install-c-include name #!key platform deps files dest mode srcdir)
   (let* ((cmd (install-command platform))
+         (mkdir (mkdir-command platform))
          (dest (or dest (if (eq? mode 'target) target-incdir host-incdir)))
          (dfile (quotearg (slashify dest platform))))
     (print mkdir " " dfile)
-    (print cmd " " (arglist files) " " dfile)))
+    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " dfile)))
 
 (define command-table
   `((compile-static-extension ,gen-compile-static-extension)
@@ -471,7 +501,7 @@
 
 ;;; Generate shell or batch commands from abstract build/install operations
 
-(define (generate-shell-commands platform cmds dest prefix suffix)
+(define (generate-shell-commands platform cmds dest srcdir prefix suffix)
   (with-output-to-file dest
     (lambda ()
       (prefix platform)
@@ -481,7 +511,9 @@
           (cond ((assq (car cmd) command-table)
                   => (lambda (op) 
                        (apply (cadr op) 
-                              (cons* (cadr cmd) platform: platform (cddr cmd)))))
+                              (cons* (cadr cmd) 
+                                     srcdir: srcdir platform: platform
+                                     (cddr cmd)))))
                 (else (error "invalid command" cmd))))
         cmds)
       (suffix platform))))
@@ -528,23 +560,32 @@ EOF
 
 (define ((install-suffix mode name info) platform)
   (let ((infostr (with-output-to-string (cut pp info)))
-        (dest (make-pathname (destination-repository mode) name +egg-info-extension+)))
+        (dir (destination-repository mode))
+        (qdir (quotearg (slashify dir platform)))
+        (dest (quotearg (slashify (make-pathname dir name +egg-info-extension+)
+                                  platform))))
     (case platform
       ((unix)
        (printf #<<EOF
+mkdir -p ~a
 cat >~a <<ENDINFO
 ~aENDINFO~%
 EOF
-               dest infostr))
+               qdir dest infostr))
       ((windows)
        (printf #<<EOF
+mkdir ~a
 echo ~a >~a~%
 EOF
+               qdir 
                (string-intersperse (string-split infostr) "^\n")
                dest)))))
 
 
 ;;; some utilities for mangling + quoting
+
+(define (prefix dir name)
+  (make-pathname dir (->string name)))
 
 (define (quotearg str)
   (let ((lst (string->list str)))
