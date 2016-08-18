@@ -2,7 +2,7 @@
 #
 # a graphical debugger for compiled CHICKEN programs
 #
-# Copyright (c) 2015, The CHICKEN Team
+# Copyright (c) 2015-2016, The CHICKEN Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -55,14 +55,14 @@ set reply(GET_TRACE) 12
 
 set colors(header_foreground) white
 set colors(header_background) black
-set colors(text_foreground) gray90
-set colors(text_background) "#102e4e"
-set colors(event_foreground) white
-set colors(event_background) "#203e5e"
+set colors(text_foreground) black
+set colors(text_background) gray90
+set colors(event_foreground) black
+set colors(event_background) white
 set colors(breakpoint_foreground) white
 set colors(breakpoint_background) DarkRed
 set colors(highlight_foreground) white
-set colors(highlight_background) blue
+set colors(highlight_background) CornflowerBlue
 set colors(mark_foreground) black
 set colors(mark_background) yellow
 set colors(trace_background) gray90
@@ -105,7 +105,7 @@ set current_c_line ""
 set current_bp_lines {}
 set current_bp_globals {}
 set font_name "Courier"
-set font_size 11
+set font_size 12
 set program_name ""
 set search_path {"."}
 set data_view ""
