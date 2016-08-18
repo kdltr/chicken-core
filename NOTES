@@ -2,10 +2,17 @@ NOTES (new install)
 ===============
 
 
+* TODO Extract feathers patches and submit to -hackers
+
+* TODO Rebase on upstream at some stage
+
 * Complete egg-info compilation
 ** TODO What should the default optimization options be?
     - also for compiled import libraries.
     - respect DEBUGBUILD?
+
+* TODO Support for generating + installing extra files
+    - types, inline-files
 
 * Implement minimal "chicken-install"
 ** TODO rename new-install.scm later
@@ -23,6 +30,7 @@ NOTES (new install)
 * TODO repository-path
     - allow multiple locations?
     - CHICKEN_REPOSITORY
+        currently "destination-repository" is used in mode cases.
     - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
       installation target.
 
@@ -33,13 +41,16 @@ NOTES (new install)
 ** Link-options are passed directly to csc
     - is this right?
 
+* Dropped
+    - sudo mode
+
 * Setup features
 ** TODO Keep binaries + intermediate files.   
 ** TODO drop "keep-going" mode.
 ** TODO "-feature" + "-no-feature"
 ** TODO Hack for OSX SIP?
 ** TODO reinstall, no-install?
-** TODO Drop -setup-mode
+** TODO Request by Jon Foerch: allow *.egg in specific subdirectory ("chicken"?)
 
 * TODO "build-dependencies" 
     - toplevel deps that are needed during build, override "dependencies", if given.
@@ -70,12 +81,11 @@ NOTES (new install)
 * TODO Drop CHICKEN_PREFIX
 
 * Build/install scripts
+** TODO Use "-setup-mode" when invoking csc during build?
 ** TODO fully sh(1) compatible
     - http://people.fas.harvard.edu/~lib113/reference/unix/portable_scripting.html
     - https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/cmd.mspx?mfr=true
-** TODO "chicken-do" tool to build if dependencies are newer than target
-    - "usage: chicken-do TARGET CMD ... : DEPENDENCIES ..."
-    - try to avoid quoting hell, especially on Windows.
+** TODO Test "chicken-do" and port to Windows
     - ideally, use execvp/CreateProcess
         - http://www.cplusplus.com/forum/windows/3398/ and
           http://www.cplusplus.com/forum/beginner/1988/3/#msg14102
@@ -86,10 +96,14 @@ NOTES (new install)
     - can we ignore this? if source files have different names, just compiling exe/so directly should
       work.
 
+* TODO Do we have to cleanup after building eggs?
+
 * Install scripts
 ** TODO Allow overrriding DESTDIR, PREFIX
 ** TODO Install setup-info
 ** TODO Use install(1) ?
+
+* TODO Integrate running tests into build-script
 
 * Tools
 ** TODO chicken-install
@@ -97,9 +111,23 @@ NOTES (new install)
 ** TODO chicken-status
 
 * TODO Copyright headers
+    - chicken-do.c  egg-*.scm
 
 * TODO Documentation
     - remove old and obsolete stuff (deployment, dropped options, etc.)
     - update manual
     - chicken-do
     - update egg-tutorial on wiki
+
+cm chicken-do
+cm chicken-install chicken-config.h
+git gui
+gg CHICKEN_BUG_PROGRAM
+
+~/chicken/5  rules.make
+~/share/chicken/feathers.tcl
+~/chicken/4/srfi-113
+
+chicken-install.scm  setup-api.scm
+new-install.scm  egg-compile.scm  egg-environment.scm
+gg setup-info
