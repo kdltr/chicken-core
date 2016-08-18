@@ -98,7 +98,7 @@
 (define-constant default-load-library-extension ".so")
 (define-constant environment-table-size 301)
 (define-constant source-file-extension ".scm")
-(define-constant setup-file-extension "setup-info")
+(define-constant setup-file-extension "egg-info")
 (define-constant repository-environment-variable "CHICKEN_REPOSITORY")
 (define-constant prefix-environment-variable "CHICKEN_PREFIX")
 
