@@ -1420,24 +1420,41 @@ proc ExtractLocation args {
 }
 
 
+proc LocateFile {fname} {
+    global search_path
+
+    foreach d $search_path {
+        set fn [file join $d $fname]
+
+        if {[file exists $fn]} {
+            set fn [file normalize $fn]
+            Log "Located: $fn"
+            return $fn
+        }
+    }
+
+    return ""
+}
+
+
 proc InsertDebugInfo {index event args} {
     global file_list globals
     set loc [eval ExtractLocation $args]
 
-    # chck for assignment event
+    # check for assignment event
     if {$event == 1} {
         set name [lindex $args 1]
         lappend globals($name) $index
     }
 
     if {$loc != ""} {
-        set fname [file normalize [lindex $loc 0]]
-        set line [lindex $loc 1]
+        set fname [LocateFile [lindex $loc 0]]
 
         if {[lsearch -exact $file_list $fname] == -1} {
             lappend file_list $fname
         }
 
+        set line [lindex $loc 1]
         # icky: compute array variable name from filename:
         set tname "file:$fname"
         global $tname
@@ -1696,19 +1713,11 @@ proc LocateEvent {loc val} {
     set loc [ExtractLocation $loc $val]
 
     if {$loc != ""} {
-        set fname [file normalize [lindex $loc 0]]
+        set fname0 [lindex $loc 0]
+        set fname [LocateFile [lindex $loc 0]]
         set line [lindex $loc 1]
 
         if {$fname != $current_filename} {
-            foreach d $search_path {
-                set fn [file join $d $fname]
-
-                if {[file exists $fn]} {
-                    set fname $fn
-                    break
-                }
-            }
-
             if {![LoadFile $fname]} return
 
             if {[SwitchFile $fname]} ApplyTags
