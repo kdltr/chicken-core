@@ -11,6 +11,7 @@
 (import (chicken format))
 (import (chicken irregex))
 (import (chicken tcp))
+(import (chicken ports))
 (import (chicken posix))
 (import (chicken io))
 (import (chicken time))
@@ -43,6 +44,7 @@
 (define proxy-port #f)
 (define proxy-user-pass #f)
 (define retrieve-only #f)
+(define do-not-build #f)
 (define list-versions-only #f)
 (define canonical-eggs '())
 (define dependencies '())
@@ -79,7 +81,17 @@
         'target
         'host)))
 
-  
+(define (build-script-extension mode platform)
+  (string-append "build"
+                 (if (eq? mode 'target) ".target" "")
+                 (if (eq? platform 'windows) ".bat" ".sh")))
+
+(define (install-script-extension mode platform)
+  (string-append "install"
+                 (if (eq? mode 'target) ".target" "")
+                 (if (eq? platform 'windows) ".bat" ".sh")))
+
+
 ;; usage information
   
 (define (usage code)
@@ -267,7 +279,7 @@
                   (> (- now (with-input-from-file timestamp read)) +one-hour+)
                   (not (check-server-version name version lversion)))
              (fetch)
-             (let ((info (load-egg-info eggfile)))
+             (let ((info (load-egg-info eggfile))) ; new egg info (fetched)
                (values cached (get-egg-property info 'version))))
             (else (values cached version))))))
     
@@ -282,21 +294,23 @@
 (define (fetch-egg-sources name version dest)
   (let loop ((locs default-locations))
     (cond ((null? locs)
-           (let loop ((srvs default-servers))
-             (receive (dir ver)
-               (try-download name (resolve-location (car srvs))
-                             version: version 
-                             destination: dest
-                             tests: run-tests 
-                             proxy-host: proxy-host
-                             proxy-port: proxy-port 
-                             proxy-user-pass: proxy-user-pass)
-              (cond (dir
-                     (with-output-to-file 
-                       (make-pathname dest +timestamp-file+)
-                       (lambda () (write (current-seconds)))))
-                    ((null? srvs) (error "extension or version not found"))
-                    (else (loop (cdr srvs)))))))
+           (let ((tmpdir (create-temporary-directory)))
+             (let loop ((srvs default-servers))
+               (receive (dir ver)
+                 (try-download name (resolve-location (car srvs))
+                               version: version 
+                               destination: tmpdir
+                               tests: run-tests 
+                               proxy-host: proxy-host
+                               proxy-port: proxy-port 
+                               proxy-user-pass: proxy-user-pass)
+                 (cond (dir
+                         (rename-file tmpdir dest)
+                         (with-output-to-file 
+                           (make-pathname dest +timestamp-file+)
+                           (lambda () (write (current-seconds)))))
+                       ((null? srvs) (error "extension or version not found"))
+                       (else (loop (cdr srvs))))))))
           ((probe-dir (make-pathname (car locs) name))
            => (lambda (dir)
                 (let* ((eggfile (make-pathname dir name +egg-extension+))
@@ -350,6 +364,7 @@
     (for-each
       (lambda (e+d+v)
         (unless (member (car e+d+v) checked-eggs)
+          (d "checking ~a ...~%" (car e+d+v))
           (set! checked-eggs (cons (car e+d+v) checked-eggs))
           (let* ((fname (make-pathname (cadr e+d+v) (car e+d+v) +egg-extension+))
                  (info (load-egg-info fname)))
@@ -379,7 +394,7 @@
                   #;(for-each
                     (lambda (e)
                       (d "removing previously installed extension `~a'" e)
-                      (remove-extension e) )
+                      (remove-extension e) )  ; - not implemented yet
                     ueggs)
                   (retrieve-eggs ueggs) ) ) ) ) ) )
       canonical-eggs)))
@@ -401,7 +416,7 @@
 
 (define (get-egg-dependencies info)
   (append (get-egg-property info 'dependencies '())
-          (if run-tests (get-egg-property info 'test-dependencies '()))))
+          (if run-tests (get-egg-property info 'test-dependencies '()) '())))
 
 (define (check-dependency dep)
   (cond ((or (symbol? dep) (string? dep))
@@ -542,8 +557,69 @@
 ;; perform installation of retrieved eggs
   
 (define (install-eggs)
-  ;; ...
-  #f)
+  (for-each
+    (lambda (egg)
+      (let* ((name (car egg))
+             (dir (cadr egg))
+             (eggfile (make-pathname dir name +egg-extension+))
+             (info (load-egg-info eggfile #f)))
+        (when (or host-extension 
+                  (and (not target-extension)
+                       (not host-extension)))
+          (let-values (((build install info) (compile-egg-info info platform 'host)))
+            (let ((bscript (make-pathname dir name 
+                                          (build-script-extension 'host platform)))
+                  (iscript (make-pathname dir name 
+                                          (install-script-extension 'host
+                                                                    platform))))
+              (generate-shell-commands platform build bscript
+                                       (build-prefix 'host name info)
+                                       (build-suffix 'host name info))
+              (generate-shell-commands platform install iscript
+                                       (install-prefix 'host name info)
+                                       (install-suffix 'host name info))
+              (run-script dir bscript platform)
+              (run-script dir iscript platform))))
+        (when target-extension
+          (let-values (((build install info) (compile-egg-info info platform 'target)))
+            (let ((bscript (make-pathname dir name 
+                                          (build-script-extension 'target platform)))
+                  (iscript (make-pathname dir name 
+                                          (install-script-extension 'target 
+                                                                    platform))))
+              (generate-shell-commands platform build bscript
+                                       (build-prefix 'target name info)
+                                       (build-suffix 'target name info))
+              (generate-shell-commands platform install iscript
+                                       (install-prefix 'target name info)
+                                       (install-suffix 'target name info))
+              (run-script dir bscript platform)
+              (run-script dir iscript platform))))))
+    canonical-eggs))
+
+(define (run-script dir script platform)
+  (if do-not-build
+      (print script)
+      (let ((old (current-directory)))
+        (change-directory dir)
+        (d "running script ~a~%" script)
+        (if (eq? platform 'windows)
+            (exec script)
+            (exec (string-append "sh " (make-pathname "." script))))
+        (change-directory old))))
+
+(define (write-info name info mode)
+  (d "writing info for egg ~a~%" name info)
+  (let ((infofile (make-pathname name (destination-repository mode))))
+    (when (eq? platform 'unix)
+      (exec (string-append "chmod a+r " (quotearg infofile))))))
+
+(define (exec cmd)
+  (d "executing: ~s~%" cmd)
+  (let ((r (system cmd)))
+    (unless (zero? r)
+      (error "shell command terminated with nonzero exit code" r cmd))))
+
 
 ;; command line parsing and selection of operations
   
@@ -554,6 +630,7 @@
            (map (lambda (fname)
                   (list (pathname-file fname) (current-directory) #f))
              (glob "*.egg")))
+         (retrieve-eggs '())
          (install-eggs))
         (else
           (let ((eggs (apply-mappings eggs)))
@@ -593,6 +670,9 @@
                    (loop (cdr args)))
                   ((equal? arg "-target")
                    (set! host-extension #f)
+                   (loop (cdr args)))
+                  ((equal? arg "-n")
+                   (set! do-not-build #t)
                    (loop (cdr args)))
 
                   ;;XXX 
