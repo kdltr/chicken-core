@@ -67,7 +67,7 @@ MANPAGES = \
 # care of which programs should actually be installed/uninstalled
 INSTALLED_PROGRAMS = \
 	$(CHICKEN_PROGRAM) $(CSI_PROGRAM) $(CHICKEN_PROFILE_PROGRAM) \
-	$(CSC_PROGRAM) $(CHICKEN_BUG_PROGRAM)
+	$(CSC_PROGRAM) $(CHICKEN_BUG_PROGRAM) $(CHICKEN_DO_PROGRAM)
 
 ifndef STATICBUILD
 INSTALLED_PROGRAMS += $(CHICKEN_STATUS_PROGRAM) \
@@ -283,6 +283,10 @@ endef
 $(eval $(call declare-program-from-object,$(CSI_STATIC_EXECUTABLE),csi))
 $(eval $(call declare-program-from-object,$(CHICKEN_BUG_PROGRAM)$(EXE),chicken-bug))
 
+# "chicken-do"
+
+$(CHICKEN_DO_PROGRAM): $(SRCDIR)chicken-do.c
+	$(C_COMPILER) $(C_COMPILER_OPTIONS) $< -o $@
 
 # scripts
 
@@ -893,6 +897,7 @@ clean:
 	  $(CHICKEN_UNINSTALL_PROGRAM)$(EXE) \
 	  $(CHICKEN_STATUS_PROGRAM)$(EXE) \
 	  $(CHICKEN_BUG_PROGRAM)$(EXE) *$(O) \
+	  $(CHICKEN_DO_PROGRAM)$(EXE) \
 	  $(LIBCHICKEN_SO_FILE) \
 	  $(PRIMARY_LIBCHICKEN) \
 	  lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A) \
