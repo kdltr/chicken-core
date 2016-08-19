@@ -279,7 +279,7 @@
            (lversion (get-egg-property info 'version)))
       (cond ((and (file-exists? timestamp)
                   (> (- now (with-input-from-file timestamp read)) +one-hour+)
-                  (not (check-server-version name version lversion)))
+                  (not (check-remote-version name version lversion)))
              (fetch)
              (let ((info (load-egg-info eggfile))) ; new egg info (fetched)
                (values cached (get-egg-property info 'version))))
@@ -333,14 +333,25 @@
                platform)))
     (system cmd)))
   
-(define (check-server-version name version lversion)
-  (let loop ((srvs default-servers))
-    (and (pair? srvs)
-         (let ((versions (try-list-versions name (car srvs))))
-           (or (and versions
-                    (any (cut version>=? <> version) versions))
-               (loop (cdr srvs)))))))
-   
+(define (check-remote-version name version lversion)
+  (let loop ((locs default-locations))
+    (cond ((null? locs)
+           (let loop ((srvs default-servers))
+             (and (pair? srvs)
+                  (let ((versions (try-list-versions name (car srvs))))
+                    (or (and versions
+                             (any (cut version>=? <> version) versions))
+                        (loop (cdr srvs)))))))
+          ((probe-dir (make-pathname (car locs) name))
+           => (lambda (dir)
+                (let* ((eggfile (make-pathname dir name +egg-extension+))
+                       (info (load-egg-info eggfile))
+                       (rversion (get-egg-property info 'version)))
+                  (or (and rversion
+                           (version>=? rversion version))
+                      (loop (cdr locs))))))
+          (else (loop (cdr locs))))))
+
 
 ;; retrieve eggs, recursively (if needed)
   
@@ -607,7 +618,7 @@
         (d "running script ~a~%" script)
         (if (eq? platform 'windows)
             (exec script)
-            (exec (string-append "sh " (make-pathname "." script))))
+            (exec (string-append "sh " script)))
         (change-directory old))))
 
 (define (write-info name info mode)

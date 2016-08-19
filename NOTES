@@ -1,15 +1,19 @@
 NOTES (new install)
-===============
-
+~~~~~~~~~~~~~~~~
 
 * TODO Extract feathers patches and submit to -hackers
-
+    61a7f604245e7f7d3435ae1a8f727739b2db855f 
+    a62af2c128992d2cd4e31795793ec6adf87d36cb
 * TODO Rebase on upstream at some stage
 
 * Complete egg-info compilation
 ** TODO What should the default optimization options be?
     - also for compiled import libraries.
     - respect DEBUGBUILD?
+
+* TODO Option for not fetching/installing dependencies
+    - proposed by wasamasa.
+    - does this make sense?
 
 * TODO Support for generating + installing extra files
     - types, inline-files
@@ -29,8 +33,6 @@ NOTES (new install)
 
 * TODO repository-path
     - allow multiple locations?
-    - CHICKEN_REPOSITORY
-        currently "destination-repository" is used in mode cases.
     - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
       installation target.
 
@@ -42,10 +44,11 @@ NOTES (new install)
     - is this right?
 
 * Dropped
-    - sudo mode
+    - sudo mode, can be used to invoke -install.sh.
+    - or add back?
 
 * Setup features
-** TODO Keep binaries + intermediate files.   
+** TODO Keep binaries + intermediate files ("-k")
 ** TODO drop "keep-going" mode.
 ** TODO "-feature" + "-no-feature"
 ** TODO Hack for OSX SIP?
@@ -57,7 +60,6 @@ NOTES (new install)
     - or is the intent differently? Ask moritz.
 
 * Download/build directories
-** TODO special mode if installing directory from source dir
 ** TODO handle egg-files given on command-line
 
 * TODO Add/remove files
@@ -75,8 +77,6 @@ NOTES (new install)
 *** TODO Fix "extension-information"
 *** TODO syntax-only extensions 
     - i.e. matchable (is it?)
-** TODO Cross-build + cross-chickens
-    - needs to compile egg info twice (host- + target-mode).
 
 * TODO Drop CHICKEN_PREFIX
 
@@ -96,14 +96,17 @@ NOTES (new install)
     - can we ignore this? if source files have different names, just compiling exe/so directly should
       work.
 
+* TODO "dependencies" has 2 meanings, depending on nesting level in egg info
+
 * TODO Do we have to cleanup after building eggs?
 
 * Install scripts
 ** TODO Allow overrriding DESTDIR, PREFIX
-** TODO Install setup-info
 ** TODO Use install(1) ?
 
 * TODO Integrate running tests into build-script
+
+* TODO Option to purge cache?
 
 * Tools
 ** TODO chicken-install
@@ -116,17 +119,19 @@ NOTES (new install)
 * TODO Documentation
     - remove old and obsolete stuff (deployment, dropped options, etc.)
     - update manual
-    - chicken-do
+    - chicken-do (manpage)
     - update egg-tutorial on wiki
 
+
 cm chicken-do
-cm chicken-install chicken-config.h
-git gui
+cm chicken-install 
+chicken-config.h
+git gui   win 
 gg CHICKEN_BUG_PROGRAM
 
 ~/chicken/5  rules.make
 ~/share/chicken/feathers.tcl
-~/chicken/4/srfi-113
+/home/felix/.chicken-install.cache/
 
 chicken-install.scm  setup-api.scm
 new-install.scm  egg-compile.scm  egg-environment.scm
