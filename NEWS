@@ -1,10 +1,14 @@
 4.11.1
 
 - Security fixes
-  - Fix buffer overrun due to excessively long argument or
-    environment lists in process-execute and process-spawn (#1308).
+  - CVE-2016-6830: Fix buffer overrun due to excessively long argument
+    or environment lists in process-execute and process-spawn (#1308).
     This also removes unnecessary limitations on the length of
     these lists (thanks to Vasilij Schneidermann).
+  - CVE-2016-6831: Fix memory leak in process-execute and
+    process-spawn.  If, during argument and environment list
+    processing, a list item isn't a string, an exception is thrown,
+    in which case previously malloc()ed strings weren't freed.
 
 - Compiler:
   - define-constant now correctly keeps symbol values quoted.
