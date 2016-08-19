@@ -267,15 +267,13 @@
     ;; collect information
     (for-each compile info)
     ;; sort topologically, by dependencies
-    (let ((order (reverse 
-                   (topological-sort          
-                     (map (lambda (dep)
-                            (cons (car dep) 
-                                  (filter-deps 
-                                    (car dep)                                       
-                                    (get-keyword dependencies: (cdr dep)))))
-                          exts)
-                      dep=?))))
+    (let ((order (reverse (topological-sort          
+                            (map (lambda (dep)
+                                   (cons (car dep) 
+                                         (filter-deps (car dep)                                                                               (get-keyword dependencies: 
+                                                                   (cdr dep)))))
+                              (append prgs exts))
+                              dep=?))))
       ;; generate + return build/install commands
       (values
         ;; build commands
@@ -285,11 +283,13 @@
               (let* ((data (assq t exts))
                      (link (get-keyword linkage: (cdr data))))
                 (append
-                  (if (memq 'static link) 
-                      `((compile-static-extension ,@data))
-                      '())
                   (if (memq 'dynamic link) 
                       `((compile-dynamic-extension ,@data))
+                      '())
+                  ;; static must come last, as *.o file will be overwritten
+                  ;; and removed by dynamic build (meh)
+                  (if (memq 'static link) 
+                      `((compile-static-extension ,@data))
                       '())
                   (if (uses-compiled-import-library? mode)
                       `((compile-import-library ,@data))
@@ -300,11 +300,11 @@
             (lambda (prg cmds)   
               (let ((link (get-keyword linkage: (cdr prg))))
                 (append
-                  (if (memq 'static link) 
-                       `((compile-static-program ,@prg))
-                      '())
                   (if (memq 'dynamic link) 
                       `((compile-dynamic-program ,@prg))
+                      '())
+                  (if (memq 'static link) 
+                       `((compile-static-program ,@prg))
                       '())
                   cmds)))
             '()
@@ -559,11 +559,11 @@ EOF
              ))))
 
 (define ((install-suffix mode name info) platform)
-  (let ((infostr (with-output-to-string (cut pp info)))
-        (dir (destination-repository mode))
-        (qdir (quotearg (slashify dir platform)))
-        (dest (quotearg (slashify (make-pathname dir name +egg-info-extension+)
-                                  platform))))
+  (let* ((infostr (with-output-to-string (cut pp info)))
+         (dir (destination-repository mode))
+         (qdir (quotearg (slashify dir platform)))
+         (dest (quotearg (slashify (make-pathname dir name +egg-info-extension+)
+                                   platform))))
     (case platform
       ((unix)
        (printf #<<EOF
