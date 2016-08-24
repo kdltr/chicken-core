@@ -78,6 +78,7 @@
     which is faster because it is inlined (#1260, thanks to Kooda).
   - The default error handler now truncates very long condition
     messages (thanks to Lemonboy).
+  - Weak symbol GC (-:w) no longer drops random symbols (#1173).
 
 - Syntax expander
   - DSSSL lambda lists have improved hygiene, so they don't need

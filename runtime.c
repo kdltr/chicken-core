@@ -3689,6 +3689,15 @@ C_regparm void C_fcall really_mark(C_word *x)
     if(is_fptr(h)) {
       val = fptr_to_ptr(h);
 
+      /* When we marked the bucket, it may have already referred to
+       * the moved symbol instead of its original location. Re-check:
+       */
+      if(C_enable_gcweak &&
+         (C_block_header(val) & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
+         (wep = lookup_weak_table_entry(*x, 0)) != NULL) {
+        if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
+      }
+
       if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
 	*x = val;
 	return;
@@ -3702,6 +3711,15 @@ C_regparm void C_fcall really_mark(C_word *x)
 	/* Link points into fromspace and into a link which points into from- or tospace: */
 	val = fptr_to_ptr(h);
 	
+        /* See above: might happen twice */
+        if(C_enable_gcweak &&
+           (C_block_header(val) & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
+           /* Check both the original and intermediate location: */
+           ((wep = lookup_weak_table_entry((C_word)p, 0)) != NULL ||
+            (wep = lookup_weak_table_entry(*x, 0)) != NULL)) {
+          if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
+        }
+
 	if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
 	  *x = val;
 	  return;
