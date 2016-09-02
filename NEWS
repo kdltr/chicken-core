@@ -41,6 +41,9 @@
 - Platform support
   - CHICKEN now supports the Linux X32 ABI (thanks to Sven Hartrumpf).
 
+- Tools
+  - Feathers now has a more neutral color scheme and larger font size.
+
 - Runtime system:
   - The calling convention of CPS procedures has been changed to
     use "argument vectors" instead of C calling convention.
