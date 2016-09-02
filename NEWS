@@ -98,6 +98,7 @@
 
 - Tools
   - Feathers now has a more neutral color scheme and larger font size.
+  - With the -dir option, feathers can now correctly find source code.
 
 - Runtime system:
   - The calling convention of CPS procedures has been changed to
