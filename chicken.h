@@ -473,7 +473,7 @@ static inline int isinf_ld (long double x)
 /*       unused                   (0x0c00000000000000L ...) */
 # define C_LAMBDA_INFO_TYPE       (0x0d00000000000000L | C_BYTEBLOCK_BIT)
 /*       unused                   (0x0e00000000000000L ...) */
-# define C_BUCKET_TYPE            (0x0f00000000000000L)
+/*       unused                   (0x0f00000000000000L ...) */
 #else
 # define C_INT_SIGN_BIT           0x80000000
 # define C_INT_TOP_BIT            0x40000000
@@ -503,7 +503,7 @@ static inline int isinf_ld (long double x)
 /*       unused                   (0x0c000000 ...) */
 # define C_LAMBDA_INFO_TYPE       (0x0d000000 | C_BYTEBLOCK_BIT)
 /*       unused                   (0x0e000000 ...) */
-# define C_BUCKET_TYPE            (0x0f000000)
+/*       unused                   (0x0f000000 ...) */
 #endif
 #define C_VECTOR_TYPE             0x00000000
 #define C_BYTEVECTOR_TYPE         (C_VECTOR_TYPE | C_BYTEBLOCK_BIT | C_8ALIGN_BIT)
@@ -512,7 +512,7 @@ static inline int isinf_ld (long double x)
 #define C_SIZEOF_PAIR             3
 #define C_SIZEOF_STRING(n)        (C_bytestowords(n) + 2)
 #define C_SIZEOF_SYMBOL           4
-#define C_SIZEOF_INTERNED_SYMBOL(n) (C_SIZEOF_SYMBOL + C_SIZEOF_BUCKET + C_SIZEOF_STRING(n))
+#define C_SIZEOF_INTERNED_SYMBOL(n) (C_SIZEOF_SYMBOL + C_SIZEOF_PAIR + C_SIZEOF_STRING(n))
 #ifdef C_DOUBLE_IS_32_BITS
 # define C_SIZEOF_FLONUM          2
 #else
@@ -521,7 +521,6 @@ static inline int isinf_ld (long double x)
 #define C_SIZEOF_POINTER          2
 #define C_SIZEOF_TAGGED_POINTER   3
 #define C_SIZEOF_VECTOR(n)        ((n) + 1)
-#define C_SIZEOF_BUCKET           3
 #define C_SIZEOF_LOCATIVE         5
 #define C_SIZEOF_PORT             16
 #define C_SIZEOF_STRUCTURE(n)     ((n)+1)
@@ -536,9 +535,8 @@ static inline int isinf_ld (long double x)
 
 /* Fixed size types have pre-computed header tags */
 #define C_PAIR_TAG                (C_PAIR_TYPE | (C_SIZEOF_PAIR - 1))
+#define C_WEAK_PAIR_TAG           (C_PAIR_TAG | C_SPECIALBLOCK_BIT)
 #define C_POINTER_TAG             (C_POINTER_TYPE | (C_SIZEOF_POINTER - 1))
-#define C_BUCKET_TAG              (C_BUCKET_TYPE | (C_SIZEOF_BUCKET - 1))
-#define C_WEAK_BUCKET_TAG         (C_BUCKET_TAG | C_SPECIALBLOCK_BIT)
 #define C_LOCATIVE_TAG            (C_LOCATIVE_TYPE | (C_SIZEOF_LOCATIVE - 1))
 #define C_TAGGED_POINTER_TAG      (C_TAGGED_POINTER_TYPE | (C_SIZEOF_TAGGED_POINTER - 1))
 #define C_SYMBOL_TAG              (C_SYMBOL_TYPE | (C_SIZEOF_SYMBOL - 1))
@@ -3415,11 +3413,11 @@ C_inline C_word C_fcall C_a_pair(C_word **ptr, C_word car, C_word cdr)
   return (C_word)p0;
 }
 
-C_inline C_word C_fcall C_a_bucket(C_word **ptr, C_word head, C_word tail)
+C_inline C_word C_fcall C_a_weak_pair(C_word **ptr, C_word head, C_word tail)
 {
   C_word *p = *ptr, *p0 = p;
 
-  *(p++) = C_WEAK_BUCKET_TAG; /* Changes to strong if sym is persisted */
+  *(p++) = C_WEAK_PAIR_TAG; /* Changes to strong if sym is persisted */
   *(p++) = head;
   *(p++) = tail;
   *ptr = p;

@@ -2491,7 +2491,7 @@ C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stabl
   C_set_block_item(sym, 2, C_SCHEME_END_OF_LIST);
   *ptr = p;
   b2 = stable->table[ key ];	/* previous bucket */
-  bucket = C_a_bucket(ptr, sym, b2); /* create new bucket */
+  bucket = C_a_weak_pair(ptr, sym, b2); /* create new bucket */
 
   if(ptr != C_heaptop) C_mutate_slot(&stable->table[ key ], bucket);
   else {
@@ -3416,7 +3416,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     if(n > 0 && (h & C_BYTEBLOCK_BIT) == 0) {
       if(h & C_SPECIALBLOCK_BIT) {
         /* Minor GC needs to be fast; always mark weakly held symbols */
-        if (gc_mode != GC_MINOR || h != C_WEAK_BUCKET_TAG) {
+        if (gc_mode != GC_MINOR || h != C_WEAK_PAIR_TAG) {
 	  --n;
 	  ++p;
         }
@@ -10648,7 +10648,7 @@ void C_ccall C_string_to_symbol(C_word c, C_word *av)
     k = av[ 1 ],
     string;
   int len, key;
-  C_word s, *a = C_alloc(C_SIZEOF_SYMBOL + C_SIZEOF_BUCKET);
+  C_word s, *a = C_alloc(C_SIZEOF_SYMBOL + C_SIZEOF_PAIR);
   C_char *name;
 
   if(c != 3) C_bad_argc(c, 3);
@@ -13392,6 +13392,8 @@ static void C_ccall dump_heap_state_2(C_word c, C_word *av)
   }
 
   bp = hdump_table;
+  /* HACK */
+#define C_WEAK_PAIR_TYPE (C_PAIR_TYPE | C_SPECIALBLOCK_BIT)
   
   for(n = 0; n < HDUMP_TABLE_SIZE; ++n) {
     for(b = bp[ n ]; b != NULL; b = b2) {
@@ -13415,7 +13417,7 @@ static void C_ccall dump_heap_state_2(C_word c, C_word *av)
       case C_LOCATIVE_TYPE: C_fprintf(C_stderr,       C_text("locative       ")); break;
       case C_TAGGED_POINTER_TYPE: C_fprintf(C_stderr, C_text("tagged pointer ")); break;
       case C_LAMBDA_INFO_TYPE: C_fprintf(C_stderr,    C_text("lambda info    ")); break;
-      case C_BUCKET_TYPE: C_fprintf(C_stderr,         C_text("bucket         ")); break;
+      case C_WEAK_PAIR_TYPE: C_fprintf(C_stderr,      C_text("weak pair      ")); break;
       case C_VECTOR_TYPE: C_fprintf(C_stderr,         C_text("vector         ")); break;
       case C_BYTEVECTOR_TYPE: C_fprintf(C_stderr,     C_text("bytevector     ")); break;
 	/* XXX this is sort of funny: */
