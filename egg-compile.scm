@@ -92,12 +92,6 @@
 
 (define install-command copy-directory-command)
 
-(define (destination-repository mode)
-  (or (get-environment-variable "CHICKEN_REPOSITORY")
-      (case mode
-        ((target) target-repo)
-        ((host) host-repo))))
-
 (define (uses-compiled-import-library? mode)
   (not (and (eq? mode 'host) staticbuild)))
 
@@ -345,8 +339,8 @@
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname (object-extension platform)) mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
-    (print (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir (arglist options) 
+    (print "\n" (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir " -I" srcdir (arglist options) 
            " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -359,8 +353,8 @@
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname ".so") mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
-    (print (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir (arglist options)
+    (print "\n" (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir " -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -372,8 +366,8 @@
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname ".import.so") mode)))
          (src (quotearg (or source (conc sname ".import.scm")))))
-    (print (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir (arglist options)
+    (print "\n" (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir " -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -387,8 +381,8 @@
                                            (executable-extension platform)) 
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
-    (print (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir (arglist options)
+    (print "\n" (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir " -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -402,8 +396,8 @@
                                            (executable-extension platform)) 
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
-    (print (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir (arglist options)
+    (print "\n" (slashify default-builder platform) " " out " " cmd 
+           " -I " srcdir " -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -417,9 +411,11 @@
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
          (dest (destination-repository mode))
-         (dfile (quotearg dest platform)))
-    (print mkdir " " dfile)
-    (print cmd " " out " " (quotearg (slashify (conc dest "/" name ext) platform)))))
+         (dfile (quotearg dest platform))
+         (ddir (shell-variable "DESTDIR" platform)))
+    (print "\n" mkdir " " ddir dfile)
+    (print cmd " " out " " ddir (quotearg (slashify (conc dest "/" name ext) 
+                                                    platform)))))
 
 (define (gen-install-dynamic-extension name #!key platform mode srcdir)
   (let* ((cmd (install-command platform))
@@ -428,9 +424,10 @@
          (out (quotearg (target-file (conc sname ".so") mode)))
          (ext (object-extension platform))
          (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform))))
-    (print mkdir " " dfile)
-    (print cmd " " out " "
+         (dfile (quotearg (slashify dest platform)))
+         (ddir (shell-variable "DESTDIR" platform)))
+    (print "\n" mkdir " " ddir dfile)
+    (print cmd " " out " " ddir
            (quotearg (slashify (conc dest "/" name ".so") platform)))))
 
 (define (gen-install-import-library name #!key platform mode srcdir)
@@ -439,9 +436,10 @@
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ".import.so") mode)))
          (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform))))
-    (print mkdir " " dfile)
-    (print cmd " " out " " 
+         (dfile (quotearg (slashify dest platform)))
+         (ddir (shell-variable "DESTDIR" platform)))
+    (print "\n" mkdir " " ddir dfile)
+    (print cmd " " out " " ddir
            (quotearg (slashify (conc dest "/" name ".import.so") platform)))))
 
 (define (gen-install-import-library-source name #!key platform mode srcdir)
@@ -450,9 +448,10 @@
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ".import.scm") mode)))
          (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform))))
-    (print mkdir " " dfile)
-    (print cmd " " out " " 
+         (dfile (quotearg (slashify dest platform)))
+         (ddir (shell-variable "DESTDIR" platform)))
+    (print "\n" mkdir " " ddir dfile)
+    (print cmd " " out " " ddir
           (quotearg (slashify (conc dest "/" name ".import.scm") platform)))))
 
 (define (gen-install-program name #!key platform mode srcdir)
@@ -462,26 +461,29 @@
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
          (dest (if (eq? mode 'target) target-bindir host-bindir))
-         (dfile (quotearg (slashify dest platform))))
-    (print mkdir " " dfile)
-    (print cmd " " out " "
+         (dfile (quotearg (slashify dest platform)))
+         (ddir (shell-variable "DESTDIR" platform)))
+    (print "\n" mkdir " " ddir dfile)
+    (print cmd " " out " " ddir
            (quotearg (slashify (conc dest "/" name ext) platform)))))
 
 (define (gen-install-data name #!key platform files destination mode srcdir)
   (let* ((cmd (install-command platform))
          (mkdir (mkdir-command platform))
          (dest (or destination (if (eq? mode 'target) target-sharedir host-sharedir)))
-         (dfile (quotearg (slashify dest platform))))
-    (print mkdir " " dfile)
-    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " dfile)))
+         (dfile (quotearg (slashify dest platform)))
+         (ddir (shell-variable "DESTDIR" platform)))
+    (print "\n" mkdir " " ddir dfile)
+    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir dfile)))
 
 (define (gen-install-c-include name #!key platform deps files dest mode srcdir)
   (let* ((cmd (install-command platform))
          (mkdir (mkdir-command platform))
          (dest (or dest (if (eq? mode 'target) target-incdir host-incdir)))
-         (dfile (quotearg (slashify dest platform))))
-    (print mkdir " " dfile)
-    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " dfile)))
+         (dfile (quotearg (slashify dest platform)))
+         (ddir (shell-variable "DESTDIR" platform)))
+    (print "\n" mkdir " " ddir dfile)
+    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir dfile)))
 
 (define command-table
   `((compile-static-extension ,gen-compile-static-extension)
@@ -526,6 +528,8 @@
     ((unix)
      (printf #<<EOF
 #!/bin/sh~%
+set -e
+
 EOF
              ))
     ((windows)
@@ -550,6 +554,8 @@ EOF
     ((unix)
      (printf #<<EOF
 #!/bin/sh~%
+set -e
+
 EOF
              ))
     ((windows)
@@ -563,23 +569,26 @@ EOF
          (dir (destination-repository mode))
          (qdir (quotearg (slashify dir platform)))
          (dest (quotearg (slashify (make-pathname dir name +egg-info-extension+)
-                                   platform))))
+                                   platform)))
+         (ddir (shell-variable "DESTDIR" platform)))
     (case platform
       ((unix)
        (printf #<<EOF
-mkdir -p ~a
-cat >~a <<ENDINFO
+
+mkdir -p ~a~a
+cat >~a~a <<ENDINFO
 ~aENDINFO~%
 EOF
-               qdir dest infostr))
+               ddir qdir ddir dest infostr))
       ((windows)
        (printf #<<EOF
-mkdir ~a
+
+mkdir ~a~a
 echo ~a >~a~%
 EOF
-               qdir 
+               ddir qdir 
                (string-intersperse (string-split infostr) "^\n")
-               dest)))))
+               ddir dest)))))
 
 
 ;;; some utilities for mangling + quoting
@@ -611,3 +620,9 @@ EOF
 
 (define (arglist lst)
   (apply conc (map (lambda (x) (conc " " (quotearg x))) lst)))
+
+(define (shell-variable var platform)
+  (case platform
+    ((unix) (string-append "${" var "}"))
+    ((windows) (string-append "%" var "%"))))
+  
