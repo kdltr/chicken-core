@@ -57,3 +57,9 @@ EOF
 (define target-sharedir (foreign-value "C_TARGET_SHARE_HOME" c-string))
 
 (define +egg-info-extension+ ".egg-info") 
+
+(define (destination-repository mode)
+  (or (get-environment-variable "CHICKEN_REPOSITORY")
+      (case mode
+        ((target) target-repo)
+        ((host) host-repo))))
