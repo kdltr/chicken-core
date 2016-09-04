@@ -1,9 +1,20 @@
 NOTES (new install)
 ~~~~~~~~~~~~~~~~
 
-* TODO Extract feathers patches and submit to -hackers
-    61a7f604245e7f7d3435ae1a8f727739b2db855f 
-    a62af2c128992d2cd4e31795793ec6adf87d36cb
+* TODO Test full queues build + install, incl. usage
+
+* TODO Try more complex eggs
+
+* TODO .egg files for all C5 eggs
+
+* TODO chicken-do: delete target file if build fails
+    - needs to fork subprocess.
+    - better would be to use temporary for output and then rename.
+        - but then would have to replace occurrence of target in command arguments.
+
+* TODO Separation of d/l step possible?
+    - required to check downloaded content.
+
 * TODO Rebase on upstream at some stage
 
 * Complete egg-info compilation
@@ -19,15 +30,14 @@ NOTES (new install)
     - types, inline-files
 
 * Implement minimal "chicken-install"
-** TODO rename new-install.scm later
-    - rules.make
 ** Basic functionality
 *** TODO just download eggs (recursively) and build/install.
 *** TODO Repository init (cross-aware)
-*** TODO Update DB
+    - old-chicken-install.scm://+default-repository-files+/
+*** TODO Update modules DB
 *** TODO print repository
 *** TODO retrieve egg
-    - also support recursive retrieve?
+*** TODO Also support recursive retrieve
 *** TODO Comment all toplevel procedures
 *** TODO Add usage information
 
@@ -36,20 +46,18 @@ NOTES (new install)
     - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
       installation target.
 
-* Installation
+* Egg Installation
 ** TODO unlink .so's before overwriting them.
 
 * Issues
 ** Link-options are passed directly to csc
     - is this right?
 
-* Dropped
-    - sudo mode, can be used to invoke -install.sh.
-    - or add back?
+* Suggestion by florz: sign eggs and decode using NaCl
+    - https://tweetnacl.cr.yp.to/software.html
 
 * Setup features
 ** TODO Keep binaries + intermediate files ("-k")
-** TODO drop "keep-going" mode.
 ** TODO "-feature" + "-no-feature"
 ** TODO Hack for OSX SIP?
 ** TODO reinstall, no-install?
@@ -62,10 +70,7 @@ NOTES (new install)
 * Download/build directories
 ** TODO handle egg-files given on command-line
 
-* TODO Add/remove files
-    - update distribution/manifest
-    - add: egg-download.scm egg-compile.scm egg-environment.scm
-    - rm: setup-api.scm setup-download.scm
+* TODO Fix egg tests in "tests" directory
 
 * TODO Check what cmdline options to retain
 ** TODO Option for explicitly generating Windows/UNIX build/install scripts
@@ -79,10 +84,11 @@ NOTES (new install)
     - i.e. matchable (is it?)
 
 * TODO Drop CHICKEN_PREFIX
+    - chicken-prefix
 
 * Build/install scripts
-** TODO Use "-setup-mode" when invoking csc during build?
-** TODO fully sh(1) compatible
+** TODO Use "-setup-mode" when invoking csc during build
+** must be fully sh(1) compatible
     - http://people.fas.harvard.edu/~lib113/reference/unix/portable_scripting.html
     - https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/cmd.mspx?mfr=true
 ** TODO Test "chicken-do" and port to Windows
@@ -101,38 +107,40 @@ NOTES (new install)
 * TODO Do we have to cleanup after building eggs?
 
 * Install scripts
-** TODO Allow overrriding DESTDIR, PREFIX
-** TODO Use install(1) ?
+** Allow overriding PREFIX?
+** Use install(1) ?
 
 * TODO Integrate running tests into build-script
-
-* TODO Option to purge cache?
 
 * Tools
 ** TODO chicken-install
 ** TODO chicken-uninstall
+    - use "installed-files" egg-info prop.
 ** TODO chicken-status
+    - option to list cached eggs (+ version)
+    - option to purge cache
+    - filter egg-info and list components.
+    - optionally list installed files instead.
 
 * TODO Copyright headers
     - chicken-do.c  egg-*.scm
 
 * TODO Documentation
-    - remove old and obsolete stuff (deployment, dropped options, etc.)
+    - document CHICKEN_EGG_CACHE
+    - remove old and obsolete stuff  dropped options, etc.)
     - update manual
     - chicken-do (manpage)
     - update egg-tutorial on wiki
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-cm chicken-do
+cm chicken-do && cp chicken-do bin
 cm chicken-install 
-chicken-config.h
-git gui   win 
-gg CHICKEN_BUG_PROGRAM
-
-~/chicken/5  rules.make
-~/share/chicken/feathers.tcl
+chicken-config.h  chicken-do.c  config.mk  old-chicken-install.scm  rules.make
+git gui   win  queues
 /home/felix/.chicken-install.cache/
+env LD_LIBRARY_PATH=/home/felix/chicken/chicken-5-new-egg-install ../chicken-install -defaults ../setup.defaults -n
 
 chicken-install.scm  setup-api.scm
-new-install.scm  egg-compile.scm  egg-environment.scm
+new-install.scm  egg-compile.scm  egg-environment.scm  egg-download.scm
 gg setup-info
