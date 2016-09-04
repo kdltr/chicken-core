@@ -18,7 +18,7 @@
 # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
 # AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR
 # CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROd	CUREMENT OF SUBSTITUTE GOODS OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 # SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
@@ -32,8 +32,6 @@ VPATH=$(SRCDIR)
 %: %.o
 
 # object files
-
-SETUP_API_OBJECTS_1 = setup-api setup-download
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
        library eval read-syntax repl data-structures ports files extras lolevel utils \
@@ -80,8 +78,6 @@ DISTFILES = $(filter-out runtime.c,$(LIBCHICKEN_OBJECTS_1:=.c)) \
 	$(UTILITY_PROGRAM_OBJECTS_1:=.c) \
 	$(ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1:=.c) \
 	$(COMPILER_OBJECTS_1:=.c) \
-	$(SETUP_API_OBJECTS_1:=.c) \
-	$(SETUP_API_OBJECTS_1:=.import.scm) $(SETUP_API_OBJECTS_1:=.import.c) \
 	$(IMPORT_LIBRARIES:=.import.c) \
 	$(DYNAMIC_IMPORT_LIBRARIES:=.import.scm) \
 	$(foreach lib,$(DYNAMIC_CHICKEN_IMPORT_LIBRARIES),chicken.$(lib).import.scm) \
@@ -148,13 +144,6 @@ endef
 
 $(foreach obj,$(IMPORT_LIBRARIES),\
           $(eval $(call declare-import-lib-object,$(obj))))
-
-# setup extension objects
-
-declare-setup-api-object = $(declare-shared-library-object)
-
-$(foreach obj,$(SETUP_API_OBJECTS_1),\
-          $(eval $(call declare-setup-api-object,$(obj))))
 
 # compiler objects
 
@@ -387,20 +376,11 @@ else
 		$(lib).import.so "$(DESTDIR)$(IEGGDIR)" $(NL))
 endif
 
-# XXX Shouldn't this be part of the non-static lib part?
-	$(foreach setup-lib,$(SETUP_API_OBJECTS_1),\
-		$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) \
-		$(setup-lib).so "$(DESTDIR)$(IEGGDIR)" $(NL))
-
 ifndef STATICBUILD
 ifneq ($(POSTINSTALL_PROGRAM),true)
 	$(foreach prog,$(INSTALLED_PROGRAMS),\
 		$(POSTINSTALL_PROGRAM) $(POSTINSTALL_PROGRAM_FLAGS) \
 		"$(DESTDIR)$(IBINDIR)$(SEP)$(prog)" $(NL))
-
-	$(foreach apilib,$(SETUP_API_OBJECTS_1),\
-		$(POSTINSTALL_PROGRAM) $(POSTINSTALL_PROGRAM_FLAGS) \
-		"$(DESTDIR)$(IEGGDIR)$(SEP)$(apilib).so" $(NL))
 
 	$(foreach import-lib,$(IMPORT_LIBRARIES),\
 		$(POSTINSTALL_PROGRAM) $(POSTINSTALL_PROGRAM_FLAGS) \
@@ -507,9 +487,6 @@ endef
 define declare-emitted-compiler-import-lib-dependency
 $(call declare-emitted-import-lib-dependency,chicken.compiler.$(1),$(1))
 endef
-
-$(foreach lib, $(SETUP_API_OBJECTS_1),\
-          $(eval $(call declare-emitted-import-lib-dependency,$(lib),$(lib))))
 
 $(foreach lib, $(DYNAMIC_IMPORT_LIBRARIES),\
           $(eval $(call declare-emitted-import-lib-dependency,$(lib),$(lib))))
@@ -659,10 +636,8 @@ chicken-status.c: chicken-status.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm \
 		chicken.posix.import.scm \
-		chicken.pretty-print.import.scm \
-		setup-api.import.scm
-#XXX new-install.scm -> chicken-install.scm
-chicken-install.c: new-install.scm \
+		chicken.pretty-print.import.scm
+chicken-install.c: chicken-install.scm \
 		chicken.data-structures.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
@@ -679,29 +654,7 @@ chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.ports.import.scm \
-		chicken.posix.import.scm \
-		setup-api.import.scm
-setup-api.c: setup-api.scm \
-		chicken.data-structures.import.scm \
-		chicken.files.import.scm \
-		chicken.foreign.import.scm \
-		chicken.format.import.scm \
-		chicken.io.import.scm \
-		chicken.irregex.import.scm \
-		chicken.posix.import.scm \
-		chicken.pretty-print.import.scm \
-		chicken.utils.import.scm
-setup-download.c: setup-download.scm \
-		chicken.data-structures.import.scm \
-		chicken.files.import.scm \
-		chicken.foreign.import.scm \
-		chicken.format.import.scm \
-		chicken.io.import.scm \
-		chicken.irregex.import.scm \
-		chicken.posix.import.scm \
-		chicken.tcp.import.scm \
-		chicken.utils.import.scm \
-		setup-api.import.scm
+		chicken.posix.import.scm
 srfi-4.c: srfi-4.scm \
 		chicken.bitwise.import.scm \
 		chicken.expand.import.scm \
@@ -850,24 +803,16 @@ csi.c: $(SRCDIR)csi.scm $(SRCDIR)banner.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@
 chicken-profile.c: $(SRCDIR)chicken-profile.scm $(SRCDIR)mini-srfi-1.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-#XXX new-install -> chicken-install.scm
-chicken-install.c: $(SRCDIR)new-install.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-compile.scm $(SRCDIR)egg-download.scm $(SRCDIR)egg-environment.scm
+chicken-install.c: $(SRCDIR)chicken-install.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-compile.scm $(SRCDIR)egg-download.scm $(SRCDIR)egg-environment.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-chicken-uninstall.c: $(SRCDIR)chicken-uninstall.scm $(SRCDIR)mini-srfi-1.scm
+chicken-uninstall.c: $(SRCDIR)chicken-uninstall.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-environment.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-chicken-status.c: $(SRCDIR)chicken-status.scm $(SRCDIR)mini-srfi-1.scm
+chicken-status.c: $(SRCDIR)chicken-status.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-environment.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
 csc.c: $(SRCDIR)csc.scm mini-srfi-1.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
 chicken-bug.c: $(SRCDIR)chicken-bug.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-
-setup-api.c: $(SRCDIR)setup-api.scm $(SRCDIR)mini-srfi-1.scm
-	$(CHICKEN) $< $(CHICKEN_DYNAMIC_OPTIONS) -emit-import-library setup-api \
-	  -output-file $@ 
-setup-download.c: $(SRCDIR)setup-download.scm $(SRCDIR)mini-srfi-1.scm
-	$(CHICKEN) $< $(CHICKEN_DYNAMIC_OPTIONS) -emit-import-library setup-download \
-	  -output-file $@ 
 
 # distribution files
 
@@ -902,7 +847,6 @@ clean:
 	  $(PRIMARY_LIBCHICKEN) \
 	  lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A) \
 	  $(IMPORT_LIBRARIES:=.import.so) $(LIBCHICKEN_IMPORT_LIBRARY) \
-	  $(SETUP_API_OBJECTS_1:=.so) $(SETUP_API_OBJECTS_1:=.import.so) \
 	  $(foreach lib,$(DYNAMIC_IMPORT_LIBRARIES),chicken.$(lib).import.scm)
 ifdef USES_SONAME
 	$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX).so.$(BINARYVERSION)
