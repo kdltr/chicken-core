@@ -173,7 +173,7 @@ static C_TLS int timezone;
 #define WEAK_COUNTER_MASK              3
 #define WEAK_COUNTER_MAX               2
 
-#define DEFAULT_TEMPORARY_STACK_SIZE   1024
+#define DEFAULT_TEMPORARY_STACK_SIZE   256
 #define STRING_BUFFER_SIZE             4096
 #define DEFAULT_MUTATION_STACK_SIZE    1024
 #define PROFILE_TABLE_SIZE             1024
