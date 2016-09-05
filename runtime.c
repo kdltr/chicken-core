@@ -2803,8 +2803,9 @@ void C_save_and_reclaim(void *trampoline, int n, C_word *av)
     if(fixed_temporary_stack_size)
       panic(C_text("fixed temporary stack overflow (\"apply\" called with too many arguments?)"));
 
-    if(debug_mode) {
-      C_dbg(C_text("debug"), C_text("resizing temporary stack dynamically from " UWORD_COUNT_FORMAT_STRING "k to " UWORD_COUNT_FORMAT_STRING "k ...\n"),
+
+    if(gc_report_flag) {
+      C_dbg(C_text("GC"), C_text("resizing temporary stack dynamically from " UWORD_COUNT_FORMAT_STRING "k to " UWORD_COUNT_FORMAT_STRING "k ...\n"),
             C_wordstobytes(temporary_stack_size) / 1024,
             C_wordstobytes(new_size) / 1024);
     }
