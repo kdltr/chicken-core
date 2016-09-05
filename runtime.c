@@ -3203,7 +3203,7 @@ void C_save_and_reclaim(void *trampoline, int n, C_word *av)
   assert(C_temporary_stack == C_temporary_stack_bottom);
 
   /* Don't *immediately* slam back to default size */
-  if (new_size < temporary_stack_size)
+  if (new_size < temporary_stack_size / 4)
     new_size = temporary_stack_size >> 1;
 
   if (new_size != temporary_stack_size) {
