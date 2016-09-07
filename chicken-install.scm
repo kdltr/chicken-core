@@ -53,6 +53,7 @@
 
 (include "mini-srfi-1.scm")
 (include "egg-environment.scm")
+(include "egg-information.scm")
 (include "egg-compile.scm")
 (include "egg-download.scm")
 
@@ -434,7 +435,7 @@
                   #;(for-each
                     (lambda (e)
                       (d "removing previously installed extension `~a'" e)
-                      (remove-extension e) )  ; - not implemented yet
+                      (remove-extension e) )
                     ueggs)
                   (retrieve-eggs ueggs) ) ) ) ) ) )
       canonical-eggs)))
@@ -618,8 +619,8 @@
               (generate-shell-commands platform install iscript dir
                                        (install-prefix 'host name info)
                                        (install-suffix 'host name info))
-              (run-script dir bscript platform)
-              (run-script dir iscript platform))))
+              (run-script dir bscript platform #f)
+              (run-script dir iscript platform sudo-install))))
         (when target-extension
           (let-values (((build install info) (compile-egg-info info platform 'target)))
             (let ((bscript (make-pathname dir name 
@@ -634,7 +635,7 @@
                                        (install-prefix 'target name info)
                                        (install-suffix 'target name info))
               (run-script dir bscript platform #f)
-              (run-script dir iscript platform sudo-install))))))
+              (run-script dir iscript platform #f))))))
     canonical-eggs))
 
 (define (run-script dir script platform sudo?)

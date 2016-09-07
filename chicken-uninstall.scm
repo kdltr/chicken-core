@@ -1,6 +1,6 @@
 ;;;; chicken-uninstall.scm
 ;
-; Copyright (c) 2008-2015, The CHICKEN Team
+; Copyright (c) 2008-2016, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -23,87 +23,107 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
+
 (module main ()
 
-  (import scheme chicken)
-  (import setup-api)
-  (import chicken.data-structures
-	  chicken.files
-	  chicken.foreign
-	  chicken.format
-	  chicken.irregex
-	  chicken.ports
-	  chicken.posix)
+  (import (scheme)
+          (chicken))
+  (import (chicken data-structures)
+	  (chicken files)
+          (chicken foreign)
+          (chicken io)
+	  (chicken format)
+	  (chicken irregex)
+	  (chicken ports)
+	  (chicken posix))
 
-  (include "mini-srfi-1.scm")
+(include "mini-srfi-1.scm")
+(include "egg-environment.scm")
+(include "egg-information.scm")
 
-  (define-foreign-variable C_TARGET_LIB_HOME c-string)
-  (define-foreign-variable C_BINARY_VERSION int)
+(define host-extensions #t)
+(define target-extensions #t)
+(define force-uninstall #f)
+(define sudo-uninstall #f)
 
-  (define *cross-chicken* (feature? #:cross-chicken))
-  (define *host-extensions* *cross-chicken*)
-  (define *target-extensions* *cross-chicken*)
-  (define *prefix* #f)
-  (define *deploy* #f)
+(define (repo-path)
+  (destination-repository
+    (if (and cross-chicken (not host-extensions))
+        'target
+        'host)))
 
-  (define (repo-path)
-    (if *deploy*
-	*prefix*
-	(if (and *cross-chicken* (not *host-extensions*))
-	    (make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
-	    (if *prefix*
-		(make-pathname
-		 *prefix*
-		 (sprintf "lib/chicken/~a" (##sys#fudge 42)))
-		(repository-path)))))
+(define (grep rx lst)
+  (filter (cut irregex-search rx <>) lst))
 
-  (define *force* #f)
+(define (gather-eggs patterns)
+  (let* ((eggs (map pathname-file 
+                 (glob (make-pathname (repo-path) "*" +egg-info-extension+))))
+         (pats (concatenate (map (cut grep <> eggs) patterns))))
+    (delete-duplicates pats)))
 
-  (define (grep rx lst)
-    (filter (cut irregex-search rx <>) lst))
+(define (fini code)
+  (print "aborted.")
+  (exit code))
 
-  (define (gather-eggs patterns)
-    (let* ((eggs (map pathname-file 
-		      (glob (make-pathname (repo-path) "*" "setup-info"))))
-	   (pats (concatenate (map (cut grep <> eggs) patterns))))
-      (delete-duplicates pats)))
+(define (ask eggs)
+  (print (string-intersperse
+           (append '("About to delete the following extensions:\n\n")
+                   (map (cut string-append "  " <> "\n") eggs)
+                   '("\nDo you want to proceed ? (no/yes)"))
+           ""))
+  (flush-output)
+  (let loop ()
+    (let ((r (trim (read-line))))
+      (cond ((string=? r "yes"))
+            ((string=? r "no") (fini 1))
+            (else (loop))))))
 
-  (define (fini code)
-    (print "aborted.")
-    (exit code))
+(define (trim str)
+  (define (left lst)
+    (cond ((null? lst) '())
+          ((char-whitespace? (car lst)) (left (cdr lst)))
+          (else (cons (car lst) (left (cdr lst))))))
+  (list->string (reverse (left (reverse (left (string->list str)))))))
+ 
+(define (remove-extension egg #!optional (repo (repo-path)))
+  (and-let* ((files (get-egg-property (load-egg-info egg) 'installed-files)))
+    (for-each
+      (lambda (f)
+        (let ((p (if (absolute-pathname? f) f (make-pathname repo f))))
+          (when (file-exists? p) (delete-installed-file p))))
+      (cdr files)))
+  (delete-installed-file (make-pathname repo egg +egg-info-extension+)))
 
-  (define (ask eggs)
-    (handle-exceptions ex
-	(if (eq? ex 'aborted)
-	    (fini 1) 
-	    (signal ex))
-      (yes-or-no? 
-       (string-intersperse
-	(append
-	 '("About to delete the following extensions:\n\n")
-	 (map (cut string-append "  " <> "\n") eggs)
-	 '("\nDo you want to proceed?"))
-	"")
-       default: "no"
-       abort: (abort-setup))))
+(define (delete-file-command platform)
+  (case platform
+    ((unix) "rm -f ")
+    ((windows) "del /q /s ")))
 
-  (define (uninstall pats)
-    (let ((eggs (gather-eggs pats)))
-      (cond ((null? eggs)
-	     (print "nothing to remove.") )
-	    ((or *force* (ask eggs))
-	     (for-each
-	      (lambda (e)
-		(print "removing " e)
-		(cond ((and *host-extensions* *target-extensions*)
-		       (remove-extension e)
-		       (fluid-let ((*host-extensions* #f))
-			 (remove-extension e (repo-path)) ))
-		      (else (remove-extension e (repo-path)))))
-	      eggs)))))
+(define (delete-installed-file fname)
+  (cond ((not (file-exists? fname))
+         (warning "file does not exist" fname))
+        ((and sudo-uninstall (eq? 'unix default-platform))
+         (let ((r (system (string-append "sudo " (delete-file-command 'unix) 
+                                         "\"" fname "\""))))
+           (unless (zero? r)
+             (warning "deleting file failed" fname))))
+        (else (delete-file fname))))
 
-  (define (usage code)
-    (print #<<EOF
+(define (uninstall pats)
+  (let ((eggs (gather-eggs pats)))
+    (cond ((null? eggs)
+           (print "nothing to remove.") )
+          ((or force-uninstall (ask eggs))
+           (for-each
+             (lambda (e)
+               (print "removing " e)
+               (when host-extensions (remove-extension e))
+               (when (and cross-chicken target-extensions)
+                 (remove-extension e (destination-repository 'target))))
+             eggs)))))
+
+(define (usage code)
+  (print #<<EOF
 usage: chicken-uninstall [OPTION | PATTERN] ...
 
   -h   -help                    show this message and exit
@@ -111,80 +131,62 @@ usage: chicken-uninstall [OPTION | PATTERN] ...
        -force                   don't ask, delete whatever matches
        -exact                   treat PATTERN as exact match (not a pattern)
   -s   -sudo                    use external command to elevate privileges for deleting files
-  -p   -prefix PREFIX           change installation prefix to PREFIX
-       -deploy                  prefix is a deployment directory
        -host                    when cross-compiling, uninstall host extensions only
        -target                  when cross-compiling, uninstall target extensions only
 EOF
-);| (sic)
-    (exit code))
+)
+  (exit code))
 
-  (define *short-options* '(#\h #\s #\p))
+(define short-options '(#\h #\s #\p))
 
-  (define (main args)
-    (let ((exact #f))
-      (let loop ((args args) (pats '()))
-	(cond ((null? args)
-	       (when (null? pats) (usage 1))
-	       (when (and *deploy* (not *prefix*))
-		 (with-output-to-port (current-error-port)
-		   (cut print "`-deploy' only makes sense in combination with `-prefix DIRECTORY`"))
-		 (exit 1))
-	       (uninstall
-		(reverse
-		 (map
-		  (lambda (p)
-		    (if exact
-			(irregex (string-append "^" (irregex-quote p) "$"))
-			(##sys#glob->regexp p)))
-		  pats))))
-	      (else
-	       (let ((arg (car args)))
-		 (cond ((or (string=? arg "-help") 
-			    (string=? arg "-h")
-			    (string=? arg "--help"))
-			(usage 0))
-		       ((string=? arg "-version")
-			(print (chicken-version))
-			(exit 0))
-		       ((string=? arg "-target")
-			(set! *host-extensions* #f)
-			(loop (cdr args) pats))
-		       ((string=? arg "-host")
-			(set! *target-extensions* #f)
-			(loop (cdr args) pats))
-		       ((string=? arg "-force")
-			(set! *force* #t)
-			(loop (cdr args) pats))
-		       ((string=? arg "-exact")
-			(set! exact #t)
-			(loop (cdr args) pats))
-		       ((or (string=? arg "-s") (string=? arg "-sudo"))
-			(sudo-install #t)
-			(loop (cdr args) pats))
-		       ((string=? "-deploy" arg)
-			(set! *deploy* #t)
-			(loop (cdr args) pats))
-		       ((or (string=? arg "-p") (string=? arg "-prefix"))
-			(unless (pair? (cdr args)) (usage 1))
-			(set! *prefix*
-			  (let ((p (cadr args)))
-			    (if (absolute-pathname? p)
-				p
-				(normalize-pathname
-				 (make-pathname (current-directory) p) ) ) ) )
-			(loop (cddr args) pats))
-		       ((and (positive? (string-length arg))
-			     (char=? #\- (string-ref arg 0)))
-			(if (> (string-length arg) 2)
-			    (let ((sos (string->list (substring arg 1))))
-			      (if (every (cut memq <> *short-options*) sos)
-				  (loop
-				   (append (map (cut string #\- <>) sos) (cdr args)) pats)
-				  (usage 1)))
-			    (usage 1)))
-		       (else (loop (cdr args) (cons arg pats))))))))))
+(define (main args)
+  (let ((exact #f))
+    (let loop ((args args) (pats '()))
+      (cond ((null? args)
+             (when (null? pats) (usage 1))
+             (uninstall
+               (reverse
+                 (map
+                   (lambda (p)
+                     (if exact
+                         (irregex (string-append "^" (irregex-quote p) "$"))
+                         (##sys#glob->regexp p)))
+                   pats))))
+            (else
+              (let ((arg (car args)))
+                (cond ((or (string=? arg "-help") 
+                           (string=? arg "-h")
+                           (string=? arg "--help"))
+                       (usage 0))
+                      ((string=? arg "-version")
+                       (print (chicken-version))
+                       (exit 0))
+                      ((string=? arg "-target")
+                       (set! host-extensions #f)
+                       (loop (cdr args) pats))
+                      ((string=? arg "-host")
+                       (set! target-extensions #f)
+                       (loop (cdr args) pats))
+                      ((string=? arg "-force")
+                       (set! force-uninstall #t)
+                       (loop (cdr args) pats))
+                      ((string=? arg "-exact")
+                       (set! exact #t)
+                       (loop (cdr args) pats))
+                      ((or (string=? arg "-s") (string=? arg "-sudo"))
+                       (set! sudo-uninstall #t)
+                       (loop (cdr args) pats))
+                      ((and (positive? (string-length arg))
+                            (char=? #\- (string-ref arg 0)))
+                       (if (> (string-length arg) 2)
+                           (let ((sos (string->list (substring arg 1))))
+                             (if (every (cut memq <> short-options) sos)
+                                 (loop (append (map (cut string #\- <>) sos)
+                                               (cdr args)) pats)
+                                 (usage 1)))
+                           (usage 1)))
+                      (else (loop (cdr args) (cons arg pats))))))))))
 
-  (main (command-line-arguments))
+(main (command-line-arguments))
   
- )
+)

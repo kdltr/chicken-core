@@ -310,6 +310,7 @@ setup.defaults
 egg-environment.scm
 egg-download.scm
 egg-compile.scm
+egg-information.scm
 chicken-do.c
 chicken-status.1
 chicken-install.1

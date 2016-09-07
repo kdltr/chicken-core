@@ -144,3 +144,4 @@ env LD_LIBRARY_PATH=/home/felix/chicken/chicken-5-new-egg-install ../chicken-ins
 chicken-install.scm  setup-api.scm
 new-install.scm  egg-compile.scm  egg-environment.scm  egg-download.scm
 gg setup-info
+
