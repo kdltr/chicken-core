@@ -824,11 +824,11 @@ csi.c: $(SRCDIR)csi.scm $(SRCDIR)banner.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@
 chicken-profile.c: $(SRCDIR)chicken-profile.scm $(SRCDIR)mini-srfi-1.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-chicken-install.c: $(SRCDIR)chicken-install.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-compile.scm $(SRCDIR)egg-download.scm $(SRCDIR)egg-environment.scm
+chicken-install.c: $(SRCDIR)chicken-install.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-compile.scm $(SRCDIR)egg-download.scm $(SRCDIR)egg-environment.scm $(SRCDIR)egg-information.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-chicken-uninstall.c: $(SRCDIR)chicken-uninstall.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-environment.scm
+chicken-uninstall.c: $(SRCDIR)chicken-uninstall.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-environment.scm $(SRCDIR)egg-information.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-chicken-status.c: $(SRCDIR)chicken-status.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-environment.scm
+chicken-status.c: $(SRCDIR)chicken-status.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-environment.scm $(SRCDIR)egg-information.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
 csc.c: $(SRCDIR)csc.scm mini-srfi-1.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 

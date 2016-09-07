@@ -1,19 +1,6 @@
 ;;;; egg-info processing and compilation
 
 
-(define valid-items
-  '(synopsis authors category license version dependencies files
-    source-file csc-options test-dependencies destination linkage
-    build-dependencies components foreign-dependencies link-options
-    custom-bulild target host platform doc-from-wiki extension program
-    data))  
-
-(define nested-items 
-  '(components target host extension program data))
-
-(define named-items
-  '(extension program data c-include scheme-include))
-
 (define default-extension-options '())
 (define default-program-options '())
 (define default-static-program-link-options '())
@@ -27,45 +14,6 @@
 (define +windows-executable-extension+ ".exe")
 (define +unix-object-extension+ ".o")
 (define +windows-object-extension+ ".obj")
-
-
-;;; validate egg-information tree
-
-(define (validate-egg-info info)
-  (unless (list? info) 
-    (error "egg-information has invalid structure"))
-  (for-each
-    (lambda (item)
-      (unless (and (list? item) (pair? item) (symbol? (car item)))
-        (error "egg-information item has invalid structure" item))
-      (when (and (memq (car item) named-items) (not (symbol? (cadr item))))
-        (error "missing name for item" item))
-      (if (memq (car item) nested-items)
-          (validate-egg-info (if (memq (car item) named-items)
-                                 (cddr item) 
-                                 (cdr item)))
-          (unless (memq (car item) valid-items)
-             (error "invalid item" item))))
-    info)
-  info)
-
-
-;;; load egg-info from file and perform validation
-
-(define (load-egg-info fname #!optional (validate #t))
-  (with-input-from-file fname
-    (lambda () 
-      (let ((info (read)))
-        (if validate
-            (validate-egg-info info)
-            info)))))
-
-
-;;; lookup specific entries in egg-information
-
-(define (get-egg-property info prop #!optional default)
-  (let ((p (assq prop info)))
-    (or (and p (cadr p)) default)))
 
 
 ;;; some utilities
@@ -411,7 +359,7 @@
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
          (dest (destination-repository mode))
-         (dfile (quotearg dest platform))
+         (dfile (quotearg dest))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir (quotearg (slashify (conc dest "/" name ext) 
