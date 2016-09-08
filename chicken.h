@@ -1132,7 +1132,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 # define C_stress                  1
 #endif
 
-#define C_stack_overflow_check    C_stack_check1(C_stack_overflow())
+#define C_stack_overflow_check    C_stack_check1(C_stack_overflow(NULL))
 
 /* TODO: The C_scratch_usage checks should probably be moved.  Maybe
  * we should add a core#allocate_scratch_inline which will insert
@@ -1847,7 +1847,7 @@ C_fctexport void C_bad_argc(int c, int n) C_noret;
 C_fctexport void C_bad_min_argc(int c, int n) C_noret;
 C_fctexport void C_bad_argc_2(int c, int n, C_word closure) C_noret;
 C_fctexport void C_bad_min_argc_2(int c, int n, C_word closure) C_noret;
-C_fctexport void C_stack_overflow(void) C_noret;
+C_fctexport void C_stack_overflow(C_char *loc) C_noret;
 C_fctexport void C_unbound_error(C_word sym) C_noret;
 C_fctexport void C_no_closure_error(C_word x) C_noret;
 C_fctexport void C_div_by_zero_error(char *loc) C_noret;
