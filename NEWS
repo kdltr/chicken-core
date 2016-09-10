@@ -86,6 +86,10 @@
   - The let-optionals* macro no longer needs "quote", "car" and "cdr"
     to be imported and bound to their default values (#806).
 
+- Core libraries
+  - Irregex has been updated to 0.9.5, which fixes matching of all "bow"
+    occurrances beyond the first with irregex-fold (upstream issue #14).
+
 4.11.0
 
 - Security fixes

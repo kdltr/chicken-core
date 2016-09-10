@@ -387,6 +387,8 @@
   (test-equal "xaac"
       (irregex-replace/all (irregex '(or (seq bos "a") "b") 'dfa)
                            "aaac" "x"))
+  (test-equal '("foo" " " "foo" " " "b" "a" "r" " " "foo")
+      (irregex-extract '(or (: bow "foo" eow) any) "foo foo bar foo"))
   )
 
 
