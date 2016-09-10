@@ -454,6 +454,7 @@ static volatile C_TLS int
 static C_TLS unsigned int
   mutation_count,
   tracked_mutation_count,
+  stack_check_demand,
   stack_size;
 static C_TLS int chicken_is_initialized;
 #ifdef HAVE_SIGSETJMP
@@ -2424,9 +2425,9 @@ void C_stack_overflow(void)
 }
 
 
-void C_stack_overflow_with_msg(C_char *msg)
+void C_stack_overflow_with_loc(C_char *loc)
 {
-  barf(C_STACK_OVERFLOW_ERROR, NULL);
+  barf(C_STACK_OVERFLOW_ERROR, loc);
 }
 
 void C_unbound_error(C_word sym)
@@ -2878,8 +2879,10 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
   /* assert(C_timer_interrupt_counter >= 0); */
 
-  if(pending_interrupts_count > 0 && C_interrupts_enabled)
+  if(pending_interrupts_count > 0 && C_interrupts_enabled) {
+    stack_check_demand = 0; /* forget demand: we're not going to gc yet */
     handle_interrupt(trampoline);
+  }
 
   cell.enabled = 0;
   cell.event = C_DEBUG_GC;
@@ -6273,8 +6276,14 @@ void C_ccall C_apply(C_word c, C_word *av)
   len = C_unfix(C_u_i_length(lst));
   av2_size = 2 + non_list_args + len;
 
-  if(!C_demand(av2_size))
+  if(C_demand(av2_size))
+    stack_check_demand = 0;
+  else if(stack_check_demand)
+    C_stack_overflow_with_loc("apply");
+  else {
+    stack_check_demand = av2_size;
     C_save_and_reclaim((void *)C_apply, c, av);
+  }
 
   av2 = ptr = C_alloc(av2_size);
   *(ptr++) = fn;
@@ -6418,8 +6427,14 @@ void C_ccall C_apply_values(C_word c, C_word *av)
     len = C_unfix(C_u_i_length(lst));
     n = len + 1;
 
-    if(!C_demand(n))
+    if(C_demand(n))
+      stack_check_demand = 0;
+    else if(stack_check_demand)
+      C_stack_overflow_with_loc("apply");
+    else {
+      stack_check_demand = n;
       C_save_and_reclaim((void *)C_apply_values, c, av);
+    }
 
     av2 = C_alloc(n);
     av2[ 0 ] = k;
