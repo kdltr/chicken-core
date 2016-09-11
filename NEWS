@@ -53,6 +53,9 @@
   - Removed support for (define-syntax (foo e r c) ...), which was
     undocumented and not officially supported anyway.
 
+4.11.2
+
+
 4.11.1
 
 - Security fixes
