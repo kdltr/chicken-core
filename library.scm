@@ -267,7 +267,14 @@ EOF
   (##sys#gc #t)
   (##core#inline "C_start_timer"))
 
-(define ##sys#stop-timer (##core#primitive "C_stop_timer"))
+(define (##sys#stop-timer)
+  (let ((info ((##core#primitive "C_stop_timer"))))
+    ;; Run a major GC one more time to get memory usage information in
+    ;; case there was no major GC while the timer was running
+    (##sys#gc #t)
+    (##sys#setslot info 6 (##sys#slot ((##core#primitive "C_stop_timer")) 6))
+    info))
+
 (define (##sys#immediate? x) (not (##core#inline "C_blockp" x)))
 (define (##sys#message str) (##core#inline "C_message" str))
 (define (##sys#byte x i) (##core#inline "C_subbyte" x i))
@@ -5751,6 +5758,16 @@ EOF
   (define (pchr chr) (##sys#write-char-0 chr ##sys#standard-error))
   (define (pnum num)
     (##sys#print (if (zero? num) "0" (##sys#number->string num)) #f ##sys#standard-error))
+  (define (round-to x y) ; Convert to fp with y digits after the point
+    (/ (round (* x (expt 10 y))) (expt 10.0 y)))
+  (define (pmem bytes)
+    (cond ((> bytes (expt 1024 3))
+	   (pnum (round-to (/ bytes (expt 1024 3)) 2)) (pstr " GiB"))
+	  ((> bytes (expt 1024 2))
+	   (pnum (round-to (/ bytes (expt 1024 2)) 2)) (pstr " MiB"))
+	  ((> bytes 1024)
+	   (pnum (round-to (/ bytes 1024) 2)) (pstr " KiB"))
+	  (else (pnum bytes) (pstr " bytes"))))
   (##sys#flush-output ##sys#standard-output)
   (pnum (##sys#slot info 0))
   (pstr "s CPU time")
@@ -5775,6 +5792,9 @@ EOF
       (pchr #\/)
       (pnum minor)
       (pstr " GCs (major/minor)")))
+  (let ((maximum-heap-usage (##sys#slot info 6)))
+    (pstr ", maximum live heap: ")
+    (pmem maximum-heap-usage))
   (##sys#write-char-0 #\newline ##sys#standard-error)
   (##sys#flush-output ##sys#standard-error))
 

@@ -62,6 +62,9 @@
   - Fixed incorrect argvector restoration after GC in directly
     recursive functions (#1317).
 
+- Runtime system:
+  - "time" macro now shows peak memory usage (#1318, thanks to Kooda).
+
 4.11.1
 
 - Security fixes
