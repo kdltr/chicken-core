@@ -400,8 +400,9 @@ static C_TLS C_uword
   heapspace2_size,
   heap_size,
   temporary_stack_size,
-  fixed_temporary_stack_size = 0;
-static C_TLS C_char 
+  fixed_temporary_stack_size = 0,
+  maximum_heap_usage;
+static C_TLS C_char
   buffer[ STRING_BUFFER_SIZE ],
   *private_repository = NULL,
   *current_module_name,
@@ -767,7 +768,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
 #endif
   }
 
-  tracked_mutation_count = mutation_count = gc_count_1 = gc_count_1_total = gc_count_2 = 0;
+  tracked_mutation_count = mutation_count = gc_count_1 = gc_count_1_total = gc_count_2 = maximum_heap_usage = 0;
   lf_list = NULL;
   C_register_lf2(NULL, 0, create_initial_ptable());
   C_restart_trampoline = (void *)toplevel;
@@ -3201,7 +3202,10 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     C_dbg("GC", C_text("%d locatives (from %d)\n"), locative_table_count, locative_table_size);
   }
 
-  if(gc_mode == GC_MAJOR) gc_count_1 = 0;
+  if(gc_mode == GC_MAJOR) {
+    gc_count_1 = 0;
+    maximum_heap_usage = count > maximum_heap_usage ? count : maximum_heap_usage;
+  }
 
   if(C_post_gc_hook != NULL) C_post_gc_hook(gc_mode, (C_long)tgc);
 
@@ -4295,6 +4299,7 @@ C_regparm C_word C_fcall C_start_timer(void)
   gc_count_2 = 0;
   timer_start_ms = C_cpu_milliseconds();
   gc_ms = 0;
+  maximum_heap_usage = 0;
   return C_SCHEME_UNDEFINED;
 }
 
@@ -4306,15 +4311,16 @@ void C_ccall C_stop_timer(C_word c, C_word *av)
     k = av[ 1 ];
   double t0 = C_cpu_milliseconds() - timer_start_ms;
   C_word 
-    ab[ WORDS_PER_FLONUM * 2 + 7 ], /* 2 flonums, 1 vector of 6 elements */
+    ab[ WORDS_PER_FLONUM * 3 + 8 ], /* 3 flonums, 1 vector of 7 elements */
     *a = ab,
     elapsed = C_flonum(&a, t0 / 1000.0),
     gc_time = C_flonum(&a, gc_ms / 1000.0),
+    heap_usage = C_unsigned_int_to_num(&a, maximum_heap_usage),
     info;
   
-  info = C_vector(&a, 6, elapsed, gc_time, C_fix(mutation_count),
+  info = C_vector(&a, 7, elapsed, gc_time, C_fix(mutation_count),
                   C_fix(tracked_mutation_count), C_fix(gc_count_1_total),
-		  C_fix(gc_count_2));
+		  C_fix(gc_count_2), heap_usage);
   C_kontinue(k, info);
 }
 
