@@ -866,6 +866,11 @@
 			(else
 			 (gen #\{)))))
 	   (cond ((and (not (eq? 'toplevel id)) (not direct))
+		  (when (and looping (not customizable))
+		    ;; Loop will update t_n copy of av[n]; refresh av.
+		    (do ((i 0 (add1 i)))
+			((>= i n))
+		      (gen #t "av[" i "]=t" i ";")))
 		  (cond (rest
 			 (gen #t "C_save_and_reclaim((void*)" id ",c,av);}"
 			      #t "a=C_alloc((c-" n ")*C_SIZEOF_PAIR+" demand ");")
@@ -880,7 +885,7 @@
 				(apply gen arglist)
 				(gen ");}"))
 			       (else
-				(gen "C_save_and_reclaim((void *)" id #\, n ",av);}")))
+				(gen #t "C_save_and_reclaim((void *)" id #\, n ",av);}")))
 			 (when (> demand 0)
 			   (gen #t "a=C_alloc(" demand ");")))))
 		 (else (gen #\})))
