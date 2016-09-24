@@ -86,7 +86,7 @@
   (list->string (reverse (left (reverse (left (string->list str)))))))
  
 (define (remove-extension egg #!optional (repo (repo-path)))
-  (and-let* ((files (get-egg-property (load-egg-info egg) 'installed-files)))
+  (and-let* ((files (get-egg-property* (load-egg-info egg) 'installed-files)))
     (for-each
       (lambda (f)
         (let ((p (if (absolute-pathname? f) f (make-pathname repo f))))
