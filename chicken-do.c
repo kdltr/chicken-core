@@ -79,6 +79,7 @@ build:
       printf(" %s", args[ i ]);
 
     putchar('\n');
+    fflush(stdout);
   }
 
   execute(args);
