@@ -2,9 +2,9 @@
 
 
 (define toplevel-items
-  '(synopsis authors category license version dependencies
+  '(synopsis authors category license version dependencies synopsis
              test-dependencies build-dependencies components foreign-dependencies 
-             platform doc-from-wiki))
+             platform doc-from-wiki installed-files))
 
 (define valid-items
   (append toplevel-items
@@ -29,22 +29,24 @@
   (define (toplevel-item? item)
     (and (valid-item? item) (memq (car item) toplevel-items)))
   (unless (list? info) 
-    (error "egg-information has invalid structure"))
+    (error "egg-information has invalid structure" info))
   (unless (every toplevel-item? info)
-    (error "egg-information is invalid toplevel structure"))
-  (for-each
-    (lambda (item)
-      (unless (valid-item? item)
-        (error "egg-information item has invalid structure" item))
-      (when (and (memq (car item) named-items) (not (symbol? (cadr item))))
-        (error "missing name for item" item))
-      (if (memq (car item) nested-items)
-          (validate-egg-info (if (memq (car item) named-items)
-                                 (cddr item) 
-                                 (cdr item)))
-          (unless (memq (car item) valid-items)
-             (error "invalid item" item))))
-    info)
+    (error "egg-information has invalid toplevel structure" info))
+  (define (validate info)
+    (for-each
+      (lambda (item)
+        (unless (valid-item? item)
+          (error "egg-information item has invalid structure" item))
+        (when (and (memq (car item) named-items) (not (symbol? (cadr item))))
+          (error "missing name for item" item))
+        (if (memq (car item) nested-items)
+            (validate (if (memq (car item) named-items)
+                          (cddr item) 
+                          (cdr item)))
+            (unless (memq (car item) valid-items)
+              (error "invalid item" item))))
+      info))
+  (validate info)
   info)
 
 
@@ -64,3 +66,7 @@
 (define (get-egg-property info prop #!optional default)
   (let ((p (assq prop info)))
     (or (and p (cadr p)) default)))
+
+(define (get-egg-property* info prop #!optional (default '()))
+  (let ((p (assq prop info)))
+    (or (and p (cdr p)) default)))
