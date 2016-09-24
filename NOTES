@@ -1,6 +1,11 @@
 NOTES (new install)
 ~~~~~~~~~~~~~~~~
 
+* TODO Proposals
+** Encode install-prefix in cache-dir name
+** With cache and without network is not an error
+** check whether files are overwritten by egg
+
 * TODO Test full queues build + install, incl. usage
 
 * TODO Try more complex eggs
@@ -13,7 +18,12 @@ NOTES (new install)
         - but then would have to replace occurrence of target in command arguments.
 
 * TODO Separation of d/l step possible?
-    - required to check downloaded content.
+    - required to check downloaded content
+
+* TODO Static linking
+    - (chicken) "-static" option - when requiring extension, check if repo contains *.o(bj) file.
+        - mind cross-compilation: use target-repo in target mode (needs to passed to chicken).
+    - csc: drop -static, rename -static-libs to -static (doc) (and pass to chicken).
 
 * TODO Rebase on upstream at some stage
 
@@ -80,11 +90,17 @@ NOTES (new install)
 ** setup-info files
 *** one for the whole egg (use "components" to find associated parts).
 *** TODO Fix "extension-information"
+    - drop it completely? we can't locate extensions, just eggs.
 *** TODO syntax-only extensions 
     - i.e. matchable (is it?)
+*** TODO require-at-runtime
+
+* TODO Fix loading/linking
+    - needs support by compiler.
+    - see also eval.scm:/##sys#process-require/
 
 * TODO Drop CHICKEN_PREFIX
-    - chicken-prefix
+    - chicken-prefix and all of its uses.
 
 * Build/install scripts
 ** TODO Use "-setup-mode" when invoking csc during build
@@ -133,15 +149,16 @@ NOTES (new install)
     - update egg-tutorial on wiki
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+gg extension-information
 cm chicken-do && cp chicken-do bin
-cm chicken-install 
+cm install confclean 
 chicken-config.h  chicken-do.c  config.mk  old-chicken-install.scm  rules.make
-git gui   win  queues
-/home/felix/.chicken-install.cache/
-env LD_LIBRARY_PATH=/home/felix/chicken/chicken-5-new-egg-install ../chicken-install -defaults ../setup.defaults -n
+git gui   win bin/csi  queues  distribution/manifest  
+/home/felix/.chicken-install.cache/  lib/chicken/8
+../bin/chicken-install -defaults ../setup.defaults -n
 
 chicken-install.scm  setup-api.scm
-new-install.scm  egg-compile.scm  egg-environment.scm  egg-download.scm
-gg setup-info
+ egg-compile.scm  egg-environment.scm  egg-download.scm egg-information.scm
+win bin/csi
 
+./chicken-status
