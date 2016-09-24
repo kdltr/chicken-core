@@ -264,10 +264,9 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 # import libraries
 
 PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.csi chicken.foreign
-DYNAMIC_IMPORT_LIBRARIES = setup-api setup-download srfi-4
+DYNAMIC_IMPORT_LIBRARIES = srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise errno fixnum flonum format \
-	gc io keyword locative memory posix pretty-print random time
-DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
+	gc io keyword locatives memory posix pretty-print random time
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
 	eval expand files internal irregex lolevel pathname ports \
 	read-syntax repl tcp utils
@@ -309,7 +308,7 @@ TARGETLIBS ?= lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A) $(LIBCHICKEN_SO_F
 TARGETS += $(TARGETLIBS) $(CHICKEN_SHARED_EXECUTABLE) \
 	$(CSI_SHARED_EXECUTABLE) $(CHICKEN_PROFILE_PROGRAM)$(EXE) \
 	$(CSC_PROGRAM)$(EXE) $(CHICKEN_INSTALL_PROGRAM)$(EXE) $(CHICKEN_UNINSTALL_PROGRAM)$(EXE) \
-	$(CHICKEN_STATUS_PROGRAM)$(EXE) setup-download.so setup-api.so \
+	$(CHICKEN_STATUS_PROGRAM)$(EXE) \
 	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DO_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM) \
 	$(IMPORT_LIBRARIES:%=%.import.so)
 endif

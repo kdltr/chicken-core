@@ -36,9 +36,8 @@ mkdir -p test-repository
 # copy files into test-repository (by hand to avoid calling `chicken-install'):
 
 for x in \
-    chicken.import.so types.db \
-    setup-api.so setup-api.import.so srfi-4.import.so \
-    setup-download.so setup-download.import.so \
+    chicken.import.so csi.import.so types.db \
+    srfi-4.import.so \
     chicken.bitwise.import.so \
     chicken.continuation.import.so \
     chicken.csi.import.so \
