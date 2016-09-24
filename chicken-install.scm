@@ -79,6 +79,7 @@
 (define host-extension cross-chicken)
 (define target-extension cross-chicken)
 (define sudo-install #f)
+(define update-module-db #f)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -86,9 +87,10 @@
       'unix))
 
 (define current-status 
-  (list ##sys#build-id
+  (list ##sys#build-id default-prefix
         (get-environment-variable "CSC_OPTIONS")
         (get-environment-variable "LD_LIBRARY_PATH")
+        (get-environment-variable "DYLD_LIBRARY_PATH")
         (get-environment-variable "CHICKEN_INCLUDE_PATH")
         (get-environment-variable "CHICKEN_REPOSITORY")
         (get-environment-variable "DYLD_LIBRARY_PATH")))
@@ -307,7 +309,8 @@
            (lversion (get-egg-property info 'version)))
       (cond ((and (file-exists? timestamp)
                   (> (- now (with-input-from-file timestamp read)) +one-hour+)
-                  (not (check-remote-version name version lversion)))
+                  (not (check-remote-version name version 
+                                             (and lversion lversion))))
              (fetch)
              (let ((info (load-egg-info eggfile))) ; new egg info (fetched)
                (values cached (get-egg-property info 'version))))
@@ -456,8 +459,8 @@
                     (if u (cons u upgrade) upgrade))))))))
 
 (define (get-egg-dependencies info)
-  (append (get-egg-property info 'dependencies '())
-          (if run-tests (get-egg-property info 'test-dependencies '()) '())))
+  (append (get-egg-property* info 'dependencies '())
+          (if run-tests (get-egg-property* info 'test-dependencies '()) '())))
 
 (define (check-dependency dep)
   (cond ((or (symbol? dep) (string? dep))
@@ -662,11 +665,53 @@
       (error "shell command terminated with nonzero exit code" r cmd))))
 
 
+;;; update module-db
+
+(define (update-db)
+  (let* ((files (glob (make-pathname (repo-path) "*.import.so")
+                      (make-pathname (repo-path) "*.import.scm")))
+         (dbfile (create-temporary-file)))
+      (print "loading import libraries ...")
+      (fluid-let ((##sys#warnings-enabled #f))
+        (for-each
+         (lambda (path)
+           (let* ((file (pathname-strip-directory path))
+		  (import-name (pathname-strip-extension file))
+		  (module-name (pathname-strip-extension import-name)))
+	     (handle-exceptions ex
+		 (print-error-message 
+		  ex (current-error-port) 
+		  (sprintf "Failed to import from `~a'" file))
+	       (eval `(import-syntax ,(string->symbol module-name))))))
+         files))
+      (print "generating database")
+      (let ((db
+             (sort
+              (append-map
+               (lambda (m)
+                 (let* ((mod (cdr m))
+                        (mname (##sys#module-name mod)))
+                   (print* " " mname)
+                   (let-values (((_ ve se) (##sys#module-exports mod)))
+                     (append
+                      (map (lambda (se) (list (car se) 'syntax mname)) se)
+                      (map (lambda (ve) (list (car ve) 'value mname)) ve)))))
+               ##sys#module-table)
+              (lambda (e1 e2)
+                (string<? (symbol->string (car e1)) (symbol->string (car e2)))))))
+        (newline)
+        (with-output-to-file dbfile
+          (lambda ()
+            (for-each (lambda (x) (write x) (newline)) db)))
+        (file-copy dbfile (make-pathname (repo-path) +module-db+) #t))))
+
+
 ;; command line parsing and selection of operations
   
 (define (perform-actions eggs)
   (load-defaults)
-  (cond ((null? eggs)
+  (cond (update-module-db (update-db))
+        ((null? eggs)
          (set! canonical-eggs 
            (map (lambda (fname)
                   (list (pathname-file fname) (current-directory) #f))
@@ -711,6 +756,9 @@
                    (loop (cdr args)))
                   ((equal? arg "-target")
                    (set! host-extension #f)
+                   (loop (cdr args)))
+                  ((equal? arg "-update-db")
+                   (set! update-module-db #t)
                    (loop (cdr args)))
                   ((equal? arg "-n")
                    (set! do-not-build #t)
