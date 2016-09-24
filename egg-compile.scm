@@ -288,7 +288,7 @@
          (out (quotearg (target-file (conc sname (object-extension platform)) mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir " -I" srcdir (arglist options) 
+           " -I " srcdir " -C -I" srcdir (arglist options) 
            " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -302,7 +302,7 @@
          (out (quotearg (target-file (conc sname ".so") mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir " -I" srcdir (arglist options)
+           " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -315,7 +315,7 @@
          (out (quotearg (target-file (conc sname ".import.so") mode)))
          (src (quotearg (or source (conc sname ".import.scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir " -I" srcdir (arglist options)
+           " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -330,7 +330,7 @@
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir " -I" srcdir (arglist options)
+           " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
@@ -345,7 +345,7 @@
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
-           " -I " srcdir " -I" srcdir (arglist options)
+           " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src (arglist dependencies))))
 
