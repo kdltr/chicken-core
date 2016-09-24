@@ -1,5 +1,9 @@
 4.11.2
 
+- Compiler:
+  - Fixed incorrect argvector restoration after GC in directly
+    recursive functions (#1317).
+
 4.11.1
 
 - Security fixes
