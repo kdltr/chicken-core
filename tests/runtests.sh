@@ -37,8 +37,7 @@ mkdir -p test-repository
 
 for x in \
     chicken.import.so csi.import.so types.db \
-    setup-api.so setup-api.import.so srfi-4.import.so \
-    setup-download.so setup-download.import.so \
+    srfi-4.import.so \
     chicken.bitwise.import.so \
     chicken.continuation.import.so \
     chicken.data-structures.import.so \
