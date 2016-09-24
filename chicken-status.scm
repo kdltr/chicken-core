@@ -53,7 +53,7 @@
     (filter (cut irregex-search rx <>) lst))
 
   (define (read-info egg)
-    (load-egg-info (make-pathname (repo-path) egg #f)))
+    (load-egg-info (make-pathname (repo-path) egg +egg-info-extension+)))
 
   (define (filter-eggs patterns)
     (let* ((eggs (gather-eggs))
@@ -91,7 +91,7 @@
 	       (print
 		(format-string (string-append egg " ") w #f #\.)
 		(format-string 
-		 (string-append " version: " (->string (cadr version)))
+		 (string-append " version: " (->string version))
 		 w #t #\.))
 	       (print egg))))
        (sort eggs string<?))))
@@ -121,11 +121,11 @@
         (lambda (egg)
           (let* ((info (read-info egg))
                  (version (get-egg-property info 'version))
-                 (comps (get-egg-property info 'components)))
+                 (comps (get-egg-property* info 'components)))
             (if version
                 (print (format-string (string-append egg " ") w #f #\.)
                        (format-string (string-append " version: "
-                                                     (->string (cadr version)))
+                                                     (->string version))
                                       w #t #\.))
                 (print egg))
             (when comps
@@ -147,10 +147,7 @@
      (sort
       (append-map
        (lambda (egg)
-	 (let ((files (get-egg-property (read-info egg) 'installed-files)))
-	   (if files
-	       (cdr files)
-	       '())))
+	 (get-egg-property* (read-info egg) 'installed-files))
        eggs)
       string<?)))
 
@@ -158,7 +155,7 @@
     (for-each
      (lambda (egg)
        (let ((version (get-egg-property (read-info egg) 'version)))
-	 (pp (list (string->symbol egg) (->string (and version (cadr version)))))))
+	 (pp (list (string->symbol egg) (or version "???")))))
      (gather-eggs)))
 
   (define (usage code)
