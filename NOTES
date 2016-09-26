@@ -24,6 +24,8 @@ NOTES (new install)
     - (chicken) "-static" option - when requiring extension, check if repo contains *.o(bj) file.
         - mind cross-compilation: use target-repo in target mode (needs to passed to chicken).
     - csc: drop -static, rename -static-libs to -static (doc) (and pass to chicken).
+    - pass information about used static eggs either in separate file or embedded as comment
+      in C file (first line)
 
 * TODO Rebase on upstream at some stage
 
@@ -44,7 +46,6 @@ NOTES (new install)
 *** TODO just download eggs (recursively) and build/install.
 *** TODO Repository init (cross-aware)
     - old-chicken-install.scm://+default-repository-files+/
-*** TODO Update modules DB
 *** TODO print repository
 *** TODO retrieve egg
 *** TODO Also support recursive retrieve
@@ -123,15 +124,13 @@ NOTES (new install)
 * TODO Do we have to cleanup after building eggs?
 
 * Install scripts
-** Allow overriding PREFIX?
-** Use install(1) ?
+** TODO Use install(1)
 
 * TODO Integrate running tests into build-script
+    - or generate separate script?
 
 * Tools
 ** TODO chicken-install
-** TODO chicken-uninstall
-    - use "installed-files" egg-info prop.
 ** TODO chicken-status
     - option to list cached eggs (+ version)
     - option to purge cache
@@ -143,13 +142,13 @@ NOTES (new install)
 
 * TODO Documentation
     - document CHICKEN_EGG_CACHE
-    - remove old and obsolete stuff  dropped options, etc.)
+    - remove old and obsolete stuff  (dropped options, etc.)
     - update manual
     - chicken-do (manpage)
     - update egg-tutorial on wiki
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gg extension-information
+gg extension-information 
 cm chicken-do && cp chicken-do bin
 cm install confclean 
 chicken-config.h  chicken-do.c  config.mk  old-chicken-install.scm  rules.make
