@@ -31,4 +31,4 @@
 		 (lambda (i)
 		   `(,proc ,@(list-tabulate (- end i) add1))))))))))
   (invoke-directly foo 50 50 "Lower edge case")
-  (invoke-directly foo 50 2000 "Lower edge case"))
+  (invoke-directly foo 50 2000 "Higher edge case"))
