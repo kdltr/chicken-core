@@ -537,6 +537,8 @@ static inline int isinf_ld (long double x)
 /* Fixed size types have pre-computed header tags */
 #define C_PAIR_TAG                (C_PAIR_TYPE | (C_SIZEOF_PAIR - 1))
 #define C_POINTER_TAG             (C_POINTER_TYPE | (C_SIZEOF_POINTER - 1))
+#define C_BUCKET_TAG              (C_BUCKET_TYPE | (C_SIZEOF_BUCKET - 1))
+#define C_WEAK_BUCKET_TAG         (C_BUCKET_TAG | C_SPECIALBLOCK_BIT)
 #define C_LOCATIVE_TAG            (C_LOCATIVE_TYPE | (C_SIZEOF_LOCATIVE - 1))
 #define C_TAGGED_POINTER_TAG      (C_TAGGED_POINTER_TYPE | (C_SIZEOF_TAGGED_POINTER - 1))
 #define C_SYMBOL_TAG              (C_SYMBOL_TYPE | (C_SIZEOF_SYMBOL - 1))
@@ -1052,6 +1054,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_bignum_size(b)           (C_bytestowords(C_header_size(C_internal_bignum_vector(b)))-1)
 #define C_make_header(type, size)  ((C_header)(((type) & C_HEADER_BITS_MASK) | ((size) & C_HEADER_SIZE_MASK)))
 #define C_symbol_value(x)          (C_block_item(x, 0))
+#define C_symbol_plist(x)          (C_block_item(x, 2))
 #define C_save(x)	           (*(--C_temporary_stack) = (C_word)(x))
 #define C_rescue(x, i)             (C_temporary_stack[ i ] = (x))
 #define C_restore                  (*(C_temporary_stack++))
@@ -2135,6 +2138,8 @@ C_fctexport C_word C_fcall C_a_i_flonum_gcd(C_word **p, C_word n, C_word x, C_wo
 
 C_fctexport C_word C_fcall C_i_getprop(C_word sym, C_word prop, C_word def) C_regparm;
 C_fctexport C_word C_fcall C_putprop(C_word **a, C_word sym, C_word prop, C_word val) C_regparm;
+C_fctexport C_word C_fcall C_i_persist_symbol(C_word sym) C_regparm;
+C_fctexport C_word C_fcall C_i_unpersist_symbol(C_word sym) C_regparm;
 C_fctexport C_word C_fcall C_i_get_keyword(C_word key, C_word args, C_word def) C_regparm;
 C_fctexport C_u64 C_fcall C_milliseconds(void) C_regparm;
 C_fctexport C_u64 C_fcall C_cpu_milliseconds(void) C_regparm;
@@ -2771,6 +2776,14 @@ C_inline C_word C_i_symbolp(C_word x)
   return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_SYMBOL_TAG);
 }
 
+C_inline int C_persistable_symbol(C_word x)
+{
+  C_word val = C_symbol_value(x);
+  /* Symbol is bound (and not a keyword), or has a non-empty plist */
+  return (!C_enable_gcweak ||   /* Overrides to always true */
+          (val != C_SCHEME_UNBOUND && val != x) ||
+          C_symbol_plist(x) != C_SCHEME_END_OF_LIST);
+}
 
 C_inline C_word C_i_pairp(C_word x)
 {
@@ -3408,7 +3421,7 @@ C_inline C_word C_fcall C_a_bucket(C_word **ptr, C_word head, C_word tail)
 {
   C_word *p = *ptr, *p0 = p;
 
-  *(p++) = C_BUCKET_TYPE | (C_SIZEOF_BUCKET - 1);
+  *(p++) = C_enable_gcweak ? C_WEAK_BUCKET_TAG : C_BUCKET_TAG;
   *(p++) = head;
   *(p++) = tail;
   *ptr = p;

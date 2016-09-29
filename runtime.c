@@ -167,12 +167,6 @@ static C_TLS int timezone;
 
 #define MAX_HASH_PREFIX                64
 
-#define WEAK_TABLE_SIZE                997
-#define WEAK_HASH_ITERATIONS           4
-#define WEAK_HASH_DISPLACEMENT         7
-#define WEAK_COUNTER_MASK              3
-#define WEAK_COUNTER_MAX               2
-
 #define DEFAULT_TEMPORARY_STACK_SIZE   256
 #define STRING_BUFFER_SIZE             4096
 #define DEFAULT_MUTATION_STACK_SIZE    1024
@@ -301,12 +295,6 @@ typedef struct lf_list_struct
   void *module_handle;
   char *module_name;
 } LF_LIST;
-
-typedef struct weak_table_entry_struct
-{
-  C_word item,			/* item weakly held (symbol) */
-         container;		/* object holding reference to symbol, lowest 3 bits are */
-} WEAK_TABLE_ENTRY;		/*   also used as a counter, saturated at 2 or more */
 
 typedef struct finalizer_node_struct
 {
@@ -469,7 +457,6 @@ static C_TLS int
   gc_count_1,
   gc_count_1_total,
   gc_count_2,
-  weak_table_randomization,
   stack_size_changed,
   dlopen_flags,
   heap_size_changed,
@@ -506,7 +493,6 @@ static C_TLS int
   allocated_finalizer_count,
   pending_finalizer_count,
   callback_returned_flag;
-static C_TLS WEAK_TABLE_ENTRY *weak_item_table;
 static C_TLS C_GC_ROOT *gc_root_list = NULL;
 static C_TLS FINALIZER_NODE 
   *finalizer_list,
@@ -534,7 +520,6 @@ static void panic(C_char *msg) C_noret;
 static void usual_panic(C_char *msg) C_noret;
 static void horror(C_char *msg) C_noret;
 static void C_fcall really_mark(C_word *x) C_regparm;
-static WEAK_TABLE_ENTRY *C_fcall lookup_weak_table_entry(C_word item, C_word container) C_regparm;
 static C_cpsproc(values_continuation) C_noret;
 static C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stable);
 static C_regparm int C_fcall C_in_new_heapp(C_word x);
@@ -566,6 +551,7 @@ static C_word basic_cmp(C_word x, C_word y, char *loc, int eqp);
 static int bignum_cmp_unsigned(C_word x, C_word y);
 static C_word C_fcall hash_string(int len, C_char *str, C_word m, C_word r, int ci) C_regparm;
 static C_word C_fcall lookup(C_word key, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
+static C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable) C_regparm;
 static double compute_symbol_table_load(double *avg_bucket_len, int *total);
 static C_word C_fcall convert_string_to_number(C_char *str, int radix, C_word *fix, double *flo) C_regparm;
 static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
@@ -576,6 +562,7 @@ static void C_fcall remark_system_globals(void) C_regparm;
 static void C_fcall really_remark(C_word *x) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
 static void C_fcall update_locative_table(int mode) C_regparm;
+static void C_fcall update_symbol_tables(int mode) C_regparm;
 static LF_LIST *find_module_handle(C_char *name);
 static void set_profile_timer(C_uword freq);
 static void take_profile_sample();
@@ -761,14 +748,6 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   mutation_stack_limit = mutation_stack_bottom + DEFAULT_MUTATION_STACK_SIZE;
   C_gc_mutation_hook = NULL;
   C_gc_trace_hook = NULL;
-
-  /* Allocate weak item table: */
-  if(C_enable_gcweak) {
-    weak_item_table = (WEAK_TABLE_ENTRY *)C_calloc(WEAK_TABLE_SIZE, sizeof(WEAK_TABLE_ENTRY));
-
-    if(weak_item_table == NULL)
-      return 0;
-  }
 
   /* Initialize finalizer lists: */
   finalizer_list = NULL;
@@ -2424,6 +2403,59 @@ C_regparm C_word C_fcall lookup(C_word key, int len, C_char *str, C_SYMBOL_TABLE
   return C_SCHEME_FALSE;
 }
 
+/* Mark a symbol as "persistent", to prevent it from being GC'ed */
+C_regparm C_word C_fcall C_i_persist_symbol(C_word sym)
+{
+  C_word bucket;
+
+  C_i_check_symbol(sym);
+
+  bucket = lookup_bucket(sym, NULL);
+  if (C_truep(bucket)) {  /* It could be an uninterned symbol(?) */
+    /* Change weak to strong ref to ensure long-term survival */
+    C_block_header(bucket) = C_block_header(bucket) & ~C_SPECIALBLOCK_BIT;
+    /* Ensure survival on next minor GC */
+    if (C_in_stackp(sym)) C_mutate_slot(&C_block_item(bucket, 0), sym);
+  }
+  return C_SCHEME_UNDEFINED;
+}
+
+/* Possibly remove "persistence" of symbol, to allowed it to be GC'ed.
+ * This is only done if the symbol is unbound and has an empty plist.
+ */
+C_regparm C_word C_fcall C_i_unpersist_symbol(C_word sym)
+{
+  C_word bucket;
+
+  C_i_check_symbol(sym);
+
+  if (C_persistable_symbol(sym)) return C_SCHEME_FALSE;
+
+  bucket = lookup_bucket(sym, NULL);
+  if (C_truep(bucket)) { /* It could be an uninterned symbol(?) */
+    /* Turn it into a weak ref */
+    C_block_header(bucket) = C_block_header(bucket) | C_SPECIALBLOCK_BIT;
+    return C_SCHEME_TRUE;
+  }
+  return C_SCHEME_FALSE;
+}
+
+C_regparm C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable)
+{
+  C_word bucket, str = C_block_item(sym, 1);
+  int key, len = C_header_size(str);
+
+  if (stable == NULL) stable = symbol_table;
+
+  key = hash_string(len, C_c_string(str), stable->size, stable->rand, 0);
+
+  for(bucket = stable->table[ key ]; bucket != C_SCHEME_END_OF_LIST;
+      bucket = C_block_item(bucket,1)) {
+    if (C_block_item(bucket,0) == sym) return bucket;
+  }
+  return C_SCHEME_FALSE;
+}
+
 
 double compute_symbol_table_load(double *avg_bucket_len, int *total_n)
 {
@@ -3260,18 +3292,16 @@ static void mark(C_word *x) { \
   C_cblockend
 #endif
 
-
 C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 {
-  int i, j, n, fcount, weakn = 0;
+  int i, j, n, fcount;
   C_uword count, bytes;
-  C_word *p, **msp, bucket, last, item, container;
+  C_word *p, **msp, bucket, last;
   C_header h;
   C_byte *tmp, *start;
   LF_LIST *lfn;
   C_SCHEME_BLOCK *bp;
   C_GC_ROOT *gcrp;
-  WEAK_TABLE_ENTRY *wep;
   double tgc = 0;
   C_SYMBOL_TABLE *stp;
   volatile int finalizers_checked;
@@ -3301,9 +3331,6 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
   heap_scan_top = (C_byte *)C_align((C_uword)C_fromspace_top);
   gc_mode = GC_MINOR;
   start = C_fromspace_top;
-
-  if(C_enable_gcweak) 
-    weak_table_randomization = rand();
 
   /* Entry point for second-level GC (on explicit request or because of full fromspace): */
 #ifdef HAVE_SIGSETJMP
@@ -3397,8 +3424,11 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
     if(n > 0 && (h & C_BYTEBLOCK_BIT) == 0) {
       if(h & C_SPECIALBLOCK_BIT) {
-	--n;
-	++p;
+        /* Minor GC needs to be fast; always mark weakly held symbols */
+        if (gc_mode != GC_MINOR || h != C_WEAK_BUCKET_TAG) {
+	  --n;
+	  ++p;
+        }
       }
 
       while(n--) mark(p++);
@@ -3520,48 +3550,11 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
   i_like_spaghetti:
     ++gc_count_2;
-
-    if(C_enable_gcweak) {
-      /* Check entries in weak item table and recover items ref'd only
-         once, which are unbound symbols and have empty property-lists: */
-      weakn = 0;
-      wep = weak_item_table;
-
-      for(i = 0; i < WEAK_TABLE_SIZE; ++i, ++wep)
-	if(wep->item != 0) { 
-	  if((wep->container & WEAK_COUNTER_MAX) == 0 && /* counter saturated? (more than 1) */
-	     is_fptr((item = C_block_header(wep->item)))) { /* and forwarded/collected */
-	    item = fptr_to_ptr(item);			    /* recover obj from forwarding ptr */
-	    container = wep->container & ~WEAK_COUNTER_MASK;
-
-	    if(C_header_bits(item) == C_SYMBOL_TYPE && 
-	       C_block_item(item, 0) == C_SCHEME_UNBOUND &&
-	       C_block_item(item, 2) == C_SCHEME_END_OF_LIST) {
-	      ++weakn;
-	      C_set_block_item(container, 0, C_SCHEME_UNDEFINED); /* clear reference to item */
-	    }
-	  }
-
-	  wep->item = wep->container = 0;
-	}
-
-      /* Remove empty buckets in symbol table: */
-      for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
-	for(i = 0; i < stp->size; ++i) {
-	  last = 0;
-	  
-	  for(bucket = stp->table[ i ]; bucket != C_SCHEME_END_OF_LIST; bucket = C_block_item(bucket,1))
-	    if(C_block_item(bucket,0) == C_SCHEME_UNDEFINED) {
-	      if(last) C_set_block_item(last, 1, C_block_item(bucket,1));
-	      else stp->table[ i ] = C_block_item(bucket,1);
-	    }
-	    else last = bucket;
-	}
-      }
-    }
   }
 
   if(gc_mode == GC_MAJOR) {
+    update_symbol_tables(gc_mode);
+
     tgc = C_cpu_milliseconds() - tgc;
     gc_ms += tgc;
     timer_accumulated_gc_ms += tgc;
@@ -3597,9 +3590,6 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 	  (C_uword)tospace_start, (C_uword)tospace_top, 
 	  (C_uword)tospace_limit);
 
-    if(gc_mode == GC_MAJOR && C_enable_gcweak && weakn)
-      C_dbg("GC", C_text("%d recoverable weakly held items found\n"), weakn);
-    
     C_dbg("GC", C_text("%d locatives (from %d)\n"), locative_table_count, locative_table_size);
   }
 
@@ -3642,11 +3632,10 @@ C_regparm void C_fcall mark_system_globals(void)
 
 C_regparm void C_fcall really_mark(C_word *x)
 {
-  C_word val, item;
+  C_word val;
   C_uword n, bytes;
   C_header h;
   C_SCHEME_BLOCK *p, *p2;
-  WEAK_TABLE_ENTRY *wep;
 
   val = *x;
 
@@ -3669,7 +3658,8 @@ C_regparm void C_fcall really_mark(C_word *x)
       return;
     }
 
-    if((C_uword)val >= (C_uword)fromspace_start && (C_uword)val < (C_uword)C_fromspace_top) return;
+    if((C_uword)val >= (C_uword)fromspace_start && (C_uword)val < (C_uword)C_fromspace_top)
+      return;
 
     p2 = (C_SCHEME_BLOCK *)C_align((C_uword)C_fromspace_top);
 
@@ -3699,24 +3689,8 @@ C_regparm void C_fcall really_mark(C_word *x)
     C_memcpy(p2->data, p->data, bytes);
   }
   else { /* (major GC) */
-    /* Increase counter (saturated at 2) if weakly held item (someone pointed to this object): */
-    if(C_enable_gcweak &&
-       (h & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
-       (wep = lookup_weak_table_entry(val, 0)) != NULL) {
-      if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
-    }
-
     if(is_fptr(h)) {
       val = fptr_to_ptr(h);
-
-      /* When we marked the bucket, it may have already referred to
-       * the moved symbol instead of its original location. Re-check:
-       */
-      if(C_enable_gcweak &&
-         (C_block_header(val) & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
-         (wep = lookup_weak_table_entry(*x, 0)) != NULL) {
-        if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
-      }
 
       if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
 	*x = val;
@@ -3731,15 +3705,6 @@ C_regparm void C_fcall really_mark(C_word *x)
 	/* Link points into fromspace and into a link which points into from- or tospace: */
 	val = fptr_to_ptr(h);
 	
-        /* See above: might happen twice */
-        if(C_enable_gcweak &&
-           (C_block_header(val) & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
-           /* Check both the original and intermediate location: */
-           ((wep = lookup_weak_table_entry((C_word)p, 0)) != NULL ||
-            (wep = lookup_weak_table_entry(*x, 0)) != NULL)) {
-          if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
-        }
-
 	if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
 	  *x = val;
 	  return;
@@ -3758,16 +3723,6 @@ C_regparm void C_fcall really_mark(C_word *x)
       p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
     }
 #endif
-
-    if(C_enable_gcweak && (h & C_HEADER_TYPE_BITS) == C_BUCKET_TYPE) {
-      item = C_block_item(val,0);
-
-      /* Lookup item in weak item table or add entry: */
-      if((wep = lookup_weak_table_entry(item, (C_word)p2)) != NULL) {
-	/* If item is already forwarded, then set count to 2: */
-	if(is_fptr(C_block_header(item))) wep->container |= 2;
-      }
-    }
 
     n = C_header_size(p);
     bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
@@ -3808,19 +3763,17 @@ static void remark(C_word *x) { \
   C_cblockend
 #endif
 
-
 /* Do a major GC into a freshly allocated heap: */
 
 C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 {
   int i, j;
   C_uword count, n, bytes;
-  C_word *p, **msp, item, last;
+  C_word *p, **msp, bucket, last;
   C_header h;
   C_byte *tmp, *start;
   LF_LIST *lfn;
   C_SCHEME_BLOCK *bp;
-  WEAK_TABLE_ENTRY *wep;
   C_GC_ROOT *gcrp;
   C_SYMBOL_TABLE *stp;
   FINALIZER_NODE *flist;
@@ -3933,14 +3886,6 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
     remark(&flist->finalizer);
   }
 
-  /* Clear weakly held items: */
-  if(C_enable_gcweak) {
-    wep = weak_item_table; 
-
-    for(i = 0; i < WEAK_TABLE_SIZE; ++i, ++wep)
-      wep->item = wep->container = 0;
-  }
-
   /* Mark trace-buffer: */
   for(tinfo = trace_buffer; tinfo < trace_buffer_limit; ++tinfo) {
     remark(&tinfo->cooked1);
@@ -3974,6 +3919,8 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 
     heap_scan_top = (C_byte *)bp + C_align(bytes) + sizeof(C_word);
   }
+
+  update_symbol_tables(GC_REALLOC);
 
   heap_free (heapspace1, heapspace1_size);
   heap_free (heapspace2, heapspace2_size);
@@ -4024,7 +3971,6 @@ C_regparm void C_fcall really_remark(C_word *x)
   C_uword n, bytes;
   C_header h;
   C_SCHEME_BLOCK *p, *p2;
-  WEAK_TABLE_ENTRY *wep;
 
   val = *x;
 
@@ -4199,34 +4145,66 @@ C_regparm void C_fcall update_locative_table(int mode)
   if(mode != GC_REALLOC) locative_table_count = hi;
 }
 
-
-C_regparm WEAK_TABLE_ENTRY *C_fcall lookup_weak_table_entry(C_word item, C_word container)
+C_regparm void C_fcall update_symbol_tables(int mode)
 {
-  C_uword
-    key = (C_uword)item >> 2,
-    disp = 0,
-    n;
-  WEAK_TABLE_ENTRY *wep;
+  int weakn = 0, i;
+  C_word bucket, last, sym, h;
+  C_SYMBOL_TABLE *stp;
 
-  for(n = 0; n < WEAK_HASH_ITERATIONS; ++n) {
-    key = (key + disp + weak_table_randomization) % WEAK_TABLE_SIZE;
-    wep = &weak_item_table[ key ];
+  assert(mode != GC_MINOR); /* Call only in major or realloc mode */
+  if(C_enable_gcweak) {
+    /* Update symbol locations through fptrs or drop if unreferenced */
+    for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
+      for(i = 0; i < stp->size; ++i) {
+	last = 0;
 
-    if(wep->item == 0) {
-      if(container != 0) {
-	/* Add fresh entry: */
-	wep->item = item;
-	wep->container = container;
-	return wep;
+	for(bucket = stp->table[ i ]; bucket != C_SCHEME_END_OF_LIST; bucket = C_block_item(bucket,1)) {
+
+	  sym = C_block_item(bucket, 0);
+	  h = C_block_header(sym);
+
+	  /* Resolve any forwarding pointers */
+	  while(is_fptr(h)) {
+	    sym = fptr_to_ptr(h);
+	    h = C_block_header(sym);
+	  }
+
+	  assert((h & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE);
+
+	  /* If the symbol is unreferenced, drop it: */
+	  if(!C_truep(C_permanentp(sym)) && (mode == GC_REALLOC ?
+					     !C_in_new_heapp(sym) :
+					     !C_in_fromspacep(sym))) {
+
+	    if(last) C_set_block_item(last, 1, C_block_item(bucket,1));
+	    else stp->table[ i ] = C_block_item(bucket,1);
+
+	    assert(!C_persistable_symbol(sym));
+	    ++weakn;
+	  } else {
+	    C_set_block_item(bucket,0,sym); /* Might have moved */
+	    last = bucket;
+	  }
+	}
       }
-
-      return NULL;
     }
-    else if(wep->item == item) return wep;
-    else disp += WEAK_HASH_DISPLACEMENT;
+    if(gc_report_flag && weakn)
+      C_dbg("GC", C_text("%d recoverable weakly held items found\n"), weakn);
+  } else {
+#ifdef DEBUGBUILD
+    /* Sanity check: all symbols should've been marked */
+    for(stp = symbol_table_list; stp != NULL; stp = stp->next)
+      for(i = 0; i < stp->size; ++i)
+	for(bucket = stp->table[ i ]; bucket != C_SCHEME_END_OF_LIST; bucket = C_block_item(bucket,1)) {
+          sym = C_block_item(bucket, 0);
+	  assert(!is_fptr(C_block_header(sym)) &&
+                 (C_truep(C_permanentp(sym)) ||
+                  (mode == GC_REALLOC ?
+                   C_in_new_heapp(sym) :
+                   C_in_fromspacep(sym))));
+        }
+#endif
   }
-
-  return NULL;
 }
 
 
@@ -13225,7 +13203,10 @@ C_i_getprop(C_word sym, C_word prop, C_word def)
 C_regparm C_word C_fcall
 C_putprop(C_word **ptr, C_word sym, C_word prop, C_word val)
 {
-  C_word pl = C_block_item(sym, 2);
+  C_word pl = C_symbol_plist(sym);
+
+  /* Newly added plist?  Ensure the symbol stays! */
+  if (pl == C_SCHEME_END_OF_LIST) C_i_persist_symbol(sym);
 
   while(pl != C_SCHEME_END_OF_LIST) {
     if(C_block_item(pl, 0) == prop) {
@@ -13235,9 +13216,9 @@ C_putprop(C_word **ptr, C_word sym, C_word prop, C_word val)
     else pl = C_u_i_cdr(C_u_i_cdr(pl));
   }
 
-  pl = C_a_pair(ptr, val, C_block_item(sym, 2));
+  pl = C_a_pair(ptr, val, C_symbol_plist(sym));
   pl = C_a_pair(ptr, prop, pl);
-  C_mutate_slot(&C_block_item(sym, 2), pl);
+  C_mutate_slot(&C_symbol_plist(sym), pl);
   return val;
 }
 

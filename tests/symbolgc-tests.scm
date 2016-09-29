@@ -2,18 +2,23 @@
 ;
 ; - run this with the "-:w" option
 
-(use gc)
+(use gc (chicken format))
 
 (assert (##sys#fudge 15) "please run this test with the `-:w' runtime option")
 
-(define (gcsome #!optional (n 100))
-  (do ((i n (sub1 i))) ((zero? i)) (gc #t)))
+;; Ensure counts are defined before creating the disposable symbols.
+;; This way, this program can also be run in interpreted mode.
+(define *count-before* #f)
+(define *count-after* #f)
 
-(gcsome)
+;; Force major GC to ensure there are no collectible symbols left
+;; before we start, otherwise the GC might clean these up and we'd end
+;; up with less symbols than we started with!
+(gc #t)
 
-(define *count1* (vector-ref (##sys#symbol-table-info) 2))
+(set! *count-before* (vector-ref (##sys#symbol-table-info) 2))
 
-(print "starting with " *count1* " symbols")
+(print "starting with " *count-before* " symbols")
 
 (print "interning 10000 symbols ...")
 
@@ -23,17 +28,15 @@
 
 (print "recovering ...")
 
-(let loop ((i 0))
-  (let ((n (vector-ref (##sys#symbol-table-info) 2)))
-    (print* (- n *count1*) " ")
-    (cond ((> i 100)
-	   (unless (<= n *count1*)
-	     (error "unable to reclaim all symbols")))
-	  ((< (- n *count1*) 100)     ; allow some
-	   (gc #t)
-	   (loop (+ i 1)))
-	  (else 
-	   (gc #t)
-	   (loop 0)))))
+;; Force major GC, which should reclaim every last symbol we just
+;; created, as well as "i", the loop counter.
+(gc #t)
+
+;; Don't use LET, which would introduce a fresh identifier, which is a
+;; new symbol (at least, in interpreted mode)
+(set! *count-after* (vector-ref (##sys#symbol-table-info) 2))
+(print* (- *count-after* *count-before*) " newly interned symbols left")
+(unless (= *count-after* *count-before*)
+  (error "unable to reclaim all symbols"))
 
 (print "\ndone.")

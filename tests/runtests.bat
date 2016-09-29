@@ -490,8 +490,7 @@ echo ======================================== symbol-GC tests ...
 %compile% symbolgc-tests.scm
 if errorlevel 1 exit /b 1
 a.out -:w
-rem Currently disabled, because this may leave 1 symbol unreclaimed.
-rem if errorlevel 1 exit /b 1
+if errorlevel 1 exit /b 1
 
 echo ======================================== finalizer tests ...
 %interpret% -s test-finalizers.scm

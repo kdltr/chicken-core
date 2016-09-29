@@ -250,6 +250,7 @@ EOF
 (define ##sys#gc (##core#primitive "C_gc"))
 (define (##sys#setslot x i y) (##core#inline "C_i_setslot" x i y))
 (define (##sys#setislot x i y) (##core#inline "C_i_set_i_slot" x i y))
+(define (##sys#persist-symbol s) (##core#inline "C_i_persist_symbol" s))
 (define ##sys#allocate-vector (##core#primitive "C_allocate_vector"))
 (define (argc+argv) (##sys#values main_argc main_argv))
 (define ##sys#make-structure (##core#primitive "C_make_structure"))
@@ -5704,7 +5705,10 @@ EOF
 			  (##sys#setslot ptl 1 nxt)
 			  (##sys#setslot sym 2 nxt) )
 		      #t ) )
-	       (loop nxt tl) ) ) ) ) )
+	       (loop nxt tl) ) ) ) )
+  (when (null? (##sys#slot sym 2))
+    ;; This will only unpersist if symbol is also unbound
+    (##core#inline "C_i_unpersist_symbol" sym) ) )
 
 (define symbol-plist
   (getter-with-setter
@@ -5718,7 +5722,10 @@ EOF
 	 (##sys#setslot sym 2 lst) 
 	 (##sys#signal-hook
 	  #:type-error "property-list must be of even length"
-	  lst sym)))
+	  lst sym))
+     (if (null? lst)
+	 (##core#inline "C_i_unpersist_symbol" sym)
+	 (##core#inline "C_i_persist_symbol" sym)))
    "(symbol-plist sym)"))
 
 (define (get-properties sym props)
