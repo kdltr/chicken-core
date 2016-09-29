@@ -1,10 +1,6 @@
 ;;;; symbolgc-tests.scm
-;
-; - run this with the "-:w" option
 
 (use gc (chicken format))
-
-(assert (##sys#fudge 15) "please run this test with the `-:w' runtime option")
 
 ;; Ensure counts are defined before creating the disposable symbols.
 ;; This way, this program can also be run in interpreted mode.

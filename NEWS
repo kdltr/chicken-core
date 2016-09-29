@@ -10,6 +10,7 @@
     flag to a bitmap, to allow for multidirectional ports.
   - Weak symbol GC is faster, simpler, and can now collect all
     unreferenced symbols instead of a maximum of 997 per major GC.
+  - The -:w option has been removed; symbols are now always collected.
 
 - Compiler
   - Fixed an off by one allocation problem in generated C code for (list ...).

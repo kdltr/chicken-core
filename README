@@ -164,15 +164,6 @@
           `chicken-status' will not be generated, as it is mostly 
           useless unless compiled code can be loaded.
 
-        SYMBOLGC=1
-          Always enable garbage collection for unused symbols in the 
-          symbol table by default. This will result in slightly slower 
-          garbage collection, but minimizes the amount of garbage 
-          retained at runtime (which might be important for long 
-          running server applications). If you don't specify this 
-          option you can still enable symbol GC at runtime by passing 
-          the `-:w' runtime option when running the program.
-
 	EXTRA_CHICKEN_OPTIONS=...
 	  Additional options that should be passed to `chicken' when
 	  building the system.

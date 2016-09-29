@@ -370,11 +370,6 @@ C_TLS int
   C_enable_repl,
   C_interrupts_enabled,
   C_disable_overflow_check,
-#ifdef C_COLLECT_ALL_SYMBOLS
-  C_enable_gcweak = 1,
-#else
-  C_enable_gcweak = 0,
-#endif
   C_heap_size_is_fixed,
   C_trace_buffer_size = DEFAULT_TRACE_BUFFER_SIZE,
   C_max_pending_finalizers = C_DEFAULT_MAX_PENDING_FINALIZERS,
@@ -1466,10 +1461,6 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 
 	case 'g':
 	  gc_report_flag = 2;
-	  break;
-
-	case 'w':
-	  C_enable_gcweak = 1;
 	  break;
 
 	case 'P':
@@ -4152,59 +4143,43 @@ C_regparm void C_fcall update_symbol_tables(int mode)
   C_SYMBOL_TABLE *stp;
 
   assert(mode != GC_MINOR); /* Call only in major or realloc mode */
-  if(C_enable_gcweak) {
-    /* Update symbol locations through fptrs or drop if unreferenced */
-    for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
-      for(i = 0; i < stp->size; ++i) {
-	last = 0;
+  /* Update symbol locations through fptrs or drop if unreferenced */
+  for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
+    for(i = 0; i < stp->size; ++i) {
+      last = 0;
 
-	for(bucket = stp->table[ i ]; bucket != C_SCHEME_END_OF_LIST; bucket = C_block_item(bucket,1)) {
+      for(bucket = stp->table[ i ]; bucket != C_SCHEME_END_OF_LIST; bucket = C_block_item(bucket,1)) {
 
-	  sym = C_block_item(bucket, 0);
+	sym = C_block_item(bucket, 0);
+	h = C_block_header(sym);
+
+	/* Resolve any forwarding pointers */
+	while(is_fptr(h)) {
+	  sym = fptr_to_ptr(h);
 	  h = C_block_header(sym);
+	}
 
-	  /* Resolve any forwarding pointers */
-	  while(is_fptr(h)) {
-	    sym = fptr_to_ptr(h);
-	    h = C_block_header(sym);
-	  }
+	assert((h & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE);
 
-	  assert((h & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE);
+	/* If the symbol is unreferenced, drop it: */
+	if(!C_truep(C_permanentp(sym)) && (mode == GC_REALLOC ?
+					   !C_in_new_heapp(sym) :
+					   !C_in_fromspacep(sym))) {
 
-	  /* If the symbol is unreferenced, drop it: */
-	  if(!C_truep(C_permanentp(sym)) && (mode == GC_REALLOC ?
-					     !C_in_new_heapp(sym) :
-					     !C_in_fromspacep(sym))) {
+	  if(last) C_set_block_item(last, 1, C_block_item(bucket,1));
+	  else stp->table[ i ] = C_block_item(bucket,1);
 
-	    if(last) C_set_block_item(last, 1, C_block_item(bucket,1));
-	    else stp->table[ i ] = C_block_item(bucket,1);
-
-	    assert(!C_persistable_symbol(sym));
-	    ++weakn;
-	  } else {
-	    C_set_block_item(bucket,0,sym); /* Might have moved */
-	    last = bucket;
-	  }
+	  assert(!C_persistable_symbol(sym));
+	  ++weakn;
+	} else {
+	  C_set_block_item(bucket,0,sym); /* Might have moved */
+	  last = bucket;
 	}
       }
     }
-    if(gc_report_flag && weakn)
-      C_dbg("GC", C_text("%d recoverable weakly held items found\n"), weakn);
-  } else {
-#ifdef DEBUGBUILD
-    /* Sanity check: all symbols should've been marked */
-    for(stp = symbol_table_list; stp != NULL; stp = stp->next)
-      for(i = 0; i < stp->size; ++i)
-	for(bucket = stp->table[ i ]; bucket != C_SCHEME_END_OF_LIST; bucket = C_block_item(bucket,1)) {
-          sym = C_block_item(bucket, 0);
-	  assert(!is_fptr(C_block_header(sym)) &&
-                 (C_truep(C_permanentp(sym)) ||
-                  (mode == GC_REALLOC ?
-                   C_in_new_heapp(sym) :
-                   C_in_fromspacep(sym))));
-        }
-#endif
   }
+  if(gc_report_flag && weakn)
+    C_dbg("GC", C_text("%d recoverable weakly held items found\n"), weakn);
 }
 
 
@@ -4921,7 +4896,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_mk_bool(C_interrupts_enabled);
 
   case C_fix(15):		/* symbol-gc enabled? */
-    return C_mk_bool(C_enable_gcweak);
+    return C_SCHEME_TRUE;
 
   case C_fix(16):		/* milliseconds (wall clock) */
     panic(C_text("(##sys#fudge 16) [current wall clock milliseconds] not implemented"));

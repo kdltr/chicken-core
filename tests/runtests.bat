@@ -489,7 +489,7 @@ for %%s in (100000 120000 200000 250000 300000 350000 400000 450000 500000) do (
 echo ======================================== symbol-GC tests ...
 %compile% symbolgc-tests.scm
 if errorlevel 1 exit /b 1
-a.out -:w
+a.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== finalizer tests ...

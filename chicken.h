@@ -1765,7 +1765,6 @@ C_varextern C_TLS int
   C_abort_on_thread_exceptions,
   C_interrupts_enabled,
   C_disable_overflow_check,
-  C_enable_gcweak,
   C_heap_size_is_fixed,
   C_max_pending_finalizers,
   C_trace_buffer_size,
@@ -2780,8 +2779,7 @@ C_inline int C_persistable_symbol(C_word x)
 {
   C_word val = C_symbol_value(x);
   /* Symbol is bound (and not a keyword), or has a non-empty plist */
-  return (!C_enable_gcweak ||   /* Overrides to always true */
-          (val != C_SCHEME_UNBOUND && val != x) ||
+  return ((val != C_SCHEME_UNBOUND && val != x) ||
           C_symbol_plist(x) != C_SCHEME_END_OF_LIST);
 }
 
@@ -3421,7 +3419,7 @@ C_inline C_word C_fcall C_a_bucket(C_word **ptr, C_word head, C_word tail)
 {
   C_word *p = *ptr, *p0 = p;
 
-  *(p++) = C_enable_gcweak ? C_WEAK_BUCKET_TAG : C_BUCKET_TAG;
+  *(p++) = C_WEAK_BUCKET_TAG; /* Changes to strong if sym is persisted */
   *(p++) = head;
   *(p++) = tail;
   *ptr = p;
