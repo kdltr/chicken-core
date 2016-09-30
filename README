@@ -314,10 +314,6 @@
 	|   |       |-- chicken.utils.import.so
 	|   |       |-- csi.import.so
 	|   |       |-- modules.db
-	|   |       |-- setup-api.import.so
-	|   |       |-- setup-api.so
-	|   |       |-- setup-download.import.so
-	|   |       |-- setup-download.so
 	|   |       |-- srfi-4.import.so
 	|   |       `-- types.db
 	|   |-- libchicken.a
