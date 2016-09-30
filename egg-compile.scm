@@ -30,7 +30,7 @@
 
 (define (copy-directory-command platform)
   (case platform
-    ((unix) "cp")
+    ((unix) "cp -r")
     ((windows) "xcopy /y")))
 
 (define (mkdir-command platform)
@@ -38,7 +38,15 @@
     ((unix) "mkdir -p")
     ((windows) "mkdir")))
 
-(define install-command copy-directory-command)
+(define (install-executable-command platform)
+  (case platform
+    ((unix) "install -m755")
+    ((windows) "xcopy /y")))
+
+(define (install-file-command platform)
+  (case platform
+    ((unix) "install -m644")
+    ((windows) "xcopy /y")))
 
 (define (uses-compiled-import-library? mode)
   (not (and (eq? mode 'host) staticbuild)))
@@ -353,7 +361,7 @@
 ;; installation operations
 
 (define (gen-install-static-extension name #!key platform mode srcdir)
-  (let* ((cmd (install-command platform))
+  (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
          (ext (object-extension platform))
          (sname (prefix srcdir name))
@@ -366,7 +374,7 @@
                                                     platform)))))
 
 (define (gen-install-dynamic-extension name #!key platform mode srcdir)
-  (let* ((cmd (install-command platform))
+  (let* ((cmd (install-executable-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ".so") mode)))
@@ -379,7 +387,7 @@
            (quotearg (slashify (conc dest "/" name ".so") platform)))))
 
 (define (gen-install-import-library name #!key platform mode srcdir)
-  (let* ((cmd (install-command platform))
+  (let* ((cmd (install-executable-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ".import.so") mode)))
@@ -391,7 +399,7 @@
            (quotearg (slashify (conc dest "/" name ".import.so") platform)))))
 
 (define (gen-install-import-library-source name #!key platform mode srcdir)
-  (let* ((cmd (install-command platform))
+  (let* ((cmd (install-executable-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ".import.scm") mode)))
@@ -403,7 +411,7 @@
           (quotearg (slashify (conc dest "/" name ".import.scm") platform)))))
 
 (define (gen-install-program name #!key platform mode srcdir)
-  (let* ((cmd (install-command platform))
+  (let* ((cmd (install-executable-command platform))
          (mkdir (mkdir-command platform))
          (ext (executable-extension platform))
          (sname (prefix srcdir name))
@@ -416,7 +424,7 @@
            (quotearg (slashify (conc dest "/" name ext) platform)))))
 
 (define (gen-install-data name #!key platform files destination mode srcdir)
-  (let* ((cmd (install-command platform))
+  (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
          (dest (or destination (if (eq? mode 'target) target-sharedir host-sharedir)))
          (dfile (quotearg (slashify dest platform)))
@@ -425,7 +433,7 @@
     (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir dfile)))
 
 (define (gen-install-c-include name #!key platform deps files dest mode srcdir)
-  (let* ((cmd (install-command platform))
+  (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
          (dest (or dest (if (eq? mode 'target) target-incdir host-incdir)))
          (dfile (quotearg (slashify dest platform)))
