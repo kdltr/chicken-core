@@ -66,10 +66,10 @@
   (exit code))
 
 (define (ask eggs)
-  (print (string-intersperse
+  (print* (string-intersperse
            (append '("About to delete the following extensions:\n\n")
                    (map (cut string-append "  " <> "\n") eggs)
-                   '("\nDo you want to proceed ? (no/yes)"))
+                   '("\nDo you want to proceed ? (no/yes) "))
            ""))
   (flush-output)
   (let loop ()
@@ -86,13 +86,14 @@
   (list->string (reverse (left (reverse (left (string->list str)))))))
  
 (define (remove-extension egg #!optional (repo (repo-path)))
-  (and-let* ((files (get-egg-property* (load-egg-info egg) 'installed-files)))
+  (and-let* ((ifile (make-pathname repo egg +egg-info-extension+))
+             (files (get-egg-property* (load-egg-info ifile) 'installed-files)))
     (for-each
       (lambda (f)
         (let ((p (if (absolute-pathname? f) f (make-pathname repo f))))
           (when (file-exists? p) (delete-installed-file p))))
-      (cdr files)))
-  (delete-installed-file (make-pathname repo egg +egg-info-extension+)))
+      (cdr files))
+    (delete-installed-file ifile)))
 
 (define (delete-file-command platform)
   (case platform
