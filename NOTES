@@ -3,14 +3,17 @@ NOTES (new install)
 
 * TODO Proposals
 ** Encode install-prefix in cache-dir name
-** With cache and without network is not an error
+** With cache and without network should not be an error situation
 ** check whether files are overwritten by egg
 
-* TODO Test full queues build + install, incl. usage
+* TODO Test queues download + caching
 
 * TODO Try more complex eggs
 
 * TODO .egg files for all C5 eggs
+
+* TODO Enforce versioning method?
+    - someone suggested MAJOR.MINOR.PATCH
 
 * TODO chicken-do: delete target file if build fails
     - needs to fork subprocess.
@@ -123,6 +126,8 @@ NOTES (new install)
 
 * TODO Do we have to cleanup after building eggs?
 
+* TODO "chicken-install -r" retrieves into cache - sufficient?
+
 * Install scripts
 ** TODO Use install(1)
 
@@ -148,12 +153,12 @@ NOTES (new install)
     - update egg-tutorial on wiki
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-gg extension-information 
+gg extension-information    ctags --language=scheme *.scm
 cm chicken-do && cp chicken-do bin
-cm install confclean 
+cm chicken-install
 chicken-config.h  chicken-do.c  config.mk  old-chicken-install.scm  rules.make
-git gui   win bin/csi  queues  distribution/manifest  
-/home/felix/.chicken-install.cache/  lib/chicken/8
+git gui   win bin/csi  queues  distribution/manifest    
+/home/felix/.chicken-install.cache/  lib/chicken/8  ~/chicken/5
 ../bin/chicken-install -defaults ../setup.defaults -n
 
 chicken-install.scm  setup-api.scm
