@@ -300,7 +300,9 @@
       (with-output-to-file status (cut write current-status)))
     (unless (file-exists? cache-directory)
       (create-directory cache-directory))
-    (cond ((not (probe-dir cached)) (fetch))
+    (cond ((or (not (probe-dir cached))
+               (not (file-exists? eggfile)))
+           (fetch))
           ((and (file-exists? status)
                 (not (equal? current-status 
                              (with-input-from-file status read))))
@@ -338,7 +340,8 @@
                                proxy-port: proxy-port 
                                proxy-user-pass: proxy-user-pass)
                  (cond (dir
-                         (rename-file tmpdir dest)
+                         (copy-egg-sources tmpdir dest)
+                         (delete-directory tmpdir #t)
                          (with-output-to-file 
                            (make-pathname dest +timestamp-file+)
                            (lambda () (write (current-seconds)))))
@@ -360,8 +363,9 @@
   (let ((cmd (quote-all
                (string-append
                  (copy-directory-command platform)
-                 " " (quotearg from) " " (quotearg to))
+                 " " (quotearg (make-pathname from "*")) " " (quotearg to))
                platform)))
+    (d "~a~%" cmd)
     (system cmd)))
   
 (define (check-remote-version name version lversion)
@@ -400,7 +404,7 @@
                   (when (or (not dir)
                             (null? (directory dir)))
                     (error "extension or version not found"))
-                  (d " ~a located at ~a~%")
+                  (d " ~a located at ~a~%" egg dir)
                   (set! canonical-eggs
                     (cons (list name dir ver) canonical-eggs)))))))
      eggs)
