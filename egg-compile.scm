@@ -48,6 +48,11 @@
     ((unix) "install -m644")
     ((windows) "xcopy /y")))
 
+(define (remove-file-command platform)
+  (case platform
+    ((unix) "rm -f")
+    ((windows) "del /f /q")))
+
 (define (uses-compiled-import-library? mode)
   (not (and (eq? mode 'host) staticbuild)))
 
@@ -373,30 +378,24 @@
     (print cmd " " out " " ddir (quotearg (slashify (conc dest "/" name ext) 
                                                     platform)))))
 
-(define (gen-install-dynamic-extension name #!key platform mode srcdir)
+(define (gen-install-dynamic-extension name #!key platform mode srcdir (ext ".so"))
   (let* ((cmd (install-executable-command platform))
+         (dcmd (remove-file-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
-         (out (quotearg (target-file (conc sname ".so") mode)))
-         (ext (object-extension platform))
+         (out (quotearg (target-file (conc sname ext) mode)))
          (dest (destination-repository mode))
          (dfile (quotearg (slashify dest platform)))
-         (ddir (shell-variable "DESTDIR" platform)))
+         (ddir (shell-variable "DESTDIR" platform))
+         (destf (quotearg (slashify (conc dest "/" name ext) platform))))
     (print "\n" mkdir " " ddir dfile)
-    (print cmd " " out " " ddir
-           (quotearg (slashify (conc dest "/" name ".so") platform)))))
+    (when (eq? platform 'unix)
+      (print dcmd " " ddir destf))
+    (print cmd " " out " " ddir destf)))
 
 (define (gen-install-import-library name #!key platform mode srcdir)
-  (let* ((cmd (install-executable-command platform))
-         (mkdir (mkdir-command platform))
-         (sname (prefix srcdir name))
-         (out (quotearg (target-file (conc sname ".import.so") mode)))
-         (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (shell-variable "DESTDIR" platform)))
-    (print "\n" mkdir " " ddir dfile)
-    (print cmd " " out " " ddir
-           (quotearg (slashify (conc dest "/" name ".import.so") platform)))))
+  (gen-install-dynamic-extension name platform: platform mode: mode srcdir: srcdir
+                                 ext: ".import.so"))
 
 (define (gen-install-import-library-source name #!key platform mode srcdir)
   (let* ((cmd (install-executable-command platform))
@@ -412,16 +411,19 @@
 
 (define (gen-install-program name #!key platform mode srcdir)
   (let* ((cmd (install-executable-command platform))
+         (dcmd (remove-file-command platform))
          (mkdir (mkdir-command platform))
          (ext (executable-extension platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
          (dest (if (eq? mode 'target) target-bindir host-bindir))
          (dfile (quotearg (slashify dest platform)))
-         (ddir (shell-variable "DESTDIR" platform)))
+         (ddir (shell-variable "DESTDIR" platform))
+         (destf (quotearg (slashify (conc dest "/" name ext) platform))))
     (print "\n" mkdir " " ddir dfile)
-    (print cmd " " out " " ddir
-           (quotearg (slashify (conc dest "/" name ext) platform)))))
+    (when (eq? platform 'unix)
+      (print dcmd " " ddir destf))
+    (print cmd " " out " " ddir destf)))
 
 (define (gen-install-data name #!key platform files destination mode srcdir)
   (let* ((cmd (install-file-command platform))
@@ -432,10 +434,10 @@
     (print "\n" mkdir " " ddir dfile)
     (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir dfile)))
 
-(define (gen-install-c-include name #!key platform deps files dest mode srcdir)
+(define (gen-install-c-include name #!key platform deps files destination mode srcdir)
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
-         (dest (or dest (if (eq? mode 'target) target-incdir host-incdir)))
+         (dest (or destination (if (eq? mode 'target) target-incdir host-incdir)))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
