@@ -4,7 +4,7 @@ NOTES (new install)
 * TODO Proposals
 ** Encode install-prefix in cache-dir name
 ** With cache and without network should not be an error situation
-** check whether files are overwritten by egg
+** check whether files are overwritten by egg on installation
 
 * TODO Test queues download + caching
 
@@ -44,6 +44,8 @@ NOTES (new install)
 * TODO Support for generating + installing extra files
     - types, inline-files
 
+* TODO Delete directory in cache before retrieving?
+
 * Implement minimal "chicken-install"
 ** Basic functionality
 *** TODO just download eggs (recursively) and build/install.
@@ -60,22 +62,20 @@ NOTES (new install)
     - perhaps: CHICKEN_INSTALL_REPOSITORY (defaults to install-prefix) as
       installation target.
 
-* Egg Installation
-** TODO unlink .so's before overwriting them.
-
 * Issues
 ** Link-options are passed directly to csc
     - is this right?
 
-* Suggestion by florz: sign eggs and decode using NaCl
+* Suggestion by florz: sign eggs (or hashes) and decode using NaCl
     - https://tweetnacl.cr.yp.to/software.html
 
 * Setup features
 ** TODO Keep binaries + intermediate files ("-k")
+    - needed, since we normally build from cache?
 ** TODO "-feature" + "-no-feature"
 ** TODO Hack for OSX SIP?
 ** TODO reinstall, no-install?
-** TODO Request by Jon Foerch: allow *.egg in specific subdirectory ("chicken"?)
+** TODO Request by Jon Foerch: allow *.egg in specific subdirectory ("chicken")
 
 * TODO "build-dependencies" 
     - toplevel deps that are needed during build, override "dependencies", if given.
@@ -83,11 +83,12 @@ NOTES (new install)
 
 * Download/build directories
 ** TODO handle egg-files given on command-line
+    - and build in respective directory.
 
-* TODO Fix egg tests in "tests" directory
+* TODO Run egg tests in "tests" directory
 
 * TODO Check what cmdline options to retain
-** TODO Option for explicitly generating Windows/UNIX build/install scripts
+** Option for explicitly generating Windows/UNIX build/install scripts?
     - i.e. selecting target platform.
 
 * Things to resolve
@@ -108,6 +109,7 @@ NOTES (new install)
 
 * Build/install scripts
 ** TODO Use "-setup-mode" when invoking csc during build
+    - but that requires csc is run in source-dir.
 ** must be fully sh(1) compatible
     - http://people.fas.harvard.edu/~lib113/reference/unix/portable_scripting.html
     - https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/cmd.mspx?mfr=true
@@ -122,7 +124,7 @@ NOTES (new install)
     - can we ignore this? if source files have different names, just compiling exe/so directly should
       work.
 
-* TODO "dependencies" has 2 meanings, depending on nesting level in egg info
+* "dependencies" has 2 meanings, depending on nesting level in egg info
 
 * TODO Do we have to cleanup after building eggs?
 
@@ -138,7 +140,6 @@ NOTES (new install)
 ** TODO chicken-install
 ** TODO chicken-status
     - option to list cached eggs (+ version)
-    - option to purge cache
     - filter egg-info and list components.
     - optionally list installed files instead.
 
@@ -157,12 +158,10 @@ gg extension-information    ctags --language=scheme *.scm
 cm chicken-do && cp chicken-do bin
 cm chicken-install
 chicken-config.h  chicken-do.c  config.mk  old-chicken-install.scm  rules.make
-git gui   win bin/csi  queues  distribution/manifest    
+git gui   git pull      win bin/csi    distribution/manifest    
 /home/felix/.chicken-install.cache/  lib/chicken/8  ~/chicken/5
 ../bin/chicken-install -defaults ../setup.defaults -n
-
 chicken-install.scm  setup-api.scm
  egg-compile.scm  egg-environment.scm  egg-download.scm egg-information.scm
 win bin/csi
-
 ./chicken-status
