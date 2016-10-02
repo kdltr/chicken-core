@@ -69,6 +69,7 @@
 (define proxy-port #f)
 (define proxy-user-pass #f)
 (define retrieve-only #f)
+(define retrieve-recursive #f)
 (define do-not-build #f)
 (define list-versions-only #f)
 (define canonical-eggs '())
@@ -80,6 +81,7 @@
 (define target-extension cross-chicken)
 (define sudo-install #f)
 (define update-module-db #f)
+(define purge-mode #f)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -142,11 +144,14 @@
           (string=? suffix
    	            (substring s (- len-s len-suffix))))))
 
-(define (d fstr . args)
-  (unless quiet
-    (let ((port (current-error-port)))
-      (apply fprintf port fstr args)
-      (flush-output port) ) ))
+(define (d flag . args)
+  (let ((flag (and (not (string? flag)) flag))
+        (fstr (if (string? flag) flag (car args)))
+        (args (if (string? flag) args (cdr args))))
+    (when (or flag (not quiet))
+      (let ((port (current-error-port)))
+        (apply fprintf port fstr args)
+        (flush-output port) ) )))
 
 (define (version>=? v1 v2)
   (define (version->list v)
@@ -302,10 +307,12 @@
       (create-directory cache-directory))
     (cond ((or (not (probe-dir cached))
                (not (file-exists? eggfile)))
+           (d "~a not cached~%" name)
            (fetch))
           ((and (file-exists? status)
                 (not (equal? current-status 
                              (with-input-from-file status read))))
+           (d "status changed for ~a~%" name)
            (fetch)))
     (let* ((info (load-egg-info eggfile))
            (lversion (get-egg-property info 'version)))
@@ -313,6 +320,7 @@
                   (> (- now (with-input-from-file timestamp read)) +one-hour+)
                   (not (check-remote-version name version 
                                              (and lversion lversion))))
+             (d "version of ~a out of date~%" name)
              (fetch)
              (let ((info (load-egg-info eggfile))) ; new egg info (fetched)
                (values cached (get-egg-property info 'version))))
@@ -397,18 +405,18 @@
              (lambda (a)
                ;; push to front
                (set! canonical-eggs (cons a (delete a canonical-eggs eq?)))))
-             (else
+            (else
               (let ((name (if (pair? egg) (car egg) egg))
                     (version (override-version egg)))
                 (let-values (((dir ver) (locate-egg name version)))
                   (when (or (not dir)
                             (null? (directory dir)))
                     (error "extension or version not found"))
-                  (d " ~a located at ~a~%" egg dir)
+                  (d retrieve-only "~a located at ~a~%" egg dir)
                   (set! canonical-eggs
                     (cons (list name dir ver) canonical-eggs)))))))
      eggs)
-  (unless retrieve-only
+  (when (or (not retrieve-only) retrieve-recursive)
     (for-each
       (lambda (e+d+v)
         (unless (member (car e+d+v) checked-eggs)
@@ -597,7 +605,8 @@
                    (or (and versions 
                             (begin
                               (printf "~a:" name)
-                              (for-each (cut printf " ~a" <>) versions)))
+                              (for-each (cut printf " ~a" <>) versions)
+                              (newline)))
                        (loop2 (cdr srvs))))))
           (loop1 (cdr eggs)))))))
 
@@ -710,21 +719,41 @@
         (file-copy dbfile (make-pathname (repo-path) +module-db+) #t))))
 
 
+;; purge cache for given (or all) eggs
+
+(define (purge-cache eggs)
+  (cond ((null? eggs)
+         (d "purging complete cache at ~a~%" cache-directory)
+         (delete-directory cache-directory #t))
+        (else
+          (for-each
+            (lambda (egg)
+              (let* ((name (if (pair? egg) (car egg) egg))
+                     (dname (make-pathname cache-directory name)))
+                (when (file-exists? dname)
+                  (d "purging ~a from cache at ~a~%" name dname)
+                  (delete-directory dname #t))))
+            eggs))))
+
+
 ;; command line parsing and selection of operations
   
 (define (perform-actions eggs)
   (load-defaults)
   (cond (update-module-db (update-db))
+        (purge-mode (purge-cache eggs))
         ((null? eggs)
-         (set! canonical-eggs 
-           (map (lambda (fname)
-                  (list (pathname-file fname) (current-directory) #f))
-             (glob "*.egg")))
-         (retrieve-eggs '())
-         (unless retrieve-only (install-eggs)))
+         (cond (list-versions-only (print "no eggs specified"))
+               (else
+                 (set! canonical-eggs 
+                   (map (lambda (fname)
+                          (list (pathname-file fname) (current-directory) #f))
+                     (glob "*.egg")))
+                 (retrieve-eggs '())
+                 (unless retrieve-only (install-eggs)))))
         (else
           (let ((eggs (apply-mappings eggs)))
-            (cond (list-versions-only (list-egg-versions eggs))
+            (cond (list-versions-only (list-egg-versions eggs)))
                   ;;XXX other actions...
                   (else 
                     (retrieve-eggs eggs)
@@ -743,8 +772,16 @@
                   ((equal? arg "-test")
                    (set! run-tests #t)
                    (loop (cdr args)))
-                  ((member arg '("-r" "-retrieve"))
+                  ((equal? arg "-r")
+                   (if retrieve-only
+                       (set! retrieve-recursive #t)
+                       (set! retrieve-only #t))
+                   (loop (cdr args)))
+                  ((equal? arg "-retrieve")
                    (set! retrieve-only #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-recursive")
+                   (set! retrieve-recursive #t)
                    (loop (cdr args)))
                   ((equal? arg "-list-versions")
                    (set! list-versions-only #t)
@@ -772,6 +809,9 @@
                    (loop (cdr args)))
                   ((member arg '("-s" "-sudo"))
                    (set! sudo-install #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-purge")
+                   (set! purge-mode #t)
                    (loop (cdr args)))
 
                   ;;XXX 
