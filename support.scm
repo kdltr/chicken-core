@@ -253,16 +253,9 @@
 		(any (lambda (c) (or (char-alphabetic? c) (char-numeric? c) (char=? #\_ c)))
 		     (cdr str) ) ) ) ) ) )
 
-(eval-when (load)
-  (define bytes->words (foreign-lambda int "C_bytestowords" int)) 
-  (define words->bytes (foreign-lambda int "C_wordstobytes" int)) )
-
-(eval-when (eval)
-  (define (bytes->words n)
-    (let ([wordsize (##sys#fudge 7)])
-      (+ (quotient n wordsize) (if (zero? (modulo n wordsize)) 0 1)) ) )
-  (define (words->bytes n)
-    (* n (##sys#fudge 7)) ) )
+;; TODO: Move these to (chicken memory)?
+(define bytes->words (foreign-lambda int "C_bytestowords" int))
+(define words->bytes (foreign-lambda int "C_wordstobytes" int))
 
 ;; Used only in batch-driver; move it there?
 (define (check-and-open-input-file fname . line)

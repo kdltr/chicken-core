@@ -341,8 +341,8 @@ EOF
   (let ((unset (list 'unset)))
     (lambda (n #!optional (init unset))
       (##sys#check-exact n 'make-pointer-vector)
-      (let* ((mul (##sys#fudge 7))	; wordsize
-	     (size (fx* n mul))
+      (let* ((words->bytes (foreign-lambda int "C_wordstobytes" int))
+	     (size (words->bytes n))
 	     (buf (##sys#make-blob size)))
 	(unless (eq? init unset)
 	  (when init

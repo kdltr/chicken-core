@@ -1,7 +1,8 @@
 ;;;; compiler-tests.scm
 
 
-(import bitwise flonum foreign srfi-4)
+(import (chicken bitwise) (chicken flonum) (chicken foreign)
+	(srfi 4))
 (import-for-syntax data-structures expand)
 
 ;; test dropping of previous toplevel assignments
@@ -14,7 +15,8 @@
 (assert (eq? 'ok (foo)))
 
 (assert (= 1 (foreign-type-size "char")))
-(let ((bytes-in-a-word (##sys#fudge 7)))
+(let* ((words->bytes (foreign-lambda int "C_wordstobytes" int))
+       (bytes-in-a-word (words->bytes 1)))
   (assert (= bytes-in-a-word (foreign-type-size "C_word"))))
 
 ;; test hiding of unexported toplevel variables

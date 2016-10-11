@@ -4862,7 +4862,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 6) [current CPU milliseconds] not implemented"));
 
   case C_fix(7):		/* wordsize */
-    return C_fix(sizeof(C_word));
+    panic(C_text("(##sys#fudge 7) [wordsize] is obsolete"));
 
   case C_fix(8):		/* words needed for double */
     return C_fix(C_wordsperdouble(1));
