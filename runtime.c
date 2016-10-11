@@ -4842,18 +4842,10 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 3) [64bit] is obsolete"));
 
   case C_fix(4):		/* is this a console application? */
-    return C_mk_bool(!C_gui_mode);
+    panic(C_text("(##sys#fudge 4) [console application] is obsolete"));
 
   case C_fix(5):		/* is this a GUI/console or Windows-GUI application? (silly) */
-    if(C_gui_mode) {
-#ifdef _WIN32
-      return C_fix(1);
-#else
-      return C_SCHEME_FALSE;
-#endif
-    }
-
-    return C_fix(0);
+    panic(C_text("(##sys#fudge 5) [Windows GUI application] is obsolete"));
 
   case C_fix(6): 		/* milliseconds CPU */
     panic(C_text("(##sys#fudge 6) [current CPU milliseconds] not implemented"));
@@ -4871,11 +4863,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(CLOCKS_PER_SEC);
 
   case C_fix(11):		/* not a unix system? */
-#if defined(C_NONUNIX) || defined(__CYGWIN__)
-    return C_SCHEME_FALSE;
-#else
-    return C_SCHEME_TRUE;
-#endif
+    panic(C_text("(##sys#fudge 11) [UNIX system] is obsolete"));
 
   case C_fix(12):		/* tty forced? */
     return C_mk_bool(fake_tty_flag);

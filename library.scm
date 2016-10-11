@@ -4579,7 +4579,7 @@ EOF
    (let ([string-append string-append])
      (lambda (msg . args)
        (##sys#error-handler (lambda args (##core#inline "C_halt" "error in error")))
-       (cond ((##sys#fudge 4)
+       (cond ((not (foreign-value "C_gui_mode" bool))
 	      (##sys#print "\nError" #f ##sys#standard-error)
 	      (when msg
 		(##sys#print ": " #f ##sys#standard-error)

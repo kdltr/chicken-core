@@ -704,12 +704,12 @@ C_confirmation_dialog(char *msg, char *caption, int def, int abort) { return -1;
 ;;       unless that requires linking any libraries. This would also
 ;;       be useful for runtime error messages.
 
-(define-foreign-variable C_HAS_MESSAGE_BOX bool)
-
 (define yes-or-no?
-  (let ((dialog (foreign-lambda int "C_confirmation_dialog" c-string c-string int bool)))
+  (let ((dialog (foreign-lambda int "C_confirmation_dialog" c-string c-string int bool))
+	(C_HAS_MESSAGE_BOX (foreign-value "C_HAS_MESSAGE_BOX" bool))
+	(C_gui_mode (foreign-value "C_gui_mode" bool)))
     (lambda (str #!key default title (abort reset))
-      (let ((gui (and C_HAS_MESSAGE_BOX (not (##sys#fudge 4))))) ; C_gui_mode
+      (let ((gui (and C_HAS_MESSAGE_BOX C_gui_mode)))
 	(define (get-input)
 	  (if gui
 	      (let ((r (dialog
