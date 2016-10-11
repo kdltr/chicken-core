@@ -4854,13 +4854,13 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 7) [wordsize] is obsolete"));
 
   case C_fix(8):		/* words needed for double */
-    return C_fix(C_wordsperdouble(1));
+    panic(C_text("(##sys#fudge 8) [wordsperdouble] is obsolete"));
 
   case C_fix(9):		/* latency */
-    return C_fix(last_interrupt_latency);
+    panic(C_text("(##sys#fudge 9) [latency] is obsolete"));
 
   case C_fix(10):		/* clocks per sec */
-    return C_fix(CLOCKS_PER_SEC);
+    panic(C_text("(##sys#fudge 10) [clockspersec] is obsolete"));
 
   case C_fix(11):		/* not a unix system? */
     panic(C_text("(##sys#fudge 11) [UNIX system] is obsolete"));
@@ -4901,7 +4901,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_mk_bool(private_repository != NULL);
 
   case C_fix(23):		/* seconds since process startup */
-    return C_fix(C_startup_time_seconds);
+    panic(C_text("(##sys#fudge 23) [startuptime] is obsolete"));
 
   case C_fix(24):		/* dynamic loading available? */
 #ifdef NO_DLOAD2
@@ -4927,7 +4927,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
 #endif
 
   case C_fix(29):		/* size of ring-buffer used to hold trace entries */
-    return C_fix(C_trace_buffer_size);
+    panic(C_text("(##sys#fudge 29) [trace buffer size] is obsolete"));
 
   case C_fix(30):		/* unused */
     panic(C_text("(##sys#fudge 30) [?] is obsolete"));
@@ -4948,14 +4948,13 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(C_getpid());
 
   case C_fix(34):		/* effective maximum for procedure arguments */
-    return C_fix(stack_size / 2); /* An educated guess :) */
+    panic(C_text("(##sys#fudge 34) [apply-argument-limit] is obsolete"));
 
   case C_fix(35):		/* unused */
     panic(C_text("(##sys#fudge 35) [old apply-hack] is obsolete"));
     
   case C_fix(36):		/* toggle debug mode */
-    debug_mode = !debug_mode;
-    return C_mk_bool(debug_mode);
+    panic(C_text("(##sys#fudge 36) [toggle debug-mode] is obsolete"));
 
   case C_fix(37):		/* heap-dump enabled? */
     return C_mk_bool(dump_heap_on_exit);

@@ -287,7 +287,6 @@ EOF
 (define (##sys#block-ref x i) (##core#inline "C_i_block_ref" x i))
 (define ##sys#apply-values (##core#primitive "C_apply_values"))
 (define ##sys#copy-closure (##core#primitive "C_copy_closure"))
-(define ##sys#apply-argument-limit (##sys#fudge 34))
 
 (define (##sys#block-set! x i y)
   (when (or (not (##core#inline "C_blockp" x)) 

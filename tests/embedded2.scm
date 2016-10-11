@@ -17,8 +17,6 @@ int main()
 }
 <#
 
-
-(##sys#fudge 36)
 (gc)
 (print "starting...")
 
