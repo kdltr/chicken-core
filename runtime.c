@@ -4833,7 +4833,8 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
   double tgc;
 
   switch(fudge_factor) {
-  case C_fix(1): return C_SCHEME_END_OF_FILE; /* eof object */
+  case C_fix(1):                              /* eof object */
+    panic(C_text("(##sys#fudge 1) [eof object] is obsolete"));
   case C_fix(2):			      /* get time */
     panic(C_text("(##sys#fudge 2) [get time] not implemented"));
 
@@ -4886,7 +4887,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_mk_bool(C_interrupts_enabled);
 
   case C_fix(15):		/* symbol-gc enabled? */
-    return C_SCHEME_TRUE;
+    panic(C_text("(##sys#fudge 15) [symbolgc] is obsolete"));
 
   case C_fix(16):		/* milliseconds (wall clock) */
     panic(C_text("(##sys#fudge 16) [current wall clock milliseconds] not implemented"));
@@ -4903,7 +4904,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(j);
 
   case C_fix(20):		/* unused */
-    return C_SCHEME_FALSE;
+    panic(C_text("(##sys#fudge 20) [?] is obsolete"));
 
   case C_fix(21):		/* largest fixnum */
     return C_fix(C_MOST_POSITIVE_FIXNUM);
@@ -4941,7 +4942,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(C_trace_buffer_size);
 
   case C_fix(30):		/* unused */
-    return C_SCHEME_FALSE;
+    panic(C_text("(##sys#fudge 30) [?] is obsolete"));
 
   case C_fix(31):		/* GC time since last invocation */
     tgc = timer_accumulated_gc_ms;
@@ -4962,8 +4963,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(stack_size / 2); /* An educated guess :) */
 
   case C_fix(35):		/* unused */
-    /* used to be apply-hook indicator */
-    return C_SCHEME_FALSE;
+    panic(C_text("(##sys#fudge 35) [old apply-hack] is obsolete"));
     
   case C_fix(36):		/* toggle debug mode */
     debug_mode = !debug_mode;
@@ -4973,7 +4973,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_mk_bool(dump_heap_on_exit);
 
   case C_fix(38):		/* unused */
-    return C_SCHEME_FALSE;      /* used to be SVN revision */
+    panic(C_text("(##sys#fudge 38) [old svn rev.] is obsolete"));
 
   case C_fix(39):		/* is this a cross-chicken? */
 #if defined(C_CROSS_CHICKEN) && C_CROSS_CHICKEN
@@ -4983,7 +4983,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
 #endif
 
   case C_fix(40):		/* many arguments supported? */
-    return C_SCHEME_TRUE;
+    panic(C_text("(##sys#fudge 40) [manyargs] is obsolete"));
 
   case C_fix(41):		/* major CHICKEN version */
     return C_fix(C_MAJOR_VERSION);
@@ -5004,7 +5004,8 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
   case C_fix(45):  /* Whether we're currently profiling */
     return C_mk_bool(profiling);
 
-  default: return C_SCHEME_UNDEFINED;
+  default:
+    panic(C_text("Unknown fudge factor"));
   }
 }
 

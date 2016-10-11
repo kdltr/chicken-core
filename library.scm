@@ -4395,8 +4395,6 @@ EOF
   (if full
       (let ((spec (string-append
 		   (if (feature? #:64bit) " 64bit" "")
-		   (if (##sys#fudge 15) " symbolgc" "")
-		   (if (##sys#fudge 40) " manyargs" "")
 		   (if (##sys#fudge 24) " dload" "")
 		   (if (##sys#fudge 28) " ptables" "")
 		   (if (##sys#fudge 32) " gchooks" "")
@@ -4434,7 +4432,8 @@ EOF
 (define ##sys#features
   '(#:chicken
     #:srfi-6 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62
-    #:irregex-is-core-unit #:full-numeric-tower))
+    ;; TODO: consider removing at least irregex-is-core-unit
+    #:irregex-is-core-unit #:full-numeric-tower #:manyargs))
 
 ;; Add system features:
 
@@ -4447,7 +4446,6 @@ EOF
   (check (machine-type))
   (check (machine-byte-order)) )
 
-(when (##sys#fudge 40) (set! ##sys#features (cons #:manyargs ##sys#features)))
 (when (##sys#fudge 24) (set! ##sys#features (cons #:dload ##sys#features)))
 (when (##sys#fudge 28) (set! ##sys#features (cons #:ptables ##sys#features)))
 (when (##sys#fudge 39) (set! ##sys#features (cons #:cross-chicken ##sys#features)))

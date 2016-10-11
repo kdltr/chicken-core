@@ -502,7 +502,6 @@ EOF
 		    (argv))
 	    (##sys#write-char-0 #\newline ##sys#standard-output)
 	    (when (##sys#fudge 14) (display "interrupts are enabled\n"))
-	    (when (##sys#fudge 15) (display "symbol gc is enabled\n")) 
 	    (##core#undefined) ) ) ) ) ) )
 
 
