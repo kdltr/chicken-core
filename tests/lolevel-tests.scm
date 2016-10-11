@@ -246,7 +246,7 @@
 
 (assert (= 4 (number-of-bytes "abcd")))
 
-(assert (= (if (##sys#fudge 3) 8 4) (number-of-bytes '#(1))))
+(assert (= (if (feature? #:64bit) 8 4) (number-of-bytes '#(1))))
 
 ; make-record-instance
 

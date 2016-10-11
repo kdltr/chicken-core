@@ -121,7 +121,7 @@
  (cond-expand
    (check-numbers "arithmetic-test.numbers.expected")
    (else
-    (if (##sys#fudge 3)
+    (if (feature? #:64bit)
 	"arithmetic-test.64.expected"
 	"arithmetic-test.32.expected")))
  (lambda (x)

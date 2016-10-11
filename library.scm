@@ -4394,12 +4394,12 @@ EOF
       (string-append (str sv) (str st) (str bp) (##sys#symbol->string mt)) ) )
   (if full
       (let ((spec (string-append
-		   (if (##sys#fudge 3)	" 64bit" "")
+		   (if (feature? #:64bit) " 64bit" "")
 		   (if (##sys#fudge 15) " symbolgc" "")
 		   (if (##sys#fudge 40) " manyargs" "")
-		   (if (##sys#fudge 24) " dload" "") 
+		   (if (##sys#fudge 24) " dload" "")
 		   (if (##sys#fudge 28) " ptables" "")
-		   (if (##sys#fudge 32) " gchooks" "") 
+		   (if (##sys#fudge 32) " gchooks" "")
 		   (if (##sys#fudge 39) " cross" "") ) ) )
 	(string-append
 	 "Version " ##sys#build-version
@@ -4451,7 +4451,8 @@ EOF
 (when (##sys#fudge 24) (set! ##sys#features (cons #:dload ##sys#features)))
 (when (##sys#fudge 28) (set! ##sys#features (cons #:ptables ##sys#features)))
 (when (##sys#fudge 39) (set! ##sys#features (cons #:cross-chicken ##sys#features)))
-(when (##sys#fudge 3) (set! ##sys#features (cons #:64bit ##sys#features)))
+(when (fx= (foreign-value "C_WORD_SIZE" int) 64)
+  (set! ##sys#features (cons #:64bit ##sys#features)))
 
 (set! ##sys#features
   (let ((major (##sys#string-append "chicken-" (##sys#number->string (##sys#fudge 41)))))

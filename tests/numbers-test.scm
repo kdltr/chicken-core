@@ -28,7 +28,7 @@
 ;; The minimal bignum in the sense that any smaller makes it a fixnum
 (define min-big (+ most-positive-fixnum 1))
 
-(define 64-bits? (##sys#fudge 3))
+(define 64-bits? (feature? #:64bit))
 
 (define (show x) 
   (print (and x (number->string x)))

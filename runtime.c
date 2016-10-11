@@ -4838,11 +4838,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 2) [get time] not implemented"));
 
   case C_fix(3):		/* 64-bit system? */
-#ifdef C_SIXTY_FOUR
-    return C_SCHEME_TRUE;
-#else
-    return C_SCHEME_FALSE;
-#endif
+    panic(C_text("(##sys#fudge 3) [64bit] is obsolete"));
 
   case C_fix(4):		/* is this a console application? */
     return C_mk_bool(!C_gui_mode);

@@ -1586,7 +1586,7 @@
 
 (define (big-fixnum? x)	;; XXX: This should probably be in c-platform
   (and (fixnum? x)
-       (##sys#fudge 3)			; 64 bit?
+       (feature? #:64bit)
        (or (fx> x 1073741823)
 	   (fx< x -1073741824) ) ) )
 

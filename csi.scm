@@ -483,7 +483,7 @@ EOF
                      nursery size is ~S bytes, stack grows ~A~%~
                    Command line:    \t~S~%"
 		    (machine-type)
-		    (if (##sys#fudge 3) "(64-bit)" "")
+		    (if (feature? #:64bit) "(64-bit)" "")
 		    (software-type)
 		    (software-version)
 		    (build-platform)
