@@ -88,7 +88,7 @@
 (define chicken-prefix (get-environment-variable "CHICKEN_PREFIX"))
 (define arguments (command-line-arguments))
 (define host-mode (member "-host" arguments))
-(define cross-chicken (##sys#fudge 39))
+(define cross-chicken (feature? #:cross-chicken))
 
 (define (prefix str dir default)
   (if chicken-prefix

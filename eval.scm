@@ -1002,7 +1002,7 @@
 
       (define dload?
 	(and (not ##sys#dload-disabled)
-	     (##sys#fudge 24)))
+	     (feature? #:dload)))
 
       (define fname
 	(cond ((port? input) #f)
@@ -1179,14 +1179,13 @@
 
 (define repository-path
   (make-parameter
-   (if (##sys#fudge 22) ; private repository?
-       (foreign-value "C_private_repository_path()" c-string)
-       (or (get-environment-variable repository-environment-variable)
-	   (chicken-prefix
-	    (##sys#string-append
-	     "lib/chicken/"
-	     (##sys#number->string (##sys#fudge 42))))
-	   install-egg-home))))
+   (or (foreign-value "C_private_repository_path()" c-string)
+       (get-environment-variable repository-environment-variable)
+       (chicken-prefix
+	(##sys#string-append
+	 "lib/chicken/"
+	 (##sys#number->string binary-version)))
+       install-egg-home)))
 
 (define ##sys#repository-path repository-path)
 
@@ -1202,7 +1201,7 @@
 	  (let ((p0 (string-append path "/" p)))
 	    (or (and rp
 		     (not ##sys#dload-disabled)
-		     (##sys#fudge 24) ; dload?
+		     (feature? #:dload)
 		     (file-exists? (##sys#string-append p0 ##sys#load-dynamic-extension)))
 		(file-exists? (##sys#string-append p0 source-file-extension)))))
 	(let loop ((paths (##sys#append
@@ -1407,12 +1406,12 @@
       (define (test fname)
 	(test-extensions
 	 fname
-	 (cond ((pair? exts) exts)     ; specific list of extensions
-	       ((not (##sys#fudge 24)) ; no dload -> source only
+	 (cond ((pair? exts) exts)       ; specific list of extensions
+	       ((not (feature? #:dload)) ; no dload -> source only
 		(list source-file-extension))
-	       ((not exts)             ; prefer compiled
+	       ((not exts)               ; prefer compiled
 		(list ##sys#load-dynamic-extension source-file-extension))
-	       (else                   ; prefer source
+	       (else                     ; prefer source
 		(list source-file-extension ##sys#load-dynamic-extension)))))
       (or (test (make-relative-pathname source fname))
 	  (let loop ((paths (if repo

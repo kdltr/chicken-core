@@ -684,7 +684,7 @@ EOF
 
 ;;; Processes
 
-(define (current-process-id) (##sys#fudge 33))
+(define current-process-id (foreign-lambda int "C_getpid"))
 
 (define (process-sleep n)
   (##sys#check-fixnum n 'process-sleep)

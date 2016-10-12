@@ -161,13 +161,14 @@ EOF
       (##sys#check-string ext 'create-temporary-file)
       (let loop ()
 	(let* ((n (##core#inline "C_random_fixnum" #x10000))
+	       (getpid (foreign-lambda int "C_getpid"))
 	       (pn (make-pathname 
 		    (tempdir)
 		    (string-append 
 		     temp-prefix
 		     (number->string n 16)
 		     "."
-		     (##sys#number->string (##sys#fudge 33))) ; PID
+		     (##sys#number->string (getpid)))
 		    ext)) )
 	  (if (file-exists? pn)
 	      (loop)
@@ -176,13 +177,14 @@ EOF
     (lambda ()
       (let loop ()
 	(let* ((n (##core#inline "C_random_fixnum" #x10000))
+	       (getpid (foreign-lambda int "C_getpid"))
 	       (pn (make-pathname 
 		    (tempdir)
 		    (string-append
 		     temp-prefix
 		     (number->string n 16)
 		     "."
-		     (##sys#number->string (##sys#fudge 33)))))) ; PID
+		     (##sys#number->string (getpid))))))
 	  (if (file-exists? pn)
 	      (loop)
 	      (let ((r (##core#inline "C_mkdir" (##sys#make-c-string pn 'create-temporary-directory))))

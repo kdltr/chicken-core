@@ -33,7 +33,7 @@
 
 (unless *eggdir* (usage 1))
 
-(define *binary-version* (##sys#fudge 42))
+(define-foreign-variable *binary-version* int "C_BINARY_VERSION")
 (define *repository* (make-pathname *prefix* (conc "lib/chicken/" *binary-version*)))
 (define *snapshot* (directory *repository*))
 

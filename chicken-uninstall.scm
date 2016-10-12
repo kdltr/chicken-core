@@ -54,7 +54,7 @@
 	    (if *prefix*
 		(make-pathname
 		 *prefix*
-		 (sprintf "lib/chicken/~a" (##sys#fudge 42)))
+		 (sprintf "lib/chicken/~a" C_BINARY_VERSION))
 		(repository-path)))))
 
   (define *force* #f)

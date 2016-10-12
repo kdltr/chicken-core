@@ -1758,6 +1758,7 @@ C_varextern C_TLS jmp_buf C_restart;
 C_varextern C_TLS void *C_restart_address;
 C_varextern C_TLS int C_entry_point_status;
 C_varextern C_TLS int C_gui_mode;
+C_varextern C_TLS int C_enable_repl;
 
 C_varextern C_TLS void *C_restart_trampoline;
 C_varextern C_TLS void (*C_pre_gc_hook)(int mode);

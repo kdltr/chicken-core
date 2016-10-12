@@ -88,6 +88,7 @@
 (define *target-lib-home* (foreign-value "C_TARGET_LIB_HOME" c-string))
 (define *sudo* #f)
 (define *windows-shell* (foreign-value "C_WINDOWS_SHELL" bool))
+(define *binary-version* (foreign-value "C_BINARY_VERSION" int))
 (define *registered-programs* '())
 
 (define *windows*
@@ -517,7 +518,7 @@
 		     (if p		; installation-prefix changed: use it
 			 (make-pathname 
 			  p
-			  (sprintf "lib/chicken/~a" (##sys#fudge 42)))
+			  (sprintf "lib/chicken/~a" *binary-version*))
 			 (repository-path)))) ; otherwise use repo-path
 	       (repository-path))) )
     (ensure-directory p #t)

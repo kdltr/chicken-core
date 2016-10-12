@@ -1119,7 +1119,7 @@ EOF
 		       (fetch))
 		     (if (fx>= bufpos buflen)
 			 #!eof
-			 (let ((limit (or limit (fx- (##sys#fudge 21) bufpos))))
+			 (let ((limit (or limit (fx- most-positive-fixnum bufpos))))
 			   (receive (next line full-line?)
 			       (##sys#scan-buffer-line
 				buf

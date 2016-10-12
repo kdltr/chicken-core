@@ -4872,7 +4872,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_mk_bool(debug_mode);
 
   case C_fix(14):		/* interrupts enabled? */
-    return C_mk_bool(C_interrupts_enabled);
+    panic(C_text("(##sys#fudge 14) [interrupts enabled] is obsolete"));
 
   case C_fix(15):		/* symbol-gc enabled? */
     panic(C_text("(##sys#fudge 15) [symbolgc] is obsolete"));
@@ -4881,10 +4881,10 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 16) [current wall clock milliseconds] not implemented"));
 
   case C_fix(17):		/* fixed heap? */
-    return(C_mk_bool(C_heap_size_is_fixed));
+    panic(C_text("(##sys#fudge 17) [fixed heap] is obsolete"));
 
   case C_fix(18):		/* stack direction */
-    return(C_fix(C_STACK_GROWS_DOWNWARD));
+    panic(C_text("(##sys#fudge 18) [stack direction] is obsolete"));
 
   case C_fix(19):		/* number of locatives */
     for(i = j = 0; i < locative_table_count; ++i)
@@ -4895,23 +4895,19 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 20) [?] is obsolete"));
 
   case C_fix(21):		/* largest fixnum */
-    return C_fix(C_MOST_POSITIVE_FIXNUM);
+    panic(C_text("(##sys#fudge 21) [largest fixnum] is obsolete"));
 
   case C_fix(22):		/* does this process use a private egg-repository? */
-    return C_mk_bool(private_repository != NULL);
+    panic(C_text("(##sys#fudge 22) [private repo?] is obsolete"));
 
   case C_fix(23):		/* seconds since process startup */
     panic(C_text("(##sys#fudge 23) [startuptime] is obsolete"));
 
   case C_fix(24):		/* dynamic loading available? */
-#ifdef NO_DLOAD2
-    return C_SCHEME_FALSE;
-#else
-    return C_SCHEME_TRUE;
-#endif
+    panic(C_text("(##sys#fudge 24) [dload] is obsolete"));
 
   case C_fix(25):		/* REPL on error? XXX Is this used anywhere? */
-    return C_mk_bool(C_enable_repl);
+    panic(C_text("(##sys#fudge 25) [enable repl on error] is obsolete"));
 
   case C_fix(26):		/* number of untriggered finalizers */
     return C_fix(live_finalizer_count);
@@ -4920,11 +4916,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(allocated_finalizer_count);
 
   case C_fix(28):		/* are procedure-tabled enabled? */
-#ifdef C_ENABLE_PTABLES
-    return C_SCHEME_TRUE;
-#else
-    return C_SCHEME_FALSE;
-#endif
+    panic(C_text("(##sys#fudge 28) [ptables] is obsolete"));
 
   case C_fix(29):		/* size of ring-buffer used to hold trace entries */
     panic(C_text("(##sys#fudge 29) [trace buffer size] is obsolete"));
@@ -4938,14 +4930,10 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(tgc);
 
   case C_fix(32):		/* are GC-hooks enabled? */
-#ifdef C_GC_HOOKS
-    return C_SCHEME_TRUE;
-#else
-    return C_SCHEME_FALSE;
-#endif
+    panic(C_text("(##sys#fudge 32) [gchooks] is obsolete"));
 
   case C_fix(33):		/* return process-ID */
-    return C_fix(C_getpid());
+    panic(C_text("(##sys#fudge 33) [getpid] is obsolete"));
 
   case C_fix(34):		/* effective maximum for procedure arguments */
     panic(C_text("(##sys#fudge 34) [apply-argument-limit] is obsolete"));
@@ -4963,11 +4951,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 38) [old svn rev.] is obsolete"));
 
   case C_fix(39):		/* is this a cross-chicken? */
-#if defined(C_CROSS_CHICKEN) && C_CROSS_CHICKEN
-    return C_SCHEME_TRUE;
-#else
-    return C_SCHEME_FALSE;
-#endif
+    panic(C_text("(##sys#fudge 39) [cross-chicken] is obsolete"));
 
   case C_fix(40):		/* many arguments supported? */
     panic(C_text("(##sys#fudge 40) [manyargs] is obsolete"));
@@ -4976,17 +4960,13 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(C_MAJOR_VERSION);
 
   case C_fix(42):		/* binary version number */
-#ifdef C_BINARY_VERSION
-    return C_fix(C_BINARY_VERSION);
-#else
-    return C_fix(0);
-#endif
+    panic(C_text("(##sys#fudge 42) [binary version] is obsolete"));
 
   case C_fix(43):		/* minor CHICKEN version */
     return C_fix(C_MINOR_VERSION);
 
   case C_fix(44):  /* whether debugger is active */
-    return C_mk_bool(C_debugging);
+    panic(C_text("(##sys#fudge 44) [debugging] is obsolete"));
 
   case C_fix(45):  /* Whether we're currently profiling */
     return C_mk_bool(profiling);

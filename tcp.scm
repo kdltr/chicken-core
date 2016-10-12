@@ -446,7 +446,7 @@ EOF
 		   (read-input))
 		 (if (fx>= bufindex buflen)
 		     #!eof
-		     (let ((limit (or limit (fx- (##sys#fudge 21) bufindex))))
+		     (let ((limit (or limit (fx- most-positive-fixnum bufindex))))
 		       (receive (next line full-line?)
 			   (##sys#scan-buffer-line
 			    buf

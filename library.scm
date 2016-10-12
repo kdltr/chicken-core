@@ -150,6 +150,30 @@ signal_debug_event(C_word mode, C_word msg, C_word args)
   C_debugger(&cell, 3, av);
   return C_SCHEME_UNDEFINED;
 }
+
+#ifdef NO_DLOAD2
+# define HAVE_DLOAD 0
+#else
+# define HAVE_DLOAD 1
+#endif
+
+#ifdef C_ENABLE_PTABLES
+# define HAVE_PTABLES 1
+#else
+# define HAVE_PTABLES 0
+#endif
+
+#ifdef C_GC_HOOKS
+# define HAVE_GCHOOKS 1
+#else
+# define HAVE_GCHOOKS 0
+#endif
+
+#if defined(C_CROSS_CHICKEN) && C_CROSS_CHICKEN
+# define IS_CROSS_CHICKEN 1
+#else
+# define IS_CROSS_CHICKEN 0
+#endif
 EOF
 ) )
 
@@ -4394,10 +4418,10 @@ EOF
   (if full
       (let ((spec (string-append
 		   (if (feature? #:64bit) " 64bit" "")
-		   (if (##sys#fudge 24) " dload" "")
-		   (if (##sys#fudge 28) " ptables" "")
-		   (if (##sys#fudge 32) " gchooks" "")
-		   (if (##sys#fudge 39) " cross" "") ) ) )
+		   (if (feature? #:dload) " dload" "")
+		   (if (feature? #:ptables) " ptables" "")
+		   (if (feature? #:gchooks) " gchooks" "")
+		   (if (feature? #:cross-chicken) " cross" ""))))
 	(string-append
 	 "Version " ##sys#build-version
 	 (if ##sys#build-branch (string-append " (" ##sys#build-branch ")") "")
@@ -4445,9 +4469,14 @@ EOF
   (check (machine-type))
   (check (machine-byte-order)) )
 
-(when (##sys#fudge 24) (set! ##sys#features (cons #:dload ##sys#features)))
-(when (##sys#fudge 28) (set! ##sys#features (cons #:ptables ##sys#features)))
-(when (##sys#fudge 39) (set! ##sys#features (cons #:cross-chicken ##sys#features)))
+(when (foreign-value "HAVE_DLOAD" bool)
+  (set! ##sys#features (cons #:dload ##sys#features)))
+(when (foreign-value "HAVE_PTABLES" bool)
+  (set! ##sys#features (cons #:ptables ##sys#features)))
+(when (foreign-value "HAVE_GCHOOKS" bool)
+  (set! ##sys#features (cons #:gchooks ##sys#features)))
+(when (foreign-value "IS_CROSS_CHICKEN" bool)
+  (set! ##sys#features (cons #:cross-chicken ##sys#features)))
 (when (fx= (foreign-value "C_WORD_SIZE" int) 64)
   (set! ##sys#features (cons #:64bit ##sys#features)))
 
@@ -4569,7 +4598,7 @@ EOF
 
 ;;; Default handlers
 
-(define ##sys#break-on-error (##sys#fudge 25))
+(define ##sys#break-on-error (foreign-value "C_enable_repl" bool))
 
 (define-foreign-variable _ex_software int "EX_SOFTWARE")
 
