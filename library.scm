@@ -280,7 +280,6 @@ EOF
 (define (argc+argv) (##sys#values main_argc main_argv))
 (define ##sys#make-structure (##core#primitive "C_make_structure"))
 (define ##sys#ensure-heap-reserve (##core#primitive "C_ensure_heap_reserve"))
-(define (##sys#fudge index) (##core#inline "C_fudge" index))
 (define return-to-host (##core#primitive "C_return_to_host"))
 (define ##sys#symbol-table-info (##core#primitive "C_get_symbol_table_info"))
 (define ##sys#memory-info (##core#primitive "C_get_memory_info"))
