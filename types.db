@@ -1035,6 +1035,8 @@
 (error (procedure error (* #!rest) noreturn))
 (##sys#error (procedure ##sys#error (* #!rest) noreturn))
 (##sys#signal-hook (procedure ##sys#signal-hook (* #!rest) noreturn))
+(##sys#debug-mode? (procedure ##sys#debug-mode? () boolean)
+		   (() (##core#inline "C_i_debug_modep")))
 (executable-pathname (#(procedure #:pure) executable-pathname () (or string false)))
 (exit (procedure exit (#!optional fixnum) noreturn))
 (exit-handler (#(procedure #:clean #:enforce) exit-handler (#!optional (procedure (fixnum) . *)) procedure))

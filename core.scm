@@ -332,7 +332,7 @@
 	chicken.pretty-print)
 
 (define (d arg1 . more)
-  (when (##sys#fudge 13)		; debug mode?
+  (when (##sys#debug-mode?)
     (if (null? more)
 	(pp arg1)
 	(apply print arg1 more))))

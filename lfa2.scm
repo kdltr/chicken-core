@@ -50,7 +50,7 @@
 (define lfa2-debug #t)
 
 (define (d fstr . args)
-  (when (and lfa2-debug (##sys#fudge 13))
+  (when (and lfa2-debug (##sys#debug-mode?))
     (printf "[debug|~a] ~a~?~%" d-depth (make-string d-depth #\space) fstr args)) )
 
 (define dd d)

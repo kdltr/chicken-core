@@ -244,7 +244,8 @@ EOF
        history-count))))
 
 (define (tty-input?)
-  (or (##sys#fudge 12) (##sys#tty-port? ##sys#standard-input)) )
+  (or (##core#inline "C_i_tty_forcedp")
+      (##sys#tty-port? ##sys#standard-input)))
 
 (set! ##sys#break-on-error #f)
 

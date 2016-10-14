@@ -942,7 +942,7 @@
 
 ;;; Loading source/object files:
 
-(define load-verbose (make-parameter (##sys#fudge 13)))
+(define load-verbose (make-parameter (##sys#debug-mode?)))
 
 (define ##sys#current-load-filename #f)
 (define ##sys#dload-disabled #f)

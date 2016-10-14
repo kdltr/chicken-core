@@ -879,7 +879,7 @@ EOF
 		 (if to-stdout 
 		     '("-to-stdout")
 		     `("-output-file" ,(quotewrap fc)) )
-		 (if (##sys#fudge 13)
+		 (if (##sys#debug-mode?)
 		     '("-:d")
 		     '())
 		 (map quote-option

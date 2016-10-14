@@ -4665,6 +4665,14 @@ C_regparm C_word C_fcall C_set_gc_report(C_word flag)
   return C_SCHEME_UNDEFINED;
 }
 
+C_regparm C_word C_fcall C_i_accumulated_gc_time(void)
+{
+  double tgc;
+
+  tgc = timer_accumulated_gc_ms;
+  timer_accumulated_gc_ms = 0;
+  return C_fix(tgc);
+}
 
 C_regparm C_word C_fcall C_start_timer(void)
 {
@@ -4826,12 +4834,38 @@ C_regparm C_word C_fcall C_char_ready_p(C_word port)
 #endif
 }
 
+C_regparm C_word C_fcall C_i_tty_forcedp(void)
+{
+  return C_mk_bool(fake_tty_flag);
+}
+
+C_regparm C_word C_fcall C_i_debug_modep(void)
+{
+  return C_mk_bool(debug_mode);
+}
+
+C_regparm C_word C_fcall C_i_dump_heap_on_exitp(void)
+{
+  return C_mk_bool(dump_heap_on_exit);
+}
+
+C_regparm C_word C_fcall C_i_profilingp(void)
+{
+  return C_mk_bool(profiling);
+}
+
+C_regparm C_word C_fcall C_i_live_finalizer_count(void)
+{
+  return C_fix(live_finalizer_count);
+}
+
+C_regparm C_word C_fcall C_i_allocated_finalizer_count(void)
+{
+  return C_fix(allocated_finalizer_count);
+}
 
 C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
 {
-  int i, j;
-  double tgc;
-
   switch(fudge_factor) {
   case C_fix(1):                              /* eof object */
     panic(C_text("(##sys#fudge 1) [eof object] is obsolete"));
@@ -4866,10 +4900,10 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 11) [UNIX system] is obsolete"));
 
   case C_fix(12):		/* tty forced? */
-    return C_mk_bool(fake_tty_flag);
+    panic(C_text("(##sys#fudge 12) [tty forced] is obsolete"));
 
   case C_fix(13):		/* debug mode */
-    return C_mk_bool(debug_mode);
+    panic(C_text("(##sys#fudge 13) [debug mode] is obsolete"));
 
   case C_fix(14):		/* interrupts enabled? */
     panic(C_text("(##sys#fudge 14) [interrupts enabled] is obsolete"));
@@ -4887,9 +4921,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 18) [stack direction] is obsolete"));
 
   case C_fix(19):		/* number of locatives */
-    for(i = j = 0; i < locative_table_count; ++i)
-      if(locative_table[ i ] != C_SCHEME_UNDEFINED) ++j;
-    return C_fix(j);
+    panic(C_text("(##sys#fudge 19) [nr. of locatives] is obsolete"));
 
   case C_fix(20):		/* unused */
     panic(C_text("(##sys#fudge 20) [?] is obsolete"));
@@ -4910,10 +4942,10 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 25) [enable repl on error] is obsolete"));
 
   case C_fix(26):		/* number of untriggered finalizers */
-    return C_fix(live_finalizer_count);
+    panic(C_text("(##sys#fudge 26) [live finalizers] is obsolete"));
 
   case C_fix(27):		/* total number of finalizers used and unused */
-    return C_fix(allocated_finalizer_count);
+    panic(C_text("(##sys#fudge 27) [total finalizers] is obsolete"));
 
   case C_fix(28):		/* are procedure-tabled enabled? */
     panic(C_text("(##sys#fudge 28) [ptables] is obsolete"));
@@ -4925,9 +4957,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 30) [?] is obsolete"));
 
   case C_fix(31):		/* GC time since last invocation */
-    tgc = timer_accumulated_gc_ms;
-    timer_accumulated_gc_ms = 0;
-    return C_fix(tgc);
+    panic(C_text("(##sys#fudge 31) [accumulated gc time] is obsolete"));
 
   case C_fix(32):		/* are GC-hooks enabled? */
     panic(C_text("(##sys#fudge 32) [gchooks] is obsolete"));
@@ -4945,7 +4975,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 36) [toggle debug-mode] is obsolete"));
 
   case C_fix(37):		/* heap-dump enabled? */
-    return C_mk_bool(dump_heap_on_exit);
+    panic(C_text("(##sys#fudge 37) [dump heap on exit] is obsolete"));
 
   case C_fix(38):		/* unused */
     panic(C_text("(##sys#fudge 38) [old svn rev.] is obsolete"));
@@ -4969,7 +4999,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 44) [debugging] is obsolete"));
 
   case C_fix(45):  /* Whether we're currently profiling */
-    return C_mk_bool(profiling);
+    panic(C_text("(##sys#fudge 45) [profiling] is obsolete"));
 
   default:
     panic(C_text("Unknown fudge factor"));

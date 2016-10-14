@@ -2148,6 +2148,13 @@ C_fctexport C_word C_fcall C_i_get_keyword(C_word key, C_word args, C_word def) 
 C_fctexport C_u64 C_fcall C_milliseconds(void) C_regparm;
 C_fctexport C_u64 C_fcall C_cpu_milliseconds(void) C_regparm;
 C_fctexport double C_fcall C_bignum_to_double(C_word bignum) C_regparm;
+C_fctexport C_word C_fcall C_i_debug_modep(void) C_regparm;
+C_fctexport C_word C_fcall C_i_dump_heap_on_exitp(void) C_regparm;
+C_fctexport C_word C_fcall C_i_accumulated_gc_time(void) C_regparm;
+C_fctexport C_word C_fcall C_i_allocated_finalizer_count(void) C_regparm;
+C_fctexport C_word C_fcall C_i_live_finalizer_count(void) C_regparm;
+C_fctexport C_word C_fcall C_i_profilingp(void) C_regparm;
+C_fctexport C_word C_fcall C_i_tty_forcedp(void) C_regparm;
 
 
 C_fctexport C_word C_fcall C_a_i_cpu_time(C_word **a, int c, C_word buf) C_regparm;

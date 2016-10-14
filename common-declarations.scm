@@ -42,7 +42,7 @@
   (define-syntax d
     (syntax-rules ()
       ((_ arg ...)
-       (when (##sys#fudge 13) ; debug-mode
+       (when (##sys#debug-mode?)
 	 (print arg ...))))))
  (else
   (begin

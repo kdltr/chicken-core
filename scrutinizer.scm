@@ -51,7 +51,7 @@
 (define scrutiny-debug #t)
 
 (define (d fstr . args)
-  (when (and scrutiny-debug (##sys#fudge 13))
+  (when (and scrutiny-debug (##sys#debug-mode?))
     (printf "[debug|~a] ~a~?~%" d-depth (make-string d-depth #\space) fstr args)) )
 
 (define dd d)

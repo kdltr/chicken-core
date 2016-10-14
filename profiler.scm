@@ -124,7 +124,7 @@
 	[write-char write-char]
 	[write write] )
     (lambda ()
-      (when (##sys#fudge 13)
+      (when (##sys#debug-mode?)
 	(##sys#print "[debug] writing profile...\n" #f ##sys#standard-error) )
       (apply
        with-output-to-file ##sys#profile-name

@@ -240,6 +240,7 @@ EOF
 (define (reset) ((##sys#reset-handler)))
 (define (##sys#quit-hook result) ((##sys#exit-handler) 0))
 (define (quit #!optional result) (##sys#quit-hook result))
+(define (##sys#debug-mode?) (##core#inline "C_i_debug_modep"))
 
 (define (error . args)
   (if (pair? args)
@@ -247,7 +248,7 @@ EOF
       (##sys#signal-hook #:error #f)))
 
 (define ##sys#warnings-enabled #t)
-(define ##sys#notices-enabled (##sys#fudge 13))
+(define ##sys#notices-enabled (##sys#debug-mode?))
 
 (define (warning msg . args)
   (when ##sys#warnings-enabled
@@ -4669,10 +4670,10 @@ EOF
 
 (define (##sys#cleanup-before-exit)
   (set! exit-in-progress #t)
-  (when (##sys#fudge 37)		; -:H given?
+  (when (##core#inline "C_i_dump_heap_on_exitp")
     (##sys#print "\n" #f ##sys#standard-error)
     (##sys#dump-heap-state))
-  (when (##sys#fudge 45)		; -:p or -:P given?
+  (when (##core#inline "C_i_profilingp")
     (##core#inline "C_i_dump_statistical_profile"))
   (let loop ()
     (let ((tasks ##sys#cleanup-tasks))
@@ -4680,7 +4681,7 @@ EOF
       (unless (null? tasks)
 	(for-each (lambda (t) (t)) tasks)
 	(loop))))    
-  (when (##sys#fudge 13)		; debug mode
+  (when (##sys#debug-mode?)
     (##sys#print "[debug] forcing finalizers...\n" #f ##sys#standard-error) )
   (when (force-finalizers) (##sys#force-finalizers)) )
 
@@ -5418,7 +5419,8 @@ EOF
 
 ;;; GC info:
 
-(define (current-gc-milliseconds) (##sys#fudge 31))
+(define (current-gc-milliseconds)
+  (##core#inline "C_i_accumulated_gc_time"))
 
 (define (set-gc-report! flag)
   (##core#inline "C_set_gc_report" flag))
@@ -5445,27 +5447,28 @@ EOF
 (define set-finalizer! 
   (let ((string-append string-append))
     (lambda (x y)
-      (when (fx>= (##sys#fudge 26) _max_pending_finalizers)
+      (when (fx>= (##core#inline "C_i_live_finalizer_count") _max_pending_finalizers)
 	(cond ((##core#inline "C_resize_pending_finalizers" (fx* 2 _max_pending_finalizers))
 	       (set! ##sys#pending-finalizers
 		 (##sys#vector-resize ##sys#pending-finalizers
 				      (fx+ (fx* 2 _max_pending_finalizers) 1)
 				      (##core#undefined)))
-	       (when (##sys#fudge 13)
+	       (when (##sys#debug-mode?)
 		 (##sys#print 
 		  (string-append
 		   "[debug] too many finalizers (" 
-		   (##sys#number->string (##sys#fudge 26))
+		   (##sys#number->string
+		    (##core#inline "C_i_live_finalizer_count"))
 		   "), resized max finalizers to "
 		   (##sys#number->string _max_pending_finalizers)
 		   "\n")
 		  #f ##sys#standard-error)))
 	      (else
-	       (when (##sys#fudge 13)
+	       (when (##sys#debug-mode?)
 		 (##sys#print 
 		  (string-append
 		   "[debug] too many finalizers ("
-		   (##sys#fudge 26)
+		   (##core#inline "C_i_live_finalizer_count")
 		   "), forcing ...\n")
 		  #f ##sys#standard-error))
 	       (##sys#force-finalizers) ) ) )
@@ -5479,11 +5482,15 @@ EOF
       (unless working
 	(set! working #t)
 	(let* ((c (##sys#slot ##sys#pending-finalizers 0)) )
-	  (when (##sys#fudge 13)
+	  (when (##sys#debug-mode?)
 	    (##sys#print 
 	     (string-append "[debug] running " (##sys#number->string c)
-			    " finalizer(s) (" (##sys#number->string (##sys#fudge 26))
-			    " live, " (##sys#number->string (##sys#fudge 27))
+			    " finalizer(s) ("
+			    (##sys#number->string
+			     (##core#inline "C_i_live_finalizer_count"))
+			    " live, "
+			    (##sys#number->string
+			     (##core#inline "C_i_allocated_finalizer_count"))
 			    " allocated) ...\n")
 	     #f ##sys#standard-error))
 	  (do ([i 0 (fx+ i 1)])
