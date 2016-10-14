@@ -27,7 +27,9 @@ mkdir test-repository
 copy %TYPESDB% test-repository
 
 echo ======================================== version tests ...
-%interpret% -s version-tests.scm
+%compile% version-tests.scm
+if errorlevel 1 exit /b 1
+a.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== compiler tests ...

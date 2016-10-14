@@ -60,6 +60,7 @@
   (define *trunk* #f)
   (define *mode* 'default)
   (define *windows-shell* (foreign-value "C_WINDOWS_SHELL" bool))
+  (define *chicken-release* (foreign-value "C_MAJOR_VERSION" int))
 
   (define (d fstr . args)
     (let ([port (if *quiet* (current-error-port) (current-output-port))])
@@ -186,7 +187,7 @@
       (let* ((locn (string-append
 		    locn
 		    "?name=" egg
-		    "&release=" (->string (##sys#fudge 41))
+		    "&release=" (->string *chicken-release*)
 		    (if version (string-append "&version=" version) "")
 		    "&mode=" (->string *mode*)
 		    (if tests "&tests=yes" "")))

@@ -4481,12 +4481,11 @@ EOF
   (set! ##sys#features (cons #:64bit ##sys#features)))
 
 (set! ##sys#features
-  (let ((major (##sys#string-append "chicken-" (##sys#number->string (##sys#fudge 41)))))
-    (cons (##sys#->feature-id major)
-	  (cons (##sys#->feature-id 
-		 (string-append
-		  major "."
-		  (##sys#number->string (##sys#fudge 43))))
+  (let ((major (##sys#number->string (foreign-value "C_MAJOR_VERSION" int)))
+	(minor (##sys#number->string (foreign-value "C_MINOR_VERSION" int))))
+    (cons (##sys#->feature-id (string-append "chicken-" major))
+	  (cons (##sys#->feature-id
+		 (string-append "chicken-" major "." minor))
 		##sys#features))))
 
 (define (register-feature! . fs)

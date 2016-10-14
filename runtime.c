@@ -4957,13 +4957,13 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     panic(C_text("(##sys#fudge 40) [manyargs] is obsolete"));
 
   case C_fix(41):		/* major CHICKEN version */
-    return C_fix(C_MAJOR_VERSION);
+    panic(C_text("(##sys#fudge 41) [major version] is obsolete"));
 
   case C_fix(42):		/* binary version number */
     panic(C_text("(##sys#fudge 42) [binary version] is obsolete"));
 
   case C_fix(43):		/* minor CHICKEN version */
-    return C_fix(C_MINOR_VERSION);
+    panic(C_text("(##sys#fudge 43) [minor version] is obsolete"));
 
   case C_fix(44):  /* whether debugger is active */
     panic(C_text("(##sys#fudge 44) [debugging] is obsolete"));
