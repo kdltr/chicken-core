@@ -112,7 +112,7 @@
 			ln)))))
     (let get-files ((files '()))
       (let* ((ins (skip))
-	      (name (read ins)))
+             (name (read ins)))
         (cond ((and (pair? name) (eq? 'error (car name)))
             	   (server-error (cadr name) (cddr name)))
 	      ((or (eof-object? name) (not name))
@@ -226,6 +226,7 @@
 
 (define (try-list-versions name url #!key
                            proxy-host proxy-port proxy-user-pass)
+  (d "listing versions for ~a: ~a~%" name url)
   (condition-case (list-versions name url)
     ((exn net)
        (print "TCP connect timeout")
@@ -256,6 +257,7 @@
 
 (define (try-download name url #!key version destination tests 
                       proxy-host proxy-port proxy-user-pass)
+  (d "downloading ~a: ~a~%" name url)
   (condition-case
      (download-egg
          name url
