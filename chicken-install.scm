@@ -472,6 +472,7 @@
 
 (define (get-egg-dependencies info)
   (append (get-egg-property* info 'dependencies '())
+          (get-egg-property* info 'build-dependencies '())
           (if run-tests (get-egg-property* info 'test-dependencies '()) '())))
 
 (define (check-dependency dep)
@@ -591,7 +592,7 @@
   (list->string (reverse (left (reverse (left (string->list str)))))))
   
   
-;; list available egg versions
+;; list available egg versions on servers
   
 (define (list-egg-versions eggs)
   (let ((srvs (map resolve-location default-servers)))
@@ -753,7 +754,7 @@
                  (unless retrieve-only (install-eggs)))))
         (else
           (let ((eggs (apply-mappings eggs)))
-            (cond (list-versions-only (list-egg-versions eggs)))
+            (cond (list-versions-only (list-egg-versions eggs))
                   ;;XXX other actions...
                   (else 
                     (retrieve-eggs eggs)
