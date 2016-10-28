@@ -41,6 +41,9 @@ EOF
 (define default-csc 
   (string-append default-bindir "/" (foreign-value "C_CSC_PROGRAM" c-string)))
 
+(define default-csi 
+  (string-append default-bindir "/" (foreign-value "C_CSI_PROGRAM" c-string)))
+
 (define default-builder 
   (make-pathname default-bindir (foreign-value "C_CHICKEN_DO_PROGRAM" c-string)))
 
