@@ -50,6 +50,7 @@
 (define +status-file+ "STATUS")
 (define +egg-extension+ "egg")
 (define +egg-info-extension+ "egg.info")
+(define +version-file+ "VERSION")
 
 (include "mini-srfi-1.scm")
 (include "egg-environment.scm")
@@ -315,15 +316,24 @@
            (d "status changed for ~a~%" name)
            (fetch)))
     (let* ((info (load-egg-info eggfile))
-           (lversion (get-egg-property info 'version)))
-      (cond ((and (file-exists? timestamp)
-                  (> (- now (with-input-from-file timestamp read)) +one-hour+)
-                  (not (check-remote-version name version 
-                                             (and lversion lversion))))
+           (vfile (make-pathname cached +version-file+))
+           (lversion (or (get-egg-property info 'version)
+                         (and (file-exists? vfile)
+                              (with-input-from-file vfile read)))))
+      ;; yes, awkward - we must make sure locally available eggs are always
+      ;; fetched (check-remote-version takes care of that), so only check
+      ;; the timestamp, if it exists (as it does for downloaded eggs)
+      (cond ((if (file-exists? timestamp)
+                 (and (> (- now (with-input-from-file timestamp read)) +one-hour+)
+                      (not (check-remote-version name version lversion)))
+                 (not (check-remote-version name version lversion)))
              (d "version of ~a out of date~%" name)
              (fetch)
-             (let ((info (load-egg-info eggfile))) ; new egg info (fetched)
-               (values cached (get-egg-property info 'version))))
+             (let* ((info (load-egg-info eggfile)) ; new egg info (fetched)
+                    (lversion (or (get-egg-property info 'version)
+                                  (and (file-exists? vfile)
+                                       (with-input-from-file vfile read)))))
+               (values cached lversion)))
             (else (values cached version))))))
     
 (define (resolve-location name)
@@ -350,9 +360,11 @@
                  (cond (dir
                          (copy-egg-sources tmpdir dest)
                          (delete-directory tmpdir #t)
-                         (with-output-to-file 
-                           (make-pathname dest +timestamp-file+)
-                           (lambda () (write (current-seconds)))))
+                         (when ver
+                           (with-output-to-file (make-pathname dest +version-file+)
+                             (cut write ver)))
+                         (with-output-to-file (make-pathname dest +timestamp-file+)
+                           (cut write (current-seconds))))
                        ((null? srvs) (error "extension or version not found"))
                        (else (loop (cdr srvs))))))))
           ((probe-dir (make-pathname (car locs) name))
@@ -385,14 +397,7 @@
                     (or (and versions
                              (any (cut version>=? <> version) versions))
                         (loop (cdr srvs)))))))
-          ((probe-dir (make-pathname (car locs) name))
-           => (lambda (dir)
-                (let* ((eggfile (make-pathname dir name +egg-extension+))
-                       (info (load-egg-info eggfile))
-                       (rversion (get-egg-property info 'version)))
-                  (or (and rversion
-                           (version>=? rversion version))
-                      (loop (cdr locs))))))
+          ((probe-dir (make-pathname (car locs) name)) #f)
           (else (loop (cdr locs))))))
 
 
