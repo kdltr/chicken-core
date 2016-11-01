@@ -7,6 +7,9 @@
 - Runtime system:
   - "time" macro now shows peak memory usage (#1318, thanks to Kooda).
 
+- Core libraries:
+  - Keywords are more consistently read/written, like symbols (#1332).
+
 4.11.1
 
 - Security fixes

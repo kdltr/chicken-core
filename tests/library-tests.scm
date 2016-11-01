@@ -322,11 +322,25 @@
 
 (parameterize ((keyword-style #:suffix))
   (assert (string=? "abc:" (symbol->string (with-input-from-string "|abc:|" read))))
-  (assert (string=? "abc" (symbol->string (with-input-from-string "|abc|:" read))))) ; keyword
+  (assert (string=? "abc" (symbol->string (with-input-from-string "|abc|:" read)))) ; keyword
+  (let ((kw (with-input-from-string "|foo bar|:" read)))
+    (assert (eq? kw (with-input-from-string "#:|foo bar|" read)))
+    (assert (string=? "foo bar" (symbol->string kw)))
+    (assert (string=? "foo bar:"
+		      (with-output-to-string (lambda () (display kw)))))
+    (assert (string=? "|foo bar|:"
+		      (with-output-to-string (lambda () (write kw)))))))
 
 (parameterize ((keyword-style #:prefix))
   (assert (string=? "abc" (symbol->string (with-input-from-string ":|abc|" read))))
-  (assert (string=? ":abc" (symbol->string (with-input-from-string "|:abc|" read)))))
+  (assert (string=? ":abc" (symbol->string (with-input-from-string "|:abc|" read))))
+  (let ((kw (with-input-from-string ":|foo bar|" read)))
+    (assert (eq? kw (with-input-from-string "#:|foo bar|" read)))
+    (assert (string=? "foo bar" (symbol->string kw)))
+    (assert (string=? ":foo bar"
+		      (with-output-to-string (lambda () (display kw)))))
+    (assert (string=? ":|foo bar|"
+		      (with-output-to-string (lambda () (write kw)))))))
 
 (assert (eq? '|#:| (string->symbol "#:")))
 (assert-fail (with-input-from-string "#:" read)) ; empty keyword
@@ -353,9 +367,28 @@
   (assert (not (keyword? (with-input-from-string ":abc:" read))))
   (assert (not (keyword? (with-input-from-string "abc:" read)))))
 
-(assert (string=? ":" (symbol->string (with-input-from-string ":" read))))
-(assert (string=? ":" (symbol->string (with-input-from-string ":||" read))))
+(let ((colon-sym (with-input-from-string ":" read)))
+  (assert (symbol? colon-sym))
+  (assert (not (keyword? colon-sym)))
+  (assert (string=? ":" (symbol->string colon-sym))))
+
+;; The next two cases are a bit dubious.  These could also be read as
+;; keywords due to the literal quotation.
+(let ((colon-sym (with-input-from-string ":||" read)))
+  (assert (symbol? colon-sym))
+  (assert (not (keyword? colon-sym)))
+  (assert (string=? ":" (symbol->string colon-sym))))
+
+(let ((colon-sym (with-input-from-string "||:" read)))
+  (assert (symbol? colon-sym))
+  (assert (not (keyword? colon-sym)))
+  (assert (string=? ":" (symbol->string colon-sym))))
+
 (assert-fail (with-input-from-string "#:" read))
+
+(let ((empty-kw (with-input-from-string "#:||" read)))
+  (assert (keyword? empty-kw))
+  (assert (string=? "" (keyword->string empty-kw))))
 
 (assert (keyword? (with-input-from-string "42:" read)))
 (assert (keyword? (with-input-from-string ".:" read)))

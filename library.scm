@@ -2574,8 +2574,8 @@ EOF
 				(##sys#read-char-0 port) )
 			       ((eq? c #\.)
 				(##sys#read-char-0 port)
-				(let ([c2 (##sys#peek-char-0 port)])
-				  (cond [(or (char-whitespace? c2)
+				(let ((c2 (##sys#peek-char-0 port)))
+				  (cond ((or (char-whitespace? c2)
 					     (eq? c2 #\()
 					     (eq? c2 #\))
 					     (eq? c2 #\")
@@ -2589,22 +2589,26 @@ EOF
 					   (##sys#read-error
 					    port
 					    (starting-line "missing list terminator")
-					    end) ) ]
-					[else
+					    end)))
+					(else
 					 (r-xtoken
 					  (lambda (tok kw)
 					    (let* ((tok (##sys#string-append "." tok))
 						   (val
-						    (if kw
-							(build-keyword tok)
-							(or (and (char-numeric? c2) 
-								 (##sys#string->number tok))
-							    (build-symbol tok))))
-						   (node (cons val '())) )
+						    (cond ((and (string=? tok ".:")
+								(eq? ksp #:suffix))
+							   ;; Edge case: r-xtoken sees
+							   ;; a bare ":" and sets kw to #f
+							   (build-keyword "."))
+							  (kw (build-keyword tok))
+							  ((and (char-numeric? c2)
+								(##sys#string->number tok)))
+							  (else (build-symbol tok))))
+						   (node (cons val '())))
 					      (if first 
 						  (##sys#setslot last 1 node)
 						  (set! first node) )
-					      (loop node) ))) ] ) ) )
+					      (loop node) ))) ) ) ) )
 			       (else
 				(let ([node (cons (readrec) '())])
 				  (if first
@@ -2693,10 +2697,6 @@ EOF
 		     (##sys#read-char-0 port)
 		     (loop (##sys#peek-char-0 port) (cons c lst)) ) ) ) )
 
-	  (define (r-next-token)
-	    (r-spaces)
-	    (r-token) )
-	  
 	  (define (r-symbol)
 	    (r-xtoken
 	     (lambda (str kw)
@@ -2710,9 +2710,13 @@ EOF
 		  (cond ((or (eof-object? c) 
 			     (char-whitespace? c)
 			     (memq c terminating-characters))
-			 (if (and skw (eq? ksp #:suffix))
+			 ;; The not null? checks here ensure we read a
+			 ;; plain ":" as a symbol, not as a keyword.
+			 (if (and skw (eq? ksp #:suffix)
+				  (not (null? (cdr lst))))
 			     (k (##sys#reverse-list->string (cdr lst)) #t)
-			     (k (##sys#reverse-list->string lst) pkw)))
+			     (k (##sys#reverse-list->string lst)
+				(and pkw (not (null? lst))))))
                         ((memq c reserved-characters)
 			  (reserved-character c))
 			(else
@@ -2820,9 +2824,7 @@ EOF
 	  
 	  (define (build-keyword tok)
 	    (##sys#intern-symbol
-	     (if (eq? 0 (##sys#size tok))
-		 ":"
-		 (##sys#string-append kwprefix tok)) ))
+	     (##sys#string-append kwprefix tok)))
 
           ;; now have the state to make a decision.
           (set! reserved-characters
@@ -2930,10 +2932,14 @@ EOF
 					     (else (list 'location (readrec)) ))))
 				    ((#\:)
 				     (##sys#read-char-0 port)
-				     (let ((tok (r-token)))
-				       (if (eq? 0 (##sys#size tok))
-					   (##sys#read-error port "empty keyword")
-					   (build-keyword tok))))
+				     (let ((c (##sys#peek-char-0 port)))
+				       (fluid-let ((ksp #f))
+					 (r-xtoken
+					  (lambda (str kw)
+					    (if (and (eq? 0 (##sys#size str))
+						     (not (char=? c #\|)))
+						(##sys#read-error port "empty keyword")
+						(build-keyword str)))))))
 				    ((#\%)
 				     (build-symbol (##sys#string-append "#" (r-token))) )
 				    ((#\+)
@@ -3215,6 +3221,12 @@ EOF
 	    (or (fx<= c 32)
 		(memq chr special-characters) ) ) )
 
+	(define (outsym port sym)
+	  (let ((str (##sys#symbol->string sym)))
+	    (if (or (not readable) (sym-is-readable? str))
+		(outstr port str)
+		(outreadablesym port str))))
+
 	(define (outreadablesym port str)
 	  (let ((len (##sys#size str)))
 	    (outchr port #\|)
@@ -3289,27 +3301,21 @@ EOF
 		((not (##core#inline "C_blockp" x)) (outstr port "#<invalid immediate object>"))
 		((##core#inline "C_forwardedp" x) (outstr port "#<invalid forwarded object>"))
 		((##core#inline "C_symbolp" x)
-		 (cond [(fx= 0 (##sys#byte (##sys#slot x 1) 0))
-			(let ([str (##sys#symbol->string x)])
-			  (case ksp
-			    [(#:prefix) 
-			     (outchr port #\:)
-			     (outstr port str) ]
-			    [(#:suffix) 
-			     (outstr port str)
-			     (outchr port #\:) ]
-			    [else
-			     (outstr port "#:")
-			     (outstr port str) ] ) ) ]
-		       [(memq x '(#!optional #!key #!rest))
-			(outstr port (##sys#slot x 1))]
-		       [(##sys#qualified-symbol? x)
-			(outstr port (##sys#symbol->qualified-string x))]
+		 (cond ((fx= 0 (##sys#byte (##sys#slot x 1) 0)) ; keyword
+			(case ksp
+			  ((#:prefix)
+			   (outchr port #\:)
+			   (outsym port x))
+			  ((#:suffix)
+			   (outsym port x)
+			   (outchr port #\:))
+			  (else
+			   (outstr port "#:")
+			   (outsym port x))))
+		       ((##sys#qualified-symbol? x)
+			(outstr port (##sys#symbol->qualified-string x)))
 		       (else
-			(let ((str (##sys#symbol->string x)))
-			  (if (or (not readable) (sym-is-readable? str))
-			      (outstr port str)
-			      (outreadablesym port str) ) ) ) ) )
+			(outsym port x))))
 		((##sys#number? x) (outstr port (##sys#number->string x)))
 		((##core#inline "C_anypointerp" x) (outstr port (##sys#pointer->string x)))
 		((##core#inline "C_stringp" x)
