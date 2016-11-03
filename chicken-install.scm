@@ -349,6 +349,8 @@
     (cond ((null? locs)
            (let ((tmpdir (create-temporary-directory)))
              (let loop ((srvs default-servers))
+               (when (null? srvs) 
+                 (error "extension or version not found"))
                (receive (dir ver)
                  (try-download name (resolve-location (car srvs))
                                version: version 
@@ -365,7 +367,6 @@
                              (cut write ver)))
                          (with-output-to-file (make-pathname dest +timestamp-file+)
                            (cut write (current-seconds))))
-                       ((null? srvs) (error "extension or version not found"))
                        (else (loop (cdr srvs))))))))
           ((probe-dir (make-pathname (car locs) name))
            => (lambda (dir)
@@ -641,8 +642,9 @@
               (generate-shell-commands platform install iscript dir
                                        (install-prefix 'host name info)
                                        (install-suffix 'host name info))
-              (run-script dir bscript platform #f)
-              (run-script dir iscript platform sudo-install))))
+              (run-script dir bscript platform)
+              (run-script dir iscript platform sudo: sudo-install)
+              (when run-tests (test-egg egg platform)))))
         (when target-extension
           (let-values (((build install info) (compile-egg-info info platform 'target)))
             (let ((bscript (make-pathname dir name 
@@ -656,20 +658,41 @@
               (generate-shell-commands platform install iscript dir
                                        (install-prefix 'target name info)
                                        (install-suffix 'target name info))
-              (run-script dir bscript platform #f)
-              (run-script dir iscript platform #f))))))
+              (run-script dir bscript platform)
+              (run-script dir iscript platform))))))
     canonical-eggs))
 
-(define (run-script dir script platform sudo?)
-  (if do-not-build
-      (print script)
-      (let ((old (current-directory)))
-        (change-directory dir)
-        (d "running script ~a~%" script)
-        (if (eq? platform 'windows)
-            (exec script)
-            (exec (string-append (if sudo? "sudo " "") "sh " script)))
-        (change-directory old))))
+(define (test-egg egg platform)
+  (let* ((name (car egg))
+         (dir (cadr egg))
+         (version (caddr egg))
+         (testdir (make-pathname dir "tests"))
+         (tscript (make-pathname testdir "run.scm")))
+    (when (and (file-exists? testdir)
+               (directory? testdir)
+               (file-exists? tscript))
+      (let ((old (current-directory))
+            (cmd (string-append default-csi " -s " tscript " " name " " (or version ""))))
+        (change-directory testdir)
+        (let ((r (system cmd)))
+          (d "running: ~a~%" cmd)
+          (unless (zero? r)
+            (print "test script failed with nonzero exit status")))
+        (change-directory old)))))
+
+(define (run-script dir script platform #!key sudo (stop #t))
+  (cond (do-not-build
+          (print script)
+          #t)
+        (else
+          (let ((old (current-directory)))
+            (change-directory dir)
+            (d "running script ~a~%" script)
+            (let ((r (if (eq? platform 'windows)
+                         (exec script stop)
+                         (exec (string-append (if sudo "sudo " "") "sh " script) stop))))
+              (change-directory old)
+              r)))))
 
 (define (write-info name info mode)
   (d "writing info for egg ~a~%" name info)
@@ -677,11 +700,13 @@
     (when (eq? platform 'unix)
       (exec (string-append "chmod a+r " (quotearg infofile))))))
 
-(define (exec cmd)
+(define (exec cmd #!optional (stop #t))
   (d "executing: ~s~%" cmd)
   (let ((r (system cmd)))
-    (unless (zero? r)
-      (error "shell command terminated with nonzero exit code" r cmd))))
+    (if (and stop (not (zero? r)))
+        (error "shell command terminated with nonzero exit code" r cmd)
+        (print "shell command terminated with nonzero exit code " r ": " cmd))
+    r))
 
 
 ;;; update module-db
