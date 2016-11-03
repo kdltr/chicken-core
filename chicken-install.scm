@@ -83,6 +83,7 @@
 (define sudo-install #f)
 (define update-module-db #f)
 (define purge-mode #f)
+(define tests-failed #f)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -677,6 +678,7 @@
         (let ((r (system cmd)))
           (d "running: ~a~%" cmd)
           (unless (zero? r)
+            (set! tests-failed #t)
             (print "test script failed with nonzero exit status")))
         (change-directory old)))))
 
@@ -781,7 +783,8 @@
                           (list (pathname-file fname) (current-directory) #f))
                      (glob "*.egg")))
                  (retrieve-eggs '())
-                 (unless retrieve-only (install-eggs)))))
+                 (unless retrieve-only (install-eggs))
+                 (when tests-failed (exit 2)))))
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
