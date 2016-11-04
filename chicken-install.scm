@@ -151,6 +151,7 @@
         (fstr (if (string? flag) flag (car args)))
         (args (if (string? flag) args (cdr args))))
     (when (or flag (not quiet))
+      (flush-output)
       (let ((port (current-error-port)))
         (apply fprintf port fstr args)
         (flush-output port) ) )))
