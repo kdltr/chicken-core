@@ -43,6 +43,8 @@
     added for testing whether a port is open in a specific direction.
   - An `include-relative` form has been added to the chicken module.
     This works like `load-relative` but for textual inclusion.
+  - Keywords are now always written in "portable" style by WRITE, so
+    that the reader's keyword style doesn't need to match the writer's.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

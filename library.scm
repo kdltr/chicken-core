@@ -4040,7 +4040,8 @@ EOF
 		((##core#inline "C_forwardedp" x) (outstr port "#<invalid forwarded object>"))
 		((##core#inline "C_symbolp" x)
 		 (cond ((fx= 0 (##sys#byte (##sys#slot x 1) 0)) ; keyword
-			(case ksp
+			;; Force portable #: style for readable output
+			(case (and (not readable) ksp)
 			  ((#:prefix)
 			   (outchr port #\:)
 			   (outsym port x))

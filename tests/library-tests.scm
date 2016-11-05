@@ -341,7 +341,7 @@
     (assert (string=? "foo bar" (symbol->string kw)))
     (assert (string=? "foo bar:"
 		      (with-output-to-string (lambda () (display kw)))))
-    (assert (string=? "|foo bar|:"
+    (assert (string=? "#:|foo bar|"
 		      (with-output-to-string (lambda () (write kw)))))))
 
 (parameterize ((keyword-style #:prefix))
@@ -352,7 +352,7 @@
     (assert (string=? "foo bar" (symbol->string kw)))
     (assert (string=? ":foo bar"
 		      (with-output-to-string (lambda () (display kw)))))
-    (assert (string=? ":|foo bar|"
+    (assert (string=? "#:|foo bar|"
 		      (with-output-to-string (lambda () (write kw)))))))
 
 (assert (eq? '|#:| (string->symbol "#:")))
