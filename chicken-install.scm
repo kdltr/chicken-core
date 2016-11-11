@@ -784,15 +784,15 @@
                           (list (pathname-file fname) (current-directory) #f))
                      (glob "*.egg")))
                  (retrieve-eggs '())
-                 (unless retrieve-only (install-eggs))
-                 (when tests-failed (exit 2)))))
+                 (unless retrieve-only (install-eggs)))))
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
                   ;;XXX other actions...
                   (else 
                     (retrieve-eggs eggs)
-                    (unless retrieve-only (install-eggs))))))))
+                    (unless retrieve-only (install-eggs)))))))
+  (when tests-failed (exit 2)))
 
 (define (main args)
   (setup-proxy (get-environment-variable "http_proxy"))
