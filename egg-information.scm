@@ -8,7 +8,10 @@
        (pair? v)
        (null? (cdr v))
        (let ((str (->string (car v))))
-         (irregex-match '(seq (+ numeric) #\. (+ numeric) #\. (+ numeric)) str))))
+         (irregex-match '(seq (+ numeric) 
+                              (? #\. (+ numeric)
+                                 (? #\. (+ numeric))))
+                        str))))
 
 (define (optname? x)
   (and (list? x) (pair? x)
