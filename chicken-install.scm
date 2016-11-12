@@ -300,23 +300,23 @@
          (timestamp (make-pathname cached +timestamp-file+))
          (status (make-pathname cached +status-file+))
          (eggfile (make-pathname cached name +egg-extension+)))
-    (define (fetch)
+    (define (fetch lax)
       (when (file-exists? cached)
         (delete-directory cached #t))
       (create-directory cached)
-      (fetch-egg-sources name version cached)
+      (fetch-egg-sources name version cached lax)
       (with-output-to-file status (cut write current-status)))
     (unless (file-exists? cache-directory)
       (create-directory cache-directory))
     (cond ((or (not (probe-dir cached))
                (not (file-exists? eggfile)))
            (d "~a not cached~%" name)
-           (fetch))
+           (fetch #f))
           ((and (file-exists? status)
                 (not (equal? current-status 
                              (with-input-from-file status read))))
            (d "status changed for ~a~%" name)
-           (fetch)))
+           (fetch #f)))
     (let* ((info (load-egg-info eggfile))
            (vfile (make-pathname cached +version-file+))
            (lversion (or (get-egg-property info 'version)
@@ -330,7 +330,7 @@
                       (not (check-remote-version name version lversion)))
                  (not (check-remote-version name version lversion)))
              (d "version of ~a out of date~%" name)
-             (fetch)
+             (fetch #t)
              (let* ((info (load-egg-info eggfile)) ; new egg info (fetched)
                     (lversion (or (get-egg-property info 'version)
                                   (and (file-exists? vfile)
@@ -346,30 +346,34 @@
              (resolve-location new))))
         (else name)))
 
-(define (fetch-egg-sources name version dest)
+(define (fetch-egg-sources name version dest lax)
   (let loop ((locs default-locations))
     (cond ((null? locs)
            (let ((tmpdir (create-temporary-directory)))
              (let loop ((srvs default-servers))
-               (when (null? srvs) 
-                 (error "extension or version not found"))
-               (receive (dir ver)
-                 (try-download name (resolve-location (car srvs))
-                               version: version 
-                               destination: tmpdir
-                               tests: run-tests 
-                               proxy-host: proxy-host
-                               proxy-port: proxy-port 
-                               proxy-user-pass: proxy-user-pass)
-                 (cond (dir
-                         (copy-egg-sources tmpdir dest)
-                         (delete-directory tmpdir #t)
-                         (when ver
-                           (with-output-to-file (make-pathname dest +version-file+)
-                             (cut write ver)))
-                         (with-output-to-file (make-pathname dest +timestamp-file+)
-                           (cut write (current-seconds))))
-                       (else (loop (cdr srvs))))))))
+               (if (null? srvs) 
+                   (if lax
+                       (print "no connection to server or egg not found remotely - will use cached version")
+                       (error "extension or version not found"))
+                   (receive (dir ver)
+                     (try-download name (resolve-location (car srvs))
+                                   version: version 
+                                   destination: tmpdir
+                                   tests: run-tests 
+                                   proxy-host: proxy-host
+                                   proxy-port: proxy-port 
+                                   proxy-user-pass: proxy-user-pass)
+                     (cond (dir
+                                (copy-egg-sources tmpdir dest)
+                                (delete-directory tmpdir #t)
+                                (when ver
+                                  (with-output-to-file
+                                    (make-pathname dest +version-file+)
+                                    (cut write ver)))
+                                (with-output-to-file
+                                  (make-pathname dest +timestamp-file+)
+                                  (cut write (current-seconds))))
+                           (else (loop (cdr srvs)))))))))
           ((probe-dir (make-pathname (car locs) name))
            => (lambda (dir)
                 (let* ((eggfile (make-pathname dir name +egg-extension+))
