@@ -710,9 +710,10 @@
 (define (exec cmd #!optional (stop #t))
   (d "executing: ~s~%" cmd)
   (let ((r (system cmd)))
-    (if (and stop (not (zero? r)))
-        (error "shell command terminated with nonzero exit code" r cmd)
-        (print "shell command terminated with nonzero exit code " r ": " cmd))
+    (unless (zero? r)
+      (if stop
+          (error "shell command terminated with nonzero exit code" r cmd)
+          (print "shell command terminated with nonzero exit code " r ": " cmd)))
     r))
 
 
