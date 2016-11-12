@@ -852,6 +852,11 @@
                   ((equal? arg "-purge")
                    (set! purge-mode #t)
                    (loop (cdr args)))
+                  ((equal? arg "-override")
+                   (unless (pair? (cdr args)) (usage 1))
+                   (set! override
+                     (call-with-input-file (cadr args) read-all))
+                   (loop (cddr args)))
 
                   ;;XXX 
                   
