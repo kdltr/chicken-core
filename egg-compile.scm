@@ -588,7 +588,7 @@ EOF
        (printf #<<EOF
 
 mkdir ~a~a
-echo ~a >~a~%
+echo ~a >~a~a~%
 EOF
                ddir qdir 
                (string-intersperse (string-split infostr) "^\n")
