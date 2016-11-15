@@ -22,7 +22,6 @@
 ;; ENTRY = (NAME TOPLEVEL? NESTED? NAMED? [VALIDATOR])
 (define egg-info-items
   `((synopsis #t #f #f)
-    (authors #t #f #f)
     (author #t #f #f)
     (category #t #f #f)
     (license #t #f #f)
@@ -35,7 +34,6 @@
     (platform #t #f #f)
     (doc-from-wiki #t #f #f)
     (installed-files #t #f #f ,list?)
-    (maintainers #t #f #f)
     (maintainer #t #f #f)
     (files #f #t #f ,list?)
     (source #f #f #f)
