@@ -93,7 +93,7 @@
       (lambda (f)
         (let ((p (if (absolute-pathname? f) f (make-pathname repo f))))
           (when (file-exists? p) (delete-installed-file p))))
-      (cdr files))
+      files)
     (delete-installed-file ifile)))
 
 (define (delete-file-command platform)
