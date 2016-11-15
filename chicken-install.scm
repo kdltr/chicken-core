@@ -39,6 +39,7 @@
 (import (chicken posix))
 (import (chicken io))
 (import (chicken time))
+(import (chicken pathname))
 (import (chicken pretty-print))
 
 (define +defaults-version+ 2)

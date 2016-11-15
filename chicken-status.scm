@@ -34,6 +34,7 @@
 	  (chicken irregex)
 	  (chicken ports)
 	  (chicken posix)
+          (chicken pathname)
 	  (chicken pretty-print))
 
   (include "mini-srfi-1.scm")
