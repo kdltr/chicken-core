@@ -213,7 +213,6 @@
 (define show-libs #f)
 (define dry-run #f)
 (define gui #f)
-(define deploy #f)
 (define deployed #f)
 (define rpath #f)
 (define ignore-repository #f)
@@ -468,7 +467,6 @@ Usage: #{csc} FILENAME | OPTION ...
                                     code
     -dll -library                  compile multiple units into a dynamic
                                     library
-    -deploy                        deploy self-contained application bundle
 
   Options to other passes:
 
@@ -601,8 +599,6 @@ EOF
 			  (pathname-replace-extension (first scheme-files) shared-library-extension)
 			  (pathname-replace-extension (first scheme-files) executable-extension) ) ) )
 		  (run-translation) ] )
-	   (when (and deploy (not shared))
-	     (use-private-repository))
 	   (unless translate-only 
 	     (run-compilation)
 	     (unless compile-only
@@ -708,9 +704,6 @@ EOF
 		  (set! link-options
 		    (cons* "-lkernel32" "-luser32" "-lgdi32" "-mwindows"
 			   link-options)))]
-	       ((-deploy)
-		(set! deploy #t)
-		(set! deployed #t))
 	       ((-deployed)
 		(set! deployed #t))
 	       [(-framework)
@@ -954,23 +947,6 @@ EOF
   (let* ((files (map quotewrap object-files))
 	 (target (quotewrap target-filename))
 	 (targetdir #f))
-    (when deploy
-      (set! targetdir (pathname-strip-extension target-filename))
-      (when (and osx gui)
-	(set! targetdir (make-pathname #f targetdir "app"))
-	(command (sprintf "mkdir -p ~a" (quotewrap (make-pathname targetdir "Contents/MacOS"))))
-	(command (sprintf "mkdir -p ~a" (quotewrap (make-pathname targetdir "Contents/Resources")))))
-      (set! target-filename
-	(make-pathname
-	 targetdir
-	 (if (and osx gui)
-	     (string-append "Contents/MacOS/" (pathname-file target-filename))
-	     (pathname-file target-filename))))
-      (set! target (quotewrap target-filename))
-      (unless (directory-exists? targetdir)
-	(when verbose
-	  (print "mkdir " targetdir))
-	(create-directory targetdir)))
     (command
      (string-intersperse 
       (cons* (cond (cpp-mode c++-linker)
@@ -993,17 +969,8 @@ EOF
 		lib))))
 	" " 
 	target) )
-      (when (and gui (not deploy))
+      (when gui
 	(rez target)))
-    (when (and deploy (not (or static static-libs)))
-      (copy-libraries 
-       (if (and osx gui)
-	   (make-pathname targetdir "Contents/MacOS")
-	   targetdir))
-      (when (and osx gui)
-	(create-mac-bundle
-	 (pathname-file target-filename)
-	 targetdir)))
     (unless keep-files (for-each $delete-file generated-object-files)) ) )
 
 (define (lib-path)
@@ -1021,17 +988,6 @@ EOF
 		 (not host-mode))
 	    tdir
 	    (lib-path)))))
-
-(define (copy-libraries targetdir)
-  (let ((lib (make-pathname
-	      (target-lib-path) 
-	      dynamic-libchicken
-	      (cond (osx "dylib")
-		    ((or mingw cygwin) "dll")
-		    (else (string-append
-                           "so."
-                           (number->string BINARY_VERSION)))))))
-    (copy-files lib targetdir)))
 
 (define (copy-files from to)
   (command
@@ -1129,40 +1085,6 @@ EOF
    (sprintf "/Developer/Tools/Rez -t APPL -o ~a ~a"
      (quotewrap file)
      (quotewrap (make-pathname home "mac.r")))))
-
-(define (create-mac-bundle prg dname)
-  (let* ((d0 (make-pathname dname "Contents"))
-	 (d (make-pathname dname "Contents/MacOS"))
-	 (d2 (make-pathname dname "Contents/Resources")))
-    (let ((icons (make-pathname d2 "CHICKEN.icns")))
-      (unless (file-exists? icons)
-	(copy-files 
-	 (make-pathname home "chicken/CHICKEN.icns") 
-	 d2)))
-    (let ((pl (make-pathname d0 "Info.plist")))
-      (unless (file-exists? pl)
-	(when verbose (print "generating " pl))
-	(with-output-to-file pl
-	  (cut print #<#EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
-<plist version="0.9">
-<dict>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleIconFile</key>
-	<string>CHICKEN.icns</string>
-        <key>CFBundleGetInfoString</key>
-	<string>Created by CHICKEN</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleExecutable</key>
-	<string>#{prg}</string>
-</dict>
-</plist>
-EOF
-)))
-      d)))
 
 (define (create-win-manifest prg rcfname)
   (when verbose (print "generating " rcfname))

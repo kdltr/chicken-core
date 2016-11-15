@@ -508,22 +508,4 @@ CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
     -reinstall -force -csi ${TEST_DIR}/../csi
 CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $interpret -bnq rev-app.scm 1.0
 
-if test $OS_NAME != AIX -a $OS_NAME != SunOS -a $OS_NAME != GNU; then
-	echo "======================================== deployment tests"
-	mkdir rev-app
-        TARGET_LIB_PATH=${TEST_DIR}/.. CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-                          CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -csi ${TEST_DIR}/../csi -t local -l $TEST_DIR reverser
-        TARGET_LIB_PATH=${TEST_DIR}/.. CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-                          CSI_OPTIONS=$SETUP_PREFIX $compile2 -deploy rev-app.scm
-        TARGET_LIB_PATH=${TEST_DIR}/.. CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-                          CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -csi ${TEST_DIR}/../csi -deploy -prefix rev-app -t local -l $TEST_DIR reverser
-	unset LD_LIBRARY_PATH DYLD_LIBRARY_PATH CHICKEN_REPOSITORY
-	# An absolute path is required on NetBSD with $ORIGIN, hence `pwd`
-	`pwd`/rev-app/rev-app 1.1
-	mv rev-app rev-app-2
-	`pwd`/rev-app-2/rev-app 1.1
-else
-	echo "Skipping deployment tests: deployment is currently unsupported on your platform."
-fi
-
 echo "======================================== done."
