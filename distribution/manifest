@@ -318,8 +318,6 @@ chicken.utils.import.scm
 chicken.utils.import.c
 srfi-4.import.scm
 srfi-4.import.c
-csi.import.scm
-csi.import.c
 chicken-status.scm
 chicken-status.c
 chicken-install.scm
@@ -335,9 +333,6 @@ egg-download.scm
 egg-compile.scm
 egg-information.scm
 chicken-do.c
-chicken-status.1
-chicken-install.1
-chicken-uninstall.1
 types.db
 mac.r
 chicken.png
