@@ -9,6 +9,10 @@
 
 - Core libraries:
   - Keywords are more consistently read/written, like symbols (#1332).
+  - SRFI-39: When jumping out of a parameterized dynamic extent,
+    "parameterize" now remember the actual values, so when jumping back
+    in, they are restored (fixes #1336, thanks to Joo ChurlSoo).
+    This was a regression caused by the fix for #1227.
 
 4.11.1
 

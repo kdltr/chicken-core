@@ -309,9 +309,15 @@
 	     (##core#set! ,convert? #f) ) )
 	   (##core#lambda () ,@body)
 	   (##core#lambda ()
-	    ;; Restore parameters to their original, saved values
-	    ,@(map (lambda (p s) `(,p ,s #f #t))
-		   param-aliases saveds) )) ) ) ) ) )))
+	     (##core#let
+	      ;; Remember the current value of each parameter.
+	      ,(map (lambda (p s temp) `(,temp (,p)))
+		    param-aliases saveds temps)
+	      ;; Restore each parameter to its old value.
+	      ,@(map (lambda (p s) `(,p ,s #f #t)) param-aliases saveds)
+	      ;; Save current value for later re-invocations.
+	      ,@(map (lambda (s temp) `(##core#set! ,s ,temp))
+		     saveds temps)))))))))))
 
 (##sys#extend-macro-environment
  'when '()
