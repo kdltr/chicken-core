@@ -25,9 +25,6 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-;; TODO: Rename c-backend back to "backend" and turn it into a
-;; functor?  This may require the creation of an additional file.
-;; Same goes for "platform" and "driver".
 (declare
   (unit c-backend)
   (uses data-structures extras c-platform compiler internal support))

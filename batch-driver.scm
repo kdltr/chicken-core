@@ -24,9 +24,7 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-;; TODO: Rename batch-driver back to "driver" and turn it into a
-;; functor?  This may require the creation of an additional file.
-;; Same goes for "backend" and "platform".
+
 (declare
   (unit batch-driver)
   (uses extras data-structures pathname

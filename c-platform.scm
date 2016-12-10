@@ -25,9 +25,6 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-;; TODO: Rename c-platform back to "platform" and turn it into a
-;; functor?  This may require the creation of an additional file.
-;; Same goes for "backend" and "driver".
 (declare
   (unit c-platform)
   (uses data-structures
