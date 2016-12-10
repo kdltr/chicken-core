@@ -137,6 +137,87 @@
   (exit code))
   
 
+;;; validate egg-information tree
+
+(define (egg-version? v)
+  (and (list? v) 
+       (pair? v)
+       (null? (cdr v))
+       (let ((str (->string (car v))))
+         (irregex-match '(seq (+ numeric) 
+                              (? #\. (+ numeric)
+                                 (? #\. (+ numeric))))
+                        str))))
+
+(define (optname? x)
+  (and (list? x) (pair? x)
+       (or (null? (cdr x)) 
+           (string? (cadr x))
+           (symbol? (cadr x)))))
+
+;; ENTRY = (NAME TOPLEVEL? NESTED? NAMED? [VALIDATOR])
+(define egg-info-items
+  `((synopsis #t #f #f)
+    (author #t #f #f)
+    (category #t #f #f)
+    (license #t #f #f)
+    (version #t #f #f ,egg-version?)
+    (dependencies #t #f #f ,list?)
+    (test-dependencies #t #f #f ,list?)
+    (build-dependencies #t #f #f ,list?)
+    (components #t #f #f)
+    (foreign-dependencies #t #f #f ,list?)
+    (platform #t #f #f)
+    (doc-from-wiki #t #f #f)
+    (installed-files #t #f #f ,list?)
+    (maintainer #t #f #f)
+    (files #f #t #f ,list?)
+    (source #f #f #f)
+    (csc-options #f #f #f)
+    (link-options #f #f #f)
+    (custom-build #f #f #f)
+    (linkage #f #f #f)
+    (target #f #t #f)
+    (host #f #t #f)
+    (types-file #f #f ,optname?)
+    (inline-file #f #f ,optname?)
+    (extension #f #t #t)
+    (generated-source-file #f #t #t)
+    (program #f #t #t)
+    (data #f #t #t)
+    (c-include #f #f #t)
+    (scheme-include #f #f #t)))
+
+(define (validate-egg-info info)
+  (define (validate info top?)
+    (for-each
+      (lambda (item)
+        (cond ((or (not (pair? item)) 
+                   (not (list? item)) 
+                   (not (symbol? (car item))))
+               (error "invalid egg information item" item))
+              ((assq (car item) egg-info-items) =>
+               (lambda (a)
+                 (apply (lambda (_ toplevel nested named #!optional validator)
+                          (when (and top? (not toplevel))
+                            (error "egg information item not allowed at toplevel" 
+                                   item))
+                          (when (and named
+                                     (or (null? (cddr item))
+                                         (not (symbol? (caddr item)))))
+                            (error "unnamed egg information item" item))
+                          (when (and validator
+                                     (not (validator (cdr item))))
+                            (error "egg information item has invalid structure" item))
+                          (when nested
+                            (validate (if named (cddr item) (cdr item)) #f)))
+                        a)))
+              (else (error "unknown egg information item" item))))
+      info))
+  (validate info #t)
+  info)
+
+
 ;; utilities
 
 ;; Simpler replacement for SRFI-13's string-suffix?
@@ -318,7 +399,7 @@
                              (with-input-from-file status read))))
            (d "status changed for ~a~%" name)
            (fetch #f)))
-    (let* ((info (load-egg-info eggfile))
+    (let* ((info (validate-egg-info (load-egg-info eggfile)))
            (vfile (make-pathname cached +version-file+))
            (lversion (or (get-egg-property info 'version)
                          (and (file-exists? vfile)
@@ -332,7 +413,7 @@
                  (not (check-remote-version name version lversion)))
              (d "version of ~a out of date~%" name)
              (fetch #t)
-             (let* ((info (load-egg-info eggfile)) ; new egg info (fetched)
+             (let* ((info (validate-egg-info (load-egg-info eggfile))) ; new egg info (fetched)
                     (lversion (or (get-egg-property info 'version)
                                   (and (file-exists? vfile)
                                        (with-input-from-file vfile read)))))
@@ -378,7 +459,7 @@
           ((probe-dir (make-pathname (car locs) name))
            => (lambda (dir)
                 (let* ((eggfile (make-pathname dir name +egg-extension+))
-                       (info (load-egg-info eggfile))
+                       (info (validate-egg-info (load-egg-info eggfile)))
                        (rversion (get-egg-property info 'version)))
                   (if (or (not rversion)
                           (version>=? rversion version))
@@ -436,7 +517,7 @@
           (d "checking ~a ...~%" (car e+d+v))
           (set! checked-eggs (cons (car e+d+v) checked-eggs))
           (let* ((fname (make-pathname (cadr e+d+v) (car e+d+v) +egg-extension+))
-                 (info (load-egg-info fname)))
+                 (info (validate-egg-info (load-egg-info fname))))
             (d "checking platform for `~a'~%" (car e+d+v))
             (check-platform (car e+d+v) info)
             (d "checking dependencies for `~a'~%" (car e+d+v))
@@ -538,7 +619,7 @@
         ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
                 (sf (make-pathname (repo-path) ep +egg-info-extension+)))
            (and (file-exists? sf)
-                (load-egg-info sf #f))) =>
+                (load-egg-info sf))) =>
          (lambda (info)
            (let ((a (assq 'version info)))
              (if a
@@ -633,7 +714,7 @@
       (let* ((name (car egg))
              (dir (cadr egg))
              (eggfile (make-pathname dir name +egg-extension+))
-             (info (load-egg-info eggfile #f)))
+             (info (load-egg-info eggfile)))
         (when (or host-extension 
                   (and (not target-extension)
                        (not host-extension)))
