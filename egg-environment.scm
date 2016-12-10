@@ -25,10 +25,12 @@ EOF
 (define default-cflags (foreign-value "C_TARGET_CFLAGS" c-string))
 (define default-ldflags (foreign-value "C_TARGET_LDFLAGS" c-string))
 (define default-libs (foreign-value "C_TARGET_MORE_LIBS" c-string))
-(define default-slibs (foreign-value "C_TARGET_MORE_STATIC_LIBS" c-string))
 (define default-libdir (foreign-value "C_TARGET_LIB_HOME" c-string))
 (define default-slibdir (foreign-value "C_TARGET_STATIC_LIB_HOME" c-string))
 (define default-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
+(define default-bindir (foreign-value "C_TARGET_BIN_HOME" c-string))
+(define default-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
+(define default-sharedir (foreign-value "C_TARGET_SHARE_HOME" c-string))
 
 (define default-platform
   (if (eq? (software-type) 'windows)
@@ -48,16 +50,18 @@ EOF
   (make-pathname default-bindir (foreign-value "C_CHICKEN_DO_PROGRAM" c-string)))
 
 (define host-repo (foreign-value "C_INSTALL_EGG_HOME" c-string))
+(define host-libdir (foreign-value "C_INSTALL_LIB_HOME" c-string))
 (define host-bindir (foreign-value "C_INSTALL_BIN_HOME" c-string))
 (define host-incdir (foreign-value "C_INSTALL_INCLUDE_HOME" c-string))
 (define host-sharedir (foreign-value "C_INSTALL_SHARE_HOME" c-string))
+(define host-libs (foreign-value "C_INSTALL_MORE_LIBS" c-string))
+(define host-cflags (foreign-value "C_INSTALL_CFLAGS" c-string))
+(define host-ldflags (foreign-value "C_INSTALL_LDFLAGS" c-string))
+(define host-cc (foreign-value "C_INSTALL_CC" c-string))
+(define host-cxx (foreign-value "C_INSTALL_CXX" c-string))
 
 (define target-repo
   (string-append default-libdir "/chicken/" (number->string binary-version)))
-
-(define target-bindir (foreign-value "C_TARGET_BIN_HOME" c-string))
-(define target-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
-(define target-sharedir (foreign-value "C_TARGET_SHARE_HOME" c-string))
 
 (define +egg-info-extension+ ".egg-info") 
 

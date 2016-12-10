@@ -127,7 +127,7 @@
                       (files '()))
             (for-each compile-data/include (cddr info))
             (let* ((dest (or dest 
-                             (if (eq? mode 'target) target-sharedir host-sharedir)))
+                             (if (eq? mode 'target) default-sharedir host-sharedir)))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! data
@@ -151,7 +151,7 @@
                       (files '()))
             (for-each compile-data/include (cddr info))
             (let* ((dest (or dest 
-                             (if (eq? mode 'target) target-incdir host-incdir)))
+                             (if (eq? mode 'target) default-incdir host-incdir)))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! cinc
@@ -164,7 +164,7 @@
                       (files '()))
             (for-each compile-data/include (cddr info))
             (let* ((dest (or dest
-                             (if (eq? mode 'target) target-sharedir host-sharedir)))
+                             (if (eq? mode 'target) default-sharedir host-sharedir)))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! scminc 
@@ -180,7 +180,7 @@
                       (lopts '())
                       (opts '()))
             (for-each compile-extension/program (cddr info))
-            (let ((dest (if (eq? mode 'target) target-bindir host-bindir)))
+            (let ((dest (if (eq? mode 'target) default-bindir host-bindir)))
               (addfiles (list (conc dest "/" target exeext))))
             (set! prgs 
               (cons (list target dependencies: deps source: src options: opts 
@@ -485,7 +485,7 @@
          (ext (executable-extension platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
-         (dest (if (eq? mode 'target) target-bindir host-bindir))
+         (dest (if (eq? mode 'target) default-bindir host-bindir))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform))
          (destf (quotearg (slashify (conc dest "/" name ext) platform))))
@@ -497,7 +497,7 @@
 (define ((install-data name #!key files destination mode) srcdir platform)
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
-         (dest (or destination (if (eq? mode 'target) target-sharedir host-sharedir)))
+         (dest (or destination (if (eq? mode 'target) default-sharedir host-sharedir)))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
@@ -506,7 +506,7 @@
 (define ((install-c-include name #!key deps files destination mode) srcdir platform)
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
-         (dest (or destination (if (eq? mode 'target) target-incdir host-incdir)))
+         (dest (or destination (if (eq? mode 'target) default-incdir host-incdir)))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
