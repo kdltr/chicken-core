@@ -515,7 +515,7 @@
 	    (gen ";"))))
 
       (expr node temps) )
-  
+ 
     (define (header)
       (define (pad0 n)
 	(if (< n 10)
@@ -541,7 +541,12 @@
 	(unless (null? used-units)
 	  (gen #t "   uses: ")
 	  (gen-list used-units))
-	(gen #t "*/" #t #t "#include \"" target-include-file "\"")
+        (gen #t "*/")
+        (unless (null? linked-static-extensions)
+          (gen #t "/*### (static-objects")
+          (for-each (cut gen " \"" <> "\"") linked-static-extensions)
+          (gen ") */" #t))
+	(gen #t "#include \"" target-include-file "\"")
 	(when external-protos-first
 	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) )
 	(when (pair? foreign-declarations)
