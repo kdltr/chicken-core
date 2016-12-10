@@ -24,52 +24,40 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-(declare (block))
 
-(import chicken.posix
+(module main ()
+
+(import scheme
+        chicken
+        chicken.posix
 	chicken.data-structures
 	chicken.foreign
 	chicken.format
 	chicken.pathname
-	chicken.utils)
+	chicken.utils
+        chicken.ports
+        chicken.io)
 
+(include "egg-environment.scm")
 (include "mini-srfi-1.scm")
 
-(define-foreign-variable INSTALL_BIN_HOME c-string "C_INSTALL_BIN_HOME")
-(define-foreign-variable INSTALL_CC c-string "C_INSTALL_CC")
-(define-foreign-variable INSTALL_CXX c-string "C_INSTALL_CXX")
-(define-foreign-variable INSTALL_RC_COMPILER c-string "C_INSTALL_RC_COMPILER")
-(define-foreign-variable TARGET_CC c-string "C_TARGET_CC")
-(define-foreign-variable TARGET_CXX c-string "C_TARGET_CXX")
-(define-foreign-variable TARGET_RC_COMPILER c-string "C_TARGET_RC_COMPILER")
-(define-foreign-variable TARGET_CFLAGS c-string "C_TARGET_CFLAGS")
-(define-foreign-variable INSTALL_CFLAGS c-string "C_INSTALL_CFLAGS")
-(define-foreign-variable TARGET_LDFLAGS c-string "C_TARGET_LDFLAGS")
-(define-foreign-variable TARGET_FEATURES c-string "C_TARGET_FEATURES")
-(define-foreign-variable INSTALL_LDFLAGS c-string "C_INSTALL_LDFLAGS")
-(define-foreign-variable INSTALL_MORE_LIBS c-string "C_INSTALL_MORE_LIBS")
-(define-foreign-variable INSTALL_MORE_STATIC_LIBS c-string "C_INSTALL_MORE_STATIC_LIBS")
-(define-foreign-variable INSTALL_SHARE_HOME c-string "C_INSTALL_SHARE_HOME")
-(define-foreign-variable INSTALL_LIB_HOME c-string "C_INSTALL_LIB_HOME")
-(define-foreign-variable INSTALL_LIB_NAME c-string "C_INSTALL_LIB_NAME")
-(define-foreign-variable INSTALL_INCLUDE_HOME c-string "C_INSTALL_INCLUDE_HOME")
-(define-foreign-variable INSTALL_STATIC_LIB_HOME c-string "C_INSTALL_STATIC_LIB_HOME")
-(define-foreign-variable TARGET_MORE_LIBS c-string "C_TARGET_MORE_LIBS")
-(define-foreign-variable TARGET_MORE_STATIC_LIBS c-string "C_TARGET_MORE_STATIC_LIBS")
-(define-foreign-variable TARGET_BIN_HOME c-string "C_TARGET_BIN_HOME")
-(define-foreign-variable TARGET_SHARE_HOME c-string "C_TARGET_SHARE_HOME")
-(define-foreign-variable TARGET_LIB_HOME c-string "C_TARGET_LIB_HOME")
-(define-foreign-variable TARGET_LIB_NAME c-string "C_TARGET_LIB_NAME")
-(define-foreign-variable TARGET_INCLUDE_HOME c-string "C_TARGET_INCLUDE_HOME")
-(define-foreign-variable TARGET_STATIC_LIB_HOME c-string "C_TARGET_STATIC_LIB_HOME")
-(define-foreign-variable TARGET_RUN_LIB_HOME c-string "C_TARGET_RUN_LIB_HOME")
-(define-foreign-variable CHICKEN_PROGRAM c-string "C_CHICKEN_PROGRAM")
-(define-foreign-variable CSC_PROGRAM c-string "C_CSC_PROGRAM")
-(define-foreign-variable WINDOWS_SHELL bool "C_WINDOWS_SHELL")
-(define-foreign-variable BINARY_VERSION int "C_BINARY_VERSION")
+(define-foreign-variable windows-shell bool "C_WINDOWS_SHELL")
 (define-foreign-variable POSTINSTALL_PROGRAM c-string "C_INSTALL_POSTINSTALL_PROGRAM")
+(define-foreign-variable INSTALL_LIB_NAME c-string "C_INSTALL_LIB_NAME")
+(define-foreign-variable TARGET_LIB_NAME c-string "C_TARGET_LIB_NAME")
+(define host-libs (foreign-value "C_INSTALL_MORE_LIBS" c-string))
+(define-foreign-variable TARGET_MORE_STATIC_LIBS c-string "C_TARGET_MORE_STATIC_LIBS")
+(define-foreign-variable INSTALL_MORE_STATIC_LIBS c-string "C_INSTALL_MORE_STATIC_LIBS")
+(define TARGET_CC default-cc)
+(define-foreign-variable CHICKEN_PROGRAM c-string "C_CHICKEN_PROGRAM")
+(define-foreign-variable TARGET_FEATURES c-string "C_TARGET_FEATURES")
+(define-foreign-variable TARGET_RUN_LIB_HOME c-string "C_TARGET_RUN_LIB_HOME")
+(define-foreign-variable TARGET_RC_COMPILER c-string "C_TARGET_RC_COMPILER")
+(define-foreign-variable INSTALL_RC_COMPILER c-string "C_INSTALL_RC_COMPILER")
+(define-foreign-variable TARGET_LDFLAGS c-string "C_TARGET_LDFLAGS")
+(define-foreign-variable INSTALL_LDFLAGS c-string "C_INSTALL_LDFLAGS")
+(define-foreign-variable CSC_PROGRAM c-string "C_CSC_PROGRAM")
 
-(define windows-shell WINDOWS_SHELL)
 
 ;;; Parameters:
 
@@ -107,26 +95,23 @@
   (qs (normalize-pathname str)))
 
 (define home
-  (prefix "" "share" (if host-mode INSTALL_SHARE_HOME TARGET_SHARE_HOME)))
+  (prefix "" "share" (if host-mode host-sharedir default-sharedir)))
 
 (define translator
   (quotewrap
    (prefix "chicken" "bin"
-	   (make-pathname
-	    INSTALL_BIN_HOME
-	    CHICKEN_PROGRAM))))
+	   (make-pathname host-bindir CHICKEN_PROGRAM))))
 
-(define compiler (quotewrap (if host-mode INSTALL_CC TARGET_CC)))
-(define c++-compiler (quotewrap (if host-mode INSTALL_CXX TARGET_CXX)))
+(define compiler (quotewrap (if host-mode host-cc default-cc)))
+(define c++-compiler (quotewrap (if host-mode host-cxx default-cxx)))
 (define rc-compiler (quotewrap (if host-mode INSTALL_RC_COMPILER TARGET_RC_COMPILER)))
-(define linker (quotewrap (if host-mode INSTALL_CC TARGET_CC)))
-(define c++-linker (quotewrap (if host-mode INSTALL_CXX TARGET_CXX)))
+(define linker (quotewrap (if host-mode host-cc default-cc)))
+(define c++-linker (quotewrap (if host-mode host-cxx default-cxx)))
 (define object-extension "o")
 (define library-extension "a")
 (define link-output-flag "-o ")
 (define executable-extension "")
 (define compile-output-flag "-o ")
-(define nonstatic-compilation-options '())
 (define shared-library-extension ##sys#load-dynamic-extension)
 (define default-translation-optimization-options '())
 (define pic-options (if (or mingw cygwin) '("-DPIC") '("-fPIC" "-DPIC")))
@@ -141,7 +126,7 @@
 (define default-library
   (string-append libchicken "." library-extension))
 
-(define default-compilation-optimization-options (string-split (if host-mode INSTALL_CFLAGS TARGET_CFLAGS)))
+(define default-compilation-optimization-options (string-split (if host-mode host-cflags default-cflags)))
 (define best-compilation-optimization-options default-compilation-optimization-options)
 (define default-linking-optimization-options (string-split (if host-mode INSTALL_LDFLAGS TARGET_LDFLAGS)))
 (define best-linking-optimization-options default-linking-optimization-options)
@@ -223,15 +208,13 @@
       TARGET_MORE_STATIC_LIBS))
 
 (define extra-shared-libraries 
-  (if host-mode 
-      INSTALL_MORE_LIBS
-      TARGET_MORE_LIBS))
+  (if host-mode host-libs default-libs))
 
 (define default-library-files 
   (list
    (prefix default-library "lib"
 	   (string-append
-	    (if host-mode INSTALL_LIB_HOME TARGET_LIB_HOME)
+	    (if host-mode host-libdir default-libdir)
 	    (string-append "/" default-library)))) )
 
 (define default-shared-library-files 
@@ -245,7 +228,7 @@
 (define include-dir
   (let ((id (prefix ""
                     (make-pathname "include" "chicken")
-		    (if host-mode INSTALL_INCLUDE_HOME TARGET_INCLUDE_HOME))))
+		    (if host-mode host-incdir default-incdir))))
     (and (not (member id '("/usr/include" "")))
 	 id) ) )
 
@@ -266,9 +249,7 @@
 
 (define library-dir
   (prefix "" "lib"
-         (if host-mode
-             INSTALL_LIB_HOME
-             TARGET_LIB_HOME)) )
+         (if host-mode host-libdir default-libdir)))
 
 (define link-options '())
 
@@ -283,7 +264,7 @@
 		     (quotewrap
 		      (prefix "" "lib"
 			      (if host-mode
-				  INSTALL_LIB_HOME
+				  host-libdir
 				  TARGET_RUN_LIB_HOME)))))))
 	 (aix
 	  (list (conc "-Wl,-R\"" library-dir "\"")))
@@ -593,7 +574,8 @@ EOF
 	     (run-compilation)
 	     (unless compile-only
 	       (when (member target-filename scheme-files)
-		 (printf "Warning: output file will overwrite source file `~A' - renaming source to `~A.old'~%"
+		 (fprintf (current-error-port)
+                          "Warning: output file will overwrite source file `~A' - renaming source to `~A.old'~%"
 			 target-filename target-filename)
 		 (command 
 		  (sprintf
@@ -684,7 +666,7 @@ EOF
 		(when mingw
 		  (set! object-files 
 		    (cons (make-pathname 
-			   INSTALL_SHARE_HOME "chicken.rc"
+			   host-sharedir "chicken.rc"
 			   object-extension) 
 			  object-files))
 		  (set! link-options
@@ -987,13 +969,11 @@ EOF
 (define (lib-path)
   (prefix "" 
 	  "lib"
-	  (if host-mode
-	      INSTALL_LIB_HOME
-	      TARGET_RUN_LIB_HOME)))
+	  (if host-mode host-libdir TARGET_RUN_LIB_HOME)))
 
 (define (target-lib-path)
   (or (get-environment-variable "TARGET_LIB_PATH")
-      (let ((tdir TARGET_LIB_HOME))
+      (let ((tdir default-libdir))
 	(if (and (not (string=? tdir ""))
 		 cross-chicken
 		 (not host-mode))
@@ -1126,3 +1106,5 @@ EOF
  (append 
   (string-split (or (get-environment-variable "CSC_OPTIONS") "")) 
   arguments))
+
+)
