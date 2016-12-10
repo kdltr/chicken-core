@@ -739,7 +739,7 @@ library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations
 	-emit-import-library chicken.time
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal
-eval.c: $(SRCDIR)eval.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
+eval.c: $(SRCDIR)eval.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-information.scm
 	$(bootstrap-lib) -emit-import-library chicken.eval
 read-syntax.c: $(SRCDIR)read-syntax.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.read-syntax

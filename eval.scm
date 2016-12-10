@@ -65,6 +65,7 @@
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")
+(include "egg-information.scm")
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
@@ -101,6 +102,23 @@
 (define-constant setup-file-extension "egg-info")
 (define-constant repository-environment-variable "CHICKEN_REPOSITORY")
 (define-constant prefix-environment-variable "CHICKEN_PREFIX")
+(define-constant windows-object-file-extension ".obj")
+(define-constant unix-object-file-extension ".o")
+(define-constant loadable-file-extension ".so")
+
+(define object-file-extension
+  (cond ((eq? (software-type) 'windows) windows-object-file-extension)
+	(else unix-object-file-extension)))
+
+(define load-library-extension
+  (cond ((eq? (software-type) 'windows) windows-load-library-extension)
+	((eq? (software-version) 'macosx) macosx-load-library-extension)
+	((and (eq? (software-version) 'hpux) 
+	      (eq? (machine-type) 'hppa)) hppa-load-library-extension)
+	(else default-load-library-extension) ) )
+
+(define ##sys#load-dynamic-extension default-load-library-extension)
+
 
 ; these are actually in unit extras, but that is used by default
 
@@ -703,12 +721,8 @@
 			 [(##core#require-for-syntax)
 			  (let ((id (cadr x)))
 			    (load-extension id)
-			    (compile
-			     `(##core#begin
-			       ,@(map (lambda (x)
-					`(##sys#load-extension (##core#quote ,x)))
-				      (lookup-runtime-requirements id)))
-			     e #f tf cntr se))]
+			    (compile '(##core#undefined)
+                                     e #f tf cntr se))]
 
 			 [(##core#require)
 			  (let ((id         (cadr x))
@@ -1071,15 +1085,6 @@
 (define (load-noisily filename #!key (evaluator #f) (time #f) (printer #f))
   (load/internal filename evaluator #t time printer))
 
-(define load-library-extension ; this is crude...
-  (cond [(eq? (software-type) 'windows) windows-load-library-extension]
-	[(eq? (software-version) 'macosx) macosx-load-library-extension]
-	[(and (eq? (software-version) 'hpux) 
-	      (eq? (machine-type) 'hppa)) hppa-load-library-extension]
-	[else default-load-library-extension] ) )
-
-(define ##sys#load-dynamic-extension default-load-library-extension)
-
 (define dynamic-load-libraries 
   (let ((ext
 	 (if uses-soname?
@@ -1261,20 +1266,22 @@
 (define (extension-information ext)
   (extension-information/internal ext 'extension-information))
 
-(define (lookup-runtime-requirements id)
-  (let ((info (extension-information/internal id #f)))
-    (cond ((not info) '())
-	  ((assq 'require-at-runtime info) => cdr)
-	  (else '()))))
+(define (static-extension-available? id)
+  (and-let* ((rp (##sys#repository-path)))
+       (let* ((p (##sys#canonicalize-extension-path id #f))
+              (rpath (string-append rp "/" p)) 
+              (opath (string-append rpath object-file-extension)))
+         (file-exists? opath))))
+
 
 ;;
 ;; Given a library specification, returns three values:
 ;;
 ;;   - an expression for loading the library, if required
 ;;   - a library id if the library was found, #f otherwise
-;;   - a requirement type (e.g. 'dynamic) or #f if provided statically
+;;   - a requirement type (e.g. 'dynamic) or #f if provided in core
 ;;
-(define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()))
+(define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()) static mark-static)
   (let ((id (library-id lib)))
     (cond
       ((assq id core-unit-requirements) =>
@@ -1291,26 +1298,10 @@
 	    `(##core#declare (uses ,id))
 	    `(##sys#load-library (##core#quote ,id)))
 	id #f))
-      ((extension-information/internal id #f) =>
-       (lambda (info)
-	 (let ((s  (assq 'syntax info))
-	       (nr (assq 'syntax-only info))
-	       (rr (assq 'require-at-runtime info)))
-	   (values
-	    `(##core#begin
-	      ,@(if (not s)
-		    '()
-		    `((##core#require-for-syntax ,id)))
-	      ,@(if (or nr (and (not rr) s))
-		    '()
-		    (map (lambda (id)
-			   `(##sys#load-extension
-			     (##core#quote ,id)
-			     (##core#quote ,alternates)))
-			 (cond (rr (cdr rr))
-			       (else (list id))))))
-	    id
-	    (if s 'dynamic/syntax 'dynamic)))))
+      ((and compiling? static (static-extension-available? id)) =>
+       (lambda (path) 
+         (mark-static id path)
+         (values `(##core#declare (uses ,id)) id 'static)))
       (else
        (values `(##sys#load-extension
 		 (##core#quote ,id)
