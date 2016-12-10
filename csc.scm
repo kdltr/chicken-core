@@ -305,27 +305,18 @@
 (define to-stdout #f)
 (define shared #f)
 (define static #f)
-(define static-libs #f)
 
 
 ;;; Locate object files for linking:
 
 (define (find-object-files name)
-
   (define (locate-object-file filename repo)
     (and-let* ((f (##sys#resolve-include-filename filename '() repo #f)))
       (list f)))
-
-  (define (static-extension-information name)
-    (and-let* ((info  (extension-information name))
-	       (files (alist-ref 'static info eq?)))
-      (map (lambda (f) (make-pathname (repository-path) f)) files)))
-
   (let ((f (make-pathname #f name object-extension)))
     (or (locate-object-file f #f)
 	(and (not ignore-repository)
-	     (or (static-extension-information name)
-		 (locate-object-file f #t)))
+             (locate-object-file f #t))
 	(stop "couldn't find linked extension: ~a" name))))
 
 
@@ -485,9 +476,8 @@ Usage: #{csc} FILENAME | OPTION ...
     -lLIBNAME                      link with given library
                                     (`libLIBNAME' on UNIX,
                                      `LIBNAME.lib' on Windows)
-    -static-libs                   link with static CHICKEN libraries
-    -static                        generate completely statically linked
-                                    executable
+    -static                        link with static CHICKEN libraries and
+                                    extensions (if possible)
     -F<DIR>                        pass \"-F<DIR>\" to C compiler
                                     (add framework header path on Mac OS X)
     -framework NAME                passed to linker on Mac OS X
@@ -633,12 +623,8 @@ EOF
 		(set! objc-mode #t) ]
 	       [(-static) 
 		(set! translate-options
-		  (cons* "-feature" "chicken-compile-static" translate-options))
+                  (cons "-static" translate-options))
 		(set! static #t) ]
-	       [(-static-libs) 
-		(set! translate-options
-		  (cons* "-feature" "chicken-compile-static" translate-options))
-		(set! static-libs #t) ]
 	       [(-cflags)
 		(set! inquiry-only #t) 
 		(set! show-cflags #t) ]
@@ -928,6 +914,8 @@ EOF
 	 (set! ofiles (cons fo ofiles))))
      rc-files)
     (set! object-files (append (reverse ofiles) object-files)) ; put generated object files first
+    ;; scan generated C files for mark indicating static extension files:
+    (for-each process-generated-file-marks c-files)
     (unless keep-files 
       (for-each $delete-file generated-c-files)
       (for-each $delete-file generated-rc-files))))
@@ -936,10 +924,33 @@ EOF
   (string-intersperse
    (map quote-option
 	(append
-	 (if (or static static-libs) '() nonstatic-compilation-options)
 	 compilation-optimization-options
 	 compile-options) ) ) )
 
+
+;;; Process "marks" in generated C files
+;
+; used for mapping statically linked extensions to .o files
+
+(define (process-generated-file-marks cfile)
+  (define (process-mark exp)
+    (case (car exp)
+      ((static-objects)
+       (set! object-files (append object-files (cdr exp))))
+      ;; ignore others
+      ))
+  (with-input-from-file cfile
+    (lambda ()
+      (let loop ()
+        (let ((line (read-line)))
+          (cond ((eof-object? line))
+                ((string=? "" line)) ;; scan until empty line
+                ((and (> (string-length line) 6)
+                      (string=? "/*### " (substring line 0 6)))
+                 (process-mark 
+                   (with-input-from-string (substring line 6) read)))
+                (else (loop))))))))
+              
 
 ;;; Link object files and libraries:
 
@@ -1007,10 +1018,10 @@ EOF
 (define (linker-libraries)
   (string-intersperse
    (append
-    (if (or static static-libs)
+    (if static
         library-files
         shared-library-files)
-    (if (or static static-libs)
+    (if static
         (list extra-libraries)
         (list extra-shared-libraries)))))
 
