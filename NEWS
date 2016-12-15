@@ -61,8 +61,8 @@
 4.11.2
 
 - Security fixes
-  - Irregex has been updated to 0.9.6, which fixes an exponential
-    explosion in compilation of nested "+" patterns.
+  - CVE-2016-9954: Irregex has been updated to 0.9.6, which fixes
+    an exponential explosion in compilation of nested "+" patterns.
 
 - Compiler:
   - Fixed incorrect argvector restoration after GC in directly
