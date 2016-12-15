@@ -510,19 +510,27 @@
 	(let* ((n (length args))
 	       (avl (+ n (if selfarg 1 0)))
 	       (caller-has-av? (not (or (lambda-literal-customizable ll)
-					(lambda-literal-direct ll)))))
+					(lambda-literal-direct ll))))
+	       (caller-argcount (lambda-literal-argument-count ll))
+	       (caller-rest-mode (lambda-literal-rest-argument-mode ll)))
 	  ;; Try to re-use argvector from current function if it is
 	  ;; large enough.  push-args gets used only for functions in
 	  ;; CPS context, so callee never returns to current function.
 	  ;; And even so, av[] is already copied into temporaries.
-	  (cond (caller-has-av?
-		 (gen #t "C_word *av2;")
-		 (gen #t "if(c >= " avl ") {")
-		 (gen #t "  av2=av; /* Re-use our own argvector */")
-		 (gen #t "} else {")
-		 (gen #t "  av2=C_alloc(" avl ");")
-		 (gen #t "}"))
-		(else (gen #t "C_word av2[" avl "];")))
+	  (cond
+	   ((or (not caller-has-av?)	     ; Argvec missing or
+		(and (< caller-argcount avl) ; known to be too small?
+		     (eq? caller-rest-mode 'none)))
+	    (gen #t "C_word av2[" avl "];"))
+	   ((>= caller-argcount avl)   ; Argvec known to be re-usable?
+	    (gen #t "C_word *av2=av; /* Re-use our own argvector */"))
+	   (else      ; Need to determine dynamically. This is slower.
+	    (gen #t "C_word *av2;")
+	    (gen #t "if(c >= " avl ") {")
+	    (gen #t "  av2=av; /* Re-use our own argvector */")
+	    (gen #t "} else {")
+	    (gen #t "  av2=C_alloc(" avl ");")
+	    (gen #t "}")))
 	  (when selfarg (gen #t "av2[0]=" selfarg ";"))
 	  (do ((j (if selfarg 1 0) (add1 j))
 	       (args args (cdr args)))
