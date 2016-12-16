@@ -85,6 +85,7 @@
 (define update-module-db #f)
 (define purge-mode #f)
 (define tests-failed #f)
+(define keepfiles #f)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -726,10 +727,12 @@
                                                                     platform))))
               (generate-shell-commands platform build bscript dir
                                        (build-prefix 'host name info)
-                                       (build-suffix 'host name info))
+                                       (build-suffix 'host name info)
+                                       keepfiles)
               (generate-shell-commands platform install iscript dir
                                        (install-prefix 'host name info)
-                                       (install-suffix 'host name info))
+                                       (install-suffix 'host name info)
+                                       keepfiles)
               (run-script dir bscript platform)
               (run-script dir iscript platform sudo: sudo-install)
               (when run-tests (test-egg egg platform)))))
@@ -742,10 +745,12 @@
                                                                     platform))))
               (generate-shell-commands platform build bscript dir
                                        (build-prefix 'target name info)
-                                       (build-suffix 'target name info))
+                                       (build-suffix 'target name info)
+                                       keepfiles)
               (generate-shell-commands platform install iscript dir
                                        (install-prefix 'target name info)
-                                       (install-suffix 'target name info))
+                                       (install-suffix 'target name info)
+                                       keepfiles)
               (run-script dir bscript platform)
               (run-script dir iscript platform))))))
     canonical-eggs))
@@ -764,6 +769,7 @@
         (change-directory testdir)
         (let ((r (system cmd)))
           (d "running: ~a~%" cmd)
+          (flush-output (current-error-port))
           (unless (zero? r)
             (set! tests-failed #t)
             (print "test script failed with nonzero exit status")))
@@ -928,6 +934,9 @@
                    (loop (cdr args)))
                   ((equal? arg "-v")
                    (set! quiet #f)
+                   (loop (cdr args)))
+                  ((member arg '("-k" "-keep"))
+                   (set! keepfiles #t)
                    (loop (cdr args)))
                   ((member arg '("-s" "-sudo"))
                    (set! sudo-install #t)
