@@ -15,6 +15,8 @@
 (define +unix-object-extension+ ".o")
 (define +windows-object-extension+ ".obj")
 
+(define keep-generated-files #f)
+
 
 ;;; some utilities
 
@@ -139,9 +141,9 @@
                       (src #f)
                       (cbuild #f)
                       (deps '()))
+            (for-each compile-extension/program (cddr info))
             (unless cbuild
               (error "generated source files need a custom build step" target))
-            (for-each compile-extension/program (cddr info))
             (set! genfiles
               (cons (list target dependencies: deps source: src custom: cbuild)
                     genfiles))))
@@ -252,47 +254,42 @@
            (order (reverse (topological-sort          
                             (map (lambda (dep)
                                    (cons (car dep) 
-                                         (filter-deps (car dep)                                                                               (get-keyword dependencies: 
-                                                                   (cdr dep)))))
+                                         (filter-deps (car dep)
+                                                      (get-keyword dependencies: (cdr dep)))))
                               all)
                             dep=?))))
       ;; generate + return build/install commands
       (values
         ;; build commands
-        (append 
-          (foldr
-            (lambda (data cmds)
-              (let ((link (get-keyword linkage: (cdr data))))
-                (append
-                  (if (memq 'dynamic link) 
-                      (list (apply compile-dynamic-extension data))
-                      '())
-                  ;; static must come last, as *.o file will be overwritten
-                  ;; and removed by dynamic build (meh)
-                  (if (memq 'static link) 
-                      (list (apply compile-static-extension data))
-                      '())
-                  (if (uses-compiled-import-library? mode)
-                      (list (apply compile-import-library data))
-                      '())
-                  cmds)))
-            '() exts)
-          (foldr
-            (lambda (prg cmds)   
-              (let ((link (get-keyword linkage: (cdr prg))))
-                (append
-                  (if (memq 'dynamic link) 
-                      (list (apply compile-dynamic-program prg))
-                      '())
-                  (if (memq 'static link) 
-                      (list (apply compile-static-program prg))
-                      '())
-                  cmds)))
-            '() prgs)
-          (foldr
-            (lambda (gen cmds)   
-              (cons (apply compile-generated-file gen) cmds))
-            '() genfiles))
+        (append-map 
+          (lambda (id)
+            (cond ((assq id exts) =>
+                   (lambda (data)
+                     (let ((link (get-keyword linkage: (cdr data))))
+                       (append (if (memq 'dynamic link) 
+                                   (list (apply compile-dynamic-extension data))
+                                   '())
+                               ;; static must come last, as *.o file will be overwritten
+                               ;; and removed by dynamic build (meh)
+                               (if (memq 'static link) 
+                                   (list (apply compile-static-extension data))
+                                   '())
+                               (if (uses-compiled-import-library? mode)
+                                   (list (apply compile-import-library data))
+                                   '())))))
+                  ((assq id prgs) =>
+                   (lambda (data)
+                     (let ((link (get-keyword linkage: (cdr data))))
+                       (append (if (memq 'dynamic link) 
+                                   (list (apply compile-dynamic-program data))
+                                   '())
+                               (if (memq 'static link) 
+                                   (list (apply compile-static-program data))
+                                   '())))))
+                  (else
+                    (let ((data (assq id genfiles)))
+                      (list (apply compile-generated-file data))))))
+          order)
         ;; installation commands
         (append
           (append-map
@@ -335,6 +332,7 @@
          (out (quotearg (target-file (conc sname (object-extension platform)) mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
+           (if keep-generated-files " -k" "")
            " -I " srcdir " -C -I" srcdir (arglist options) 
            " " src " -o " out " : "
            src #;(arglist dependencies))))
@@ -349,6 +347,7 @@
          (out (quotearg (target-file (conc sname ".so") mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
+           (if keep-generated-files " -k" "")
            " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
@@ -363,6 +362,7 @@
          (out (quotearg (target-file (conc sname ".import.so") mode)))
          (src (quotearg (or source (conc sname ".import.scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
+           (if keep-generated-files " -k" "")
            " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
@@ -379,6 +379,7 @@
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
+           (if keep-generated-files " -k" "")
            " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
@@ -395,6 +396,7 @@
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
+           (if keep-generated-files " -k" "")
            " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
@@ -515,14 +517,15 @@
 
 ;;; Generate shell or batch commands from abstract build/install operations
 
-(define (generate-shell-commands platform cmds dest srcdir prefix suffix)
-  (with-output-to-file dest
-    (lambda ()
-      (prefix platform)
-      (for-each
-        (lambda (cmd) (cmd srcdir platform))
-        cmds)
-      (suffix platform))))
+(define (generate-shell-commands platform cmds dest srcdir prefix suffix keep)
+  (fluid-let ((keep-generated-files keep))
+    (with-output-to-file dest
+      (lambda ()
+        (prefix platform)
+        (for-each
+          (lambda (cmd) (cmd srcdir platform))
+          cmds)
+        (suffix platform)))))
                         
 
 ;;; affixes for build- and install-scripts
