@@ -19,6 +19,7 @@ EOF
 (define debugbuild (foreign-value "DEBUG_CHICKEN" bool))
 (define cross-chicken (feature? #:cross-chicken))
 (define binary-version (foreign-value "C_BINARY_VERSION" int))
+(define major-version (foreign-value "C_MAJOR_VERSION" int))
 
 (define default-cc (foreign-value "C_TARGET_CC" c-string))
 (define default-cxx (foreign-value "C_TARGET_CXX" c-string))

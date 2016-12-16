@@ -245,7 +245,7 @@
   (receive (host port locn) (deconstruct-url url)
     (let* ((locn (conc locn
                        "?name=" egg
-                       "&release=" (##sys#fudge 41)
+                       "&release=" major-version
                        (if version (string-append "&version=" version) "")
                        "&mode=default"
                        (if tests "&tests=yes" "")))
