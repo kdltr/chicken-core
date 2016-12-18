@@ -372,14 +372,27 @@
 	    ((##core#direct_call) 
 	     (let* ((args (cdr subs))
 		    (n (length args))
-		    (nf (add1 n)) 
-		    ;;(name (second params))
-		    (call-id (third params))
-		    (demand (fourth params))
+		    (nf (add1 n))
+		    (dbi (first params))
+		    ;; (safe-to-call (second params))
+		    (name (third params))
+		    (name-str (source-info->string name))
+		    (call-id (fourth params))
+		    (demand (fifth params))
 		    (allocating (not (zero? demand)))
 		    (empty-closure (zero? (lambda-literal-closure-size (find-lambda call-id))))
 		    (fn (car subs)) )
-	       (gen call-id #\()
+	       (gen #\()
+	       (when name
+		 (cond (emit-debug-info
+			(when dbi
+			  (gen #t "  C_debugger(&(C_debug_info[" dbi "]),"
+			       (if non-av-proc "0,NULL" "c,av") "),")))
+		       (emit-trace-info
+			(gen #t "  C_trace(\"" (backslashify name-str) "\"),"))
+		       (else
+			(gen #t "  /* " (uncommentify name-str) " */"))))
+	       (gen #t "  " call-id #\()
 	       (when allocating 
 		 (gen "C_a_i(&a," demand #\))
 		 (when (or (not empty-closure) (pair? args)) (gen #\,)) )
@@ -387,7 +400,8 @@
 		 (expr fn i)
 		 (when (pair? args) (gen #\,)) )
 	       (when (pair? args) (expr-args args i))
-	       (gen #\)) ) )
+	       (gen #\))		; function call
+	       (gen #t #\))))		; complete expression
 
 	    ((##core#provide)
 	     (gen "C_a_i_provide(&a,1,lf[" (first params) "])"))
