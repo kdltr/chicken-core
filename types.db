@@ -1652,7 +1652,7 @@
 (current-effective-group-id (#(procedure #:clean) current-effective-group-id () fixnum))
 (current-effective-user-id (#(procedure #:clean) current-effective-user-id () fixnum))
 (current-effective-user-name (#(procedure #:clean) current-effective-user-name () string))
-(get-environment-variables (#(procedure #:clean) get-environment-variables () (list-of string)))
+(get-environment-variables (#(procedure #:clean) get-environment-variables () (list-of (pair string string))))
 (current-group-id (#(procedure #:clean) current-group-id () fixnum))
 (current-process-id (#(procedure #:clean) current-process-id () fixnum))
 (current-user-id (#(procedure #:clean) current-user-id () fixnum))
