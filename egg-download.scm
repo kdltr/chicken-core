@@ -217,7 +217,7 @@
   (receive (host port locn) (deconstruct-url url)
     (let ((locn (conc locn
                       "?name=" egg
-                      "&release=" (##sys#fudge 41)
+                      "&release=" major-version
                       "&mode=default"
                       "&listversions=1")))
       (let ((data	(http-query host port locn proxy-host
