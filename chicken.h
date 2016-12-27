@@ -245,6 +245,8 @@ void *alloca ();
 #endif
 
 #if defined(__GNUC__) || defined(__INTEL_COMPILER)
+# define C_unlikely(x)             __builtin_expect((x), 0)
+# define C_likely(x)               __builtin_expect((x), 1)
 # ifndef __cplusplus
 #  define C_cblock                ({
 #  define C_cblockend             })
@@ -261,6 +263,11 @@ void *alloca ();
 # endif
 #elif defined(__WATCOMC__)
 # define C_ccall                  __cdecl
+# define C_unlikely(x)             (x)
+# define C_likely(x)               (x)
+#else
+# define C_unlikely(x)             (x)
+# define C_likely(x)               (x)
 #endif
 
 #ifndef C_cblock
