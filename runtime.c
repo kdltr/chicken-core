@@ -1559,6 +1559,9 @@ C_word CHICKEN_run(void *toplevel)
   serious_signal_occurred = 0;
 
   if(!return_to_host) {
+    /* We must copy the argvector onto the stack, because
+     * any subsequent save() will otherwise clobber it.
+     */
     int argcount = C_temporary_stack_bottom - C_temporary_stack;
     C_word *p = C_alloc(argcount);
 
@@ -2134,8 +2137,11 @@ C_word C_fcall C_callback(C_word closure, int argc)
   serious_signal_occurred = 0;
 
   if(!callback_returned_flag) {
-    C_word *p = C_temporary_stack;
-    
+    /* We must copy the argvector onto the stack, because
+     * any subsequent save() will otherwise clobber it.
+     */
+    C_word *p = C_alloc(C_restart_c);
+    C_memcpy(p, C_temporary_stack, C_restart_c * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
   }
@@ -9975,7 +9981,10 @@ void C_ccall C_allocate_vector(C_word c, C_word *av)
       C_fromspace_top = C_fromspace_limit; /* trigger major GC */
   
     C_save(C_SCHEME_TRUE);
-    C_reclaim((void *)allocate_vector_2, c);
+    /* We explicitly pass 7 here, that's the number of things saved.
+     * That's the arguments, plus one additional thing: the mode.
+     */
+    C_reclaim((void *)allocate_vector_2, 7);
   }
 
   C_save(C_SCHEME_FALSE);

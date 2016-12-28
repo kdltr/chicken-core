@@ -71,6 +71,7 @@
 
 - Runtime system:
   - "time" macro now shows peak memory usage (#1318, thanks to Kooda).
+  - Avoid crashes in ffi callbacks after GC (#1337, thanks to cosarara).
 
 - Core libraries:
   - Keywords are more consistently read/written, like symbols (#1332).
