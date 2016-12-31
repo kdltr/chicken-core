@@ -582,7 +582,7 @@
     (when *keep-existing*
       (set! eggs
 	(remove 
-	 (lambda (egg) (extension-information (if (pair? egg) (car egg) egg)))
+	 (lambda (egg) (ext-version (if (pair? egg) (car egg) egg)))
 	 eggs)))
     (retrieve eggs)
     (unless *retrieve-only*
