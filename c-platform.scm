@@ -107,7 +107,7 @@
     setup-mode no-module-registration) )
 
 (define valid-compiler-options-with-argument
-  '(debug 
+  '(debug emit-link-file
     output-file include-path heap-size stack-size unit uses module
     keyword-style require-extension inline-limit profile-name
     prelude postlude prologue epilogue nursery extend feature no-feature

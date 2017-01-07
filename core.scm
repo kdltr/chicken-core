@@ -287,7 +287,7 @@
      optimize-leaf-routines standalone-executable undefine-shadowed-macros
      verbose-mode local-definitions enable-specialization block-compilation
      inline-locally inline-substitutions-enabled strict-variable-types
-     static-extensions
+     static-extensions emit-link-file
 
      ;; These are set by the (batch) driver, and read by the (c) backend
      disable-stack-overflow-checking emit-trace-info external-protos-first
@@ -396,6 +396,7 @@
 (define strict-variable-types #f)
 (define enable-specialization #f)
 (define static-extensions #f)
+(define emit-link-file #f)
 
 ;;; Other global variables:
 

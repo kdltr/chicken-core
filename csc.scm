@@ -148,7 +148,7 @@
 
 (define-constant complex-options
   '(-debug -heap-size -nursery -stack-size -compiler -unit -uses -keyword-style
-    -optimize-level -include-path -database-size -extend -prelude -postlude -prologue -epilogue 
+    -optimize-level -include-path -database-size -extend -prelude -postlude -prologue -epilogue -emit-link-file
     -inline-limit -profile-name
     -emit-inline-file -consult-inline-file
     -emit-type-file -consult-type-file
@@ -847,6 +847,10 @@ EOF
 		      (append 
 		       extra-features
 		       translate-options 
+                       (if static
+                           (list "-emit-link-file"
+                                 (pathname-replace-extension f "link"))
+                           '())
 		       (cond (cpp-mode '("-feature" "chicken-scheme-to-c++"))
 			     (objc-mode '("-feature" "chicken-scheme-to-objc"))
 			     (else '()))
@@ -896,8 +900,6 @@ EOF
 	 (set! ofiles (cons fo ofiles))))
      rc-files)
     (set! object-files (append (reverse ofiles) object-files)) ; put generated object files first
-    ;; scan generated C files for mark indicating static extension files:
-    (for-each process-generated-file-marks c-files)
     (unless keep-files 
       (for-each $delete-file generated-c-files)
       (for-each $delete-file generated-rc-files))))
@@ -910,36 +912,13 @@ EOF
 	 compile-options) ) ) )
 
 
-;;; Process "marks" in generated C files
-;
-; used for mapping statically linked extensions to .o files
-
-(define (process-generated-file-marks cfile)
-  (define (process-mark exp)
-    (case (car exp)
-      ((static-objects)
-       (set! object-files (append object-files (cdr exp))))
-      ;; ignore others
-      ))
-  (with-input-from-file cfile
-    (lambda ()
-      (let loop ()
-        (let ((line (read-line)))
-          (cond ((eof-object? line))
-                ((string=? "" line)) ;; scan until empty line
-                ((and (> (string-length line) 6)
-                      (string=? "/*### " (substring line 0 6)))
-                 (process-mark 
-                   (with-input-from-string (substring line 6) read)))
-                (else (loop))))))))
-              
-
 ;;; Link object files and libraries:
 
 (define (run-linking)
   (let* ((files (map quotewrap object-files))
 	 (target (quotewrap target-filename))
 	 (targetdir #f))
+    (set! object-files (collect-linked-objects object-files))
     (command
      (string-intersperse 
       (cons* (cond (cpp-mode c++-linker)
@@ -966,6 +945,17 @@ EOF
 	(rez target)))
     (unless keep-files (for-each $delete-file generated-object-files)) ) )
 
+(define (collect-linked-objects object-files)
+  (let loop ((os object-files) (os2 object-files))
+    (if (null? os)
+        (delete-duplicates (reverse os2) string=?)
+        (let* ((o (car os))
+               (lfile (pathname-replace-extension o "link")))
+          (loop (cdr os)
+                (if (file-exists? lfile)
+                    (append (with-input-from-file lfile read) os2)
+                    os2))))))
+
 (define (lib-path)
   (prefix "" 
 	  "lib"
@@ -990,10 +980,8 @@ EOF
      ((if windows-shell quotewrap-no-slash-trans quotewrap) to))))
 
 (define (linker-options)
-  (string-append
-   (string-intersperse
-    (append linking-optimization-options link-options))
-   (if (and static (not mingw) (not osx)) " -static" "") ) )
+  (string-intersperse
+    (append linking-optimization-options link-options)))
 
 (define (linker-libraries)
   (string-intersperse

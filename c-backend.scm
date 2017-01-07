@@ -542,10 +542,6 @@
 	  (gen #t "   uses: ")
 	  (gen-list used-units))
         (gen #t "*/")
-        (unless (null? linked-static-extensions)
-          (gen #t "/*### (static-objects")
-          (for-each (cut gen " \"" <> "\"") linked-static-extensions)
-          (gen ") */" #t))
 	(gen #t "#include \"" target-include-file "\"")
 	(when external-protos-first
 	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) )
