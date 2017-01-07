@@ -120,7 +120,10 @@
               (when (eq? #t tfile) (set! tfile target))
               (when (eq? #t ifile) (set! ifile target))
               (addfiles 
-                (if (memq 'static link) (list (conc dest "/" target objext)) '())
+                (if (memq 'static link) 
+                    (list (conc dest "/" target objext)
+                          (conc dest "/" target ".link"))
+                    '())
                 (if (memq 'dynamic link) (list (conc dest "/" target ".so")) '())
                 (if tfile 
                     (list (conc dest "/" tfile ".types"))
@@ -343,8 +346,7 @@
                                    (options '()) custom) 
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom))
-                  (conc default-csc " -D compiling-extension -c -J -unit " name
-                        " -D compiling-static-extension")))
+                  default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname
@@ -353,8 +355,11 @@
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
-           " -setup-mode"
-           " -I " srcdir " -C -I" srcdir (arglist options) 
+           " -setup-mode -static -I " srcdir 
+           " -D compiling-extension -c -J -unit " name
+           " -D compiling-static-extension"
+           " -emit-link-file " (quotearg (conc sname ".link"))
+           " -C -I" srcdir (arglist options) 
            " " src " -o " out " : "
            src #;(arglist dependencies))))
 
@@ -363,15 +368,15 @@
                                     custom) 
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom)) 
-                  (conc default-csc " -D compiling-extension -J -s")))
+                  default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname ".so") mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
-           " -setup-mode"
-           " -I " srcdir " -C -I" srcdir (arglist options)
+           " -D compiling-extension -J -s"
+           " -setup-mode -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
 
@@ -380,14 +385,14 @@
                                  custom)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom))
-                  (conc default-csc " -s")))
+                  default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname ".import.so") mode)))
          (src (quotearg (or source (conc sname ".import.scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
-           " -setup-mode"
+           " -setup-mode -s"
            " -I " srcdir " -C -I" srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
@@ -416,7 +421,7 @@
                                     custom mode)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom))
-                  (conc default-csc " -static-libs")))
+                  default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname
@@ -425,8 +430,9 @@
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
-           " -setup-mode"
-           " -I " srcdir " -C -I" srcdir (arglist options)
+           " -static-libs"
+           " -setup-mode -static -I " srcdir " -C -I" 
+           srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
 
@@ -457,6 +463,10 @@
     (print cmd " " out " " ddir (quotearg (slashify (conc dest "/" 
                                                           output-file
                                                           ext) 
+                                                    platform)))
+    (print cmd " " out " " ddir (quotearg (slashify (conc dest "/" 
+                                                          output-file
+                                                          ".link") 
                                                     platform)))))
 
 (define ((install-dynamic-extension name #!key mode (ext ".so")
