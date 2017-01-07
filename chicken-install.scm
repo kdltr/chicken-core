@@ -411,8 +411,10 @@
       ;; the timestamp, if it exists (as it does for downloaded eggs)
       (cond ((if (file-exists? timestamp)
                  (and (> (- now (with-input-from-file timestamp read)) +one-hour+)
-                      (not (check-remote-version name version lversion)))
-                 (not (check-remote-version name version lversion)))
+                      (not (check-remote-version name version lversion
+                                                 cached)))
+                 (not (check-remote-version name version lversion
+                                            cached)))
              (d "version of ~a out of date~%" name)
              (fetch #t)
              (let* ((info (validate-egg-info (load-egg-info eggfile))) ; new egg info (fetched)
@@ -479,7 +481,7 @@
     (d "~a~%" cmd)
     (system cmd)))
   
-(define (check-remote-version name version lversion)
+(define (check-remote-version name version lversion cached)
   (let loop ((locs default-locations))
     (cond ((null? locs)
            (let loop ((srvs default-servers))
@@ -488,8 +490,29 @@
                     (or (and versions
                              (any (cut version>=? <> version) versions))
                         (loop (cdr srvs)))))))
-          ((probe-dir (make-pathname (car locs) name)) #f)
+          ((probe-dir (make-pathname (car locs) name)) =>
+           (lambda (dir)
+             ;; for locally available eggs, check set of files and
+             ;; timestamps
+             (compare-trees dir cached)))
           (else (loop (cdr locs))))))
+
+(define (compare-trees there here)
+  (let walk ((there there)
+             (here here))
+    (let ((tfs (directory there))
+          (hfs (directory here)))
+      (every (lambda (f) 
+               (and (member f hfs)
+                    (let ((tf2 (string-append there "/" f))
+                          (hf2 (string-append here "/" f)))
+                      (and (<= (file-modification-time tf2)
+                               (file-modification-time hf2))
+                           (if (directory? tf2)
+                               (and (directory? hf2)
+                                    (walk tf2 hf2))
+                               (not (directory? hf2)))))))
+             tfs))))
 
 
 ;; retrieve eggs, recursively (if needed)
