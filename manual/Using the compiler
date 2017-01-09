@@ -59,6 +59,8 @@ the source text should be read from standard input.
 
 ; -emit-inline-file FILENAME : Write procedures that can be globally inlined in internal form to {{FILENAME}}, if global inlining is enabled. Implies {{-inline -local}}. If the inline-file would be empty (because no procedure would be inlinable) no file is generated and any existing inline-file with that name is deleted.
 
+; -emit-link-file FILENAME : write a list of statically linked extensions to {{FILENAME}}, used for identifying the static objects that need to be linked to an executable.
+
 ; -emit-type-file FILENAME : Write type-information for declarations of user-defined and globally visible variables to a file of the given name. The generated file is suitable for use with the {{-consult-type-file}} option.
 
 ; -explicit-use : Disables automatic use of the units {{library, eval}} and {{expand}}. Use this option if compiling a library unit instead of an application unit.
