@@ -515,6 +515,38 @@
              tfs))))
 
 
+;; check installed eggs for already installed files
+
+(define (matching-installed-files egg fnames)
+  (let ((eggs (glob (make-pathname (repo-path) "*.egg-info"))))
+    (let loop ((eggs eggs) (same '()))
+      (cond ((null? eggs) same)
+            ((string=? egg (pathname-file (car eggs)))
+             (loop (cdr eggs) same))
+            (else
+              (let* ((info (load-egg-info (car eggs)))
+                     (files (assq 'installed-files info))
+                     (mfiles (and files
+                                  (filter (lambda (fname)
+                                            (and (not (member fname same))
+                                                 (member fname files)))
+                                          fnames))))
+                (loop (cdr eggs) (append (or mfiles '()) same))))))))
+
+(define (check-installed-files name info)
+  (let ((bad (matching-installed-files name
+                                       (cdr (assq 'installed-files info)))))
+    (unless (null? bad)
+      (flush-output)
+      (fprintf (current-error-port) 
+               "\nthe extension `~a' will overwrite the following files:\n\n" name)
+      (for-each 
+        (lambda (fname)
+          (fprintf (current-error-port) "  ~a~%" fname))
+        bad)
+      (exit 1))))
+
+
 ;; retrieve eggs, recursively (if needed)
   
 (define (retrieve-eggs eggs)
@@ -744,6 +776,7 @@
                   (and (not target-extension)
                        (not host-extension)))
           (let-values (((build install info) (compile-egg-info info platform 'host)))
+            (check-installed-files name info)                         
             (let ((bscript (make-pathname dir name 
                                           (build-script-extension 'host platform)))
                   (iscript (make-pathname dir name 
