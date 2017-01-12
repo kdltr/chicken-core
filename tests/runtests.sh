@@ -87,6 +87,7 @@ SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"csi\" (make-pathname ${TEST
 TYPESDB=../types.db
 cp $TYPESDB test-repository/types.db
 
+time=`command >/dev/null -v time && echo time || :`
 compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out"
 compile2="../csc -compiler ${CHICKEN} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS}"
@@ -162,9 +163,9 @@ echo "======================================== specialization benchmark ..."
 $compile fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1
 $compile fft.scm -O2 -local -specialize -debug x -d0 -disable-interrupts -b -o fft2 -specialize
 echo "normal:"
-time ./fft1 1000 7
+$time ./fft1 1000 7
 echo "specialized:"
-time ./fft2 1000 7
+$time ./fft2 1000 7
 
 echo "======================================== callback tests ..."
 $compile callback-tests.scm
@@ -440,7 +441,7 @@ $compile locative-stress-test.scm
 ./a.out
 
 echo "======================================== syntax-rules stress test ..."
-time $interpret -bnq syntax-rule-stress-test.scm
+$time $interpret -bnq syntax-rule-stress-test.scm
 
 echo "======================================== include test ..."
 mkdir -p a/b

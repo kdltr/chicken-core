@@ -1931,7 +1931,7 @@
 (chicken.posix#current-effective-group-id (#(procedure #:clean) chicken.posix#current-effective-group-id () fixnum))
 (chicken.posix#current-effective-user-id (#(procedure #:clean) chicken.posix#current-effective-user-id () fixnum))
 (chicken.posix#current-effective-user-name (#(procedure #:clean) chicken.posix#current-effective-user-name () string))
-(chicken.posix#get-environment-variables (#(procedure #:clean) chicken.posix#get-environment-variables () (list-of string)))
+(chicken.posix#get-environment-variables (#(procedure #:clean) chicken.posix#get-environment-variables () (list-of (pair string string))))
 (chicken.posix#current-group-id (#(procedure #:clean) chicken.posix#current-group-id () fixnum))
 (chicken.posix#current-process-id (#(procedure #:clean) chicken.posix#current-process-id () fixnum))
 (chicken.posix#current-user-id (#(procedure #:clean) chicken.posix#current-user-id () fixnum))

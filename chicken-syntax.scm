@@ -304,26 +304,37 @@
 	(##core#let
 	 ,(map ##sys#list saveds vals)
 	 (##core#let
-	  ((,convert? (,the ,boolean #t))) ; Convert only first time extent is entered!
-	  (##sys#dynamic-wind
-	   (##core#lambda ()
-	    (##core#let
-	     ;; First, call converters (which may throw exceptions!)
-	     ,(map (lambda (p s temp)
-		     `(,temp (##core#if ,convert? (,p ,s #t #f) ,s)))
-		   param-aliases saveds temps)
-	     ;; Save current values so we can restore them later
-	     ,@(map (lambda (p s) `(##core#set! ,s (,p)))
-		    param-aliases saveds)
-	     ;; Set parameters to their new values.  This can't fail.
-	     ,@(map (lambda (p t) `(,p ,t #f #t)) param-aliases temps)
-	     ;; Remember we already converted (only call converters once!)
-	     (##core#set! ,convert? #f) ) )
-	   (##core#lambda () ,@body)
-	   (##core#lambda ()
-	    ;; Restore parameters to their original, saved values
-	    ,@(map (lambda (p s) `(,p ,s #f #t))
-		   param-aliases saveds) )) ) ) ) ) )))
+	  ;; Inner names are actually set.  This hides the exact
+	  ;; ordering of the let if any call/cc is used in the
+	  ;; value expressions (see first example in #1336).
+	  ,(map ##sys#list saveds saveds)
+	  (##core#let
+	   ((,convert? (,the ,boolean #t))) ; Convert only first time extent is entered!
+	   (##sys#dynamic-wind
+	    (##core#lambda ()
+	      (##core#let
+	       ;; First, call converters (which may throw exceptions!)
+	       ,(map (lambda (p s temp)
+		       `(,temp (##core#if ,convert? (,p ,s #t #f) ,s)))
+		     param-aliases saveds temps)
+	       ;; Save current values so we can restore them later
+	       ,@(map (lambda (p s) `(##core#set! ,s (,p)))
+		      param-aliases saveds)
+	       ;; Set parameters to their new values.  This can't fail.
+	       ,@(map (lambda (p t) `(,p ,t #f #t)) param-aliases temps)
+	       ;; Remember we already converted (only call converters once!)
+	       (##core#set! ,convert? #f)))
+	    (##core#lambda () ,@body)
+	    (##core#lambda ()
+	      (##core#let
+	       ;; Remember the current value of each parameter.
+	       ,(map (lambda (p s temp) `(,temp (,p)))
+		     param-aliases saveds temps)
+	       ;; Restore each parameter to its old value.
+	       ,@(map (lambda (p s) `(,p ,s #f #t)) param-aliases saveds)
+	       ;; Save current value for later re-invocations.
+	       ,@(map (lambda (s temp) `(##core#set! ,s ,temp))
+		      saveds temps))))))))))))
 
 (##sys#extend-macro-environment
  'when '()

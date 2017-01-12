@@ -600,6 +600,41 @@ A
   (assert (equal? original-error (current-error-port)))
   (assert (equal? original-exception-handler (current-exception-handler))))
 
+;; Re-entering dynamic extent of a parameterize should not reset to
+;; original outer values but remember values when jumping out (another
+;; regression due to #1227, pointed out by Joo ChurlSoo in #1336).
+
+(let ((f (make-parameter 'a))
+      (path '())
+      (g (make-parameter 'g))
+      (c #f))
+  (let ((add (lambda () (set! path (cons (f) path)))))
+    (add)
+    (parameterize ((f 'b)
+		   (g (call-with-current-continuation
+		       (lambda (c0) (set! c c0) 'c))))
+      (add) (f (g)) (add))
+    (f 'd)
+    (add)
+    (if (< (length path) 8)
+	(c 'e)
+	(assert (equal? '(a b c d b e d b e d) (reverse path))))))
+
+(let ((f (make-parameter 'a))
+      (path '())
+      (g (make-parameter 'g))
+      (c #f))
+  (let ((add (lambda () (set! path (cons (f) path)))))
+    (add)
+    (parameterize ((f 'b))
+      (g (call-with-current-continuation (lambda (c0) (set! c c0) 'c)))
+      (add) (f (g)) (add))
+    (f 'd)
+    (add)
+    (if (< (length path) 8)
+	(c 'e)
+	(assert (equal? '(a b c d c e d e e d) (reverse path))))))
+
 ;;; vector and blob limits
 
 (assert-fail (make-blob -1))
