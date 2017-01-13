@@ -430,6 +430,7 @@
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
+           " -emit-link-file " (quotearg (conc sname ".link"))
            " -static -setup-mode -I " srcdir " -C -I" 
            srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
@@ -455,6 +456,7 @@
          (ext (object-extension platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
+         (outlnk (quotearg (target-file (conc sname ".link") mode)))
          (dest (destination-repository mode))
          (dfile (quotearg dest))
          (ddir (shell-variable "DESTDIR" platform)))
@@ -463,10 +465,10 @@
                                                           output-file
                                                           ext) 
                                                     platform)))
-    (print cmd " " out " " ddir (quotearg (slashify (conc dest "/" 
-                                                          output-file
-                                                          ".link") 
-                                                    platform)))))
+    (print cmd " " outlnk " " ddir (quotearg (slashify (conc dest "/" 
+                                                             output-file
+                                                             ".link") 
+                                                       platform)))))
 
 (define ((install-dynamic-extension name #!key mode (ext ".so")
                                     output-file)
