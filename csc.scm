@@ -915,10 +915,10 @@ EOF
 ;;; Link object files and libraries:
 
 (define (run-linking)
+  (set! object-files (collect-linked-objects object-files))
   (let* ((files (map quotewrap object-files))
 	 (target (quotewrap target-filename))
 	 (targetdir #f))
-    (set! object-files (collect-linked-objects object-files))
     (command
      (string-intersperse 
       (cons* (cond (cpp-mode c++-linker)
