@@ -430,8 +430,7 @@
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
-           " -static-libs"
-           " -setup-mode -static -I " srcdir " -C -I" 
+           " -static -setup-mode -I " srcdir " -C -I" 
            srcdir (arglist options)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
