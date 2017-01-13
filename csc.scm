@@ -188,6 +188,7 @@
 (define generated-rc-files '())
 (define object-files '())
 (define generated-object-files '())
+(define transient-link-files '())
 (define linked-extensions '())
 (define cpp-mode #f)
 (define objc-mode #f)
@@ -856,6 +857,10 @@ EOF
 			     (else '()))
 		       translation-optimization-options)) ) )
 	 " ") )
+       (when (and static compile-only)
+         (set! transient-link-files 
+           (cons (pathname-replace-extension f "link")
+                 transient-link-files)))
        (set! c-files (append (list fc) c-files))
        (set! generated-c-files (append (list fc) generated-c-files))))
    scheme-files))
@@ -943,18 +948,21 @@ EOF
 	target) )
       (when gui
 	(rez target)))
-    (unless keep-files (for-each $delete-file generated-object-files)) ) )
+    (unless keep-files 
+      (for-each $delete-file
+        (append generated-object-files
+                transient-link-files)))))
 
 (define (collect-linked-objects object-files)
   (let loop ((os object-files) (os2 object-files))
     (if (null? os)
         (delete-duplicates (reverse os2) string=?)
         (let* ((o (car os))
-               (lfile (pathname-replace-extension o "link")))
-          (loop (cdr os)
-                (if (file-exists? lfile)
-                    (append (with-input-from-file lfile read) os2)
-                    os2))))))
+               (lfile (pathname-replace-extension o "link"))
+               (newos (if (file-exists? lfile)
+                          (with-input-from-file lfile read) 
+                          '())))
+          (loop (append newos (cdr os)) (append newos os2))))))
 
 (define (lib-path)
   (prefix "" 
