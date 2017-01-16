@@ -87,11 +87,19 @@ SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"csi\" (make-pathname ${TEST
 TYPESDB=../types.db
 cp $TYPESDB test-repository/types.db
 
-time=`command >/dev/null -v time && echo time || :`
 compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out"
 compile2="../csc -compiler ${CHICKEN} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS}"
 interpret="../csi -n -include-path ${TEST_DIR}/.."
+time=time
+
+# Check for a "time" command, since some systems don't ship with a
+# time(1) or shell builtin and we also can't portably rely on `which',
+# `command', etc. NOTE "time" must be called from a variable here.
+set +e
+$time true >/dev/null 2>/dev/null
+test $? -eq 127 && time=
+set -e
 
 rm -f *.exe *.so *.o *.import.* a.out ../foo.import.*
 
