@@ -32,6 +32,7 @@
 #include <float.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <strings.h>
 
 #ifdef HAVE_SYSEXITS_H
 # include <sysexits.h>
