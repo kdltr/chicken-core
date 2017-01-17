@@ -47,6 +47,13 @@
 # define __C99FEATURES__
 #endif
 
+/*
+ * N.B. This file MUST not rely upon "chicken-config.h"
+ */
+#if defined(HAVE_CONFIG_H) || defined(HAVE_CHICKEN_CONFIG_H)
+# include "chicken-config.h"
+#endif
+
 /* Some OSes really dislike feature macros for standard levels */
 #ifdef C_USE_STD_FEATURE_MACROS
 
@@ -70,14 +77,6 @@
 # endif
 
 #endif /* C_USE_STD_FEATURE_MACROS */
-
-/*
- * N.B. This file MUST not rely upon "chicken-config.h"
- */
-#if defined(HAVE_CONFIG_H) || defined(HAVE_CHICKEN_CONFIG_H)
-# include "chicken-config.h"
-#endif
-
 
 /* Kind of platform */
 
