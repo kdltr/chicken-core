@@ -101,6 +101,10 @@ endif
 ifdef SYMBOLGC
 	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
 endif
+# Of the BSDs, only FreeBSD hates composable feature macros...
+	echo "#ifndef __FreeBSD__" >> $@
+	echo "# define C_USE_STD_FEATURE_MACROS" >> $@
+	echo "#endif" >> $@
 	cat chicken-defaults.h >>$@
 
 include $(SRCDIR)/rules.make

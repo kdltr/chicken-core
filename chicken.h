@@ -47,24 +47,29 @@
 # define __C99FEATURES__
 #endif
 
-#ifndef _XOPEN_SOURCE
-# define _XOPEN_SOURCE 700
-#endif
+/* Some OSes really dislike feature macros for standard levels */
+#ifdef C_USE_STD_FEATURE_MACROS
 
-#ifndef _BSD_SOURCE
-# define _BSD_SOURCE
-#endif
+# ifndef _XOPEN_SOURCE
+#  define _XOPEN_SOURCE 700
+# endif
 
-#ifndef _SVID_SOURCE
-# define _SVID_SOURCE
-#endif
+# ifndef _BSD_SOURCE
+#  define _BSD_SOURCE
+# endif
+
+# ifndef _SVID_SOURCE
+#  define _SVID_SOURCE
+# endif
 
 /*
  * glibc >= 2.20 synonym for _BSD_SOURCE & _SVID_SOURCE.
  */
-#ifndef _DEFAULT_SOURCE
-# define _DEFAULT_SOURCE
-#endif
+# ifndef _DEFAULT_SOURCE
+#  define _DEFAULT_SOURCE
+# endif
+
+#endif /* C_USE_STD_FEATURE_MACROS */
 
 /*
  * N.B. This file MUST not rely upon "chicken-config.h"

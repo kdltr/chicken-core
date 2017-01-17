@@ -99,6 +99,7 @@ endif
 ifdef SYMBOLGC
 	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
 endif
+	echo "#define C_USE_STD_FEATURE_MACROS" >>$@
 	cat chicken-defaults.h >>$@
 
 include $(SRCDIR)/rules.make
