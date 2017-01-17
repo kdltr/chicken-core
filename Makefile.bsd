@@ -97,6 +97,10 @@ chicken-config.h: chicken-defaults.h
 ifdef GCHOOKS
 	echo "#define C_GC_HOOKS" >>$@
 endif
+# Of the BSDs, only FreeBSD hates composable feature macros...
+	echo "#ifndef __FreeBSD__" >> $@
+	echo "# define C_USE_STD_FEATURE_MACROS" >> $@
+	echo "#endif" >> $@
 	cat chicken-defaults.h >>$@
 
 include $(SRCDIR)/rules.make
