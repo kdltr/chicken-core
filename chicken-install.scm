@@ -97,6 +97,7 @@
   (define *csc-features* '())
   (define *csc-nonfeatures* '())
   (define *prefix* #f)
+  (define *no-install-deps* #f)
   (define *aliases* '())
   (define *cross-chicken* (feature? #:cross-chicken))
   (define *host-extension* *cross-chicken*)
@@ -467,7 +468,9 @@
 		      (check-platform (car e+d+v) meta)
                       (print "checking dependencies for `" (car e+d+v) "' ...")
                       (let-values (((missing upgrade) 
-				    (outdated-dependencies (car e+d+v) meta)))
+				    (if *no-install-deps*
+				      (values '() '())
+				      (outdated-dependencies (car e+d+v) meta))))
 			(set! missing (apply-mappings missing)) ;XXX only missing - wrong?
 			(set! *dependencies*
 			  (cons
@@ -814,6 +817,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
   -r   -retrieve                only retrieve egg into current directory, don't install
   -n   -no-install              do not install, just build (implies `-keep')
   -p   -prefix PREFIX           change installation prefix to PREFIX
+       -no-install-deps         do not install dependencies
        -list                    list extensions available over selected transport and location
        -host                    when cross-compiling, compile extension only for host
        -target                  when cross-compiling, compile extension only for target
@@ -953,6 +957,9 @@ EOF
 				(normalize-pathname 
 				 (make-pathname (current-directory) p) ) ) ) )
                         (loop (cddr args) eggs))
+		       ((string=? arg "-no-install-deps")
+			(set! *no-install-deps* #t)
+			(loop (cdr args) eggs))
                        ((or (string=? arg "-n") (string=? arg "-no-install"))
                         (set! *keep* #t)
                         (set! *no-install* #t)
