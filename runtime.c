@@ -4863,14 +4863,16 @@ C_word C_a_i_string(C_word **a, int c, ...)
   p = (char *)C_data_pointer(s);
   va_start(v, c);
 
-  while(c--) {
+  for(; c; c--) {
     x = va_arg(v, C_word);
 
     if((x & C_IMMEDIATE_TYPE_BITS) == C_CHARACTER_BITS)
       *(p++) = C_character_code(x);
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "string", x);
+    else break;
   }
 
+  va_end(v);
+  if (c) barf(C_BAD_ARGUMENT_TYPE_ERROR, "string", x);
   return s;
 }
 
