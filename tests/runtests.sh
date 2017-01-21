@@ -36,7 +36,7 @@ mkdir -p test-repository
 # copy files into test-repository (by hand to avoid calling `chicken-install'):
 
 for x in \
-    chicken.import.so csi.import.so types.db \
+    chicken.import.so types.db \
     srfi-4.import.so \
     chicken.bitwise.import.so \
     chicken.continuation.import.so \
@@ -495,17 +495,6 @@ tmp/xxx ${TEST_DIR}/tmp
 PATH=`pwd`/tmp:$PATH xxx ${TEST_DIR}/tmp
 # this may crash, if the PATH contains a non-matching libchicken.dll on Windows:
 #PATH=$PATH:${TEST_DIR}/tmp xxx ${TEST_DIR}/tmp
-rm -fr rev-app rev-app-2 reverser/*.import.* reverser/*.so
-
-echo "======================================== reinstall tests"
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $CHICKEN_UNINSTALL -force reverser
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-    CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -t local -l $TEST_DIR \
-    -csi ${TEST_DIR}/../csi reverser:1.0
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $interpret -bnq rev-app.scm 1.0
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-    CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -t local -l $TEST_DIR \
-    -reinstall -force -csi ${TEST_DIR}/../csi
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $interpret -bnq rev-app.scm 1.0
+rm -fr reverser/*.import.* reverser/*.so
 
 echo "======================================== done."
