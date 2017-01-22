@@ -114,6 +114,15 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
+a.out -:A10k
+
+if errorlevel 1 (
+  echo apply test with limited temp stack failed as it should.
+) else (
+  echo apply test with limited temp stack didn't fail
+  exit /b 1
+)
+
 %compile% test-gc-hooks.scm
 if errorlevel 1 exit /b 1
 a.out

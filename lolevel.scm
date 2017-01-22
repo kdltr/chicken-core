@@ -1,6 +1,6 @@
 ;;;; lolevel.scm - Low-level routines for CHICKEN
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -298,7 +298,8 @@ EOF
 
 (define locative-ref
   (getter-with-setter 
-   (##core#primitive "C_locative_ref") 
+   (lambda (loc)
+     (##core#inline_allocate ("C_a_i_locative_ref" 4) loc))
    locative-set!
    "(locative-ref loc)"))
 

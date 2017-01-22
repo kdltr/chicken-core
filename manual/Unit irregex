@@ -825,7 +825,7 @@ doesn't help when irregex is able to build a DFA.
 
 <procedure>(sre->string <sre>)</procedure>
 
-Convert an SRE to a POSIX-style regular expression string, if
+Convert an SRE to a PCRE-style regular expression string, if
 possible.
 
 

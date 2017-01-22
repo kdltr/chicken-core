@@ -1,6 +1,6 @@
 /* runtime.c - Runtime code for compiler generated executables
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -32,6 +32,7 @@
 #include <float.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <strings.h>
 
 #ifdef HAVE_SYSEXITS_H
 # include <sysexits.h>
@@ -162,7 +163,7 @@ static C_TLS int timezone;
 #define WEAK_COUNTER_MASK              3
 #define WEAK_COUNTER_MAX               2
 
-#define TEMPORARY_STACK_SIZE	       4096
+#define DEFAULT_TEMPORARY_STACK_SIZE   256
 #define STRING_BUFFER_SIZE             4096
 #define DEFAULT_MUTATION_STACK_SIZE    1024
 #define PROFILE_TABLE_SIZE             1024
@@ -398,8 +399,11 @@ static C_TLS C_byte
 static C_TLS C_uword
   heapspace1_size,
   heapspace2_size,
-  heap_size;
-static C_TLS C_char 
+  heap_size,
+  temporary_stack_size,
+  fixed_temporary_stack_size = 0,
+  maximum_heap_usage;
+static C_TLS C_char
   buffer[ STRING_BUFFER_SIZE ],
   *private_repository = NULL,
   *current_module_name,
@@ -452,6 +456,7 @@ static volatile C_TLS int
 static C_TLS unsigned int
   mutation_count,
   tracked_mutation_count,
+  stack_check_demand,
   stack_size;
 static C_TLS int chicken_is_initialized;
 #ifdef HAVE_SIGSETJMP
@@ -671,10 +676,11 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   C_set_or_change_heap_size(heap ? heap : DEFAULT_HEAP_SIZE, 0);
 
   /* Allocate temporary stack: */
-  if((C_temporary_stack_limit = (C_word *)C_malloc(TEMPORARY_STACK_SIZE * sizeof(C_word))) == NULL)
+  temporary_stack_size = fixed_temporary_stack_size ? fixed_temporary_stack_size : DEFAULT_TEMPORARY_STACK_SIZE;
+  if((C_temporary_stack_limit = (C_word *)C_malloc(temporary_stack_size * sizeof(C_word))) == NULL)
     return 0;
   
-  C_temporary_stack_bottom = C_temporary_stack_limit + TEMPORARY_STACK_SIZE;
+  C_temporary_stack_bottom = C_temporary_stack_limit + temporary_stack_size;
   C_temporary_stack = C_temporary_stack_bottom;
   
   /* Allocate mutation stack: */
@@ -763,7 +769,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
 #endif
   }
 
-  tracked_mutation_count = mutation_count = gc_count_1 = gc_count_1_total = gc_count_2 = 0;
+  tracked_mutation_count = mutation_count = gc_count_1 = gc_count_1_total = gc_count_2 = maximum_heap_usage = 0;
   lf_list = NULL;
   C_register_lf2(NULL, 0, create_initial_ptable());
   C_restart_trampoline = (void *)toplevel;
@@ -895,7 +901,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(C_peek_unsigned_integer);
   C_pte(C_context_switch);
   C_pte(C_register_finalizer);
-  C_pte(C_locative_ref);
+  C_pte(C_locative_ref); /* OBSOLETE */
   C_pte(C_copy_closure);
   C_pte(C_dump_heap_state);
   C_pte(C_filter_heap_objects);
@@ -1308,6 +1314,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:B              sound bell on major GC\n"
 		 " -:G              force GUI mode\n"
 		 " -:aSIZE          set trace-buffer/call-chain size\n"
+		 " -:ASIZE          set fixed temporary stack size\n"
 		 " -:H              dump heap state on exit\n"
 		 " -:S              do not handle segfaults or other serious conditions\n"
 		 "\n  SIZE may have a `k' (`K'), `m' (`M') or `g' (`G') suffix, meaning size\n"
@@ -1367,6 +1374,10 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 
 	case 'a':
 	  C_trace_buffer_size = arg_val(ptr);
+	  goto next;
+
+	case 'A':
+	  fixed_temporary_stack_size = arg_val(ptr);
 	  goto next;
 
 	case 't':
@@ -1494,6 +1505,9 @@ C_word CHICKEN_run(void *toplevel)
   serious_signal_occurred = 0;
 
   if(!return_to_host) {
+    /* We must copy the argvector onto the stack, because
+     * any subsequent save() will otherwise clobber it.
+     */
     int argcount = C_temporary_stack_bottom - C_temporary_stack;
     C_word *p = C_alloc(argcount);
     C_memcpy(p, C_temporary_stack, argcount * sizeof(C_word));
@@ -1616,11 +1630,6 @@ void barf(int code, char *loc, ...)
   case C_UNBOUND_VARIABLE_ERROR:
     msg = C_text("unbound variable");
     c = 1;
-    break;
-
-  case C_TOO_MANY_PARAMETERS_ERROR:
-    msg = C_text("parameter limit exceeded");
-    c = 0;
     break;
 
   case C_OUT_OF_MEMORY_ERROR:
@@ -2002,8 +2011,11 @@ C_word C_fcall C_callback(C_word closure, int argc)
   serious_signal_occurred = 0;
 
   if(!callback_returned_flag) {
-    C_word *p = C_temporary_stack;
-    
+    /* We must copy the argvector onto the stack, because
+     * any subsequent save() will otherwise clobber it.
+     */
+    C_word *p = C_alloc(C_restart_c);
+    C_memcpy(p, C_temporary_stack, C_restart_c * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
   }
@@ -2421,18 +2433,10 @@ void C_stack_overflow(void)
 }
 
 
-void C_stack_overflow_with_msg(C_char *msg)
+void C_stack_overflow_with_loc(C_char *loc)
 {
-  barf(C_STACK_OVERFLOW_ERROR, NULL);
+  barf(C_STACK_OVERFLOW_ERROR, loc);
 }
-
-void C_temp_stack_overflow(void)
-{
-  /* Just raise a "too many parameters" error; it isn't very useful to
-     show a different message here. */
-  barf(C_TOO_MANY_PARAMETERS_ERROR, NULL);
-}
-
 
 void C_unbound_error(C_word sym)
 {
@@ -2771,7 +2775,7 @@ C_mutate_slot(C_word *slot, C_word val)
     bytes = newmssize * sizeof(C_word *);
 
     if(debug_mode) 
-      C_dbg(C_text("debug"), C_text("resizing mutation-stack from %uk to %uk ...\n"),
+      C_dbg(C_text("debug"), C_text("resizing mutation stack from %uk to %uk ...\n"),
 	    (mssize * sizeof(C_word *)) / 1024, bytes / 1024);
 
     mutation_stack_bottom = (C_word **)realloc(mutation_stack_bottom, bytes);
@@ -2794,8 +2798,36 @@ C_mutate_slot(C_word *slot, C_word val)
 
 void C_save_and_reclaim(void *trampoline, int n, C_word *av)
 {
+  C_word new_size = nmax(1UL << (int)ceil(log2(n)), DEFAULT_TEMPORARY_STACK_SIZE);
+
   assert(av > C_temporary_stack_bottom || av < C_temporary_stack_limit);
   assert(C_temporary_stack == C_temporary_stack_bottom);
+
+  /* Don't *immediately* slam back to default size */
+  if (new_size < temporary_stack_size / 4)
+    new_size = temporary_stack_size >> 1;
+
+  if (new_size != temporary_stack_size) {
+
+    if(fixed_temporary_stack_size)
+      panic(C_text("fixed temporary stack overflow (\"apply\" called with too many arguments?)"));
+
+
+    if(gc_report_flag) {
+      C_dbg(C_text("GC"), C_text("resizing temporary stack dynamically from " UWORD_COUNT_FORMAT_STRING "k to " UWORD_COUNT_FORMAT_STRING "k ...\n"),
+            C_wordstobytes(temporary_stack_size) / 1024,
+            C_wordstobytes(new_size) / 1024);
+    }
+
+    C_free(C_temporary_stack_limit);
+
+    if((C_temporary_stack_limit = (C_word *)C_malloc(new_size * sizeof(C_word))) == NULL)
+      panic(C_text("out of memory - could not resize temporary stack"));
+
+    C_temporary_stack_bottom = C_temporary_stack_limit + new_size;
+    C_temporary_stack = C_temporary_stack_bottom;
+    temporary_stack_size = new_size;
+  }
 
   C_temporary_stack = C_temporary_stack_bottom - n;
 
@@ -2855,8 +2887,10 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
   /* assert(C_timer_interrupt_counter >= 0); */
 
-  if(pending_interrupts_count > 0 && C_interrupts_enabled)
+  if(pending_interrupts_count > 0 && C_interrupts_enabled) {
+    stack_check_demand = 0; /* forget demand: we're not going to gc yet */
     handle_interrupt(trampoline);
+  }
 
   cell.enabled = 0;
   cell.event = C_DEBUG_GC;
@@ -3175,7 +3209,10 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     C_dbg("GC", C_text("%d locatives (from %d)\n"), locative_table_count, locative_table_size);
   }
 
-  if(gc_mode == GC_MAJOR) gc_count_1 = 0;
+  if(gc_mode == GC_MAJOR) {
+    gc_count_1 = 0;
+    maximum_heap_usage = count > maximum_heap_usage ? count : maximum_heap_usage;
+  }
 
   if(C_post_gc_hook != NULL) C_post_gc_hook(gc_mode, (C_long)tgc);
 
@@ -3267,6 +3304,15 @@ C_regparm void C_fcall really_mark(C_word *x)
     if(is_fptr(h)) {
       val = fptr_to_ptr(h);
 
+      /* When we marked the bucket, it may have already referred to
+       * the moved symbol instead of its original location. Re-check:
+       */
+      if(C_enable_gcweak &&
+         (C_block_header(val) & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
+         (wep = lookup_weak_table_entry(*x, 0)) != NULL) {
+        if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
+      }
+
       if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
 	*x = val;
 	return;
@@ -3280,6 +3326,15 @@ C_regparm void C_fcall really_mark(C_word *x)
 	/* Link points into fromspace and into a link which points into from- or tospace: */
 	val = fptr_to_ptr(h);
 	
+        /* See above: might happen twice */
+        if(C_enable_gcweak &&
+           (C_block_header(val) & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
+           /* Check both the original and intermediate location: */
+           ((wep = lookup_weak_table_entry((C_word)p, 0)) != NULL ||
+            (wep = lookup_weak_table_entry(*x, 0)) != NULL)) {
+          if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
+        }
+
 	if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
 	  *x = val;
 	  return;
@@ -4251,6 +4306,7 @@ C_regparm C_word C_fcall C_start_timer(void)
   gc_count_2 = 0;
   timer_start_ms = C_cpu_milliseconds();
   gc_ms = 0;
+  maximum_heap_usage = 0;
   return C_SCHEME_UNDEFINED;
 }
 
@@ -4262,15 +4318,16 @@ void C_ccall C_stop_timer(C_word c, C_word *av)
     k = av[ 1 ];
   double t0 = C_cpu_milliseconds() - timer_start_ms;
   C_word 
-    ab[ WORDS_PER_FLONUM * 2 + 7 ], /* 2 flonums, 1 vector of 6 elements */
+    ab[ WORDS_PER_FLONUM * 3 + 8 ], /* 3 flonums, 1 vector of 7 elements */
     *a = ab,
     elapsed = C_flonum(&a, t0 / 1000.0),
     gc_time = C_flonum(&a, gc_ms / 1000.0),
+    heap_usage = C_unsigned_int_to_num(&a, maximum_heap_usage),
     info;
   
-  info = C_vector(&a, 6, elapsed, gc_time, C_fix(mutation_count),
+  info = C_vector(&a, 7, elapsed, gc_time, C_fix(mutation_count),
                   C_fix(tracked_mutation_count), C_fix(gc_count_1_total),
-		  C_fix(gc_count_2));
+		  C_fix(gc_count_2), heap_usage);
   C_kontinue(k, info);
 }
 
@@ -4538,7 +4595,7 @@ C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
     return C_fix(C_getpid());
 
   case C_fix(34):		/* effective maximum for procedure arguments */
-    return C_fix(TEMPORARY_STACK_SIZE);
+    return C_fix(stack_size / 2); /* An educated guess :) */
 
   case C_fix(35):		/* unused */
     /* used to be apply-hook indicator */
@@ -4806,14 +4863,16 @@ C_word C_a_i_string(C_word **a, int c, ...)
   p = (char *)C_data_pointer(s);
   va_start(v, c);
 
-  while(c--) {
+  for(; c; c--) {
     x = va_arg(v, C_word);
 
     if((x & C_IMMEDIATE_TYPE_BITS) == C_CHARACTER_BITS)
       *(p++) = C_character_code(x);
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "string", x);
+    else break;
   }
 
+  va_end(v);
+  if (c) barf(C_BAD_ARGUMENT_TYPE_ERROR, "string", x);
   return s;
 }
 
@@ -6232,8 +6291,14 @@ void C_ccall C_apply(C_word c, C_word *av)
   len = C_unfix(C_u_i_length(lst));
   av2_size = 2 + non_list_args + len;
 
-  if(!C_demand(av2_size))
+  if(C_demand(av2_size))
+    stack_check_demand = 0;
+  else if(stack_check_demand)
+    C_stack_overflow_with_loc("apply");
+  else {
+    stack_check_demand = av2_size;
     C_save_and_reclaim((void *)C_apply, c, av);
+  }
 
   av2 = ptr = C_alloc(av2_size);
   *(ptr++) = fn;
@@ -6377,8 +6442,14 @@ void C_ccall C_apply_values(C_word c, C_word *av)
     len = C_unfix(C_u_i_length(lst));
     n = len + 1;
 
-    if(!C_demand(n))
+    if(C_demand(n))
+      stack_check_demand = 0;
+    else if(stack_check_demand)
+      C_stack_overflow_with_loc("apply");
+    else {
+      stack_check_demand = n;
       C_save_and_reclaim((void *)C_apply_values, c, av);
+    }
 
     av2 = C_alloc(n);
     av2[ 0 ] = k;
@@ -7446,7 +7517,10 @@ void C_ccall C_allocate_vector(C_word c, C_word *av)
       C_fromspace_top = C_fromspace_limit; /* trigger major GC */
   
     C_save(C_SCHEME_TRUE);
-    C_reclaim((void *)allocate_vector_2, c);
+    /* We explicitly pass 7 here, that's the number of things saved.
+     * That's the arguments, plus one additional thing: the mode.
+     */
+    C_reclaim((void *)allocate_vector_2, 7);
   }
 
   C_save(C_SCHEME_FALSE);
@@ -8780,7 +8854,7 @@ C_regparm C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_w
   return (C_word)loc;
 }
 
-
+/* DEPRECATED */
 void C_ccall C_locative_ref(C_word c, C_word *av)
 {
   C_word
@@ -8816,6 +8890,31 @@ void C_ccall C_locative_ref(C_word c, C_word *av)
   }
 }
 
+C_regparm C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc)
+{
+  C_word *ptr;
+
+  if(C_immediatep(loc) || C_block_header(loc) != C_LOCATIVE_TAG)
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-ref", loc);
+
+  ptr = (C_word *)C_block_item(loc, 0);
+
+  if(ptr == NULL) barf(C_LOST_LOCATIVE_ERROR, "locative-ref", loc);
+
+  switch(C_unfix(C_block_item(loc, 2))) {
+  case C_SLOT_LOCATIVE: return *ptr;
+  case C_CHAR_LOCATIVE: return C_make_character(*((char *)ptr));
+  case C_U8_LOCATIVE: return C_fix(*((unsigned char *)ptr));
+  case C_S8_LOCATIVE: return C_fix(*((char *)ptr));
+  case C_U16_LOCATIVE: return C_fix(*((unsigned short *)ptr));
+  case C_S16_LOCATIVE: return C_fix(*((short *)ptr));
+  case C_U32_LOCATIVE: return C_unsigned_int_to_num(a, *((C_u32 *)ptr));
+  case C_S32_LOCATIVE: return C_int_to_num(a, *((C_s32 *)ptr));
+  case C_F32_LOCATIVE: return C_flonum(a, *((float *)ptr));
+  case C_F64_LOCATIVE: return C_flonum(a, *((double *)ptr));
+  default: panic(C_text("bad locative type"));
+  }
+}
 
 C_regparm C_word C_fcall C_i_locative_set(C_word loc, C_word x)
 {

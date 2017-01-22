@@ -63,10 +63,19 @@ SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"csi\" (make-pathname ${TEST
 TYPESDB=../types.db
 cp $TYPESDB test-repository/types.db
 
+time=time
 compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out"
 compile2="../csc -compiler $CHICKEN -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 interpret="../csi -n -include-path ${TEST_DIR}/.."
+
+# Check for a `time' command, since some systems don't ship with a
+# time(1) or shell builtin and we also can't portably rely on which(1),
+# etc. NOTE `time' must be called from a variable here.
+set +e
+$time true >/dev/null 2>/dev/null
+if [ $? -eq 127 ]; then time=; fi
+set -e
 
 rm -f *.exe *.so *.o *.import.* a.out ../foo.import.*
 
@@ -82,16 +91,22 @@ $compile inlining-tests.scm -optimize-level 3
 ./a.out
 
 echo "======================================== scrutiny tests ..."
-$compile typematch-tests.scm -specialize -w
+$compile typematch-tests.scm -specialize -no-warnings
 ./a.out
-$compile scrutiny-tests.scm -A -scrutinize 2>scrutiny.out -verbose
 
-# this is sensitive to gensym-names, so make it optional
+$compile scrutiny-tests.scm -analyze-only -verbose 2>scrutiny.out
+$compile specialization-tests.scm -analyze-only -verbose -specialize 2>specialization.out
+
+# these are sensitive to gensym-names, so make them optional
 if test \! -f scrutiny.expected; then
     cp scrutiny.out scrutiny.expected
 fi
+if test \! -f specialization.expected; then
+    cp specialization.out specialization.expected
+fi
 
 diff $DIFF_OPTS scrutiny.expected scrutiny.out
+diff $DIFF_OPTS specialization.expected specialization.out
 
 $compile scrutiny-tests-2.scm -A -scrutinize -analyze-only 2>scrutiny-2.out -verbose
 
@@ -121,9 +136,9 @@ echo "======================================== specialization benchmark ..."
 $compile fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1
 $compile fft.scm -O2 -local -specialize -debug x -d0 -disable-interrupts -b -o fft2 -specialize
 echo "normal:"
-time ./fft1 1000 7
+$time ./fft1 1000 7
 echo "specialized:"
-time ./fft2 1000 7
+$time ./fft2 1000 7
 
 echo "======================================== callback tests ..."
 $compile callback-tests.scm
@@ -140,6 +155,13 @@ echo "======================================== runtime tests ..."
 $interpret -s apply-test.scm
 $compile apply-test.scm
 ./a.out
+if ./a.out -:A10k; then
+    echo "apply test with limited temp stack didn't fail"
+    exit 1
+else
+    echo "apply test with limited temp stack failed as it should."
+fi
+
 $compile test-gc-hooks.scm
 ./a.out
 
@@ -394,7 +416,7 @@ $compile locative-stress-test.scm
 ./a.out
 
 echo "======================================== syntax-rules stress test ..."
-time $interpret -bnq syntax-rule-stress-test.scm
+$time $interpret -bnq syntax-rule-stress-test.scm
 
 echo "======================================== embedding (1) ..."
 $compile embedded1.c

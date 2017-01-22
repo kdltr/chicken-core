@@ -1,6 +1,6 @@
 ;;;; chicken-syntax.scm - non-standard syntax extensions
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -292,26 +292,37 @@
 	(##core#let
 	 ,(map ##sys#list saveds vals)
 	 (##core#let
-	  ((,convert? (,the ,boolean #t))) ; Convert only first time extent is entered!
-	  (##sys#dynamic-wind
-	   (##core#lambda ()
-	    (##core#let
-	     ;; First, call converters (which may throw exceptions!)
-	     ,(map (lambda (p s temp)
-		     `(,temp (##core#if ,convert? (,p ,s #t #f) ,s)))
-		   param-aliases saveds temps)
-	     ;; Save current values so we can restore them later
-	     ,@(map (lambda (p s) `(##core#set! ,s (,p)))
-		    param-aliases saveds)
-	     ;; Set parameters to their new values.  This can't fail.
-	     ,@(map (lambda (p t) `(,p ,t #f #t)) param-aliases temps)
-	     ;; Remember we already converted (only call converters once!)
-	     (##core#set! ,convert? #f) ) )
-	   (##core#lambda () ,@body)
-	   (##core#lambda ()
-	    ;; Restore parameters to their original, saved values
-	    ,@(map (lambda (p s) `(,p ,s #f #t))
-		   param-aliases saveds) )) ) ) ) ) )))
+	  ;; Inner names are actually set.  This hides the exact
+	  ;; ordering of the let if any call/cc is used in the
+	  ;; value expressions (see first example in #1336).
+	  ,(map ##sys#list saveds saveds)
+	  (##core#let
+	   ((,convert? (,the ,boolean #t))) ; Convert only first time extent is entered!
+	   (##sys#dynamic-wind
+	    (##core#lambda ()
+	      (##core#let
+	       ;; First, call converters (which may throw exceptions!)
+	       ,(map (lambda (p s temp)
+		       `(,temp (##core#if ,convert? (,p ,s #t #f) ,s)))
+		     param-aliases saveds temps)
+	       ;; Save current values so we can restore them later
+	       ,@(map (lambda (p s) `(##core#set! ,s (,p)))
+		      param-aliases saveds)
+	       ;; Set parameters to their new values.  This can't fail.
+	       ,@(map (lambda (p t) `(,p ,t #f #t)) param-aliases temps)
+	       ;; Remember we already converted (only call converters once!)
+	       (##core#set! ,convert? #f)))
+	    (##core#lambda () ,@body)
+	    (##core#lambda ()
+	      (##core#let
+	       ;; Remember the current value of each parameter.
+	       ,(map (lambda (p s temp) `(,temp (,p)))
+		     param-aliases saveds temps)
+	       ;; Restore each parameter to its old value.
+	       ,@(map (lambda (p s) `(,p ,s #f #t)) param-aliases saveds)
+	       ;; Save current value for later re-invocations.
+	       ,@(map (lambda (s temp) `(##core#set! ,s ,temp))
+		      saveds temps))))))))))))
 
 (##sys#extend-macro-environment
  'when '()
@@ -723,7 +734,9 @@
 
 (##sys#extend-macro-environment
  'let-optionals* 
- `((null? . ,(##sys#primitive-alias 'null?)))
+ `((null? . ,(##sys#primitive-alias 'null?))
+   (car . ,(##sys#primitive-alias 'car))
+   (cdr . ,(##sys#primitive-alias 'cdr)))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'let-optionals* form '(_ _ list . _))
@@ -736,17 +749,17 @@
       (let ((rvar (r 'tmp)))
 	`(##core#let
 	  ((,rvar ,args))
-	  ,(let loop ([args rvar] [vardefs var/defs])
+	  ,(let loop ((args rvar) (vardefs var/defs))
 	     (if (null? vardefs)
 		 `(##core#let () ,@body)
-		 (let ([head (car vardefs)])
+		 (let ((head (car vardefs)))
 		   (if (pair? head)
 		       (let ((rvar2 (r 'tmp2)))
 			 `(##core#let ((,(car head) (##core#if (,%null? ,args)
 							       ,(cadr head)
 							       (,%car ,args)))
 				       (,rvar2 (##core#if (,%null? ,args) 
-							  '()
+							  (##core#quote ())
 							  (,%cdr ,args))) )
 				      ,(loop rvar2 (cdr vardefs)) ) )
 		       `(##core#let ((,head ,args)) ,@body) ) ) ) ) ) ) ))))

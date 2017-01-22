@@ -900,9 +900,8 @@ at the beginning of a <body>.
 
 A definition should have one of the following forms:
 
-* (define <variable> <expression>)
-
-* (define (<variable> <formals>) <body>)
+<macro>(define <variable> <expression>)</macro><br>
+<macro>(define (<variable> <formals>) <body>)</macro><br>
 
 <Formals> should be either a sequence of zero or more variables, or a
 sequence of one or more variables followed by a space-delimited period
@@ -912,7 +911,7 @@ equivalent to
  (define <variable>
    (lambda (<formals>) <body>)).
 
-* (define (<variable> . <formal>) <body>)
+<macro>(define (<variable> . <formal>) <body>)</macro><br>
 
 <Formal> should be a single variable. This form is equivalent to
 
@@ -2535,7 +2534,7 @@ numerical predicates.
 String must be a string, and start and end must be exact integers
 satisfying
 
- 0 < start < end < (string-length string)
+ 0 <= start <= end <= (string-length string)
 
 Substring returns a newly allocated string formed from the characters
 of string beginning with index start (inclusive) and ending with index

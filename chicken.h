@@ -1,6 +1,6 @@
 /* chicken.h - General headerfile for compiler generated executables
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -47,21 +47,6 @@
 # define __C99FEATURES__
 #endif
 
-#ifndef _BSD_SOURCE
-# define _BSD_SOURCE
-#endif
-
-#ifndef _SVID_SOURCE
-# define _SVID_SOURCE
-#endif
-
-/*
- * glibc >= 2.20 synonym for _BSD_SOURCE & _SVID_SOURCE.
- */
-#ifndef _DEFAULT_SOURCE
-# define _DEFAULT_SOURCE
-#endif
-
 /*
  * N.B. This file MUST not rely upon "chicken-config.h"
  */
@@ -69,6 +54,29 @@
 # include "chicken-config.h"
 #endif
 
+/* Some OSes really dislike feature macros for standard levels */
+#ifdef C_USE_STD_FEATURE_MACROS
+
+# ifndef _XOPEN_SOURCE
+#  define _XOPEN_SOURCE 700
+# endif
+
+# ifndef _BSD_SOURCE
+#  define _BSD_SOURCE
+# endif
+
+# ifndef _SVID_SOURCE
+#  define _SVID_SOURCE
+# endif
+
+/*
+ * glibc >= 2.20 synonym for _BSD_SOURCE & _SVID_SOURCE.
+ */
+# ifndef _DEFAULT_SOURCE
+#  define _DEFAULT_SOURCE
+# endif
+
+#endif /* C_USE_STD_FEATURE_MACROS */
 
 /* Kind of platform */
 
@@ -245,6 +253,8 @@ void *alloca ();
 #endif
 
 #if defined(__GNUC__) || defined(__INTEL_COMPILER)
+# define C_unlikely(x)             __builtin_expect((x), 0)
+# define C_likely(x)               __builtin_expect((x), 1)
 # ifndef __cplusplus
 #  define C_cblock                ({
 #  define C_cblockend             })
@@ -261,6 +271,11 @@ void *alloca ();
 # endif
 #elif defined(__WATCOMC__)
 # define C_ccall                  __cdecl
+# define C_unlikely(x)             (x)
+# define C_likely(x)               (x)
+#else
+# define C_unlikely(x)             (x)
+# define C_likely(x)               (x)
 #endif
 
 #ifndef C_cblock
@@ -600,7 +615,7 @@ static inline int isinf_ld (long double x)
 #define C_BAD_MINIMUM_ARGUMENT_COUNT_ERROR            2
 #define C_BAD_ARGUMENT_TYPE_ERROR                     3
 #define C_UNBOUND_VARIABLE_ERROR                      4
-#define C_TOO_MANY_PARAMETERS_ERROR                   5
+/* Unused:                                            5 */
 #define C_OUT_OF_MEMORY_ERROR                         6
 #define C_DIVISION_BY_ZERO_ERROR                      7
 #define C_OUT_OF_RANGE_ERROR                          8
@@ -752,11 +767,7 @@ static inline int isinf_ld (long double x)
 typedef struct C_block_struct
 {
   C_header header;
-#if (__STDC_VERSION__ >= 199901L)
   C_word data[];
-#else
-  C_word data[ 1 ];
-#endif
 } C_SCHEME_BLOCK;
 
 typedef struct C_symbol_table_struct
@@ -1717,7 +1728,7 @@ C_fctexport void C_bad_min_argc(int c, int n) C_noret;
 C_fctexport void C_bad_argc_2(int c, int n, C_word closure) C_noret;
 C_fctexport void C_bad_min_argc_2(int c, int n, C_word closure) C_noret;
 C_fctexport void C_stack_overflow(void) C_noret;
-C_fctexport void C_temp_stack_overflow(void) C_noret;
+C_fctexport void C_stack_overflow_with_loc(C_char *loc) C_noret;
 C_fctexport void C_unbound_error(C_word sym) C_noret;
 C_fctexport void C_no_closure_error(C_word x) C_noret;
 C_fctexport void C_div_by_zero_error(char *loc) C_noret;
@@ -1831,7 +1842,7 @@ C_fctexport C_cpsproc(C_register_finalizer) C_noret;
 C_fctexport C_cpsproc(C_set_dlopen_flags) C_noret;
 C_fctexport C_cpsproc(C_dload) C_noret;
 C_fctexport C_cpsproc(C_become) C_noret;
-C_fctexport C_cpsproc(C_locative_ref) C_noret;
+C_fctexport C_cpsproc(C_locative_ref) C_noret; /* DEPRECATED */
 C_fctexport C_cpsproc(C_call_with_cthulhu) C_noret;
 C_fctexport C_cpsproc(C_copy_closure) C_noret;
 C_fctexport C_cpsproc(C_dump_heap_state) C_noret;
@@ -1923,6 +1934,7 @@ C_fctexport C_word C_fcall C_i_char_greaterp(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_char_lessp(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_char_greater_or_equal_p(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_char_less_or_equal_p(C_word x, C_word y) C_regparm;
+C_fctexport C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_locative_set(C_word loc, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_locative_to_object(C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_word object, C_word index, C_word weak) C_regparm;

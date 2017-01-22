@@ -1,6 +1,6 @@
 ; scheduler.scm - Basic scheduler for multithreading
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -575,7 +575,7 @@ EOF
 
 
 ;;; Kill all threads in fd-, io- and timeout-lists and assign one thread as the
-;   new primordial one. Overrides "##sys#kill-all-threads" in library.scm.
+;   new primordial one. Overrides "##sys#kill-other-threads" in library.scm.
 
 (set! ##sys#kill-other-threads 
   (let ((exit exit))
@@ -590,12 +590,9 @@ EOF
 	(set! ready-queue-head (list primordial))
 	(set! ready-queue-tail ready-queue-head)
 	(suspend primordial)	     ; clear block-obj. and recipients
-	(for-each
-	 (lambda (a) (suspend (cdr a)))
-	 ##sys#timeout-list)
+	(for-each (lambda (a) (suspend (cdr a))) ##sys#timeout-list)
+	(for-each (lambda (a) (for-each suspend (cdr a))) ##sys#fd-list)
 	(set! ##sys#timeout-list '())
-	(for-each
-	 (lambda (a) (suspend (cdr a)))
-	 ##sys#fd-list)
+	(set! ##sys#fd-list '())
 	(thunk)
 	(exit)))))

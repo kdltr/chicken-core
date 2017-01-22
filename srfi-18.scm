@@ -1,6 +1,6 @@
 ;;;; srfi-18.scm - Simple thread unit - felix
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -190,10 +190,12 @@
                           toval
                           (##sys#signal
                            (##sys#make-structure 'condition '(join-timeout-exception) '())) ) )
-                     (##sys#thread-block-for-termination! ct thread) ) )
+                     (begin
+		       (##sys#thread-block-for-termination! ct thread)
+		       (##sys#schedule) ) ))
                 (else
                  (##sys#error 'thread-join!
-                              "Internal scheduler error: unknown thread state: "
+                              "Internal scheduler error: unknown thread state"
                               ct (##sys#slot thread 3)) ) ) ) )
 	   (##sys#thread-block-for-termination! ct thread)
 	   (##sys#schedule) ) ) ) ) ) )
@@ -369,7 +371,7 @@
 		  (##sys#setslot wt 11 #f)
 		  (##sys#add-to-ready-queue wt))
 		 (else
-		  (##sys#error 'mutex-unlock "Internal scheduler error: unknown thread state: "
+		  (##sys#error 'mutex-unlock "Internal scheduler error: unknown thread state"
 			       wt wts))) ) )
 	   (if (eq? (##sys#slot ct 3) 'running)
 	       (return #t)

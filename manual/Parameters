@@ -185,7 +185,7 @@ The maximum structure depth to follow when computing a hash value. The default i
 
 === recursive-hash-max-length
 
-<parameter>(recursive-hash-max-depth)</parameter>
+<parameter>(recursive-hash-max-length)</parameter>
 
 The maximum vector length to follow when computing a hash value. The default is {{4}}.
 

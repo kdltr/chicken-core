@@ -2,7 +2,7 @@
 #
 # a graphical debugger for compiled CHICKEN programs
 #
-# Copyright (c) 2015-2016, The CHICKEN Team
+# Copyright (c) 2015-2017, The CHICKEN Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -55,14 +55,14 @@ set reply(GET_TRACE) 12
 
 set colors(header_foreground) white
 set colors(header_background) black
-set colors(text_foreground) gray90
-set colors(text_background) "#102e4e"
-set colors(event_foreground) white
-set colors(event_background) "#203e5e"
+set colors(text_foreground) black
+set colors(text_background) gray90
+set colors(event_foreground) black
+set colors(event_background) white
 set colors(breakpoint_foreground) white
 set colors(breakpoint_background) DarkRed
 set colors(highlight_foreground) white
-set colors(highlight_background) blue
+set colors(highlight_background) CornflowerBlue
 set colors(mark_foreground) black
 set colors(mark_background) yellow
 set colors(trace_background) gray90
@@ -105,7 +105,7 @@ set current_c_line ""
 set current_bp_lines {}
 set current_bp_globals {}
 set font_name "Courier"
-set font_size 11
+set font_size 12
 set program_name ""
 set search_path {"."}
 set data_view ""
@@ -1420,24 +1420,41 @@ proc ExtractLocation args {
 }
 
 
+proc LocateFile {fname} {
+    global search_path
+
+    foreach d $search_path {
+        set fn [file join $d $fname]
+
+        if {[file exists $fn]} {
+            set fn [file normalize $fn]
+            Log "Located: $fn"
+            return $fn
+        }
+    }
+
+    return ""
+}
+
+
 proc InsertDebugInfo {index event args} {
     global file_list globals
     set loc [eval ExtractLocation $args]
 
-    # chck for assignment event
+    # check for assignment event
     if {$event == 1} {
         set name [lindex $args 1]
         lappend globals($name) $index
     }
 
     if {$loc != ""} {
-        set fname [file normalize [lindex $loc 0]]
-        set line [lindex $loc 1]
+        set fname [LocateFile [lindex $loc 0]]
 
         if {[lsearch -exact $file_list $fname] == -1} {
             lappend file_list $fname
         }
 
+        set line [lindex $loc 1]
         # icky: compute array variable name from filename:
         set tname "file:$fname"
         global $tname
@@ -1696,19 +1713,11 @@ proc LocateEvent {loc val} {
     set loc [ExtractLocation $loc $val]
 
     if {$loc != ""} {
-        set fname [file normalize [lindex $loc 0]]
+        set fname0 [lindex $loc 0]
+        set fname [LocateFile [lindex $loc 0]]
         set line [lindex $loc 1]
 
         if {$fname != $current_filename} {
-            foreach d $search_path {
-                set fn [file join $d $fname]
-
-                if {[file exists $fn]} {
-                    set fname $fn
-                    break
-                }
-            }
-
             if {![LoadFile $fname]} return
 
             if {[SwitchFile $fname]} ApplyTags

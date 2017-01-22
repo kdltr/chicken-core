@@ -1,6 +1,6 @@
 ;;;; support.scm - Miscellaneous support code for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -759,6 +759,11 @@
     (if (pair? t)
 	(cons (rec (car t)) (rec (cdr t)))
 	t) ) )
+
+(define (copy-node n)
+  (make-node (node-class n)
+             (node-parameters n)
+             (node-subexpressions n)))
 
 (define (copy-node! from to)
   (node-class-set! to (node-class from))

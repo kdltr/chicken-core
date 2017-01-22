@@ -1,6 +1,6 @@
 # Makefile.macosx - configuration for Apple Macintosh OS X -*- Makefile -*-
 #
-# Copyright (c) 2008-2016, The CHICKEN Team
+# Copyright (c) 2008-2017, The CHICKEN Team
 # Copyright (c) 2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -124,6 +124,7 @@ endif
 ifdef SYMBOLGC
 	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
 endif
+	echo "#define C_USE_STD_FEATURE_MACROS" >>$@
 	cat chicken-defaults.h >>$@
 
 include $(SRCDIR)/rules.make
