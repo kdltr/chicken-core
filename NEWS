@@ -1,19 +1,48 @@
-4.11.2
+4.12.0
 
 - Security fixes
+  - CVE-2016-6830: Fix buffer overrun due to excessively long argument
+    or environment lists in process-execute and process-spawn (#1308).
+    This also removes unnecessary limitations on the length of
+    these lists (thanks to Vasilij Schneidermann).
+  - CVE-2016-6831: Fix memory leak in process-execute and
+    process-spawn.  If, during argument and environment list
+    processing, a list item isn't a string, an exception is thrown,
+    in which case previously malloc()ed strings weren't freed.
   - CVE-2016-9954: Irregex has been updated to 0.9.6, which fixes
     an exponential explosion in compilation of nested "+" patterns.
 
 - Compiler:
+  - define-constant now correctly keeps symbol values quoted.
+  - Warnings are now emitted when using vector-{ref,set!} or one
+    of take, drop, list-ref or list-tail with an out of range index
+    for vectors and proper lists of a definitely known length.
+  - The scrutinizer will no longer drop knowledge of the length of a
+    vector.  It still drops types of its contents (which may be mutated).
   - Fixed incorrect argvector restoration after GC in directly
     recursive functions (#1317).
   - "Direct" procedure invocations now also maintain debug info (#894).
 
+- Syntax expander
+  - DSSSL lambda lists have improved hygiene, so they don't need
+    the chicken or scheme modules to be imported in full (#806).
+  - The let-optionals* macro no longer needs "quote", "car" and "cdr"
+    to be imported and bound to their default values (#806).
+
 - Runtime system:
+  - C_locative_ref has been deprecated in favor of C_a_i_locative_ref,
+    which is faster because it is inlined (#1260, thanks to Kooda).
+  - The default error handler now truncates very long condition
+    messages (thanks to Lemonboy).
+  - Weak symbol GC (-:w) no longer drops random symbols (#1173).
+  - The number of arguments to procedures, both via "apply" and direct
+    invocation, are now limited only by the C stack size (#1098).
   - "time" macro now shows peak memory usage (#1318, thanks to Kooda).
   - Avoid crashes in ffi callbacks after GC (#1337, thanks to cosarara).
 
 - Core libraries:
+  - Irregex has been updated to 0.9.5, which fixes matching of all "bow"
+    occurrances beyond the first with irregex-fold (upstream issue #14).
   - Keywords are more consistently read/written, like symbols (#1332).
   - SRFI-39: When jumping out of a parameterized dynamic extent,
     "parameterize" now remember the actual values, so when jumping back
@@ -27,44 +56,6 @@
     - Added new option "-no-install-deps" which inhibits automatic
       installation of dependencies, useful with "-prefix" (#1298).
 
-4.11.1
-
-- Security fixes
-  - CVE-2016-6830: Fix buffer overrun due to excessively long argument
-    or environment lists in process-execute and process-spawn (#1308).
-    This also removes unnecessary limitations on the length of
-    these lists (thanks to Vasilij Schneidermann).
-  - CVE-2016-6831: Fix memory leak in process-execute and
-    process-spawn.  If, during argument and environment list
-    processing, a list item isn't a string, an exception is thrown,
-    in which case previously malloc()ed strings weren't freed.
-
-- Compiler:
-  - define-constant now correctly keeps symbol values quoted.
-  - Warnings are now emitted when using vector-{ref,set!} or one
-    of take, drop, list-ref or list-tail with an out of range index
-    for vectors and proper lists of a definitely known length.
-  - The scrutinizer will no longer drop knowledge of the length of a
-    vector.  It still drops types of its contents (which may be mutated).
-
-- Runtime system:
-  - C_locative_ref has been deprecated in favor of C_a_i_locative_ref,
-    which is faster because it is inlined (#1260, thanks to Kooda).
-  - The default error handler now truncates very long condition
-    messages (thanks to Lemonboy).
-  - Weak symbol GC (-:w) no longer drops random symbols (#1173).
-  - The number of arguments to procedures, both via "apply" and direct
-    invocation, are now limited only by the C stack size (#1098).
-
-- Syntax expander
-  - DSSSL lambda lists have improved hygiene, so they don't need
-    the chicken or scheme modules to be imported in full (#806).
-  - The let-optionals* macro no longer needs "quote", "car" and "cdr"
-    to be imported and bound to their default values (#806).
-
-- Core libraries
-  - Irregex has been updated to 0.9.5, which fixes matching of all "bow"
-    occurrances beyond the first with irregex-fold (upstream issue #14).
 
 4.11.0
 
