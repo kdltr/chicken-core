@@ -80,6 +80,13 @@
     in, they are restored (fixes #1336, thanks to Joo ChurlSoo).
     This was a regression caused by the fix for #1227.
 
+- Tools:
+  - "chicken-install"
+    - When installing eggs in deploy mode with "-keep-installed", eggs
+      under the prefix won't unnecessarily be reinstalled (#1144).
+    - Added new option "-no-install-deps" which inhibits automatic
+      installation of dependencies, useful with "-prefix" (#1298).
+
 4.11.1
 
 - Security fixes
