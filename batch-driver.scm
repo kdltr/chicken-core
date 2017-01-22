@@ -24,9 +24,7 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-;; TODO: Rename batch-driver back to "driver" and turn it into a
-;; functor?  This may require the creation of an additional file.
-;; Same goes for "backend" and "platform".
+
 (declare
   (unit batch-driver)
   (uses extras data-structures pathname
@@ -329,6 +327,9 @@
       (set! explicit-use-flag #t)
       (set! cleanup-forms '())
       (set! initforms '()) )
+    (when (memq 'static options)
+      (set! static-extensions #t)
+      (register-feature! 'chicken-compile-static))
     (when (memq 'no-lambda-info options)
       (set! emit-closure-info #f) )
     (when (memq 'no-compiler-syntax options)
@@ -358,6 +359,8 @@
     (when (memq 'emit-external-prototypes-first options)
       (set! external-protos-first #t))
     (when (memq 'inline options) (set! inline-locally #t))
+    (and-let* ((elf (memq 'emit-link-file options)))
+      (set! emit-link-file (option-arg elf)))
     (and-let* ((ifile (memq 'emit-inline-file options)))
       (set! inline-locally #t)		; otherwise this option makes no sense
       (set! local-definitions #t)
@@ -809,7 +812,15 @@
 				(prepare-for-code-generation node2 db)
 			      (end-time "preparation")
 			      (begin-time)
-			      ;; Code generation
+
+                              ;; generate link file
+                              (when emit-link-file
+                                (dribble "generating link file `~a' ..." emit-link-file)
+                                (with-output-to-file
+                                  emit-link-file
+                                  (cut pp linked-static-extensions)))
+                                
+                               ;; Code generation
 			      (let ((out (if outfile (open-output-file outfile) (current-output-port))) )
 				(dribble "generating `~A' ..." outfile)
 				(generate-code literals lliterals lambda-table out filename

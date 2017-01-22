@@ -569,7 +569,6 @@ Available options:
 ; {{-i   -init DIRECTORY}} : initialize empty alternative repository
 ; {{-u   -update-db}} : update export database
 ; {{-repository}} : print path to extension repository
-; {{-deploy}} : install extension in the application directory for a deployed application (see [[Deployment]] for more information)
 ; {{-trunk}} : build trunk instead of tagged version (only local)
 ; {{-D   -feature FEATURE}} : pass this on to subinvocations of {{csi}} and {{csc}} (when done via {{compile}} or {{(run (csc ...))}})
 ; {{-debug}} : print full call-trace when encountering errors in the setup script
@@ -590,7 +589,6 @@ Available options:
 ; {{-force}} : don't ask, delete whatever matches
 ; {{-s   -sudo}} : use external command to elevate privileges for deleting files
 ; {{-p   -prefix PREFIX}} : change installation prefix to {{PREFIX}}
-; {{-deploy}} : uninstall extension from the application directory for a deployed application (see [[Deployment]] for more information)
 ; {{-host}} : when cross-compiling, remove extensions for host system only
 ; {{-target}} : when cross-compiling, remove extensions for target system only
 ; {{-exact}} : match extension-name exactly (do not match as pattern)
@@ -603,7 +601,6 @@ Available options:
 ; {{-host}} : when cross-compiling, show extensions for host system only
 ; {{-target}} : when cross-compiling, show extensions for target system only
 ; {{-p   -prefix PREFIX}} : change installation prefix to {{PREFIX}}
-; {{-deploy}} : look for extensions in the application directory for a deployed application (see [[Deployment]] for more information)
 ; {{-exact}} : match extension-name exactly (do not match as pattern)
 ; {{-list}} : list installed egg version in format suitable for {{chicken-install -override}}
 
@@ -722,4 +719,4 @@ extensions are also installed, is processed automatically.
 ---
 Previous: [[Interface to external functions and variables]]
 
-Next: [[Deployment]]
+Next: [[Extensions]]

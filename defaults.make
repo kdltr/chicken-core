@@ -264,10 +264,9 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 # import libraries
 
 PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.csi chicken.foreign
-DYNAMIC_IMPORT_LIBRARIES = setup-api setup-download srfi-4
+DYNAMIC_IMPORT_LIBRARIES = srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise errno fixnum flonum format \
 	gc io keyword locative memory posix pretty-print random time
-DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
 	eval expand files internal irregex lolevel pathname ports \
 	read-syntax repl tcp utils
@@ -282,6 +281,7 @@ CHICKEN_INSTALL_PROGRAM = $(PROGRAM_PREFIX)chicken-install$(PROGRAM_SUFFIX)
 CHICKEN_UNINSTALL_PROGRAM = $(PROGRAM_PREFIX)chicken-uninstall$(PROGRAM_SUFFIX)
 CHICKEN_STATUS_PROGRAM = $(PROGRAM_PREFIX)chicken-status$(PROGRAM_SUFFIX)
 CHICKEN_BUG_PROGRAM = $(PROGRAM_PREFIX)chicken-bug$(PROGRAM_SUFFIX)
+CHICKEN_DO_PROGRAM = $(PROGRAM_PREFIX)chicken-do$(PROGRAM_SUFFIX)
 CHICKEN_DEBUGGER_PROGRAM ?= $(PROGRAM_PREFIX)feathers$(PROGRAM_SUFFIX)$(SCRIPT_EXT)
 IMPORT_LIBRARIES = $(DYNAMIC_IMPORT_LIBRARIES) \
 		   $(PRIMITIVE_IMPORT_LIBRARIES) \
@@ -298,7 +298,7 @@ TARGETLIBS ?= lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A)
 TARGETS += $(TARGETLIBS) $(CHICKEN_STATIC_EXECUTABLE) \
 	$(CSI_STATIC_EXECUTABLE) $(CHICKEN_PROFILE_PROGRAM)$(EXE) \
 	$(CSC_PROGRAM)$(EXE) \
-	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM)
+	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DO_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM)
 else
 CHICKEN_STATIC_EXECUTABLE = $(CHICKEN_PROGRAM)-static$(EXE)
 CSI_STATIC_EXECUTABLE = $(CSI_PROGRAM)-static$(EXE)
@@ -308,8 +308,8 @@ TARGETLIBS ?= lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A) $(LIBCHICKEN_SO_F
 TARGETS += $(TARGETLIBS) $(CHICKEN_SHARED_EXECUTABLE) \
 	$(CSI_SHARED_EXECUTABLE) $(CHICKEN_PROFILE_PROGRAM)$(EXE) \
 	$(CSC_PROGRAM)$(EXE) $(CHICKEN_INSTALL_PROGRAM)$(EXE) $(CHICKEN_UNINSTALL_PROGRAM)$(EXE) \
-	$(CHICKEN_STATUS_PROGRAM)$(EXE) setup-download.so setup-api.so \
-	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM) \
+	$(CHICKEN_STATUS_PROGRAM)$(EXE) \
+	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DO_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM) \
 	$(IMPORT_LIBRARIES:%=%.import.so)
 endif
 ifdef WINDOWS
@@ -331,6 +331,9 @@ ifdef OPTIMIZE_FOR_SPEED
 endif
 ifdef DEBUGBUILD
 	$(call echo, >>, $@,#define DEBUGBUILD 1)
+endif
+ifdef STATICBUILD
+	$(call echo, >>, $@,#define STATICBUILD 1)
 endif
 	$(call echo, >>, $@,#define C_CHICKEN_PROGRAM "$(CHICKEN_PROGRAM)$(EXE)")
 	$(call echo, >>, $@,#ifndef C_INSTALL_CC)
@@ -450,6 +453,9 @@ endif
 	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_CHICKEN_BUG_PROGRAM)
 	$(call echo, >>, $@,# define C_CHICKEN_BUG_PROGRAM "$(CHICKEN_BUG_PROGRAM)")
+	$(call echo, >>, $@,#endif)
+	$(call echo, >>, $@,#ifndef C_CHICKEN_DO_PROGRAM)
+	$(call echo, >>, $@,# define C_CHICKEN_DO_PROGRAM "$(CHICKEN_DO_PROGRAM)")
 	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_CHICKEN_INSTALL_PROGRAM)
 	$(call echo, >>, $@,# define C_CHICKEN_INSTALL_PROGRAM "$(CHICKEN_INSTALL_PROGRAM)")

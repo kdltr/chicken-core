@@ -602,7 +602,4 @@ del /f /q /s rev-app rev-app-2 reverser\*.import.* reverser\*.so
 rem echo ======================================== reinstall tests
 rem currently disabled for windows
 
-rem echo ======================================== deployment tests
-rem currently disabled for windows
-
 echo ======================================== done.

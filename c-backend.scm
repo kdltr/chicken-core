@@ -25,9 +25,6 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-;; TODO: Rename c-backend back to "backend" and turn it into a
-;; functor?  This may require the creation of an additional file.
-;; Same goes for "platform" and "driver".
 (declare
   (unit c-backend)
   (uses data-structures extras c-platform compiler internal support))
@@ -540,7 +537,7 @@
 	    (gen ";"))))
 
       (expr node temps) )
-  
+ 
     (define (header)
       (define (pad0 n)
 	(if (< n 10)
@@ -566,7 +563,8 @@
 	(unless (null? used-units)
 	  (gen #t "   uses: ")
 	  (gen-list used-units))
-	(gen #t "*/" #t #t "#include \"" target-include-file "\"")
+        (gen #t "*/")
+	(gen #t "#include \"" target-include-file "\"")
 	(when external-protos-first
 	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) )
 	(when (pair? foreign-declarations)

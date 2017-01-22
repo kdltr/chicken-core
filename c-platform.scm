@@ -25,9 +25,6 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-;; TODO: Rename c-platform back to "platform" and turn it into a
-;; functor?  This may require the creation of an additional file.
-;; Same goes for "backend" and "driver".
 (declare
   (unit c-platform)
   (uses data-structures
@@ -101,7 +98,7 @@
     compile-syntax tag-pointers accumulate-profile
     disable-stack-overflow-checks raw specialize
     emit-external-prototypes-first release local inline-global
-    analyze-only dynamic
+    analyze-only dynamic static
     no-argc-checks no-procedure-checks no-parentheses-synonyms
     no-procedure-checks-for-toplevel-bindings
     no-bound-checks no-procedure-checks-for-usual-bindings no-compiler-syntax
@@ -110,7 +107,7 @@
     setup-mode no-module-registration) )
 
 (define valid-compiler-options-with-argument
-  '(debug 
+  '(debug emit-link-file
     output-file include-path heap-size stack-size unit uses module
     keyword-style require-extension inline-limit profile-name
     prelude postlude prologue epilogue nursery extend feature no-feature

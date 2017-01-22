@@ -23,135 +23,248 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
+
 (module main ()
 
-  (import scheme chicken)
-  (import setup-download setup-api)
+(import (scheme))
+(import (chicken))
+(import (chicken foreign))
+(import (chicken data-structures))
+(import (chicken keyword))
+(import (chicken files))
+(import (chicken format))
+(import (chicken irregex))
+(import (chicken tcp))
+(import (chicken ports))
+(import (chicken posix))
+(import (chicken io))
+(import (chicken time))
+(import (chicken pathname))
+(import (chicken pretty-print))
 
-  (import chicken.data-structures
-	  chicken.files
-	  chicken.foreign
-	  chicken.format
-	  chicken.io
-	  chicken.irregex
-	  chicken.pathname
-	  chicken.ports
-	  chicken.posix
-	  chicken.pretty-print
-	  (only chicken.utils qs))
+(define +defaults-version+ 2)
+(define +module-db+ "modules.db")
+(define +defaults-file+ "setup.defaults")
+(define +short-options+ '(#\r #\h))
+(define +one-hour+ (* 60 60))
+(define +timestamp-file+ "TIMESTAMP")
+(define +status-file+ "STATUS")
+(define +egg-extension+ "egg")
+(define +egg-info-extension+ "egg.info")
+(define +version-file+ "VERSION")
 
-  (include "mini-srfi-1.scm")
+(include "mini-srfi-1.scm")
+(include "egg-environment.scm")
+(include "egg-information.scm")
+(include "egg-compile.scm")
+(include "egg-download.scm")
 
-  (define +default-repository-files+
-    ;;XXX keep this up-to-date!
-    '("chicken.bitwise.import.so"
-      "chicken.continuation.import.so"
-      "chicken.csi.import.so"
-      "chicken.data-structures.import.so"
-      "chicken.errno.import.so"
-      "chicken.eval.import.so"
-      "chicken.expand.import.so"
-      "chicken.files.import.so"
-      "chicken.fixnum.import.so"
-      "chicken.flonum.import.so"
-      "chicken.foreign.import.so"
-      "chicken.format.import.so"
-      "chicken.gc.import.so"
-      "chicken.import.so"
-      "chicken.internal.import.so"
-      "chicken.io.import.so"
-      "chicken.irregex.import.so"
-      "chicken.keyword.import.so"
-      "chicken.locative.import.so"
-      "chicken.lolevel.import.so"
-      "chicken.memory.import.so"
-      "chicken.pathname.import.so"
-      "chicken.ports.import.so"
-      "chicken.posix.import.so"
-      "chicken.pretty-print.import.so"
-      "chicken.random.import.so"
-      "chicken.repl.import.so"
-      "chicken.read-syntax.import.so"
-      "chicken.tcp.import.so"
-      "chicken.time.import.so"
-      "chicken.utils.import.so"
-      "setup-api.import.so"
-      "setup-api.so"
-      "setup-download.so"
-      "setup-download.import.so"
-      "srfi-4.import.so"
-      "types.db"))
+(define user-defaults #f)
+(define quiet #t)
+(define default-servers '())
+(define default-locations '())
+(define mappings '())
+(define aliases '())
+(define override '())
+(define hacks '())
+(define proxy-host #f)
+(define proxy-port #f)
+(define proxy-user-pass #f)
+(define retrieve-only #f)
+(define retrieve-recursive #f)
+(define do-not-build #f)
+(define list-versions-only #f)
+(define canonical-eggs '())
+(define dependencies '())
+(define checked-eggs '())
+(define run-tests #f)
+(define force-install #f)
+(define host-extension cross-chicken)
+(define target-extension cross-chicken)
+(define sudo-install #f)
+(define update-module-db #f)
+(define purge-mode #f)
+(define tests-failed #f)
+(define keepfiles #f)
+  
+(define platform
+  (if (eq? 'mingw (build-platform))
+      'windows
+      'unix))
 
-  (define-constant +defaults-version+ 1)
-  (define-constant +module-db+ "modules.db")
-  (define-constant +defaults-file+ "setup.defaults")
+(define current-status 
+  (list ##sys#build-id default-prefix
+        (get-environment-variable "CSC_OPTIONS")
+        (get-environment-variable "LD_LIBRARY_PATH")
+        (get-environment-variable "DYLD_LIBRARY_PATH")
+        (get-environment-variable "CHICKEN_INCLUDE_PATH")
+        (get-environment-variable "CHICKEN_REPOSITORY")
+        (get-environment-variable "DYLD_LIBRARY_PATH")))
 
-  (define-foreign-variable C_TARGET_LIB_HOME c-string)
-  (define-foreign-variable C_INSTALL_BIN_HOME c-string)
-  (define-foreign-variable C_TARGET_PREFIX c-string)
-  (define-foreign-variable C_BINARY_VERSION int)
-  (define-foreign-variable C_WINDOWS_SHELL bool)
-  (define-foreign-variable C_CSI_PROGRAM c-string)
+(define (probe-dir dir)
+  (and dir (file-exists? dir) (directory? dir) dir))
+  
+(define cache-directory
+  (or (get-environment-variable "CHICKEN_EGG_CACHE")
+      (make-pathname (or (probe-dir (get-environment-variable "HOME"))
+                         (probe-dir (get-environment-variable "USERPROFILE"))
+                         (probe-dir "/tmp")
+                         (probe-dir "/Temp")
+                         ".")
+                     ".chicken-install.cache")))
 
-  (define *program-path*
-    (or (and-let* ((p (get-environment-variable "CHICKEN_PREFIX")))
-          (make-pathname p "bin") )
-        C_INSTALL_BIN_HOME))
+(define (repo-path)
+  (destination-repository
+    (if (and cross-chicken (not host-extension))
+        'target
+        'host)))
 
-  (define *keep* #f)
-  (define *keep-existing* #f)
-  (define *force* #f)
-  (define *run-tests* #f)
-  (define *retrieve-only* #f)
-  (define *no-install* #f)
-  (define *username* #f)
-  (define *password* #f)
-  (define *default-sources* '())
-  (define *default-location* #f)
-  (define *default-transport* 'http)
-  (define *windows-shell* C_WINDOWS_SHELL)
-  (define *proxy-host* #f)
-  (define *proxy-port* #f)
-  (define *proxy-user-pass* #f)
-  (define *running-test* #f)
-  (define *mappings* '())
-  (define *deploy* #f)
-  (define *trunk* #f)
-  (define *csc-features* '())
-  (define *csc-nonfeatures* '())
-  (define *prefix* #f)
-  (define *aliases* '())
-  (define *cross-chicken* (feature? #:cross-chicken))
-  (define *host-extension* *cross-chicken*)
-  (define *target-extension* *cross-chicken*)
-  (define *debug-setup* #f)
-  (define *keep-going* #f)
-  (define *override* '())
-  (define *reinstall* #f)
-  (define *show-depends* #f)
-  (define *show-foreign-depends* #f)
-  (define *hacks* '())
+(define (build-script-extension mode platform)
+  (string-append "build"
+                 (if (eq? mode 'target) ".target" "")
+                 (if (eq? platform 'windows) ".bat" ".sh")))
 
-  (define (repo-path)
-    (if *deploy*
-	*prefix*
-	(if (and *cross-chicken* (not *host-extension*))
-	    (make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
-	    (if *prefix*
-		(make-pathname
-		 *prefix*
-		 (sprintf "lib/chicken/~a" C_BINARY_VERSION))
-		(repository-path)))))
+(define (install-script-extension mode platform)
+  (string-append "install"
+                 (if (eq? mode 'target) ".target" "")
+                 (if (eq? platform 'windows) ".bat" ".sh")))
 
-  (define (get-prefix #!optional runtime)
-    (cond ((and *cross-chicken*
-		(not *host-extension*))
-	   (or (and (not runtime) *prefix*)
-	       C_TARGET_PREFIX))
-	  (else *prefix*)))
 
-  (define (load-defaults)
-    (let ((deff (make-pathname (chicken-home) +defaults-file+)))
+;; usage information
+  
+(define (usage code)
+  (print "usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...")
+  ;;XXX  
+  (exit code))
+  
+
+;;; validate egg-information tree
+
+(define (egg-version? v)
+  (and (list? v) 
+       (pair? v)
+       (null? (cdr v))
+       (let ((str (->string (car v))))
+         (irregex-match '(seq (+ numeric) 
+                              (? #\. (+ numeric)
+                                 (? #\. (+ numeric))))
+                        str))))
+
+(define (optname? x)
+  (and (list? x) (pair? x)
+       (or (null? (cdr x)) 
+           (string? (cadr x))
+           (symbol? (cadr x)))))
+
+;; ENTRY = (NAME TOPLEVEL? NESTED? NAMED? [VALIDATOR])
+(define egg-info-items
+  `((synopsis #t #f #f)
+    (author #t #f #f)
+    (category #t #f #f)
+    (license #t #f #f)
+    (version #t #f #f ,egg-version?)
+    (dependencies #t #f #f ,list?)
+    (test-dependencies #t #f #f ,list?)
+    (build-dependencies #t #f #f ,list?)
+    (components #t #f #f)
+    (foreign-dependencies #t #f #f ,list?)
+    (platform #t #f #f)
+    (doc-from-wiki #t #f #f)
+    (installed-files #t #f #f ,list?)
+    (maintainer #t #f #f)
+    (files #f #t #f ,list?)
+    (source #f #f #f)
+    (csc-options #f #f #f)
+    (link-options #f #f #f)
+    (custom-build #f #f #f)
+    (linkage #f #f #f)
+    (install-name #f #f #f (disjoin string? symbol?))
+    (target #f #t #f)
+    (host #f #t #f)
+    (types-file #f #f ,optname?)
+    (inline-file #f #f ,optname?)
+    (extension #f #t #t)
+    (generated-source-file #f #t #t)
+    (program #f #t #t)
+    (data #f #t #t)
+    (c-include #f #f #t)
+    (scheme-include #f #f #t)))
+
+(define (validate-egg-info info)
+  (define (validate info top?)
+    (for-each
+      (lambda (item)
+        (cond ((or (not (pair? item)) 
+                   (not (list? item)) 
+                   (not (symbol? (car item))))
+               (error "invalid egg information item" item))
+              ((assq (car item) egg-info-items) =>
+               (lambda (a)
+                 (apply (lambda (_ toplevel nested named #!optional validator)
+                          (when (and top? (not toplevel))
+                            (error "egg information item not allowed at toplevel" 
+                                   item))
+                          (when (and named
+                                     (or (null? (cddr item))
+                                         (not (symbol? (caddr item)))))
+                            (error "unnamed egg information item" item))
+                          (when (and validator
+                                     (not (validator (cdr item))))
+                            (error "egg information item has invalid structure" item))
+                          (when nested
+                            (validate (if named (cddr item) (cdr item)) #f)))
+                        a)))
+              (else (error "unknown egg information item" item))))
+      info))
+  (validate info #t)
+  info)
+
+
+;; utilities
+
+;; Simpler replacement for SRFI-13's string-suffix?
+(define (string-suffix? suffix s)
+  (let ((len-s (string-length s))
+        (len-suffix (string-length suffix)))
+     (and (not (< len-s len-suffix))
+          (string=? suffix
+   	            (substring s (- len-s len-suffix))))))
+
+(define (d flag . args)
+  (let ((flag (and (not (string? flag)) flag))
+        (fstr (if (string? flag) flag (car args)))
+        (args (if (string? flag) args (cdr args))))
+    (when (or flag (not quiet))
+      (flush-output)
+      (let ((port (current-error-port)))
+        (apply fprintf port fstr args)
+        (flush-output port) ) )))
+
+(define (version>=? v1 v2)
+  (define (version->list v)
+    (map (lambda (x) (or (string->number x) x))
+	 (irregex-split "[-\\._]" (->string v))))
+  (let loop ((p1 (version->list v1))
+	     (p2 (version->list v2)))
+    (cond ((null? p1) (null? p2))
+	  ((null? p2))
+	  ((number? (car p1))
+	   (and (number? (car p2))
+		(or (> (car p1) (car p2))
+		    (and (= (car p1) (car p2))
+			 (loop (cdr p1) (cdr p2))))))
+	  ((number? (car p2)))
+	  ((string>? (car p1) (car p2)))
+	  (else
+	   (and (string=? (car p1) (car p2))
+		(loop (cdr p1) (cdr p2)))))))
+
+
+;; load defaults file ("setup.defaults")
+
+(define (load-defaults)
+  (let ((deff (or user-defaults
+                  (make-pathname host-sharedir +defaults-file+))))
       (define (broken x)
 	(error "invalid entry in defaults file" deff x))
       (cond ((not (file-exists? deff)) '())
@@ -166,19 +279,19 @@
 			 ((not (= (cadr x) +defaults-version+))
 			  (error 
 			   (sprintf 
-			       "version of installed `~a' does not match setup-API version (~a)"
+			       "version of installed `~a' does not match chicken-install version (~a)"
 			     +defaults-file+
 			     +defaults-version+)
 			   (cadr x)))
-			 ;; ignored
+			 ;; others are ignored
 			 ))
 		  ((server)
-		   (set! *default-sources* 
-		     (append *default-sources* (list (cdr x)))))
+		   (set! default-servers
+		     (append default-servers (cdr x))))
 		  ((map)
-		   (set! *mappings*
+		   (set! mappings
 		     (append
-		      *mappings*
+		      mappings
 		      (map (lambda (m)
 			     (let ((p (list-index (cut eq? '-> <>) m)))
 			       (unless p (broken x))
@@ -186,526 +299,583 @@
 				 (cons from (cdr to)))))
 			   (cdr x)))))
 		  ((alias)
-		   (set! *aliases*
+		   (set! aliases
 		     (append 
-		      *aliases*
+		      aliases
 		      (map (lambda (a)
 			     (if (and (list? a) (= 2 (length a)) (every string? a))
 				 (cons (car a) (cadr a))
 				 (broken x)))
 			   (cdr x)))))
 		  ((override)
-		   (set! *override* 
+		   (set! override
 		     (if (and (pair? (cdr x)) (string? (cadr x)))
 			 (call-with-input-file (cadr x) read-all)
 			 (cdr x))))
+                  ((location)
+                   (set! default-locations
+                     (append default-locations (list (cdr x)))))
 		  ((hack)
-		   (set! *hacks* (append *hacks* (list (eval (cadr x))))))
+		   (set! hacks (append hacks (list (eval (cadr x))))))
 		  (else (broken x))))
-	      (call-with-input-file deff read-all))))
-      (pair? *default-sources*) ))
+	      (call-with-input-file deff read-all))))))
 
-  (define (resolve-location name)
-    (cond ((assoc name *aliases*) => 
-	   (lambda (a)
-	     (let ((new (cdr a)))
-	       ;(print "resolving alias `" name "' to: " new)
-	       (resolve-location new))))
-	  (else name)))
+  
+;; set variables with HTTP proxy information
+  
+(define (setup-proxy uri)
+  (and-let* (((string? uri))
+             (m (irregex-match "(http://)?([^:]+):?([0-9]*)" uri))
+             (port (irregex-match-substring m 3)))
+    (set! proxy-user-pass (get-environment-variable "proxy_auth"))
+    (set! proxy-host (irregex-match-substring m 2))
+    (set! proxy-port (or (string->number port) 80))))
 
-  (define (known-default-sources)
-    (if (and *default-location* *default-transport*)
-        `(((location 
-	    ,(if (and (eq? *default-transport* 'local)
-		      (not (absolute-pathname? *default-location*) ))
-		 (make-pathname (current-directory) *default-location*)
-		 *default-location*))
-           (transport ,*default-transport*)))
-        *default-sources* ) )
+  
+;; apply egg->egg mappings loaded from defaults
+  
+(define (apply-mappings eggs)
+  (define (canonical x)
+    (cond ((symbol? x) (cons (symbol->string x) #f))
+          ((string? x) (cons x #f))
+          ((pair? x) x)
+          (else (error "internal error - bad egg spec" x))))
+  (define (same? e1 e2)
+    (equal? (car (canonical e1)) (car (canonical e2))))
+  (let ((eggs2
+         (delete-duplicates
+           (append-map
+             (lambda (egg)
+               (cond ((find (lambda (m) (find (cut same? egg <>) (car m)))
+                        mappings) => 
+                      (lambda (m) (map ->string (cdr m))))
+                 (else (list egg))))
+             eggs)
+           same?)))
+    (unless (and (= (length eggs) (length eggs2))
+                 (every (lambda (egg) (find (cut same? <> egg) eggs2)) eggs))
+      (d "mapped ~s to ~s~%" eggs eggs2))
+    eggs2))
 
-  (define (deps key meta)
-    (or (and-let* ((d (assq key meta)))
-          (cdr d))
-        '()))
+  
+;; override versions, if specified in "overrides" file
+  
+(define (override-version egg)
+  (let ((name (string->symbol (if (pair? egg) (car egg) egg))))
+    (cond ((assq name override) =>
+           (lambda (a)
+             (cond ((and (pair? egg) (not (equal? (cadr a) (cdr egg))))
+                    (warning
+                      (sprintf 
+                        "version `~a' of extension `~a' overrides explicitly given version `~a'"
+                        (cadr a) name (cdr egg))))
+                   (else (d "overriding: ~a~%" a)))
+             (cadr a)))
+          ((pair? egg) (cdr egg))
+          (else #f))))
+  
+  
+;; "locate" egg: either perform HTTP download or copy from a file-system 
+;; location, also make sure it is up to date
+  
+(define (locate-egg name version)
+  (let* ((cached (make-pathname cache-directory name))
+         (now (current-seconds))
+         (timestamp (make-pathname cached +timestamp-file+))
+         (status (make-pathname cached +status-file+))
+         (eggfile (make-pathname cached name +egg-extension+)))
+    (define (fetch lax)
+      (when (file-exists? cached)
+        (delete-directory cached #t))
+      (create-directory cached)
+      (fetch-egg-sources name version cached lax)
+      (with-output-to-file status (cut write current-status)))
+    (unless (file-exists? cache-directory)
+      (create-directory cache-directory))
+    (cond ((or (not (probe-dir cached))
+               (not (file-exists? eggfile)))
+           (d "~a not cached~%" name)
+           (fetch #f))
+          ((and (file-exists? status)
+                (not (equal? current-status 
+                             (with-input-from-file status read))))
+           (d "status changed for ~a~%" name)
+           (fetch #f)))
+    (let* ((info (validate-egg-info (load-egg-info eggfile)))
+           (vfile (make-pathname cached +version-file+))
+           (lversion (or (get-egg-property info 'version)
+                         (and (file-exists? vfile)
+                              (with-input-from-file vfile read)))))
+      ;; yes, awkward - we must make sure locally available eggs are always
+      ;; fetched (check-remote-version takes care of that), so only check
+      ;; the timestamp, if it exists (as it does for downloaded eggs)
+      (cond ((if (file-exists? timestamp)
+                 (and (> (- now (with-input-from-file timestamp read)) +one-hour+)
+                      (not (check-remote-version name version lversion
+                                                 cached)))
+                 (not (check-remote-version name version lversion
+                                            cached)))
+             (d "version of ~a out of date~%" name)
+             (fetch #t)
+             (let* ((info (validate-egg-info (load-egg-info eggfile))) ; new egg info (fetched)
+                    (lversion (or (get-egg-property info 'version)
+                                  (and (file-exists? vfile)
+                                       (with-input-from-file vfile read)))))
+               (values cached lversion)))
+            (else (values cached version))))))
+    
+(define (resolve-location name)
+  (cond ((assoc name aliases) => 
+         (lambda (a)
+           (let ((new (cdr a)))
+             (d "resolving alias `~a' to: ~a~%" name new)
+             (resolve-location new))))
+        (else name)))
 
-  (define (init-repository dir)
-    (let ((src (repo-path))
-          (copy (if *windows-shell*
-                    "copy"
-                    "cp -r")))
-      (create-directory dir #t)
-      (print "copying required files to " dir " ...")
-      (for-each
-       (lambda (f)
-         (command "~a ~a ~a" copy (shellpath (make-pathname src f)) (shellpath dir)))
-       +default-repository-files+)))
+(define (fetch-egg-sources name version dest lax)
+  (let loop ((locs default-locations))
+    (cond ((null? locs)
+           (let ((tmpdir (create-temporary-directory)))
+             (let loop ((srvs default-servers))
+               (if (null? srvs) 
+                   (if lax
+                       (print "no connection to server or egg not found remotely - will use cached version")
+                       (error "extension or version not found"))
+                   (receive (dir ver)
+                     (try-download name (resolve-location (car srvs))
+                                   version: version 
+                                   destination: tmpdir
+                                   tests: run-tests 
+                                   proxy-host: proxy-host
+                                   proxy-port: proxy-port 
+                                   proxy-user-pass: proxy-user-pass)
+                     (cond (dir
+                                (copy-egg-sources tmpdir dest)
+                                (delete-directory tmpdir #t)
+                                (when ver
+                                  (with-output-to-file
+                                    (make-pathname dest +version-file+)
+                                    (cut write ver)))
+                                (with-output-to-file
+                                  (make-pathname dest +timestamp-file+)
+                                  (cut write (current-seconds))))
+                           (else (loop (cdr srvs)))))))))
+          ((probe-dir (make-pathname (car locs) name))
+           => (lambda (dir)
+                (let* ((eggfile (make-pathname dir name +egg-extension+))
+                       (info (validate-egg-info (load-egg-info eggfile)))
+                       (rversion (get-egg-property info 'version)))
+                  (if (or (not rversion)
+                          (version>=? rversion version))
+                      (copy-egg-sources dir dest)
+                      (loop (cdr locs))))))
+          (else (loop (cdr locs))))))
+  
+(define (copy-egg-sources from to)
+  ;;XXX should probably be done manually, instead of calling tool
+  (let ((cmd (quote-all
+               (string-append
+                 (copy-directory-command platform)
+                 " " (quotearg (make-pathname from "*")) " " (quotearg to))
+               platform)))
+    (d "~a~%" cmd)
+    (system cmd)))
+  
+(define (check-remote-version name version lversion cached)
+  (let loop ((locs default-locations))
+    (cond ((null? locs)
+           (let loop ((srvs default-servers))
+             (and (pair? srvs)
+                  (let ((versions (try-list-versions name (car srvs))))
+                    (or (and versions
+                             (any (cut version>=? <> version) versions))
+                        (loop (cdr srvs)))))))
+          ((probe-dir (make-pathname (car locs) name)) =>
+           (lambda (dir)
+             ;; for locally available eggs, check set of files and
+             ;; timestamps
+             (compare-trees dir cached)))
+          (else (loop (cdr locs))))))
 
-  (define (ext-version x)
-    (cond ((or (eq? x 'chicken) (equal? x "chicken"))
-	   (chicken-version))
-	  ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
-		  (sf (make-pathname (repo-path) ep "setup-info")))
-	     (and (file-exists? sf)
-		  (with-input-from-file sf read))) =>
-	   (lambda (info)
-	     (let ((a (assq 'version info)))
-	       (if a
-		   (->string (cadr a))
-		   "0.0.0"))))
-	  (else #f)))
+(define (compare-trees there here)
+  (let walk ((there there)
+             (here here))
+    (let ((tfs (directory there))
+          (hfs (directory here)))
+      (every (lambda (f) 
+               (and (member f hfs)
+                    (let ((tf2 (string-append there "/" f))
+                          (hf2 (string-append here "/" f)))
+                      (and (<= (file-modification-time tf2)
+                               (file-modification-time hf2))
+                           (if (directory? tf2)
+                               (and (directory? hf2)
+                                    (walk tf2 hf2))
+                               (not (directory? hf2)))))))
+             tfs))))
 
-  (define (meta-dependencies meta)
-    (append
-     (deps 'depends meta)
-     (deps 'needs meta)
-     (if *run-tests* (deps 'test-depends meta) '())))
 
-  (define (check-dependency dep)
-    (cond ((or (symbol? dep) (string? dep))
-	   (values (and (not (ext-version dep))
-			(->string dep))
-		   #f))
-	  ((and (list? dep) (eq? 'or (car dep)))
-	   (let scan ((ordeps (cdr dep)) (bestm #f) (bestu #f))
-	     (if (null? ordeps)
-		 (values
-		  (cond (bestu #f)	; upgrade overrides new
-			(bestm bestm)
-			(else #f))
-		  bestu)
-		 (let-values (((m u) (check-dependency (car ordeps))))
-		   (if (and (not m) (not u))
-		       (values #f #f)
-		       (scan (cdr ordeps)
-			     (if (and m (not bestm))
-				 m
-				 bestm)
-			     (if (and u (not bestu))
-				 u
-				 bestu)))))))
-	  ((and (list? dep) (= 2 (length dep))
-		(or (string? (car dep)) (symbol? (car dep))))
-	   (let ((v (ext-version (car dep))))
-	     (cond ((not v)
-		    (values (->string (car dep)) #f))
-		   ((not (version>=? v (->string (cadr dep))))
-		    (cond ((string=? "chicken" (->string (car dep)))
-			   (if *force*
-			       (values #f #f)
-			       (error
-				(string-append 
-				 "Your CHICKEN version is not recent enough to use this extension - version "
-				 (cadr dep) 
-				 " or newer is required"))))
-			  (else
-			   (values 
-			    #f
-			    (cons (->string (car dep)) (->string (cadr dep)))))))
-		   (else (values #f #f)))))
-	  (else
-	   (warning
-	    "invalid dependency syntax in extension meta information"
-	    dep)
-	   (values #f #f))))
+;; check installed eggs for already installed files
 
-  (define (outdated-dependencies egg meta)
-    (let ((ds (meta-dependencies meta)))
-      (for-each
-       (lambda (h) (set! ds (h egg ds)))
-       *hacks*)
-      (let loop ((deps ds) (missing '()) (upgrade '()))
-        (if (null? deps)
-            (values (reverse missing) (reverse upgrade))
-            (let ((dep (car deps))
-                  (rest (cdr deps)))
-	      (let-values (((m u) (check-dependency dep)))
-		(loop rest
-		      (if m (cons m missing) missing)
-		      (if u (cons u upgrade) upgrade))))))))
+(define (matching-installed-files egg fnames)
+  (let ((eggs (glob (make-pathname (repo-path) "*.egg-info"))))
+    (let loop ((eggs eggs) (same '()))
+      (cond ((null? eggs) same)
+            ((string=? egg (pathname-file (car eggs)))
+             (loop (cdr eggs) same))
+            (else
+              (let* ((info (load-egg-info (car eggs)))
+                     (files (assq 'installed-files info))
+                     (mfiles (and files
+                                  (filter (lambda (fname)
+                                            (and (not (member fname same))
+                                                 (member fname files)))
+                                          fnames))))
+                (loop (cdr eggs) (append (or mfiles '()) same))))))))
 
-  (define *eggs+dirs+vers* '())
-  (define *dependencies* '())
-  (define *checked* '())
+(define (check-installed-files name info)
+  (let ((bad (matching-installed-files name
+                                       (cdr (assq 'installed-files info)))))
+    (unless (null? bad)
+      (flush-output)
+      (fprintf (current-error-port) 
+               "\nthe extension `~a' will overwrite the following files:\n\n" name)
+      (for-each 
+        (lambda (fname)
+          (fprintf (current-error-port) "  ~a~%" fname))
+        bad)
+      (exit 1))))
 
-  (define *csi* 
-    (shellpath (make-pathname *program-path* C_CSI_PROGRAM)))
 
-  (define (try-extension name version trans locn)
-    (condition-case
-        (retrieve-extension
-         name trans locn
-         version: version
-         destination: (and *retrieve-only* (current-directory))
-         tests: *run-tests*
-         username: *username*
-         password: *password*
-	 trunk: *trunk*
-	 proxy-host: *proxy-host*
-	 proxy-port: *proxy-port*
-	 proxy-user-pass: *proxy-user-pass*
-	 clean: (and (not *retrieve-only*) (not *keep*)))
-      [(exn net)
-       (print "TCP connect timeout")
-       (values #f "") ]
-      [(exn http-fetch)
-       (print "HTTP protocol error")
-       (values #f "") ]
-      [e (exn setup-download-error)
-	 (print "Server error:")
-	 (print-error-message e) 
-	 (values #f "")]
-      [e ()
-       (abort e) ] ) )
-
-  (define (with-default-sources proc)
-    (let ((sources (known-default-sources)))
-      (let trying-sources ((defs sources))
-	(if (null? defs)
-	    (proc #f #f
-		  (lambda ()
-		    (with-output-to-port (current-error-port)
-		      (lambda ()
-			(print "Could not determine a source of extensions. "
-			       "Please specify a valid location and transport.")))
-		    (exit 1)))
-	    (let ((def (car defs)))
-	      (if def
-		  (let* ((locn (resolve-location
-				(cadr (or (assq 'location def)
-					  (error "missing location entry" def)))))
-			 (trans (cadr (or (assq 'transport def)
-					  (error "missing transport entry" def)))))
-		    (proc trans locn
-			  (lambda ()
-			    (unless (eq? 'local trans)
-			      ;; invalidate this entry in the list of sources
-			      (set-car! defs #f))
-			    (trying-sources (cdr defs)))))
-		  (trying-sources (cdr defs))))))))
-
-  (define (try-default-sources name version)
-    (with-default-sources
-     (lambda (trans locn next)
-       (if (not trans)
-	   (values #f "")
-	   (let-values (((dir ver) (try-extension name version trans locn)))
-	     (if dir
-		 (values dir ver)
-		 (next)))))))
-
-  (define (make-replace-extension-question e+d+v upgrade)
-    (string-intersperse
-     (append
-      (list "The following installed extensions are outdated, because `"
-            (car e+d+v)
-            "' requires later versions:\n")
-      (filter-map
-       (lambda (e)
-	 (cond ((assq (string->symbol (car e)) *override*) =>
-		(lambda (a)
-		  (unless (equal? (cadr a) (cdr e))
-		    (warning
-		     (sprintf "version `~a' of extension `~a' overrides required version `~a'"
-		       (cadr a) (car a) (cdr e))))
-		  #f))
-	       (else
-		(conc
-		 "  " (car e)
-		 " (" (let ((v (assq 'version (extension-information (car e))))) 
-			(if v (cadr v) "???"))
-		 " -> " (cdr e) ")"
-		 #\newline) )))
-       upgrade)
-      '("\nDo you want to replace the existing extensions?"))
-     ""))
-
-  (define (override-version egg)
-    (let ((name (string->symbol (if (pair? egg) (car egg) egg))))
-      (cond ((assq name *override*) =>
-	     (lambda (a)
-	       (cond ((and (pair? egg) (not (equal? (cadr a) (cdr egg))))
-		      (warning
-		       (sprintf 
-			   "version `~a' of extension `~a' overrides explicitly given version `~a'"
-			 (cadr a) name (cdr egg))))
-		     (else
-		      (print "overriding: " a)))
-	       (cadr a)))
-	    ((pair? egg) (cdr egg))
-	    (else #f))))
-
-  (define (show-depends eggs . type)
-    (print "fetching meta information...")
-    (retrieve eggs)
-    (let ((type (optional type 'depends)))
-      (printf "~a dependencies as reported in .meta:\n"
-	      (case type ((depends) "Egg")
-			 ((foreign-depends) "Foreign")))
-      (for-each
-       (lambda (egg)
-	 (and-let* ((meta-file (make-pathname (cadr egg) (car egg) "meta"))
-		    (m (and (file-exists? meta-file) (with-input-from-file meta-file read)))
-		    (ds (if (eq? type 'depends)
-			  (append (deps 'needs m) (deps type m))
-			  (deps type m))))
-	   (unless (null? ds)
-	     (print (car egg) ": ")
-	     (for-each (cut print "\t" <>) ds))))
-       *eggs+dirs+vers*)
-      (cleanup)
-      (exit 0)))
-
-  (define (retrieve eggs)
-    (print "retrieving ...")
-    (for-each
-     (lambda (egg)
-       (cond [(assoc egg *eggs+dirs+vers*) =>
-              (lambda (a)
-                ;; push to front
-                (set! *eggs+dirs+vers* (cons a (delete a *eggs+dirs+vers* eq?))) ) ]
-             [else
+;; retrieve eggs, recursively (if needed)
+  
+(define (retrieve-eggs eggs)
+  (for-each
+    (lambda (egg)
+      (cond ((assoc egg canonical-eggs) =>
+             (lambda (a)
+               ;; push to front
+               (set! canonical-eggs (cons a (delete a canonical-eggs eq?)))))
+            (else
               (let ((name (if (pair? egg) (car egg) egg))
                     (version (override-version egg)))
-                (let-values (((dir ver) (try-default-sources name version)))
+                (let-values (((dir ver) (locate-egg name version)))
                   (when (or (not dir)
                             (null? (directory dir)))
                     (error "extension or version not found"))
-                  (print " " name " located at " dir)
-                  (set! *eggs+dirs+vers* (cons (list name dir ver) *eggs+dirs+vers*)) ) ) ] ) )
+                  (d retrieve-only "~a located at ~a~%" egg dir)
+                  (set! canonical-eggs
+                    (cons (list name dir ver) canonical-eggs)))))))
      eggs)
-    (unless *retrieve-only*
-      (for-each
-       (lambda (e+d+v)
-         (unless (member (car e+d+v) *checked*)
-           (set! *checked* (cons (car e+d+v) *checked*))
-           (let ((mfile (make-pathname (cadr e+d+v) (car e+d+v) "meta")))
-             (cond [(file-exists? mfile)
-                    (let ((meta (with-input-from-file mfile read)))
-		      (print "checking platform for `" (car e+d+v) "' ...")
-		      (check-platform (car e+d+v) meta)
-                      (print "checking dependencies for `" (car e+d+v) "' ...")
-                      (let-values (((missing upgrade) 
-				    (outdated-dependencies (car e+d+v) meta)))
-			(set! missing (apply-mappings missing)) ;XXX only missing - wrong?
-			(set! *dependencies*
-			  (cons
-			   (cons (car e+d+v)
-				 (map (lambda (mu)
-					(if (pair? mu)
-					    (car mu)
-					    mu))
-				      (append missing upgrade)))
-			   *dependencies*))
-                        (when (pair? missing)
-                          (print " missing: " (string-intersperse missing ", "))
-                          (retrieve missing))
-                        (when (and (pair? upgrade)
-                                   (or *force*
-                                       (yes-or-no?
-                                        (make-replace-extension-question e+d+v upgrade)
-                                        default: "no"
-					abort: (abort-setup) ) ) )
-                          (let ([ueggs (unzip1 upgrade)])
-                            (print " upgrade: " (string-intersperse ueggs ", "))
-                            (for-each
-                             (lambda (e)
-                               (print "removing previously installed extension `" e "' ...")
-                               (remove-extension e) )
-                             ueggs)
-                            (retrieve ueggs) ) ) ) ) ]
-                   [else
-                    (warning
-                     (string-append
-                      "extension `" (car e+d+v) "' has no .meta file "
-                      "- assuming it has no dependencies")) ] ) ) ) )
-       *eggs+dirs+vers*) ) )
+  (when (or (not retrieve-only) retrieve-recursive)
+    (for-each
+      (lambda (e+d+v)
+        (unless (member (car e+d+v) checked-eggs)
+          (d "checking ~a ...~%" (car e+d+v))
+          (set! checked-eggs (cons (car e+d+v) checked-eggs))
+          (let* ((fname (make-pathname (cadr e+d+v) (car e+d+v) +egg-extension+))
+                 (info (validate-egg-info (load-egg-info fname))))
+            (d "checking platform for `~a'~%" (car e+d+v))
+            (check-platform (car e+d+v) info)
+            (d "checking dependencies for `~a'~%" (car e+d+v))
+            (let-values (((missing upgrade) 
+                          (outdated-dependencies (car e+d+v) info)))
+              (set! missing (apply-mappings missing))
+              (set! dependencies
+                (cons (cons (car e+d+v)
+                            (map (lambda (mu)
+                                   (if (pair? mu)
+                                       (car mu)
+                                       mu))
+                              (append missing upgrade)))
+                      dependencies))
+              (when (pair? missing)
+                (d " missing: ~a~%" (string-intersperse missing ", "))
+                (retrieve-eggs missing))
+              (when (and (pair? upgrade)
+                         (or force-install
+                             (replace-extension-question e+d+v upgrade)))
+                (let ((ueggs (unzip1 upgrade)))
+                  (d " upgrade: ~a~%" (string-intersperse ueggs ", "))
+                  ;; XXX think about this...
+                  #;(for-each
+                    (lambda (e)
+                      (d "removing previously installed extension `~a'" e)
+                      (remove-extension e) )
+                    ueggs)
+                  (retrieve-eggs ueggs) ) ) ) ) ) )
+      canonical-eggs)))
 
-  (define (check-platform name meta)
-    (define (fail)
-      (error "extension is not targeted for this system" name))
-    (unless *cross-chicken*
-      (and-let* ((platform (assq 'platform meta)))
-	(let loop ((p (cadr platform)))
-	  (cond ((symbol? p) 
-		 (or (feature? p) (fail)))
-		((not (list? p))
-		 (error "invalid `platform' property" name (cadr platform)))
-		((and (eq? 'not (car p)) (pair? (cdr p)))
-		 (and (not (loop (cadr p))) (fail)))
-		((eq? 'and (car p))
-		 (and (every loop (cdr p)) (fail)))
-		((eq? 'or (car p))
-		 (and (not (any loop (cdr p))) (fail)))
-		(else (error "invalid `platform' property" name (cadr platform))))))))
+(define (outdated-dependencies egg info)
+  (let ((ds (get-egg-dependencies info)))
+    (for-each
+      (lambda (h) (set! ds (h egg ds)))
+      hacks)
+    (let loop ((deps ds) (missing '()) (upgrade '()))
+      (if (null? deps)
+          (values (reverse missing) (reverse upgrade))
+          (let ((dep (car deps))
+                (rest (cdr deps)))
+            (let-values (((m u) (check-dependency dep)))
+              (loop rest
+                    (if m (cons m missing) missing)
+                    (if u (cons u upgrade) upgrade))))))))
 
-  (define (back-slash->forward-slash path)
-    (if *windows-shell*
-	(string-translate path #\\ #\/)
-	path))
+(define (get-egg-dependencies info)
+  (append (get-egg-property* info 'dependencies '())
+          (get-egg-property* info 'build-dependencies '())
+          (if run-tests (get-egg-property* info 'test-dependencies '()) '())))
 
-  (define (make-install-command egg-name egg-version dep?)
-    (conc
-     *csi*
-     " -bnq "
-     (if (or *deploy*
-	     (and *cross-chicken* ; disable -setup-mode when cross-compiling,
-		  (not *host-extension*))) ; host-repo must always take precedence
-	 ""
-	 "-setup-mode ")
-     "-e \"(import setup-api)\" "
-     (if *debug-setup*
-	 ""
-	 "-e \"(setup-error-handling)\" ")
-     (sprintf "-e \"(extension-name-and-version '(\\\"~a\\\" \\\"~a\\\"))\""
-       egg-name egg-version)
-     (if (sudo-install) " -e \"(sudo-install #t)\"" "")
-     (if *keep* " -e \"(keep-intermediates #t)\"" "")
-     (if (and *no-install* (not dep?)) " -e \"(setup-install-mode #f)\"" "")
-     (if *host-extension* " -e \"(host-extension #t)\"" "")
-     (let ((prefix (get-prefix)))
-       (if prefix
-	   (sprintf " -e \"(destination-prefix \\\"~a\\\")\"" 
-	     (back-slash->forward-slash (normalize-pathname prefix)))
-	   ""))
-     (let ((prefix (get-prefix #t)))
-       (if prefix
-	   (sprintf " -e \"(runtime-prefix \\\"~a\\\")\"" 
-	     (back-slash->forward-slash (normalize-pathname prefix)))
-	   ""))
-     (if (pair? *csc-features*)
-	 (sprintf " -e \"(extra-features '~s)\"" *csc-features*)
-	 "")
-     (if (pair? *csc-nonfeatures*)
-	 (sprintf " -e \"(extra-nonfeatures '~s)\"" *csc-nonfeatures*)
-	 "")
-     (if *deploy* " -e \"(deployment-mode #t)\"" "")
-     #\space
-     (shellpath (string-append egg-name ".setup"))) )
+(define (check-dependency dep)
+  (cond ((or (symbol? dep) (string? dep))
+         (values (and (not (ext-version dep)) (->string dep))
+                 #f))
+        ((and (list? dep) (eq? 'or (car dep)))
+         (let scan ((ordeps (cdr dep)) (bestm #f) (bestu #f))
+           (if (null? ordeps)
+               (values (cond (bestu #f)	; upgrade overrides new
+                             (bestm bestm)
+                             (else #f))
+                       bestu)
+               (let-values (((m u) (check-dependency (car ordeps))))
+                 (if (and (not m) (not u))
+                     (values #f #f)
+                     (scan (cdr ordeps)
+                           (if (and m (not bestm))
+                               m
+                               bestm)
+                           (if (and u (not bestu))
+                               u
+                               bestu)))))))
+        ((and (list? dep) (= 2 (length dep))
+              (or (string? (car dep)) (symbol? (car dep))))
+         (let ((v (ext-version (car dep))))
+           (cond ((not v)
+                  (values (->string (car dep)) #f))
+                 ((not (version>=? v (->string (cadr dep))))
+                  (cond ((string=? "chicken" (->string (car dep)))
+                         (if force-install
+                             (values #f #f)
+                             (error
+                               (string-append 
+                                 "Your CHICKEN version is not recent enough to use this extension - version "
+                                 (cadr dep) 
+				 " or newer is required"))))
+                        (else
+                          (values #f
+                                  (cons (->string (car dep)) (->string (cadr dep)))))))
+                 (else (values #f #f)))))
+        (else
+          (warning "invalid dependency syntax in extension meta information"
+                   dep)
+          (values #f #f))))
 
-  (define-syntax keep-going
-    (syntax-rules ()
-      ((_ (name mode) body ...)
-       (let ((tmp (lambda () body ...)))
-	 (if *keep-going*
-	     (handle-exceptions ex
-		 (begin
-		   (print mode " extension `" name "' failed:")
-		   (print-error-message ex)
-		   (print "\nnevertheless trying to continue ...")
-		   #f)
-	       (tmp))
-	     (tmp))))))
+(define (ext-version x)
+  (cond ((or (eq? x 'chicken) (equal? x "chicken"))
+         (chicken-version))
+        ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
+                (sf (make-pathname (repo-path) ep +egg-info-extension+)))
+           (and (file-exists? sf)
+                (load-egg-info sf))) =>
+         (lambda (info)
+           (let ((a (assq 'version info)))
+             (if a
+                 (->string (cadr a))
+                 "0.0.0"))))
+        (else #f)))
 
-  (define (install eggs)
-    (when *keep-existing*
-      (set! eggs
-	(filter
-	 (lambda (egg) (not (extension-information (if (pair? egg) (car egg) egg))))
-	 eggs)))
-    (retrieve eggs)
-    (unless *retrieve-only*
-      (let* ((dag (reverse (topological-sort *dependencies* string=?)))
-	     (num (length dag))
-	     (depinstall-ok *force*)
-	     (eggs+dirs+vers (map (cut assoc <> *eggs+dirs+vers*) dag)))
-	(and-let* ((ibad (list-index not eggs+dirs+vers)))
-	  ;; A dependency was left unretrieved, most likely because the user declined an upgrade.
-	  (fprintf (current-error-port) "\nUnresolved dependency: ~a\n\n" (list-ref dag ibad))
-	  (cleanup)
-	  (exit 1))
-	(print "install order:")
-	(pp dag)
-	(for-each
-	 (lambda (e+d+v i)
-	   (let ((isdep (and (pair? eggs)
-			     (not (find (lambda (e)
-					  (equal? (if (pair? e) (car e) e) (car e+d+v)))
-					eggs)))))
-	     (when (and (not depinstall-ok) isdep)
-	       (when (and *no-install*
-			   (not (yes-or-no?
-				 (string-append
-				  "You specified `-no-install', but this extension has dependencies"
-				  " that are required for building.\nDo you still want to install them?")
-				 abort: (abort-setup))))
-		 (print "aborting installation.")
-		 (cleanup)
-		 (exit 1)))
-	     (print "installing " (car e+d+v) #\: (caddr e+d+v) " ...")
-	     (let ((tmpcopy (and *target-extension*
-				 *host-extension*
-				 (create-temporary-directory)))
-		   (eggdir (cadr e+d+v)))
-	       (when tmpcopy
-		 (print "copying sources for target installation")
-		 (command 
-		  "~a ~a ~a"
-		  (if *windows-shell* "xcopy" "cp -r")
-		  (make-pathname eggdir "*")
-		  tmpcopy))
-	       (let ((setup
-		      (lambda (dir)
-			(print "changing current directory to " dir)
-			(let ((old-dir (current-directory)))
-			  (dynamic-wind
-			      (lambda ()
-				(change-directory dir))
-			      (lambda ()
-				(when *cross-chicken*
-				      (delete-stale-binaries))
-				(let ((cmd (make-install-command
-					    (car e+d+v) (caddr e+d+v) (> i 1)))
-				      (name (car e+d+v)))
-				  (keep-going 
-				   (name "installing")
-				   ($system cmd))
-				  (when (and *run-tests*
-					     (not isdep)
-					     (file-exists? "tests")
-					     (directory? "tests")
-					     (file-exists? "tests/run.scm") )
-					(set! *running-test* #t)
-					(current-directory "tests")
-					(keep-going
-					 (name "testing")
-					 (command "~a -s run.scm ~a ~a" *csi* name (caddr e+d+v)))
-					(set! *running-test* #f))))
-			      (lambda ()
-				(change-directory old-dir)))))))
-		 (if (and *target-extension* *host-extension*)
-		     (fluid-let ((*deploy* #f)
-				 (*prefix* #f))
-		       (setup eggdir))
-		     (setup eggdir))
-		 (when (and *target-extension* *host-extension*)
-		   (print "installing for target ...")
-		   (fluid-let ((*host-extension* #f))
-		     (setup tmpcopy)))))))
-	 eggs+dirs+vers
-	 (let loop ((i num))
-	   (if (zero? i)
-	       '()
-	       (cons num (loop (fx- i 1)))))))))
+(define (check-platform name info)
+  (define (fail)
+    (error "extension is not targeted for this system" name))
+  (unless cross-chicken
+    (and-let* ((platform (get-egg-property info 'platform)))
+      (let loop ((p platform))
+        (cond ((symbol? p) 
+               (or (feature? p) (fail)))
+              ((not (list? p))
+               (error "invalid `platform' property" name platform))
+              ((and (eq? 'not (car p)) (pair? (cdr p)))
+               (and (not (loop (cadr p))) (fail)))
+              ((eq? 'and (car p))
+               (and (every loop (cdr p)) (fail)))
+              ((eq? 'or (car p))
+               (and (not (any loop (cdr p))) (fail)))
+              (else (error "invalid `platform' property" name platform)))))))
 
-  (define (delete-stale-binaries)
-    (print* "deleting stale binaries ...")
-    (print* "deleting stale binaries ...")
-    (find-files "." test: `(seq (* any) "." (or "o" "so" "dll" "a"))
-		action: (lambda (f _)
-			  (print* " " f)
-			  (delete-file* f)))
-    (newline))
+(define (replace-extension-question e+d+v upgrade)
+  (print (string-intersperse
+           (append
+             (list "The following installed extensions are outdated, because `"
+                   (car e+d+v)
+                   "' requires later versions:\n")
+                   (filter-map
+                     (lambda (e)
+                       (cond ((assq (string->symbol (car e)) override) =>
+                              (lambda (a)
+                                (unless (equal? (cadr a) (cdr e))
+                                  (warning
+                                    (sprintf "version `~a' of extension `~a' overrides required version `~a'"
+                                             (cadr a) (car a) (cdr e))))
+                                #f))
+                             (else
+                               (conc
+                                     "  " (car e)
+                                     " (" (let ((v (assq 'version (extension-information (car e))))) 
+                                            (if v (cadr v) "???"))
+                                         " -> " (cdr e) ")"
+                                     #\newline) )))
+                     upgrade)
+                   '("\nDo you want to replace the existing extensions ? (yes/no/abort) "))
+            ""))
+  (flush-output)
+  (let loop ()
+    (let ((r (trim (read-line))))
+      (cond ((string=? r "yes"))
+            ((string=? r "no") #f)
+            ((string=? r "abort") (exit 1))
+            (else (loop))))))
+  
+(define (trim str)
+  (define (left lst)
+    (cond ((null? lst) '())
+          ((char-whitespace? (car lst)) (left (cdr lst)))
+          (else (cons (car lst) (left (cdr lst))))))
+  (list->string (reverse (left (reverse (left (string->list str)))))))
+  
+  
+;; list available egg versions on servers
+  
+(define (list-egg-versions eggs)
+  (let ((srvs (map resolve-location default-servers)))
+    (let loop1 ((eggs eggs))
+      (unless (null? eggs)
+        (let* ((egg (car eggs))
+               (name (if (pair? egg) (car egg) egg)))
+          (let loop2 ((srvs srvs))
+            (and (pair? srvs)
+                 (let ((versions (try-list-versions name (car srvs))))
+                   (or (and versions 
+                            (begin
+                              (printf "~a:" name)
+                              (for-each (cut printf " ~a" <>) versions)
+                              (newline)))
+                       (loop2 (cdr srvs))))))
+          (loop1 (cdr eggs)))))))
 
-  (define (cleanup)
-    (unless *keep*
-      (and-let* ((tmpdir (temporary-directory)))
-        (remove-directory tmpdir))))
+  
+;; perform installation of retrieved eggs
+  
+(define (install-eggs)
+  (for-each
+    (lambda (egg)
+      (let* ((name (car egg))
+             (dir (cadr egg))
+             (eggfile (make-pathname dir name +egg-extension+))
+             (info (load-egg-info eggfile)))
+        (when (or host-extension 
+                  (and (not target-extension)
+                       (not host-extension)))
+          (let-values (((build install info) (compile-egg-info info platform 'host)))
+            (check-installed-files name info)                         
+            (let ((bscript (make-pathname dir name 
+                                          (build-script-extension 'host platform)))
+                  (iscript (make-pathname dir name 
+                                          (install-script-extension 'host
+                                                                    platform))))
+              (generate-shell-commands platform build bscript dir
+                                       (build-prefix 'host name info)
+                                       (build-suffix 'host name info)
+                                       keepfiles)
+              (generate-shell-commands platform install iscript dir
+                                       (install-prefix 'host name info)
+                                       (install-suffix 'host name info)
+                                       keepfiles)
+              (print "building " name)
+              (run-script dir bscript platform)
+              (print "  installing " name)
+              (run-script dir iscript platform sudo: sudo-install)
+              (when run-tests (test-egg egg platform)))))
+        (when target-extension
+          (let-values (((build install info) (compile-egg-info info platform 'target)))
+            (let ((bscript (make-pathname dir name 
+                                          (build-script-extension 'target platform)))
+                  (iscript (make-pathname dir name 
+                                          (install-script-extension 'target 
+                                                                    platform))))
+              (generate-shell-commands platform build bscript dir
+                                       (build-prefix 'target name info)
+                                       (build-suffix 'target name info)
+                                       keepfiles)
+              (generate-shell-commands platform install iscript dir
+                                       (install-prefix 'target name info)
+                                       (install-suffix 'target name info)
+                                       keepfiles)
+              (print "building " name " (target)")
+              (run-script dir bscript platform)
+              (print "  installing " name " (target)")
+              (run-script dir iscript platform))))))
+    (order-installed-eggs)))
 
-  (define (update-db)
-    (let* ((files (glob (make-pathname (repo-path) "*.import.so")
-			(make-pathname (repo-path) "*.import.scm")))
-           (tmpdir (create-temporary-directory))
-           (dbfile (make-pathname tmpdir +module-db+)))
+(define (order-installed-eggs)
+  (let* ((dag (reverse (sort-dependencies dependencies string=?)))
+         (ordered (map (cut assoc <> canonical-eggs) dag)))
+    (unless quiet
+      (d "install order:~%")
+      (pp dag))
+    ordered))
+
+(define (test-egg egg platform)
+  (let* ((name (car egg))
+         (dir (cadr egg))
+         (version (caddr egg))
+         (testdir (make-pathname dir "tests"))
+         (tscript (make-pathname testdir "run.scm")))
+    (when (and (file-exists? testdir)
+               (directory? testdir)
+               (file-exists? tscript))
+      (let ((old (current-directory))
+            (cmd (string-append default-csi " -s " tscript " " name " " (or version ""))))
+        (change-directory testdir)
+        (let ((r (system cmd)))
+          (d "running: ~a~%" cmd)
+          (flush-output (current-error-port))
+          (unless (zero? r)
+            (set! tests-failed #t)
+            (print "test script failed with nonzero exit status")))
+        (change-directory old)))))
+
+(define (run-script dir script platform #!key sudo (stop #t))
+  (cond (do-not-build
+          (print script)
+          #t)
+        (else
+          (d "running script ~a~%" script)
+          (if (eq? platform 'windows)
+              (exec script stop)
+              (exec (string-append (if sudo "sudo " "") "sh " script) stop)))))
+
+(define (write-info name info mode)
+  (d "writing info for egg ~a~%" name info)
+  (let ((infofile (make-pathname name (destination-repository mode))))
+    (when (eq? platform 'unix)
+      (exec (string-append "chmod a+r " (quotearg infofile))))))
+
+(define (exec cmd #!optional (stop #t))
+  (d "executing: ~s~%" cmd)
+  (let ((r (system cmd)))
+    (unless (zero? r)
+      (if stop
+          (error "shell command terminated with nonzero exit code" r cmd)
+          (print "shell command terminated with nonzero exit code " r ": " cmd)))
+    r))
+
+
+;;; update module-db
+
+(define (update-db)
+  (let* ((files (glob (make-pathname (repo-path) "*.import.so")
+                      (make-pathname (repo-path) "*.import.scm")))
+         (dbfile (create-temporary-file)))
       (print "loading import libraries ...")
       (fluid-let ((##sys#warnings-enabled #f))
         (for-each
@@ -738,372 +908,137 @@
         (with-output-to-file dbfile
           (lambda ()
             (for-each (lambda (x) (write x) (newline)) db)))
-        (copy-file dbfile (make-pathname (repo-path) +module-db+))
-        (remove-directory tmpdir))))
+        (file-copy dbfile (make-pathname (repo-path) +module-db+) #t))))
 
-  (define (apply-mappings eggs)
-    (define (canonical x)
-      (cond ((symbol? x) (cons (symbol->string x) #f))
-	    ((string? x) (cons x #f))
-	    ((pair? x) x)
-	    (else (error "internal error - bad egg spec" x))))
-    (define (same? e1 e2)
-      (equal? (car (canonical e1)) (car (canonical e2))))
-    (let ((eggs2
-	   (delete-duplicates
-	    (append-map
-	     (lambda (egg)
-	       (cond ((find (lambda (m) (find (cut same? egg <>) (car m)))
-			    *mappings*) => 
-			    (lambda (m) (map ->string (cdr m))))
-		     (else (list egg))))
-	     eggs)
-	    same?)))
-      (unless (and (= (length eggs) (length eggs2))
-		   (every (lambda (egg) (find (cut same? <> egg) eggs2)) eggs))
-	(print "mapped " eggs " to " eggs2))
-      eggs2))
 
-  (define (scan-directory dir)
-    (for-each
-     (lambda (info)
-       (pp (cons (car info) (cadadr info))))
-     (gather-egg-information dir)))      
+;; purge cache for given (or all) eggs
 
-  (define ($system str)
-    (let ((str (cond (*windows-shell*
-		     (string-append "\"" str "\""))
-		    ((and (eq? (software-version) 'macosx)
-			  (get-environment-variable "DYLD_LIBRARY_PATH"))
-		     => (lambda (path)
-			  (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
-					 (qs path) " " str)))
-		    (else str))))
-      (print "  " str)
-      (let ((r (system str)))
-	(unless (zero? r)
-	  (error "shell command terminated with nonzero exit code" r str)))))
+(define (purge-cache eggs)
+  (cond ((null? eggs)
+         (d "purging complete cache at ~a~%" cache-directory)
+         (delete-directory cache-directory #t))
+        (else
+          (for-each
+            (lambda (egg)
+              (let* ((name (if (pair? egg) (car egg) egg))
+                     (dname (make-pathname cache-directory name)))
+                (when (file-exists? dname)
+                  (d "purging ~a from cache at ~a~%" name dname)
+                  (delete-directory dname #t))))
+            eggs))))
 
-  (define (installed-extensions)
-    (delete-duplicates
-     (filter-map
-      (lambda (sf)
-	(let* ((info (first (call-with-input-file sf read-all)))
-	       (v (cond ((assq 'version info) => cadr)
-			(else ""))))
-	  (cond ((assq 'egg-name info) => 
-		 (lambda (a) (cons (cadr a) (->string v))))
-		(else 
-		 (warning 
-		  "installed extension has no information about which egg it belongs to"
-		  (pathname-file sf))
-		 #f))))
-      (glob (make-pathname (repo-path) "*" "setup-info")))
-     equal?))
 
-  (define (list-available-extensions trans locn)
-    (with-default-sources
-     (lambda (trans locn next)
-       (if trans
-	   (list-extensions
-	    trans locn
-	    quiet: #t
-	    username: *username*
-	    password: *password*
-	    proxy-host: *proxy-host*
-	    proxy-port: *proxy-port*
-	    proxy-user-pass: *proxy-user-pass*)
-	   (next)))))
-
-  (define (command fstr . args)
-    (let ((cmd (apply sprintf fstr args)))
-      ($system cmd)))
-
-  (define (usage code)
-    (print #<<EOF
-usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
-
-  -h   -help                    show this message and exit
-       -version                 show version and exit
-       -force                   don't ask, install even if versions don't match
-  -k   -keep                    keep temporary files
-  -x   -keep-installed          install only if not already installed
-       -reinstall               reinstall all currently installed extensions
-  -l   -location LOCATION       install from given location instead of default
-  -t   -transport TRANSPORT     use given transport instead of default
-       -proxy HOST[:PORT]       download via HTTP proxy
-  -s   -sudo                    use external command to elevate privileges for filesystem operations
-  -r   -retrieve                only retrieve egg into current directory, don't install
-  -n   -no-install              do not install, just build (implies `-keep')
-  -p   -prefix PREFIX           change installation prefix to PREFIX
-       -list                    list extensions available over selected transport and location
-       -host                    when cross-compiling, compile extension only for host
-       -target                  when cross-compiling, compile extension only for target
-       -test                    run included test-cases, if available
-       -username USER           set username for transports that require this
-       -password PASS           set password for transports that require this
-  -i   -init DIRECTORY          initialize empty alternative repository
-  -u   -update-db               update export database
-       -repository              print path used for egg installation
-       -deploy                  build extensions for deployment
-       -trunk                   build trunk instead of tagged version (only local)
-  -D   -feature FEATURE         features to pass to sub-invocations of `csc'
-       -debug                   enable full display of error message information
-       -keep-going              continue installation even if dependency fails
-       -scan DIRECTORY          scan local directory for highest available egg versions
-       -override FILENAME       override versions for installed eggs with information from file
-       -csi FILENAME            use given pathname for invocations of "csi"
-       -show-depends            display a list of egg dependencies for the given egg(s)
-       -show-foreign-depends    display a list of foreign dependencies for the given egg(s)
-
-chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
-
-EOF
-);|
-    (exit code))
-
-  (define (setup-proxy uri)
-    (and-let* (((string? uri))
-	       (m (irregex-match "(http://)?([^:]+):?([0-9]*)" uri))
-	       (port (irregex-match-substring m 3)))
-      (set! *proxy-user-pass* (get-environment-variable "proxy_auth"))
-      (set! *proxy-host* (irregex-match-substring m 2))
-      (set! *proxy-port* (or (string->number port) 80))))
-
-  (define (info->egg info)
-    (if (member (cdr info) '("" "unknown" "trunk"))
-	(car info)
-	info))
+;; command line parsing and selection of operations
   
-  (define *short-options* '(#\h #\k #\l #\t #\s #\p #\r #\n #\v #\i #\u #\D))
+(define (perform-actions eggs)
+  (load-defaults)
+  (cond (update-module-db (update-db))
+        (purge-mode (purge-cache eggs))
+        ((null? eggs)
+         (cond (list-versions-only (print "no eggs specified"))
+               (else
+                 (set! canonical-eggs 
+                   (map (lambda (fname)
+                          (list (pathname-file fname) (current-directory) #f))
+                     (glob "*.egg")))
+                 (retrieve-eggs '())
+                 (unless retrieve-only (install-eggs)))))
+        (else
+          (let ((eggs (apply-mappings eggs)))
+            (cond (list-versions-only (list-egg-versions eggs))
+                  ;;XXX other actions...
+                  (else 
+                    (retrieve-eggs eggs)
+                    (unless retrieve-only (install-eggs)))))))
+  (when tests-failed (exit 2)))
 
-  (define (main args)
-    (let ((update #f)
-	  (scan #f)
-	  (listeggs #f)
-	  (print-repository #f)
-          (rx (irregex "([^:]+):(.+)")))
-      (setup-proxy (get-environment-variable "http_proxy"))
-      (let loop ((args args) (eggs '()))
-        (cond ((null? args)
-	       (when *deploy*
-		 (unless *prefix*
-		   (error
-		    "`-deploy' only makes sense in combination with `-prefix DIRECTORY`")))
-	       (cond (print-repository (print (repo-path)))
-		     (update (update-db))
-		     (scan (scan-directory scan))
-                     (else
-		      (let ((defaults (load-defaults)))
-			(when (null? eggs)
-			  (cond (*reinstall*
-				 (let ((egginfos (installed-extensions)))
-				   (if (or *force*
-					   (yes-or-no? 
-					    (sprintf
-						"About to re-install all ~a currently installed extensions - do you want to proceed?"
-					      (length egginfos))
-					    abort: #f))
-				       (set! eggs (map info->egg egginfos))
-				       (exit 1))))
-				((not listeggs)
-				 (let ((setups (glob "*.setup")))
-				   (cond ((pair? setups)
-					  (set! *eggs+dirs+vers*
-					    (append
-					     (map
-					      (lambda (s) 
-						(cons (pathname-file s) (list "." "")))
-					      setups)
-					     *eggs+dirs+vers*)))
-					 (else
-					  (print "no setup-scripts to process")
-					  (exit 1))) ) )))
-			(unless defaults
-			  (unless *default-transport*
-			    (error
-			     "no default transport defined - please use `-transport' option"))
-			  (unless *default-location*
-			    (error
-			     "no default location defined - please use `-location' option")))
-                        (cond (listeggs
-                               (display
-                                (list-available-extensions
-                                 *default-transport* *default-location*)))
-                              (*show-depends*
-                               (show-depends eggs 'depends))
-                              (*show-foreign-depends*
-                               (show-depends eggs 'foreign-depends))
-                              (else
-                               (install (apply-mappings (reverse eggs)))))
-                        ))))
-              (else
-               (let ((arg (car args)))
-                 (cond ((or (string=? arg "-help")
-                            (string=? arg "-h")
-                            (string=? arg "--help"))
-                        (usage 0))
-                       ((string=? arg "-repository")
-                        (set! print-repository #t)
-                        (loop (cdr args) eggs))
-                       ((string=? arg "-force")
-                        (set! *force* #t)
-                        (loop (cdr args) eggs))
-                       ((or (string=? arg "-k") (string=? arg "-keep"))
-                        (set! *keep* #t)
-                        (loop (cdr args) eggs))
-                       ((or (string=? arg "-s") (string=? arg "-sudo"))
-                        (sudo-install #t)
-                        (loop (cdr args) eggs))
-                       ((or (string=? arg "-r") (string=? arg "-retrieve"))
-                        (set! *retrieve-only* #t)
-                        (loop (cdr args) eggs))
-                       ((or (string=? arg "-l") (string=? arg "-location"))
-                        (unless (pair? (cdr args)) (usage 1))
-                        (set! *default-location* (cadr args))
-                        (loop (cddr args) eggs))
-                       ((or (string=? arg "-t") (string=? arg "-transport"))
-                        (unless (pair? (cdr args)) (usage 1))
-                        (set! *default-transport* (string->symbol (cadr args)))
-                        (loop (cddr args) eggs))
-                       ((or (string=? arg "-p") (string=? arg "-prefix"))
-                        (unless (pair? (cdr args)) (usage 1))
-                        (set! *prefix* 
-			  (let ((p (cadr args)))
-			    (if (absolute-pathname? p)
-				p
-				(normalize-pathname 
-				 (make-pathname (current-directory) p) ) ) ) )
-                        (loop (cddr args) eggs))
-                       ((or (string=? arg "-n") (string=? arg "-no-install"))
-                        (set! *keep* #t)
-                        (set! *no-install* #t)
-                        (loop (cdr args) eggs))
-                       ((string=? arg "-version")
-                        (print (chicken-version))
-                        (exit 0))
-                       ((or (string=? arg "-u") (string=? arg "-update-db"))
-                        (set! update #t)
-                        (loop (cdr args) eggs))
-                       ((or (string=? arg "-i") (string=? arg "-init"))
-                        (unless (pair? (cdr args)) (usage 1))
-                        (init-repository (cadr args))
-                        (exit 0))
-		       ((string=? "-proxy" arg)
-                        (unless (pair? (cdr args)) (usage 1))
-			(setup-proxy (cadr args))
-			(loop (cddr args) eggs))
-		       ((or (string=? "-D" arg) (string=? "-feature" arg))
-                        (unless (pair? (cdr args)) (usage 1))
-			(set! *csc-features* 
-			  (cons (string->symbol (cadr args)) *csc-features*))
-			(loop (cddr args) eggs))
-		       ((string=? "-no-feature" arg)
-                        (unless (pair? (cdr args)) (usage 1))
-			(set! *csc-nonfeatures* 
-			  (cons (string->symbol (cadr args)) *csc-nonfeatures*))
-			(loop (cddr args) eggs))
-                       ((string=? "-test" arg)
-                        (set! *run-tests* #t)
-                        (loop (cdr args) eggs))
-                       ((string=? "-host" arg)
-                        (set! *target-extension* #f)
-                        (loop (cdr args) eggs))
-                       ((string=? "-target" arg)
-                        (set! *host-extension* #f)
-                        (loop (cdr args) eggs))
-		       ((string=? "-debug" arg)
-			(set! *debug-setup* #t)
-			(loop (cdr args) eggs))
-		       ((string=? "-deploy" arg)
-			(set! *deploy* #t)
-			(loop (cdr args) eggs))
-                       ((string=? "-username" arg)
-                        (unless (pair? (cdr args)) (usage 1))
-                        (set! *username* (cadr args))
-                        (loop (cddr args) eggs))
-		       ((string=? "-scan" arg)
-                        (unless (pair? (cdr args)) (usage 1))
-			(set! scan (cadr args))
-			(loop (cddr args) eggs))
-		       ((string=? "-override" arg)
-                        (unless (pair? (cdr args)) (usage 1))
-			(set! *override* (call-with-input-file (cadr args) read-all))
-			(loop (cddr args) eggs))
-		       ((or (string=? "-x" arg) (string=? "-keep-installed" arg))
-			(set! *keep-existing* #t)
-			(loop (cdr args) eggs))
-		       ((string=? "-reinstall" arg)
-			(set! *reinstall* #t)
-			(loop (cdr args) eggs))
-		       ((string=? "-trunk" arg)
-			(set! *trunk* #t)
-			(loop (cdr args) eggs))
-		       ((string=? "-keep-going" arg)
-			(set! *keep-going* #t)
-			(loop (cdr args) eggs))
-		       ((string=? "-list" arg)
-			(set! listeggs #t)
-			(loop (cdr args) eggs))
-		       ((string=? "-csi" arg)
-			(unless (pair? (cdr args)) (usage 1))
-			(set! *csi* (cadr args))
-			(loop (cddr args) eggs))
-                       ((string=? "-password" arg)
-                        (unless (pair? (cdr args)) (usage 1))
-                        (set! *password* (cadr args))
-                        (loop (cddr args) eggs))
-		       ((string=? "-show-depends" arg)
-                        (set! *show-depends* #t)
-                        (loop (cdr args) eggs))
-                       ((string=? "-show-foreign-depends" arg)
-                        (set! *show-foreign-depends* #t)
-                        (loop (cdr args) eggs))
-                       ((and (positive? (string-length arg))
-                             (char=? #\- (string-ref arg 0)))
-                        (if (> (string-length arg) 2)
-                            (let ((sos (string->list (substring arg 1))))
-                              (if (every (cut memq <> *short-options*) sos)
-                                  (loop (append 
-					 (map (cut string #\- <>) sos)
-					 (cdr args)) 
-					eggs)
-                                  (usage 1)))
-                            (usage 1)))
-                       ((equal? "setup" (pathname-extension arg))
-                        (let ((egg (pathname-file arg)))
-                          (set! *eggs+dirs+vers*
-                            (alist-cons
-                             egg
-                             (list
-                              (let ((dir (pathname-directory arg)))
-                                (if dir
-                                    (if (absolute-pathname? dir)
-                                        dir
-                                        (make-pathname (current-directory) dir) )
-                                    (current-directory)))
-                              "")
-                             *eggs+dirs+vers*))
-                          (loop (cdr args) (cons egg eggs))))
-                       ((irregex-match rx arg) =>
-                        (lambda (m)
-                          (loop 
-			   (cdr args) 
-			   (alist-cons
-			    (irregex-match-substring m 1)
-			    (irregex-match-substring m 2)
-			    eggs))))
-                       (else (loop (cdr args) (cons arg eggs))))))))))
+(define (main args)
+  (setup-proxy (get-environment-variable "http_proxy"))
+  (let ((eggs '())
+        (rx (irregex "([^:]+):(.+)")))
+    (let loop ((args args))
+      (if (null? args)
+          (perform-actions (reverse eggs))
+          (let ((arg (car args)))
+            (cond ((member arg '("-h" "-help" "--help"))
+                   (usage 0))
+                  ((equal? arg "-test")
+                   (set! run-tests #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-r")
+                   (if retrieve-only
+                       (set! retrieve-recursive #t)
+                       (set! retrieve-only #t))
+                   (loop (cdr args)))
+                  ((equal? arg "-retrieve")
+                   (set! retrieve-only #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-recursive")
+                   (set! retrieve-recursive #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-list-versions")
+                   (set! list-versions-only #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-defaults")
+                   (set! user-defaults (cadr args))
+                   (loop (cddr args)))
+                  ((equal? arg "-force")
+                   (set! force-install #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-host")
+                   (set! target-extension #f)
+                   (loop (cdr args)))
+                  ((equal? arg "-target")
+                   (set! host-extension #f)
+                   (loop (cdr args)))
+                  ((equal? arg "-update-db")
+                   (set! update-module-db #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-n")
+                   (set! do-not-build #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-v")
+                   (set! quiet #f)
+                   (loop (cdr args)))
+                  ((member arg '("-k" "-keep"))
+                   (set! keepfiles #t)
+                   (loop (cdr args)))
+                  ((member arg '("-s" "-sudo"))
+                   (set! sudo-install #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-purge")
+                   (set! purge-mode #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-override")
+                   (unless (pair? (cdr args)) (usage 1))
+                   (set! override
+                     (call-with-input-file (cadr args) read-all))
+                   (loop (cddr args)))
 
-  (register-feature! 'chicken-install)
+                  ;;XXX 
+                  
+                  ((and (positive? (string-length arg))
+                        (char=? #\- (string-ref arg 0)))
+                   (if (> (string-length arg) 2)
+                       (let ((sos (string->list (substring arg 1))))
+                         (if (every (cut memq <> +short-options+) sos)
+                             (loop (append 
+                                     (map (cut string #\- <>) sos)
+                                     (cdr args)))
+                             (usage 1)))
+                       (usage 1)))
+                  ((irregex-match rx arg) =>
+                   (lambda (m)
+                     (set! eggs
+                       (alist-cons
+                         (irregex-match-substring m 1)
+                         (irregex-match-substring m 2)
+                         eggs))
+                     (loop (cdr args))))
+                  (else 
+                    (set! eggs (cons arg eggs))
+                    (loop (cdr args)))))))))
 
-  (handle-exceptions ex
-      (begin
-	(newline (current-error-port))
-        (print-error-message ex (current-error-port))
-        (cleanup)
-        (exit (if *running-test* 2 1)))
-    (main (command-line-arguments))
-    (cleanup))
-
-) ;module main
+(main (command-line-arguments))
+  
+)
