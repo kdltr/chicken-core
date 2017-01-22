@@ -539,8 +539,8 @@ not followed:
   block-device
 
 Note that not all types are supported on every platform.
-If {{ERROR}} is given and true, {{file-type}} signals an
-error if the file does not exist.
+If {{ERROR}} is given and false, then {{file-type}} returns {{#f}} if the file does not exist;
+otherwise, it signals an error.
 
 
 ==== character-device?

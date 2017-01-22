@@ -350,6 +350,12 @@ Returns {{#t}} if {{X}} is a pointer-vector or {{#f}} otherwise.
 
 Returns a pointer-vector from the given pointer arguments.
 
+==== pointer-vector-length
+
+<procedure>(pointer-vector-length POINTERVECTOR)</procedure>
+
+Returns the length of the given pointer-vector.
+
 ==== pointer-vector-ref
 
 <procedure>(pointer-vector-ref POINTERVECTOR INDEX)</procedure>
