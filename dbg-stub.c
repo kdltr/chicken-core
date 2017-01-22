@@ -261,10 +261,11 @@ static void
 send_value(C_word x)
 {
   if((x & C_FIXNUM_BIT) != 0)
-    sprintf(rw_buffer, " %ld", (long)C_unfix(x));
+    C_snprintf(rw_buffer, sizeof(rw_buffer), " %ld", (long)C_unfix(x));
   else if((x & C_IMMEDIATE_MARK_BITS) != 0)
-    sprintf(rw_buffer, " =%lu", (unsigned long)x);
-  else sprintf(rw_buffer, " @%lu", (unsigned long)x);
+    C_snprintf(rw_buffer, sizeof(rw_buffer), " =%lu", (unsigned long)x);
+  else
+    C_snprintf(rw_buffer, sizeof(rw_buffer), " @%lu", (unsigned long)x);
 
   send_string(rw_buffer);
 }
@@ -283,8 +284,8 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
   void **stats;
 
   for(;;) {
-    n = sprintf(rw_buffer, "(%d \"%s\" \"%s\" \"%s:%d\")\n", event, loc, val, cloc,
-            cln);
+    n = C_snprintf(rw_buffer, sizeof(rw_buffer), "(%d \"%s\" \"%s\" \"%s:%d\")\n",
+            event, loc, val, cloc, cln);
     send_string(rw_buffer);
 
     if(socket_read() < 0) terminate("read failed");
@@ -333,8 +334,8 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       for(dip = unseen_dbg_info_list; dip != NULL; dip = dip->next) {
           for(dinfo = dip->info; dinfo->loc != NULL; ++dinfo) {
               if(*str == '\0' || strstr(dinfo->val, str)) {
-                  sprintf(rw_buffer, "(* %d %d \"%s\" \"%s\")\n", dbg_info_count++,
-                    dinfo->event, dinfo->loc, dinfo->val);
+                  C_snprintf(rw_buffer, sizeof(rw_buffer), "(* %d %d \"%s\" \"%s\")\n",
+                      dbg_info_count++, dinfo->event, dinfo->loc, dinfo->val);
                   send_string(rw_buffer);
               }
 
@@ -357,7 +358,7 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       send_string("(*");
 
       while(mask--) {
-        sprintf(rw_buffer, " %u", (unsigned char) *(ptr++));
+        C_snprintf(rw_buffer, sizeof(rw_buffer), " %u", (unsigned char) *(ptr++));
         send_string(rw_buffer);
       }
 
@@ -381,11 +382,11 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
 
       if((C_header_bits(x) & C_BYTEBLOCK_BIT) != 0) {
         reply = C_header_size(x);
-        sprintf(rw_buffer, "(* BLOB %d", get_header_bits(x));
+        C_snprintf(rw_buffer, sizeof(rw_buffer), "(* BLOB %d", get_header_bits(x));
         send_string(rw_buffer);
 
         for(n = 0; n < reply; ++n) {
-          sprintf(rw_buffer, " %u", ((unsigned char *)C_data_pointer(x))[ n ]);
+          C_snprintf(rw_buffer, sizeof(rw_buffer), " %u", ((unsigned char *)C_data_pointer(x))[ n ]);
           send_string(rw_buffer);
         }
 
@@ -396,11 +397,11 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       n = 0;
 
       if((C_header_bits(x) & C_SPECIALBLOCK_BIT) != 0) {
-        sprintf(rw_buffer, "(* SPECIAL %d " UWORD_COUNT_FORMAT_STRING,
-                get_header_bits(x), C_block_item(x, 0));
+        C_snprintf(rw_buffer, sizeof(rw_buffer), "(* SPECIAL %d " UWORD_COUNT_FORMAT_STRING,
+            get_header_bits(x), C_block_item(x, 0));
         n = 1;
       }
-      else sprintf(rw_buffer, "(* VECTOR %d", get_header_bits(x));
+      else C_snprintf(rw_buffer, sizeof(rw_buffer), "(* VECTOR %d", get_header_bits(x));
 
       send_string(rw_buffer);
 
@@ -432,34 +433,32 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       send_string("(*");
 
       for(n = 0; n < 8; ++n) {
-        sprintf(rw_buffer, " " UWORD_COUNT_FORMAT_STRING, (C_uword)stats[ n ]);
+        C_snprintf(rw_buffer, sizeof(rw_buffer), " " UWORD_COUNT_FORMAT_STRING, (C_uword)stats[ n ]);
         send_string(rw_buffer);
       }
 
-      sprintf(rw_buffer, " " UWORD_COUNT_FORMAT_STRING ")\n",
-              (C_uword)C_stack_pointer);
+      C_snprintf(rw_buffer, sizeof(rw_buffer), " " UWORD_COUNT_FORMAT_STRING ")\n",
+          (C_uword)C_stack_pointer);
       send_string(rw_buffer);
       break;
 
     case C_DEBUG_REPLY_GET_TRACE:
       str = C_dump_trace(0);
-      strcpy(rw_buffer, "(* \"");
+      C_strlcpy(rw_buffer, "(* \"", sizeof(rw_buffer));
       ptr = rw_buffer + 4;
 
       while(*str != '\0') {
         if(*str == '\n') {
-          strcpy(ptr, "\")\n");
-          ptr[ 4 ] = '\0';
+          C_strlcpy(ptr, "\")\n", 4);
           send_string(rw_buffer);
-          strcpy(rw_buffer, "(* \"");
+          C_strlcpy(rw_buffer, "(* \"", sizeof(rw_buffer));
           ptr = rw_buffer + 4;
           ++str;
         }
         else *(ptr++) = *(str++);
       }
 
-      strcpy(ptr, "\")\n");
-      ptr[ 4 ] = '\0';
+      C_strlcpy(ptr, "\")\n", 4);
       send_string(rw_buffer);
       break;
 
@@ -538,7 +537,7 @@ connect_to_debugger()
   if(connect(socket_fd, (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) == SOCKET_ERROR)
     return C_SCHEME_FALSE;                     /* failed to connect */
 
-  sprintf(info, "%s:%d:%d", C_main_argv[ 0 ], getpid(), C_DEBUG_PROTOCOL_VERSION);
+  C_snprintf(info, sizeof(info), "%s:%d:%d", C_main_argv[ 0 ], getpid(), C_DEBUG_PROTOCOL_VERSION);
   send_event(C_DEBUG_CONNECT, info, "", "", 0);
 #ifndef _WIN32
   C_signal(SIGUSR2, interrupt_signal_handler);
