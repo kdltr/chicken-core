@@ -1,6 +1,6 @@
 ;;;; irregex.scm - container for irregex-core.scm
 ;
-; Copyright (c) 2010-2016, The CHICKEN Team
+; Copyright (c) 2010-2017, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
