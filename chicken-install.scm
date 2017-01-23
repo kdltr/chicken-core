@@ -86,6 +86,7 @@
 (define purge-mode #f)
 (define tests-failed #f)
 (define keepfiles #f)
+(define print-repository #f)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -129,14 +130,6 @@
                  (if (eq? mode 'target) ".target" "")
                  (if (eq? platform 'windows) ".bat" ".sh")))
 
-
-;; usage information
-  
-(define (usage code)
-  (print "usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...")
-  ;;XXX  
-  (exit code))
-  
 
 ;;; validate egg-information tree
 
@@ -934,6 +927,7 @@
   (load-defaults)
   (cond (update-module-db (update-db))
         (purge-mode (purge-cache eggs))
+        (print-repository (print (repo-path)))
         ((null? eggs)
          (cond (list-versions-only (print "no eggs specified"))
                (else
@@ -951,6 +945,35 @@
                     (retrieve-eggs eggs)
                     (unless retrieve-only (install-eggs)))))))
   (when tests-failed (exit 2)))
+  
+(define (usage code)
+  (print #<<EOF
+usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
+
+  -h   -help                    show this message and exit
+       -version                 show version and exit
+       -force                   don't ask, install even if versions don't match
+  -k   -keep                    keep temporary files
+  -s   -sudo                    use external command to elevate privileges for filesystem operations
+  -r   -retrieve                only retrieve egg into current directory, don't install (giving -r
+                                                                                                          more than once implies `-recursive')
+       -recursive               if `-retrieve' is given, retrieve also dependencies
+  -n   -dry-run                 do not build or install, just print the locations of the generated
+                                build + install scripts
+       -list-versions           list available versions for given eggs  
+       -purge                   remove cached files for given eggs (or purge cache completely)
+       -host                    when cross-compiling, compile extension only for host
+       -target                  when cross-compiling, compile extension only for target
+       -test                    run included test-cases, if available
+  -u   -update-db               update export database
+       -repository              print path used for egg installation
+       -override FILENAME       override versions for installed eggs with information from file
+
+chicken-install recognizes the http_proxy and proxy_auth environment variables, if set.
+
+EOF
+);|
+    (exit code))
 
 (define (main args)
   (setup-proxy (get-environment-variable "http_proxy"))
@@ -965,6 +988,9 @@
                   ((equal? arg "-test")
                    (set! run-tests #t)
                    (loop (cdr args)))
+                  ((equal? arg "-repository")
+                   (set! print-repository #t)
+                   (loop (cdr args)))
                   ((equal? arg "-r")
                    (if retrieve-only
                        (set! retrieve-recursive #t)
@@ -973,6 +999,9 @@
                   ((equal? arg "-retrieve")
                    (set! retrieve-only #t)
                    (loop (cdr args)))
+                  ((equal? arg "-version")
+                   (print (chicken-version))
+                   (exit 0))
                   ((equal? arg "-recursive")
                    (set! retrieve-recursive #t)
                    (loop (cdr args)))
