@@ -653,7 +653,8 @@ chicken-install.c: chicken-install.scm \
 		chicken.pathname.import.scm \
 		chicken.ports.import.scm \
 		chicken.posix.import.scm \
-		chicken.pretty-print.import.scm
+		chicken.pretty-print.import.scm \
+		chicken.tcp.import.scm
 chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.data-structures.import.scm \
 		chicken.foreign.import.scm \
