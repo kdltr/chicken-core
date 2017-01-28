@@ -80,6 +80,7 @@ chicken-config.h: chicken-defaults.h
 	echo "#define HAVE_STRTOQ 1" >>$@
 	echo "#define HAVE_SYS_STAT_H 1" >>$@
 	echo "#define HAVE_SYS_TYPES_H 1" >>$@
+	echo "#define HAVE_SETENV 1" >>$@
 	echo "#define HAVE_UNISTD_H 1" >>$@
 	echo "#define HAVE_UNSIGNED_LONG_LONG 1" >>$@
 	echo "#define STDC_HEADERS 1" >>$@
