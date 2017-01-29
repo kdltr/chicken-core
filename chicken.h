@@ -293,17 +293,10 @@ void *alloca ();
 
 
 /* Stack growth direction; used to compute stack addresses */
-
 #ifndef C_STACK_GROWS_DOWNWARD
-# define C_STACK_GROWS_DOWNWARD    -1
-#endif
-
-#if C_STACK_GROWS_DOWNWARD == -1
 # ifdef __hppa__
-#  undef C_STACK_GROWS_DOWNWARD
 #  define C_STACK_GROWS_DOWNWARD 0
 # else
-#  undef C_STACK_GROWS_DOWNWARD
 #  define C_STACK_GROWS_DOWNWARD 1
 # endif
 #endif
