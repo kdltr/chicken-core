@@ -647,7 +647,6 @@
 	       (apply gen varlist)
 	       (gen "C_word *av"))
 	   (gen #\))
-	   ;;(when customizable (gen " C_c_regparm"))
 	   (unless direct (gen " C_noret"))
 	   (gen #\;) ))
        lambda-table) )

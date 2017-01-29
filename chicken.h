@@ -274,15 +274,13 @@ void *alloca ();
 # define C_aligned
 #endif
 
-#define C_c_regparm
-
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__cplusplus)
 # define C_inline                  inline static
 #else
 # define C_inline                  static
 #endif
 
-/* Thread Local Stoarage */
+/* Thread Local Storage */
 #ifdef C_ENABLE_TLS
 # if defined(__GNUC__)
 #  define C_TLS                    __thread
