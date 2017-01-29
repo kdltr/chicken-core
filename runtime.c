@@ -12903,6 +12903,8 @@ C_resolve_executable_pathname(C_char *fname)
 
   /* seek next entry, skip colon */
   } while (path += len, *path++);
+#else
+# error "Please either define SEARCH_EXE_PATH in Makefile.<platform> or implement C_resolve_executable_pathname for your platform!"
 #endif
 
 error:

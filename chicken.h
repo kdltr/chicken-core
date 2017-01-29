@@ -312,22 +312,6 @@ void *alloca ();
 # endif
 #endif
 
-/**
- * HAVE_EXE_PATH is defined on platforms on which there's a simple way
- * to retrieve a path to the current executable (such as reading
- * "/proc/<pid>/exe" or some similar trick).
- *
- * SEARCH_EXE_PATH is defined on platforms on which we must search for
- * the current executable. Because this search is sensitive to things
- * like CWD, PATH, and so on, it's done once at startup and saved in
- * `C_main_exe`.
- */
-#if defined(__linux__) || defined(__sun) || defined(C_MACOSX) || defined(__HAIKU__) || (defined(_WIN32) && !defined(__CYGWIN__))
-# define HAVE_EXE_PATH
-#elif defined(__unix__) || defined(C_XXXBSD) || defined(_AIX)
-# define SEARCH_EXE_PATH
-#endif
-
 /* Needed for pre-emptive threading */
 
 #define C_TIMER_INTERRUPTS
@@ -1632,6 +1616,16 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 # define C_set_gui_mode
 #endif
 
+/**
+ * SEARCH_EXE_PATH is defined on platforms on which we must search for
+ * the current executable. Because this search is sensitive to things
+ * like CWD, PATH, and so on, it's done once at startup and saved in
+ * `C_main_exe`.
+ *
+ * On platforms where it's not defined, there's a simple way to
+ * retrieve a path to the current executable (such as reading
+ * "/proc/<pid>/exe" or some similar trick).
+ */
 #ifdef SEARCH_EXE_PATH
 # define C_set_main_exe(fname)          C_main_exe = C_resolve_executable_pathname(fname)
 #else
