@@ -310,8 +310,6 @@ void *alloca ();
 #   define WINAPI
 #  endif
 # endif
-#else
-# define C_GENERIC_CONSOLE
 #endif
 
 /**
