@@ -58,6 +58,14 @@
   - Removed support for (define-syntax (foo e r c) ...), which was
     undocumented and not officially supported anyway.
 
+
+4.12.1
+
+- Core Libraries
+  - Unit "posix": If file-lock, file-lock/blocking or file-unlock are
+    interrupted by a signal, we now retry (thanks to Joerg Wittenberger).
+
+
 4.12.0
 
 - Security fixes
