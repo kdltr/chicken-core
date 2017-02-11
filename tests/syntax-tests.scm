@@ -783,6 +783,13 @@
 )
 |#
 
+;;; Definitions in expression contexts are rejected (#1309)
+
+(f (eval '(+ 1 2 (define x 3) 4)))
+(f (eval '(display (define x 1))))
+;; Some tests for nested but valid definition expressions:
+(t 2 (eval '(begin (define x 1) 2)))
+(t 2 (eval '(module _ () (import scheme) (define x 1) 2)))
 
 ;;; renaming of keyword argument (#277)
 

@@ -1044,7 +1044,7 @@
                    (##sys#register-export name (##sys#current-module)))
 		 (when (c (r 'define) head)
 		   (chicken.expand#defjam-error x))
-		 `(##core#set! 
+		 `(##core#define-toplevel
 		   ,head 
 		   ,(if (pair? body) (car body) '(##core#undefined))) )
 		((pair? (car head))

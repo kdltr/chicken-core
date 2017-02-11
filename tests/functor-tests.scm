@@ -166,6 +166,8 @@
   (import chicken X)
   yibble)
 
+;; XXX This is somewhat iffy: functor instantiation results in a
+;; value!
 (test-equal
  "alternative functor instantiation syntax"
  (module yabble = frob (import scheme) (define yibble 99))
