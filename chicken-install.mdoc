@@ -38,8 +38,8 @@
 .Nm
 downloads, compiles and installs a prepackaged extension library from sources.
 If no extension name is given on the command line, then any existing
-.Em setup
-scripts in the current directory will be executed in unspecified order.
+.Em egg
+descriptions in the current directory will be executed in unspecified order.
 .Pp
 The program accepts following arguments:
 .Bl -tag -width Ds
@@ -51,19 +51,6 @@ show version and exit
 don't ask, install even if versions don't match
 .It Fl k Ns , Fl keep
 keep temporary files
-.It Fl x, Fl keep-installed
-install only if not already installed
-.It Fl reinstall
-reinstall all currently installed extensions
-.It Fl l Ar location Ns , Fl location Ar location
-install from given
-.Ar location
-instead of default
-.It Fl t Ar transport Ns , Fl transport Ar transport
-use given transport instead of default
-.It Fl proxy Ar host[:port]
-download via HTTP
-.Ar proxy .
 .It Fl s Ns , Fl sudo
 use external program to elevate privileges for filesystem operations.
 The program defaults to
@@ -73,45 +60,24 @@ but can be overwritten with
 environment variable.
 .It Fl r Ns , Fl retrieve
 only retrieve egg into current directory, don't install
-.It Fl n Ns , Fl no-install
-do not install, just build
-.Po implies Sq Fl keep
-.Pc .
-.It Fl p Ar prefix Ns , Fl prefix Ar prefix
-change installation prefix to
-.Ar prefix .
-.It Fl list
-list extensions available over selected transport and location
+(giving -r more than once implies -recursive)
+.It Fl n Ns , Fl dry-run
+do not build or install, just print the locations of the generated
+build + install scripts.
+.It Fl list-versions
+list available version for the given eggs.
+.It Fl purge
+remove cached files for given eggs (or purge cache completely)
 .It Fl host
 when cross-compiling, compile extension only for host
 .It Fl target
 when cross-compiling, compile extension only for target
 .It Fl test
 run included test-cases, if available
-.It Fl username Ar user
-set username for transports that require this
-.It Fl password Ar pass
-set password for transports that require this
-.It Fl i Ar directory Ns , Fl init Ar directory
-initialize empty alternative repository
 .It Fl u Ns , Fl update-db
 update export database
 .It Fl repository
 print path used for egg installation
-.It Fl trunk
-build trunk instead of tagged version
-.Pq only local
-.It Fl D Ns Ar feature Ns , Fl feature Ar feature
-features to pass to sub-invocations of
-.Sq csc
-.It Fl debug
-enable full display of error message information
-.It Fl keep-going
-continue installation even if dependency fails
-.It Fl scan Ar directory
-scan local
-.Ar directory
-for highest available egg versions
 .It Fl override Ar filename
 override versions for installed eggs with information from
 .Ar filename .
@@ -120,24 +86,13 @@ use given
 .Ar filename
 for invocations of
 .Dq csi
-.It Fl show-depends
-display a list of egg dependencies for the given
-.No egg Ns Pq s .
-.It Fl show-foreign-depends
-display a list of foreign dependencies for the given
-.No egg Ns Pq s .
 .El
 .Sh ENVIRONMENT
 Following environment variables change the behaviour of
 .Nm
-.Bl -tag -width CHICKEN_INSTALL_PREFIX
-.It Ev CHICKEN_PREFIX
-The installation prefix where CHICKEN Scheme and its support files and
-libraries are located. Defaults to the installation time prefix given
-when configuring the system.
-.It Ev CHICKEN_INSTALL_PREFIX
-An alternative installation prefix that will be prepended to extension
-installation paths if specified.
+.Bl -tag -width
+.It Ev CHICKEN_EGG_CACHE
+Location where eggs are retrieved and built.
 .It Ev CHICKEN_REPOSITORY
 The path where extension libraries are installed. Defaults to the package-library
 path selected during configuration
