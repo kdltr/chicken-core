@@ -82,6 +82,7 @@
 (define host-extension cross-chicken)
 (define target-extension cross-chicken)
 (define sudo-install #f)
+(define sudo-program (or (get-environment-variable "SUDO") "sudo"))
 (define update-module-db #f)
 (define purge-mode #f)
 (define tests-failed #f)
@@ -399,9 +400,6 @@
            (lversion (or (get-egg-property info 'version)
                          (and (file-exists? vfile)
                               (with-input-from-file vfile read)))))
-      ;; yes, awkward - we must make sure locally available eggs are always
-      ;; fetched (check-remote-version takes care of that), so only check
-      ;; the timestamp, if it exists (as it does for downloaded eggs)
       (cond ((if (file-exists? timestamp)
                  (and (> (- now (with-input-from-file timestamp read)) +one-hour+)
                       (not (check-remote-version name version lversion
@@ -845,7 +843,10 @@
           (d "running script ~a~%" script)
           (if (eq? platform 'windows)
               (exec script stop)
-              (exec (string-append (if sudo "sudo " "") "sh " script) stop)))))
+              (exec (string-append (if sudo 
+                                       (string-append sudo-program " ")
+                                       "")
+                                   "sh " script) stop)))))
 
 (define (write-info name info mode)
   (d "writing info for egg ~a~%" name info)
@@ -929,14 +930,19 @@
         (purge-mode (purge-cache eggs))
         (print-repository (print (repo-path)))
         ((null? eggs)
-         (cond (list-versions-only (print "no eggs specified"))
-               (else
-                 (set! canonical-eggs 
-                   (map (lambda (fname)
-                          (list (pathname-file fname) (current-directory) #f))
-                     (glob "*.egg")))
-                 (retrieve-eggs '())
-                 (unless retrieve-only (install-eggs)))))
+         (if list-versions-only
+             (print "no eggs specified")
+             (let ((files (append (glob "*.egg")
+                                  (if (and (file-exists? "chicken")
+                                           (directory? "chicken"))
+                                      (glob "chicken/*.egg")
+                                      '()))))
+               (set! canonical-eggs 
+                 (map (lambda (fname)
+                        (list (pathname-file fname) (current-directory) #f))
+                   files))
+               (retrieve-eggs '())
+               (unless retrieve-only (install-eggs)))))
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
@@ -969,7 +975,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
        -repository              print path used for egg installation
        -override FILENAME       override versions for installed eggs with information from file
 
-chicken-install recognizes the http_proxy and proxy_auth environment variables, if set.
+chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
 
 EOF
 );|
