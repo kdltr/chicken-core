@@ -217,6 +217,8 @@
          (set! link (cdr info)))
         ((types-file)
          (set! tfile (or (null? (cdr info)) (arg info 1 name?))))
+        ((inline-file)
+         (set! ifile (or (null? (cdr info)) (arg info 1 name?))))
         ((custom-build)
          (set! cbuild (arg info 1 string?)))
         ((csc-options) 
