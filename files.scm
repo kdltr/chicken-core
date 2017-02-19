@@ -1,6 +1,6 @@
 ;;;; files.scm - File and pathname operations
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -343,7 +343,7 @@ EOF
 		     (number->string n 16)
 		     "."
 		     (##sys#number->string (##sys#fudge 33)))))) ; PID
-	  (if (directory-exists? pn) 
+	  (if (file-exists? pn)
 	      (loop)
 	      (let ((r (##core#inline "C_mkdir" (##sys#make-c-string pn 'create-temporary-directory))))
 		(if (eq? r 0)

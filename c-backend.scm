@@ -1,6 +1,6 @@
 ;;; c-backend.scm - C-generating backend for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -356,14 +356,27 @@
 	    ((##core#direct_call) 
 	     (let* ((args (cdr subs))
 		    (n (length args))
-		    (nf (add1 n)) 
-		    ;;(name (second params))
-		    (call-id (third params))
-		    (demand (fourth params))
+		    (nf (add1 n))
+		    (dbi (first params))
+		    ;; (safe-to-call (second params))
+		    (name (third params))
+		    (name-str (source-info->string name))
+		    (call-id (fourth params))
+		    (demand (fifth params))
 		    (allocating (not (zero? demand)))
 		    (empty-closure (zero? (lambda-literal-closure-size (find-lambda call-id))))
 		    (fn (car subs)) )
-	       (gen call-id #\()
+	       (gen #\()
+	       (when name
+		 (cond (emit-debug-info
+			(when dbi
+			  (gen #t "  C_debugger(&(C_debug_info[" dbi "]),"
+			       (if non-av-proc "0,NULL" "c,av") "),")))
+		       (emit-trace-info
+			(gen #t "  C_trace(\"" (backslashify name-str) "\"),"))
+		       (else
+			(gen #t "  /* " (uncommentify name-str) " */"))))
+	       (gen #t "  " call-id #\()
 	       (when allocating 
 		 (gen "C_a_i(&a," demand #\))
 		 (when (or (not empty-closure) (pair? args)) (gen #\,)) )
@@ -371,7 +384,8 @@
 		 (expr fn i)
 		 (when (pair? args) (gen #\,)) )
 	       (when (pair? args) (expr-args args i))
-	       (gen #\)) ) )
+	       (gen #\))		; function call
+	       (gen #t #\))))		; complete expression
 
 	    ((##core#callunit)
 	     ;; The code generated here does not use the extra temporary needed for standard calls, so we have
@@ -477,19 +491,27 @@
 	(let* ((n (length args))
 	       (avl (+ n (if selfarg 1 0)))
 	       (caller-has-av? (not (or (lambda-literal-customizable ll)
-					(lambda-literal-direct ll)))))
+					(lambda-literal-direct ll))))
+	       (caller-argcount (lambda-literal-argument-count ll))
+	       (caller-rest-mode (lambda-literal-rest-argument-mode ll)))
 	  ;; Try to re-use argvector from current function if it is
 	  ;; large enough.  push-args gets used only for functions in
 	  ;; CPS context, so callee never returns to current function.
 	  ;; And even so, av[] is already copied into temporaries.
-	  (cond (caller-has-av?
-		 (gen #t "C_word *av2;")
-		 (gen #t "if(c >= " avl ") {")
-		 (gen #t "  av2=av; /* Re-use our own argvector */")
-		 (gen #t "} else {")
-		 (gen #t "  av2=C_alloc(" avl ");")
-		 (gen #t "}"))
-		(else (gen #t "C_word av2[" avl "];")))
+	  (cond
+	   ((or (not caller-has-av?)	     ; Argvec missing or
+		(and (< caller-argcount avl) ; known to be too small?
+		     (eq? caller-rest-mode 'none)))
+	    (gen #t "C_word av2[" avl "];"))
+	   ((>= caller-argcount avl)   ; Argvec known to be re-usable?
+	    (gen #t "C_word *av2=av; /* Re-use our own argvector */"))
+	   (else      ; Need to determine dynamically. This is slower.
+	    (gen #t "C_word *av2;")
+	    (gen #t "if(c >= " avl ") {")
+	    (gen #t "  av2=av; /* Re-use our own argvector */")
+	    (gen #t "} else {")
+	    (gen #t "  av2=C_alloc(" avl ");")
+	    (gen #t "}")))
 	  (when selfarg (gen #t "av2[0]=" selfarg ";"))
 	  (do ((j (if selfarg 1 0) (add1 j))
 	       (args args (cdr args)))
@@ -805,10 +827,10 @@
 		      (when target-stack-size
 			(gen #t "C_resize_stack(" target-stack-size ");") ) )
 		    (gen #t "C_check_nursery_minimum(C_calculate_demand(" demand ",c," max-av "));"
-			 #t "if(!C_demand(C_calculate_demand(" demand ",c," max-av "))){"
+			 #t "if(C_unlikely(!C_demand(C_calculate_demand(" demand ",c," max-av ")))){"
 			 #t "C_save_and_reclaim((void*)C_" topname ",c,av);}"
 			 #t "toplevel_initialized=1;"
-			 #t "if(!C_demand_2(" ldemand ")){"
+			 #t "if(C_unlikely(!C_demand_2(" ldemand "))){"
 			 #t "C_save(t1);"
 			 #t "C_rereclaim2(" ldemand "*sizeof(C_word),1);"
 			 #t "t1=C_restore;}"
@@ -823,7 +845,7 @@
 		  (when (and (not unsafe) (not no-argc-checks) (> n 2) (not empty-closure))
 		    (gen #t "if(c<" n ") C_bad_min_argc_2(c," n ",t0);") )
 		  (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-		  (gen #t "if(!C_demand(C_calculate_demand((c-" n ")*C_SIZEOF_PAIR +" demand ",c," max-av "))){"))
+		  (gen #t "if(C_unlikely(!C_demand(C_calculate_demand((c-" n ")*C_SIZEOF_PAIR +" demand ",c," max-av ")))){"))
 		 (else
 		  (unless direct (gen #t "C_word *a;"))
 		  (when (and direct (not unsafe) (not disable-stack-overflow-checking))
@@ -838,13 +860,18 @@
 			 ;; The interrupt handler may fill the stack, so we only
 			 ;; check for an interrupt when the procedure is restartable
 			 (when insert-timer-checks (gen #t "C_check_for_interrupt;"))
-			 (gen #t "if(!C_demand(C_calculate_demand("
+			 (gen #t "if(C_unlikely(!C_demand(C_calculate_demand("
 			      demand
 			      (if customizable ",0," ",c,")
-			      max-av "))){"))
+			      max-av ")))){"))
 			(else
 			 (gen #\{)))))
 	   (cond ((and (not (eq? 'toplevel id)) (not direct))
+		  (when (and looping (not customizable))
+		    ;; Loop will update t_n copy of av[n]; refresh av.
+		    (do ((i 0 (add1 i)))
+			((>= i n))
+		      (gen #t "av[" i "]=t" i ";")))
 		  (cond (rest
 			 (gen #t "C_save_and_reclaim((void*)" id ",c,av);}"
 			      #t "a=C_alloc((c-" n ")*C_SIZEOF_PAIR+" demand ");")
@@ -859,7 +886,7 @@
 				(apply gen arglist)
 				(gen ");}"))
 			       (else
-				(gen "C_save_and_reclaim((void *)" id #\, n ",av);}")))
+				(gen #t "C_save_and_reclaim((void *)" id #\, n ",av);}")))
 			 (when (> demand 0)
 			   (gen #t "a=C_alloc(" demand ");")))))
 		 (else (gen #\})))

@@ -1,6 +1,6 @@
 ;;;; c-platform.scm - Platform specific parameters and definitions
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -533,7 +533,6 @@
 (rewrite 'call-with-values 13 2 "C_call_with_values" #t)
 (rewrite '##sys#call-with-values 13 2 "C_u_call_with_values" #f)
 (rewrite '##sys#call-with-values 13 2 "C_call_with_values" #t)
-(rewrite 'locative-ref 13 1 "C_locative_ref" #t)
 (rewrite '##sys#continuation-graft 13 2 "C_continuation_graft" #t)
 
 (rewrite 'caar 2 1 "C_u_i_caar" #f)
@@ -874,6 +873,7 @@
 (rewrite 'address->pointer 16 1 "C_a_i_address_to_pointer" #f 2)
 (rewrite 'pointer->address 16 1 "C_a_i_pointer_to_address" #f words-per-flonum)
 (rewrite 'pointer+ 16 2 "C_a_u_i_pointer_inc" #f 2)
+(rewrite 'locative-ref 16 1 "C_a_i_locative_ref" #t words-per-flonum)
 
 (rewrite 'pointer-u8-ref 2 1 "C_u_i_pointer_u8_ref" #f)
 (rewrite 'pointer-s8-ref 2 1 "C_u_i_pointer_s8_ref" #f)

@@ -5,7 +5,7 @@
 ;
 ;
 ;--------------------------------------------------------------------------------------------
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -158,7 +158,7 @@
 ; [quote {<exp>}]
 ; [let {<variable>} <exp-v> <exp>]
 ; [##core#lambda {<id> <mode> (<variable>... [. <variable>]) <size>} <exp>]
-; [set! {<variable>} <exp>]
+; [set! {<variable> [always-immediate?]} <exp>]
 ; [##core#undefined {}]
 ; [##core#primitive {<name>}]
 ; [##core#inline {<op>} <exp>...]
@@ -218,7 +218,7 @@
 ; [##core#proc {<name> [<non-internal>]}]
 ; [##core#recurse {<tail-flag> <call-id>} <exp1> ...]
 ; [##core#return <exp>]
-; [##core#direct_call {<safe-flag> <debug-info> <call-id> <words>} <exp-f> <exp>...]
+; [##core#direct_call {<dbg-info-index> <safe-flag> <debug-info> <call-id> <words>} <exp-f> <exp>...]
 
 ; Analysis database entries:
 ;
@@ -1144,9 +1144,9 @@
 			     '(##core#undefined)))
 
 			((##core#define-constant)
-			 (let* ([name (second x)]
-				[valexp (third x)]
-				[val (handle-exceptions ex
+			 (let* ((name (second x))
+				(valexp (third x))
+				(val (handle-exceptions ex
 					 ;; could show line number here
 					 (quit "error in constant evaluation of ~S for named constant `~S'" 
 					       valexp name)
@@ -1155,20 +1155,20 @@
 					   valexp
 					   (eval
 					    `(##core#let
-					      ,defconstant-bindings ,valexp)) ) ) ] )
+					      ,defconstant-bindings ,valexp))))))
 			   (set! constants-used #t)
 			   (set! defconstant-bindings
-			     (cons (list name `',val)  defconstant-bindings))
+			     (cons (list name `(##core#quote ,val)) defconstant-bindings))
 			   (cond ((collapsable-literal? val)
-				  (##sys#hash-table-set! constant-table name (list val))
-				  '(##core#undefined) )
+				  (##sys#hash-table-set! constant-table name (list `(##core#quote ,val)))
+				  '(##core#undefined))
 				 ((basic-literal? val)
-				  (let ([var (gensym "constant")])
+				  (let ((var (gensym "constant")))
 				    (##sys#hash-table-set! constant-table name (list var))
 				    (hide-variable var)
 				    (mark-variable var '##compiler#constant)
 				    (mark-variable var '##compiler#always-bound)
-				    (walk `(define ,var ',val) e se #f #f h ln) ) )
+				    (walk `(define ,var (##core#quote ,val)) e se #f #f h ln)))
 				 (else
 				  (quit "invalid compile-time value for named constant `~S'"
 					name)))))
@@ -1759,11 +1759,13 @@
                                       (list (car vars))
                                       (list r (loop (cdr vars) (cdr vals))) )) ) ) ) ) )
 	((lambda ##core#lambda) (cps-lambda (gensym-f-id) (first params) subs k))
-	((set!) (let ((t1 (gensym 't)))
+	((set!) (let* ((t1 (gensym 't))
+		       (immediate? (and (pair? (cdr params)) (cadr params)))
+		       (new-params (list (first params) immediate?)))
 		  (walk (car subs)
 			(lambda (r)
 			  (make-node 'let (list t1)
-				     (list (make-node 'set! (list (first params)) (list r))
+				     (list (make-node 'set! new-params (list r))
 					   (k (varnode t1)) ) ) ) ) ) )
 	((##core#foreign-callback-wrapper)
 	 (let ([id (gensym-f-id)]
@@ -2448,11 +2450,12 @@
 			  cvars) ) ) ) ) ) ) ) )
 
 	  ((set!)
-	   (let* ([var (first params)]
-		  [val (first subs)]
-		  [cval (node-class val)]
-		  [immf (or (and (eq? 'quote cval) (immediate? (first (node-parameters val))))
-			    (eq? '##core#undefined cval) ) ] )
+	   (let* ((var (first params))
+		  (val (first subs))
+		  (cval (node-class val))
+		  (immf (or (and (eq? 'quote cval) (immediate? (first (node-parameters val))))
+			    (and (pair? (cdr params)) (second params))
+			    (eq? '##core#undefined cval))))
 	     (cond ((posq var closure)
 		    => (lambda (i)
 			 (if (test var 'boxed)
@@ -2474,7 +2477,7 @@
 		     (list (varnode var)
 			   (transform val here closure) ) ) )
 		   (else (make-node
-			  'set! (list var)
+			  'set! (list var immf)
 			  (list (transform val here closure) ) ) ) ) ) )
 
 	  ((##core#primitive) 
@@ -2589,8 +2592,17 @@
 	   (walk-var (first params) e e-count #f) )
 
 	  ((##core#direct_call)
-	   (set! allocated (+ allocated (fourth params)))
-	   (make-node class params (mapwalk subs e e-count here boxes)) )
+	   (let* ((name (second params))
+		  (name-str (source-info->string name))
+		  (demand (fourth params)))
+	     (if (and emit-debug-info name)
+		 (let ((info (list dbg-index 'C_DEBUG_CALL "" name-str)))
+		   (set! params (cons dbg-index params))
+		   (set! debug-info (cons info debug-info))
+		   (set! dbg-index (add1 dbg-index)))
+		 (set! params (cons #f params)))
+	     (set! allocated (+ allocated demand))
+	     (make-node class params (mapwalk subs e e-count here boxes))))
 
 	  ((##core#inline_allocate)
 	   (set! allocated (+ allocated (second params)))
@@ -2713,18 +2725,19 @@
 		    (walk (second subs) e e-count here boxes) ) ) ) )
 
 	  ((set!)
-	   (let ([var (first params)]
-		 [val (first subs)] )
+	   (let ((var (first params))
+		 (val (first subs)))
 	     (cond ((posq var e)
 		    => (lambda (i)
                          (make-node '##core#setlocal
                                     (list (fx- e-count (fx+ i 1)))
                                     (list (walk val e e-count here boxes)) ) ) )
 		   (else
-		    (let* ([cval (node-class val)]
-			   [blockvar (not (variable-visible? var))]
-			   [immf (or (and (eq? cval 'quote) (immediate? (first (node-parameters val))))
-				     (eq? '##core#undefined cval) ) ] )
+		    (let* ((cval (node-class val))
+			   (blockvar (not (variable-visible? var)))
+			   (immf (or (and (eq? cval 'quote) (immediate? (first (node-parameters val))))
+				     (and (pair? (cdr params)) (second params))
+				     (eq? '##core#undefined cval))))
 		      (when blockvar (set! fastsets (add1 fastsets)))
 		      (make-node
 		       (if immf '##core#setglobal_i '##core#setglobal)

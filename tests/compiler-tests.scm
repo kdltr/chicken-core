@@ -24,7 +24,7 @@
 (assert (not (##sys#symbol-has-toplevel-binding? 'foo#bar)))
 
 
-;;; rev. 12104 (reported by Joerg Wittenberger)
+;;; rev. 12104 (reported by JÃ¶rg Wittenberger)
 ;
 ; - canonicalization of assignment to location didn't walk expansion recursively
 
@@ -41,7 +41,7 @@
 (assert (test-location))
 
 
-;;; rev. 12188 (reported by Jörg Wittenberger)
+;;; rev. 12188 (reported by JÃ¶rg Wittenberger)
 ;
 ; - generated init-assignment refers to alias, but alias isn't seen later)
 
@@ -304,7 +304,7 @@
 (assert (= 12.0 (s4v-sum "float" nonnull-f64vector '#f64(1.5 2.5 3.5 4.5))))
 
 
-;; Reported by Jörg Wittenberger: in some cases, -profile would
+;; Reported by JÃ¶rg Wittenberger: in some cases, -profile would
 ;; generate calls to procedures.  This was due to calls to pure
 ;; procedures not getting replaced with explicitly consed rest
 ;; list when the procedures themselves were hidden.

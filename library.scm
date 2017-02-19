@@ -1,6 +1,6 @@
 ;;;; library.scm - R5RS library for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -221,7 +221,14 @@ EOF
   (##sys#gc #t)
   (##core#inline "C_start_timer"))
 
-(define ##sys#stop-timer (##core#primitive "C_stop_timer"))
+(define (##sys#stop-timer)
+  (let ((info ((##core#primitive "C_stop_timer"))))
+    ;; Run a major GC one more time to get memory usage information in
+    ;; case there was no major GC while the timer was running
+    (##sys#gc #t)
+    (##sys#setslot info 6 (##sys#slot ((##core#primitive "C_stop_timer")) 6))
+    info))
+
 (define (##sys#immediate? x) (not (##core#inline "C_blockp" x)))
 (define (##sys#message str) (##core#inline "C_message" str))
 (define (##sys#byte x i) (##core#inline "C_subbyte" x i))
@@ -2567,8 +2574,8 @@ EOF
 				(##sys#read-char-0 port) )
 			       ((eq? c #\.)
 				(##sys#read-char-0 port)
-				(let ([c2 (##sys#peek-char-0 port)])
-				  (cond [(or (char-whitespace? c2)
+				(let ((c2 (##sys#peek-char-0 port)))
+				  (cond ((or (char-whitespace? c2)
 					     (eq? c2 #\()
 					     (eq? c2 #\))
 					     (eq? c2 #\")
@@ -2582,22 +2589,26 @@ EOF
 					   (##sys#read-error
 					    port
 					    (starting-line "missing list terminator")
-					    end) ) ]
-					[else
+					    end)))
+					(else
 					 (r-xtoken
 					  (lambda (tok kw)
 					    (let* ((tok (##sys#string-append "." tok))
 						   (val
-						    (if kw
-							(build-keyword tok)
-							(or (and (char-numeric? c2) 
-								 (##sys#string->number tok))
-							    (build-symbol tok))))
-						   (node (cons val '())) )
+						    (cond ((and (string=? tok ".:")
+								(eq? ksp #:suffix))
+							   ;; Edge case: r-xtoken sees
+							   ;; a bare ":" and sets kw to #f
+							   (build-keyword "."))
+							  (kw (build-keyword tok))
+							  ((and (char-numeric? c2)
+								(##sys#string->number tok)))
+							  (else (build-symbol tok))))
+						   (node (cons val '())))
 					      (if first 
 						  (##sys#setslot last 1 node)
 						  (set! first node) )
-					      (loop node) ))) ] ) ) )
+					      (loop node) ))) ) ) ) )
 			       (else
 				(let ([node (cons (readrec) '())])
 				  (if first
@@ -2686,10 +2697,6 @@ EOF
 		     (##sys#read-char-0 port)
 		     (loop (##sys#peek-char-0 port) (cons c lst)) ) ) ) )
 
-	  (define (r-next-token)
-	    (r-spaces)
-	    (r-token) )
-	  
 	  (define (r-symbol)
 	    (r-xtoken
 	     (lambda (str kw)
@@ -2703,9 +2710,13 @@ EOF
 		  (cond ((or (eof-object? c) 
 			     (char-whitespace? c)
 			     (memq c terminating-characters))
-			 (if (and skw (eq? ksp #:suffix))
+			 ;; The not null? checks here ensure we read a
+			 ;; plain ":" as a symbol, not as a keyword.
+			 (if (and skw (eq? ksp #:suffix)
+				  (not (null? (cdr lst))))
 			     (k (##sys#reverse-list->string (cdr lst)) #t)
-			     (k (##sys#reverse-list->string lst) pkw)))
+			     (k (##sys#reverse-list->string lst)
+				(and pkw (not (null? lst))))))
                         ((memq c reserved-characters)
 			  (reserved-character c))
 			(else
@@ -2813,9 +2824,7 @@ EOF
 	  
 	  (define (build-keyword tok)
 	    (##sys#intern-symbol
-	     (if (eq? 0 (##sys#size tok))
-		 ":"
-		 (##sys#string-append kwprefix tok)) ))
+	     (##sys#string-append kwprefix tok)))
 
           ;; now have the state to make a decision.
           (set! reserved-characters
@@ -2923,10 +2932,14 @@ EOF
 					     (else (list 'location (readrec)) ))))
 				    ((#\:)
 				     (##sys#read-char-0 port)
-				     (let ((tok (r-token)))
-				       (if (eq? 0 (##sys#size tok))
-					   (##sys#read-error port "empty keyword")
-					   (build-keyword tok))))
+				     (let ((c (##sys#peek-char-0 port)))
+				       (fluid-let ((ksp #f))
+					 (r-xtoken
+					  (lambda (str kw)
+					    (if (and (eq? 0 (##sys#size str))
+						     (not (char=? c #\|)))
+						(##sys#read-error port "empty keyword")
+						(build-keyword str)))))))
 				    ((#\%)
 				     (build-symbol (##sys#string-append "#" (r-token))) )
 				    ((#\+)
@@ -3208,6 +3221,12 @@ EOF
 	    (or (fx<= c 32)
 		(memq chr special-characters) ) ) )
 
+	(define (outsym port sym)
+	  (let ((str (##sys#symbol->string sym)))
+	    (if (or (not readable) (sym-is-readable? str))
+		(outstr port str)
+		(outreadablesym port str))))
+
 	(define (outreadablesym port str)
 	  (let ((len (##sys#size str)))
 	    (outchr port #\|)
@@ -3282,27 +3301,21 @@ EOF
 		((not (##core#inline "C_blockp" x)) (outstr port "#<invalid immediate object>"))
 		((##core#inline "C_forwardedp" x) (outstr port "#<invalid forwarded object>"))
 		((##core#inline "C_symbolp" x)
-		 (cond [(fx= 0 (##sys#byte (##sys#slot x 1) 0))
-			(let ([str (##sys#symbol->string x)])
-			  (case ksp
-			    [(#:prefix) 
-			     (outchr port #\:)
-			     (outstr port str) ]
-			    [(#:suffix) 
-			     (outstr port str)
-			     (outchr port #\:) ]
-			    [else
-			     (outstr port "#:")
-			     (outstr port str) ] ) ) ]
-		       [(memq x '(#!optional #!key #!rest))
-			(outstr port (##sys#slot x 1))]
-		       [(##sys#qualified-symbol? x)
-			(outstr port (##sys#symbol->qualified-string x))]
+		 (cond ((fx= 0 (##sys#byte (##sys#slot x 1) 0)) ; keyword
+			(case ksp
+			  ((#:prefix)
+			   (outchr port #\:)
+			   (outsym port x))
+			  ((#:suffix)
+			   (outsym port x)
+			   (outchr port #\:))
+			  (else
+			   (outstr port "#:")
+			   (outsym port x))))
+		       ((##sys#qualified-symbol? x)
+			(outstr port (##sys#symbol->qualified-string x)))
 		       (else
-			(let ((str (##sys#symbol->string x)))
-			  (if (or (not readable) (sym-is-readable? str))
-			      (outstr port str)
-			      (outreadablesym port str) ) ) ) ) )
+			(outsym port x))))
 		((##sys#number? x) (outstr port (##sys#number->string x)))
 		((##core#inline "C_anypointerp" x) (outstr port (##sys#pointer->string x)))
 		((##core#inline "C_stringp" x)
@@ -3898,15 +3911,18 @@ EOF
 	      (when msg
 		(##sys#print ": " #f ##sys#standard-error)
 		(##sys#print msg #f ##sys#standard-error) )
-	      (cond [(fx= 1 (length args))
-		     (##sys#print ": " #f ##sys#standard-error)
-		     (##sys#print (##sys#slot args 0) #t ##sys#standard-error) ]
-		    [else
-		     (##sys#for-each
-		      (lambda (x)
-			(##sys#print #\newline #f ##sys#standard-error)
-			(##sys#print x #t ##sys#standard-error) )
-		      args) ] )
+	      (##sys#with-print-length-limit
+	       400
+	       (lambda ()
+		 (cond [(fx= 1 (length args))
+			(##sys#print ": " #f ##sys#standard-error)
+			(##sys#print (##sys#slot args 0) #t ##sys#standard-error)]
+		       [else
+			(##sys#for-each
+			 (lambda (x)
+			   (##sys#print #\newline #f ##sys#standard-error)
+			   (##sys#print x #t ##sys#standard-error))
+			 args)])))
 	      (##sys#print #\newline #f ##sys#standard-error)
 	      (print-call-chain ##sys#standard-error)
 	      (when (and ##sys#break-on-error (##sys#symbol-has-toplevel-binding? 'repl))
@@ -3988,7 +4004,7 @@ EOF
        '(user-interrupt)
        '() ) ) ]
     [(#:warning #:notice)
-     (##sys#print 
+     (##sys#print
       (if (eq? mode #:warning) "\nWarning: " "\nNote: ")
       #f ##sys#standard-error)
      (##sys#print msg #f ##sys#standard-error)
@@ -3997,10 +4013,13 @@ EOF
 	 (##sys#print ": " #f ##sys#standard-error))
      (for-each
       (lambda (x)
-	(##sys#print x #t ##sys#standard-error)
-	(##sys#write-char-0 #\newline ##sys#standard-error) )
-      args) 
-     (##sys#flush-output ##sys#standard-error) ] 
+	(##sys#with-print-length-limit
+	 400
+	 (lambda ()
+	   (##sys#print x #t ##sys#standard-error)
+	   (##sys#write-char-0 #\newline ##sys#standard-error))))
+      args)
+     (##sys#flush-output ##sys#standard-error)]
     [else
      (when (and (symbol? msg) (null? args))
        (set! msg (##sys#symbol->string msg)) )
@@ -4193,7 +4212,7 @@ EOF
 		(if fn (list fn) '()))))
 	((3) (apply ##sys#signal-hook #:type-error loc "bad argument type" args))
 	((4) (apply ##sys#signal-hook #:runtime-error loc "unbound variable" args))
-	((5) (apply ##sys#signal-hook #:limit-error loc "parameter limit exceeded" args))
+	;; ((5) ...unused...)
 	((6) (apply ##sys#signal-hook #:limit-error loc "out of memory" args))
 	((7) (apply ##sys#signal-hook #:arithmetic-error loc "division by zero" args))
 	((8) (apply ##sys#signal-hook #:bounds-error loc "out of range" args))
@@ -5017,6 +5036,16 @@ EOF
   (define (pchr chr) (##sys#write-char-0 chr ##sys#standard-error))
   (define (pnum num)
     (##sys#print (if (zero? num) "0" (##sys#number->string num)) #f ##sys#standard-error))
+  (define (round-to x y) ; Convert to fp with y digits after the point
+    (/ (round (* x (expt 10 y))) (expt 10.0 y)))
+  (define (pmem bytes)
+    (cond ((> bytes (expt 1024 3))
+	   (pnum (round-to (/ bytes (expt 1024 3)) 2)) (pstr " GiB"))
+	  ((> bytes (expt 1024 2))
+	   (pnum (round-to (/ bytes (expt 1024 2)) 2)) (pstr " MiB"))
+	  ((> bytes 1024)
+	   (pnum (round-to (/ bytes 1024) 2)) (pstr " KiB"))
+	  (else (pnum bytes) (pstr " bytes"))))
   (##sys#flush-output ##sys#standard-output)
   (pnum (##sys#slot info 0))
   (pstr "s CPU time")
@@ -5041,6 +5070,9 @@ EOF
       (pchr #\/)
       (pnum minor)
       (pstr " GCs (major/minor)")))
+  (let ((maximum-heap-usage (##sys#slot info 6)))
+    (pstr ", maximum live heap: ")
+    (pmem maximum-heap-usage))
   (##sys#write-char-0 #\newline ##sys#standard-error)
   (##sys#flush-output ##sys#standard-error))
 

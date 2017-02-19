@@ -141,4 +141,70 @@ Warning: at toplevel:
 Warning: at toplevel:
   (scrutiny-tests.scm:208) in procedure call to `f', expected argument #1 of type `list' but was given an argument of type `(pair fixnum fixnum)'
 
+Warning: in toplevel procedure `vector-ref-warn1':
+  (scrutiny-tests.scm:214) in procedure call to `vector-ref', index -1 out of range for vector of length 3
+
+Warning: in toplevel procedure `vector-ref-warn2':
+  (scrutiny-tests.scm:216) in procedure call to `vector-ref', index 3 out of range for vector of length 3
+
+Warning: in toplevel procedure `vector-ref-warn3':
+  (scrutiny-tests.scm:217) in procedure call to `vector-ref', index 4 out of range for vector of length 3
+
+Warning: in toplevel procedure `vector-ref-standard-warn1':
+  (scrutiny-tests.scm:220) in procedure call to `vector-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `vector-set!-warn1':
+  (scrutiny-tests.scm:221) in procedure call to `vector-set!', index -1 out of range for vector of length 3
+
+Warning: in toplevel procedure `vector-set!-warn2':
+  (scrutiny-tests.scm:222) in procedure call to `vector-set!', index 3 out of range for vector of length 3
+
+Warning: in toplevel procedure `vector-set!-warn3':
+  (scrutiny-tests.scm:223) in procedure call to `vector-set!', index 4 out of range for vector of length 3
+
+Warning: in toplevel procedure `vector-set!-standard-warn1':
+  (scrutiny-tests.scm:226) in procedure call to `vector-set!', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `list-ref-warn1':
+  (scrutiny-tests.scm:232) in procedure call to `list-ref', index -1 is negative, which is never valid
+
+Warning: in toplevel procedure `list-ref-warn2':
+  (scrutiny-tests.scm:235) in procedure call to `list-ref', index -1 is negative, which is never valid
+
+Warning: in toplevel procedure `list-ref-warn3':
+  (scrutiny-tests.scm:238) in procedure call to `list-ref', index -1 is negative, which is never valid
+
+Warning: in toplevel procedure `list-ref-warn4':
+  (scrutiny-tests.scm:240) in procedure call to `list-ref', index 3 out of range for proper list of length 3
+
+Warning: in toplevel procedure `list-ref-warn5':
+  (scrutiny-tests.scm:246) in procedure call to `list-ref', index 4 out of range for proper list of length 3
+
+Warning: in toplevel procedure `list-ref-standard-warn1':
+  (scrutiny-tests.scm:275) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `list-ref-standard-warn2':
+  (scrutiny-tests.scm:276) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `list-ref-standard-warn3':
+  (scrutiny-tests.scm:278) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `list-ref-standard-warn4':
+  (scrutiny-tests.scm:279) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `list-ref-type-warn1':
+  (scrutiny-tests.scm:283) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `list-ref-type-warn2':
+  (scrutiny-tests.scm:285) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `list-ref-type-warn3':
+  (scrutiny-tests.scm:289) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `append-result-type-warn1':
+  (scrutiny-tests.scm:301) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+
+Warning: in toplevel procedure `append-result-type-warn2':
+  (scrutiny-tests.scm:306) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+
 Warning: redefinition of standard binding: car
