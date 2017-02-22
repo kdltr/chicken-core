@@ -17,7 +17,7 @@ and Windows using Cygwin.
 On systems where dynamic loading is not available, extensions can
 still be built and linked as static object files.
 
-Note: Extension may also be normal applications or shell scripts, but
+Note: Extensions may also be normal applications or shell scripts, but
 are usually libraries.
 
 Extensions are technically nothing but dynamically loadable compiled
