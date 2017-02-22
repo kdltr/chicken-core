@@ -139,7 +139,7 @@ Names the maintainer of this code, if different from author(s).
 [extension property] (category NAME)
 
 Gives the category under which this egg should be contained.
-See [[/chicken-projects/egg-index-4.html|the egg index]]
+See [[/chicken-projects/egg-index-5.html|the egg index]]
 for a list of currently used categories.
 
 ===== license
