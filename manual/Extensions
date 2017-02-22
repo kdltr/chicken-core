@@ -179,7 +179,7 @@ Lists eggs that are build-time dependencies for this egg,
 i.e. there are required to build, but not to run the contained
 code. Currently this is treated identical to {{dependencies}}.
 
-====== foreign-depdencies
+====== foreign-dependencies
 
 [extension property] (foreign-dependencies NAME ...)
 
@@ -309,7 +309,7 @@ extension libraries.
 [extension property] (inline-file NAME)
 
 Specifies that an "inline" file should be generated and installed
-for this component. Ths property is only used for extension
+for this component. This property is only used for extension
 libraries.
 
 ====== custom-build
@@ -418,7 +418,7 @@ After entering
 
 at the shell prompt (and in the same directory where the two files
 exist), the file {{hello.scm}} will be compiled into a dynamically
-loadable library and a staticically linkable object. 
+loadable library and a statically linkable object.
 If the compilation succeeds, {{hello.so}} and {{hello.o}} will
 be stored in the repository, together with a file named
 {{hello.egg-info}} containing an a-list with metadata (what
