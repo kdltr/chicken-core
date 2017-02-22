@@ -451,6 +451,7 @@ We also need an egg file:
 
 ;;;; hello2.egg
 
+<enscript highlight=scheme>
 ((author "Me")
  (synopsis "A cool hello-world application")
  (license "proprietary")
