@@ -73,6 +73,7 @@
 (define retrieve-only #f)
 (define retrieve-recursive #f)
 (define do-not-build #f)
+(define no-install #f)
 (define list-versions-only #f)
 (define canonical-eggs '())
 (define dependencies '())
@@ -783,8 +784,9 @@
                                        keepfiles)
               (print "building " name)
               (run-script dir bscript platform)
-              (print "  installing " name)
-              (run-script dir iscript platform sudo: sudo-install)
+              (unless no-install
+                (print "  installing " name)
+                (run-script dir iscript platform sudo: sudo-install))
               (when run-tests (test-egg egg platform)))))
         (when target-extension
           (let-values (((build install info) (compile-egg-info info platform 'target)))
@@ -803,8 +805,9 @@
                                        keepfiles)
               (print "building " name " (target)")
               (run-script dir bscript platform)
-              (print "  installing " name " (target)")
-              (run-script dir iscript platform))))))
+              (unless no-install
+                (print "  installing " name " (target)")
+                (run-script dir iscript platform)))))))
     (order-installed-eggs)))
 
 (define (order-installed-eggs)
@@ -964,9 +967,10 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
   -r   -retrieve                only retrieve egg into current directory, don't install (giving -r
                                                                                                           more than once implies `-recursive')
        -recursive               if `-retrieve' is given, retrieve also dependencies
-  -n   -dry-run                 do not build or install, just print the locations of the generated
+  -d   -dry-run                 do not build or install, just print the locations of the generated
                                 build + install scripts
        -list-versions           list available versions for given eggs  
+  -n   -no-install              do not install, just build
        -purge                   remove cached files for given eggs (or purge cache completely)
        -host                    when cross-compiling, compile extension only for host
        -target                  when cross-compiling, compile extension only for target
@@ -1029,7 +1033,7 @@ EOF
                   ((equal? arg "-update-db")
                    (set! update-module-db #t)
                    (loop (cdr args)))
-                  ((equal? arg "-n")
+                  ((member arg '("-n" "-dry-run"))
                    (set! do-not-build #t)
                    (loop (cdr args)))
                   ((equal? arg "-v")
@@ -1040,6 +1044,9 @@ EOF
                    (loop (cdr args)))
                   ((member arg '("-s" "-sudo"))
                    (set! sudo-install #t)
+                   (loop (cdr args)))
+                  ((member arg '("-n" "-no-install"))
+                   (set! no-install #t)
                    (loop (cdr args)))
                   ((equal? arg "-purge")
                    (set! purge-mode #t)
