@@ -1033,7 +1033,7 @@ EOF
                   ((equal? arg "-update-db")
                    (set! update-module-db #t)
                    (loop (cdr args)))
-                  ((member arg '("-n" "-dry-run"))
+                  ((equal? arg "-dry-run")
                    (set! do-not-build #t)
                    (loop (cdr args)))
                   ((equal? arg "-v")

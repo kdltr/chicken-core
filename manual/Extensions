@@ -1,7 +1,7 @@
 [[tags: manual]]
 [[toc:]]
 
-== Extensions
+== Eggs
 
 === Extension libraries
 
@@ -17,46 +17,46 @@ and Windows using Cygwin.
 On systems where dynamic loading is not available, extensions can
 still be built and linked as static object files.
 
-Note: Extension may also be normal applications or shell scripts, but
+Note: eggs may also be normal applications or shell scripts, but
 are usually libraries.
 
 Extensions are technically nothing but dynamically loadable compiled
 files with added meta-data that describes dependencies to other
-extensions, version information and things like the author/maintainer 
-of the extension. Three tools provide an easy to use interface for
-installing extensions, removing them and querying the current
-status of installed extensions.
+eggs, version information and things like the author/maintainer 
+of the egg. Three tools provide an easy to use interface for
+installing eggs, removing them and querying the current
+status of installed eggs.
 
 
-=== Installing extensions
+=== Installing eggs
 
-To install an extension library, run the {{chicken-install}} program
-with the extension name as argument. The extension archive is
+To install an egg, run the {{chicken-install}} program
+with the egg name as argument. The egg archive is
 downloaded, its contents extracted and the contained egg description
 file is analyzed and the appropriate commands executed. 
 This file is an abstract description of the contents of
-the extension and
+the egg and
 will be translated by {{chicken-install}} into build- and installation
 scripts for the current platform. After running these scripts (and
-if all goes well), the extension is installed and will be available
+if all goes well), the egg is installed and will be available
 like a built-in library. The format and meaning
 of the file will be described below.
 
 Installation will copy
-a number of given files into the local extension repository or in the
+a number of given files into the local egg repository or in the
 path where the CHICKEN executables are located (in the case of
 executable programs or scripts). Additionally the list of installed
 files, and user-defined metadata is stored in the repository.
 
-If no extension name is given on the command-line, then all {{.egg}}
+If no egg name is given on the command-line, then all {{.egg}}
 files in the current directory are processed, including all {{.egg}}
 files in a subdirectory {{chicken}} (if such a directory exists),
 in some arbitrary
 order, unless the egg descriptions specify dependencies.
 
-==== Installing extensions that use libraries
+==== Installing eggs that use libraries
 
-Sometimes an extension requires a C library to compile. Compilation
+Sometimes an egg requires a C library to compile. Compilation
 can fail when your system has this library in a nonstandard
 location. Normally the C compiler searches in the default locations
 {{/usr}} and {{/usr/local}}, and in the prefix where CHICKEN itself
@@ -77,19 +77,18 @@ can also be used to override include- and linker-paths. Each of these variables
 may contain one or more directory names, separated by {{:}} or {{;}} and will
 be passed using {{-I}} and {{-L}} to the C compiler.
 
-=== Creating extensions
+=== Creating eggs
 
-An extension can be created by placing its code and some special
-files in a directory named after the desired name of the extension. 
+An egg can be created by placing its code and some special
+files in a directory named after the desired name of the egg. 
 For example, if your
-extension is called {{foo}}, create a directory called {{foo}}
-and put the extension code there.
+egg is called {{foo}}, create a directory called {{foo}}
+and put the egg code there.
 
-Extensions need an egg description file {{<extension name>.egg}}
-(where {{<extension name>}} is the name of your extension).  
+Eggs need an egg description file {{<egg name>.egg}}.
 This file indicates how
 the egg is to be compiled and provides some information
-about the extension (author, license, dependencies etc).
+about the egg (author, license, dependencies etc).
 
 === Format of the egg description file
 
@@ -105,7 +104,7 @@ A list of valid properties follows.
 
 ===== version
 
-[extension property] (version STRING)
+[egg property] (version STRING)
 
 Specifies version string for this egg. {{STRING}} should have
 the format {{<MAJOR>.<MINOR>.<PATCHLEVEL>}}, where only the
@@ -118,25 +117,25 @@ local directories (see below) should explicitly specify a version.
 
 ===== synopsis
 
-[extension property] (synopsis STRING)
+[egg property] (synopsis STRING)
 
 Gives a short description of this egg.
 
 ===== author
 
-[extension property] (author STRING)
+[egg property] (author STRING)
 
 Names the author or authors of the contained code.
 
 ===== maintainer
 
-[extension property] (maintainer STRING)
+[egg property] (maintainer STRING)
 
 Names the maintainer of this code, if different from author(s).
 
 ===== category
 
-[extension property] (category NAME)
+[egg property] (category NAME)
 
 Gives the category under which this egg should be contained.
 See [[/chicken-projects/egg-index-4.html|the egg index]]
@@ -144,13 +143,13 @@ for a list of currently used categories.
 
 ===== license
 
-[extension property] (license STRING)
+[egg property] (license STRING)
 
 Names the license under which this code is available.
 
 ===== dependencies
 
-[extension property] (dependencies EGG ...)
+[egg property] (dependencies EGG ...)
 
 Lists eggs that this egg depends on, and which should be
 built and installed if they do not already exist in the repository.
@@ -165,7 +164,7 @@ toplevel in an egg description or inside a component.
 
 ====== test-dependencies
 
-[extension property] (test-dependencies EGG ...)
+[egg property] (test-dependencies EGG ...)
 
 Lists eggs that are required for this egg to run the tests
 (if tests exist.) This only has an effect if the {{-test}}
@@ -173,7 +172,7 @@ option has been given to {{chicken-install}}.
 
 ====== build-dependencies
 
-[extension property] (build-dependencies EGG ...)
+[egg property] (build-dependencies EGG ...)
 
 Lists eggs that are build-time dependencies for this egg,
 i.e. there are required to build, but not to run the contained
@@ -181,7 +180,7 @@ code. Currently this is treated identical to {{dependencies}}.
 
 ====== foreign-depdencies
 
-[extension property] (foreign-dependencies NAME ...)
+[egg property] (foreign-dependencies NAME ...)
 
 Lists external dependencies like native code libraries
 or system-specific packages and is currently only used for
@@ -189,7 +188,7 @@ documentation purposes.
 
 ====== platform
 
-[extension property] (platform PLATFORM)
+[egg property] (platform PLATFORM)
 
 Specifies for which platform this egg is intended. {{PLATFORM}}
 should be a symbol naming the target platform ({{windows}}, {{linux}}
@@ -200,14 +199,14 @@ egg will abort.
 
 ====== doc-from-wiki
 
-[extension property] (doc-from-wiki)
+[egg property] (doc-from-wiki)
 
 Specifies that documentation for this egg can be found on the
 chicken wiki.
 
 ====== components
 
-[extension property] (components COMPONENT ...)
+[egg property] (components COMPONENT ...)
 
 Lists components (extensions, programs, include- or data files)
 that this extension installs. See below for information on how
@@ -215,7 +214,7 @@ to specify component-specific information.
 
 ====== host
 
-[extension property] (host PROP ...)
+[egg property] (host PROP ...)
 
 Recursively process {{PROP ...}}, but only for the host (build)
 platform, in case this is a "cross-chicken", a CHICKEN installation
@@ -223,7 +222,7 @@ intended for cross compilation.
 
 ====== target
 
-[extension property] (target PROP ...)
+[egg property] (target PROP ...)
 
 Recursively process {{PROP ...}}, but only for the target
 platform, in case this is a "cross-chicken", a CHICKEN installation
@@ -233,7 +232,7 @@ intended for cross compilation.
 
 ====== extension
 
-[extension property] (extension NAME PROP ...)
+[egg property] (extension NAME PROP ...)
 
 Specifies an extension library component. The properties
 {{PROP...}} are processed recursively and apply only to this
@@ -241,32 +240,32 @@ component.
 
 ====== data
 
-[extension property] (data NAME PROP ...)
+[egg property] (data NAME PROP ...)
 
 Specifies one or more arbitrary data files.
 
 ====== generated-source-file
 
-[extension property] (generated-source-file NAME PROP ...)
+[egg property] (generated-source-file NAME PROP ...)
 
 Specifies a file that is generated during the process of building
 the egg.
 
 ====== c-include
 
-[extension property] (c-include NAME PROP ...)
+[egg property] (c-include NAME PROP ...)
 
 Specifies one or more C include files.
 
 ====== scheme-include
 
-[extension property] (scheme-include NAME PROP ...)
+[egg property] (scheme-include NAME PROP ...)
 
 Specifies one or more Scheme include files.
 
 ====== program
 
-[extension property] (program NAME PROP ...)
+[egg property] (program NAME PROP ...)
 
 Specifies an executable program.
 
@@ -274,7 +273,7 @@ Specifies an executable program.
 
 ====== host
 
-[extension property] (host PROP ...)
+[egg property] (host PROP ...)
 
 Process {{PROP ...}} recursively for the current component, but
 apply the properties only to the host (build) part, when using
@@ -282,7 +281,7 @@ a CHICKEN installation intended for cross-compilation.
 
 ====== target
 
-[extension property] (target PROP ...)
+[egg property] (target PROP ...)
 
 Process {{PROP ...}} recursively for the current component, but
 apply the properties only to the target part, when using
@@ -290,7 +289,7 @@ a CHICKEN installation intended for cross-compilation.
 
 ====== linkage
 
-[extension property] (linkage LINKAGE)
+[egg property] (linkage LINKAGE)
 
 Define whether the component should be linked dynamically or
 statically. {{LINKAGE}} can be {{static}} or {{dynamic}}. This
@@ -298,7 +297,7 @@ property only makes sense for extension libraries.
 
 ====== types-file
 
-[extension property] (types-file NAME)
+[egg property] (types-file NAME)
 
 Specifies that a "type-database" file should be generated and
 installed for this component. This property is only used for
@@ -306,7 +305,7 @@ extension libraries.
 
 ====== inline-file
 
-[extension property] (inline-file NAME)
+[egg property] (inline-file NAME)
 
 Specifies that an "inline" file should be generated and installed
 for this component. Ths property is only used for extension
@@ -314,7 +313,7 @@ libraries.
 
 ====== custom-build
 
-[extension property] (custom-build STRING)
+[egg property] (custom-build STRING)
 
 Specifies a custom build operation that should be executed
 instead of the default build operations. This property is mandatory
@@ -323,21 +322,21 @@ usually contains a shell command and thus may be platform sensitive.
 
 ====== csc-options
 
-[extension property] (csc-options OPTION ...)
+[egg property] (csc-options OPTION ...)
 
 Specifies additional compiler options for {{csc}} that should be
 used when building this component.
 
 ====== link-options
 
-[extension property] (link-options OPTION ...)
+[egg property] (link-options OPTION ...)
 
 Specifies additional link options for {{csc}} that should be
 used when building this component.
 
 ====== source
 
-[extension property] (source NAME)
+[egg property] (source NAME)
 
 Specifies an alternative source file, in case it has a name
 distinct from the component name. By default the source file
@@ -346,7 +345,7 @@ extension added.
 
 ====== install-name
 
-[extension property] (install-name NAME)
+[egg property] (install-name NAME)
 
 Specifies an alternative installation name of the component,
 if it differs from the actual component name. This property
@@ -356,7 +355,7 @@ build time.
 
 ====== dependencies
 
-[extension property] (dependencies NAME ...)
+[egg property] (dependencies NAME ...)
 
 Specifies dependencies between components. Note that this use
 of the {{dependencies}} property is different from the property
@@ -365,7 +364,7 @@ egg description file.
 
 ====== destination
 
-[extension property] (destination NAME)
+[egg property] (destination NAME)
 
 Specifies an alternative installation destination for the
 built component and only applies
@@ -382,7 +381,7 @@ locations, which are:
 
 ====== files
 
-[extension property] (files NAME ...)
+[egg property] (files NAME ...)
 
 Specifies source files for this component and only applies
 to components of type {{data}}, {{c-include}} and {{scheme-include}}.
@@ -575,12 +574,13 @@ Available options:
 ; {{-s   -sudo}} : use external command to elevate privileges when installing or removing files
 ; {{-r   -retrieve}} : only retrieve egg into current directory, don't install (giving -r more than once implies {{-recursive}})
 ; {{-recursive}} : if {{-retrieve}} is given, retrieve also dependencies
-; {{-n   -dry-run}} :  do not build or install, just print the locations of the generated build + install scripts
-; {{-host}} : when cross-compiling, compile extension for host only
-; {{-target}} : when cross-compiling, compile extension for target only
+; {{-dry-run}} :  do not build or install, just print the locations of the generated build + install scripts
+; {{-n   -no-install}} : do not install, only build the egg.
+; {{-host}} : when cross-compiling, compile egg for host only
+; {{-target}} : when cross-compiling, compile egg for target only
 ; {{-test}} : run included test-cases, if available
 ; {{-u   -update-db}} : update export database
-; {{-repository}} : print path to extension repository
+; {{-repository}} : print path to egg repository
 ; {{-override FILENAME}} : override versions for installed eggs with information given in {{FILENAME}}, which can be generated by {{-scan}} or by the {{-list}} option of the {{chicken-status}} program
 
 {{chicken-install}} recognizes the {{SUDO}}, {{http_proxy}} and {{proxy_auth}} environment variables, if set.
@@ -593,33 +593,33 @@ Available options:
 ; {{-force}} : don't ask, delete whatever matches
 ; {{-s   -sudo}} : use external command to elevate privileges for deleting files
 ; {{-p   -prefix PREFIX}} : change installation prefix to {{PREFIX}}
-; {{-host}} : when cross-compiling, remove extensions for host system only
-; {{-target}} : when cross-compiling, remove extensions for target system only
-; {{-exact}} : match extension-name exactly (do not match as pattern)
+; {{-host}} : when cross-compiling, remove eggs for host system only
+; {{-target}} : when cross-compiling, remove eggs for target system only
+; {{-exact}} : match egg-name exactly (do not match as pattern)
 
 === chicken-status reference
 
 ; {{-h   -help}} : show usage information and exit
 ; {{-version}} : show version and exit
 ; {{-f   -files}} : list installed files
-; {{-host}} : when cross-compiling, show extensions for host system only
-; {{-target}} : when cross-compiling, show extensions for target system only
+; {{-host}} : when cross-compiling, show eggs for host system only
+; {{-target}} : when cross-compiling, show eggs for target system only
 ; {{-p   -prefix PREFIX}} : change installation prefix to {{PREFIX}}
-; {{-exact}} : match extension-name exactly (do not match as pattern)
+; {{-exact}} : match egg-name exactly (do not match as pattern)
 ; {{-list}} : list installed egg version in format suitable for {{chicken-install -override}}
 
 
 === Security
 
-When extensions are downloaded and installed one is executing code
+When eggs are downloaded and installed one is executing code
 from potentially compromised systems. This applies also when
-{{chicken-install}} executes system tests for required extensions. As
+{{chicken-install}} executes system tests for required eggs. As
 the code has been retrieved over the network effectively untrusted
 code is going to be evaluated. When {{chicken-install}} is run as
 ''root'' the whole system is at the mercy of the build instructions
 (note that this is also the case every time you install software via
 {{sudo make install}}, so this is not specific to the CHICKEN
-extension mechanism).
+egg mechanism).
 
 Security-conscious users should never run {{chicken-install}} as root.
 A simple remedy is to keep the repository inside a user's home
@@ -651,7 +651,7 @@ the examples here, if your
 chicken version is older or newer than the one used in these examples.
 Check your default location for the correct binary-version number.
 
-{{CHICKEN_REPOSITORY}} is the place where extensions are to be
+{{CHICKEN_REPOSITORY}} is the place where eggs are to be
 loaded from for all chicken-based programs (which includes all
 the tools).
 
@@ -705,7 +705,7 @@ Any number of locations may be defined.
 
 Eggs are downloaded and built in the so called "egg cache", an
 intermediate location used for storing already downloaded source code
-and for providing a temporary location for building the extensions before
+and for providing a temporary location for building the eggs before
 they are installed.
 
 By default the cache is located in the directory
