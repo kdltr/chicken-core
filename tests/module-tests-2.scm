@@ -2,7 +2,7 @@
 
 
 (module oo (output-of)
-  (import scheme chicken ports)
+  (import scheme chicken port)
   (define-syntax output-of 
     (syntax-rules ()
       ((_ exp) (with-output-to-string (lambda () exp)))))

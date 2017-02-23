@@ -36,7 +36,7 @@ VPATH=$(SRCDIR)
 SETUP_API_OBJECTS_1 = setup-api setup-download
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
-       library eval read-syntax repl data-structures pathname ports file \
+       library eval read-syntax repl data-structures pathname port file \
        files extras lolevel utils tcp srfi-4 continuation $(POSIXFILE) \
        internal irregex scheduler debugger-client profiler stub expand \
        modules chicken-syntax chicken-ffi-syntax build-version
@@ -593,7 +593,7 @@ scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.pretty-print.import.scm
 lfa2.c: lfa2.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
@@ -616,7 +616,7 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.keyword.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.random.import.scm \
 		chicken.time.import.scm
@@ -638,7 +638,7 @@ csi.c: csi.scm \
 		chicken.gc.import.scm \
 		chicken.keyword.import.scm \
 		chicken.io.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.repl.import.scm
 chicken-bug.c: chicken-bug.scm \
@@ -647,7 +647,7 @@ chicken-bug.c: chicken-bug.scm \
 		chicken.io.import.scm \
 		chicken.keyword.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.time.import.scm
 chicken-profile.c: chicken-profile.scm \
@@ -659,7 +659,7 @@ chicken-status.c: chicken-status.scm \
 		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm \
 		setup-api.import.scm
@@ -671,7 +671,7 @@ chicken-install.c: chicken-install.scm \
 		chicken.io.import.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm \
 		setup-api.import.scm \
@@ -682,7 +682,7 @@ chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		setup-api.import.scm
 setup-api.c: setup-api.scm \
@@ -719,7 +719,7 @@ posixunix.c: posixunix.scm \
 		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.time.import.scm
 posixwin.c: posixwin.scm \
 		chicken.bitwise.import.scm \
@@ -727,7 +727,7 @@ posixwin.c: posixwin.scm \
 		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.time.import.scm
 data-structures.c: data-structures.scm \
 		chicken.foreign.import.scm
@@ -758,11 +758,11 @@ lolevel.c: lolevel.scm \
 pathname.c: pathname.scm \
 		chicken.data-structures.import.scm \
 		chicken.irregex.import.scm
-ports.c: ports.scm \
+port.c: port.scm \
 		chicken.io.import.scm
 tcp.c: tcp.scm \
 		chicken.foreign.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.time.import.scm
 utils.c: utils.scm \
 		chicken.data-structures.import.scm \
@@ -824,8 +824,8 @@ data-structures.c: $(SRCDIR)data-structures.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.data-structures
 pathname.c: $(SRCDIR)pathname.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.pathname
-ports.c: $(SRCDIR)ports.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.ports
+port.c: $(SRCDIR)port.scm $(SRCDIR)common-declarations.scm
+	$(bootstrap-lib) -emit-import-library chicken.port
 file.c: $(SRCDIR)file.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.file
 files.c: $(SRCDIR)files.scm $(SRCDIR)common-declarations.scm

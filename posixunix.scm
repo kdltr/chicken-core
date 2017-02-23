@@ -27,7 +27,7 @@
 
 (declare
   (unit posix)
-  (uses scheduler irregex pathname extras files ports lolevel)
+  (uses scheduler irregex pathname extras files port lolevel)
   (disable-interrupts)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
 
@@ -86,7 +86,7 @@
 	chicken.irregex
 	chicken.memory
 	chicken.pathname
-	chicken.ports
+	chicken.port
 	chicken.time)
 
 (include "posix-common.scm")

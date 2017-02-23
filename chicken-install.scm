@@ -35,7 +35,7 @@
 	  chicken.io
 	  chicken.irregex
 	  chicken.pathname
-	  chicken.ports
+	  chicken.port
 	  chicken.posix
 	  chicken.pretty-print
 	  (only chicken.utils qs))
@@ -67,7 +67,7 @@
       "chicken.lolevel.import.so"
       "chicken.memory.import.so"
       "chicken.pathname.import.so"
-      "chicken.ports.import.so"
+      "chicken.port.import.so"
       "chicken.posix.import.so"
       "chicken.pretty-print.import.so"
       "chicken.random.import.so"

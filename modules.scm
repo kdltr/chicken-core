@@ -964,7 +964,7 @@
 (##sys#register-module-alias 'lolevel 'chicken.lolevel)
 (##sys#register-module-alias 'memory 'chicken.memory)
 (##sys#register-module-alias 'pathname 'chicken.pathname)
-(##sys#register-module-alias 'ports 'chicken.ports)
+(##sys#register-module-alias 'port 'chicken.port)
 (##sys#register-module-alias 'posix 'chicken.posix)
 (##sys#register-module-alias 'pretty-print 'chicken.pretty-print)
 (##sys#register-module-alias 'random 'chicken.random)

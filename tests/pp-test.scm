@@ -1,7 +1,7 @@
 ;;;; pp-test.scm
 
 (use (only pretty-print pp)
-     (only ports with-output-to-string))
+     (only port with-output-to-string))
 
 (define (pp->string thing)
   (with-output-to-string (cut pp thing)))

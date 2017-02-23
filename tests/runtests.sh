@@ -56,7 +56,7 @@ for x in \
     chicken.lolevel.import.so \
     chicken.memory.import.so \
     chicken.pathname.import.so \
-    chicken.ports.import.so \
+    chicken.port.import.so \
     chicken.posix.import.so \
     chicken.pretty-print.import.so \
     chicken.random.import.so \

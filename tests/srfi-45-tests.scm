@@ -2,7 +2,7 @@
 ;;; That SRFI Copyright (C) André van Tonder (2003).
 
 (use (only format printf)
-     (only ports with-output-to-string))
+     (only port with-output-to-string))
 
 (define *errors* 0)
 

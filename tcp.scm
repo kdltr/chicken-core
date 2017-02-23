@@ -27,7 +27,7 @@
 
 (declare
   (unit tcp)
-  (uses ports scheduler)
+  (uses port scheduler)
   (disable-interrupts) ; Avoid race conditions around errno/WSAGetLastError
   (foreign-declare #<<EOF
 #ifdef _WIN32
@@ -145,7 +145,7 @@ EOF
 
 (import scheme chicken)
 (import chicken.foreign
-	chicken.ports
+	chicken.port
 	chicken.time)
 
 (include "common-declarations.scm")

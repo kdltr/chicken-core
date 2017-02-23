@@ -62,7 +62,7 @@
 
 (declare
   (unit posix)
-  (uses scheduler data-structures irregex extras pathname files ports lolevel)
+  (uses scheduler data-structures irregex extras pathname files port lolevel)
   (disable-interrupts)
   (hide quote-arg-string)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook)
@@ -677,7 +677,7 @@ EOF
 	chicken.irregex
 	chicken.memory
 	chicken.pathname
-	chicken.ports
+	chicken.port
 	chicken.random
 	chicken.time)
 

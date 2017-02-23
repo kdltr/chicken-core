@@ -23,7 +23,7 @@ continuation.c
 data-structures.c
 dbg-stub.c
 debugger-client.c
-ports.c
+port.c
 file.c
 files.c
 extras.c
@@ -77,7 +77,7 @@ eval.scm
 extras.scm
 data-structures.scm
 debugger-client.scm
-ports.scm
+port.scm
 file.scm
 files.scm
 chicken-bug.mdoc
@@ -308,8 +308,8 @@ chicken.memory.import.scm
 chicken.memory.import.c
 chicken.pathname.import.scm
 chicken.pathname.import.c
-chicken.ports.import.scm
-chicken.ports.import.c
+chicken.port.import.scm
+chicken.port.import.c
 chicken.posix.import.scm
 chicken.posix.import.c
 chicken.pretty-print.import.scm
