@@ -103,3 +103,9 @@
    perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr port->fileno
    seek/cur seek/end seek/set set-file-position!)
 (import chicken chicken.posix))
+
+(module chicken.time.posix
+  (seconds->utc-time utc-time->seconds seconds->local-time
+   seconds->string local-time->seconds string->time time->string
+   local-timezone-abbreviation)
+(import chicken chicken.posix))

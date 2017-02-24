@@ -306,6 +306,7 @@
 	|   |       |-- chicken.read-syntax.import.so
 	|   |       |-- chicken.tcp.import.so
 	|   |       |-- chicken.time.import.so
+	|   |       |-- chicken.time.posix.import.so
 	|   |       |-- chicken.utils.import.so
 	|   |       |-- modules.db
 	|   |       |-- setup-api.import.so

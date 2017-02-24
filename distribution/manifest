@@ -327,6 +327,8 @@ chicken.tcp.import.scm
 chicken.tcp.import.c
 chicken.time.import.scm
 chicken.time.import.c
+chicken.time.posix.import.scm
+chicken.time.posix.import.c
 chicken.utils.import.scm
 chicken.utils.import.c
 srfi-4.import.scm
