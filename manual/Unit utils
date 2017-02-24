@@ -11,31 +11,6 @@ extras|extras]] unit).
 This unit uses the {{extras}} unit.
 
 
-=== Executing shell commands with formatstring and error checking
-
-==== system*
-
-<procedure>(system* FORMATSTRING ARGUMENT1 ...)</procedure>
-
-Similar to {{(system (sprintf FORMATSTRING ARGUMENT1 ...))}},
-but signals an error should the invoked program return a nonzero
-exit status.
-
-
-=== Shell argument quoting
-
-==== qs
-
-<procedure>(qs STRING [PLATFORM])</procedure>
-
-Escapes {{STRING}} suitably for passing to a shell command on {{PLATFORM}}.
-{{PLATFORM}} defaults to the value of {{(build-platform)}} and indicates in
-which style the argument should be quoted. On Windows systems, the string
-is simply enclosed in double-quote ({{"}}) characters, on UNIXish systems,
-characters that would have a special meaning to the shell are escaped
-using backslash ({{\}}).
-
-
 === Dynamic compilation
 
 ==== compile-file

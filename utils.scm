@@ -43,37 +43,9 @@
 	chicken.foreign
 	chicken.format
 	chicken.pathname
-	chicken.posix)
+	chicken.process)
 
 (include "common-declarations.scm")
-
-
-;;; Like `system', but allows format-string and bombs on nonzero return code:
-
-(define system*
-  (lambda (fstr . args)
-    (let* ([str (apply sprintf fstr args)]
-	   [n (system str)] )
-      (unless (zero? n)
-	(##sys#error "shell invocation failed with non-zero return status" str n) ) ) ) )
-
-
-;;; Quote string for shell
-
-(define (qs str #!optional (platform (build-platform)))
-  (let ((delim (if (eq? platform 'mingw32) #\" #\'))
-	(escaped (if (eq? platform 'mingw32) "\"\"" "'\\''")))
-    (string-append
-     (string delim)
-     (string-intersperse
-      (map (lambda (c)
-	     (cond
-	      ((char=? c delim) escaped)
-	      ((char=? c #\nul) (error 'qs "NUL character can not be represented in shell string" str))
-	      (else (string c))))
-	   (string->list str))
-      "")
-     (string delim))))
 
 
 ;;; Compile and load file

@@ -317,6 +317,8 @@ chicken.posix.import.scm
 chicken.posix.import.c
 chicken.pretty-print.import.scm
 chicken.pretty-print.import.c
+chicken.process.import.scm
+chicken.process.import.c
 chicken.random.import.scm
 chicken.random.import.c
 chicken.read-syntax.import.scm

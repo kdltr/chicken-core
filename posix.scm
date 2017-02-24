@@ -109,3 +109,40 @@
    seconds->string local-time->seconds string->time time->string
    local-timezone-abbreviation)
 (import chicken chicken.posix))
+
+(module chicken.process
+  (qs system system* process-execute process-fork process-run
+   process-signal process-wait call-with-input-pipe
+   call-with-output-pipe close-input-pipe close-output-pipe create-pipe
+   open-input-pipe open-output-pipe with-input-from-pipe
+   with-output-to-pipe process process* pipe/buf process-group-id
+   create-session)
+
+(import chicken scheme chicken.posix)
+
+
+;;; Like `system', but bombs on nonzero return code:
+
+(define (system* str)
+  (let ((n (system str)))
+    (unless (zero? n)
+      (##sys#error "shell invocation failed with non-zero return status" str n))))
+
+
+;;; Quote string for shell:
+
+(define (qs str #!optional (platform (build-platform)))
+  (let* ((delim (if (eq? platform 'mingw32) #\" #\'))
+	 (escaped (if (eq? platform 'mingw32) "\"\"" "'\\''"))
+	 (escaped-parts
+	  (map (lambda (c)
+		 (cond
+		   ((char=? c delim) escaped)
+		   ((char=? c #\nul)
+		    (error 'qs "NUL character can not be represented in shell string" str))
+		   (else (string c))))
+	       (string->list str))))
+    (string-append
+     (string delim)
+     (apply string-append escaped-parts)
+     (string delim)))))

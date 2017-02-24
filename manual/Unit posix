@@ -760,6 +760,27 @@ Creates a new session if the calling process is not a process group leader and r
 the session ID.
 
 
+=== Shell commands
+
+==== system*
+
+<procedure>(system* STRING)</procedure>
+
+Similar to {{(system STRING)}}, but signals an error should the invoked
+program return a nonzero exit status.
+
+==== qs
+
+<procedure>(qs STRING [PLATFORM])</procedure>
+
+Escapes {{STRING}} suitably for passing to a shell command on {{PLATFORM}}.
+{{PLATFORM}} defaults to the value of {{(build-platform)}} and indicates in
+which style the argument should be quoted. On Windows systems, the string
+is simply enclosed in double-quote ({{"}}) characters, on UNIXish systems,
+characters that would have a special meaning to the shell are escaped
+using backslash ({{\}}).
+
+
 === Hard and symbolic links
 
 ==== symbolic-link?
