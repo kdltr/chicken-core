@@ -804,12 +804,12 @@ extras.c: $(SRCDIR)extras.scm $(SRCDIR)common-declarations.scm
 	-emit-import-library chicken.io \
 	-emit-import-library chicken.pretty-print \
 	-emit-import-library chicken.random
-posixunix.c: $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) \
+posixunix.c: $(SRCDIR)/posix.scm $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
+	$(bootstrap-lib) -feature platform-unix \
 	-emit-import-library chicken.errno \
 	-emit-import-library chicken.posix
-posixwin.c: $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) \
+posixwin.c: $(SRCDIR)/posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
+	$(bootstrap-lib) -feature platform-windows \
 	-emit-import-library chicken.errno \
 	-emit-import-library chicken.posix
 irregex.c: $(SRCDIR)irregex.scm $(SRCDIR)irregex-core.scm $(SRCDIR)irregex-utils.scm $(SRCDIR)common-declarations.scm

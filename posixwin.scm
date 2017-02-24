@@ -61,11 +61,7 @@
 
 
 (declare
-  (unit posix)
-  (uses scheduler data-structures irregex extras pathname files port lolevel)
-  (disable-interrupts)
-  (hide quote-arg-string)
-  (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook)
+  (uses data-structures)
   (foreign-declare #<<EOF
 #ifndef WIN32_LEAN_AND_MEAN
 # define WIN32_LEAN_AND_MEAN

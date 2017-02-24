@@ -25,12 +25,6 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-(declare
-  (unit posix)
-  (uses scheduler irregex pathname extras files port lolevel)
-  (disable-interrupts)
-  (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
-
 ;; these are not available on Windows
 
 (define-foreign-variable _stat_st_blksize unsigned-int "C_statbuf.st_blksize")

@@ -99,6 +99,7 @@ lfa2.scm
 mini-srfi-1.scm
 pathname.c
 pathname.scm
+posix.scm
 posixunix.scm
 posixwin.scm
 posix-common.scm
