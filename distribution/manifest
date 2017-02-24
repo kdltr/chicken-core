@@ -281,6 +281,8 @@ chicken.expand.import.scm
 chicken.expand.import.c
 chicken.file.import.scm
 chicken.file.import.c
+chicken.file.posix.import.scm
+chicken.file.posix.import.c
 chicken.files.import.scm
 chicken.files.import.c
 chicken.fixnum.import.scm

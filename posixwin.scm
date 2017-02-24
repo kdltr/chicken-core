@@ -634,9 +634,9 @@ EOF
    current-effective-user-name get-environment-variables
    current-group-id current-process-id current-user-id current-user-name
    delete-directory directory directory? duplicate-fileno
-   #;fcntl/dupfd #;fcntl/getfd #;fcntl/getfl #;fcntl/setfd #;fcntl/setfl
+   fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd fcntl/setfl
    fifo? file-access-time file-change-time
-   file-creation-mode file-close #;file-control file-execute-access?
+   file-creation-mode file-close file-control file-execute-access?
    file-link file-lock file-lock/blocking file-mkstemp
    file-modification-time file-open file-owner file-permissions
    file-position set-file-position! file-read file-read-access?
@@ -1330,6 +1330,7 @@ EOF
 (define-unimplemented current-effective-user-name)
 (define-unimplemented current-group-id)
 (define-unimplemented current-user-id)
+(define-unimplemented file-control)
 (define-unimplemented file-link)
 (define-unimplemented file-lock)
 (define-unimplemented file-lock/blocking)
@@ -1359,6 +1360,11 @@ EOF
 
 (define (fifo? _) #f)
 
+(define fcntl/dupfd 0)
+(define fcntl/getfd 0)
+(define fcntl/setfd 0)
+(define fcntl/getfl 0)
+(define fcntl/setfl 0)
 (define open/fsync 0)
 (define open/noctty 0)
 (define open/nonblock 0)
