@@ -78,6 +78,10 @@
 
 #define PIPE_BUF	512
 
+#ifndef EWOULDBLOCK
+# define EWOULDBLOCK 0
+#endif
+
 static C_TLS int C_pipefds[ 2 ];
 static C_TLS time_t C_secs;
 
@@ -1364,46 +1368,3 @@ EOF
 (define perm/isvtx 0)
 
 ) ; chicken.posix
-
-(module chicken.errno *
-(import scheme chicken)
-(export errno)
-(define errno/wouldblock 0) ; undefined on mingw
-(define errno/2big _e2big)
-(define errno/acces _eacces)
-(define errno/again _eagain)
-(define errno/badf _ebadf)
-(define errno/busy _ebusy)
-(define errno/child _echild)
-(define errno/deadlk _edeadlk)
-(define errno/dom _edom)
-(define errno/exist _eexist)
-(define errno/fault _efault)
-(define errno/fbig _efbig)
-(define errno/ilseq _eilseq)
-(define errno/intr _eintr)
-(define errno/inval _einval)
-(define errno/io _eio)
-(define errno/isdir _eisdir)
-(define errno/mfile _emfile)
-(define errno/mlink _emlink)
-(define errno/nametoolong _enametoolong)
-(define errno/nfile _enfile)
-(define errno/nodev _enodev)
-(define errno/noent _enoent)
-(define errno/noexec _enoexec)
-(define errno/nolck _enolck)
-(define errno/nomem _enomem)
-(define errno/nospc _enospc)
-(define errno/nosys _enosys)
-(define errno/notdir _enotdir)
-(define errno/notempty _enotempty)
-(define errno/notty _enotty)
-(define errno/nxio _enxio)
-(define errno/perm _eperm)
-(define errno/pipe _epipe)
-(define errno/range _erange)
-(define errno/rofs _erofs)
-(define errno/spipe _espipe)
-(define errno/srch _esrch)
-(define errno/xdev _exdev))
