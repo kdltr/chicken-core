@@ -138,14 +138,14 @@ EOF
 (set! sort-by sort-by-time)
 
 (define (set-decimals arg)
+  (define (arg-digit n)
+    (let ((n (- (char->integer (string-ref arg n))
+		(char->integer #\0))))
+      (if (<= 0 n 9)
+	  (if (= n 9) 8 n)		; 9 => overflow in format-real
+	  (error "invalid argument to -decimals option" arg))))
   (if (= (string-length arg) 3)
       (begin
-	(define (arg-digit n)
-	  (let ((n (- (char->integer (string-ref arg n))
-		      (char->integer #\0))))
-	    (if (<= 0 n 9)
-		(if (= n 9) 8 n) ; 9 => overflow in format-real
-		(error "invalid argument to -decimals option" arg))))
 	(set! seconds-digits (arg-digit 0))
 	(set! average-digits (arg-digit 1))
 	(set! percent-digits (arg-digit 2)))
