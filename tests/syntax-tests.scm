@@ -794,6 +794,10 @@
 	      (define-record-type foo (make-foo bar) foo? (bar foo-bar))
 	      (foo-bar (make-foo 1)))))
 
+;; Nested begins inside definitions were not treated correctly
+(t 3 (eval '(let () (begin 1 (begin 2 (define internal-def 3) internal-def)))))
+(f (eval '(let () internal-def)))
+
 ;;; renaming of keyword argument (#277)
 
 (define-syntax foo1
