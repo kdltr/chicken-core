@@ -790,6 +790,9 @@
 ;; Some tests for nested but valid definition expressions:
 (t 2 (eval '(begin (define x 1) 2)))
 (t 2 (eval '(module _ () (import scheme) (define x 1) 2)))
+(t 1 (eval '(let ()
+	      (define-record-type foo (make-foo bar) foo? (bar foo-bar))
+	      (foo-bar (make-foo 1)))))
 
 ;;; renaming of keyword argument (#277)
 
