@@ -73,6 +73,7 @@
 (define retrieve-only #f)
 (define retrieve-recursive #f)
 (define do-not-build #f)
+(define no-install #f)
 (define list-versions-only #f)
 (define canonical-eggs '())
 (define dependencies '())
@@ -82,10 +83,12 @@
 (define host-extension cross-chicken)
 (define target-extension cross-chicken)
 (define sudo-install #f)
+(define sudo-program (or (get-environment-variable "SUDO") "sudo"))
 (define update-module-db #f)
 (define purge-mode #f)
 (define tests-failed #f)
 (define keepfiles #f)
+(define print-repository #f)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -129,14 +132,6 @@
                  (if (eq? mode 'target) ".target" "")
                  (if (eq? platform 'windows) ".bat" ".sh")))
 
-
-;; usage information
-  
-(define (usage code)
-  (print "usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...")
-  ;;XXX  
-  (exit code))
-  
 
 ;;; validate egg-information tree
 
@@ -406,9 +401,6 @@
            (lversion (or (get-egg-property info 'version)
                          (and (file-exists? vfile)
                               (with-input-from-file vfile read)))))
-      ;; yes, awkward - we must make sure locally available eggs are always
-      ;; fetched (check-remote-version takes care of that), so only check
-      ;; the timestamp, if it exists (as it does for downloaded eggs)
       (cond ((if (file-exists? timestamp)
                  (and (> (- now (with-input-from-file timestamp read)) +one-hour+)
                       (not (check-remote-version name version lversion
@@ -792,8 +784,9 @@
                                        keepfiles)
               (print "building " name)
               (run-script dir bscript platform)
-              (print "  installing " name)
-              (run-script dir iscript platform sudo: sudo-install)
+              (unless no-install
+                (print "  installing " name)
+                (run-script dir iscript platform sudo: sudo-install))
               (when run-tests (test-egg egg platform)))))
         (when target-extension
           (let-values (((build install info) (compile-egg-info info platform 'target)))
@@ -812,8 +805,9 @@
                                        keepfiles)
               (print "building " name " (target)")
               (run-script dir bscript platform)
-              (print "  installing " name " (target)")
-              (run-script dir iscript platform))))))
+              (unless no-install
+                (print "  installing " name " (target)")
+                (run-script dir iscript platform)))))))
     (order-installed-eggs)))
 
 (define (order-installed-eggs)
@@ -852,7 +846,10 @@
           (d "running script ~a~%" script)
           (if (eq? platform 'windows)
               (exec script stop)
-              (exec (string-append (if sudo "sudo " "") "sh " script) stop)))))
+              (exec (string-append (if sudo 
+                                       (string-append sudo-program " ")
+                                       "")
+                                   "sh " script) stop)))))
 
 (define (write-info name info mode)
   (d "writing info for egg ~a~%" name info)
@@ -934,15 +931,21 @@
   (load-defaults)
   (cond (update-module-db (update-db))
         (purge-mode (purge-cache eggs))
+        (print-repository (print (repo-path)))
         ((null? eggs)
-         (cond (list-versions-only (print "no eggs specified"))
-               (else
-                 (set! canonical-eggs 
-                   (map (lambda (fname)
-                          (list (pathname-file fname) (current-directory) #f))
-                     (glob "*.egg")))
-                 (retrieve-eggs '())
-                 (unless retrieve-only (install-eggs)))))
+         (if list-versions-only
+             (print "no eggs specified")
+             (let ((files (append (glob "*.egg")
+                                  (if (and (file-exists? "chicken")
+                                           (directory? "chicken"))
+                                      (glob "chicken/*.egg")
+                                      '()))))
+               (set! canonical-eggs 
+                 (map (lambda (fname)
+                        (list (pathname-file fname) (current-directory) #f))
+                   files))
+               (retrieve-eggs '())
+               (unless retrieve-only (install-eggs)))))
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
@@ -951,6 +954,36 @@
                     (retrieve-eggs eggs)
                     (unless retrieve-only (install-eggs)))))))
   (when tests-failed (exit 2)))
+  
+(define (usage code)
+  (print #<<EOF
+usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
+
+  -h   -help                    show this message and exit
+       -version                 show version and exit
+       -force                   don't ask, install even if versions don't match
+  -k   -keep                    keep temporary files
+  -s   -sudo                    use external command to elevate privileges for filesystem operations
+  -r   -retrieve                only retrieve egg into current directory, don't install (giving -r
+                                                                                                          more than once implies `-recursive')
+       -recursive               if `-retrieve' is given, retrieve also dependencies
+  -d   -dry-run                 do not build or install, just print the locations of the generated
+                                build + install scripts
+       -list-versions           list available versions for given eggs  
+  -n   -no-install              do not install, just build
+       -purge                   remove cached files for given eggs (or purge cache completely)
+       -host                    when cross-compiling, compile extension only for host
+       -target                  when cross-compiling, compile extension only for target
+       -test                    run included test-cases, if available
+  -u   -update-db               update export database
+       -repository              print path used for egg installation
+       -override FILENAME       override versions for installed eggs with information from file
+
+chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
+
+EOF
+);|
+    (exit code))
 
 (define (main args)
   (setup-proxy (get-environment-variable "http_proxy"))
@@ -965,6 +998,9 @@
                   ((equal? arg "-test")
                    (set! run-tests #t)
                    (loop (cdr args)))
+                  ((equal? arg "-repository")
+                   (set! print-repository #t)
+                   (loop (cdr args)))
                   ((equal? arg "-r")
                    (if retrieve-only
                        (set! retrieve-recursive #t)
@@ -973,6 +1009,9 @@
                   ((equal? arg "-retrieve")
                    (set! retrieve-only #t)
                    (loop (cdr args)))
+                  ((equal? arg "-version")
+                   (print (chicken-version))
+                   (exit 0))
                   ((equal? arg "-recursive")
                    (set! retrieve-recursive #t)
                    (loop (cdr args)))
@@ -994,7 +1033,7 @@
                   ((equal? arg "-update-db")
                    (set! update-module-db #t)
                    (loop (cdr args)))
-                  ((equal? arg "-n")
+                  ((equal? arg "-dry-run")
                    (set! do-not-build #t)
                    (loop (cdr args)))
                   ((equal? arg "-v")
@@ -1005,6 +1044,9 @@
                    (loop (cdr args)))
                   ((member arg '("-s" "-sudo"))
                    (set! sudo-install #t)
+                   (loop (cdr args)))
+                  ((member arg '("-n" "-no-install"))
+                   (set! no-install #t)
                    (loop (cdr args)))
                   ((equal? arg "-purge")
                    (set! purge-mode #t)
