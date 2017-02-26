@@ -110,7 +110,7 @@ static C_TLS int C_wait_status;
 #endif
 
 #include <sys/mman.h>
-#include <sys/poll.h>
+#include <poll.h>
 
 #ifndef O_FSYNC
 # define O_FSYNC O_SYNC
