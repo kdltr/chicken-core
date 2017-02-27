@@ -205,7 +205,7 @@ static C_TLS int timezone;
 #endif
 
 #ifdef C_LLP
-# define LONG_FORMAT_STRING            "%lldf"
+# define LONG_FORMAT_STRING            "%lld"
 #else
 # define LONG_FORMAT_STRING            "%ld"
 #endif
