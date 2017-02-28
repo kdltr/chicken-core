@@ -659,7 +659,7 @@ EOF
    set-signal-handler! set-signal-mask! signal-handler
    signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
    signal/alrm signal/break signal/chld signal/cont signal/fpe
-   #;signal/bus signal/hup signal/ill signal/int signal/io signal/kill
+   signal/bus signal/hup signal/ill signal/int signal/io signal/kill
    signal/pipe signal/prof signal/quit signal/segv signal/stop
    signal/term signal/trap signal/tstp signal/urg signal/usr1
    signal/usr2 signal/vtalrm signal/winch signal/xcpu signal/xfsz
@@ -961,6 +961,7 @@ EOF
 (define signal/abrt _sigabrt)
 (define signal/break _sigbreak)
 (define signal/alrm 0)
+(define signal/bus 0)
 (define signal/chld 0)
 (define signal/cont 0)
 (define signal/hup 0)

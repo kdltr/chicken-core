@@ -523,6 +523,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.errno,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.file.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.time.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.process,$(POSIXFILE)))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.process.signal,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.fixnum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.flonum,library))
@@ -813,6 +814,7 @@ posixunix.c: $(SRCDIR)posix.scm $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm
 	-emit-import-library chicken.file.posix \
 	-emit-import-library chicken.time.posix \
 	-emit-import-library chicken.process \
+	-emit-import-library chicken.process.signal \
 	-emit-import-library chicken.posix
 posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -feature platform-windows \
@@ -820,6 +822,7 @@ posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $
 	-emit-import-library chicken.file.posix \
 	-emit-import-library chicken.time.posix \
 	-emit-import-library chicken.process \
+	-emit-import-library chicken.process.signal \
 	-emit-import-library chicken.posix
 irregex.c: $(SRCDIR)irregex.scm $(SRCDIR)irregex-core.scm $(SRCDIR)irregex-utils.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.irregex

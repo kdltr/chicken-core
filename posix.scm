@@ -146,3 +146,13 @@
      (string delim)
      (apply string-append escaped-parts)
      (string delim)))))
+
+(module chicken.process.signal
+  (set-signal-handler! set-signal-mask! signal-handler signal-mask
+   signal-mask! signal-masked? signal-unmask! signal/abrt signal/alrm
+   signal/break signal/bus signal/chld signal/cont signal/fpe signal/hup
+   signal/ill signal/int signal/io signal/kill signal/pipe signal/prof
+   signal/quit signal/segv signal/stop signal/term signal/trap
+   signal/tstp signal/urg signal/usr1 signal/usr2 signal/vtalrm
+   signal/winch signal/xcpu signal/xfsz set-alarm!)
+(import chicken chicken.posix))
