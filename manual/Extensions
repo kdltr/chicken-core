@@ -197,13 +197,6 @@ are {{(not PLATFORM)}}, {{(or PLATFORM ...)}} and {{(and PLATFORM ...)}}.
 If the expression can not be satisfied, then installation of this
 egg will abort.
 
-====== doc-from-wiki
-
-[egg property] (doc-from-wiki)
-
-Specifies that documentation for this egg can be found on the
-chicken wiki.
-
 ====== components
 
 [egg property] (components COMPONENT ...)

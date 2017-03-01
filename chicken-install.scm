@@ -164,7 +164,6 @@
     (components #t #f #f)
     (foreign-dependencies #t #f #f ,list?)
     (platform #t #f #f)
-    (doc-from-wiki #t #f #f)
     (installed-files #t #f #f ,list?)
     (maintainer #t #f #f)
     (files #f #t #f ,list?)
