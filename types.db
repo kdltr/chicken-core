@@ -862,6 +862,7 @@
 (chicken.eval#provide (#(procedure #:clean #:enforce) chicken.eval#provide (#!rest symbol) undefined))
 (chicken.eval#provided? (#(procedure #:clean #:enforce) chicken.eval#provided? (#!rest symbol) boolean))
 (chicken.eval#repository-path (#(procedure #:clean) chicken.eval#repository-path (#!optional *) *))
+(chicken.eval#installation-repository (#(procedure #:clean) chicken.eval#installation-repository (#!optional *) *))
 (chicken.eval#require (#(procedure #:clean) chicken.eval#require (#!rest symbol) undefined))
 
 (chicken.eval#scheme-report-environment

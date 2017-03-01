@@ -589,17 +589,18 @@ Available options:
 ; {{-p   -prefix PREFIX}} : change installation prefix to {{PREFIX}}
 ; {{-host}} : when cross-compiling, remove eggs for host system only
 ; {{-target}} : when cross-compiling, remove eggs for target system only
-; {{-exact}} : match egg-name exactly (do not match as pattern)
+; {{-match}} : treat egg-names as glob patterns
 
 === chicken-status reference
 
 ; {{-h   -help}} : show usage information and exit
 ; {{-version}} : show version and exit
 ; {{-f   -files}} : list installed files
+; {{-a   -all}} : Scan all repositories in {{CHICKEN_REPOSITORY_PATH}}
 ; {{-host}} : when cross-compiling, show eggs for host system only
 ; {{-target}} : when cross-compiling, show eggs for target system only
 ; {{-p   -prefix PREFIX}} : change installation prefix to {{PREFIX}}
-; {{-exact}} : match egg-name exactly (do not match as pattern)
+; {{-match}} : treat egg-names as glob patterns
 ; {{-list}} : list installed egg version in format suitable for {{chicken-install -override}}
 
 
@@ -637,7 +638,8 @@ configured at build-time by passing {{VARDIR=<directory>}} to {{make(3)}}
 or by modifying the {{config.make}} configuration file. If you want to
 override this location after chicken is installed, you can create a
 repository directory, set the
-{{CHICKEN_REPOSITORY}} environment variable and copy all files
+{{CHICKEN_INSTALL_REPOSITORY}} and/or {{CHICKEN_REPOSITORY_PATH}}
+environment variables and copy all files
 from the default repository into the new one.
 
 Note that your binary version can differ from the one given in 
@@ -645,9 +647,11 @@ the examples here, if your
 chicken version is older or newer than the one used in these examples.
 Check your default location for the correct binary-version number.
 
-{{CHICKEN_REPOSITORY}} is the place where eggs are to be
-loaded from for all chicken-based programs (which includes all
-the tools).
+{{CHICKEN_REPOSITORY_PATH}} is the place where eggs are to be
+loaded from for all chicken-based programs. {{CHICKEN_INSTALL_REPOSITORY}}
+is the place where eggs will be installed and which the egg-related
+tools like {{chicken-install}}, {{chicken-uninstall}} and
+{{chicken-status}} consult and update.
 
 
 === Static linking

@@ -1,6 +1,6 @@
 ;;;; chicken.import.scm - import library for "chicken" module
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -115,6 +115,7 @@
    implicit-exit-handler
    infinite?
    input-port-open?
+   (installation-repository . chicken.eval#installation-repository)
    (ir-macro-transformer . chicken.expand#ir-macro-transformer)
    keyword-style
    (load-library . chicken.eval#load-library)

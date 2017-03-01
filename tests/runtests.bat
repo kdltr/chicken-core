@@ -8,7 +8,8 @@ set OS_NAME=WindowsNT
 
 set CHICKEN=..\chicken
 set CHICKEN_PROFILE=..\chicken-profile
-set CHICKEN_REPOSITORY=
+set CHICKEN_INSTALL_REPOSITORY=
+set CHICKEN_REPOSITORY_PATH=
 set ASMFLAGS=-Wa,-w
 set FAST_OPTIONS=-O5 -d0 -b -disable-interrupts
 set PATH=%cd%\..;%PATH%
@@ -575,10 +576,11 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 linking-tests
 if errorlevel 1 exit /b 1
-set CHICKEN_REPOSITORY=test-repository
-mkdir %CHICKEN_REPOSITORY%
-move reverser.o %CHICKEN_REPOSITORY%
-move reverser.import.scm %CHICKEN_REPOSITORY%
+set CHICKEN_INSTALL_REPOSITORY=test-repository
+set CHICKEN_REPOSITORY_PATH=test-repository
+mkdir %CHICKEN_INSTALL_REPOSITORY%
+move reverser.o %CHICKEN_INSTALL_REPOSITORY%
+move reverser.import.scm %CHICKEN_INSTALL_REPOSITORY%
 %compile2% -link reverser linking-tests.scm
 if errorlevel 1 exit /b 1
 linking-tests

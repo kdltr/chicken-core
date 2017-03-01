@@ -299,7 +299,7 @@
     (or (locate-object-file f #f)
 	(and (not ignore-repository)
              (locate-object-file f #t))
-	(stop "couldn't find linked extension: ~a" name))))
+	(stop "could not find linked extension: ~a" name))))
 
 
 ;;; Display usage information:

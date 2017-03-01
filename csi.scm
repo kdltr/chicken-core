@@ -1,6 +1,6 @@
 ;;;; csi.scm - Interpreter stub for CHICKEN
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -477,6 +477,7 @@ EOF
                    Software version:\t~A~%~
                    Build platform:  \t~A~%~
                    Installation prefix:\t~A~%~
+                   Extension installation location:\t~A~%~
                    Extension path:  \t~A~%~
                    Include path:    \t~A~%~
                    Keyword style:   \t~A~%~
@@ -492,6 +493,7 @@ EOF
 		    (software-version)
 		    (build-platform)
 		    prefix
+                    (installation-repository)
 		    (repository-path)
 		    ##sys#include-pathnames
 		    (symbol->string (keyword-style))

@@ -1,6 +1,6 @@
 ;;;; chicken-uninstall.scm
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -56,10 +56,19 @@
 (define (grep rx lst)
   (filter (cut irregex-search rx <>) lst))
 
-(define (gather-eggs patterns)
+(define (gather-eggs patterns mtch)
   (let* ((eggs (map pathname-file 
                  (glob (make-pathname (repo-path) "*" +egg-info-extension+))))
-         (pats (concatenate (map (cut grep <> eggs) patterns))))
+         (pats (if mtch
+                   (concatenate 
+                     (map (lambda (pat)
+                            (grep (irregex (##sys#glob->regexp pat))
+                                  eggs))
+                       patterns))
+                   (filter 
+                     (lambda (egg)
+                       (any (cut string=? <> egg) patterns))
+                     eggs))))
     (delete-duplicates pats)))
 
 (define (fini code)
@@ -86,15 +95,16 @@
           (else (cons (car lst) (left (cdr lst))))))
   (list->string (reverse (left (reverse (left (string->list str)))))))
  
-(define (remove-extension egg #!optional (repo (repo-path)))
-  (and-let* ((ifile (make-pathname repo egg +egg-info-extension+))
-             (files (get-egg-property* (load-egg-info ifile) 'installed-files)))
-    (for-each
-      (lambda (f)
-        (let ((p (if (absolute-pathname? f) f (make-pathname repo f))))
-          (when (file-exists? p) (delete-installed-file p))))
-      files)
-    (delete-installed-file ifile)))
+(define (remove-extension egg)
+  (and-let* ((ifile (file-exists?
+                      (make-pathname (repo-path) egg +egg-info-extension+)))
+             (files (get-egg-property* (load-egg-info ifile)
+                                       'installed-files)))
+       (for-each
+         (lambda (f)
+           (when (file-exists? f) (delete-installed-file f)))
+         files)
+       (delete-installed-file ifile)))
 
 (define (delete-file-command platform)
   (case platform
@@ -111,27 +121,25 @@
              (warning "deleting file failed" fname))))
         (else (delete-file fname))))
 
-(define (uninstall pats)
-  (let ((eggs (gather-eggs pats)))
+(define (uninstall pats mtch)
+  (let ((eggs (gather-eggs pats mtch)))
     (cond ((null? eggs)
            (print "nothing to remove.") )
           ((or force-uninstall (ask eggs))
            (for-each
              (lambda (e)
                (print "removing " e)
-               (when host-extensions (remove-extension e))
-               (when (and cross-chicken target-extensions)
-                 (remove-extension e (destination-repository 'target))))
+               (remove-extension e))
              eggs)))))
 
 (define (usage code)
   (print #<<EOF
-usage: chicken-uninstall [OPTION | PATTERN] ...
+usage: chicken-uninstall [OPTION | NAME] ...
 
   -h   -help                    show this message and exit
        -version                 show version and exit
        -force                   don't ask, delete whatever matches
-       -exact                   treat PATTERN as exact match (not a pattern)
+       -match                   treat NAME as a glob pattern
   -s   -sudo                    use external command to elevate privileges for deleting files
        -host                    when cross-compiling, uninstall host extensions only
        -target                  when cross-compiling, uninstall target extensions only
@@ -142,18 +150,11 @@ EOF
 (define short-options '(#\h #\s #\p))
 
 (define (main args)
-  (let ((exact #f))
+  (let ((mtch #f))
     (let loop ((args args) (pats '()))
       (cond ((null? args)
              (when (null? pats) (usage 1))
-             (uninstall
-               (reverse
-                 (map
-                   (lambda (p)
-                     (if exact
-                         (irregex (string-append "^" (irregex-quote p) "$"))
-                         (##sys#glob->regexp p)))
-                   pats))))
+             (uninstall (reverse pats) mtch))
             (else
               (let ((arg (car args)))
                 (cond ((or (string=? arg "-help") 
@@ -172,8 +173,8 @@ EOF
                       ((string=? arg "-force")
                        (set! force-uninstall #t)
                        (loop (cdr args) pats))
-                      ((string=? arg "-exact")
-                       (set! exact #t)
+                      ((string=? arg "-match")
+                       (set! mtch #t)
                        (loop (cdr args) pats))
                       ((or (string=? arg "-s") (string=? arg "-sudo"))
                        (set! sudo-uninstall #t)

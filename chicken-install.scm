@@ -45,7 +45,7 @@
 (define +defaults-version+ 2)
 (define +module-db+ "modules.db")
 (define +defaults-file+ "setup.defaults")
-(define +short-options+ '(#\r #\h))
+(define +short-options+ '(#\r #\h #\n #\k))
 (define +one-hour+ (* 60 60))
 (define +timestamp-file+ "TIMESTAMP")
 (define +status-file+ "STATUS")
@@ -101,7 +101,6 @@
         (get-environment-variable "LD_LIBRARY_PATH")
         (get-environment-variable "DYLD_LIBRARY_PATH")
         (get-environment-variable "CHICKEN_INCLUDE_PATH")
-        (get-environment-variable "CHICKEN_REPOSITORY")
         (get-environment-variable "DYLD_LIBRARY_PATH")))
 
 (define (probe-dir dir)
@@ -117,10 +116,20 @@
                      ".chicken-install.cache")))
 
 (define (repo-path)
-  (destination-repository
-    (if (and cross-chicken (not host-extension))
-        'target
-        'host)))
+  (if (and cross-chicken (not host-extension))
+      (list (destination-repository 'target))
+      (##sys#split-path (repository-path))))
+
+(define (install-path)
+  (if (and cross-chicken (not host-extension))
+      (destination-repository 'target)
+      (destination-repository 'host)))
+
+(define (find-in-repo name)
+  (let loop ((dirs (repo-path)))
+    (cond ((null? dirs) #f)
+          ((file-exists? (make-pathname (car dirs) name)))
+          (else (loop (cdr dirs))))))
 
 (define (build-script-extension mode platform)
   (string-append "build"
@@ -327,13 +336,14 @@
 
   
 ;; apply egg->egg mappings loaded from defaults
-  
+
+(define (canonical x)
+  (cond ((symbol? x) (cons (symbol->string x) #f))
+        ((string? x) (cons x #f))
+        ((pair? x) x)
+        (else (error "internal error - bad egg spec" x))))
+
 (define (apply-mappings eggs)
-  (define (canonical x)
-    (cond ((symbol? x) (cons (symbol->string x) #f))
-          ((string? x) (cons x #f))
-          ((pair? x) x)
-          (else (error "internal error - bad egg spec" x))))
   (define (same? e1 e2)
     (equal? (car (canonical e1)) (car (canonical e2))))
   (let ((eggs2
@@ -347,7 +357,9 @@
              eggs)
            same?)))
     (unless (and (= (length eggs) (length eggs2))
-                 (every (lambda (egg) (find (cut same? <> egg) eggs2)) eggs))
+                 (every (lambda (egg) 
+                          (find (cut same? <> egg) eggs2)) 
+                        eggs))
       (d "mapped ~s to ~s~%" eggs eggs2))
     eggs2))
 
@@ -509,7 +521,7 @@
 ;; check installed eggs for already installed files
 
 (define (matching-installed-files egg fnames)
-  (let ((eggs (glob (make-pathname (repo-path) "*.egg-info"))))
+  (let ((eggs (glob (make-pathname (install-path) "*.egg-info"))))
     (let loop ((eggs eggs) (same '()))
       (cond ((null? eggs) same)
             ((string=? egg (pathname-file (car eggs)))
@@ -615,7 +627,9 @@
 (define (get-egg-dependencies info)
   (append (get-egg-property* info 'dependencies '())
           (get-egg-property* info 'build-dependencies '())
-          (if run-tests (get-egg-property* info 'test-dependencies '()) '())))
+          (if run-tests
+              (get-egg-property* info 'test-dependencies '()) 
+              '())))
 
 (define (check-dependency dep)
   (cond ((or (symbol? dep) (string? dep))
@@ -665,7 +679,8 @@
   (cond ((or (eq? x 'chicken) (equal? x "chicken"))
          (chicken-version))
         ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
-                (sf (make-pathname (repo-path) ep +egg-info-extension+)))
+                (sf (find-in-repo 
+                      (make-pathname #f ep +egg-info-extension+))))
            (and (file-exists? sf)
                 (load-egg-info sf))) =>
          (lambda (info)
@@ -825,19 +840,22 @@
          (version (caddr egg))
          (testdir (make-pathname dir "tests"))
          (tscript (make-pathname testdir "run.scm")))
-    (when (and (file-exists? testdir)
-               (directory? testdir)
-               (file-exists? tscript))
-      (let ((old (current-directory))
-            (cmd (string-append default-csi " -s " tscript " " name " " (or version ""))))
-        (change-directory testdir)
-        (let ((r (system cmd)))
-          (d "running: ~a~%" cmd)
-          (flush-output (current-error-port))
-          (unless (zero? r)
-            (set! tests-failed #t)
-            (print "test script failed with nonzero exit status")))
-        (change-directory old)))))
+    (if (and (file-exists? testdir)
+             (directory? testdir)
+             (file-exists? tscript))
+        (let ((old (current-directory))
+              (cmd (string-append default-csi " -s " tscript " " name " " (or version ""))))
+          (change-directory testdir)
+          (let ((r (system cmd)))
+            (d "running: ~a~%" cmd)
+            (flush-output (current-error-port))
+            (cond ((zero? r) 
+                   (change-directory old)
+                   #t)
+                  (else
+                    (print "test script failed with nonzero exit status")
+                    #f))))
+        #t)))
 
 (define (run-script dir script platform #!key sudo (stop #t))
   (cond (do-not-build
@@ -871,8 +889,8 @@
 ;;; update module-db
 
 (define (update-db)
-  (let* ((files (glob (make-pathname (repo-path) "*.import.so")
-                      (make-pathname (repo-path) "*.import.scm")))
+  (let* ((files (glob (make-pathname (install-path) "*.import.so")
+                      (make-pathname (install-path) "*.import.scm")))
          (dbfile (create-temporary-file)))
       (print "loading import libraries ...")
       (fluid-let ((##sys#warnings-enabled #f))
@@ -906,7 +924,7 @@
         (with-output-to-file dbfile
           (lambda ()
             (for-each (lambda (x) (write x) (newline)) db)))
-        (file-copy dbfile (make-pathname (repo-path) +module-db+) #t))))
+        (file-copy dbfile (make-pathname (install-path) +module-db+) #t))))
 
 
 ;; purge cache for given (or all) eggs
@@ -932,7 +950,7 @@
   (load-defaults)
   (cond (update-module-db (update-db))
         (purge-mode (purge-cache eggs))
-        (print-repository (print (repo-path)))
+        (print-repository (print (install-path)))
         ((null? eggs)
          (if list-versions-only
              (print "no eggs specified")
@@ -971,7 +989,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
   -r   -retrieve                only retrieve egg into current directory, don't install (giving -r
                                                                                                           more than once implies `-recursive')
        -recursive               if `-retrieve' is given, retrieve also dependencies
-  -d   -dry-run                 do not build or install, just print the locations of the generated
+       -dry-run                 do not build or install, just print the locations of the generated
                                 build + install scripts
        -list-versions           list available versions for given eggs  
   -n   -no-install              do not install, just build

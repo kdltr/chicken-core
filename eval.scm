@@ -51,12 +51,14 @@
    eval eval-handler extension-information
    load load-library load-noisily load-relative load-verbose
    interaction-environment null-environment scheme-report-environment
-   load-extension provide provided? repository-path
+   load-extension provide provided? repository-path 
+   installation-repository
    require set-dynamic-load-mode!)
 
 ;; Exclude bindings defined within this module.
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment)
-	(except chicken chicken-home provide provided? repository-path require))
+	(except chicken chicken-home provide provided? repository-path
+         installation-repository require))
 
 (import chicken.expand
 	chicken.foreign
@@ -100,7 +102,6 @@
 (define-constant environment-table-size 301)
 (define-constant source-file-extension ".scm")
 (define-constant setup-file-extension "egg-info")
-(define-constant repository-environment-variable "CHICKEN_REPOSITORY")
 (define-constant prefix-environment-variable "CHICKEN_PREFIX")
 (define-constant windows-object-file-extension ".obj")
 (define-constant unix-object-file-extension ".o")
@@ -1185,16 +1186,50 @@
 (define repository-path
   (make-parameter
    (or (foreign-value "C_private_repository_path()" c-string)
-       (get-environment-variable repository-environment-variable)
+       (get-environment-variable "CHICKEN_REPOSITORY_PATH")
        (chicken-prefix
 	(##sys#string-append
 	 "lib/chicken/"
 	 (##sys#number->string binary-version)))
        install-egg-home)))
 
-(define ##sys#repository-path repository-path)
+(define installation-repository
+  (make-parameter
+    (or (foreign-value "C_private_repository_path()" c-string)
+        (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
+        (chicken-prefix
+          (##sys#string-append
+            "lib/chicken/"
+            (##sys#number->string binary-version)))
+        install-egg-home)))
 
+(define ##sys#repository-path repository-path)
+(define ##sys#installation-repository installation-repository)
 (define ##sys#setup-mode #f)
+
+(define path-list-separator
+  (if ##sys#windows-platform #\; #\:))
+
+(define ##sys#split-path
+  (let ((cache '(#f)))
+    (lambda (path)
+      (if (equal? path (car cache))
+          (cdr cache)
+          (let* ((len (string-length path))
+                 (lst (let loop ((start 0) (pos 0))
+                        (cond ((fx>= pos len)
+                               (if (fx= pos start)
+                                   '()
+                                   (list (substring path start pos))))
+                              ((char=? (string-ref path pos) 
+                                       path-list-separator)
+                               (cons (substring path start pos)
+                                     (loop (fx+ pos 1)
+                                           (fx+ pos 1))))
+                              (else 
+                                (loop start (fx+ pos 1)))))))
+            (set! cache (cons path lst))
+            lst)))))
 
 (define ##sys#find-extension
   (let ((file-exists? file-exists?)
@@ -1211,7 +1246,7 @@
 		(file-exists? (##sys#string-append p0 source-file-extension)))))
 	(let loop ((paths (##sys#append
 			   (if ##sys#setup-mode '(".") '())
-			   (if rp (list rp) '())
+			   (if rp (##sys#split-path rp) '())
 			   (if inc? ##sys#include-pathnames '())
 			   (if ##sys#setup-mode '() '("."))) ))
 	  (and (pair? paths)
@@ -1252,26 +1287,33 @@
   (every ##sys#provided? ids))
 
 (define extension-information/internal
-  (let ([with-input-from-file with-input-from-file]
-	[string-append string-append]
-	[read read] )
+  (let ((with-input-from-file with-input-from-file)
+	(string-append string-append)
+	(read read) )
     (lambda (id loc)
       (and-let* ((rp (##sys#repository-path)))
-	(let* ((p (##sys#canonicalize-extension-path id loc))
-	       (rpath (string-append rp "/" p ".")) )
-	  (cond ((file-exists? (string-append rpath setup-file-extension))
-		 => (cut with-input-from-file <> read) )
-		(else #f) ) ) ) ) ))
+           (let ((p (##sys#canonicalize-extension-path id loc)))
+             (let loop ((rp (##sys#split-path rp)))
+               (cond ((null? rp) #f)
+                     ((file-exists? (string-append (car rp) "/" p "."
+                                                   setup-file-extension))
+                      => (cut with-input-from-file <> read) )
+                     (else (loop (cdr rp))))))))))
 
 (define (extension-information ext)
   (extension-information/internal ext 'extension-information))
 
-(define (static-extension-available? id)
-  (and-let* ((rp (##sys#repository-path)))
-       (let* ((p (##sys#canonicalize-extension-path id #f))
-              (rpath (string-append rp "/" p)) 
-              (opath (string-append rpath object-file-extension)))
-         (file-exists? opath))))
+(define static-extension-available?
+  (let ((string-append string-append))
+    (lambda (id)
+      (and-let* ((rp (##sys#repository-path)))
+           (let loop ((rp (##sys#split-path rp)))
+             (cond ((null? rp) #f)
+                   ((file-exists? 
+                      (string-append (car rp) "/" 
+                                     (##sys#canonicalize-extension-path id #f)
+                                     object-file-extension)))
+                   (else (loop (cdr rp)))))))))
 
 
 ;;
@@ -1378,9 +1420,7 @@
 
 ;;; Find included file:
 
-(define ##sys#include-pathnames 
-  (let ((h (chicken-home)))
-    (if h (list h) '())) )
+(define ##sys#include-pathnames (list (chicken-home)))
 
 (define ##sys#resolve-include-filename
   (let ((string-append string-append) )
@@ -1410,7 +1450,7 @@
 				 ##sys#include-pathnames 
 				 (let ((rp (##sys#repository-path)))
 				   (if rp
-				       (list (##sys#repository-path))
+				       (##sys#split-path rp)
 				       '())))
 				##sys#include-pathnames) ) )
 	    (cond ((eq? paths '()) #f)

@@ -33,42 +33,8 @@ esac
 rm -fr test-repository
 mkdir -p test-repository
 
-# copy files into test-repository (by hand to avoid calling `chicken-install'):
-
-for x in \
-    chicken.import.so types.db \
-    srfi-4.import.so \
-    chicken.bitwise.import.so \
-    chicken.continuation.import.so \
-    chicken.csi.import.so \
-    chicken.data-structures.import.so \
-    chicken.files.import.so \
-    chicken.flonum.import.so \
-    chicken.foreign.import.so \
-    chicken.format.import.so \
-    chicken.gc.import.so \
-    chicken.internal.import.so \
-    chicken.io.import.so \
-    chicken.irregex.import.so \
-    chicken.keyword.import.so \
-    chicken.locative.import.so \
-    chicken.lolevel.import.so \
-    chicken.memory.import.so \
-    chicken.pathname.import.so \
-    chicken.ports.import.so \
-    chicken.posix.import.so \
-    chicken.pretty-print.import.so \
-    chicken.random.import.so \
-    chicken.repl.import.so \
-    chicken.read-syntax.import.so \
-    chicken.tcp.import.so \
-    chicken.time.import.so \
-    chicken.utils.import.so
-do
-    cp ../$x test-repository
-done
-
-CHICKEN_REPOSITORY=${TEST_DIR}/test-repository
+CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
+CHICKEN_REPOSITORY_PATH=${TEST_DIR}..:$CHICKEN_REPOSITORY
 CHICKEN=${TEST_DIR}/../chicken
 CHICKEN_PROFILE=${TEST_DIR}/../chicken-profile
 CHICKEN_INSTALL=${TEST_DIR}/../chicken-install
@@ -481,10 +447,10 @@ $compile2 -link reverser linking-tests.scm
 ./linking-tests
 $compile2 -link reverser linking-tests.scm -static
 ./linking-tests
-mv reverser.o reverser.import.scm "$CHICKEN_REPOSITORY"
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile2 -link reverser linking-tests.scm
+mv reverser.o reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
+CHICKEN_INSTALL_REPOSITORY=$CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH=$CHICKEN_REPOSITORY_PATH $compile2 -link reverser linking-tests.scm
 ./linking-tests
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile2 -link reverser linking-tests.scm -static
+CHICKEN_INSTALL_REPOSITORY=$CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH=$CHICKEN_REPOSITORY_PATH $compile2 -link reverser linking-tests.scm -static
 ./linking-tests
 
 echo "======================================== private repository test ..."

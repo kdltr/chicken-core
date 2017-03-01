@@ -32,7 +32,7 @@
 .Nd uninstall extension library
 .Sh SYNOPSIS
 .Nm
-.Op Ar OPTION \(ba PATTERN ...
+.Op Ar OPTION \(ba NAME ...
 .Sh DESCRIPTION
 .Nm
 removes one or more already installed extension
@@ -42,11 +42,10 @@ may be a regular expression naming multiple extensions or just an extension name
 .Pp
 The program accepts following arguments:
 .Bl -tag -width Ds
-.It Fl exact
+.It Fl match
 treat
-.Ar PATTERN
-as exact match
-.Po not a pattern Pc
+.Ar NAME
+as a glob pattern Pc
 .It Fl force
 don't ask, delete whatever matches
 .It Fl h, Fl help
@@ -76,7 +75,7 @@ when configuring the system.
 .It Ev CHICKEN_INSTALL_PREFIX
 An alternative installation prefix that will be prepended to extension
 installation paths if specified.
-.It Ev CHICKEN_REPOSITORY
+.It Ev CHICKEN_INSTAL_REPOSITORY
 The path where extension libraries are installed. Defaults to the package-library
 path selected during configuration
 .Pq usually $prefix/lib/chicken/<binary-version>

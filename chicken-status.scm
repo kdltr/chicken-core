@@ -1,6 +1,6 @@
 ;;;; chicken-status.scm
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -43,27 +43,52 @@
 
   (define host-extensions #t)
   (define target-extensions #t)
+  (define all-repos #f)
 
   (define (repo-path)
-    (destination-repository
-      (if (and cross-chicken (not host-extensions))
-          'target
-          'host)))
+    (cond ((and cross-chicken (not host-extensions))
+           (list (destination-repository 'target)))
+          (all-repos (##sys#split-path (repository-path)))
+          (else (list (destination-repository 'host)))))
+
+  (define (find-in-repo name)
+    (let loop ((dirs (repo-path)))
+      (cond ((null? dirs) #f)
+            ((file-exists? (make-pathname (car dirs) name)))
+            (else (loop (cdr dirs))))))
 
   (define (grep rx lst)
     (filter (cut irregex-search rx <>) lst))
 
   (define (read-info egg)
-    (load-egg-info (make-pathname (repo-path) egg +egg-info-extension+)))
+    (load-egg-info 
+     (or (find-in-repo (make-pathname #f egg +egg-info-extension+))
+         (error "egg not found" egg))))
 
-  (define (filter-eggs patterns)
+  (define (filter-eggs patterns mtch)
     (let* ((eggs (gather-eggs))
-	   (pats (concatenate (map (cut grep <> eggs) patterns))))
-      (delete-duplicates pats)))
+           (names (cond ((null? patterns) eggs)
+                        (mtch
+                         (concatenate
+                           (map (lambda (pat)
+                                  (grep (irregex (##sys#glob->regexp pat))
+                                        eggs))
+                             patterns)))
+                        (else 
+                          (filter 
+                            (lambda (egg)
+                              (any (cut string=? <> egg) patterns))
+                            eggs)))))
+      (delete-duplicates names)))
 
   (define (gather-eggs)
-    (map pathname-file
-      (glob (make-pathname (repo-path) "*" +egg-info-extension+))))
+    (delete-duplicates
+      (append-map
+        (lambda (dir)
+          (map pathname-file 
+            (glob (make-pathname dir "*" +egg-info-extension+))))
+        (repo-path))
+      equal?))
 
   (define (format-string str cols #!optional right (padc #\space))
     (let* ((len (string-length str))
@@ -161,12 +186,13 @@
 
   (define (usage code)
     (print #<<EOF
-usage: chicken-status [OPTION | PATTERN] ...
+usage: chicken-status [OPTION | NAME] ...
 
   -h   -help                    show this message
        -version                 show version and exit
+  -a   -all                     scan all repositories in CHICKEN_REPOSITORY_PATH
   -f   -files                   list installed files
-       -exact                   treat PATTERN as exact match (not a pattern)
+       -match                   treat NAME as glob pattern
        -host                    when cross-compiling, show status of host extensions only
        -target                  when cross-compiling, show status of target extensions only
        -list                    dump installed extensions and their versions in "override" format
@@ -175,13 +201,13 @@ EOF
 );|
     (exit code))
 
-  (define short-options '(#\h #\f #\c))
+  (define short-options '(#\h #\f #\c #\a))
 
   (define (main args)
     (let ((files #f)
           (comps #f)
           (dump #f)
-          (exact #f))
+          (mtch #f))
       (let loop ((args args) (pats '()))
         (if (null? args)
             (cond ((and comps (or dump files))
@@ -190,16 +216,7 @@ EOF
                    (exit 1))
                   (dump (dump-installed-versions))
                   (else
-                    (let* ((patterns
-                             (map irregex
-                               (cond ((null? pats) '(".*"))
-                                     (exact (map (lambda (p)
-                                                   (string-append "^"
-                                                                  (irregex-quote p)
-                                                                  "$"))
-                                              pats))
-                                     (else (map ##sys#glob->regexp pats)))))
-                           (eggs (filter-eggs patterns)))
+                    (let ((eggs (filter-eggs pats mtch)))
                       (if (null? eggs)
                           (display "(none)\n" (current-error-port))
                           ((cond (comps list-installed-components)
@@ -215,9 +232,12 @@ EOF
 		    ((string=? arg "-target")
 		     (set! host-extensions #f)
 		     (loop (cdr args) pats))
-		    ((string=? arg "-exact")
-		     (set! exact #t)
-		     (loop (cdr args) pats))
+                    ((string=? arg "-match")
+                     (set! mtch #t)
+                     (loop (cdr args) pats))
+                    ((member arg '("-a" "-all"))
+                     (set! all-repos #t)
+                     (loop (cdr args) pats))
 		    ((string=? arg "-list")
 		     (set! dump #t)
 		     (loop (cdr args) pats))

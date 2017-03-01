@@ -90,7 +90,7 @@ EOF
 (define +egg-info-extension+ ".egg-info") 
 
 (define (destination-repository mode)
-  (or (get-environment-variable "CHICKEN_REPOSITORY")
-      (case mode
-        ((target) target-repo)
-        ((host) host-repo))))
+  (if (eq? 'target mode)
+      target-repo
+      (or (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
+          host-repo)))

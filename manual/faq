@@ -831,14 +831,16 @@ See the [[Extensions]] chapter for more information.
 
 ==== How can I install CHICKEN eggs to a non-default location?
 
-You can just set the {{CHICKEN_REPOSITORY}} environment variable.
-It should contain the path where you want eggs to be installed:
+You can just set the {{CHICKEN_INSTALL_REPOSITORY}} and {{CHICKEN_REPOSITORY_PATH}}
+environment variables.
+They should contain the path where you want eggs to be installed:
 
- $ export CHICKEN_REPOSITORY=~/eggs/lib/chicken/5
+ $ export CHICKEN_INSTALL_REPOSITORY=~/eggs/lib/chicken/5
+ $ export CHICKEN_REPOSITORY_PATH=~/eggs/lib/chicken/5
  $ chicken-install -init ~/eggs/lib/chicken/5
  $ chicken-install -p ~/eggs/ extensionname
 
-In order to make programs (including csi) see these eggs, you should set this variable when you run them. See the [[Extensions#Changing repository location|Extensions/Changing repository location]] section of the manual for more information on that.
+In order to make programs (including csi) see these eggs, you should set {{CHICKEN_REPOSITORY_PATH}} when you run them. See the [[Extensions#Changing repository location|Extensions/Changing repository location]] section of the manual for more information on that.
 
 Alternatively, you can call the {{repository-path}} Scheme procedure before loading the eggs, as in:
 
@@ -854,7 +856,7 @@ to {{chicken-install}}, in [[Extensions]].
 
 ==== Can I install chicken eggs as a non-root user?
 
-Yes, just install them in a directory you can write to by using {{CHICKEN_REPOSITORY}} (see above).
+Yes, just install them in a directory you can write to by using {{CHICKEN_INSTALL_REPOSITORY}} (see above).
 
 ==== Why does downloading an extension via {{chicken-install}} fail on Windows Vista?
 
