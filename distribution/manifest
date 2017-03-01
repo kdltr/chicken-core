@@ -26,6 +26,7 @@ debugger-client.c
 ports.c
 files.c
 extras.c
+internal.c
 library.c
 lolevel.c
 optimizer.c
@@ -81,6 +82,7 @@ chicken-bug.mdoc
 chicken-bug.scm
 chicken-bug.c
 continuation.scm
+internal.scm
 library.scm
 lolevel.scm
 optimizer.scm
@@ -92,6 +94,7 @@ irregex-utils.scm
 lfa2.c
 chicken.compiler.lfa2.import.scm
 lfa2.scm
+mini-srfi-1.scm
 pathname.c
 pathname.scm
 posixunix.scm
@@ -106,6 +109,7 @@ srfi-4.scm
 stub.scm
 support.scm
 tcp.scm
+user-pass.scm
 build-version.scm
 build-version.c
 buildid
@@ -308,6 +312,8 @@ chicken.pretty-print.import.scm
 chicken.pretty-print.import.c
 chicken.random.import.scm
 chicken.random.import.c
+chicken.read-syntax.import.scm
+chicken.read-syntax.import.c
 chicken.repl.import.scm
 chicken.repl.import.c
 chicken.tcp.import.scm
