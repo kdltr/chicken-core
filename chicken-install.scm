@@ -1,6 +1,6 @@
 ;;;; chicken-install.scm
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -89,6 +89,7 @@
 (define purge-mode #f)
 (define keepfiles #f)
 (define print-repository #f)
+(define no-deps #f)
   
 (define platform
   (if (eq? 'mingw (build-platform))
@@ -610,19 +611,21 @@
       canonical-eggs)))
 
 (define (outdated-dependencies egg info)
-  (let ((ds (get-egg-dependencies info)))
-    (for-each
-      (lambda (h) (set! ds (h egg ds)))
-      hacks)
-    (let loop ((deps ds) (missing '()) (upgrade '()))
-      (if (null? deps)
-          (values (reverse missing) (reverse upgrade))
-          (let ((dep (car deps))
-                (rest (cdr deps)))
-            (let-values (((m u) (check-dependency dep)))
-              (loop rest
-                    (if m (cons m missing) missing)
-                    (if u (cons u upgrade) upgrade))))))))
+  (if no-deps
+      (values '() '())
+      (let ((ds (get-egg-dependencies info)))
+        (for-each
+          (lambda (h) (set! ds (h egg ds)))
+          hacks)
+        (let loop ((deps ds) (missing '()) (upgrade '()))
+          (if (null? deps)
+              (values (reverse missing) (reverse upgrade))
+              (let ((dep (car deps))
+                    (rest (cdr deps)))
+                (let-values (((m u) (check-dependency dep)))
+                  (loop rest
+                        (if m (cons m missing) missing)
+                        (if u (cons u upgrade) upgrade)))))))))
 
 (define (get-egg-dependencies info)
   (append (get-egg-property* info 'dependencies '())
@@ -986,6 +989,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
        -force                   don't ask, install even if versions don't match
   -k   -keep                    keep temporary files
   -s   -sudo                    use external command to elevate privileges for filesystem operations
+       -no-install-deps         do not install dependencies
   -r   -retrieve                only retrieve egg into current directory, don't install (giving -r
                                                                                                           more than once implies `-recursive')
        -recursive               if `-retrieve' is given, retrieve also dependencies
@@ -1054,6 +1058,9 @@ EOF
                    (loop (cdr args)))
                   ((equal? arg "-update-db")
                    (set! update-module-db #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-no-install-deps")
+                   (set! no-deps #t)
                    (loop (cdr args)))
                   ((equal? arg "-dry-run")
                    (set! do-not-build #t)

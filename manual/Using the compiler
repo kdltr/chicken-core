@@ -77,7 +77,7 @@ the source text should be read from standard input.
 
 ; -ignore-repository : Do not load any extensions from the repository (treat repository as empty). Also do not consult compiled (only interpreted) import libraries in {{import}} forms.
 
-; -include-path PATHNAME : Specifies an additional search path for files included via the {{include}} special form. This option may be given multiple times. If the environment variable {{CHICKEN_INCLUDE_PATH}} is set, it should contain a list of alternative include pathnames separated by {{;}}.
+; -include-path PATHNAME : Specifies an additional search path for files included via the {{include}} special form. This option may be given multiple times. If the environment variable {{CHICKEN_INCLUDE_PATH}} is set, it should contain a list of alternative include pathnames separated by {{:}} (unix) or {{;}} (windows).
 
 ; -inline : Enable procedure inlining for known procedures of a size below the threshold (which can be set through the {{-inline-limit}} option).
 

@@ -195,9 +195,9 @@
 		       ((memq 'to-stdout options) #f)
 		       (else (make-pathname #f (if filename (pathname-file filename) "out") "c")) ) )
 	(ipath (map chop-separator
-		    (string-split 
-		     (or (get-environment-variable "CHICKEN_INCLUDE_PATH") "") 
-		     ";")))
+		    (##sys#split-path
+		     (or (get-environment-variable "CHICKEN_INCLUDE_PATH") "")))) 
+
 	(opasses (default-optimization-passes))
 	(time0 #f)
 	(time-breakdown #f)
