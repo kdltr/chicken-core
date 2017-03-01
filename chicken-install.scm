@@ -76,6 +76,7 @@
 (define no-install #f)
 (define list-versions-only #f)
 (define canonical-eggs '())
+(define tested-eggs '())
 (define dependencies '())
 (define checked-eggs '())
 (define run-tests #f)
@@ -86,7 +87,6 @@
 (define sudo-program (or (get-environment-variable "SUDO") "sudo"))
 (define update-module-db #f)
 (define purge-mode #f)
-(define tests-failed #f)
 (define keepfiles #f)
 (define print-repository #f)
   
@@ -787,7 +787,9 @@
               (unless no-install
                 (print "  installing " name)
                 (run-script dir iscript platform sudo: sudo-install))
-              (when run-tests (test-egg egg platform)))))
+              (when (and (member name tested-eggs)
+                         (not (test-egg egg platform)))
+                (exit 2)))))
         (when target-extension
           (let-values (((build install info) (compile-egg-info info platform 'target)))
             (let ((bscript (make-pathname dir name 
@@ -944,6 +946,8 @@
                  (map (lambda (fname)
                         (list (pathname-file fname) (current-directory) #f))
                    files))
+               (when run-tests
+                 (set! tested-eggs (map car canonical-eggs)))
                (retrieve-eggs '())
                (unless retrieve-only (install-eggs)))))
         (else
@@ -951,9 +955,10 @@
             (cond (list-versions-only (list-egg-versions eggs))
                   ;;XXX other actions...
                   (else 
+                    (when run-tests
+                      (set! tested-eggs (map (o car canonical) eggs)))
                     (retrieve-eggs eggs)
-                    (unless retrieve-only (install-eggs)))))))
-  (when tests-failed (exit 2)))
+                    (unless retrieve-only (install-eggs))))))))
   
 (define (usage code)
   (print #<<EOF
