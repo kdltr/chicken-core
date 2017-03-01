@@ -6,10 +6,10 @@
 
 
 # Select platform to use:
-#PLATFORM=linux
+PLATFORM=linux
 
 # Installation prefix:
-#PREFIX=/usr/local
+PREFIX=/home/kooda/coop/kooda
 
 
 ### The options below are optional and should be used with care
@@ -21,7 +21,7 @@
 #STATICBUILD=1
 
 # Use alternative C compiler
-#C_COMPILER=
+C_COMPILER=clang
 
 # Add additional C compiler options:
 #C_COMPILER_OPTIMIZATION_OPTIONS=...
