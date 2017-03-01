@@ -2016,11 +2016,11 @@
 (chicken.posix#perm/ixusr fixnum)
 (chicken.posix#pipe/buf fixnum)
 (chicken.posix#port->fileno (#(procedure #:clean #:enforce) chicken.posix#port->fileno (port) fixnum))
-(chicken.posix#process (#(procedure #:clean #:enforce) chicken.posix#process (string #!optional (list-of string) (list-of string)) input-port output-port fixnum))
-(chicken.posix#process* (#(procedure #:clean #:enforce) chicken.posix#process* (string #!optional (list-of string) (list-of string)) input-port output-port fixnum *))
+(chicken.posix#process (#(procedure #:clean #:enforce) chicken.posix#process (string #!optional (list-of string) (list-of (pair string string))) input-port output-port fixnum))
+(chicken.posix#process* (#(procedure #:clean #:enforce) chicken.posix#process* (string #!optional (list-of string) (list-of (pair string string))) input-port output-port fixnum *))
 
 (chicken.posix#process-execute
- (#(procedure #:clean #:enforce) chicken.posix#process-execute (string #!optional (list-of string) (list-of string)) noreturn))
+ (#(procedure #:clean #:enforce) chicken.posix#process-execute (string #!optional (list-of string) (list-of (pair string string))) noreturn))
 
 (chicken.posix#process-fork (#(procedure #:enforce) chicken.posix#process-fork (#!optional (or (procedure () . *) false) *) fixnum))
 
