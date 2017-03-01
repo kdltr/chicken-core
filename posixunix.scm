@@ -1582,8 +1582,8 @@ EOF
                 (begin
                   (set! args (##sys#shell-command-arguments cmd))
                   (set! cmd (##sys#shell-command)) ) )
-            (when env (chkstrlst env))
-            (##sys#call-with-values 
+	    (when env (check-environment-list env loc))
+	    (##sys#call-with-values
 	     (lambda () (##sys#process loc cmd args env #t #t err?))
 	     k)))))
   (set! process

@@ -741,6 +741,16 @@ EOF
       (and-let* ((s (pointer-vector-ref buffer-array i)))
 	(free s)))))
 
+;; Environments are represented as string->string association lists
+(define (check-environment-list lst loc)
+  (##sys#check-list lst loc)
+  (for-each
+   (lambda (p)
+     (##sys#check-pair p loc)
+     (##sys#check-string (car p) loc)
+     (##sys#check-string (cdr p) loc))
+   lst))
+
 (define call-with-exec-args
   (let ((pathname-strip-directory pathname-strip-directory)
 	(nop (lambda (x) x)))
@@ -758,6 +768,10 @@ EOF
 
 	  ;; Envlist is never converted, so we always use nop here
 	  (when envlist
-	    (set! envbuf (list->c-string-buffer envlist nop loc)))
+	    (check-environment-list envlist loc)
+	    (set! envbuf
+	      (list->c-string-buffer
+	       (map (lambda (p) (string-append (car p) "=" (cdr p))) envlist)
+	       nop loc)))
 
 	  (proc (##sys#make-c-string filename loc) argbuf envbuf))))))
