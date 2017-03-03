@@ -7,11 +7,20 @@
 (version 2)
 
 
+;; list of locations (eggs stored in the local fileystem)
+;
+; (location DIRECTORY ...)
+;
+; Note that these override eggs from servers.
+
+(location "/home/felix/chicken/c5-eggs"); XXX
+
+
 ;; list of servers in the order in which they will be processed
 ;
-; (server URL)
+; (server URL ...)
 ;
-; URL may be an alias (see below) or a real URL
+; URL may be an alias (see below) or a real URL.
 
 (server "kitten-technologies")
 (server "call-cc")
@@ -28,7 +37,7 @@
   ->) )
 
 
-;; aliases for locations
+;; aliases for servers
 ;
 ; (alias (NAME REALNAME) ...)
 
