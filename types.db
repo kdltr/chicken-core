@@ -2094,6 +2094,10 @@
 (chicken.posix#with-input-from-pipe (#(procedure #:enforce) chicken.posix#with-input-from-pipe (string (procedure () . *) #!optional symbol) . *))
 (chicken.posix#with-output-to-pipe (#(procedure #:enforce) chicken.posix#with-output-to-pipe (string (procedure () . *) #!optional symbol) . *))
 
+;; process
+
+(chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string #!rest) undefined))
+(chicken.process#qs (#(procedure #:clean #:enforce) chicken.process#qs (string) string))
 
 ;; srfi-4
 
@@ -2291,11 +2295,3 @@
 (chicken.tcp#tcp-port-numbers (#(procedure #:clean #:enforce) chicken.tcp#tcp-port-numbers (port) fixnum fixnum))
 (chicken.tcp#tcp-read-timeout (#(procedure #:clean #:enforce) chicken.tcp#tcp-read-timeout (#!optional (or false integer)) (or false integer)))
 (chicken.tcp#tcp-write-timeout (#(procedure #:clean #:enforce) chicken.tcp#tcp-write-timeout (#!optional (or false integer)) (or false integer)))
-
-
-;; utils
-
-(chicken.utils#system* (#(procedure #:clean #:enforce) chicken.utils#system* (string #!rest) undefined))
-(chicken.utils#qs (#(procedure #:clean #:enforce) chicken.utils#qs (string) string))
-(chicken.utils#compile-file (#(procedure #:clean #:enforce) chicken.utils#compile-file (string #!rest) (or false string)))
-(chicken.utils#compile-file-options (#(procedure #:clean #:enforce) chicken.utils#compile-file-options (#!optional (list-of string)) (list-of string)))

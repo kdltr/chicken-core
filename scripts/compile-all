@@ -12,7 +12,7 @@ library_options="-optimize-level 2 -include-path . -include-path ./ -inline -ign
 compiler="$1"
 shift
 
-for x in library eval data-structures ports files extras lolevel utils tcp srfi-4 posixunix posixwin irregex scheduler profiler stub expand modules chicken-syntax chicken-ffi-syntax build-version; do
+for x in library eval data-structures ports files extras lolevel tcp srfi-4 posixunix posixwin irregex scheduler profiler stub expand modules chicken-syntax chicken-ffi-syntax build-version; do
     $compiler $x.scm $library_options -output-file /tmp/xxx.c "$@"
 done
 

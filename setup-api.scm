@@ -73,7 +73,7 @@
 	  chicken.pathname
 	  chicken.posix
 	  chicken.pretty-print
-	  chicken.utils)
+	  chicken.process)
 
 (include "mini-srfi-1.scm")
 

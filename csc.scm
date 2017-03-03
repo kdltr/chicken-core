@@ -31,7 +31,7 @@
 	chicken.foreign
 	chicken.format
 	chicken.pathname
-	chicken.utils)
+	chicken.process)
 
 (include "mini-srfi-1.scm")
 

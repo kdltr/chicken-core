@@ -28,7 +28,7 @@
 
 (map
  (data-structures 
-  extras files foreign irregex lolevel ports tcp utils
+  extras files foreign irregex lolevel ports tcp
   posix irregex setup-api setup-download srfi-4
   ->) )
 

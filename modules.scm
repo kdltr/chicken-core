@@ -972,7 +972,6 @@
 (##sys#register-module-alias 'repl 'chicken.repl)
 (##sys#register-module-alias 'tcp 'chicken.tcp)
 (##sys#register-module-alias 'time 'chicken.time)
-(##sys#register-module-alias 'utils 'chicken.utils)
 
 (define-inline (se-subset names env) (map (cut assq <> env) names))
 

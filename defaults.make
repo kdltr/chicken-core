@@ -271,7 +271,7 @@ DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise errno file.posix fixnum flonum \
 DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
 	eval expand file files internal irregex lolevel pathname port \
-	read-syntax repl tcp utils
+	read-syntax repl tcp
 
 # targets
 

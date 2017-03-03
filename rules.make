@@ -37,7 +37,7 @@ SETUP_API_OBJECTS_1 = setup-api setup-download
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
        library eval read-syntax repl data-structures pathname port file \
-       files extras lolevel utils tcp srfi-4 continuation $(POSIXFILE) \
+       files extras lolevel tcp srfi-4 continuation $(POSIXFILE) \
        internal irregex scheduler debugger-client profiler stub expand \
        modules chicken-syntax chicken-ffi-syntax build-version
 LIBCHICKEN_OBJECTS_1 = $(LIBCHICKEN_SCHEME_OBJECTS_1) runtime
@@ -633,8 +633,7 @@ csc.c: csc.scm \
 		chicken.eval.import.scm \
 		chicken.format.import.scm \
 		chicken.pathname.import.scm \
-		chicken.posix.import.scm \
-		chicken.utils.import.scm
+		chicken.posix.import.scm
 csi.c: csi.scm \
 		chicken.data-structures.import.scm \
 		chicken.foreign.import.scm \
@@ -698,8 +697,7 @@ setup-api.c: setup-api.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
 		chicken.posix.import.scm \
-		chicken.pretty-print.import.scm \
-		chicken.utils.import.scm
+		chicken.pretty-print.import.scm
 setup-download.c: setup-download.scm \
 		chicken.data-structures.import.scm \
 		chicken.files.import.scm \
@@ -710,7 +708,6 @@ setup-download.c: setup-download.scm \
 		chicken.pathname.import.scm \
 		chicken.posix.import.scm \
 		chicken.tcp.import.scm \
-		chicken.utils.import.scm \
 		setup-api.import.scm
 srfi-4.c: srfi-4.scm \
 		chicken.bitwise.import.scm \
@@ -768,13 +765,6 @@ tcp.c: tcp.scm \
 		chicken.foreign.import.scm \
 		chicken.port.import.scm \
 		chicken.time.import.scm
-utils.c: utils.scm \
-		chicken.data-structures.import.scm \
-		chicken.files.import.scm \
-		chicken.foreign.import.scm \
-		chicken.format.import.scm \
-		chicken.pathname.import.scm \
-		chicken.process.import.scm
 
 define profile-flags
 $(if $(filter $(basename $(1)),$(PROFILE_OBJECTS)),-profile)
@@ -851,8 +841,6 @@ tcp.c: $(SRCDIR)tcp.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.tcp
 srfi-4.c: $(SRCDIR)srfi-4.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library srfi-4
-utils.c: $(SRCDIR)utils.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.utils
 scheduler.c: $(SRCDIR)scheduler.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) 
 profiler.c: $(SRCDIR)profiler.scm $(SRCDIR)common-declarations.scm

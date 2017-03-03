@@ -38,7 +38,7 @@
 	  chicken.port
 	  chicken.posix
 	  chicken.pretty-print
-	  (only chicken.utils qs))
+	  (only chicken.process qs))
 
   (include "mini-srfi-1.scm")
 
@@ -79,7 +79,6 @@
       "chicken.tcp.import.so"
       "chicken.time.import.so"
       "chicken.time.posix.import.so"
-      "chicken.utils.import.so"
       "setup-api.import.so"
       "setup-api.so"
       "setup-download.so"

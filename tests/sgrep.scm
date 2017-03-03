@@ -1,7 +1,7 @@
 ;;;; sgrep.scm - grepping benchmark
 
 
-(use io irregex port utils)
+(use io irregex port)
 
 
 (define big-string

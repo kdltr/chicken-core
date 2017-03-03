@@ -3,7 +3,7 @@
 exec csi -s "$0" "$@"
 |#
 
-(use data-structures files format io utils irregex)
+(use data-structures files format io irregex (chicken process))
 
 (define buildversion (with-input-from-file "buildversion" read))
 

@@ -7,7 +7,7 @@ This unit provides services as used on many UNIX-like systems.  Note that
 the following definitions are not all available on non-UNIX systems like
 Windows. See below for Windows specific notes.
 
-This unit uses the {{regex}}, {{scheduler}}, {{extras}} and {{utils}} units.
+This unit uses the {{irregex}}, {{scheduler}}, and {{extras}} units.
 
 All errors related to failing file-operations will signal a condition
 of kind {{(exn i/o file)}}.
@@ -1422,4 +1422,4 @@ Returns:
 ----
 Previous: [[Unit srfi-4]]
 
-Next: [[Unit utils]]
+Next: [[Unit tcp]]

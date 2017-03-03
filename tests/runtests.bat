@@ -473,7 +473,7 @@ if errorlevel 1 exit /b 1
 echo ======================================== compiler/nursery stress test ...
 for %%s in (100000 120000 200000 250000 300000 350000 400000 450000 500000) do (
   echo %%s
-  ..\chicken -ignore-repository ..\utils.scm -:s%%s -output-file tmp.c -include-path %TEST_DIR%/.. 
+  ..\chicken -ignore-repository ..\port.scm -:s%%s -output-file tmp.c -include-path %TEST_DIR%/..
   if errorlevel 1 exit /b 1
 )
 
