@@ -3798,7 +3798,14 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
    */
   if(size > heap_size && size - heap_size < stack_size * 2)
     size = heap_size + stack_size * 2;
-	  
+
+  /*
+   * The heap has grown but we've already hit the maximal size with the current
+   * heap, we can't do anything else but panic.
+   */
+  if(size > heap_size && heap_size >= C_maximal_heap_size)
+    panic(C_text("out of memory - heap has reached its maximum size"));
+
   if(size > C_maximal_heap_size) size = C_maximal_heap_size;
 
   if(debug_mode) {
