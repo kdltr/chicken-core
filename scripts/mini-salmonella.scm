@@ -16,7 +16,7 @@
 (define *download* #f)
 (define *trunk* #f)
 
-(define *prefix* (getenv "CHICKEN_PREFIX"))
+(define *prefix* (get-environment-variable "CHICKEN_PREFIX"))
 
 (let loop ((args (command-line-arguments)))
   (when (pair? args)
