@@ -23,7 +23,8 @@ continuation.c
 data-structures.c
 dbg-stub.c
 debugger-client.c
-ports.c
+port.c
+file.c
 files.c
 extras.c
 internal.c
@@ -47,7 +48,6 @@ support.c
 chicken.compiler.support.import.scm
 repl.c
 tcp.c
-utils.c
 user-pass.c
 feathers.in
 feathers.bat.in
@@ -76,7 +76,8 @@ eval.scm
 extras.scm
 data-structures.scm
 debugger-client.scm
-ports.scm
+port.scm
+file.scm
 files.scm
 chicken-bug.mdoc
 chicken-bug.scm
@@ -97,6 +98,7 @@ lfa2.scm
 mini-srfi-1.scm
 pathname.c
 pathname.scm
+posix.scm
 posixunix.scm
 posixwin.scm
 posix-common.scm
@@ -231,7 +233,6 @@ tests/reverser/tags/1.1/reverser.scm
 tests/rev-app.scm
 tests/version-tests.scm
 tweaks.scm
-utils.scm
 Makefile
 Makefile.android
 Makefile.aix
@@ -276,6 +277,10 @@ chicken.eval.import.scm
 chicken.eval.import.c
 chicken.expand.import.scm
 chicken.expand.import.c
+chicken.file.import.scm
+chicken.file.import.c
+chicken.file.posix.import.scm
+chicken.file.posix.import.c
 chicken.files.import.scm
 chicken.files.import.c
 chicken.fixnum.import.scm
@@ -304,12 +309,16 @@ chicken.memory.import.scm
 chicken.memory.import.c
 chicken.pathname.import.scm
 chicken.pathname.import.c
-chicken.ports.import.scm
-chicken.ports.import.c
+chicken.port.import.scm
+chicken.port.import.c
 chicken.posix.import.scm
 chicken.posix.import.c
 chicken.pretty-print.import.scm
 chicken.pretty-print.import.c
+chicken.process.import.scm
+chicken.process.import.c
+chicken.process.signal.import.scm
+chicken.process.signal.import.c
 chicken.random.import.scm
 chicken.random.import.c
 chicken.read-syntax.import.scm
@@ -320,8 +329,8 @@ chicken.tcp.import.scm
 chicken.tcp.import.c
 chicken.time.import.scm
 chicken.time.import.c
-chicken.utils.import.scm
-chicken.utils.import.c
+chicken.time.posix.import.scm
+chicken.time.posix.import.c
 srfi-4.import.scm
 srfi-4.import.c
 setup-download.scm
@@ -399,7 +408,6 @@ manual-html/Unit irregex.html
 manual-html/Unit repl.html
 manual-html/Unit srfi-4.html
 manual-html/Unit tcp.html
-manual-html/Unit utils.html
 manual-html/Using the compiler.html
 manual-html/Using the interpreter.html
 manual-html/faq.html

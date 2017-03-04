@@ -33,7 +33,7 @@ downloaded, its contents extracted and the contained ''setup'' script
 is executed. This setup script is a normal Scheme source file, which
 will be interpreted by {{chicken-install}}. The complete language
 supported by {{csi}} is available, and the library units
-{{regex utils posix tcp}} are loaded. Additional libraries can be loaded
+{{regex posix tcp}} are loaded. Additional libraries can be loaded
 at run-time.
 
 The setup script should perform all necessary steps to build the new

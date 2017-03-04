@@ -41,8 +41,8 @@
 	  chicken.irregex
 	  chicken.pathname
 	  chicken.posix
-	  chicken.tcp
-	  chicken.utils)
+	  chicken.process
+	  chicken.tcp)
 
   (include "mini-srfi-1.scm")
 

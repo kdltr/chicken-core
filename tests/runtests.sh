@@ -56,15 +56,15 @@ for x in \
     chicken.lolevel.import.so \
     chicken.memory.import.so \
     chicken.pathname.import.so \
-    chicken.ports.import.so \
+    chicken.port.import.so \
     chicken.posix.import.so \
     chicken.pretty-print.import.so \
+    chicken.process.import.so \
     chicken.random.import.so \
     chicken.repl.import.so \
     chicken.read-syntax.import.so \
     chicken.tcp.import.so \
-    chicken.time.import.so \
-    chicken.utils.import.so
+    chicken.time.import.so
 do
     cp ../$x test-repository
 done
@@ -420,7 +420,7 @@ $interpret -bnq test-glob.scm
 echo "======================================== compiler/nursery stress test ..."
 for s in 100000 120000 200000 250000 300000 350000 400000 450000 500000; do
     echo "  $s"
-    ../chicken -ignore-repository ../utils.scm -:s$s -output-file tmp.c -include-path ${TEST_DIR}/..
+    ../chicken -ignore-repository ../port.scm -:s$s -output-file tmp.c -include-path ${TEST_DIR}/..
 done
 
 echo "======================================== heap literal stress test ..."

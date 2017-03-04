@@ -23,10 +23,10 @@
 - Core libraries
   - Removed support for memory-mapped files (posix), queues
     (data-structures), binary-search (data-structures), scan-input-lines
-    (utils), group-information (posix) and object-eviction (lolevel).
-    These are now available as eggs.
-  - Removed the srfi-1, srfi-13, srfi-14, srfi-18 and srfi-69 units.
-    These are now available as eggs.
+    (utils), group-information (posix) object-eviction (lolevel), and
+    compile-file (utils). These are now available as eggs.
+  - Removed the srfi-1, srfi-13, srfi-14, srfi-18, srfi-69, and utils
+    units. These are now available as eggs.
   - Added the `executable-pathname` procedure for retrieving a path to
     the currently-running executable.
   - Removed all support for SWIG.

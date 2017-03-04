@@ -1,4 +1,4 @@
-;;; ports.scm - Optional non-standard ports
+;;; port.scm - Optional non-standard ports
 ;
 ; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
@@ -33,10 +33,10 @@
 
 
 (declare
-  (unit ports)
+  (unit port)
   (uses extras))
 
-(module chicken.ports
+(module chicken.port
   (call-with-input-string
    call-with-output-string
    copy-port

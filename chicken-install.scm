@@ -35,10 +35,10 @@
 	  chicken.io
 	  chicken.irregex
 	  chicken.pathname
-	  chicken.ports
+	  chicken.port
 	  chicken.posix
 	  chicken.pretty-print
-	  (only chicken.utils qs))
+	  (only chicken.process qs))
 
   (include "mini-srfi-1.scm")
 
@@ -51,6 +51,8 @@
       "chicken.errno.import.so"
       "chicken.eval.import.so"
       "chicken.expand.import.so"
+      "chicken.file.import.so"
+      "chicken.file.posix.import.so"
       "chicken.files.import.so"
       "chicken.fixnum.import.so"
       "chicken.flonum.import.so"
@@ -66,15 +68,17 @@
       "chicken.lolevel.import.so"
       "chicken.memory.import.so"
       "chicken.pathname.import.so"
-      "chicken.ports.import.so"
+      "chicken.port.import.so"
       "chicken.posix.import.so"
       "chicken.pretty-print.import.so"
+      "chicken.process.import.so"
+      "chicken.process.signal.import.so"
       "chicken.random.import.so"
       "chicken.repl.import.so"
       "chicken.read-syntax.import.so"
       "chicken.tcp.import.so"
       "chicken.time.import.so"
-      "chicken.utils.import.so"
+      "chicken.time.posix.import.so"
       "setup-api.import.so"
       "setup-api.so"
       "setup-download.so"

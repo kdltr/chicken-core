@@ -26,7 +26,7 @@
 
 (declare
   (unit scrutinizer)
-  (uses data-structures expand extras pathname ports support))
+  (uses data-structures expand extras pathname port support))
 
 (module chicken.compiler.scrutinizer
     (scrutinize load-type-database emit-type-file
@@ -41,7 +41,7 @@
 	chicken.format
 	chicken.io
 	chicken.pathname
-	chicken.ports
+	chicken.port
 	chicken.pretty-print)
 
 (include "tweaks")

@@ -949,6 +949,7 @@
 (##sys#register-module-alias 'errno 'chicken.errno)
 (##sys#register-module-alias 'eval 'chicken.eval)
 (##sys#register-module-alias 'expand 'chicken.expand)
+(##sys#register-module-alias 'file 'chicken.file)
 (##sys#register-module-alias 'files 'chicken.files)
 (##sys#register-module-alias 'fixnum 'chicken.fixnum)
 (##sys#register-module-alias 'flonum 'chicken.flonum)
@@ -963,7 +964,7 @@
 (##sys#register-module-alias 'lolevel 'chicken.lolevel)
 (##sys#register-module-alias 'memory 'chicken.memory)
 (##sys#register-module-alias 'pathname 'chicken.pathname)
-(##sys#register-module-alias 'ports 'chicken.ports)
+(##sys#register-module-alias 'port 'chicken.port)
 (##sys#register-module-alias 'posix 'chicken.posix)
 (##sys#register-module-alias 'pretty-print 'chicken.pretty-print)
 (##sys#register-module-alias 'random 'chicken.random)
@@ -971,7 +972,6 @@
 (##sys#register-module-alias 'repl 'chicken.repl)
 (##sys#register-module-alias 'tcp 'chicken.tcp)
 (##sys#register-module-alias 'time 'chicken.time)
-(##sys#register-module-alias 'utils 'chicken.utils)
 
 (define-inline (se-subset names env) (map (cut assq <> env) names))
 

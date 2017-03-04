@@ -32,7 +32,7 @@
 	  chicken.format
 	  chicken.irregex
 	  chicken.pathname
-	  chicken.ports
+	  chicken.port
 	  chicken.posix)
 
   (include "mini-srfi-1.scm")

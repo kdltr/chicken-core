@@ -280,7 +280,6 @@ Everything from the {{library}}, {{eval}} and {{expand}} library units.
  [module] regex
  [module] srfi-4
  [module] tcp
- [module] utils
 
 Modules exporting the bindings from the respective library units.
 

@@ -31,7 +31,7 @@
 	chicken.io
 	chicken.keyword
 	chicken.pathname
-	chicken.ports
+	chicken.port
 	chicken.posix
 	chicken.time)
 

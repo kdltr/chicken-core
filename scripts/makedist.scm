@@ -1,7 +1,7 @@
 ;;;; makedist.scm - Make distribution tarballs
 
 
-(use data-structures extras files irregex posix setup-api utils)
+(use data-structures files io irregex pathname posix setup-api (chicken process))
 
 (include "mini-srfi-1.scm")
 
@@ -44,7 +44,7 @@
    equal?) )
 
 (define (release full?)
-  (let* ((files (read-lines "distribution/manifest"))
+  (let* ((files (with-input-from-file "distribution/manifest" read-lines))
 	 (distname (conc "chicken-" BUILDVERSION)) 
 	 (distfiles (map (cut prefix distname <>) files)) 
 	 (tgz (conc distname ".tar.gz")))

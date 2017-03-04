@@ -7,7 +7,7 @@ This unit provides services as used on many UNIX-like systems.  Note that
 the following definitions are not all available on non-UNIX systems like
 Windows. See below for Windows specific notes.
 
-This unit uses the {{regex}}, {{scheduler}}, {{extras}} and {{utils}} units.
+This unit uses the {{irregex}}, {{scheduler}}, and {{extras}} units.
 
 All errors related to failing file-operations will signal a condition
 of kind {{(exn i/o file)}}.
@@ -760,6 +760,27 @@ Creates a new session if the calling process is not a process group leader and r
 the session ID.
 
 
+=== Shell commands
+
+==== system*
+
+<procedure>(system* STRING)</procedure>
+
+Similar to {{(system STRING)}}, but signals an error should the invoked
+program return a nonzero exit status.
+
+==== qs
+
+<procedure>(qs STRING [PLATFORM])</procedure>
+
+Escapes {{STRING}} suitably for passing to a shell command on {{PLATFORM}}.
+{{PLATFORM}} defaults to the value of {{(build-platform)}} and indicates in
+which style the argument should be quoted. On Windows systems, the string
+is simply enclosed in double-quote ({{"}}) characters, on UNIXish systems,
+characters that would have a special meaning to the shell are escaped
+using backslash ({{\}}).
+
+
 === Hard and symbolic links
 
 ==== symbolic-link?
@@ -1401,4 +1422,4 @@ Returns:
 ----
 Previous: [[Unit srfi-4]]
 
-Next: [[Unit utils]]
+Next: [[Unit tcp]]
