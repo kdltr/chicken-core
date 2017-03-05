@@ -70,6 +70,11 @@ do
 done
 
 CHICKEN_REPOSITORY=${TEST_DIR}/test-repository
+CHICKEN_PREFIX=${TEST_DIR}/..
+
+export CHICKEN_REPOSITORY
+export CHICKEN_PREFIX
+
 CHICKEN=${TEST_DIR}/../chicken
 CHICKEN_PROFILE=${TEST_DIR}/../chicken-profile
 CHICKEN_INSTALL=${TEST_DIR}/../chicken-install
@@ -492,9 +497,9 @@ $compile2 -link reverser linking-tests.scm
 $compile2 -link reverser linking-tests.scm -static
 ./linking-tests
 mv reverser.o reverser.import.scm "$CHICKEN_REPOSITORY"
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile2 -link reverser linking-tests.scm
+$compile2 -link reverser linking-tests.scm
 ./linking-tests
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $compile2 -link reverser linking-tests.scm -static
+$compile2 -link reverser linking-tests.scm -static
 ./linking-tests
 
 echo "======================================== private repository test ..."
@@ -508,26 +513,24 @@ PATH=`pwd`/tmp:$PATH xxx ${TEST_DIR}/tmp
 rm -fr rev-app rev-app-2 reverser/*.import.* reverser/*.so
 
 echo "======================================== reinstall tests"
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $CHICKEN_UNINSTALL -force reverser
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-    CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -t local -l $TEST_DIR \
-    -csi ${TEST_DIR}/../csi reverser:1.0
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $interpret -bnq rev-app.scm 1.0
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-    CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -t local -l $TEST_DIR \
-    -reinstall -force -csi ${TEST_DIR}/../csi
-CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY $interpret -bnq rev-app.scm 1.0
+$CHICKEN_UNINSTALL -force reverser
+CSC_OPTIONS=$COMPILE_OPTIONS CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL \
+	-t local -l $TEST_DIR -csi ${TEST_DIR}/../csi reverser:1.0
+$interpret -bnq rev-app.scm 1.0
+CSC_OPTIONS=$COMPILE_OPTIONS CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL \
+	-t local -l $TEST_DIR -reinstall -force -csi ${TEST_DIR}/../csi
+$interpret -bnq rev-app.scm 1.0
 
 if test $OS_NAME != AIX -a $OS_NAME != SunOS -a $OS_NAME != GNU; then
 	echo "======================================== deployment tests"
 	mkdir rev-app
-        TARGET_LIB_PATH=${TEST_DIR}/.. CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-                          CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -csi ${TEST_DIR}/../csi -t local -l $TEST_DIR reverser
-        TARGET_LIB_PATH=${TEST_DIR}/.. CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-                          CSI_OPTIONS=$SETUP_PREFIX $compile2 -deploy rev-app.scm
-        TARGET_LIB_PATH=${TEST_DIR}/.. CHICKEN_REPOSITORY=$CHICKEN_REPOSITORY CSC_OPTIONS=$COMPILE_OPTIONS \
-                          CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -csi ${TEST_DIR}/../csi -deploy -prefix rev-app -t local -l $TEST_DIR reverser
-	unset LD_LIBRARY_PATH DYLD_LIBRARY_PATH CHICKEN_REPOSITORY
+	TARGET_LIB_PATH=${TEST_DIR}/.. CSC_OPTIONS=$COMPILE_OPTIONS \
+			  CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -csi ${TEST_DIR}/../csi -t local -l $TEST_DIR reverser
+	TARGET_LIB_PATH=${TEST_DIR}/.. CSC_OPTIONS=$COMPILE_OPTIONS \
+			  CSI_OPTIONS=$SETUP_PREFIX $compile2 -deploy rev-app.scm
+	TARGET_LIB_PATH=${TEST_DIR}/.. CSC_OPTIONS=$COMPILE_OPTIONS \
+			  CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -csi ${TEST_DIR}/../csi -deploy -prefix rev-app -t local -l $TEST_DIR reverser
+	unset LD_LIBRARY_PATH DYLD_LIBRARY_PATH
 	# An absolute path is required on NetBSD with $ORIGIN, hence `pwd`
 	`pwd`/rev-app/rev-app 1.1
 	mv rev-app rev-app-2

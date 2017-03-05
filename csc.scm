@@ -138,9 +138,6 @@
       (string-append "cyg" INSTALL_LIB_NAME "-0")
       libchicken))
 
-(define default-library
-  (string-append libchicken "." library-extension))
-
 (define default-compilation-optimization-options (string-split (if host-mode INSTALL_CFLAGS TARGET_CFLAGS)))
 (define best-compilation-optimization-options default-compilation-optimization-options)
 (define default-linking-optimization-options (string-split (if host-mode INSTALL_LDFLAGS TARGET_LDFLAGS)))
@@ -228,12 +225,8 @@
       INSTALL_MORE_LIBS
       TARGET_MORE_LIBS))
 
-(define default-library-files 
-  (list
-   (prefix default-library "lib"
-	   (string-append
-	    (if host-mode INSTALL_LIB_HOME TARGET_LIB_HOME)
-	    (string-append "/" default-library)))) )
+(define default-library-files
+  (list (string-append "-l" (if host-mode INSTALL_LIB_NAME TARGET_LIB_NAME))))
 
 (define default-shared-library-files 
   (list (string-append "-l" (if host-mode INSTALL_LIB_NAME TARGET_LIB_NAME))))
