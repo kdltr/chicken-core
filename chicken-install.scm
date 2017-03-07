@@ -684,7 +684,8 @@
         ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
                 (sf (find-in-repo 
                       (make-pathname #f ep +egg-info-extension+))))
-           (and (file-exists? sf)
+           (and sf
+                (file-exists? sf)
                 (load-egg-info sf))) =>
          (lambda (info)
            (let ((a (assq 'version info)))
