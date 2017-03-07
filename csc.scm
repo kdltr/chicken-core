@@ -33,9 +33,8 @@
 	chicken.data-structures
 	chicken.foreign
 	chicken.format
+        chicken.process
 	chicken.pathname
-	chicken.utils
-        chicken.ports
         chicken.io)
 
 (include "egg-environment.scm")

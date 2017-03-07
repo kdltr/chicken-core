@@ -34,7 +34,7 @@
           (chicken io)
 	  (chicken format)
 	  (chicken irregex)
-	  (chicken ports)
+	  (chicken port)
           (chicken pathname)
 	  (chicken posix))
 

@@ -32,7 +32,7 @@
 	  (chicken foreign)
 	  (chicken format)
 	  (chicken irregex)
-	  (chicken ports)
+	  (chicken port)
 	  (chicken posix)
           (chicken pathname)
 	  (chicken pretty-print))
