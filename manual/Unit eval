@@ -131,7 +131,7 @@ directories are given, then they should be separated by {{:}}
 
 ==== installation-repository
 
-<paramater>installation-repository</parameter>
+<parameter>installation-repository</parameter>
 
 Contains the name of the directory where extensions are installed
 (as opposed to the possible locations where they can be loaded or
