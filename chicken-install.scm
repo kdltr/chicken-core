@@ -991,11 +991,11 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
   -s   -sudo                    use external command to elevate privileges for filesystem operations
        -no-install-deps         do not install dependencies
   -r   -retrieve                only retrieve egg into current directory, don't install (giving -r
-                                                                                                          more than once implies `-recursive')
+                                more than once implies `-recursive')
        -recursive               if `-retrieve' is given, retrieve also dependencies
        -dry-run                 do not build or install, just print the locations of the generated
                                 build + install scripts
-       -list-versions           list available versions for given eggs  
+       -list-versions           list available versions for given eggs
   -n   -no-install              do not install, just build
        -purge                   remove cached files for given eggs (or purge cache completely)
        -host                    when cross-compiling, compile extension only for host
