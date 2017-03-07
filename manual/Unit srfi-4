@@ -343,10 +343,10 @@ with the datatype of VECTOR.
 <procedure>(release-number-vector NVECTOR)</procedure>
 
 Release the storage of a SRFI-4 vector that was allocated in
-non-garbage collected memory (using one of the {{make-XXXvector}}
-constructor procedures). The effect of calling this procedure with a
-number vector allocated in normal garbage collected memory is
-undefined.
+non-garbage collected memory (for example using the {{NONGC}} argument
+for one of the {{make-XXXvector}} constructor procedures). The effect
+of calling this procedure with a number vector allocated in normal
+garbage collected memory is undefined.
 
 
 ---

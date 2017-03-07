@@ -5,7 +5,7 @@
 ;
 ;
 ;--------------------------------------------------------------------------------------------
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -220,7 +220,7 @@
 ; [##core#provide <literal>]
 ; [##core#recurse {<tail-flag> <call-id>} <exp1> ...]
 ; [##core#return <exp>]
-; [##core#direct_call {<safe-flag> <debug-info> <call-id> <words>} <exp-f> <exp>...]
+; [##core#direct_call {<dbg-info-index> <safe-flag> <debug-info> <call-id> <words>} <exp-f> <exp>...]
 
 ; Analysis database entries:
 ;
@@ -2681,8 +2681,17 @@
 	   (walk-var (first params) e e-count #f) )
 
 	  ((##core#direct_call)
-	   (set! allocated (+ allocated (fourth params)))
-	   (make-node class params (mapwalk subs e e-count here boxes)) )
+	   (let* ((name (second params))
+		  (name-str (source-info->string name))
+		  (demand (fourth params)))
+	     (if (and emit-debug-info name)
+		 (let ((info (list dbg-index 'C_DEBUG_CALL "" name-str)))
+		   (set! params (cons dbg-index params))
+		   (set! debug-info (cons info debug-info))
+		   (set! dbg-index (add1 dbg-index)))
+		 (set! params (cons #f params)))
+	     (set! allocated (+ allocated demand))
+	     (make-node class params (mapwalk subs e e-count here boxes))))
 
 	  ((##core#inline_allocate)
 	   (set! allocated (+ allocated (second params)))

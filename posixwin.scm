@@ -1,6 +1,6 @@
 ;;;; posixwin.scm - Miscellaneous file- and process-handling routines, available on Windows
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -61,11 +61,7 @@
 
 
 (declare
-  (unit posix)
-  (uses scheduler data-structures irregex extras pathname files ports lolevel)
-  (disable-interrupts)
-  (hide quote-arg-string)
-  (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook)
+  (uses data-structures)
   (foreign-declare #<<EOF
 #ifndef WIN32_LEAN_AND_MEAN
 # define WIN32_LEAN_AND_MEAN
@@ -81,6 +77,10 @@
 #include <winsock2.h>
 
 #define PIPE_BUF	512
+
+#ifndef EWOULDBLOCK
+# define EWOULDBLOCK 0
+#endif
 
 static C_TLS int C_pipefds[ 2 ];
 static C_TLS time_t C_secs;
@@ -634,9 +634,9 @@ EOF
    current-effective-user-name get-environment-variables
    current-group-id current-process-id current-user-id current-user-name
    delete-directory directory directory? duplicate-fileno
-   #;fcntl/dupfd #;fcntl/getfd #;fcntl/getfl #;fcntl/setfd #;fcntl/setfl
+   fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd fcntl/setfl
    fifo? file-access-time file-change-time
-   file-creation-mode file-close #;file-control file-execute-access?
+   file-creation-mode file-close file-control file-execute-access?
    file-link file-lock file-lock/blocking file-mkstemp
    file-modification-time file-open file-owner file-permissions
    file-position set-file-position! file-read file-read-access?
@@ -659,7 +659,7 @@ EOF
    set-signal-handler! set-signal-mask! signal-handler
    signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
    signal/alrm signal/break signal/chld signal/cont signal/fpe
-   #;signal/bus signal/hup signal/ill signal/int signal/io signal/kill
+   signal/bus signal/hup signal/ill signal/int signal/io signal/kill
    signal/pipe signal/prof signal/quit signal/segv signal/stop
    signal/term signal/trap signal/tstp signal/urg signal/usr1
    signal/usr2 signal/vtalrm signal/winch signal/xcpu signal/xfsz
@@ -677,7 +677,7 @@ EOF
 	chicken.irregex
 	chicken.memory
 	chicken.pathname
-	chicken.ports
+	chicken.port
 	chicken.random
 	chicken.time)
 
@@ -961,6 +961,7 @@ EOF
 (define signal/abrt _sigabrt)
 (define signal/break _sigbreak)
 (define signal/alrm 0)
+(define signal/bus 0)
 (define signal/chld 0)
 (define signal/cont 0)
 (define signal/hup 0)
@@ -1330,6 +1331,7 @@ EOF
 (define-unimplemented current-effective-user-name)
 (define-unimplemented current-group-id)
 (define-unimplemented current-user-id)
+(define-unimplemented file-control)
 (define-unimplemented file-link)
 (define-unimplemented file-lock)
 (define-unimplemented file-lock/blocking)
@@ -1359,6 +1361,11 @@ EOF
 
 (define (fifo? _) #f)
 
+(define fcntl/dupfd 0)
+(define fcntl/getfd 0)
+(define fcntl/setfd 0)
+(define fcntl/getfl 0)
+(define fcntl/setfl 0)
 (define open/fsync 0)
 (define open/noctty 0)
 (define open/nonblock 0)
@@ -1368,46 +1375,3 @@ EOF
 (define perm/isvtx 0)
 
 ) ; chicken.posix
-
-(module chicken.errno *
-(import scheme chicken)
-(export errno)
-(define errno/wouldblock 0) ; undefined on mingw
-(define errno/2big _e2big)
-(define errno/acces _eacces)
-(define errno/again _eagain)
-(define errno/badf _ebadf)
-(define errno/busy _ebusy)
-(define errno/child _echild)
-(define errno/deadlk _edeadlk)
-(define errno/dom _edom)
-(define errno/exist _eexist)
-(define errno/fault _efault)
-(define errno/fbig _efbig)
-(define errno/ilseq _eilseq)
-(define errno/intr _eintr)
-(define errno/inval _einval)
-(define errno/io _eio)
-(define errno/isdir _eisdir)
-(define errno/mfile _emfile)
-(define errno/mlink _emlink)
-(define errno/nametoolong _enametoolong)
-(define errno/nfile _enfile)
-(define errno/nodev _enodev)
-(define errno/noent _enoent)
-(define errno/noexec _enoexec)
-(define errno/nolck _enolck)
-(define errno/nomem _enomem)
-(define errno/nospc _enospc)
-(define errno/nosys _enosys)
-(define errno/notdir _enotdir)
-(define errno/notempty _enotempty)
-(define errno/notty _enotty)
-(define errno/nxio _enxio)
-(define errno/perm _eperm)
-(define errno/pipe _epipe)
-(define errno/range _erange)
-(define errno/rofs _erofs)
-(define errno/spipe _espipe)
-(define errno/srch _esrch)
-(define errno/xdev _exdev))

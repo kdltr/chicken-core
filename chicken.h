@@ -1,6 +1,6 @@
 /* chicken.h - General headerfile for compiler generated executables
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -41,21 +41,6 @@
 # define __C99FEATURES__
 #endif
 
-#ifndef _BSD_SOURCE
-# define _BSD_SOURCE
-#endif
-
-#ifndef _SVID_SOURCE
-# define _SVID_SOURCE
-#endif
-
-/*
- * glibc >= 2.20 synonym for _BSD_SOURCE & _SVID_SOURCE.
- */
-#ifndef _DEFAULT_SOURCE
-# define _DEFAULT_SOURCE
-#endif
-
 /*
  * N.B. This file MUST not rely upon "chicken-config.h"
  */
@@ -63,6 +48,29 @@
 # include "chicken-config.h"
 #endif
 
+/* Some OSes really dislike feature macros for standard levels */
+#ifdef C_USE_STD_FEATURE_MACROS
+
+# ifndef _XOPEN_SOURCE
+#  define _XOPEN_SOURCE 700
+# endif
+
+# ifndef _BSD_SOURCE
+#  define _BSD_SOURCE
+# endif
+
+# ifndef _SVID_SOURCE
+#  define _SVID_SOURCE
+# endif
+
+/*
+ * glibc >= 2.20 synonym for _BSD_SOURCE & _SVID_SOURCE.
+ */
+# ifndef _DEFAULT_SOURCE
+#  define _DEFAULT_SOURCE
+# endif
+
+#endif /* C_USE_STD_FEATURE_MACROS */
 
 /* Kind of platform */
 
@@ -222,6 +230,8 @@ void *alloca ();
 #endif
 
 #if defined(__GNUC__) || defined(__INTEL_COMPILER)
+# define C_unlikely(x)             __builtin_expect((x), 0)
+# define C_likely(x)               __builtin_expect((x), 1)
 # ifndef __cplusplus
 #  define C_cblock                ({
 #  define C_cblockend             })
@@ -236,6 +246,9 @@ void *alloca ();
 # if defined(__i386__) && !defined(__clang__)
 #  define C_regparm               __attribute__ ((regparm(3)))
 # endif
+#else
+# define C_unlikely(x)             (x)
+# define C_likely(x)               (x)
 #endif
 
 #ifndef C_cblock
@@ -261,15 +274,13 @@ void *alloca ();
 # define C_aligned
 #endif
 
-#define C_c_regparm
-
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__cplusplus)
 # define C_inline                  inline static
 #else
 # define C_inline                  static
 #endif
 
-/* Thread Local Stoarage */
+/* Thread Local Storage */
 #ifdef C_ENABLE_TLS
 # if defined(__GNUC__)
 #  define C_TLS                    __thread
@@ -282,17 +293,10 @@ void *alloca ();
 
 
 /* Stack growth direction; used to compute stack addresses */
-
 #ifndef C_STACK_GROWS_DOWNWARD
-# define C_STACK_GROWS_DOWNWARD    -1
-#endif
-
-#if C_STACK_GROWS_DOWNWARD == -1
 # ifdef __hppa__
-#  undef C_STACK_GROWS_DOWNWARD
 #  define C_STACK_GROWS_DOWNWARD 0
 # else
-#  undef C_STACK_GROWS_DOWNWARD
 #  define C_STACK_GROWS_DOWNWARD 1
 # endif
 #endif
@@ -306,24 +310,6 @@ void *alloca ();
 #   define WINAPI
 #  endif
 # endif
-#else
-# define C_GENERIC_CONSOLE
-#endif
-
-/**
- * HAVE_EXE_PATH is defined on platforms on which there's a simple way
- * to retrieve a path to the current executable (such as reading
- * "/proc/<pid>/exe" or some similar trick).
- *
- * SEARCH_EXE_PATH is defined on platforms on which we must search for
- * the current executable. Because this search is sensitive to things
- * like CWD, PATH, and so on, it's done once at startup and saved in
- * `C_main_exe`.
- */
-#if defined(__linux__) || defined(__sun) || defined(C_MACOSX) || defined(__HAIKU__) || (defined(_WIN32) && !defined(__CYGWIN__))
-# define HAVE_EXE_PATH
-#elif defined(__unix__) || defined(C_XXXBSD) || defined(_AIX)
-# define SEARCH_EXE_PATH
 #endif
 
 /* Needed for pre-emptive threading */
@@ -798,11 +784,7 @@ static inline int isinf_ld (long double x)
 typedef struct C_block_struct
 {
   C_header header;
-#if (__STDC_VERSION__ >= 199901L)
   C_word data[];
-#else
-  C_word data[ 1 ];
-#endif
 } C_SCHEME_BLOCK;
 
 typedef struct C_symbol_table_struct
@@ -1634,6 +1616,16 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 # define C_set_gui_mode
 #endif
 
+/**
+ * SEARCH_EXE_PATH is defined on platforms on which we must search for
+ * the current executable. Because this search is sensitive to things
+ * like CWD, PATH, and so on, it's done once at startup and saved in
+ * `C_main_exe`.
+ *
+ * On platforms where it's not defined, there's a simple way to
+ * retrieve a path to the current executable (such as reading
+ * "/proc/<pid>/exe" or some similar trick).
+ */
 #ifdef SEARCH_EXE_PATH
 # define C_set_main_exe(fname)          C_main_exe = C_resolve_executable_pathname(fname)
 #else

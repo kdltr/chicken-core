@@ -1,6 +1,6 @@
 ;;;; types.db - Type-information for core library functions -*- Scheme -*-
 ;
-; Copyright (c) 2009-2016, The CHICKEN Team
+; Copyright (c) 2009-2017, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -1844,28 +1844,28 @@
 (chicken.locative#make-locative (#(procedure #:clean #:enforce) chicken.locative#make-locative (* #!optional fixnum) locative))
 (chicken.locative#make-weak-locative (#(procedure #:clean #:enforce) chicken.locative#make-weak-locative (* #!optional fixnum) locative))
 
-;; ports
+;; port
 
-(chicken.ports#call-with-input-string (#(procedure #:enforce) chicken.ports#call-with-input-string (string (procedure (input-port) . *)) . *))
-(chicken.ports#call-with-output-string (#(procedure #:enforce) chicken.ports#call-with-output-string ((procedure (output-port) . *)) string))
-(chicken.ports#copy-port (#(procedure #:enforce) chicken.ports#copy-port (* * #!optional (procedure (*) *) (procedure (* output-port) *)) undefined))
-(chicken.ports#make-input-port (#(procedure #:clean #:enforce) chicken.ports#make-input-port ((procedure () (or char eof)) (procedure () *) (procedure () . *) #!optional * * * *) input-port))
-(chicken.ports#make-output-port (#(procedure #:clean #:enforce) chicken.ports#make-output-port ((procedure (string) . *) (procedure () . *) #!optional (procedure () . *)) output-port))
-(chicken.ports#port-for-each (#(procedure #:enforce) chicken.ports#port-for-each ((procedure (*) *) (procedure () . *)) undefined))
+(chicken.port#call-with-input-string (#(procedure #:enforce) chicken.port#call-with-input-string (string (procedure (input-port) . *)) . *))
+(chicken.port#call-with-output-string (#(procedure #:enforce) chicken.port#call-with-output-string ((procedure (output-port) . *)) string))
+(chicken.port#copy-port (#(procedure #:enforce) chicken.port#copy-port (* * #!optional (procedure (*) *) (procedure (* output-port) *)) undefined))
+(chicken.port#make-input-port (#(procedure #:clean #:enforce) chicken.port#make-input-port ((procedure () (or char eof)) (procedure () *) (procedure () . *) #!optional * * * *) input-port))
+(chicken.port#make-output-port (#(procedure #:clean #:enforce) chicken.port#make-output-port ((procedure (string) . *) (procedure () . *) #!optional (procedure () . *)) output-port))
+(chicken.port#port-for-each (#(procedure #:enforce) chicken.port#port-for-each ((procedure (*) *) (procedure () . *)) undefined))
 
-(chicken.ports#port-map
- (forall (a b) (#(procedure #:enforce) chicken.ports#port-map ((procedure (a) b) (procedure () a)) (list-of b))))
+(chicken.port#port-map
+ (forall (a b) (#(procedure #:enforce) chicken.port#port-map ((procedure (a) b) (procedure () a)) (list-of b))))
 
-(chicken.ports#port-fold (#(procedure #:enforce) chicken.ports#port-fold ((procedure (* *) *) * (procedure () *)) *))
-(chicken.ports#make-bidirectional-port (#(procedure #:clean #:enforce) chicken.ports#make-bidirectional-port (input-port output-port) (refine (input output) port)))
-(chicken.ports#make-broadcast-port (#(procedure #:clean #:enforce) chicken.ports#make-broadcast-port (#!rest output-port) output-port))
-(chicken.ports#make-concatenated-port (#(procedure #:clean #:enforce) chicken.ports#make-concatenated-port (port #!rest input-port) input-port))
-(chicken.ports#with-error-to-port (#(procedure #:enforce) chicken.ports#with-error-to-port (output-port (procedure () . *)) . *))
-(chicken.ports#with-input-from-port (#(procedure #:enforce) chicken.ports#with-input-from-port (input-port (procedure () . *)) . *))
-(chicken.ports#with-input-from-string (#(procedure #:enforce) chicken.ports#with-input-from-string (string (procedure () . *)) . *))
-(chicken.ports#with-output-to-port (#(procedure #:enforce) chicken.ports#with-output-to-port (output-port (procedure () . *)) . *))
-(chicken.ports#with-output-to-string (#(procedure #:enforce) chicken.ports#with-output-to-string ((procedure () . *)) string))
-(chicken.ports#with-error-to-string (#(procedure #:enforce) chicken.ports#with-error-to-string ((procedure () . *)) string))
+(chicken.port#port-fold (#(procedure #:enforce) chicken.port#port-fold ((procedure (* *) *) * (procedure () *)) *))
+(chicken.port#make-bidirectional-port (#(procedure #:clean #:enforce) chicken.port#make-bidirectional-port (input-port output-port) (refine (input output) port)))
+(chicken.port#make-broadcast-port (#(procedure #:clean #:enforce) chicken.port#make-broadcast-port (#!rest output-port) output-port))
+(chicken.port#make-concatenated-port (#(procedure #:clean #:enforce) chicken.port#make-concatenated-port (port #!rest input-port) input-port))
+(chicken.port#with-error-to-port (#(procedure #:enforce) chicken.port#with-error-to-port (output-port (procedure () . *)) . *))
+(chicken.port#with-input-from-port (#(procedure #:enforce) chicken.port#with-input-from-port (input-port (procedure () . *)) . *))
+(chicken.port#with-input-from-string (#(procedure #:enforce) chicken.port#with-input-from-string (string (procedure () . *)) . *))
+(chicken.port#with-output-to-port (#(procedure #:enforce) chicken.port#with-output-to-port (output-port (procedure () . *)) . *))
+(chicken.port#with-output-to-string (#(procedure #:enforce) chicken.port#with-output-to-string ((procedure () . *)) string))
+(chicken.port#with-error-to-string (#(procedure #:enforce) chicken.port#with-error-to-string ((procedure () . *)) string))
 
 ;; errno
 
@@ -1932,7 +1932,7 @@
 (chicken.posix#current-effective-group-id (#(procedure #:clean) chicken.posix#current-effective-group-id () fixnum))
 (chicken.posix#current-effective-user-id (#(procedure #:clean) chicken.posix#current-effective-user-id () fixnum))
 (chicken.posix#current-effective-user-name (#(procedure #:clean) chicken.posix#current-effective-user-name () string))
-(chicken.posix#get-environment-variables (#(procedure #:clean) chicken.posix#get-environment-variables () (list-of string)))
+(chicken.posix#get-environment-variables (#(procedure #:clean) chicken.posix#get-environment-variables () (list-of (pair string string))))
 (chicken.posix#current-group-id (#(procedure #:clean) chicken.posix#current-group-id () fixnum))
 (chicken.posix#current-process-id (#(procedure #:clean) chicken.posix#current-process-id () fixnum))
 (chicken.posix#current-user-id (#(procedure #:clean) chicken.posix#current-user-id () fixnum))
@@ -2095,6 +2095,10 @@
 (chicken.posix#with-input-from-pipe (#(procedure #:enforce) chicken.posix#with-input-from-pipe (string (procedure () . *) #!optional symbol) . *))
 (chicken.posix#with-output-to-pipe (#(procedure #:enforce) chicken.posix#with-output-to-pipe (string (procedure () . *) #!optional symbol) . *))
 
+;; process
+
+(chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string #!rest) undefined))
+(chicken.process#qs (#(procedure #:clean #:enforce) chicken.process#qs (string) string))
 
 ;; srfi-4
 
@@ -2292,11 +2296,3 @@
 (chicken.tcp#tcp-port-numbers (#(procedure #:clean #:enforce) chicken.tcp#tcp-port-numbers (port) fixnum fixnum))
 (chicken.tcp#tcp-read-timeout (#(procedure #:clean #:enforce) chicken.tcp#tcp-read-timeout (#!optional (or false integer)) (or false integer)))
 (chicken.tcp#tcp-write-timeout (#(procedure #:clean #:enforce) chicken.tcp#tcp-write-timeout (#!optional (or false integer)) (or false integer)))
-
-
-;; utils
-
-(chicken.utils#system* (#(procedure #:clean #:enforce) chicken.utils#system* (string #!rest) undefined))
-(chicken.utils#qs (#(procedure #:clean #:enforce) chicken.utils#qs (string) string))
-(chicken.utils#compile-file (#(procedure #:clean #:enforce) chicken.utils#compile-file (string #!rest) (or false string)))
-(chicken.utils#compile-file-options (#(procedure #:clean #:enforce) chicken.utils#compile-file-options (#!optional (list-of string)) (list-of string)))

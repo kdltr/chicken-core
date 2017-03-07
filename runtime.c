@@ -1,6 +1,6 @@
 /* runtime.c - Runtime code for compiler generated executables
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -32,6 +32,7 @@
 #include <float.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <strings.h>
 
 #ifdef HAVE_SYSEXITS_H
 # include <sysexits.h>
@@ -204,7 +205,7 @@ static C_TLS int timezone;
 #endif
 
 #ifdef C_LLP
-# define LONG_FORMAT_STRING            "%lldf"
+# define LONG_FORMAT_STRING            "%lld"
 #else
 # define LONG_FORMAT_STRING            "%ld"
 #endif
@@ -1559,6 +1560,9 @@ C_word CHICKEN_run(void *toplevel)
   serious_signal_occurred = 0;
 
   if(!return_to_host) {
+    /* We must copy the argvector onto the stack, because
+     * any subsequent save() will otherwise clobber it.
+     */
     int argcount = C_temporary_stack_bottom - C_temporary_stack;
     C_word *p = C_alloc(argcount);
 
@@ -2134,8 +2138,11 @@ C_word C_fcall C_callback(C_word closure, int argc)
   serious_signal_occurred = 0;
 
   if(!callback_returned_flag) {
-    C_word *p = C_temporary_stack;
-    
+    /* We must copy the argvector onto the stack, because
+     * any subsequent save() will otherwise clobber it.
+     */
+    C_word *p = C_alloc(C_restart_c);
+    C_memcpy(p, C_temporary_stack, C_restart_c * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
   }
@@ -4789,7 +4796,7 @@ C_regparm C_word C_fcall C_execute_shell_command(C_word string)
   C_memcpy(buf, C_data_pointer(string), n);
   buf[ n ] = '\0';
   if (n != strlen(buf))
-    barf(C_ASCIIZ_REPRESENTATION_ERROR, "get-environment-variable", string);
+    barf(C_ASCIIZ_REPRESENTATION_ERROR, "system", string);
 
   n = C_system(buf);
 
@@ -5078,14 +5085,16 @@ C_word C_a_i_string(C_word **a, int c, ...)
   p = (char *)C_data_pointer(s);
   va_start(v, c);
 
-  while(c--) {
+  for(; c; c--) {
     x = va_arg(v, C_word);
 
     if((x & C_IMMEDIATE_TYPE_BITS) == C_CHARACTER_BITS)
       *(p++) = C_character_code(x);
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "string", x);
+    else break;
   }
 
+  va_end(v);
+  if (c) barf(C_BAD_ARGUMENT_TYPE_ERROR, "string", x);
   return s;
 }
 
@@ -9975,7 +9984,10 @@ void C_ccall C_allocate_vector(C_word c, C_word *av)
       C_fromspace_top = C_fromspace_limit; /* trigger major GC */
   
     C_save(C_SCHEME_TRUE);
-    C_reclaim((void *)allocate_vector_2, c);
+    /* We explicitly pass 7 here, that's the number of things saved.
+     * That's the arguments, plus one additional thing: the mode.
+     */
+    C_reclaim((void *)allocate_vector_2, 7);
   }
 
   C_save(C_SCHEME_FALSE);
@@ -12891,6 +12903,8 @@ C_resolve_executable_pathname(C_char *fname)
 
   /* seek next entry, skip colon */
   } while (path += len, *path++);
+#else
+# error "Please either define SEARCH_EXE_PATH in Makefile.<platform> or implement C_resolve_executable_pathname for your platform!"
 #endif
 
 error:

@@ -1,6 +1,6 @@
 ;;;; tcp.scm - Networking stuff
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -27,7 +27,7 @@
 
 (declare
   (unit tcp)
-  (uses ports scheduler)
+  (uses port scheduler)
   (disable-interrupts) ; Avoid race conditions around errno/WSAGetLastError
   (foreign-declare #<<EOF
 #ifdef _WIN32
@@ -145,7 +145,7 @@ EOF
 
 (import scheme chicken)
 (import chicken.foreign
-	chicken.ports
+	chicken.port
 	chicken.time)
 
 (include "common-declarations.scm")

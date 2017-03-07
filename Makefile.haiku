@@ -1,6 +1,6 @@
 # Makefile.haiku - configuration for Haiku -*- Makefile -*-
 #
-# Copyright (c) 2011-2016, The CHICKEN Team
+# Copyright (c) 2011-2017, The CHICKEN Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -91,6 +91,7 @@ chicken-config.h: chicken-defaults.h
 ifdef GCHOOKS
 	echo "#define C_GC_HOOKS" >>$@
 endif
+	echo "#define C_USE_STD_FEATURE_MACROS" >>$@
 	cat chicken-defaults.h >>$@
 
 include $(SRCDIR)/rules.make

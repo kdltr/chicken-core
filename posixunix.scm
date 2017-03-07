@@ -1,6 +1,6 @@
 ;;;; posixunix.scm - Miscellaneous file- and process-handling routines
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -24,12 +24,6 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-
-(declare
-  (unit posix)
-  (uses scheduler irregex pathname extras files ports lolevel)
-  (disable-interrupts)
-  (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
 
 ;; these are not available on Windows
 
@@ -86,7 +80,7 @@
 	chicken.irregex
 	chicken.memory
 	chicken.pathname
-	chicken.ports
+	chicken.port
 	chicken.time)
 
 (include "posix-common.scm")
@@ -110,7 +104,7 @@ static C_TLS int C_wait_status;
 #endif
 
 #include <sys/mman.h>
-#include <sys/poll.h>
+#include <poll.h>
 
 #ifndef O_FSYNC
 # define O_FSYNC O_SYNC
@@ -1606,47 +1600,3 @@ EOF
         (posix-error #:file-error 'set-root-directory! "unable to change root directory" dir) ) ) ) )
 
 ) ; chicken.posix
-
-(module chicken.errno *
-(import scheme chicken)
-(export errno)
-;; XXX TODO why aren't these set?
-(define errno/2big 0)
-(define errno/deadlk 0)
-(define errno/dom 0)
-(define errno/fbig 0)
-(define errno/ilseq 0)
-(define errno/mlink 0)
-(define errno/nametoolong 0)
-(define errno/nfile 0)
-(define errno/nodev 0)
-(define errno/nolck 0)
-(define errno/nosys 0)
-(define errno/notempty 0)
-(define errno/notty 0)
-(define errno/nxio 0)
-(define errno/range 0)
-(define errno/xdev 0)
-(define errno/acces _eacces)
-(define errno/again _eagain)
-(define errno/badf _ebadf)
-(define errno/busy _ebusy)
-(define errno/child _echild)
-(define errno/exist _eexist)
-(define errno/fault _efault)
-(define errno/intr _eintr)
-(define errno/inval _einval)
-(define errno/io _eio)
-(define errno/isdir _eisdir)
-(define errno/mfile _emfile)
-(define errno/noent _enoent)
-(define errno/noexec _enoexec)
-(define errno/nomem _enomem)
-(define errno/nospc _enospc)
-(define errno/notdir _enotdir)
-(define errno/perm _eperm)
-(define errno/pipe _epipe)
-(define errno/rofs _erofs)
-(define errno/spipe _espipe)
-(define errno/srch _esrch)
-(define errno/wouldblock _ewouldblock))

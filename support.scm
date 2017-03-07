@@ -1,6 +1,6 @@
 ;;;; support.scm - Miscellaneous support code for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -27,7 +27,7 @@
 
 (declare (unit support)
 	 (not inline ##sys#user-read-hook) ; XXX: Is this needed?
-	 (uses data-structures extras files internal pathname ports))
+	 (uses data-structures extras files internal pathname port))
 
 (module chicken.compiler.support
     (compiler-cleanup-hook bomb collected-debugging-output debugging
@@ -85,7 +85,7 @@
 	chicken.keyword
 	chicken.io
 	chicken.pathname
-	chicken.ports
+	chicken.port
 	chicken.pretty-print
 	chicken.random
 	chicken.time)

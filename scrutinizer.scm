@@ -1,6 +1,6 @@
 ;;;; scrutinizer.scm - The CHICKEN Scheme compiler (local flow analysis)
 ;
-; Copyright (c) 2009-2016, The CHICKEN Team
+; Copyright (c) 2009-2017, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -26,7 +26,7 @@
 
 (declare
   (unit scrutinizer)
-  (uses data-structures expand extras pathname ports support))
+  (uses data-structures expand extras pathname port support))
 
 (module chicken.compiler.scrutinizer
     (scrutinize load-type-database emit-type-file
@@ -41,7 +41,7 @@
 	chicken.format
 	chicken.io
 	chicken.pathname
-	chicken.ports
+	chicken.port
 	chicken.pretty-print)
 
 (include "tweaks")

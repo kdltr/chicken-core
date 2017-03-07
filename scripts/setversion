@@ -3,9 +3,9 @@
 exec csi -s "$0" "$@"
 |#
 
-(use data-structures files format io utils irregex)
+(use data-structures files format io irregex (chicken process))
 
-(define buildversion (with-input-from-file "buildversion" read))
+(define buildversion (with-input-from-file "buildversion" read-line))
 
 (define files '("README" "manual/The User's Manual"))
 
@@ -28,7 +28,7 @@ exec csi -s "$0" "$@"
 	(else
 	 (let ((tmp (create-temporary-file)))
 	   (patch (list which tmp) rx subst)
-	   (system* "mv ~S ~S" tmp which) ) ) ) )
+	   (system* (format "mv ~S ~S" tmp which))))))
 
 (define (parse-version v)
   (let ((m (irregex-match "(\\d+)\\.(\\d+)\\.(\\d+)(.*)" v)))

@@ -1,6 +1,6 @@
 ;;;; eval.scm - Interpreter for CHICKEN
 ;
-; Copyright (c) 2008-2016, The CHICKEN Team
+; Copyright (c) 2008-2017, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -91,8 +91,8 @@
 
 (define-constant core-units
   '(chicken-syntax chicken-ffi-syntax continuation data-structures eval
-    expand extras files internal irregex library lolevel pathname ports
-    posix srfi-4 tcp repl read-syntax utils))
+    expand extras file files internal irregex library lolevel pathname
+    port posix srfi-4 tcp repl read-syntax))
 
 (define-constant cygwin-default-dynamic-load-libraries '("cygchicken-0"))
 (define-constant macosx-load-library-extension ".dylib")

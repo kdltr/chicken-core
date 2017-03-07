@@ -1,6 +1,6 @@
 # defaults.make - default settings -*- Makefile -*-
 #
-# Copyright (c) 2008-2016, The CHICKEN Team
+# Copyright (c) 2008-2017, The CHICKEN Team
 # Copyright (c) 2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -265,11 +265,13 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 
 PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.csi chicken.foreign
 DYNAMIC_IMPORT_LIBRARIES = srfi-4
-DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise errno fixnum flonum format \
-	gc io keyword locative memory posix pretty-print random time
+DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise errno file.posix fixnum flonum \
+	format gc io keyword locative memory posix pretty-print process \
+	process.signal random time time.posix
+DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
-	eval expand files internal irregex lolevel pathname ports \
-	read-syntax repl tcp utils
+	eval expand file files internal irregex lolevel pathname port \
+	read-syntax repl tcp
 
 # targets
 

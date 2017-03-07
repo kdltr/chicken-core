@@ -29,7 +29,7 @@
 
 (compound-module
  big-chicken
- chicken ports files pretty-print data-structures)
+ chicken port files pretty-print data-structures)
 
 (module m3 ()
   (import scheme big-chicken)

@@ -56,6 +56,15 @@ compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out
 compile2="../csc -compiler ${CHICKEN} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS}"
 interpret="../csi -n -include-path ${TEST_DIR}/.."
+time=time
+
+# Check for a "time" command, since some systems don't ship with a
+# time(1) or shell builtin and we also can't portably rely on `which',
+# `command', etc. NOTE "time" must be called from a variable here.
+set +e
+$time true >/dev/null 2>/dev/null
+test $? -eq 127 && time=
+set -e
 
 rm -f *.exe *.so *.o *.import.* a.out ../foo.import.*
 
@@ -127,9 +136,9 @@ echo "======================================== specialization benchmark ..."
 $compile fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1
 $compile fft.scm -O2 -local -specialize -debug x -d0 -disable-interrupts -b -o fft2 -specialize
 echo "normal:"
-time ./fft1 1000 7
+$time ./fft1 1000 7
 echo "specialized:"
-time ./fft2 1000 7
+$time ./fft2 1000 7
 
 echo "======================================== callback tests ..."
 $compile callback-tests.scm
@@ -376,7 +385,7 @@ $interpret -bnq test-glob.scm
 echo "======================================== compiler/nursery stress test ..."
 for s in 100000 120000 200000 250000 300000 350000 400000 450000 500000; do
     echo "  $s"
-    ../chicken -ignore-repository ../utils.scm -:s$s -output-file tmp.c -include-path ${TEST_DIR}/..
+    ../chicken -ignore-repository ../port.scm -:s$s -output-file tmp.c -include-path ${TEST_DIR}/..
 done
 
 echo "======================================== heap literal stress test ..."
@@ -405,7 +414,7 @@ $compile locative-stress-test.scm
 ./a.out
 
 echo "======================================== syntax-rules stress test ..."
-time $interpret -bnq syntax-rule-stress-test.scm
+$time $interpret -bnq syntax-rule-stress-test.scm
 
 echo "======================================== include test ..."
 mkdir -p a/b

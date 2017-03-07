@@ -1,6 +1,6 @@
 # rules.make - basic build rules -*- Makefile -*-
 #
-# Copyright (c) 2008-2016, The CHICKEN Team
+# Copyright (c) 2008-2017, The CHICKEN Team
 # Copyright (c) 2000-2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -34,10 +34,10 @@ VPATH=$(SRCDIR)
 # object files
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
-       library eval read-syntax repl data-structures pathname ports files \
-       extras lolevel utils tcp srfi-4 continuation $(POSIXFILE) internal \
-       irregex scheduler debugger-client profiler stub expand modules \
-       chicken-syntax chicken-ffi-syntax build-version
+       library eval read-syntax repl data-structures pathname port file \
+       files extras lolevel tcp srfi-4 continuation $(POSIXFILE) \
+       internal irregex scheduler debugger-client profiler stub expand \
+       modules chicken-syntax chicken-ffi-syntax build-version
 LIBCHICKEN_OBJECTS_1 = $(LIBCHICKEN_SCHEME_OBJECTS_1) runtime
 LIBCHICKEN_SHARED_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=$(O))
 LIBCHICKEN_STATIC_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=-static$(O))
@@ -365,7 +365,7 @@ install-bin: $(TARGETS) install-libs install-dev
 		$(prog)$(EXE) "$(DESTDIR)$(IBINDIR)" $(NL))
 
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) $(CHICKEN_DEBUGGER_PROGRAM) \
-	  "$(DESTDIR)$(BINDIR)" $(NL)
+	  "$(DESTDIR)$(IBINDIR)"
 
 ifdef STATICBUILD
 	$(foreach lib,$(IMPORT_LIBRARIES),\
@@ -412,7 +412,7 @@ install-other-files:
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)README "$(DESTDIR)$(IDOCDIR)"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)LICENSE "$(DESTDIR)$(IDOCDIR)"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)setup.defaults "$(DESTDIR)$(IDATADIR)"
-	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)feathers.tcl "$(DESTDIR)$(DATADIR)"
+	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)feathers.tcl "$(DESTDIR)$(IDATADIR)"
 
 install-wrappers:
 ifeq ($(WRAPPERDIR),)
@@ -501,6 +501,10 @@ $(foreach lib, $(filter-out chicken,$(COMPILER_OBJECTS_1)),\
 # special cases for modules not corresponding directly to units
 $(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.errno,$(POSIXFILE)))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.file.posix,$(POSIXFILE)))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.time.posix,$(POSIXFILE)))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.process,$(POSIXFILE)))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.process.signal,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.fixnum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.flonum,library))
@@ -574,7 +578,7 @@ scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.pretty-print.import.scm
 lfa2.c: lfa2.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
@@ -597,7 +601,7 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.keyword.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.random.import.scm \
 		chicken.time.import.scm
@@ -610,8 +614,7 @@ csc.c: csc.scm \
 		chicken.eval.import.scm \
 		chicken.format.import.scm \
 		chicken.pathname.import.scm \
-		chicken.posix.import.scm \
-		chicken.utils.import.scm
+		chicken.posix.import.scm
 csi.c: csi.scm \
 		chicken.data-structures.import.scm \
 		chicken.foreign.import.scm \
@@ -619,7 +622,7 @@ csi.c: csi.scm \
 		chicken.gc.import.scm \
 		chicken.keyword.import.scm \
 		chicken.io.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.repl.import.scm
 chicken-bug.c: chicken-bug.scm \
@@ -628,7 +631,7 @@ chicken-bug.c: chicken-bug.scm \
 		chicken.io.import.scm \
 		chicken.keyword.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.time.import.scm
 chicken-profile.c: chicken-profile.scm \
@@ -640,7 +643,7 @@ chicken-status.c: chicken-status.scm \
 		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm
 chicken-install.c: chicken-install.scm \
@@ -651,7 +654,7 @@ chicken-install.c: chicken-install.scm \
 		chicken.io.import.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm
 chicken-uninstall.c: chicken-uninstall.scm \
@@ -673,7 +676,7 @@ posixunix.c: posixunix.scm \
 		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.time.import.scm
 posixwin.c: posixwin.scm \
 		chicken.bitwise.import.scm \
@@ -681,7 +684,7 @@ posixwin.c: posixwin.scm \
 		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.time.import.scm
 data-structures.c: data-structures.scm \
 		chicken.foreign.import.scm
@@ -698,6 +701,9 @@ eval.c: eval.scm \
 		chicken.keyword.import.scm
 repl.c: repl.scm \
 		chicken.eval.import.scm
+file.c: file.scm \
+		chicken.files.import.scm \
+		chicken.posix.import.scm
 files.c: files.scm \
 		chicken.data-structures.import.scm \
 		chicken.io.import.scm \
@@ -709,19 +715,12 @@ lolevel.c: lolevel.scm \
 pathname.c: pathname.scm \
 		chicken.data-structures.import.scm \
 		chicken.irregex.import.scm
-ports.c: ports.scm \
+port.c: port.scm \
 		chicken.io.import.scm
 tcp.c: tcp.scm \
 		chicken.foreign.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.time.import.scm
-utils.c: utils.scm \
-		chicken.data-structures.import.scm \
-		chicken.files.import.scm \
-		chicken.foreign.import.scm \
-		chicken.format.import.scm \
-		chicken.pathname.import.scm \
-		chicken.posix.import.scm
 
 define profile-flags
 $(if $(filter $(basename $(1)),$(PROFILE_OBJECTS)),-profile)
@@ -755,13 +754,21 @@ extras.c: $(SRCDIR)extras.scm $(SRCDIR)common-declarations.scm
 	-emit-import-library chicken.io \
 	-emit-import-library chicken.pretty-print \
 	-emit-import-library chicken.random
-posixunix.c: $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) \
+posixunix.c: $(SRCDIR)posix.scm $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
+	$(bootstrap-lib) -feature platform-unix \
 	-emit-import-library chicken.errno \
+	-emit-import-library chicken.file.posix \
+	-emit-import-library chicken.time.posix \
+	-emit-import-library chicken.process \
+	-emit-import-library chicken.process.signal \
 	-emit-import-library chicken.posix
-posixwin.c: $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) \
+posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
+	$(bootstrap-lib) -feature platform-windows \
 	-emit-import-library chicken.errno \
+	-emit-import-library chicken.file.posix \
+	-emit-import-library chicken.time.posix \
+	-emit-import-library chicken.process \
+	-emit-import-library chicken.process.signal \
 	-emit-import-library chicken.posix
 irregex.c: $(SRCDIR)irregex.scm $(SRCDIR)irregex-core.scm $(SRCDIR)irregex-utils.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.irregex
@@ -775,8 +782,10 @@ data-structures.c: $(SRCDIR)data-structures.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.data-structures
 pathname.c: $(SRCDIR)pathname.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.pathname
-ports.c: $(SRCDIR)ports.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.ports
+port.c: $(SRCDIR)port.scm $(SRCDIR)common-declarations.scm
+	$(bootstrap-lib) -emit-import-library chicken.port
+file.c: $(SRCDIR)file.scm $(SRCDIR)common-declarations.scm
+	$(bootstrap-lib) -emit-import-library chicken.file
 files.c: $(SRCDIR)files.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.files
 lolevel.c: $(SRCDIR)lolevel.scm $(SRCDIR)common-declarations.scm
@@ -788,8 +797,6 @@ tcp.c: $(SRCDIR)tcp.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.tcp
 srfi-4.c: $(SRCDIR)srfi-4.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library srfi-4
-utils.c: $(SRCDIR)utils.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.utils
 scheduler.c: $(SRCDIR)scheduler.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) 
 profiler.c: $(SRCDIR)profiler.scm $(SRCDIR)common-declarations.scm
