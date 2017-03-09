@@ -10903,8 +10903,15 @@ C_s_a_i_digits_to_integer(C_word **ptr, C_word n, C_word str, C_word start, C_wo
     assert((radix > 1) && C_fitsinbignumhalfdigitp(radix));
 
     nbits = (end - start) * C_ilen(radix - 1);
-    size = C_fix(C_BIGNUM_BITS_TO_DIGITS(nbits));
-    result = C_allocate_scratch_bignum(ptr, size, negp, C_SCHEME_FALSE);
+    size = C_BIGNUM_BITS_TO_DIGITS(nbits);
+    if (size == 1) {
+      result = C_bignum1(ptr, C_truep(negp), 0);
+    } else if (size == 2) {
+      result = C_bignum2(ptr, C_truep(negp), 0, 0);
+    } else {
+      size = C_fix(size);
+      result = C_allocate_scratch_bignum(ptr, size, negp, C_SCHEME_FALSE);
+    }
 
     return str_to_bignum(result, s + start, s + end, radix);
   }
