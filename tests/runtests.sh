@@ -34,7 +34,7 @@ rm -fr test-repository
 mkdir -p test-repository
 
 CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
-CHICKEN_REPOSITORY_PATH=${TEST_DIR}/..:$CHICKEN_REPOSITORY
+CHICKEN_REPOSITORY_PATH=${TEST_DIR}/..:$CHICKEN_INSTALL_REPOSITORY
 CHICKEN=${TEST_DIR}/../chicken
 CHICKEN_PROFILE=${TEST_DIR}/../chicken-profile
 CHICKEN_INSTALL=${TEST_DIR}/../chicken-install
