@@ -231,6 +231,7 @@ tests/reverser/tags/1.1/reverser.meta
 tests/reverser/tags/1.1/reverser.setup
 tests/reverser/tags/1.1/reverser.scm
 tests/rev-app.scm
+tests/user-pass-tests.scm
 tests/version-tests.scm
 tweaks.scm
 Makefile
