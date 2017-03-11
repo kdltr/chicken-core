@@ -849,7 +849,7 @@ EOF
 		       translate-options 
                        (if static
                            (list "-emit-link-file"
-                                 (pathname-replace-extension f "link"))
+                                 (pathname-replace-extension fc "link"))
                            '())
 		       (cond (cpp-mode '("-feature" "chicken-scheme-to-c++"))
 			     (objc-mode '("-feature" "chicken-scheme-to-objc"))
