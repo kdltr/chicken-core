@@ -663,7 +663,7 @@ chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
-		chicken.ports.import.scm \
+		chicken.port.import.scm \
 		chicken.posix.import.scm
 srfi-4.c: srfi-4.scm \
 		chicken.bitwise.import.scm \
