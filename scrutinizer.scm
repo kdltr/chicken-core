@@ -1708,7 +1708,7 @@
       (cond ((null? dirs) #f)
             ((file-exists? (make-pathname (car dirs) name)))
             (else (loop (cdr dirs))))))
-  (and-let* ((dbfile (locate)))
+  (and-let* ((dbfile (if (not path) (file-exists? name) (locate))))
     (debugging 'p (sprintf "loading type database `~a' ...~%" dbfile))
     (fluid-let ((scrutiny-debug #f))
       (for-each
