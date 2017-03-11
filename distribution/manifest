@@ -320,6 +320,8 @@ chicken.process.import.scm
 chicken.process.import.c
 chicken.process.signal.import.scm
 chicken.process.signal.import.c
+chicken.process-context.import.scm
+chicken.process-context.import.c
 chicken.random.import.scm
 chicken.random.import.c
 chicken.read-syntax.import.scm

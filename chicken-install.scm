@@ -73,6 +73,7 @@
       "chicken.pretty-print.import.so"
       "chicken.process.import.so"
       "chicken.process.signal.import.so"
+      "chicken.process-context.import.so"
       "chicken.random.import.so"
       "chicken.repl.import.so"
       "chicken.read-syntax.import.so"

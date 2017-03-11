@@ -156,3 +156,14 @@
    signal/tstp signal/urg signal/usr1 signal/usr2 signal/vtalrm
    signal/winch signal/xcpu signal/xfsz set-alarm!)
 (import chicken chicken.posix))
+
+(module chicken.process-context
+  (command-line-arguments argv get-environment-variable
+   get-environment-variables set-environment-variable!
+   unset-environment-variable! emergency-exit exit on-exit
+   executable-pathname program-name current-directory
+   set-root-directory! current-effective-group-id
+   current-effective-user-id current-group-id current-process-id
+   current-user-id parent-process-id current-user-name
+   current-effective-user-name user-information)
+(import chicken chicken.posix))
