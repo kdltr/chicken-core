@@ -3319,7 +3319,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
   if(C_pre_gc_hook != NULL) C_pre_gc_hook(GC_MINOR);
 
   finalizers_checked = 0;
-  C_restart_trampoline = (C_proc)trampoline;
+  C_restart_trampoline = trampoline;
   C_restart_c = c;
   heap_scan_top = (C_byte *)C_align((C_uword)C_fromspace_top);
   gc_mode = GC_MINOR;
