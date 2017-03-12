@@ -79,7 +79,7 @@ static fd_set C_fdset_input, C_fdset_output;
 #define C_fd_input_ready(fd,pos)  C_mk_bool(FD_ISSET(C_unfix(fd), &C_fdset_input))
 #define C_fd_output_ready(fd,pos)  C_mk_bool(FD_ISSET(C_unfix(fd), &C_fdset_output))
 
-C_inline int C_ready_fds_timeout(int to, unsigned int tm) {
+inline static int C_ready_fds_timeout(int to, unsigned int tm) {
   struct timeval timeout;
   timeout.tv_sec = tm / 1000;
   timeout.tv_usec = fmod(tm, 1000) * 1000;
@@ -87,12 +87,12 @@ C_inline int C_ready_fds_timeout(int to, unsigned int tm) {
   return select(FD_SETSIZE, &C_fdset_input, &C_fdset_output, NULL, to ? &timeout : NULL);
 }
 
-C_inline void C_prepare_fdset(int length) {
+inline static void C_prepare_fdset(int length) {
   FD_ZERO(&C_fdset_input);
   FD_ZERO(&C_fdset_output);
 }
 
-C_inline void C_fdset_add(int fd, int input, int output) {
+inline static void C_fdset_add(int fd, int input, int output) {
   if (input) FD_SET(fd, &C_fdset_input);
   if (output) FD_SET(fd, &C_fdset_output);
 }
@@ -104,7 +104,7 @@ C_inline void C_fdset_add(int fd, int input, int output) {
 static int C_fdset_nfds;
 static struct pollfd *C_fdset_set = NULL;
 
-C_inline int C_fd_ready(int fd, int pos, int what) {
+inline static int C_fd_ready(int fd, int pos, int what) {
   assert(fd == C_fdset_set[pos].fd); /* Must match position in ##sys#fd-list! */
   return(C_fdset_set[pos].revents & what);
 }
@@ -112,11 +112,11 @@ C_inline int C_fd_ready(int fd, int pos, int what) {
 #define C_fd_input_ready(fd,pos)  C_mk_bool(C_fd_ready(C_unfix(fd), C_unfix(pos),POLLIN|POLLERR|POLLHUP|POLLNVAL))
 #define C_fd_output_ready(fd,pos)  C_mk_bool(C_fd_ready(C_unfix(fd), C_unfix(pos),POLLOUT|POLLERR|POLLHUP|POLLNVAL))
 
-C_inline int C_ready_fds_timeout(int to, unsigned int tm) {
+inline static int C_ready_fds_timeout(int to, unsigned int tm) {
   return poll(C_fdset_set, C_fdset_nfds, to ? tm : -1);
 }
 
-C_inline void C_prepare_fdset(int length) {
+inline static void C_prepare_fdset(int length) {
   /* TODO: Only realloc when needed? */
   C_fdset_set = realloc(C_fdset_set, sizeof(struct pollfd) * length);
   if (C_fdset_set == NULL)
@@ -125,7 +125,7 @@ C_inline void C_prepare_fdset(int length) {
 }
 
 /* This *must* be called in order, so position will match ##sys#fd-list */
-C_inline void C_fdset_add(int fd, int input, int output) {
+inline static void C_fdset_add(int fd, int input, int output) {
   C_fdset_set[C_fdset_nfds].events = ((input ? POLLIN : 0) | (output ? POLLOUT : 0));
   C_fdset_set[C_fdset_nfds++].fd = fd;
 }

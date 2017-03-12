@@ -5906,7 +5906,7 @@ C_s_a_i_negate(C_word **ptr, C_word n, C_word x)
  * there.  If target is larger than source, the most significant
  * digits will remain untouched.
  */
-C_inline void bignum_digits_destructive_copy(C_word target, C_word source)
+inline static void bignum_digits_destructive_copy(C_word target, C_word source)
 {
   C_memcpy(C_bignum_digits(target), C_bignum_digits(source),
            C_wordstobytes(C_bignum_size(source)));
@@ -5976,7 +5976,7 @@ C_regparm C_word C_fcall C_a_i_bitwise_xor(C_word **a, int c, C_word n1, C_word 
 }
 
 /* Faster version that ignores sign in bignums. TODO: Omit labs() too? */
-C_inline int integer_length_abs(C_word x)
+inline static int integer_length_abs(C_word x)
 {
   if (x & C_FIXNUM_BIT) {
     return C_ilen(labs(C_unfix(x)));
@@ -6053,7 +6053,7 @@ bignum_extract_digits(C_word **ptr, C_word n, C_word x, C_word start, C_word end
  * the number is negative, or #f if it doesn't need to be negated.
  * The size can be larger or smaller than X (it may be 1-padded).
  */
-C_inline C_word maybe_negate_bignum_for_bitwise_op(C_word x, C_word size)
+inline static C_word maybe_negate_bignum_for_bitwise_op(C_word x, C_word size)
 {
   C_word nx = C_SCHEME_FALSE, xsize;
   if (C_bignum_negativep(x)) {
@@ -10585,7 +10585,7 @@ C_a_i_flonum_gcd(C_word **p, C_word n, C_word x, C_word y)
  * much.  This can be detected by dividing only the leading k bits.
  * In our case, k = C_WORD_SIZE - 2.
  */
-C_inline void lehmer_gcd(C_word **ptr, C_word u, C_word v, C_word *x, C_word *y)
+inline static void lehmer_gcd(C_word **ptr, C_word u, C_word v, C_word *x, C_word *y)
 {
   int i_even = 1, done = 0;
   C_word shift_amount = integer_length_abs(u) - (C_WORD_SIZE - 2),
@@ -10924,7 +10924,7 @@ C_s_a_i_digits_to_integer(C_word **ptr, C_word n, C_word str, C_word start, C_wo
   }
 }
 
-C_inline int hex_char_to_digit(int ch)
+inline static int hex_char_to_digit(int ch)
 {
   if (ch == (int)'#') return 0; /* Hash characters in numbers are mapped to 0 */
   else if (ch >= (int)'a') return ch - (int)'a' + 10; /* lower hex */
