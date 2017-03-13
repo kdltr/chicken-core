@@ -50,7 +50,6 @@
 (define +timestamp-file+ "TIMESTAMP")
 (define +status-file+ "STATUS")
 (define +egg-extension+ "egg")
-(define +egg-info-extension+ "egg.info")
 (define +version-file+ "VERSION")
 
 (include "mini-srfi-1.scm")
