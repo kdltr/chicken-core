@@ -1,8 +1,8 @@
 4.12.1
 
 - Security fixes
-  - Remove unchecked malloc() call in SRFI-4 constructors when
-    allocating in non-GC memory, resulting in potential 1-word
+  - CVE-2017-6949: Remove unchecked malloc() call in SRFI-4 constructors
+    when allocating in non-GC memory, resulting in potential 1-word
     buffer overrun and/or segfault (thanks to Lemonboy).
 
 - Core Libraries
