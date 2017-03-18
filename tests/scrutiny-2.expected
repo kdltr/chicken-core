@@ -1,18 +1,18 @@
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:14) in procedure call to `pair?', the predicate is called with an argument of type `pair' and will always return true
+  (scrutiny-tests-2.scm:20) in procedure call to `pair?', the predicate is called with an argument of type `pair' and will always return true
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:14) in procedure call to `pair?', the predicate is called with an argument of type `null' and will always return false
+  (scrutiny-tests-2.scm:20) in procedure call to `pair?', the predicate is called with an argument of type `null' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:14) in procedure call to `pair?', the predicate is called with an argument of type `null' and will always return false
+  (scrutiny-tests-2.scm:20) in procedure call to `pair?', the predicate is called with an argument of type `null' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:14) in procedure call to `pair?', the predicate is called with an argument of type `fixnum' and will always return false
+  (scrutiny-tests-2.scm:20) in procedure call to `pair?', the predicate is called with an argument of type `fixnum' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:14) in procedure call to `pair?', the predicate is called with an argument of type `float' and will always return false
+  (scrutiny-tests-2.scm:20) in procedure call to `pair?', the predicate is called with an argument of type `float' and will always return false
 
 Note: at toplevel:
   (scrutiny-tests-2.scm:21) in procedure call to `list?', the predicate is called with an argument of type `null' and will always return true

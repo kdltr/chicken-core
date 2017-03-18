@@ -509,6 +509,18 @@
       (##sys#put! alias '##core#macro-alias (lookup var se))
       alias) )
 
+  (define (handle-expansion-result outer-ln)
+    (lambda (input output)
+      (and-let* (((not (eq? input output)))
+		 (ln (or (get-line input) outer-ln)))
+	(update-line-number-database! output ln))
+      output))
+
+  (define (canonicalize-body/ln ln body se cs?)
+    (fluid-let ((expansion-result-hook
+		 (handle-expansion-result ln)))
+      (##sys#canonicalize-body body se cs?)))
+
   (define (set-real-names! as ns)
     (for-each (lambda (a n) (set-real-name! a n)) as ns) )
 
@@ -601,8 +613,10 @@
 	     (set! ##sys#syntax-error-culprit x)
 	     (let* ((name0 (lookup (car x) se))
 		    (name (or (and (symbol? name0) (##sys#get name0 '##core#primitive)) name0))
-		    (xexpanded (expand x se compiler-syntax-enabled)))
-	       (when ln (update-line-number-database! xexpanded ln))
+		    (xexpanded
+		     (fluid-let ((expansion-result-hook
+				  (handle-expansion-result ln)))
+		       (expand x se compiler-syntax-enabled))))
 	       (cond ((not (eq? x xexpanded))
 		      (walk xexpanded e se dest ldest h ln tl?))
 
@@ -690,14 +704,15 @@
 			 (let* ((bindings (cadr x))
 				(vars (unzip1 bindings))
 				(aliases (map gensym vars))
-				(se2 (##sys#extend-se se vars aliases)))
+				(se2 (##sys#extend-se se vars aliases))
+				(ln (or (get-line x) outer-ln)))
 			   (set-real-names! aliases vars)
 			   `(let
 			     ,(map (lambda (alias b)
 				     (list alias (walk (cadr b) e se (car b) #t h ln #f)) )
 				   aliases bindings)
-			     ,(walk (##sys#canonicalize-body
-				     (cddr x) se2 compiler-syntax-enabled)
+			     ,(walk (canonicalize-body/ln
+				     ln (cddr x) se2 compiler-syntax-enabled)
 				    (append aliases e)
 				    se2 dest ldest h ln #f) ) )  )
 
@@ -745,9 +760,10 @@
 			    llist
 			    (lambda (vars argc rest)
 			      (let* ((aliases (map gensym vars))
+				     (ln (or (get-line x) outer-ln))
 				     (se2 (##sys#extend-se se vars aliases))
-				     (body0 (##sys#canonicalize-body
-					     obody se2 compiler-syntax-enabled))
+				     (body0 (canonicalize-body/ln
+					     ln obody se2 compiler-syntax-enabled))
 				     (body (walk
 					    (if emit-debug-info
 						`(##core#begin
@@ -787,11 +803,12 @@
 					      (##sys#eval/meta (cadr b))
 					      (strip-syntax (car b)))))
 					  (cadr x) )
-				     se) ) )
+				     se) )
+			       (ln (or (get-line x) outer-ln)))
 			   (walk
-			    (##sys#canonicalize-body (cddr x) se2 compiler-syntax-enabled)
-			    e se2
-			    dest ldest h ln #f) ) )
+			    (canonicalize-body/ln
+			     ln (cddr x) se2 compiler-syntax-enabled)
+			    e se2 dest ldest h ln #f) ) )
 
 		       ((##core#letrec-syntax)
 			(let* ((ms (map (lambda (b)
@@ -802,13 +819,15 @@
 					    (##sys#eval/meta (cadr b))
 					    (strip-syntax (car b)))))
 					(cadr x) ) )
-			       (se2 (append ms se)) )
+			       (se2 (append ms se))
+			       (ln (or (get-line x) outer-ln)) )
 			  (for-each
 			   (lambda (sb)
 			     (set-car! (cdr sb) se2) )
 			   ms)
 			  (walk
-			   (##sys#canonicalize-body (cddr x) se2 compiler-syntax-enabled)
+			   (canonicalize-body/ln
+			    ln (cddr x) se2 compiler-syntax-enabled)
 			   e se2 dest ldest h ln #f)))
 
 		       ((##core#define-syntax)
@@ -882,7 +901,8 @@
 						    (strip-syntax (car b)))
 						   se))
 					(##sys#get name '##compiler#compiler-syntax) ) ) )
-				   (cadr x))))
+				   (cadr x)))
+			      (ln (or (get-line x) outer-ln)))
 			  (dynamic-wind
 			      (lambda ()
 				(for-each
@@ -891,8 +911,8 @@
 				 bs) )
 			      (lambda ()
 				(walk
-				 (##sys#canonicalize-body
-				  (cddr x) se compiler-syntax-enabled)
+				 (canonicalize-body/ln
+				  ln (cddr x) se compiler-syntax-enabled)
 				 e se dest ldest h ln tl?) )
 			      (lambda ()
 				(for-each
@@ -1010,15 +1030,16 @@
 			      body))))
 
 		       ((##core#loop-lambda) ;XXX is this really needed?
-			(let* ([vars (cadr x)]
-			       [obody (cddr x)]
-			       [aliases (map gensym vars)]
+			(let* ((vars (cadr x))
+			       (obody (cddr x))
+			       (aliases (map gensym vars))
 			       (se2 (##sys#extend-se se vars aliases))
-			       [body
+			       (ln (or (get-line x) outer-ln))
+			       (body
 				(walk
-				 (##sys#canonicalize-body obody se2 compiler-syntax-enabled)
+				 (canonicalize-body/ln ln obody se2 compiler-syntax-enabled)
 				 (append aliases e)
-				 se2 #f #f dest ln #f) ] )
+				 se2 #f #f dest ln #f) ) )
 			  (set-real-names! aliases vars)
 			  `(##core#lambda ,aliases ,body) ) )
 

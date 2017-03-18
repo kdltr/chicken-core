@@ -48,7 +48,8 @@
    ;; assigned to.
    define-definition
    define-syntax-definition
-   define-values-definition)
+   define-values-definition
+   expansion-result-hook)
 
 (import scheme chicken
 	chicken.keyword)
@@ -259,7 +260,7 @@
 	    "' returns original form, which would result in endless expansion")
 	   exp))
 	(dx `(,name --> ,exp2))
-	exp2)))
+	(expansion-result-hook exp exp2) ) ) )
   (define (expand head exp mdef)
     (dd `(EXPAND: 
 	  ,head 
@@ -316,7 +317,7 @@
 
 (define ##sys#compiler-syntax-hook #f)
 (define ##sys#enable-runtime-macros #f)
-
+(define expansion-result-hook (lambda (input output) output))
 
 
 ;;; User-level macroexpansion
