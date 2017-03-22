@@ -520,11 +520,11 @@
 		     (eq? caller-rest-mode 'none)))
 	    (gen #t "C_word av2[" avl "];"))
 	   ((>= caller-argcount avl)   ; Argvec known to be re-usable?
-	    (gen #t "C_word *av2=av; /* Re-use our own argvector */"))
+	    (gen #t "C_word *av2=av;")) ; Re-use our own argvector
 	   (else      ; Need to determine dynamically. This is slower.
 	    (gen #t "C_word *av2;")
 	    (gen #t "if(c >= " avl ") {")
-	    (gen #t "  av2=av; /* Re-use our own argvector */")
+	    (gen #t "  av2=av;") ; Re-use our own argvector
 	    (gen #t "} else {")
 	    (gen #t "  av2=C_alloc(" avl ");")
 	    (gen #t "}")))
