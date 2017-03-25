@@ -31,7 +31,7 @@
 (module chicken.data-structures
   (alist-ref alist-update alist-update! atom? butlast
    chop compress flatten intersperse join rassoc tail?
-   merge sort sorted? topological-sort
+   merge sort sort! sorted? topological-sort
    conc ->string string-chop string-chomp
    string-compare3 string-compare3-ci
    reverse-string-append
