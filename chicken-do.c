@@ -87,7 +87,7 @@ static int execute(char **argv)
     exit(1);
   }
 
-  exit(code);
+  return code;
 #else
   pid_t child = fork();
 
@@ -114,14 +114,9 @@ static int execute(char **argv)
       exit(1);
     }
 
-    if(WIFEXITED(status)) {
-      int s = WEXITSTATUS(status);
+    if(WIFEXITED(status))
+      return WEXITSTATUS(status);
 
-      if(s != 0) cleanup();
-
-      exit(s);
-    }
-    
     if(WIFSIGNALED(status)) {
       fprintf(stderr, "subprocess killed by signal %d\n", WTERMSIG(status));
       cleanup();
@@ -191,5 +186,9 @@ build:
     fflush(stdout);
   }
 
-  execute(args);
+  int s = execute(args);
+
+  if(s != 0) cleanup();
+
+  return s;
 }
