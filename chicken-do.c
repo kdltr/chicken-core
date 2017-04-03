@@ -28,23 +28,107 @@
 
 
 #include "chicken.h"
-#include <sys/stat.h>
+
+#ifndef WIN32
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#endif
 
 
-void usage(int code)
+static char *target;
+
+
+static void usage(int code)
 {
   fputs("usage: chicken-do [-q] [-h] TARGET COMMAND ... : DEPENDENCIES ...\n", stderr);
   exit(code);
 }
 
 
-int execute(char **argv)
+static void cleanup()
 {
-  execvp(argv[ 0 ], argv);
-  /* returns only in case of error */
-  perror("executing command failed");
-  exit(1);
+#ifdef WIN32
+  DeleteFile(target);
+#else
+  unlink(target);
+#endif
+}
+
+
+static int execute(char **argv)
+{
+#ifdef WIN32
+  static PROCESS_INFORMATION process_info;
+  static STARTUPINFO startup_info;
+  startup_info.cb = sizeof(STARTUPINFO);
+  static TCHAR cmdline[ MAX_PATH ];
+
+  while(*argv != NULL) {
+    strcat(cmdline, "\"");
+    strcat(cmdline, *(argv++));
+    strcat(cmdline, "\"");
+  }
+  
+  if(!CreateProcess(NULL, cmdline, NULL, NULL, TRUE, 
+                    NORMAL_PRIORITY_CLASS, NULL, NULL, &startup_info,
+                    &process_info)) {
+    fprintf(stderr, "creating subprocess failed\n");
+    exit(1);
+  }
+
+  CloseHandle(process_info.hThread);
+
+  WaitForSingleObject(process_info.hProcess, INIFNITE);
+  DWORD code;
+
+  if(!GetExitCodeProcess(process_info.hProcess, &code)) {
+    fprintf(stderr, "unable to obtain exit status of subprocess\n");
+    exit(1);
+  }
+
+  exit(code);
+#else
+  pid_t child = fork();
+
+  if(child == -1) {
+    perror("forking subprocess failed");
+    exit(1);
+  }
+
+  if(child == 0) {
+    execvp(argv[ 0 ], argv);
+    /* returns only in case of error */
+    perror("executing command failed");
+    cleanup();
+    exit(1);
+  }
+
+  for(;;) {
+    int status;
+    pid_t w = waitpid(child, &status, 0);
+
+    if(w == -1) {
+      perror("waiting for subprocess failed");
+      cleanup();
+      exit(1);
+    }
+
+    if(WIFEXITED(status)) {
+      int s = WEXITSTATUS(status);
+
+      if(s != 0) cleanup();
+
+      exit(s);
+    }
+    
+    if(WIFSIGNALED(status)) {
+      fprintf(stderr, "subprocess killed by signal %d\n", WTERMSIG(status));
+      cleanup();
+      exit(1);
+    }
+  }
+#endif
 }
 
 
@@ -52,7 +136,6 @@ int main(int argc, char *argv[])
 {
   int i, count, a = 0;
   char **args = (char **)malloc(sizeof(char *) * argc);
-  char *target;
   struct stat st, sd;
   int quiet = 0, opts = 1;
 
