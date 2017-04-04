@@ -5214,7 +5214,7 @@ EOF
 ;;; Sleeping:
 
 (define (##sys#sleep-hook n) ; modified by scheduler.scm
-  (##core#inline "C_process_sleep" n))
+  (##core#inline "C_i_process_sleep" n))
 
 (define (sleep n)
   (##sys#check-fixnum n 'sleep)

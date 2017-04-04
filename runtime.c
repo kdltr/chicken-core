@@ -13280,6 +13280,15 @@ void C_ccall C_filter_heap_objects(C_word c, C_word *av)
   C_reclaim((void *)filter_heap_objects_2, c);
 }
 
+C_regparm C_word C_fcall C_i_process_sleep(C_word n)
+{
+#if defined(_WIN32) && !defined(__CYGWIN__)
+  Sleep(C_unfix(n) * 1000);
+  return C_fix(0);
+#else
+  return C_fix(sleep(C_unfix(n)));
+#endif
+}
 
 C_regparm C_word C_fcall 
 C_i_file_exists_p(C_word name, C_word file, C_word dir)
