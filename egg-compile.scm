@@ -32,6 +32,9 @@
 (define default-dynamic-extension-link-options '())
 (define default-extension-linkage '(static dynamic))
 (define default-program-linkage '(dynamic))
+(define default-static-compilation-options '("-O2" "-d1"))
+(define default-dynamic-compilation-options '("-O2" "-d1"))
+(define default-import-library-compilation-options '("-O2" "-d0"))
 
 (define +unix-executable-extension+ "")
 (define +windows-executable-extension+ ".exe")
@@ -374,6 +377,9 @@
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
+         (opts (if (null? options) 
+                   default-static-compilation-options
+                   options))
          (out (quotearg (target-file (conc sname
                                            (object-extension platform))
                                      mode)))
@@ -383,7 +389,7 @@
            " -setup-mode -static -I " srcdir 
            " -D compiling-extension -c -J -unit " name
            " -D compiling-static-extension"
-           " -C -I" srcdir (arglist options) 
+           " -C -I" srcdir (arglist opts) 
            " " src " -o " out " : "
            src #;(arglist dependencies))))
 
@@ -394,13 +400,16 @@
   (let* ((cmd (or (and custom (prefix-custom-command custom)) 
                   default-csc))
          (sname (prefix srcdir name))
+         (opts (if (null? options) 
+                   default-dynamic-compilation-options
+                   options))
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname ".so") mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -D compiling-extension -J -s"
-           " -setup-mode -I " srcdir " -C -I" srcdir (arglist options)
+           " -setup-mode -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
 
@@ -412,12 +421,15 @@
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
+         (opts (if (null? options) 
+                   default-import-library-compilation-options
+                   options))
          (out (quotearg (target-file (conc sname ".import.so") mode)))
          (src (quotearg (or source (conc sname ".import.scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -s"
-           " -I " srcdir " -C -I" srcdir (arglist options)
+           " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
 
@@ -429,6 +441,9 @@
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
+         (opts (if (null? options) 
+                   default-dynamic-compilation-options
+                   options))
          (out (quotearg (target-file (conc sname
                                            (executable-extension platform)) 
                                      mode)))
@@ -436,7 +451,7 @@
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode"
-           " -I " srcdir " -C -I" srcdir (arglist options)
+           " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
 
@@ -448,6 +463,9 @@
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
+         (opts (if (null? options) 
+                   default-static-compilation-options
+                   options))
          (out (quotearg (target-file (conc sname
                                            (executable-extension platform)) 
                                      mode)))
@@ -455,7 +473,7 @@
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -static -setup-mode -I " srcdir " -C -I" 
-           srcdir (arglist options)
+           srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
 

@@ -318,7 +318,10 @@ usually contains a shell command and thus may be platform sensitive.
 [egg property] (csc-options OPTION ...)
 
 Specifies additional compiler options for {{csc}} that should be
-used when building this component.
+used when building this component. If this property is not
+given, the default options are used, which are {{-O2 -d1}}
+for extensions and programs and {{-O2 -d0}} for import
+libraries.
 
 ====== link-options
 
