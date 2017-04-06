@@ -387,6 +387,7 @@
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -static -I " srcdir 
+           (if (eq? mode 'host) " -host" "")
            " -D compiling-extension -c -J -unit " name
            " -D compiling-static-extension"
            " -C -I" srcdir (arglist opts) 
@@ -408,6 +409,7 @@
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
+           (if (eq? mode 'host) " -host" "")
            " -D compiling-extension -J -s"
            " -setup-mode -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
@@ -429,6 +431,7 @@
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -s"
+           (if (eq? mode 'host) " -host" "")
            " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
@@ -451,6 +454,7 @@
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode"
+           (if (eq? mode 'host) " -host" "")
            " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
@@ -472,6 +476,7 @@
          (src (quotearg (or ssname (conc sname ".scm")))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
+           (if (eq? mode 'host) " -host" "")
            " -static -setup-mode -I " srcdir " -C -I" 
            srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
