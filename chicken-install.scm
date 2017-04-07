@@ -444,27 +444,30 @@
                    (if lax
                        (print "no connection to server or egg not found remotely - will use cached version")
                        (error "extension or version not found"))
-                   (receive (dir ver)
-                     (try-download name (resolve-location (car srvs))
-                                   version: version 
-                                   destination: tmpdir
-                                   tests: run-tests 
-                                   proxy-host: proxy-host
-                                   proxy-port: proxy-port 
-                                   proxy-user-pass: proxy-user-pass)
-                     (cond (dir
-                                (copy-egg-sources tmpdir dest)
-                                (delete-directory tmpdir #t)
-                                (when ver
-                                  (with-output-to-file
-                                    (make-pathname dest +version-file+)
-                                    (cut write ver)))
-                                (with-output-to-file
-                                  (make-pathname dest +timestamp-file+)
-                                  (cut write (current-seconds))))
-                           (else (loop (cdr srvs)))))))))
+                   (begin
+                     (d "trying server ~a ...~%" (car srvs)) 
+                     (receive (dir ver)
+                       (try-download name (resolve-location (car srvs))
+                                     version: version 
+                                     destination: tmpdir
+                                     tests: run-tests 
+                                     proxy-host: proxy-host
+                                     proxy-port: proxy-port 
+                                     proxy-user-pass: proxy-user-pass)
+                       (cond (dir
+                               (copy-egg-sources tmpdir dest)
+                               (delete-directory tmpdir #t)
+                               (when ver
+                                 (with-output-to-file
+                                   (make-pathname dest +version-file+)
+                                     (cut write ver)))
+                               (with-output-to-file
+                                 (make-pathname dest +timestamp-file+)
+                                 (cut write (current-seconds))))
+                             (else (loop (cdr srvs))))))))))
           ((probe-dir (make-pathname (car locs) name))
            => (lambda (dir)
+                (d "trying location ~a ...~%" dir)
                 (let* ((eggfile (make-pathname dir name +egg-extension+))
                        (info (validate-egg-info (load-egg-info eggfile)))
                        (rversion (get-egg-property info 'version)))
@@ -473,7 +476,7 @@
                       (copy-egg-sources dir dest)
                       (loop (cdr locs))))))
           (else (loop (cdr locs))))))
-  
+
 (define (copy-egg-sources from to)
   ;;XXX should probably be done manually, instead of calling tool
   (let ((cmd (quote-all
