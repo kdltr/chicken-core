@@ -317,7 +317,7 @@
 			 (cdr x))))
                   ((location)
                    (set! default-locations
-                     (append default-locations (list (cdr x)))))
+                     (append default-locations (cdr x))))
 		  ((hack)
 		   (set! hacks (append hacks (list (eval (cadr x))))))
 		  (else (broken x))))
