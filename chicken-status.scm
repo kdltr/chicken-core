@@ -155,12 +155,12 @@
                                       w #t #\.))
                 (print egg))
             (when comps
-              (let ((lst (gather-components eggs #f)))
+              (let ((lst (gather-components comps #f)))
                 (for-each
                   (lambda (comp)
                     (print "  " (format-string (->string (car comp)) 32)
-                           "  " (format-string (->string (cadr comp)) 32)
-                           (case (caddr comp)
+                           "  " (format-string (->string (caddr comp)) 32)
+                           (case (cadr comp)
                              ((host) " (host)")
                              ((target) " (target)")
                              (else ""))))
