@@ -802,14 +802,16 @@
                                        (install-prefix 'host name info)
                                        (install-suffix 'host name info)
                                        keepfiles)
-              (print "building " name)
-              (run-script dir bscript platform)
-              (unless no-install
-                (print "  installing " name)
-                (run-script dir iscript platform sudo: sudo-install))
-              (when (and (member name tested-eggs)
-                         (not (test-egg egg platform)))
-                (exit 2)))))
+              (cond (do-not-build (print bscript "\n" iscript))
+                    (else
+                      (print "building " name)
+                      (run-script dir bscript platform)
+                      (unless no-install
+                        (print "  installing " name)
+                        (run-script dir iscript platform sudo: sudo-install))
+                      (when (and (member name tested-eggs)
+                                 (not (test-egg egg platform)))
+                        (exit 2)))))))
         (when target-extension
           (let-values (((build install info) (compile-egg-info info platform 'target)))
             (let ((bscript (make-pathname dir name 
@@ -825,11 +827,13 @@
                                        (install-prefix 'target name info)
                                        (install-suffix 'target name info)
                                        keepfiles)
-              (print "building " name " (target)")
-              (run-script dir bscript platform)
-              (unless no-install
-                (print "  installing " name " (target)")
-                (run-script dir iscript platform)))))))
+              (cond (do-not-build (print bscript "\n" iscript))
+                    (else
+                      (print "building " name " (target)")
+                      (run-script dir bscript platform)
+                      (unless no-install
+                        (print "  installing " name " (target)")
+                        (run-script dir iscript platform)))))))))
     (order-installed-eggs)))
 
 (define (order-installed-eggs)
@@ -864,17 +868,13 @@
         #t)))
 
 (define (run-script dir script platform #!key sudo (stop #t))
-  (cond (do-not-build
-          (print script)
-          #t)
-        (else
-          (d "running script ~a~%" script)
-          (if (eq? platform 'windows)
-              (exec script stop)
-              (exec (string-append (if sudo 
-                                       (string-append sudo-program " ")
-                                       "")
-                                   "sh " script) stop)))))
+  (d "running script ~a~%" script)
+  (if (eq? platform 'windows)
+      (exec script stop)
+      (exec (string-append (if sudo 
+                               (string-append sudo-program " ")
+                               "")
+                           "sh " script) stop)))
 
 (define (write-info name info mode)
   (d "writing info for egg ~a~%" name info)
