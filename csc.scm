@@ -873,7 +873,11 @@ EOF
   (let ((ofiles '()))
     (for-each
      (lambda (f)
-       (let ((fo (pathname-replace-extension f object-extension)))
+       (let ((fo (if (and compile-only
+                          target-filename
+                          (= 1 (length c-files)))
+                     target-filename
+                     (pathname-replace-extension f object-extension))))
 	 (when (member fo object-files)
 	   (stop "object file generated from `~a' will overwrite explicitly given object file `~a'"
 		 f fo))
