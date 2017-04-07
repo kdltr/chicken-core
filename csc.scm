@@ -847,7 +847,9 @@ EOF
 		      (append 
 		       extra-features
 		       translate-options 
-                       (if static
+                       (if (and static
+                                (not (member "-emit-link-file"
+                                             translate-options)))
                            (list "-emit-link-file"
                                  (pathname-replace-extension fc "link"))
                            '())
