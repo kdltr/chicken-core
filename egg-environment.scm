@@ -50,6 +50,7 @@ EOF
 (define default-ldflags (foreign-value "C_TARGET_LDFLAGS" c-string))
 (define default-libs (foreign-value "C_TARGET_MORE_LIBS" c-string))
 (define default-libdir (foreign-value "C_TARGET_LIB_HOME" c-string))
+(define default-runlibdir (foreign-value "C_TARGET_RUN_LIB_HOME" c-string))
 (define default-slibdir (foreign-value "C_TARGET_STATIC_LIB_HOME" c-string))
 (define default-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
 (define default-bindir (foreign-value "C_TARGET_BIN_HOME" c-string))
@@ -87,10 +88,13 @@ EOF
 (define target-repo
   (string-append default-libdir "/chicken/" (number->string binary-version)))
 
+(define target-run-repo
+  (string-append default-runlibdir "/chicken/" (number->string binary-version)))
+
 (define +egg-info-extension+ ".egg-info") 
 
-(define (destination-repository mode)
+(define (destination-repository mode #!optional run)
   (if (eq? 'target mode)
-      target-repo
+      (if run target-run-repo target-repo)
       (or (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
           host-repo)))

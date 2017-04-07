@@ -40,6 +40,7 @@
 (define +windows-executable-extension+ ".exe")
 (define +unix-object-extension+ ".o")
 (define +windows-object-extension+ ".obj")
+(define +link-file-extension+ ".link")
 
 (define keep-generated-files #f)
 
@@ -142,13 +143,13 @@
                       (oname #f)
                       (opts '()))
             (for-each compile-extension/program (cddr info))
-            (let ((dest (destination-repository mode)))
+            (let ((dest (destination-repository mode #t)))
               (when (eq? #t tfile) (set! tfile target))
               (when (eq? #t ifile) (set! ifile target))
               (addfiles 
                 (if (memq 'static link) 
                     (list (conc dest "/" target objext)
-                          (conc dest "/" target ".link"))
+                          (conc dest "/" target +link-file-extension+))
                     '())
                 (if (memq 'dynamic link) (list (conc dest "/" target ".so")) '())
                 (if tfile 
@@ -172,7 +173,9 @@
                       (files '()))
             (for-each compile-data/include (cddr info))
             (let* ((dest (or dest 
-                             (if (eq? mode 'target) default-sharedir host-sharedir)))
+                             (if (eq? mode 'target)
+                                 default-sharedir    ; XXX wrong!
+                                 host-sharedir)))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! data
@@ -196,7 +199,9 @@
                       (files '()))
             (for-each compile-data/include (cddr info))
             (let* ((dest (or dest 
-                             (if (eq? mode 'target) default-incdir host-incdir)))
+                             (if (eq? mode 'target) 
+                                 default-incdir   ; XXX wrong!
+                                 host-incdir)))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! cinc
@@ -209,7 +214,9 @@
                       (files '()))
             (for-each compile-data/include (cddr info))
             (let* ((dest (or dest
-                             (if (eq? mode 'target) default-sharedir host-sharedir)))
+                             (if (eq? mode 'target) 
+                                 default-sharedir   ; XXX wrong!
+                                 host-sharedir)))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! scminc 
@@ -226,7 +233,9 @@
                       (oname #f)
                       (opts '()))
             (for-each compile-extension/program (cddr info))
-            (let ((dest (if (eq? mode 'target) default-bindir host-bindir)))
+            (let ((dest (if (eq? mode 'target) 
+                            default-bindir   ; XXX wrong!
+                            host-bindir)))
               (addfiles (list (conc dest "/" target exeext))))
             (set! prgs 
               (cons (list target dependencies: deps source: src options: opts 
@@ -387,6 +396,8 @@
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -static -I " srcdir 
+           " -emit-link-file "
+           (quotearg (target-file (conc sname +link-file-extension+) mode))
            (if (eq? mode 'host) " -host" "")
            " -D compiling-extension -c -J -unit " name
            " -D compiling-static-extension"
@@ -502,19 +513,22 @@
          (ext (object-extension platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
-         (outlnk (quotearg (target-file (conc sname ".link") mode)))
+         (outlnk (quotearg (target-file (conc sname +link-file-extension+)
+                                        mode)))
          (dest (destination-repository mode))
          (dfile (quotearg dest))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
-    (print cmd " " out " " ddir (quotearg (slashify (conc dest "/" 
-                                                          output-file
-                                                          ext) 
-                                                    platform)))
-    (print cmd " " outlnk " " ddir (quotearg (slashify (conc dest "/" 
-                                                             output-file
-                                                             ".link") 
-                                                       platform)))))
+    (print cmd " " out " " ddir
+           (quotearg (slashify (conc dest "/" 
+                                     output-file
+                                     ext) 
+                               platform)))
+    (print cmd " " outlnk " " ddir
+           (quotearg (slashify (conc dest "/" 
+                                     output-file
+                                     +link-file-extension+)
+                               platform)))))
 
 (define ((install-dynamic-extension name #!key mode (ext ".so")
                                     output-file)
