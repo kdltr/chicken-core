@@ -72,15 +72,9 @@
   (fprintf (current-error-port) "~a: ~?~%" CSC_PROGRAM msg args)
   (exit 64) )
 
-(define chicken-prefix (get-environment-variable "CHICKEN_PREFIX"))
 (define arguments (command-line-arguments))
 (define host-mode (member "-host" arguments))
 (define cross-chicken (feature? #:cross-chicken))
-
-(define (prefix str dir default)
-  (if chicken-prefix
-      (make-pathname (list chicken-prefix dir) str)
-      default) )
 
 (define (back-slash->forward-slash path)
   (if windows-shell
@@ -94,12 +88,10 @@
   (qs (normalize-pathname str)))
 
 (define home
-  (prefix "" "share" (if host-mode host-sharedir default-sharedir)))
+  (if host-mode host-sharedir default-sharedir))
 
 (define translator
-  (quotewrap
-   (prefix "chicken" "bin"
-	   (make-pathname host-bindir CHICKEN_PROGRAM))))
+  (quotewrap (make-pathname host-bindir CHICKEN_PROGRAM)))
 
 (define compiler (quotewrap (if host-mode host-cc default-cc)))
 (define c++-compiler (quotewrap (if host-mode host-cxx default-cxx)))
@@ -116,14 +108,19 @@
 (define pic-options (if (or mingw cygwin) '("-DPIC") '("-fPIC" "-DPIC")))
 (define generate-manifest #f)
 
-(define libchicken (string-append "lib" INSTALL_LIB_NAME))
-(define dynamic-libchicken
-  (if cygwin
-      (string-append "cyg" INSTALL_LIB_NAME "-0")
-      libchicken))
+(define (libchicken)
+  (string-append "lib"
+                 (if (not host-mode)
+                     TARGET_LIB_NAME
+                     INSTALL_LIB_NAME)))
 
-(define default-library
-  (string-append libchicken "." library-extension))
+(define (dynamic-libchicken)
+  (if cygwin
+      (string-append "cyg" INSTALL_LIB_NAME "-0")  ; XXX not target
+      (libchicken)))
+
+(define (default-library)
+  (string-append (libchicken) "." library-extension))
 
 (define default-compilation-optimization-options (string-split (if host-mode host-cflags default-cflags)))
 (define best-compilation-optimization-options default-compilation-optimization-options)
@@ -210,25 +207,20 @@
 (define extra-shared-libraries 
   (if host-mode host-libs default-libs))
 
-(define default-library-files 
-  (list
-   (prefix default-library "lib"
-	   (string-append
-	    (if host-mode host-libdir default-libdir)
-	    (string-append "/" default-library)))) )
+(define (default-library-files)
+  (list (string-append (if host-mode host-libdir default-libdir)
+                       (string-append "/" (default-library)))))
 
-(define default-shared-library-files 
+(define (default-shared-library-files)
   (list (string-append "-l" (if host-mode INSTALL_LIB_NAME TARGET_LIB_NAME))))
 
-(define library-files default-library-files)
-(define shared-library-files default-shared-library-files)
+(define (library-files) (default-library-files))
+(define (shared-library-files) (default-shared-library-files))
 
 (define translate-options '())
 
 (define include-dir
-  (let ((id (prefix ""
-                    (make-pathname "include" "chicken")
-		    (if host-mode host-incdir default-incdir))))
+  (let ((id (if host-mode host-incdir default-incdir)))
     (and (not (member id '("/usr/include" "")))
 	 id) ) )
 
@@ -248,8 +240,7 @@
 (define linking-optimization-options default-linking-optimization-options)
 
 (define library-dir
-  (prefix "" "lib"
-         (if host-mode host-libdir default-libdir)))
+  (if host-mode host-libdir default-libdir))
 
 (define link-options '())
 
@@ -261,11 +252,9 @@
 	   (conc " -Wl,-R"
 		 (if deployed
 		     "\\$ORIGIN"
-		     (quotewrap
-		      (prefix "" "lib"
-			      (if host-mode
-				  host-libdir
-				  TARGET_RUN_LIB_HOME)))))))
+		     (quotewrap (if host-mode
+                                    host-libdir
+		   		    TARGET_RUN_LIB_HOME))))))
 	 (aix
 	  (list (conc "-Wl,-R\"" library-dir "\"")))
 	 (else
@@ -291,14 +280,13 @@
 ;;; Locate object files for linking:
 
 (define (find-object-files name)
-  (define (locate-object-file filename repo)
-    (and-let* ((f (##sys#resolve-include-filename filename '() repo #f)))
-      (list f)))
-  (let ((f (make-pathname #f name object-extension)))
-    (or (locate-object-file f #f)
-	(and (not ignore-repository)
-             (locate-object-file f #t))
-	(stop "could not find linked extension: ~a" name))))
+  (or (file-exists? (make-pathname #f name object-extension))
+      (and (not ignore-repository)
+           (file-exists? (make-pathname (destination-repository (if host-mode
+                                                                    'host
+                                                                    'target))
+                                        name object-extension)))
+      (stop "could not find linked extension: ~a" name)))
 
 
 ;;; Display usage information:
@@ -941,14 +929,15 @@ EOF
     (when (and osx (or (not cross-chicken) host-mode))
       (command
        (string-append
-	POSTINSTALL_PROGRAM " -change " libchicken ".dylib "
+	POSTINSTALL_PROGRAM " -change " (libchicken) ".dylib "
 	(quotewrap 
-	 (let ((lib (string-append libchicken ".dylib")))
+	 (let ((lib (string-append (libchicken) ".dylib")))
 	   (if deployed
 	       (make-pathname "@executable_path" lib)
-	       (make-pathname
-		(lib-path)
-		lib))))
+	       (make-pathname (if host-mode
+                                  host-libdir
+                                  TARGET_RUN_LIB_HOME)
+                       lib))))
 	" " 
 	target) )
       (when gui
@@ -959,29 +948,22 @@ EOF
                 transient-link-files)))))
 
 (define (collect-linked-objects object-files)
-  (let loop ((os object-files) (os2 object-files))
-    (if (null? os)
-        (delete-duplicates (reverse os2) string=?)
-        (let* ((o (car os))
-               (lfile (pathname-replace-extension o "link"))
-               (newos (if (file-exists? lfile)
-                          (with-input-from-file lfile read) 
-                          '())))
-          (loop (append newos (cdr os)) (append newos os2))))))
-
-(define (lib-path)
-  (prefix "" 
-	  "lib"
-	  (if host-mode host-libdir TARGET_RUN_LIB_HOME)))
-
-(define (target-lib-path)
-  (or (get-environment-variable "TARGET_LIB_PATH")
-      (let ((tdir default-libdir))
-	(if (and (not (string=? tdir ""))
-		 cross-chicken
-		 (not host-mode))
-	    tdir
-	    (lib-path)))))
+  (let ((hrepo (destination-repository 'host))
+        (trepo (destination-repository 'target)))
+    (define (locate lst)   ; add repo-path
+      (map (lambda (ofile)
+             (make-pathname (destination-repository (if host-mode 'host 'target))
+                            ofile))
+            lst))
+    (let loop ((os object-files) (os2 object-files))
+      (if (null? os)
+          (delete-duplicates (reverse os2) string=?)
+          (let* ((o (car os))
+                 (lfile (pathname-replace-extension o "link"))
+                 (newos (if (file-exists? lfile)
+                            (locate (with-input-from-file lfile read))
+                            '())))
+            (loop (append newos (cdr os)) (append newos os2)))))))
 
 (define (copy-files from to)
   (command
@@ -1000,8 +982,8 @@ EOF
   (string-intersperse
    (append
     (if static
-        library-files
-        shared-library-files)
+        (library-files)
+        (shared-library-files))
     (if static
         (list extra-libraries)
         (list extra-shared-libraries)))))
