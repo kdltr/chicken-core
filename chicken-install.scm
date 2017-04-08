@@ -40,6 +40,7 @@
 (import (chicken io))
 (import (chicken time))
 (import (chicken pathname))
+(import (chicken process))
 (import (chicken pretty-print))
 
 (define +defaults-version+ 2)
@@ -869,12 +870,21 @@
 
 (define (run-script dir script platform #!key sudo (stop #t))
   (d "running script ~a~%" script)
-  (if (eq? platform 'windows)
-      (exec script stop)
-      (exec (string-append (if sudo 
-                               (string-append sudo-program " ")
-                               "")
-                           "sh " script) stop)))
+  (exec (if (eq? platform 'windows)
+            script
+            (string-append
+              (if sudo 
+                  (string-append sudo-program " ")
+                  "")
+              (let ((dyld (and (eq? (software-version) 'macosx)
+                               (get-environment-variable "DYLD_LIBRARY_PATH"))))
+                (if dyld
+                    (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
+                                   (qs dyld)
+                                   " ")
+                    ""))
+              "sh " script))
+        stop))
 
 (define (write-info name info mode)
   (d "writing info for egg ~a~%" name info)
