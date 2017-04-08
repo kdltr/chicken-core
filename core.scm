@@ -327,6 +327,7 @@
 	chicken.eval
 	chicken.expand
 	chicken.foreign
+        chicken.pathname
 	chicken.format
 	chicken.internal
 	chicken.io
@@ -1689,7 +1690,9 @@
 ;;; Register statically linked extension
 
 (define (register-static-extension id path)
-  (set! linked-static-extensions (cons path linked-static-extensions)))
+  (set! linked-static-extensions
+    (cons (pathname-strip-directory path)
+          linked-static-extensions)))
 
 
 ;;; Create entry procedure:
