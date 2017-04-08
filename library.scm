@@ -3014,7 +3014,7 @@ EOF
 	       (if (eq? get get2)
 		   get
 		   (##sys#become! (list (cons get get2))) ) )
-	     (error "can't set setter of non-procedure" get) ) ) ) )
+	     (error "can not set setter of non-procedure" get) ) ) ) )
      proc) ) )
 
 (define ##sys#setter setter)
