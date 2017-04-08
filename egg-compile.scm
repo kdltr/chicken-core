@@ -397,7 +397,7 @@
            (if keep-generated-files " -k" "")
            " -setup-mode -static -I " srcdir 
            " -emit-link-file "
-           (quotearg (target-file (conc sname +link-file-extension+) mode))
+           (quotearg (conc sname +link-file-extension+))
            (if (eq? mode 'host) " -host" "")
            " -D compiling-extension -c -J -unit " name
            " -D compiling-static-extension"
@@ -513,8 +513,7 @@
          (ext (object-extension platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
-         (outlnk (quotearg (target-file (conc sname +link-file-extension+)
-                                        mode)))
+         (outlnk (quotearg (conc sname +link-file-extension+)))
          (dest (destination-repository mode))
          (dfile (quotearg dest))
          (ddir (shell-variable "DESTDIR" platform)))
