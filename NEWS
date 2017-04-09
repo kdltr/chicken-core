@@ -72,6 +72,9 @@
   - Unit "posix": If file-lock, file-lock/blocking or file-unlock are
     interrupted by a signal, we now retry (thanks to Joerg Wittenberger).
 
+- Build system
+  - Fixed broken compilation on NetBSD, due to missing _NETBSD_SOURCE.
+
 
 4.12.0
 

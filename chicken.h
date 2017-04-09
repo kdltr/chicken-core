@@ -59,6 +59,10 @@
 #  define _BSD_SOURCE
 # endif
 
+# ifndef _NETBSD_SOURCE
+#  define _NETBSD_SOURCE
+# endif
+
 # ifndef _SVID_SOURCE
 #  define _SVID_SOURCE
 # endif
