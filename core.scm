@@ -110,7 +110,7 @@
 ; (##core#lambda <variable> <body>)
 ; (##core#lambda ({<variable>}+ [. <variable>]) <body>)
 ; (##core#set! <variable> <exp>)
-; (##core#define-toplevel <variable> <exp>)
+; (##core#ensure-toplevel-definition <variable>)
 ; (##core#begin <exp> ...)
 ; (##core#include <string> <string> | #f)
 ; (##core#loop-lambda <llist> <body>)
@@ -1043,65 +1043,71 @@
 			  (set-real-names! aliases vars)
 			  `(##core#lambda ,aliases ,body) ) )
 
-			((##core#set! ##core#define-toplevel)
-			 (let* ([var0 (cadr x)]
-				[var (lookup var0 se)]
-				[ln (get-line x)]
-				[val (caddr x)] )
-			   (when (and (eq? name '##core#define-toplevel) (not tl?))
-			     (quit-compiling
-			      "~atoplevel definition of `~s' in non-toplevel context"
-			      (if ln (sprintf "(~a) - " ln) "")
-			      var))
-			   (when (memq var unlikely-variables)
-			     (warning
-			      (sprintf "assignment to variable `~s' possibly unintended"
-				var)))
-			   (cond ((assq var foreign-variables)
-				   => (lambda (fv)
-					(let ([type (second fv)]
-					      [tmp (gensym)] )
-					  (walk
-					   `(let ([,tmp ,(foreign-type-convert-argument val type)])
-					      (##core#inline_update
-					       (,(third fv) ,type)
-					       ,(foreign-type-check tmp type) ) )
-					   e se #f #f h ln #f))))
-				 ((assq var location-pointer-map)
-				  => (lambda (a)
-				       (let* ([type (third a)]
-					      [tmp (gensym)] )
-					 (walk
-					  `(let ([,tmp ,(foreign-type-convert-argument val type)])
-					     (##core#inline_loc_update
-					      (,type)
-					      ,(second a)
-					      ,(foreign-type-check tmp type) ) )
-					  e se #f #f h ln #f))))
-				 (else
-				  (unless (memq var e) ; global?
-				    (set! var (or (##sys#get var '##core#primitive)
-						  (##sys#alias-global-hook var #t dest)))
-				    (when safe-globals-flag
-				      (mark-variable var '##compiler#always-bound-to-procedure)
-				      (mark-variable var '##compiler#always-bound))
-				    (when emit-debug-info
-				      (set! val
-					`(let ((,var ,val))
-					   (##core#debug-event "C_DEBUG_GLOBAL_ASSIGN" ',var)
-					   ,var))))
-				  (cond ((##sys#macro? var)
-					 (warning
-					  (sprintf "assigned global variable `~S' is syntax ~A"
-					    var
-					    (if ln (sprintf "(~a)" ln) "") ))
-					 (when undefine-shadowed-macros (##sys#undefine-macro! var) ) )
-					((and ##sys#notices-enabled
-					      (assq var (##sys#current-environment)))
-					 (##sys#notice "assignment to imported value binding" var)))
-				  (when (keyword? var)
-				    (warning (sprintf "assignment to keyword `~S'" var) ))
-				  `(set! ,var ,(walk val e se var0 (memq var e) h ln #f))))))
+		       ((##core#ensure-toplevel-definition)
+			(unless tl?
+			  (let* ((var0 (cadr x))
+				 (var (lookup var0 se))
+				 (ln (get-line x)))
+			   (quit-compiling
+			    "~atoplevel definition of `~s' in non-toplevel context"
+			    (if ln (sprintf "(~a) - " ln) "")
+			    var)))
+			'(##core#undefined))
+
+		       ((##core#set!)
+			(let* ((var0 (cadr x))
+			       (var (lookup var0 se))
+			       (ln (get-line x))
+			       (val (caddr x)))
+			  (when (memq var unlikely-variables)
+			    (warning
+			     (sprintf "assignment to variable `~s' possibly unintended"
+			       var)))
+			  (cond ((assq var foreign-variables)
+				 => (lambda (fv)
+				      (let ((type (second fv))
+					    (tmp (gensym)))
+					(walk
+					 `(let ((,tmp ,(foreign-type-convert-argument val type)))
+					    (##core#inline_update
+					     (,(third fv) ,type)
+					     ,(foreign-type-check tmp type)))
+					 e se #f #f h ln #f))))
+				((assq var location-pointer-map)
+				 => (lambda (a)
+				      (let* ((type (third a))
+					     (tmp (gensym)))
+					(walk
+					 `(let ((,tmp ,(foreign-type-convert-argument val type)))
+					    (##core#inline_loc_update
+					     (,type)
+					     ,(second a)
+					     ,(foreign-type-check tmp type)))
+					 e se #f #f h ln #f))))
+				(else
+				 (unless (memq var e) ; global?
+				   (set! var (or (##sys#get var '##core#primitive)
+						 (##sys#alias-global-hook var #t dest)))
+				   (when safe-globals-flag
+				     (mark-variable var '##compiler#always-bound-to-procedure)
+				     (mark-variable var '##compiler#always-bound))
+				   (when emit-debug-info
+				     (set! val
+				       `(let ((,var ,val))
+					  (##core#debug-event "C_DEBUG_GLOBAL_ASSIGN" ',var)
+					  ,var))))
+				 (cond ((##sys#macro? var)
+					(warning
+					 (sprintf "assigned global variable `~S' is syntax ~A"
+					   var
+					   (if ln (sprintf "(~a)" ln) "")))
+					(when undefine-shadowed-macros (##sys#undefine-macro! var)))
+				       ((and ##sys#notices-enabled
+					     (assq var (##sys#current-environment)))
+					(##sys#notice "assignment to imported value binding" var)))
+				 (when (keyword? var)
+				   (warning (sprintf "assignment to keyword `~S'" var)))
+				 `(set! ,var ,(walk val e se var0 (memq var e) h ln #f))))))
 
 			((##core#debug-event)
 			 `(##core#debug-event

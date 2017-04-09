@@ -1076,9 +1076,11 @@
                    (##sys#register-export name (##sys#current-module)))
 		 (when (c (r 'define) head)
 		   (chicken.expand#defjam-error x))
-		 `(##core#define-toplevel
-		   ,head 
-		   ,(if (pair? body) (car body) '(##core#undefined))) )
+		 `(##core#begin
+		    (##core#ensure-toplevel-definition ,head)
+		    (##core#set!
+		     ,head
+		     ,(if (pair? body) (car body) '(##core#undefined)))))
 		((pair? (car head))
 		 (##sys#check-syntax 'define form '(_ (_ . lambda-list) . #(_ 1)))
 		 (loop (chicken.expand#expand-curried-define head body '()))) ;XXX '() should be se

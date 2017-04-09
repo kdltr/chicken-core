@@ -366,14 +366,17 @@
    (##sys#er-transformer
     (lambda (form r c)
       (##sys#check-syntax 'define-values form '(_ lambda-list _))
-      (##sys#decompose-lambda-list
-       (cadr form)
-       (lambda (vars argc rest)
-         (for-each (lambda (nm)
-                     (let ((name (##sys#get nm '##core#macro-alias nm)))
-                       (##sys#register-export name (##sys#current-module))))
-                   vars)))
-      `(,(r 'set!-values) ,@(cdr form))))))
+      `(##core#begin
+	,@(##sys#decompose-lambda-list
+	   (cadr form)
+	   (lambda (vars argc rest)
+	     (for-each (lambda (nm)
+			 (let ((name (##sys#get nm '##core#macro-alias nm)))
+			   (##sys#register-export name (##sys#current-module))))
+		       vars)
+	     (map (lambda (nm) `(##core#ensure-toplevel-definition ,nm))
+		  vars)))
+	,(##sys#expand-multiple-values-assignment (cadr form) (caddr form)))))))
 
 (##sys#extend-macro-environment
  'let-values '()

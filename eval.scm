@@ -371,13 +371,17 @@
 				      [x3 (compile `(##core#begin ,@(##sys#slot (##sys#slot body 1) 1)) e #f tf cntr se tl?)] )
 				 (lambda (v) (##core#app x1 v) (##core#app x2 v) (##core#app x3 v)) ) ) ) ) ]
 
-			 [(##core#set! ##core#define-toplevel)
+			 ((##core#ensure-toplevel-definition)
+			  (unless tl?
+			    (##sys#error "toplevel definition in non-toplevel context for variable" (cadr x)))
+			  (compile
+			   '(##core#undefined) e #f tf cntr se #f))
+
+			 [(##core#set!)
 			  (let ((var (cadr x)))
-			    (when (and (eq? head '##core#define-toplevel) (not tl?))
-			      (##sys#error "toplevel definition in non-toplevel context for variable" var))
 			    (receive (i j) (lookup var e se)
 			      (let ((val (compile (caddr x) e var tf cntr se #f)))
-				(cond [(not i)
+				(cond ((not i)
 				       (when ##sys#notices-enabled
 					 (and-let* ((a (assq var (##sys#current-environment)))
 						    ((symbol? (cdr a))))
@@ -392,12 +396,12 @@
 					       (##sys#error 'eval "environment is not mutable" evalenv var)) ;XXX var?
 					     (lambda (v)
 					       (##sys#persist-symbol var)
-					       (##sys#setslot var 0 (##core#app val v))) ) ) ]
-				      [(zero? i) (lambda (v) (##sys#setslot (##sys#slot v 0) j (##core#app val v)))]
-				      [else
+					       (##sys#setslot var 0 (##core#app val v))))))
+				      ((zero? i) (lambda (v) (##sys#setslot (##sys#slot v 0) j (##core#app val v))))
+				      (else
 				       (lambda (v)
 					 (##sys#setslot
-					  (##core#inline "C_u_i_list_ref" v i) j (##core#app val v)) ) ] ) ) ) ) ]
+					  (##core#inline "C_u_i_list_ref" v i) j (##core#app val v))))))))]
 
 			 [(##core#let)
 			  (let* ([bindings (cadr x)]
