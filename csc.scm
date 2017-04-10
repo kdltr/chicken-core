@@ -880,7 +880,7 @@ EOF
 	   (list (cond (cpp-mode c++-compiler)
 		       (else compiler) )
 		 (quotewrap f)
-		 (string-append compile-output-flag (quotewrap fo)) 
+		 (string-append compile-output-flag (quotewrap (if compile-only target-filename fo))) 
 		 compile-only-flag
 		 (if (and cpp-mode (string=? "g++" c++-compiler))
 		     "-Wno-write-strings"
