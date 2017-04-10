@@ -287,7 +287,7 @@
 
 ;;; Locate object files for linking:
 
-(define (find-object-files name)
+(define (find-object-file name)
   (or (file-exists? (make-pathname #f name object-extension))
       (and (not ignore-repository)
            (file-exists? (make-pathname (destination-repository (if host-mode
@@ -546,7 +546,8 @@ EOF
 	     (exit) )
 	   (when (pair? linked-extensions)
 	     (set! object-files ; add objects from linked extensions
-	       (append object-files (append-map find-object-files linked-extensions))))
+	       (append object-files
+                (map find-object-file linked-extensions))))
 	   (cond [(null? scheme-files)
 		  (when (and (null? c-files) 
 			     (null? object-files))
