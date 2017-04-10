@@ -226,7 +226,7 @@
 
 (define compile-to-closure
   (let ((reverse reverse))
-    (lambda (exp env se #!optional cntr evalenv static)
+    (lambda (exp env se #!optional cntr evalenv static tl?)
 
       (define (find-id id se)		; ignores macro bindings
 	(cond ((null? se) #f)
@@ -271,7 +271,7 @@
       (define (decorate p ll h cntr)
 	(eval-decorator p ll h cntr))
 
-      (define (compile x e h tf cntr se)
+      (define (compile x e h tf cntr se tl?)
 	(cond ((keyword? x) (lambda v x))
 	      ((symbol? x)
 	       (receive (i j) (lookup x e se)
@@ -337,7 +337,7 @@
 	       (let ((x2 (expand x se)))
 		 (d `(EVAL/EXPANDED: ,x2))
 		 (if (not (eq? x2 x))
-		     (compile x2 e h tf cntr se)
+		     (compile x2 e h tf cntr se tl?)
 		     (let ((head (rename (##sys#slot x 0) se)))
 		       ;; here we did't resolve ##core#primitive, but that is done in compile-call (via 
 		       ;; a normal walking of the operator)
@@ -360,41 +360,47 @@
 			    (lambda v c)))
 
 			 [(##core#check)
-			  (compile (cadr x) e h tf cntr se) ]
+			  (compile (cadr x) e h tf cntr se #f) ]
 
 			 [(##core#immutable)
-			  (compile (cadr x) e #f tf cntr se) ]
+			  (compile (cadr x) e #f tf cntr se #f) ]
 		   
 			 [(##core#undefined) (lambda (v) (##core#undefined))]
 
 			 [(##core#if)
-			  (let* ([test (compile (cadr x) e #f tf cntr se)]
-				 [cns (compile (caddr x) e #f tf cntr se)]
-				 [alt (if (pair? (cdddr x))
-					  (compile (cadddr x) e #f tf cntr se)
-					  (compile '(##core#undefined) e #f tf cntr se) ) ] )
+			  (let* ((test (compile (cadr x) e #f tf cntr se #f))
+				 (cns (compile (caddr x) e #f tf cntr se #f))
+				 (alt (if (pair? (cdddr x))
+					  (compile (cadddr x) e #f tf cntr se #f)
+					  (compile '(##core#undefined) e #f tf cntr se #f) ) ) )
 			    (lambda (v) (if (##core#app test v) (##core#app cns v) (##core#app alt v))) ) ]
 
 			 [(##core#begin)
 			  (let* ((body (##sys#slot x 1))
 				 (len (length body)) )
 			    (case len
-			      [(0) (compile '(##core#undefined) e #f tf cntr se)]
-			      [(1) (compile (##sys#slot body 0) e #f tf cntr se)]
-			      [(2) (let* ([x1 (compile (##sys#slot body 0) e #f tf cntr se)]
-					  [x2 (compile (cadr body) e #f tf cntr se)] )
-				     (lambda (v) (##core#app x1 v) (##core#app x2 v)) ) ]
-			      [else
-			       (let* ([x1 (compile (##sys#slot body 0) e #f tf cntr se)]
-				      [x2 (compile (cadr body) e #f tf cntr se)] 
-				      [x3 (compile `(##core#begin ,@(##sys#slot (##sys#slot body 1) 1)) e #f tf cntr se)] )
-				 (lambda (v) (##core#app x1 v) (##core#app x2 v) (##core#app x3 v)) ) ] ) ) ]
+			      ((0) (compile '(##core#undefined) e #f tf cntr se tl?))
+			      ((1) (compile (##sys#slot body 0) e #f tf cntr se tl?))
+			      ((2) (let* ([x1 (compile (##sys#slot body 0) e #f tf cntr se tl?)]
+					  [x2 (compile (cadr body) e #f tf cntr se tl?)] )
+				     (lambda (v) (##core#app x1 v) (##core#app x2 v)) ) )
+			      (else
+			       (let* ([x1 (compile (##sys#slot body 0) e #f tf cntr se tl?)]
+				      [x2 (compile (cadr body) e #f tf cntr se tl?)]
+				      [x3 (compile `(##core#begin ,@(##sys#slot (##sys#slot body 1) 1)) e #f tf cntr se tl?)] )
+				 (lambda (v) (##core#app x1 v) (##core#app x2 v) (##core#app x3 v)) ) ) ) ) ]
+
+			 ((##core#ensure-toplevel-definition)
+			  (unless tl?
+			    (##sys#error "toplevel definition in non-toplevel context for variable" (cadr x)))
+			  (compile
+			   '(##core#undefined) e #f tf cntr se #f))
 
 			 [(##core#set!)
 			  (let ((var (cadr x)))
 			    (receive (i j) (lookup var e se)
-			      (let ((val (compile (caddr x) e var tf cntr se)))
-				(cond [(not i)
+			      (let ((val (compile (caddr x) e var tf cntr se #f)))
+				(cond ((not i)
 				       (when ##sys#notices-enabled
 					 (and-let* ((a (assq var (##sys#current-environment)))
 						    ((symbol? (cdr a))))
@@ -409,12 +415,12 @@
 					       (##sys#error 'eval "environment is not mutable" evalenv var)) ;XXX var?
 					     (lambda (v)
 					       (##sys#persist-symbol var)
-					       (##sys#setslot var 0 (##core#app val v))) ) ) ]
-				      [(zero? i) (lambda (v) (##sys#setslot (##sys#slot v 0) j (##core#app val v)))]
-				      [else
+					       (##sys#setslot var 0 (##core#app val v))))))
+				      ((zero? i) (lambda (v) (##sys#setslot (##sys#slot v 0) j (##core#app val v))))
+				      (else
 				       (lambda (v)
 					 (##sys#setslot
-					  (##core#inline "C_u_i_list_ref" v i) j (##core#app val v)) ) ] ) ) ) ) ]
+					  (##core#inline "C_u_i_list_ref" v i) j (##core#app val v))))))))]
 
 			 [(##core#let)
 			  (let* ([bindings (cadr x)]
@@ -425,28 +431,28 @@
 				 (se2 (##sys#extend-se se vars aliases))
 				 [body (compile-to-closure
 					(##sys#canonicalize-body (cddr x) se2 #f)
-					e2 se2 cntr evalenv static) ] )
+					e2 se2 cntr evalenv static #f) ] )
 			    (case n
-			      [(1) (let ([val (compile (cadar bindings) e (car vars) tf cntr se)])
+			      [(1) (let ([val (compile (cadar bindings) e (car vars) tf cntr se #f)])
 				     (lambda (v)
 				       (##core#app body (cons (vector (##core#app val v)) v)) ) ) ]
-			      [(2) (let ([val1 (compile (cadar bindings) e (car vars) tf cntr se)]
-					 [val2 (compile (cadadr bindings) e (cadr vars) tf cntr se)] )
+			      [(2) (let ([val1 (compile (cadar bindings) e (car vars) tf cntr se #f)]
+					 [val2 (compile (cadadr bindings) e (cadr vars) tf cntr se #f)] )
 				     (lambda (v)
 				       (##core#app body (cons (vector (##core#app val1 v) (##core#app val2 v)) v)) ) ) ]
-			      [(3) (let* ([val1 (compile (cadar bindings) e (car vars) tf cntr se)]
-					  [val2 (compile (cadadr bindings) e (cadr vars) tf cntr se)] 
+			      [(3) (let* ([val1 (compile (cadar bindings) e (car vars) tf cntr se #f)]
+					  [val2 (compile (cadadr bindings) e (cadr vars) tf cntr se #f)]
 					  [t (cddr bindings)]
-					  [val3 (compile (cadar t) e (caddr vars) tf cntr se)] )
+					  [val3 (compile (cadar t) e (caddr vars) tf cntr se #f)] )
 				     (lambda (v)
 				       (##core#app 
 					body
 					(cons (vector (##core#app val1 v) (##core#app val2 v) (##core#app val3 v)) v)) ) ) ]
-			      [(4) (let* ([val1 (compile (cadar bindings) e (car vars) tf cntr se)]
-					  [val2 (compile (cadadr bindings) e (cadr vars) tf cntr se)] 
+			      [(4) (let* ([val1 (compile (cadar bindings) e (car vars) tf cntr se #f)]
+					  [val2 (compile (cadadr bindings) e (cadr vars) tf cntr se #f)]
 					  [t (cddr bindings)]
-					  [val3 (compile (cadar t) e (caddr vars) tf cntr se)] 
-					  [val4 (compile (cadadr t) e (cadddr vars) tf cntr se)] )
+					  [val3 (compile (cadar t) e (caddr vars) tf cntr se #f)]
+					  [val4 (compile (cadadr t) e (cadddr vars) tf cntr se #f)] )
 				     (lambda (v)
 				       (##core#app 
 					body
@@ -456,7 +462,7 @@
 						      (##core#app val4 v))
 					      v)) ) ) ]
 			      [else
-			       (let ([vals (map (lambda (x) (compile (cadr x) e (car x) tf cntr se)) bindings)])
+			       (let ((vals (map (lambda (x) (compile (cadr x) e (car x) tf cntr se #f)) bindings)))
 				 (lambda (v)
 				   (let ([v2 (##sys#make-vector n)])
 				     (do ([i 0 (fx+ i 1)]
@@ -477,7 +483,7 @@
 					      `(##core#set! ,(car b) ,(cadr b))) 
 					    bindings)
 			       (##core#let () ,@body) )
-			     e h tf cntr se)))
+			     e h tf cntr se #f)))
 
 			((##core#letrec)
 			 (let* ((bindings (cadr x))
@@ -494,7 +500,7 @@
 						   `(##core#set! ,v ,t))
 						 vars tmps)
 					  (##core#let () ,@body) ) )
-			      e h tf cntr se)))
+			      e h tf cntr se #f)))
 
 			 [(##core#lambda)
 			  (##sys#check-syntax 'lambda x '(_ lambda-list . #(_ 1)) #f se)
@@ -515,7 +521,7 @@
 				      (body 
 				       (compile-to-closure
 					(##sys#canonicalize-body body se2 #f)
-					e2 se2 (or h cntr) evalenv static) ) )
+					e2 se2 (or h cntr) evalenv static #f) ) )
 				 (case argc
 				   [(0) (if rest
 					    (lambda (v)
@@ -602,7 +608,7 @@
 				      se) ) )
 			    (compile
 			     (##sys#canonicalize-body (cddr x) se2 #f)
-			     e #f tf cntr se2)))
+			     e #f tf cntr se2 #f)))
 			       
 			 ((##core#letrec-syntax)
 			  (let* ((ms (map (lambda (b)
@@ -620,7 +626,7 @@
 			     ms) 
 			    (compile
 			     (##sys#canonicalize-body (cddr x) se2 #f)
-			     e #f tf cntr se2)))
+			     e #f tf cntr se2 #f)))
 			       
 			 ((##core#define-syntax)
 			  (let* ((var (cadr x))
@@ -635,22 +641,22 @@
 			     name
 			     (##sys#current-environment)
 			     (##sys#eval/meta body))
-			    (compile '(##core#undefined) e #f tf cntr se) ) )
+			    (compile '(##core#undefined) e #f tf cntr se #f) ) )
 
 			 ((##core#define-compiler-syntax)
-			  (compile '(##core#undefined) e #f tf cntr se))
+			  (compile '(##core#undefined) e #f tf cntr se #f))
 
 			 ((##core#let-compiler-syntax)
 			  (compile 
 			   (##sys#canonicalize-body (cddr x) se #f)
-			   e #f tf cntr se))
+			   e #f tf cntr se #f))
 
 			 ((##core#include)
 			  (##sys#include-forms-from-file
 			   (cadr x)
 			   (caddr x)
 			   (lambda (forms)
-			     (compile `(##core#begin ,@forms) e #f tf cntr se))))
+			     (compile `(##core#begin ,@forms) e #f tf cntr se tl?))))
 
 			 ((##core#let-module-alias)
 			  (##sys#with-module-aliases
@@ -659,7 +665,7 @@
 				  (strip-syntax b))
 				(cadr x))
 			   (lambda ()
-			     (compile `(##core#begin ,@(cddr x)) e #f tf cntr se))))
+			     (compile `(##core#begin ,@(cddr x)) e #f tf cntr se tl?))))
 
 			 ((##core#module)
 			  (let* ((x (strip-syntax x))
@@ -710,43 +716,48 @@
 					(cons (compile 
 					       (car body) 
 					       '() #f tf cntr 
-					       (##sys#current-environment))
+					       (##sys#current-environment)
+					       #t) ; reset back to toplevel!
 					      xs))))) ) )))
 
 			 [(##core#loop-lambda)
-			  (compile `(,(rename 'lambda se) ,@(cdr x)) e #f tf cntr se) ]
+			  (compile `(,(rename 'lambda se) ,@(cdr x)) e #f tf cntr se #f) ]
 
 			 [(##core#provide)
-			  (compile `(##sys#provide (##core#quote ,(cadr x))) e #f tf cntr se)]
+			  (compile `(##sys#provide (##core#quote ,(cadr x))) e #f tf cntr se #f)]
 
 			 [(##core#require-for-syntax)
 			  (let ((id (cadr x)))
 			    (load-extension id)
-			    (compile '(##core#undefined)
-                                     e #f tf cntr se))]
+			    (compile
+			     `(##core#begin
+			       ,@(map (lambda (x)
+					`(##sys#load-extension (##core#quote ,x)))
+				      (lookup-runtime-requirements id)))
+			     e #f tf cntr se #f))]
 
 			 [(##core#require)
 			  (let ((id         (cadr x))
 				(alternates (cddr x)))
 			    (let-values (((exp _ _) (##sys#process-require id #f alternates)))
-			      (compile exp e #f tf cntr se)))]
+			      (compile exp e #f tf cntr se #f)))]
 
 			 [(##core#elaborationtimeonly ##core#elaborationtimetoo) ; <- Note this!
 			  (##sys#eval/meta (cadr x))
-			  (compile '(##core#undefined) e #f tf cntr se) ]
+			  (compile '(##core#undefined) e #f tf cntr se tl?) ]
 
 			 [(##core#compiletimetoo)
-			  (compile (cadr x) e #f tf cntr se) ]
+			  (compile (cadr x) e #f tf cntr se tl?) ]
 
 			 [(##core#compiletimeonly ##core#callunit) 
-			  (compile '(##core#undefined) e #f tf cntr se) ]
+			  (compile '(##core#undefined) e #f tf cntr se tl?) ]
 
 			 [(##core#declare)
 			  (##sys#notice "declarations are ignored in interpreted code" x)
-			  (compile '(##core#undefined) e #f tf cntr se) ]
+			  (compile '(##core#undefined) e #f tf cntr se #f) ]
 
 			 [(##core#define-inline ##core#define-constant)
-			  (compile `(,(rename 'define se) ,@(cdr x)) e #f tf cntr se) ]
+			  (compile `(,(rename 'define se) ,@(cdr x)) e #f tf cntr se #f) ]
                    
 			 [(##core#primitive ##core#inline ##core#inline_allocate ##core#foreign-lambda 
 					    ##core#define-foreign-variable 
@@ -759,13 +770,13 @@
 			  (compile-call (cdr x) e tf cntr se) ]
 
 			 ((##core#the)
-			  (compile (cadddr x) e h tf cntr se))
+			  (compile (cadddr x) e h tf cntr se tl?))
 			 
 			 ((##core#typecase)
 			  ;; drops exp and requires "else" clause
 			  (cond ((assq 'else (strip-syntax (cdddr x))) =>
 				 (lambda (cl)
-				   (compile (cadr cl) e h tf cntr se)))
+				   (compile (cadr cl) e h tf cntr se tl?)))
 				(else
 				 (##sys#syntax-error-hook
 				  'compiler-typecase
@@ -804,7 +815,7 @@
 	(let* ((head (##sys#slot x 0))
 	       (fn (if (procedure? head) 
 		       (lambda _ head)
-		       (compile (##sys#slot x 0) e #f tf cntr se)))
+		       (compile (##sys#slot x 0) e #f tf cntr se #f)))
 	       (args (##sys#slot x 1))
 	       (argc (checked-length args))
 	       (info x) )
@@ -813,34 +824,34 @@
 	    [(0) (lambda (v)
 		   (emit-trace-info tf info cntr e v)
 		   ((##core#app fn v)))]
-	    [(1) (let ([a1 (compile (##sys#slot args 0) e #f tf cntr se)])
+	    [(1) (let ((a1 (compile (##sys#slot args 0) e #f tf cntr se #f)))
 		   (lambda (v)
 		     (emit-trace-info tf info cntr e v)
 		     ((##core#app fn v) (##core#app a1 v))) ) ]
-	    [(2) (let* ([a1 (compile (##sys#slot args 0) e #f tf cntr se)]
-			[a2 (compile (##core#inline "C_u_i_list_ref" args 1) e #f tf cntr se)] )
+	    [(2) (let* ((a1 (compile (##sys#slot args 0) e #f tf cntr se #f))
+			(a2 (compile (##core#inline "C_u_i_list_ref" args 1) e #f tf cntr se #f)) )
 		   (lambda (v)
 		     (emit-trace-info tf info cntr e v)
 		     ((##core#app fn v) (##core#app a1 v) (##core#app a2 v))) ) ]
-	    [(3) (let* ([a1 (compile (##sys#slot args 0) e #f tf cntr se)]
-			[a2 (compile (##core#inline "C_u_i_list_ref" args 1) e #f tf cntr se)]
-			[a3 (compile (##core#inline "C_u_i_list_ref" args 2) e #f tf cntr se)] )
+	    [(3) (let* ((a1 (compile (##sys#slot args 0) e #f tf cntr se #f))
+			(a2 (compile (##core#inline "C_u_i_list_ref" args 1) e #f tf cntr se #f))
+			(a3 (compile (##core#inline "C_u_i_list_ref" args 2) e #f tf cntr se #f)) )
 		   (lambda (v)
 		     (emit-trace-info tf info cntr e v)
 		     ((##core#app fn v) (##core#app a1 v) (##core#app a2 v) (##core#app a3 v))) ) ]
-	    [(4) (let* ([a1 (compile (##sys#slot args 0) e #f tf cntr se)]
-			[a2 (compile (##core#inline "C_u_i_list_ref" args 1) e #f tf cntr se)]
-			[a3 (compile (##core#inline "C_u_i_list_ref" args 2) e #f tf cntr se)] 
-			[a4 (compile (##core#inline "C_u_i_list_ref" args 3) e #f tf cntr se)] )
+	    [(4) (let* ((a1 (compile (##sys#slot args 0) e #f tf cntr se #f))
+			(a2 (compile (##core#inline "C_u_i_list_ref" args 1) e #f tf cntr se #f))
+			(a3 (compile (##core#inline "C_u_i_list_ref" args 2) e #f tf cntr se #f))
+			(a4 (compile (##core#inline "C_u_i_list_ref" args 3) e #f tf cntr se #f)) )
 		   (lambda (v)
 		     (emit-trace-info tf info cntr e v)
 		     ((##core#app fn v) (##core#app a1 v) (##core#app a2 v) (##core#app a3 v) (##core#app a4 v))) ) ]
-	    [else (let ([as (##sys#map (lambda (a) (compile a e #f tf cntr se)) args)])
+	    [else (let ((as (##sys#map (lambda (a) (compile a e #f tf cntr se #f)) args)))
 		    (lambda (v)
 		      (emit-trace-info tf info cntr e v)
 		      (apply (##core#app fn v) (##sys#map (lambda (a) (##core#app a v)) as))) ) ] ) ) )
 
-      (compile exp env #f (fx> (##sys#eval-debug-level) 0) cntr se) ) ) )
+      (compile exp env #f (fx> (##sys#eval-debug-level) 0) cntr se tl?) ) ) )
 
 
 ;;; evaluate in the macro-expansion/compile-time environment
@@ -861,8 +872,10 @@
 	  ((compile-to-closure
 	    form
 	    '() 
-	    (##sys#current-meta-environment)) ;XXX evalenv? static?
-	   '() ) )
+	    (##sys#current-meta-environment)
+	    #f #f #f			;XXX evalenv? static?
+	    #t)				; toplevel.
+	   '()) )
 	(lambda ()
 	  (##sys#active-eval-environment aee)
 	  (##sys#current-module oldcm)
@@ -880,11 +893,11 @@
 	      (let ((se2 (##sys#slot env 2)))
 		((if se2		; not interaction-environment?
 		     (parameterize ((##sys#macro-environment '()))
-		       (compile-to-closure x '() se2 #f env (##sys#slot env 3)))
-		     (compile-to-closure x '() se #f env #f))
+		       (compile-to-closure x '() se2 #f env (##sys#slot env 3) #t))
+		     (compile-to-closure x '() se #f env #f #t))
 		 '() ) ) )
 	     (else
-	      ((compile-to-closure x '() se #f #f #f) '())))))))
+	      ((compile-to-closure x '() se #f #f #f #t) '())))))))
 
 (define (eval x . env)
   (apply (eval-handler) x env))

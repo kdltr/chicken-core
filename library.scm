@@ -639,15 +639,14 @@ EOF
 	 (##sys#check-char c 'make-string)
 	 c ) ) ) )
 
-(define string->list
-  (lambda (s)
-    (##sys#check-string s 'string->list)
-    (let ((len (##core#inline "C_block_size" s)))
-      (let loop ((i 0))
-	(if (fx>= i len)
-	    '()
-	    (cons (##core#inline "C_subchar" s i)
-		  (loop (fx+ i 1)) ) ) ) ) ) )
+(define (string->list s)
+  (##sys#check-string s 'string->list)
+  (let ((len (##sys#size s)))
+    (let loop ((i (fx- len 1)) (ls '()))
+      (if (fx< i 0)
+	  ls
+	  (loop (fx- i 1)
+		(cons (##core#inline "C_subchar" s i) ls))))))
 
 (define ##sys#string->list string->list)
 
@@ -1800,7 +1799,7 @@ EOF
                    (end (or hashes digits)))
               (and-let* ((end)
                          (num (##core#inline_allocate
-			       ("C_s_a_i_digits_to_integer" 2)
+			       ("C_s_a_i_digits_to_integer" 5)
 			       str start (car end) radix neg?)))
                 (when hashes            ; Eeewww. Feeling dirty yet?
                   (set! seen-hashes? #t)
@@ -1815,7 +1814,7 @@ EOF
                               (end (scan-digits start)))
                      (go-inexact!)
                      (cons (##core#inline_allocate
-			    ("C_s_a_i_digits_to_integer" 2)
+			    ("C_s_a_i_digits_to_integer" 5)
 			    str start (car end) radix (eq? sign 'neg))
                            (cdr end)))))))
          (scan-decimal-tail             ; The part after the decimal dot
@@ -5215,7 +5214,7 @@ EOF
 ;;; Sleeping:
 
 (define (##sys#sleep-hook n) ; modified by scheduler.scm
-  (##core#inline "C_process_sleep" n))
+  (##core#inline "C_i_process_sleep" n))
 
 (define (sleep n)
   (##sys#check-fixnum n 'sleep)

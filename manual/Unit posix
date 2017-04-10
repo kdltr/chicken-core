@@ -641,15 +641,15 @@ Get or set the process group ID of the process specified by {{PID}}.
 
 ==== process-execute
 
-<procedure>(process-execute PATHNAME [ARGUMENT-LIST [ENVIRONMENT-LIST]])</procedure>
+<procedure>(process-execute PATHNAME [ARGUMENT-LIST [ENVIRONMENT-ALIST]])</procedure>
 
 Replaces the running process with a new process image from the program
 stored at {{PATHNAME}}, using the C library function {{execvp(3)}}.
 If the optional argument {{ARGUMENT-LIST}} is given, then it should
 contain a list of strings which are passed as arguments to the subprocess.
-If the optional argument {{ENVIRONMENT-LIST}} is supplied, then the library
+If the optional argument {{ENVIRONMENT-ALIST}} is supplied, then the library
 function {{execve(2)}} is used, and the environment passed in
-{{ENVIRONMENT-LIST}} (which should be of the form {{("<NAME>=<VALUE>" ...)}}
+{{ENVIRONMENT-ALIST}} (which should be of the form {{(("<NAME>" . "<VALUE>") ...)}})
 is given to the invoked process. Note that {{execvp(3)}} respects the
 current setting of the {{PATH}} environment variable while {{execve(3)}} does not.
 
@@ -708,7 +708,7 @@ are suspended as well.
 ==== process
 
 <procedure>(process COMMANDLINE)</procedure><br>
-<procedure>(process COMMAND ARGUMENT-LIST [ENVIRONMENT-LIST])</procedure>
+<procedure>(process COMMAND ARGUMENT-LIST [ENVIRONMENT-ALIST])</procedure>
 
 Creates a subprocess and returns three values: an input port from
 which data written by the sub-process can be read, an output port from
@@ -724,7 +724,7 @@ its standard error into a separate port).
 * The single parameter version passes the string {{COMMANDLINE}} to the host-system's shell that
 is invoked as a subprocess.
 * The multiple parameter version directly invokes the {{COMMAND}} as a subprocess. The {{ARGUMENT-LIST}}
-is directly passed, as is {{ENVIRONMENT-LIST}}.
+is directly passed, as is {{ENVIRONMENT-ALIST}}.
 
 Not using the shell may be preferrable for security reasons.
 

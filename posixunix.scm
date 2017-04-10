@@ -1242,16 +1242,22 @@ EOF
     (posix-error #:file-error loc msg (##sys#slot lock 1) (##sys#slot lock 2) (##sys#slot lock 3)) )
   (set! file-lock
     (lambda (port . args)
-      (let ([lock (setup port args 'file-lock)])
-        (if (fx< (##core#inline "C_flock_lock" port) 0)
-            (err "cannot lock file" lock 'file-lock)
-            lock) ) ) )
+      (let loop ()
+	(let ((lock (setup port args 'file-lock)))
+	  (if (fx< (##core#inline "C_flock_lock" port) 0)
+	      (select _errno
+		((_eintr) (##sys#dispatch-interrupt loop))
+		(else (err "cannot lock file" lock 'file-lock)))
+	      lock)))))
   (set! file-lock/blocking
     (lambda (port . args)
-      (let ([lock (setup port args 'file-lock/blocking)])
-        (if (fx< (##core#inline "C_flock_lockw" port) 0)
-            (err "cannot lock file" lock 'file-lock/blocking)
-            lock) ) ) )
+      (let loop ()
+	(let ((lock (setup port args 'file-lock/blocking)))
+	  (if (fx< (##core#inline "C_flock_lockw" port) 0)
+	      (select _errno
+		((_eintr) (##sys#dispatch-interrupt loop))
+		(else (err "cannot lock file" lock 'file-lock/blocking)))
+	      lock)))))
   (set! file-test-lock
     (lambda (port . args)
       (let ([lock (setup port args 'file-test-lock)])
@@ -1263,7 +1269,9 @@ EOF
     (##sys#check-structure lock 'lock 'file-unlock)
     (##core#inline "C_flock_setup" _f_unlck (##sys#slot lock 2) (##sys#slot lock 3))
     (when (fx< (##core#inline "C_flock_lock" (##sys#slot lock 1)) 0)
-      (posix-error #:file-error 'file-unlock "cannot unlock file" lock) ) ) )
+      (select _errno
+	((_eintr) (##sys#dispatch-interrupt (lambda () (file-unlock lock))))
+	(else (posix-error #:file-error 'file-unlock "cannot unlock file" lock))))))
 
 
 ;;; FIFOs:
@@ -1574,8 +1582,8 @@ EOF
                 (begin
                   (set! args (##sys#shell-command-arguments cmd))
                   (set! cmd (##sys#shell-command)) ) )
-            (when env (chkstrlst env))
-            (##sys#call-with-values 
+	    (when env (check-environment-list env loc))
+	    (##sys#call-with-values
 	     (lambda () (##sys#process loc cmd args env #t #t err?))
 	     k)))))
   (set! process

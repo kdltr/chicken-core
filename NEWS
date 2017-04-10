@@ -57,6 +57,24 @@
 - Syntax expander
   - Removed support for (define-syntax (foo e r c) ...), which was
     undocumented and not officially supported anyway.
+  - define and friends are now aggressively rejected in "expression
+    contexts" (i.e., anywhere but toplevel or as internal defines).
+
+
+4.12.1
+
+- Security fixes
+  - CVE-2017-6949: Remove unchecked malloc() call in SRFI-4 constructors
+    when allocating in non-GC memory, resulting in potential 1-word
+    buffer overrun and/or segfault (thanks to Lemonboy).
+
+- Core Libraries
+  - Unit "posix": If file-lock, file-lock/blocking or file-unlock are
+    interrupted by a signal, we now retry (thanks to Joerg Wittenberger).
+
+- Build system
+  - Fixed broken compilation on NetBSD, due to missing _NETBSD_SOURCE.
+
 
 4.12.0
 

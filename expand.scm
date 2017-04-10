@@ -42,7 +42,14 @@
    strip-syntax
    syntax-error
    er-macro-transformer
-   ir-macro-transformer)
+   ir-macro-transformer
+
+   ;; These must be exported or the compiler will assume they're never
+   ;; assigned to.
+   define-definition
+   define-syntax-definition
+   define-values-definition
+   expansion-result-hook)
 
 (import scheme chicken
 	chicken.keyword)
@@ -253,7 +260,7 @@
 	    "' returns original form, which would result in endless expansion")
 	   exp))
 	(dx `(,name --> ,exp2))
-	exp2)))
+	(expansion-result-hook exp exp2) ) ) )
   (define (expand head exp mdef)
     (dd `(EXPAND: 
 	  ,head 
@@ -310,7 +317,7 @@
 
 (define ##sys#compiler-syntax-hook #f)
 (define ##sys#enable-runtime-macros #f)
-
+(define expansion-result-hook (lambda (input output) output))
 
 
 ;;; User-level macroexpansion
@@ -471,9 +478,10 @@
 ;
 ; This code is disgustingly complex.
 
-(define chicken.expand#define-definition)
-(define chicken.expand#define-syntax-definition)
-(define chicken.expand#define-values-definition)
+(define define-definition)
+(define define-syntax-definition)
+(define define-values-definition)
+(define import-definition)
 
 (define ##sys#canonicalize-body
   (lambda (body #!optional (se (##sys#current-environment)) cs?)
@@ -481,27 +489,55 @@
       (let ((f (lookup id se)))
 	(or (eq? s f)
 	    (case s
-	      ((define) (if f (eq? f chicken.expand#define-definition) (eq? s id)))
-	      ((define-syntax) (if f (eq? f chicken.expand#define-syntax-definition) (eq? s id)))
-	      ((define-values) (if f (eq? f chicken.expand#define-values-definition) (eq? s id)))
+	      ((define) (if f (eq? f define-definition) (eq? s id)))
+	      ((define-syntax) (if f (eq? f define-syntax-definition) (eq? s id)))
+	      ((define-values) (if f (eq? f define-values-definition) (eq? s id)))
+	      ((import) (if f (eq? f import-definition) (eq? s id)))
 	      (else (eq? s id))))))
     (define (fini vars vals mvars body)
       (if (and (null? vars) (null? mvars))
-	  (let loop ([body2 body] [exps '()])
-	    (if (not (pair? body2)) 
-		(cons 
+	  ;; Macro-expand body, and restart when defines are found.
+	  (let loop ((body body) (exps '()))
+	    (if (not (pair? body))
+		(cons
 		 '##core#begin
-		 body) ; no more defines, otherwise we would have called `expand'
-		(let ((x (car body2)))
-		  (if (and (pair? x) 
-			   (let ((d (car x)))
-			     (and (symbol? d)
-				  (or (comp 'define d)
-				      (comp 'define-values d)))))
-		      (cons
-		       '##core#begin
-		       (##sys#append (reverse exps) (list (expand body2))))
-		      (loop (cdr body2) (cons x exps)) ) ) ) )
+		 (reverse exps)) ; no more defines, otherwise we would have called `expand'
+		(let loop2 ((body body))
+		  (let ((x (car body))
+			(rest (cdr body)))
+		    (if (and (pair? x)
+			     (let ((d (car x)))
+			       (and (symbol? d)
+				    (or (comp 'define d)
+					(comp 'define-values d)
+					(comp 'define-syntax d)
+					(comp '##core#begin d)
+					(comp 'import d)))))
+			;; Stupid hack to avoid expanding imports
+			(if (comp 'import (car x))
+			    (loop rest (cons x exps))
+			    (cons
+			     '##core#begin
+			     (##sys#append (reverse exps) (list (expand body)))))
+			(let ((x2 (##sys#expand-0 x se cs?)))
+			  (if (eq? x x2)
+			      ;; Modules must be registered before we
+			      ;; can continue with other forms, so
+			      ;; hand back control to the compiler
+			      (if (and (pair? x)
+				       (symbol? (car x))
+				       (comp '##core#module (car x)))
+				  `(##core#begin
+				    ,@(reverse exps)
+				    ,x
+				    ,@(if (null? rest)
+					  '()
+					  `((##core#let () ,@rest))))
+				  (loop rest (cons x exps)))
+			      (loop2 (cons x2 rest)) )) ))) ))
+	  ;; We saw defines.  Translate to letrec, and let compiler
+	  ;; call us again for the remaining body by wrapping the
+	  ;; remaining body forms in a ##core#let.
 	  (let* ((result
 		  `(##core#let
 		    ,(##sys#map
@@ -543,6 +579,8 @@
 		    (defjam-error def))
 		  (loop (cdr body) (cons def defs) #f)))
 	       (else (loop body defs #t))))))
+    ;; Expand a run of defines or define-syntaxes into letrec.  As
+    ;; soon as we encounter something else, finish up.
     (define (expand body)
       ;; Each #t in "mvars" indicates an MV-capable "var".  Non-MV
       ;; vars (#f in mvars) are 1-element lambda-lists for simplicity.
@@ -592,14 +630,7 @@
 		     (loop rest (cons (cadr x) vars) (cons (caddr x) vals) (cons #t mvars)))
 		    ((comp '##core#begin head)
 		     (loop (##sys#append (cdr x) rest) vars vals mvars))
-		    (else
-		     (if (member (list head) vars)
-			 (fini vars vals mvars body)
-			 (let ((x2 (##sys#expand-0 x se cs?)))
-			   (if (eq? x x2)
-			       (fini vars vals mvars body)
-			       (loop (cons x2 rest)
-				     vars vals mvars)))))))))))
+		    (else (fini vars vals mvars body))))))))
     (expand body) ) )
 
 
@@ -953,23 +984,24 @@
        ##sys#current-environment ##sys#macro-environment
        #f #t 'reexport)))
 
-(##sys#extend-macro-environment
- 'import '()
- (##sys#er-transformer
-  (lambda (x r c)
-    `(##core#begin
-      ,@(map (lambda (x)
-	       (let-values (((name lib spec v s i) (##sys#decompose-import x r c 'import)))
-		 (if (not spec)
-		     (##sys#syntax-error-hook
-		      'import "cannot import from undefined module" name)
-		     (##sys#import
-		      spec v s i
-		      ##sys#current-environment ##sys#macro-environment #f #f 'import))
-		 (if (not lib)
-		     '(##core#undefined)
-		     `(##core#require ,lib ,(module-requirement name)))))
-	     (cdr x))))))
+(set! chicken.expand#import-definition
+  (##sys#extend-macro-environment
+   'import '()
+   (##sys#er-transformer
+    (lambda (x r c)
+      `(##core#begin
+	,@(map (lambda (x)
+		 (let-values (((name lib spec v s i) (##sys#decompose-import x r c 'import)))
+		   (if (not spec)
+		       (##sys#syntax-error-hook
+			'import "cannot import from undefined module" name)
+		       (##sys#import
+			spec v s i
+			##sys#current-environment ##sys#macro-environment #f #f 'import))
+		   (if (not lib)
+		       '(##core#undefined)
+		       `(##core#require ,lib ,(module-requirement name)))))
+	       (cdr x)))))))
 
 (##sys#extend-macro-environment
  'begin-for-syntax '()
@@ -1044,9 +1076,11 @@
                    (##sys#register-export name (##sys#current-module)))
 		 (when (c (r 'define) head)
 		   (chicken.expand#defjam-error x))
-		 `(##core#set! 
-		   ,head 
-		   ,(if (pair? body) (car body) '(##core#undefined))) )
+		 `(##core#begin
+		    (##core#ensure-toplevel-definition ,head)
+		    (##core#set!
+		     ,head
+		     ,(if (pair? body) (car body) '(##core#undefined)))))
 		((pair? (car head))
 		 (##sys#check-syntax 'define form '(_ (_ . lambda-list) . #(_ 1)))
 		 (loop (chicken.expand#expand-curried-define head body '()))) ;XXX '() should be se

@@ -71,8 +71,11 @@
       (set! escaped #t)
       (set! previous '()))
 
-    (define (scan-each ns e)
-      (for-each (lambda (n) (scan n e)) ns) )
+    (define (scan-each ns e clear-previous?)
+      (for-each (lambda (n)
+		  (when clear-previous? (set! previous '()))
+		  (scan n e))
+		ns))
 
     (define (scan n e)
       (let ([params (node-parameters n)]
@@ -89,12 +92,10 @@
 	  [(if ##core#cond ##core#switch)
 	   (scan (first subs) e)
 	   (touch)
-	   (scan (first subs) e)
-	   (set! previous '())
-	   (scan (second subs) e)]
+	   (scan-each (cdr subs) e #t)]
 
 	  [(let)
-	   (scan-each (butlast subs) e)
+	   (scan-each (butlast subs) e #f)
 	   (scan (last subs) (append params e)) ]
 
 	  [(lambda ##core#lambda) #f]
@@ -118,7 +119,7 @@
 	       (unless (memq var e) (mark var))
 	       (remember var n) ) ) ]
 
-	  [else (scan-each subs e)] ) ) )
+	  [else (scan-each subs e #f)])))
 
     (debugging 'p "scanning toplevel assignments...")
     (scan node '())

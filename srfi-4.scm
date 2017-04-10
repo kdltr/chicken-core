@@ -355,24 +355,27 @@ EOF
 (define make-u64vector)
 (define release-number-vector)
 
-(let* ([ext-alloc
-	(foreign-lambda* scheme-object ([int bytes])
+(let* ((ext-alloc
+	(foreign-lambda* scheme-object ((size_t bytes))
+	  "if (bytes > C_HEADER_SIZE_MASK) C_return(C_SCHEME_FALSE);"
 	  "C_word *buf = (C_word *)C_malloc(bytes + sizeof(C_header));"
 	  "if(buf == NULL) C_return(C_SCHEME_FALSE);"
 	  "C_block_header_init(buf, C_make_header(C_BYTEVECTOR_TYPE, bytes));"
-	  "C_return(buf);") ]
-       [ext-free
-	(foreign-lambda* void ([scheme-object bv])
-	  "C_free((void *)C_block_item(bv, 1));") ]
-       [alloc
+	  "C_return(buf);") )
+       (ext-free
+	(foreign-lambda* void ((scheme-object bv))
+	  "C_free((void *)C_block_item(bv, 1));") )
+       (alloc
 	(lambda (loc len ext?)
+	  (##sys#check-fixnum len loc)
+	  (when (fx< len 0) (##sys#error loc "size is negative" len))
 	  (if ext?
-	      (let ([bv (ext-alloc len)])
+	      (let ((bv (ext-alloc len)))
 		(or bv
 		    (##sys#error loc "not enough memory - cannot allocate external number vector" len)) )
-	      (let ([bv (##sys#allocate-vector len #t #f #t)]) ; this could be made better...
+	      (let ((bv (##sys#allocate-vector len #t #f #t))) ; this could be made better...
 		(##core#inline "C_string_to_bytevector" bv)
-		bv) ) ) ] )
+		bv) ) ) ) )
 
   (set! release-number-vector
     (lambda (v)
@@ -382,7 +385,6 @@ EOF
 
   (set! make-u8vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-u8vector)
       (let ((v (##sys#make-structure 'u8vector (alloc 'make-u8vector len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -395,7 +397,6 @@ EOF
 
   (set! make-s8vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-s8vector)
       (let ((v (##sys#make-structure 's8vector (alloc 'make-s8vector len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -408,7 +409,6 @@ EOF
 
   (set! make-u16vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-u16vector)
       (let ((v (##sys#make-structure 'u16vector (alloc 'make-u16vector (##core#inline "C_fixnum_shift_left" len 1) ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -421,7 +421,6 @@ EOF
 
   (set! make-s16vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-s16vector)
       (let ((v (##sys#make-structure 's16vector (alloc 'make-s16vector (##core#inline "C_fixnum_shift_left" len 1) ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -434,7 +433,6 @@ EOF
 
   (set! make-u32vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-u32vector)
       (let ((v (##sys#make-structure 'u32vector (alloc 'make-u32vector (##core#inline "C_fixnum_shift_left" len 2) ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -447,7 +445,6 @@ EOF
 
   (set! make-u64vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-u64vector)
       (let ((v (##sys#make-structure 'u64vector (alloc 'make-u64vector (##core#inline "C_fixnum_shift_left" len 3) ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -460,7 +457,6 @@ EOF
 
   (set! make-s32vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-s32vector)
       (let ((v (##sys#make-structure 's32vector (alloc 'make-s32vector (##core#inline "C_fixnum_shift_left" len 2) ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -473,7 +469,6 @@ EOF
 
    (set! make-s64vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-s64vector)
       (let ((v (##sys#make-structure 's64vector (alloc 'make-s64vector (##core#inline "C_fixnum_shift_left" len 3) ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -486,7 +481,6 @@ EOF
 
   (set! make-f32vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-f32vector)
       (let ((v (##sys#make-structure 'f32vector (alloc 'make-f32vector (##core#inline "C_fixnum_shift_left" len 2) ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
@@ -501,7 +495,6 @@ EOF
 
   (set! make-f64vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (##sys#check-fixnum len 'make-f64vector)
       (let ((v (##sys#make-structure
 		'f64vector
 		(alloc 'make-f64vector (##core#inline "C_fixnum_shift_left" len 3) ext?))))

@@ -783,6 +783,21 @@
 )
 |#
 
+;;; Definitions in expression contexts are rejected (#1309)
+
+(f (eval '(+ 1 2 (begin (define x 3) x) 4)))
+(f (eval '(+ 1 2 (begin (define-values (x y) (values 3 4)) x) 4)))
+(f (eval '(display (define x 1))))
+;; Some tests for nested but valid definition expressions:
+(t 2 (eval '(begin (define x 1) 2)))
+(t 2 (eval '(module _ () (import scheme) (define x 1) 2)))
+(t 1 (eval '(let ()
+	      (define-record-type foo (make-foo bar) foo? (bar foo-bar))
+	      (foo-bar (make-foo 1)))))
+
+;; Nested begins inside definitions were not treated correctly
+(t 3 (eval '(let () (begin 1 (begin 2 (define internal-def 3) internal-def)))))
+(f (eval '(let () internal-def)))
 
 ;;; renaming of keyword argument (#277)
 

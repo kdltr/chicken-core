@@ -122,8 +122,7 @@
 (define (default-library)
   (string-append (libchicken) "." library-extension))
 
-(define default-compilation-optimization-options (string-split (if host-mode host-cflags default-cflags)))
-(define best-compilation-optimization-options default-compilation-optimization-options)
+(define default-compilation-optimization-options (string-split (if host-mode host-(define best-compilation-optimization-options default-compilation-optimization-options)
 (define default-linking-optimization-options (string-split (if host-mode INSTALL_LDFLAGS TARGET_LDFLAGS)))
 (define best-linking-optimization-options default-linking-optimization-options)
 (define extra-features (if host-mode '() (string-split TARGET_FEATURES)))

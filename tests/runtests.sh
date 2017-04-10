@@ -32,7 +32,6 @@ esac
 
 rm -fr test-repository
 mkdir -p test-repository
-
 CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
 CHICKEN_REPOSITORY_PATH=${TEST_DIR}/..:$CHICKEN_INSTALL_REPOSITORY
 CHICKEN=${TEST_DIR}/../chicken

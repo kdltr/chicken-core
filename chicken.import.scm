@@ -62,6 +62,7 @@
    exact-integer?
    exact-integer-sqrt
    exact-integer-nth-root
+   executable-pathname
    exit
    exit-handler
    (expand . chicken.expand#expand)

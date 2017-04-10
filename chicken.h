@@ -59,6 +59,10 @@
 #  define _BSD_SOURCE
 # endif
 
+# ifndef _NETBSD_SOURCE
+#  define _NETBSD_SOURCE
+# endif
+
 # ifndef _SVID_SOURCE
 #  define _SVID_SOURCE
 # endif
@@ -274,12 +278,6 @@ void *alloca ();
 # define C_aligned
 #endif
 
-#if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__cplusplus)
-# define C_inline                  inline static
-#else
-# define C_inline                  static
-#endif
-
 /* Thread Local Storage */
 #ifdef C_ENABLE_TLS
 # if defined(__GNUC__)
@@ -343,19 +341,6 @@ void *alloca ();
 #define ___u64              C_u64
 #define ___s64              C_s64
 
-
-#if defined(C_SOLARIS) && !defined(isinf)
-# define isinf(x) \
-     (sizeof (x) == sizeof (long double) ? isinf_ld (x) \
-      : sizeof (x) == sizeof (double) ? isinf_d (x) \
-      : isinf_f (x))
-static inline int isinf_f  (float       x)
-{ return !isnan (x) && isnan (x - x); }
-static inline int isinf_d  (double      x)
-{ return !isnan (x) && isnan (x - x); }
-static inline int isinf_ld (long double x)
-{ return !isnan (x) && isnan (x - x); }
-#endif
 
 /* Mingw's isnormal() is broken on 32bit; use GCC's builtin (see #1062) */
 #ifdef __MINGW32__
@@ -1598,12 +1583,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_ub_i_pointer_f32_set(p, n)    (*((float *)(p)) = (n))
 #define C_ub_i_pointer_f64_set(p, n)    (*((double *)(p)) = (n))
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
-# define C_process_sleep(n) (Sleep(C_unfix(n) * 1000), C_fix(0))
-#else
-# define C_process_sleep(n) C_fix(sleep(C_unfix(n)))
-#endif
-
 #ifdef C_PRIVATE_REPOSITORY
 # define C_private_repository()         C_use_private_repository(C_executable_dirname())
 #else
@@ -2136,6 +2115,7 @@ C_fctexport C_word C_fcall C_putprop(C_word **a, C_word sym, C_word prop, C_word
 C_fctexport C_word C_fcall C_i_persist_symbol(C_word sym) C_regparm;
 C_fctexport C_word C_fcall C_i_unpersist_symbol(C_word sym) C_regparm;
 C_fctexport C_word C_fcall C_i_get_keyword(C_word key, C_word args, C_word def) C_regparm;
+C_fctexport C_word C_fcall C_i_process_sleep(C_word n) C_regparm;
 C_fctexport C_u64 C_fcall C_milliseconds(void) C_regparm;
 C_fctexport C_u64 C_fcall C_cpu_milliseconds(void) C_regparm;
 C_fctexport double C_fcall C_bignum_to_double(C_word bignum) C_regparm;
@@ -2235,7 +2215,7 @@ C_fctexport C_cpsproc(C_default_5fstub_toplevel);
 
 #ifndef HAVE_STATEMENT_EXPRESSIONS
 
-C_inline C_word *C_a_i(C_word **a, int n)
+inline static C_word *C_a_i(C_word **a, int n)
 {
   C_word *p = *a;
   
@@ -2245,21 +2225,21 @@ C_inline C_word *C_a_i(C_word **a, int n)
 
 #endif
 
-C_inline C_word 
+inline static C_word
 C_mutate(C_word *slot, C_word val)
 {
   if(!C_immediatep(val)) return C_mutate_slot(slot, val);
   else return *slot = val;
 }
 
-C_inline C_word 
+inline static C_word
 C_mutate2(C_word *slot, C_word val) /* OBSOLETE */
 {
   if(!C_immediatep(val)) return C_mutate_slot(slot, val);
   else return *slot = val;
 }
 
-C_inline C_word C_permanentp(C_word x)
+inline static C_word C_permanentp(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) &&
                    !C_in_stackp(x) &&
@@ -2268,7 +2248,7 @@ C_inline C_word C_permanentp(C_word x)
 }
 
 
-C_inline C_word C_flonum(C_word **ptr, double n)
+inline static C_word C_flonum(C_word **ptr, double n)
 {
   C_word 
     *p = *ptr,
@@ -2289,14 +2269,14 @@ C_inline C_word C_flonum(C_word **ptr, double n)
 }
 
 
-C_inline C_word C_string_to_pbytevector(C_word s)
+inline static C_word C_string_to_pbytevector(C_word s)
 {
   return C_pbytevector(C_header_size(s), (C_char *)C_data_pointer(s));
 }
 
 
 /* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_inline C_word C_flonum_in_fixnum_range_p(C_word n)
+inline static C_word C_flonum_in_fixnum_range_p(C_word n)
 {
   double f = C_flonum_magnitude(n);
 
@@ -2304,7 +2284,7 @@ C_inline C_word C_flonum_in_fixnum_range_p(C_word n)
 }
 
 /* XXX TODO OBSOLETE: This can be removed after recompiling c-backend.scm */
-C_inline C_word C_double_to_number(C_word n)
+inline static C_word C_double_to_number(C_word n)
 {
   double m, f = C_flonum_magnitude(n);
 
@@ -2314,7 +2294,7 @@ C_inline C_word C_double_to_number(C_word n)
   else return n;
 }
 
-C_inline C_word C_a_i_record1(C_word **ptr, int n, C_word x1)
+inline static C_word C_a_i_record1(C_word **ptr, int n, C_word x1)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -2325,7 +2305,7 @@ C_inline C_word C_a_i_record1(C_word **ptr, int n, C_word x1)
 }
 
 
-C_inline C_word C_a_i_record2(C_word **ptr, int n, C_word x1, C_word x2)
+inline static C_word C_a_i_record2(C_word **ptr, int n, C_word x1, C_word x2)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -2337,7 +2317,7 @@ C_inline C_word C_a_i_record2(C_word **ptr, int n, C_word x1, C_word x2)
 }
 
 
-C_inline C_word C_a_i_record3(C_word **ptr, int n, C_word x1, C_word x2, C_word x3)
+inline static C_word C_a_i_record3(C_word **ptr, int n, C_word x1, C_word x2, C_word x3)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -2350,7 +2330,7 @@ C_inline C_word C_a_i_record3(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_record4(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4)
+inline static C_word C_a_i_record4(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -2364,7 +2344,7 @@ C_inline C_word C_a_i_record4(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_record5(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_record5(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 				 C_word x5)
 {
   C_word *p = *ptr, *p0 = p; 
@@ -2380,7 +2360,7 @@ C_inline C_word C_a_i_record5(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_record6(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_record6(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 				 C_word x5, C_word x6)
 {
   C_word *p = *ptr, *p0 = p; 
@@ -2397,7 +2377,7 @@ C_inline C_word C_a_i_record6(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_record7(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_record7(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 				 C_word x5, C_word x6, C_word x7)
 {
   C_word *p = *ptr, *p0 = p; 
@@ -2415,7 +2395,7 @@ C_inline C_word C_a_i_record7(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_record8(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_record8(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 				 C_word x5, C_word x6, C_word x7, C_word x8)
 {
   C_word *p = *ptr, *p0 = p; 
@@ -2433,7 +2413,7 @@ C_inline C_word C_a_i_record8(C_word **ptr, int n, C_word x1, C_word x2, C_word 
   return (C_word)p0;
 }
 
-C_inline C_word C_cplxnum(C_word **ptr, C_word r, C_word i)
+inline static C_word C_cplxnum(C_word **ptr, C_word r, C_word i)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -2444,7 +2424,7 @@ C_inline C_word C_cplxnum(C_word **ptr, C_word r, C_word i)
   return (C_word)p0;
 }
 
-C_inline C_word C_ratnum(C_word **ptr, C_word n, C_word d)
+inline static C_word C_ratnum(C_word **ptr, C_word n, C_word d)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -2455,7 +2435,7 @@ C_inline C_word C_ratnum(C_word **ptr, C_word n, C_word d)
   return (C_word)p0;
 }
 
-C_inline C_word C_a_i_bignum_wrapper(C_word **ptr, C_word vec)
+inline static C_word C_a_i_bignum_wrapper(C_word **ptr, C_word vec)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -2466,7 +2446,7 @@ C_inline C_word C_a_i_bignum_wrapper(C_word **ptr, C_word vec)
 }
 
 /* Silly (this is not normalized) but in some cases needed internally */
-C_inline C_word C_bignum0(C_word **ptr)
+inline static C_word C_bignum0(C_word **ptr)
 {
   C_word *p = *ptr, p0 = (C_word)p;
 
@@ -2477,7 +2457,7 @@ C_inline C_word C_bignum0(C_word **ptr)
   return C_a_i_bignum_wrapper(ptr, p0);
 }
 
-C_inline C_word C_bignum1(C_word **ptr, int negp, C_uword d1)
+inline static C_word C_bignum1(C_word **ptr, int negp, C_uword d1)
 {
   C_word *p = *ptr, p0 = (C_word)p;
 
@@ -2490,7 +2470,7 @@ C_inline C_word C_bignum1(C_word **ptr, int negp, C_uword d1)
 }
 
 /* Here d1, d2, ... are low to high (ie, little endian)! */
-C_inline C_word C_bignum2(C_word **ptr, int negp, C_uword d1, C_uword d2)
+inline static C_word C_bignum2(C_word **ptr, int negp, C_uword d1, C_uword d2)
 {
   C_word *p = *ptr, p0 = (C_word)p;
 
@@ -2503,7 +2483,7 @@ C_inline C_word C_bignum2(C_word **ptr, int negp, C_uword d1, C_uword d2)
   return C_a_i_bignum_wrapper(ptr, p0);
 }
 
-C_inline C_word C_i_bignump(C_word x)
+inline static C_word C_i_bignump(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_BIGNUM_TAG);
 }
@@ -2511,7 +2491,7 @@ C_inline C_word C_i_bignump(C_word x)
 
 
 /* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_inline C_word C_fits_in_int_p(C_word x)
+inline static C_word C_fits_in_int_p(C_word x)
 {
   double n, m;
 
@@ -2529,7 +2509,7 @@ C_inline C_word C_fits_in_int_p(C_word x)
 
 
 /* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_inline C_word C_fits_in_unsigned_int_p(C_word x)
+inline static C_word C_fits_in_unsigned_int_p(C_word x)
 {
   double n, m;
 
@@ -2542,19 +2522,19 @@ C_inline C_word C_fits_in_unsigned_int_p(C_word x)
 }
 
 
-C_inline double C_c_double(C_word x)
+inline static double C_c_double(C_word x)
 {
   if(x & C_FIXNUM_BIT) return (double)C_unfix(x);
   else return C_flonum_magnitude(x);
 }
 
-C_inline C_word C_a_u_i_int_to_flo(C_word **ptr, int n, C_word x)
+inline static C_word C_a_u_i_int_to_flo(C_word **ptr, int n, C_word x)
 {
   if(x & C_FIXNUM_BIT) return C_a_i_fix_to_flo(ptr, n, x);
   else return C_a_u_i_big_to_flo(ptr, n, x);
 }
 
-C_inline C_word C_num_to_int(C_word x)
+inline static C_word C_num_to_int(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return C_unfix(x);
@@ -2568,7 +2548,7 @@ C_inline C_word C_num_to_int(C_word x)
 }
 
 
-C_inline C_s64 C_num_to_int64(C_word x)
+inline static C_s64 C_num_to_int64(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_s64)C_unfix(x);
@@ -2586,7 +2566,7 @@ C_inline C_s64 C_num_to_int64(C_word x)
 }
 
 
-C_inline C_u64 C_num_to_uint64(C_word x)
+inline static C_u64 C_num_to_uint64(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_u64)C_unfix(x);
@@ -2603,7 +2583,7 @@ C_inline C_u64 C_num_to_uint64(C_word x)
 }
 
 
-C_inline C_uword C_num_to_unsigned_int(C_word x)
+inline static C_uword C_num_to_unsigned_int(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_uword)C_unfix(x);
@@ -2616,20 +2596,20 @@ C_inline C_uword C_num_to_unsigned_int(C_word x)
 }
 
 
-C_inline C_word C_int_to_num(C_word **ptr, C_word n)
+inline static C_word C_int_to_num(C_word **ptr, C_word n)
 {
   if(C_fitsinfixnump(n)) return C_fix(n);
   else return C_bignum1(ptr, n < 0, labs(n));
 }
 
 
-C_inline C_word C_unsigned_int_to_num(C_word **ptr, C_uword n)
+inline static C_word C_unsigned_int_to_num(C_word **ptr, C_uword n)
 {
   if(C_ufitsinfixnump(n)) return C_fix(n);
   else return C_bignum1(ptr, 0, n);
 }
 
-C_inline C_word C_int64_to_num(C_word **ptr, C_s64 n)
+inline static C_word C_int64_to_num(C_word **ptr, C_s64 n)
 {
 #ifdef C_SIXTY_FOUR
   if(C_fitsinfixnump(n)) {
@@ -2645,7 +2625,7 @@ C_inline C_word C_int64_to_num(C_word **ptr, C_s64 n)
 #endif
 }
 
-C_inline C_word C_uint64_to_num(C_word **ptr, C_u64 n)
+inline static C_word C_uint64_to_num(C_word **ptr, C_u64 n)
 {
   if(C_ufitsinfixnump(n)) {
     return C_fix(n);
@@ -2659,7 +2639,7 @@ C_inline C_word C_uint64_to_num(C_word **ptr, C_u64 n)
   }
 }
 
-C_inline C_word C_long_to_num(C_word **ptr, C_long n)
+inline static C_word C_long_to_num(C_word **ptr, C_long n)
 {
   if(C_fitsinfixnump(n)) {
     return C_fix(n);
@@ -2668,7 +2648,7 @@ C_inline C_word C_long_to_num(C_word **ptr, C_long n)
   }
 }
 
-C_inline C_word C_unsigned_long_to_num(C_word **ptr, C_ulong n)
+inline static C_word C_unsigned_long_to_num(C_word **ptr, C_ulong n)
 {
   if(C_ufitsinfixnump(n)) {
     return C_fix(n);
@@ -2678,43 +2658,43 @@ C_inline C_word C_unsigned_long_to_num(C_word **ptr, C_ulong n)
 }
 
 
-C_inline char *C_string_or_null(C_word x)
+inline static char *C_string_or_null(C_word x)
 {
   return C_truep(x) ? C_c_string(x) : NULL;
 }
 
 
-C_inline void *C_data_pointer_or_null(C_word x) 
+inline static void *C_data_pointer_or_null(C_word x)
 {
   return C_truep(x) ? C_data_pointer(x) : NULL;
 }
 
 
-C_inline void *C_srfi_4_vector_or_null(C_word x) 
+inline static void *C_srfi_4_vector_or_null(C_word x)
 {
   return C_truep(x) ? C_srfi_4_vector(x) : NULL;
 }
 
 
-C_inline void *C_c_pointer_vector_or_null(C_word x) 
+inline static void *C_c_pointer_vector_or_null(C_word x)
 {
   return C_truep(x) ? C_data_pointer(C_block_item(x, 2)) : NULL;
 }
 
 
-C_inline void *C_c_pointer_or_null(C_word x) 
+inline static void *C_c_pointer_or_null(C_word x)
 {
   return C_truep(x) ? (void *)C_block_item(x, 0) : NULL;
 }
 
 
-C_inline void *C_scheme_or_c_pointer(C_word x) 
+inline static void *C_scheme_or_c_pointer(C_word x)
 {
   return C_anypointerp(x) ? (void *)C_block_item(x, 0) : C_data_pointer(x);
 }
 
 
-C_inline C_long C_num_to_long(C_word x)
+inline static C_long C_num_to_long(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_long)C_unfix(x);
@@ -2728,7 +2708,7 @@ C_inline C_long C_num_to_long(C_word x)
 }
 
 
-C_inline C_ulong C_num_to_unsigned_long(C_word x)
+inline static C_ulong C_num_to_unsigned_long(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_ulong)C_unfix(x);
@@ -2741,7 +2721,7 @@ C_inline C_ulong C_num_to_unsigned_long(C_word x)
 }
 
 
-C_inline C_word C_u_i_string_equal_p(C_word x, C_word y)
+inline static C_word C_u_i_string_equal_p(C_word x, C_word y)
 {
   C_word n;
 
@@ -2751,7 +2731,7 @@ C_inline C_word C_u_i_string_equal_p(C_word x, C_word y)
 }
 
 /* Like memcmp but case insensitive (to strncasecmp as memcmp is to strncmp) */
-C_inline int C_memcasecmp(const char *x, const char *y, unsigned int len)
+inline static int C_memcasecmp(const char *x, const char *y, unsigned int len)
 {
   const unsigned char *ux = (const unsigned char *)x;
   const unsigned char *uy = (const unsigned char *)y;
@@ -2763,7 +2743,7 @@ C_inline int C_memcasecmp(const char *x, const char *y, unsigned int len)
   return 0;
 }
 
-C_inline C_word basic_eqvp(C_word x, C_word y)
+inline static C_word basic_eqvp(C_word x, C_word y)
 {
   return (x == y ||
 
@@ -2778,7 +2758,7 @@ C_inline C_word basic_eqvp(C_word x, C_word y)
              C_i_bignum_cmp(x, y) == C_fix(0)))));
 }
 
-C_inline C_word C_i_eqvp(C_word x, C_word y)
+inline static C_word C_i_eqvp(C_word x, C_word y)
 {
    return C_mk_bool(basic_eqvp(x, y) ||
                     (!C_immediatep(x) && !C_immediatep(y) &&
@@ -2789,12 +2769,12 @@ C_inline C_word C_i_eqvp(C_word x, C_word y)
                      basic_eqvp(C_block_item(x, 1), C_block_item(y, 1))));
 }
 
-C_inline C_word C_i_symbolp(C_word x)
+inline static C_word C_i_symbolp(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_SYMBOL_TAG);
 }
 
-C_inline int C_persistable_symbol(C_word x)
+inline static int C_persistable_symbol(C_word x)
 {
   C_word val = C_symbol_value(x);
   /* Symbol is bound (and not a keyword), or has a non-empty plist */
@@ -2802,42 +2782,42 @@ C_inline int C_persistable_symbol(C_word x)
           C_symbol_plist(x) != C_SCHEME_END_OF_LIST);
 }
 
-C_inline C_word C_i_pairp(C_word x)
+inline static C_word C_i_pairp(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_PAIR_TAG);
 }
 
 
-C_inline C_word C_i_stringp(C_word x)
+inline static C_word C_i_stringp(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_header_bits(x) == C_STRING_TYPE);
 }
 
 
-C_inline C_word C_i_locativep(C_word x)
+inline static C_word C_i_locativep(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_LOCATIVE_TAG);
 }
 
 
-C_inline C_word C_i_vectorp(C_word x)
+inline static C_word C_i_vectorp(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_header_bits(x) == C_VECTOR_TYPE);
 }
 
 
-C_inline C_word C_i_portp(C_word x)
+inline static C_word C_i_portp(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_header_bits(x) == C_PORT_TYPE);
 }
 
 
-C_inline C_word C_i_closurep(C_word x)
+inline static C_word C_i_closurep(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_header_bits(x) == C_CLOSURE_TYPE);
 }
 
-C_inline C_word C_i_numberp(C_word x)
+inline static C_word C_i_numberp(C_word x)
 {
   return C_mk_bool((x & C_FIXNUM_BIT) ||
                    (!C_immediatep(x) && 
@@ -2848,7 +2828,7 @@ C_inline C_word C_i_numberp(C_word x)
 }
 
 /* All numbers are real, except for cplxnums */
-C_inline C_word C_i_realp(C_word x)
+inline static C_word C_i_realp(C_word x)
 {
   return C_mk_bool((x & C_FIXNUM_BIT) ||
                    (!C_immediatep(x) && 
@@ -2858,7 +2838,7 @@ C_inline C_word C_i_realp(C_word x)
 }
 
 /* All finite real numbers are rational */
-C_inline C_word C_i_rationalp(C_word x)
+inline static C_word C_i_rationalp(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return C_SCHEME_TRUE;
@@ -2874,7 +2854,7 @@ C_inline C_word C_i_rationalp(C_word x)
 }
 
 
-C_inline C_word C_u_i_fpintegerp(C_word x)
+inline static C_word C_u_i_fpintegerp(C_word x)
 {
   double dummy, val;
 
@@ -2886,19 +2866,19 @@ C_inline C_word C_u_i_fpintegerp(C_word x)
 }
 
 
-C_inline int C_ub_i_fpintegerp(double x)
+inline static int C_ub_i_fpintegerp(double x)
 {
   double dummy;
 
   return C_modf(x, &dummy) == 0.0;
 }
 
-C_inline C_word C_i_exact_integerp(C_word x)
+inline static C_word C_i_exact_integerp(C_word x)
 {
   return C_mk_bool((x) & C_FIXNUM_BIT || C_truep(C_i_bignump(x)));
 }
 
-C_inline C_word C_u_i_exactp(C_word x)
+inline static C_word C_u_i_exactp(C_word x)
 {
   if (C_truep(C_i_exact_integerp(x))) {
     return C_SCHEME_TRUE;
@@ -2917,7 +2897,7 @@ C_inline C_word C_u_i_exactp(C_word x)
   }
 }
 
-C_inline C_word C_u_i_inexactp(C_word x)
+inline static C_word C_u_i_inexactp(C_word x)
 {
   if (C_immediatep(x)) {
     return C_SCHEME_FALSE;
@@ -2931,7 +2911,7 @@ C_inline C_word C_u_i_inexactp(C_word x)
   }
 }
 
-C_inline C_word C_i_integerp(C_word x)
+inline static C_word C_i_integerp(C_word x)
 {
   double dummy, val;
 
@@ -2947,23 +2927,23 @@ C_inline C_word C_i_integerp(C_word x)
 }
 
 
-C_inline C_word C_i_flonump(C_word x)
+inline static C_word C_i_flonump(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG);
 }
 
-C_inline C_word C_i_cplxnump(C_word x)
+inline static C_word C_i_cplxnump(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_CPLXNUM_TAG);
 }
 
-C_inline C_word C_i_ratnump(C_word x)
+inline static C_word C_i_ratnump(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_RATNUM_TAG);
 }
 
 /* TODO: Is this correctly named?  Shouldn't it accept an argcount? */
-C_inline C_word C_a_u_i_fix_to_big(C_word **ptr, C_word x)
+inline static C_word C_a_u_i_fix_to_big(C_word **ptr, C_word x)
 {
   x = C_unfix(x);
   if (x < 0)
@@ -2974,18 +2954,18 @@ C_inline C_word C_a_u_i_fix_to_big(C_word **ptr, C_word x)
     return C_bignum1(ptr, 0, x);
 }
 
-C_inline C_word C_i_fixnum_min(C_word x, C_word y)
+inline static C_word C_i_fixnum_min(C_word x, C_word y)
 {
   return ((C_word)x < (C_word)y) ? x : y;
 }
 
 
-C_inline C_word C_i_fixnum_max(C_word x, C_word y)
+inline static C_word C_i_fixnum_max(C_word x, C_word y)
 {
   return ((C_word)x > (C_word)y) ? x : y;
 }
 
-C_inline C_word C_i_fixnum_gcd(C_word x, C_word y)
+inline static C_word C_i_fixnum_gcd(C_word x, C_word y)
 {
    x = (x & C_INT_SIGN_BIT) ? -C_unfix(x) : C_unfix(x);
    y = (y & C_INT_SIGN_BIT) ? -C_unfix(y) : C_unfix(y);
@@ -2998,14 +2978,14 @@ C_inline C_word C_i_fixnum_gcd(C_word x, C_word y)
    return C_fix(x);
 }
 
-C_inline C_word C_fixnum_divide(C_word x, C_word y)
+inline static C_word C_fixnum_divide(C_word x, C_word y)
 {
   if(y == C_fix(0)) C_div_by_zero_error(C_text("fx/"));
   return C_u_fixnum_divide(x, y);
 }
 
 
-C_inline C_word C_fixnum_modulo(C_word x, C_word y)
+inline static C_word C_fixnum_modulo(C_word x, C_word y)
 {
   if(y == C_fix(0)) {
     C_div_by_zero_error(C_text("fxmod"));
@@ -3020,7 +3000,7 @@ C_inline C_word C_fixnum_modulo(C_word x, C_word y)
 /* XXX: Naming convention is inconsistent!  There's C_fixnum_divide()
  * but also C_a_i_flonum_quotient_checked()
  */
-C_inline C_word
+inline static C_word
 C_a_i_fixnum_quotient_checked(C_word **ptr, int c, C_word x, C_word y)
 {
   if (y == C_fix(0)) {
@@ -3032,7 +3012,7 @@ C_a_i_fixnum_quotient_checked(C_word **ptr, int c, C_word x, C_word y)
   }
 }
 
-C_inline C_word C_i_fixnum_remainder_checked(C_word x, C_word y)
+inline static C_word C_i_fixnum_remainder_checked(C_word x, C_word y)
 {
   if (y == C_fix(0)) {
     C_div_by_zero_error(C_text("fxrem"));
@@ -3043,13 +3023,13 @@ C_inline C_word C_i_fixnum_remainder_checked(C_word x, C_word y)
   }
 }
 
-C_inline C_word C_i_fixnum_arithmetic_shift(C_word n, C_word c)
+inline static C_word C_i_fixnum_arithmetic_shift(C_word n, C_word c)
 {
   if(C_unfix(c) < 0) return C_fixnum_shift_right(n, C_u_fixnum_negate(c));
   else return C_fixnum_shift_left(n, c);
 }
 
-C_inline C_word C_a_i_fixnum_negate(C_word **ptr, C_word n, C_word x)
+inline static C_word C_a_i_fixnum_negate(C_word **ptr, C_word n, C_word x)
 {
   /* Exceptional situation: this will cause an overflow to itself */
   if (x == C_fix(C_MOST_NEGATIVE_FIXNUM)) /* C_fitsinfixnump(x) */
@@ -3058,7 +3038,7 @@ C_inline C_word C_a_i_fixnum_negate(C_word **ptr, C_word n, C_word x)
     return C_fix(-C_unfix(x));
 }
 
-C_inline C_word C_s_a_u_i_integer_abs(C_word **ptr, C_word n, C_word x)
+inline static C_word C_s_a_u_i_integer_abs(C_word **ptr, C_word n, C_word x)
 {
   if (x & C_FIXNUM_BIT) {
     return C_a_i_fixnum_abs(ptr, 1, x);
@@ -3069,7 +3049,7 @@ C_inline C_word C_s_a_u_i_integer_abs(C_word **ptr, C_word n, C_word x)
   }
 }
 
-C_inline C_word C_i_fixnum_bit_setp(C_word n, C_word i)
+inline static C_word C_i_fixnum_bit_setp(C_word n, C_word i)
 {
     if (i & C_INT_SIGN_BIT) {
       C_not_an_uinteger_error(C_text("bit-set?"), i);
@@ -3080,7 +3060,7 @@ C_inline C_word C_i_fixnum_bit_setp(C_word n, C_word i)
     }
 }
 
-C_inline C_word C_a_i_fixnum_difference(C_word **ptr, C_word n, C_word x, C_word y)
+inline static C_word C_a_i_fixnum_difference(C_word **ptr, C_word n, C_word x, C_word y)
 {
   C_word z = C_unfix(x) - C_unfix(y);
 
@@ -3091,7 +3071,7 @@ C_inline C_word C_a_i_fixnum_difference(C_word **ptr, C_word n, C_word x, C_word
   }
 }
 
-C_inline C_word C_a_i_fixnum_plus(C_word **ptr, C_word n, C_word x, C_word y)
+inline static C_word C_a_i_fixnum_plus(C_word **ptr, C_word n, C_word x, C_word y)
 {
   C_word z = C_unfix(x) + C_unfix(y);
 
@@ -3102,7 +3082,7 @@ C_inline C_word C_a_i_fixnum_plus(C_word **ptr, C_word n, C_word x, C_word y)
   }
 }
 
-C_inline C_word C_a_i_fixnum_times(C_word **ptr, C_word n, C_word x, C_word y)
+inline static C_word C_a_i_fixnum_times(C_word **ptr, C_word n, C_word x, C_word y)
 {
   C_uword negp, xhi, xlo, yhi, ylo, p, rhi, rlo;
 
@@ -3136,7 +3116,7 @@ C_inline C_word C_a_i_fixnum_times(C_word **ptr, C_word n, C_word x, C_word y)
   }
 }
 
-C_inline C_word C_i_flonum_min(C_word x, C_word y)
+inline static C_word C_i_flonum_min(C_word x, C_word y)
 {
   double 
     xf = C_flonum_magnitude(x),
@@ -3146,7 +3126,7 @@ C_inline C_word C_i_flonum_min(C_word x, C_word y)
 }
 
 
-C_inline C_word C_i_flonum_max(C_word x, C_word y)
+inline static C_word C_i_flonum_max(C_word x, C_word y)
 {
   double 
     xf = C_flonum_magnitude(x),
@@ -3155,13 +3135,13 @@ C_inline C_word C_i_flonum_max(C_word x, C_word y)
   return xf > yf ? x : y;
 }
 
-C_inline C_word C_u_i_integer_signum(C_word x)
+inline static C_word C_u_i_integer_signum(C_word x)
 {
   if (x & C_FIXNUM_BIT) return C_i_fixnum_signum(x);
   else return (C_bignum_negativep(x) ? C_fix(-1) : C_fix(1));
 }
 
-C_inline C_word
+inline static C_word
 C_a_i_flonum_quotient_checked(C_word **ptr, int c, C_word n1, C_word n2)
 {
   double n3 = C_flonum_magnitude(n2);
@@ -3171,7 +3151,7 @@ C_a_i_flonum_quotient_checked(C_word **ptr, int c, C_word n1, C_word n2)
 }
 
 
-C_inline double
+inline static double
 C_ub_i_flonum_quotient_checked(double n1, double n2)
 {
   if(n2 == 0.0) C_div_by_zero_error(C_text("fp/?"));
@@ -3181,7 +3161,7 @@ C_ub_i_flonum_quotient_checked(double n1, double n2)
 /* More weirdness: the other flonum_quotient macros and inline functions
  * do not compute the quotient but the "plain" division!
  */
-C_inline C_word
+inline static C_word
 C_a_i_flonum_actual_quotient_checked(C_word **ptr, int c, C_word x, C_word y)
 {
   double dy = C_flonum_magnitude(y), r;
@@ -3198,7 +3178,7 @@ C_a_i_flonum_actual_quotient_checked(C_word **ptr, int c, C_word x, C_word y)
   }
 }
 
-C_inline C_word
+inline static C_word
 C_a_i_flonum_remainder_checked(C_word **ptr, int c, C_word x, C_word y)
 {
   double dx = C_flonum_magnitude(x),
@@ -3216,7 +3196,7 @@ C_a_i_flonum_remainder_checked(C_word **ptr, int c, C_word x, C_word y)
   }
 }
 
-C_inline C_word
+inline static C_word
 C_a_i_flonum_modulo_checked(C_word **ptr, int c, C_word x, C_word y)
 {
   double dx = C_flonum_magnitude(x),
@@ -3236,7 +3216,7 @@ C_a_i_flonum_modulo_checked(C_word **ptr, int c, C_word x, C_word y)
   }
 }
 
-C_inline C_word C_i_safe_pointerp(C_word x)
+inline static C_word C_i_safe_pointerp(C_word x)
 {
   if(C_immediatep(x)) return C_SCHEME_FALSE;
 
@@ -3250,7 +3230,7 @@ C_inline C_word C_i_safe_pointerp(C_word x)
 }
 
 
-C_inline C_word C_u_i_assq(C_word x, C_word lst)
+inline static C_word C_u_i_assq(C_word x, C_word lst)
 {
   C_word a;
 
@@ -3265,7 +3245,7 @@ C_inline C_word C_u_i_assq(C_word x, C_word lst)
 }
 
 
-C_inline C_word
+inline static C_word
 C_fast_retrieve(C_word sym)
 {
   C_word val = C_block_item(sym, 0);
@@ -3276,7 +3256,7 @@ C_fast_retrieve(C_word sym)
   return val;
 }
 
-C_inline void *
+inline static void *
 C_fast_retrieve_proc(C_word closure)
 {
   if(C_immediatep(closure) || C_header_bits(closure) != C_CLOSURE_TYPE) 
@@ -3286,14 +3266,14 @@ C_fast_retrieve_proc(C_word closure)
 }
 
 
-C_inline void *
+inline static void *
 C_fast_retrieve_symbol_proc(C_word sym)
 {
   return C_fast_retrieve_proc(C_fast_retrieve(sym));
 }
 
 
-C_inline C_word C_a_i_vector1(C_word **ptr, int n, C_word x1)
+inline static C_word C_a_i_vector1(C_word **ptr, int n, C_word x1)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -3304,7 +3284,7 @@ C_inline C_word C_a_i_vector1(C_word **ptr, int n, C_word x1)
 }
 
 
-C_inline C_word C_a_i_vector2(C_word **ptr, int n, C_word x1, C_word x2)
+inline static C_word C_a_i_vector2(C_word **ptr, int n, C_word x1, C_word x2)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -3316,7 +3296,7 @@ C_inline C_word C_a_i_vector2(C_word **ptr, int n, C_word x1, C_word x2)
 }
 
 
-C_inline C_word C_a_i_vector3(C_word **ptr, int n, C_word x1, C_word x2, C_word x3)
+inline static C_word C_a_i_vector3(C_word **ptr, int n, C_word x1, C_word x2, C_word x3)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -3329,7 +3309,7 @@ C_inline C_word C_a_i_vector3(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_vector4(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4)
+inline static C_word C_a_i_vector4(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4)
 {
   C_word *p = *ptr, *p0 = p; 
 
@@ -3343,7 +3323,7 @@ C_inline C_word C_a_i_vector4(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_vector5(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_vector5(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 			      C_word x5)
 {
   C_word *p = *ptr, *p0 = p; 
@@ -3359,7 +3339,7 @@ C_inline C_word C_a_i_vector5(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_vector6(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_vector6(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 			      C_word x5, C_word x6)
 {
   C_word *p = *ptr, *p0 = p; 
@@ -3376,7 +3356,7 @@ C_inline C_word C_a_i_vector6(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_vector7(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_vector7(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 			      C_word x5, C_word x6, C_word x7)
 {
   C_word *p = *ptr, *p0 = p; 
@@ -3394,7 +3374,7 @@ C_inline C_word C_a_i_vector7(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_a_i_vector8(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_vector8(C_word **ptr, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 			      C_word x5, C_word x6, C_word x7, C_word x8)
 {
   C_word *p = *ptr, *p0 = p; 
@@ -3413,7 +3393,7 @@ C_inline C_word C_a_i_vector8(C_word **ptr, int n, C_word x1, C_word x2, C_word 
 }
 
 
-C_inline C_word C_fcall C_a_pair(C_word **ptr, C_word car, C_word cdr)
+inline static C_word C_fcall C_a_pair(C_word **ptr, C_word car, C_word cdr)
 {
   C_word *p = *ptr, *p0 = p;
  
@@ -3424,7 +3404,7 @@ C_inline C_word C_fcall C_a_pair(C_word **ptr, C_word car, C_word cdr)
   return (C_word)p0;
 }
 
-C_inline C_word C_fcall C_a_weak_pair(C_word **ptr, C_word head, C_word tail)
+inline static C_word C_fcall C_a_weak_pair(C_word **ptr, C_word head, C_word tail)
 {
   C_word *p = *ptr, *p0 = p;
 
@@ -3436,13 +3416,13 @@ C_inline C_word C_fcall C_a_weak_pair(C_word **ptr, C_word head, C_word tail)
 }
 
 
-C_inline C_word C_a_i_list1(C_word **a, int n, C_word x1)
+inline static C_word C_a_i_list1(C_word **a, int n, C_word x1)
 {
   return C_a_pair(a, x1, C_SCHEME_END_OF_LIST);
 }
 
 
-C_inline C_word C_a_i_list2(C_word **a, int n, C_word x1, C_word x2)
+inline static C_word C_a_i_list2(C_word **a, int n, C_word x1, C_word x2)
 {
   C_word x = C_a_pair(a, x2, C_SCHEME_END_OF_LIST);
 
@@ -3450,7 +3430,7 @@ C_inline C_word C_a_i_list2(C_word **a, int n, C_word x1, C_word x2)
 }
 
 
-C_inline C_word C_a_i_list3(C_word **a, int n, C_word x1, C_word x2, C_word x3)
+inline static C_word C_a_i_list3(C_word **a, int n, C_word x1, C_word x2, C_word x3)
 {
   C_word x = C_pair(a, x3, C_SCHEME_END_OF_LIST);
 
@@ -3459,7 +3439,7 @@ C_inline C_word C_a_i_list3(C_word **a, int n, C_word x1, C_word x2, C_word x3)
 }
 
 
-C_inline C_word C_a_i_list4(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4)
+inline static C_word C_a_i_list4(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4)
 {
   C_word x = C_pair(a, x4, C_SCHEME_END_OF_LIST);
 
@@ -3469,7 +3449,7 @@ C_inline C_word C_a_i_list4(C_word **a, int n, C_word x1, C_word x2, C_word x3, 
 }
 
 
-C_inline C_word C_a_i_list5(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_list5(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 			    C_word x5)
 {
   C_word x = C_pair(a, x5, C_SCHEME_END_OF_LIST);
@@ -3481,7 +3461,7 @@ C_inline C_word C_a_i_list5(C_word **a, int n, C_word x1, C_word x2, C_word x3, 
 }
 
 
-C_inline C_word C_a_i_list6(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_list6(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 			    C_word x5, C_word x6)
 {
   C_word x = C_pair(a, x6, C_SCHEME_END_OF_LIST);
@@ -3494,7 +3474,7 @@ C_inline C_word C_a_i_list6(C_word **a, int n, C_word x1, C_word x2, C_word x3, 
 }
 
 
-C_inline C_word C_a_i_list7(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_list7(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 			    C_word x5, C_word x6, C_word x7)
 {
   C_word x = C_pair(a, x7, C_SCHEME_END_OF_LIST);
@@ -3508,7 +3488,7 @@ C_inline C_word C_a_i_list7(C_word **a, int n, C_word x1, C_word x2, C_word x3, 
 }
 
 
-C_inline C_word C_a_i_list8(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4,
+inline static C_word C_a_i_list8(C_word **a, int n, C_word x1, C_word x2, C_word x3, C_word x4,
 			    C_word x5, C_word x6, C_word x7, C_word x8)
 {
   C_word x = C_pair(a, x8, C_SCHEME_END_OF_LIST);
@@ -3527,7 +3507,7 @@ C_inline C_word C_a_i_list8(C_word **a, int n, C_word x1, C_word x2, C_word x3, 
  * From Hacker's Delight by Henry S. Warren
  * based on a modified nlz() from section 5-3 (fig. 5-7)
  */
-C_inline int C_ilen(C_uword x)
+inline static int C_ilen(C_uword x)
 {
   C_uword y;
   C_word n = 0;
@@ -3547,7 +3527,7 @@ C_inline int C_ilen(C_uword x)
 #ifdef HAVE_STRLCPY
 # define C_strlcpy                  strlcpy
 #else
-C_inline size_t C_strlcpy(char *dst, const char *src, size_t sz)
+inline static size_t C_strlcpy(char *dst, const char *src, size_t sz)
 {
    const char *start = src;
 
@@ -3567,7 +3547,7 @@ C_inline size_t C_strlcpy(char *dst, const char *src, size_t sz)
 #ifdef HAVE_STRLCAT
 # define C_strlcat                  strlcat
 #else
-C_inline size_t C_strlcat(char *dst, const char *src, size_t sz)
+inline static size_t C_strlcat(char *dst, const char *src, size_t sz)
 {
    char  *start = dst;
 
@@ -3582,7 +3562,7 @@ C_inline size_t C_strlcat(char *dst, const char *src, size_t sz)
 #ifdef PATH_MAX
 # define C_realpath realpath
 #else
-C_inline char *C_realpath(const char *path, char *resolved)
+inline static char *C_realpath(const char *path, char *resolved)
 {
 # if _POSIX_C_SOURCE >= 200809L
   char *p;

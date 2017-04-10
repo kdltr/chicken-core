@@ -761,6 +761,7 @@ posixunix.c: $(SRCDIR)posix.scm $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm
 	-emit-import-library chicken.time.posix \
 	-emit-import-library chicken.process \
 	-emit-import-library chicken.process.signal \
+	-emit-import-library chicken.process-context \
 	-emit-import-library chicken.posix
 posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -feature platform-windows \
@@ -769,6 +770,7 @@ posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $
 	-emit-import-library chicken.time.posix \
 	-emit-import-library chicken.process \
 	-emit-import-library chicken.process.signal \
+	-emit-import-library chicken.process-context \
 	-emit-import-library chicken.posix
 irregex.c: $(SRCDIR)irregex.scm $(SRCDIR)irregex-core.scm $(SRCDIR)irregex-utils.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.irregex
