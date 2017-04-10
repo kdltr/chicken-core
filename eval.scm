@@ -729,11 +729,7 @@
 			 [(##core#require-for-syntax)
 			  (let ((id (cadr x)))
 			    (load-extension id)
-			    (compile
-			     `(##core#begin
-			       ,@(map (lambda (x)
-					`(##sys#load-extension (##core#quote ,x)))
-				      (lookup-runtime-requirements id)))
+			    (compile '(##core#undefined)
 			     e #f tf cntr se #f))]
 
 			 [(##core#require)
