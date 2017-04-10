@@ -91,7 +91,7 @@
 (define no-deps #f)
   
 (define platform
-  (if (eq? 'mingw (build-platform))
+  (if (eq? 'mingw32 (build-platform))
       'windows
       'unix))
 
