@@ -275,7 +275,7 @@ $(eval $(call declare-program-from-object,$(CHICKEN_BUG_PROGRAM)$(EXE),chicken-b
 
 # "chicken-do"
 
-$(CHICKEN_DO_PROGRAM): $(SRCDIR)chicken-do.c
+$(CHICKEN_DO_PROGRAM)$(EXE): $(SRCDIR)chicken-do.c
 	$(C_COMPILER) $(C_COMPILER_OPTIONS) $< -o $@
 
 # scripts
@@ -656,7 +656,8 @@ chicken-install.c: chicken-install.scm \
 		chicken.pathname.import.scm \
 		chicken.port.import.scm \
 		chicken.posix.import.scm \
-		chicken.pretty-print.import.scm
+		chicken.pretty-print.import.scm \
+		chicken.tcp.import.scm
 chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.data-structures.import.scm \
 		chicken.foreign.import.scm \
