@@ -29,12 +29,15 @@
 
 #include "chicken.h"
 
-#ifndef WIN32
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
+#ifdef WIN32
+# include <windows.h>
+# include <sys/types.h>
+#else
+# include <sys/wait.h>
 #endif
 
+#include <sys/stat.h>
+#include <errno.h>
 
 static char *target;
 
@@ -67,7 +70,7 @@ static int execute(char **argv)
   while(*argv != NULL) {
     strcat(cmdline, "\"");
     strcat(cmdline, *(argv++));
-    strcat(cmdline, "\"");
+    strcat(cmdline, "\" ");
   }
   
   if(!CreateProcess(NULL, cmdline, NULL, NULL, TRUE, 
@@ -79,7 +82,7 @@ static int execute(char **argv)
 
   CloseHandle(process_info.hThread);
 
-  WaitForSingleObject(process_info.hProcess, INIFNITE);
+  WaitForSingleObject(process_info.hProcess, INFINITE);
   DWORD code;
 
   if(!GetExitCodeProcess(process_info.hProcess, &code)) {

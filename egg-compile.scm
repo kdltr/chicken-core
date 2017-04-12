@@ -60,7 +60,7 @@
 (define (copy-directory-command platform)
   (case platform
     ((unix) "cp -r")
-    ((windows) "xcopy /y")))
+    ((windows) "xcopy /y /i")))
 
 (define (mkdir-command platform)
   (case platform
@@ -70,12 +70,12 @@
 (define (install-executable-command platform)
   (case platform
     ((unix) "install -m755")
-    ((windows) "xcopy /y")))
+    ((windows) "copy /y")))
 
 (define (install-file-command platform)
   (case platform
     ((unix) "install -m644")
-    ((windows) "xcopy /y")))
+    ((windows) "copy /y")))
 
 (define (remove-file-command platform)
   (case platform
@@ -515,7 +515,7 @@
          (out (quotearg (target-file (conc sname ext) mode)))
          (outlnk (quotearg (conc sname +link-file-extension+)))
          (dest (destination-repository mode))
-         (dfile (quotearg dest))
+         (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
@@ -666,7 +666,7 @@ EOF
              ))
     ((windows)
      (printf #<<EOF
-@echo off
+@echo off~%
 EOF
              ))))
 
@@ -719,7 +719,7 @@ mkdir ~a~a
 echo ~a >~a~a~%
 EOF
                ddir qdir 
-               (string-intersperse (string-split infostr) "^\n")
+               (string-intersperse (string-split infostr "\n") "^\n\n")
                ddir dest)))))
 
 
