@@ -10,6 +10,8 @@
     interrupted by a signal, we now retry (thanks to Joerg Wittenberger).
   - char-ready? on string ports now also returns #t at EOF, as per R5RS;
     in other words, it always returns #t (thanks to Moritz Heidkamp)
+  - Unit srfi-4: Fixed typo that broke SRFI-17 generalised set! syntax
+    on s8vectors (thanks to Kristian Lein-Mathisen).
 
 - Build system
   - Fixed broken compilation on NetBSD, due to missing _NETBSD_SOURCE.
