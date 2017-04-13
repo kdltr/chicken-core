@@ -17,12 +17,17 @@
 	  (assert (eqv? 100 (,(conc "vector-ref") x 0)))
 	  (assert (,(conc "vector?") x))
 	  (assert (number-vector? x))
+	  ;; Test direct setter and ref
 	  (,(conc "vector-set!") x 1 99)
 	  (assert (eqv? 99 (,(conc "vector-ref") x 1)))
+	  ;; Test SRFI-17 generalised set! and ref
+	  (set! (,(conc "vector-ref") x 0) 127)
+	  (assert (eqv? 127 (,(conc "vector-ref") x 0)))
+	  ;; Ensure length is okay
 	  (assert (= 2 (,(conc "vector-length") x)))
 	  (assert
 	   (let ((result (,(conc "vector->list") x)))
-	     (and (eqv? 100 (car result))
+	     (and (eqv? 127 (car result))
 		  (eqv? 99 (cadr result))))))))))
 
 (test1 u8 0 255)

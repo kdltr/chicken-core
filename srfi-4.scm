@@ -257,7 +257,7 @@ EOF
      (let ((len (##core#inline "C_u_i_s8vector_length" x)))
        (check-range i 0 len 's8vector-ref)
        (##core#inline "C_u_i_s8vector_ref" x i)))
-   u8vector-set!
+   s8vector-set!
    "(s8vector-ref v i)"))
 
 (define u16vector-ref
