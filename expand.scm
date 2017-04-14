@@ -816,18 +816,9 @@
 	       ((assq sym se) =>
 		(lambda (a)
 		  (cond ((symbol? a)
-			 ;; Add an extra level of indirection for already aliased
-			 ;; symbols.  This prevents aliased symbols from popping up
-			 ;; in syntax-stripped output.
-			 (cond ((or (getp a '##core#aliased)
-				    (getp a '##core#primitive))
-				(let ((a2 (macro-alias sym se)))
-				  (dd `(RENAME/SE/ALIASED: ,sym --> ,a ==> ,a2))
-				  (set! renv (cons (cons sym a2) renv))
-				  a2))
-			       (else (dd `(RENAME/SE: ,sym --> ,a))
-				     (set! renv (cons (cons sym a) renv))
-				     a)))
+			 (dd `(RENAME/SE: ,sym --> ,a))
+			 (set! renv (cons (cons sym a) renv))
+			 a)
 			(else
 			 (let ((a2 (macro-alias sym se)))
 			   (dd `(RENAME/SE/MACRO: ,sym --> ,a2))
