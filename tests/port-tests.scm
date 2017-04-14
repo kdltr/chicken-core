@@ -42,6 +42,8 @@ EOF
   (read-line p)))
 (assert (= 20 (length (read-lines (open-input-string *text*)))))
 
+(assert (char-ready? (open-input-string "")))
+
 (let ((out (open-output-string)))
   (test-equal "Initially, output string is empty"
               (get-output-string out) "")

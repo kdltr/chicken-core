@@ -4255,8 +4255,7 @@ EOF
 	   (##sys#setislot p 10 (fx+ position len)) ) ) )
      void ; close
      (lambda (p) #f)			; flush-output
-     (lambda (p)			; char-ready?
-       (fx< (##sys#slot p 10) (##sys#slot p 11)) )
+     (lambda (p) #t)			; char-ready?
      (lambda (p n dest start)		; read-string!
        (let* ((pos (##sys#slot p 10))
 	      (n2 (fx- (##sys#slot p 11) pos) ) )

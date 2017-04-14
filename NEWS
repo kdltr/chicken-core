@@ -71,6 +71,8 @@
 - Core Libraries
   - Unit "posix": If file-lock, file-lock/blocking or file-unlock are
     interrupted by a signal, we now retry (thanks to Joerg Wittenberger).
+  - char-ready? on string ports now also returns #t at EOF, as per R5RS;
+    in other words, it always returns #t (thanks to Moritz Heidkamp)
 
 - Build system
   - Fixed broken compilation on NetBSD, due to missing _NETBSD_SOURCE.
