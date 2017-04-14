@@ -1135,6 +1135,36 @@ other-eval
 (import rename-builtins)
 (assert (eq? '* (strip-syntax-on-*)))
 
+;; #1362: Double rename would cause "renamed" var to be restored to
+;; the original macro aliased name (resulting in a plain symbol)
+(let-syntax ((wrapper/should-do-nothing
+              (er-macro-transformer
+               (lambda (e r c)
+                 (let* ((%x (r 'x))
+                        (%%x (r %x)))
+                   `(let ((,%x 1)
+                          (,%%x 2))
+                      ,(cadr e)))))))
+  (print (let ((x 1)) (wrapper/should-do-nothing x))))
+
+;; Same net effect as above, but more complex by the use of IR macros.
+(letrec-syntax ((bind-pair
+                 (ir-macro-transformer
+                  (lambda (e i c)
+                    (let* ((b (cadr e))
+                           (exp (caddr e))
+                           (body (cdddr e)))
+                      `(let* ((x ,exp)
+                              (,(car b) (car x))
+                              (,(cadr b) (cdr x)))
+                         ,@body)))))
+                (foo
+                 (ir-macro-transformer
+                  (lambda (e i c)
+                    `(bind-pair (x y) (cons 'foo-car 'foo-cdr) y)))))
+  (assert (eq? 'second (bind-pair (x y) (cons 'first 'second) y)))
+  (assert (eq? 'foo-cdr (foo))))
+
 ;; #944: macro-renamed defines mismatch with the names recorded in module
 ;;       definitions, causing the module to be unresolvable.
 

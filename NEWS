@@ -76,6 +76,10 @@
   - Unit srfi-4: Fixed typo that broke SRFI-17 generalised set! syntax
     on s8vectors (thanks to Kristian Lein-Mathisen).
 
+- Syntax expander
+  - Renaming an identifier twice no longer results in an undo of the
+    rename (fixes #1362, thanks to "megane").
+
 - Build system
   - Fixed broken compilation on NetBSD, due to missing _NETBSD_SOURCE.
 
