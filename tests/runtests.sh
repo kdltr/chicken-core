@@ -455,7 +455,7 @@ $compile2 -link reverser linking-tests.scm
 ./linking-tests
 $compile2 -link reverser linking-tests.scm -static
 ./linking-tests
-mv reverser.o reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
+cp reverser.o reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
 CHICKEN_INSTALL_REPOSITORY=$CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH=$CHICKEN_REPOSITORY_PATH $compile2 -link reverser linking-tests.scm
 ./linking-tests
 CHICKEN_INSTALL_REPOSITORY=$CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH=$CHICKEN_REPOSITORY_PATH $compile2 -link reverser linking-tests.scm -static
