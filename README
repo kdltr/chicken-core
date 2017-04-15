@@ -272,7 +272,7 @@
 	|       `-- chicken.h
 	|-- lib
 	|   |-- chicken
-	|   |   `-- 8
+	|   |   `-- 9
 	|   |       |-- chicken.import.so
 	|   |       |-- chicken.bitwise.import.so
 	|   |       |-- chicken.compiler.user-pass.import.so
@@ -320,8 +320,8 @@
 	|   |-- libchicken.a
 	|   |-- libchicken.dll.a                      (Windows)
 	|   |-- libchicken.dylib                      (Macintosh)
-	|   |-- libchicken.so -> libchicken.so.8      (Unix)
-	|   `-- libchicken.so.8                       (Unix)
+	|   |-- libchicken.so -> libchicken.so.9      (Unix)
+	|   `-- libchicken.so.9                       (Unix)
 	`-- share
 	    |-- chicken
 	    |   |-- doc
