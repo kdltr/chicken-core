@@ -46,13 +46,35 @@
   (assert (equal? 'ok (read in)))
   (assert (equal? 'err (read err))))
 
-(let* ((tmp-dir (create-temporary-directory))
-       (tmp-dot (make-pathname (list tmp-dir "foo" "bar") ".baz")))
-  (create-directory tmp-dot 'recursively)
-  (assert (directory-exists? tmp-dot))
-  (delete-directory tmp-dir 'recursively)
-  (assert (not (directory-exists? tmp-dot)))
-  (assert (not (directory-exists? tmp-dir))))
+;; delete-directory
+(let* ((t (create-temporary-directory))
+       (t/a (make-pathname t "a"))
+       (t/a/file (make-pathname t/a "file"))
+       (t/b (make-pathname t "b"))
+       (t/b/c (make-pathname t/b "c"))
+       (t/b/c/link (make-pathname t/b/c "link"))
+       (t/b/c/.file (make-pathname t/b/c ".file")))
+  ;; Create file under a:
+  (create-directory t/a)
+  (with-output-to-file t/a/file void)
+  ;; Create directories under b:
+  (create-directory t/b/c/.file 'recursively)
+  (assert (directory? t/b/c/.file))
+  (when (or (feature? #:unix) (feature? #:cygwin))
+    (create-symbolic-link t/a t/b/c/link)
+    (assert (directory? t/b/c/link)))
+  ;; Delete directory tree at b:
+  (delete-directory t/b 'recursively)
+  (assert (not (directory? t/b/c/.file)))
+  (assert (not (directory? t/b/c/link)))
+  (assert (not (directory? t/b/c)))
+  (assert (not (directory? t/b)))
+  ;; Make sure symlink wasn't followed:
+  (assert (directory? t/a))
+  (assert (regular-file? t/a/file))
+  ;; Clean up temporary directory:
+  (delete-directory t 'recursively)
+  (assert (not (directory? t))))
 
 ;; unset-environment-variable!
 (set-environment-variable! "FOO" "bar")

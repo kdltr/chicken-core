@@ -454,11 +454,6 @@ echo ======================================== posix tests ...
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-del /f /q /s tmpdir
-mkdir tmpdir
-echo 0 >tmpdir\.dotfile
-%interpret% -R posix -e "(delete-directory \"tmpdir\" #t)"
-if errorlevel 1 exit /b 1
 
 echo ======================================== find-files tests ...
 %interpret% -bnq test-find-files.scm
