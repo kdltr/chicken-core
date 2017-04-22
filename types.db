@@ -851,9 +851,7 @@
 
 ;; eval
 
-(chicken.eval#chicken-home (#(procedure #:clean) chicken.eval#chicken-home () string))
 (chicken.eval#eval (procedure chicken.eval#eval (* #!optional (struct environment)) . *))
-(chicken.eval#extension-information (#(procedure #:clean) chicken.eval#extension-information (symbol) *))
 (chicken.eval#load (procedure chicken.eval#load (string #!optional (procedure (*) . *)) undefined))
 (chicken.eval#load-extension (#(procedure #:enforce) chicken.eval#load-extension (symbol) undefined))
 (chicken.eval#load-library (#(procedure #:enforce) chicken.eval#load-library (symbol #!optional string) undefined))
@@ -861,8 +859,6 @@
 (chicken.eval#load-verbose (#(procedure #:clean) chicken.eval#load-verbose (#!optional *) *))
 (chicken.eval#provide (#(procedure #:clean #:enforce) chicken.eval#provide (#!rest symbol) undefined))
 (chicken.eval#provided? (#(procedure #:clean #:enforce) chicken.eval#provided? (#!rest symbol) boolean))
-(chicken.eval#repository-path (#(procedure #:clean) chicken.eval#repository-path (#!optional *) *))
-(chicken.eval#installation-repository (#(procedure #:clean) chicken.eval#installation-repository (#!optional *) *))
 (chicken.eval#require (#(procedure #:clean) chicken.eval#require (#!rest symbol) undefined))
 
 (chicken.eval#scheme-report-environment
@@ -1220,6 +1216,8 @@
 
 (chicken.platform#build-platform (#(procedure #:pure) chicken.platform#build-platform () symbol))
 (chicken.platform#chicken-version (#(procedure #:pure) chicken.platform#chicken-version (#!optional *) string))
+(chicken.platform#chicken-home (#(procedure #:clean) chicken.platform#chicken-home () string))
+(chicken.platform#extension-information (#(procedure #:clean) chicken.platform#extension-information (symbol) *))
 (chicken.platform#feature? (#(procedure #:clean) chicken.platform#feature? (#!rest symbol) boolean))
 (chicken.platform#features (#(procedure #:clean) chicken.platform#features () (list-of symbol)))
 (chicken.platform#software-type (#(procedure #:pure) chicken.platform#software-type () symbol))
@@ -1228,6 +1226,8 @@
 (chicken.platform#unregister-feature! (#(procedure #:clean #:enforce) chicken.platform#unregister-feature! (#!rest symbol) undefined))
 (chicken.platform#machine-byte-order (#(procedure #:pure) chicken.platform#machine-byte-order () symbol))
 (chicken.platform#machine-type (#(procedure #:pure) chicken.platform#machine-type () symbol))
+(chicken.platform#repository-path (#(procedure #:clean) chicken.platform#repository-path (#!optional *) *))
+(chicken.platform#installation-repository (#(procedure #:clean) chicken.platform#installation-repository (#!optional *) *))
 
 
 (getter-with-setter

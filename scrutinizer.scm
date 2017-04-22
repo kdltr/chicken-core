@@ -41,6 +41,7 @@
 	chicken.format
 	chicken.io
 	chicken.pathname
+	chicken.platform
 	chicken.port
 	chicken.pretty-print)
 
@@ -1697,8 +1698,8 @@
 
 ;;; type-db processing
 
-(define (load-type-database name specialize #!optional 
-                            (path (##sys#repository-path)))
+(define (load-type-database name specialize #!optional
+                            (path (repository-path)))
   (define (clean! name)
     (when specialize (mark-variable name '##compiler#clean #t)))
   (define (pure! name)

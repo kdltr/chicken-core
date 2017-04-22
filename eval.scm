@@ -47,18 +47,16 @@
 <#
 
 (module chicken.eval
-  (chicken-home dynamic-load-libraries
-   eval eval-handler extension-information
+  (dynamic-load-libraries
+   eval eval-handler
    load load-library load-noisily load-relative load-verbose
    interaction-environment null-environment scheme-report-environment
-   load-extension provide provided? repository-path 
-   installation-repository
+   load-extension provide provided?
    require set-dynamic-load-mode!)
 
 ;; Exclude bindings defined within this module.
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment)
-	(except chicken chicken-home provide provided? repository-path
-         installation-repository require))
+	(except chicken provide provided? require))
 
 (import chicken.expand
 	chicken.foreign
@@ -74,8 +72,6 @@
 
 (provide* eval) ; TODO remove after a snapshot release
 
-(define-foreign-variable install-egg-home c-string "C_INSTALL_EGG_HOME")
-(define-foreign-variable installation-home c-string "C_INSTALL_SHARE_HOME")
 (define-foreign-variable binary-version int "C_BINARY_VERSION")
 (define-foreign-variable uses-soname? bool "C_USES_SONAME")
 (define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
@@ -102,8 +98,6 @@
 (define-constant default-load-library-extension ".so")
 (define-constant environment-table-size 301)
 (define-constant source-file-extension ".scm")
-(define-constant setup-file-extension "egg-info")
-(define-constant prefix-environment-variable "CHICKEN_PREFIX")
 (define-constant windows-object-file-extension ".obj")
 (define-constant unix-object-file-extension ".o")
 (define-constant loadable-file-extension ".so")
@@ -134,15 +128,6 @@
     ((cygwin) cygwin-default-dynamic-load-libraries)
     (else `(,(string-append "lib" install-lib-name)))))
 
-(define chicken-prefix
-  (let ((prefix (and-let* ((p (get-environment-variable prefix-environment-variable)))
-		  (##sys#string-append 
-		   p
-		   (if (memq (string-ref p (fx- (##sys#size p) 1)) '(#\\ #\/)) "" "/")) ) ) )
-    (lambda (#!optional dir)
-      (and prefix
-	   (if dir (##sys#string-append prefix dir) prefix) ) ) ) )
-
 
 ;;; Library registration (used for code loading):
 
@@ -151,12 +136,6 @@
 
 (define (##sys#provided? id)
   (##core#inline "C_i_providedp" id))
-
-
-;;; System settings
-
-(define (chicken-home)
-  (or (chicken-prefix "share/chicken") installation-home))
 
 
 ;;; Lo-level hashtable support:
@@ -1193,28 +1172,7 @@
 		   (check (##sys#substring p 0 (fx- n 1))) ]
 		  [else p] ) ) ) ) ) ) )
 
-(define repository-path
-  (make-parameter
-   (or (foreign-value "C_private_repository_path()" c-string)
-       (get-environment-variable "CHICKEN_REPOSITORY_PATH")
-       (chicken-prefix
-	(##sys#string-append
-	 "lib/chicken/"
-	 (##sys#number->string binary-version)))
-       install-egg-home)))
 
-(define installation-repository
-  (make-parameter
-    (or (foreign-value "C_private_repository_path()" c-string)
-        (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
-        (chicken-prefix
-          (##sys#string-append
-            "lib/chicken/"
-            (##sys#number->string binary-version)))
-        install-egg-home)))
-
-(define ##sys#repository-path repository-path)
-(define ##sys#installation-repository installation-repository)
 (define ##sys#setup-mode #f)
 
 (define path-list-separator
@@ -1248,7 +1206,7 @@
 	(string-append string-append))
     (lambda (path inc?)
       (let ((p  (##sys#canonicalize-extension-path path #f))
-	    (rp (##sys#repository-path)))
+	    (rp (repository-path)))
 	(define (check path)
 	  (let ((p0 (string-append path "/" p)))
 	    (or (and rp
@@ -1298,27 +1256,10 @@
   (for-each (cut ##sys#check-symbol <> 'provided?) ids)
   (every ##sys#provided? ids))
 
-(define extension-information/internal
-  (let ((with-input-from-file with-input-from-file)
-	(string-append string-append)
-	(read read) )
-    (lambda (id loc)
-      (and-let* ((rp (##sys#repository-path)))
-           (let ((p (##sys#canonicalize-extension-path id loc)))
-             (let loop ((rp (##sys#split-path rp)))
-               (cond ((null? rp) #f)
-                     ((file-exists? (string-append (car rp) "/" p "."
-                                                   setup-file-extension))
-                      => (cut with-input-from-file <> read) )
-                     (else (loop (cdr rp))))))))))
-
-(define (extension-information ext)
-  (extension-information/internal ext 'extension-information))
-
 (define static-extension-available?
   (let ((string-append string-append))
     (lambda (id)
-      (and-let* ((rp (##sys#repository-path)))
+      (and-let* ((rp (repository-path)))
            (let loop ((rp (##sys#split-path rp)))
              (cond ((null? rp) #f)
                    ((file-exists? 
@@ -1460,7 +1401,7 @@
 	  (let loop ((paths (if repo
 				(##sys#append 
 				 ##sys#include-pathnames 
-				 (let ((rp (##sys#repository-path)))
+				 (let ((rp (repository-path)))
 				   (if rp
 				       (##sys#split-path rp)
 				       '())))

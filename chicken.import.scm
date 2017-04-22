@@ -39,7 +39,7 @@
    call/cc
    case-sensitive
    char-name
-   (chicken-home . chicken.eval#chicken-home)
+   (chicken-home . chicken.platform#chicken-home)
    (chicken-version . chicken.platform#chicken-version)
    command-line-arguments
    condition-predicate
@@ -66,7 +66,7 @@
    exit
    exit-handler
    (expand . chicken.expand#expand)
-   (extension-information . chicken.eval#extension-information)
+   (extension-information . chicken.platform#extension-information)
    (feature? . chicken.platform#feature?)
    (features . chicken.platform#features)
    file-exists?
@@ -116,7 +116,7 @@
    implicit-exit-handler
    infinite?
    input-port-open?
-   (installation-repository . chicken.eval#installation-repository)
+   (installation-repository . chicken.platform#installation-repository)
    (ir-macro-transformer . chicken.expand#ir-macro-transformer)
    keyword-style
    (load-library . chicken.eval#load-library)
@@ -161,7 +161,7 @@
    (register-feature! . chicken.platform#register-feature!)
    remprop!
    rename-file
-   (repository-path . chicken.eval#repository-path)
+   (repository-path . chicken.platform#repository-path)
    (require . chicken.eval#require)
    reset
    reset-handler

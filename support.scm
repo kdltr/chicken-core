@@ -85,6 +85,7 @@
 	chicken.keyword
 	chicken.io
 	chicken.pathname
+	chicken.platform
 	chicken.port
 	chicken.pretty-print
 	chicken.random
@@ -1628,7 +1629,7 @@
 
 (define (load-identifier-database name)	; Used only in batch-driver.scm
   (define (locate)
-    (let loop ((dirs (##sys#split-path (##sys#repository-path))))
+    (let loop ((dirs (##sys#split-path (repository-path))))
       (cond ((null? dirs) #f)
             ((file-exists? (make-pathname (car dirs) name)))
             (else (loop (cdr dirs))))))

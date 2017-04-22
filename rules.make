@@ -580,6 +580,7 @@ scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
+		chicken.platform.import.scm \
 		chicken.port.import.scm \
 		chicken.pretty-print.import.scm
 lfa2.c: lfa2.scm mini-srfi-1.scm \
@@ -603,6 +604,7 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.keyword.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
+		chicken.platform.import.scm \
 		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.random.import.scm \

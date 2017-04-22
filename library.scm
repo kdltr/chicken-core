@@ -4383,165 +4383,6 @@ EOF
 	  (string-append "#<pointer 0x" (##sys#number->string (##sys#pointer->address x) 16) ">") ) ) ) )
 
 
-;;; Platform configuration inquiry:
-
-(module chicken.platform
-    (build-platform chicken-version
-     feature? features software-type
-     software-version register-feature! unregister-feature!
-     machine-byte-order machine-type
-
-     ;;; TODO, move these from eval:
-     ;; chicken-home extension-information
-     ;; provide provided? repository-path
-
-     ;;; TODO, move these from posix:
-     ;; get-host-name system-information
-     )
-
-(import scheme chicken.fixnum chicken.foreign chicken.keyword)
-(import (only chicken when unless))
-
-(define software-type
-  (let ((sym (string->symbol ((##core#primitive "C_software_type")))))
-    (lambda () sym) ) )
-
-(define machine-type
-  (let ((sym (string->symbol ((##core#primitive "C_machine_type")))))
-    (lambda () sym) ) )
-
-(define machine-byte-order
-  (let ((sym (string->symbol ((##core#primitive "C_machine_byte_order")))))
-    (lambda () sym) ) )
-
-(define software-version
-  (let ((sym (string->symbol ((##core#primitive "C_software_version")))))
-    (lambda () sym) ) )
-
-(define build-platform
-  (let ((sym (string->symbol ((##core#primitive "C_build_platform")))))
-    (lambda () sym) ) )
-
-(define ##sys#windows-platform
-  (and (eq? 'windows (software-type))
-       ;; Still windows even if 'Linux-like'
-       (not (eq? 'cygwin (build-platform)))) )
-
-(define (chicken-version #!optional full)
-  (define (get-config)
-    (let ((bp (build-platform))
-	  (st (software-type))
-	  (sv (software-version))
-	  (mt (machine-type)))
-      (define (str x)
-	(if (eq? 'unknown x)
-	    ""
-	    (string-append (symbol->string x) "-") ) )
-      (string-append (str sv) (str st) (str bp) (##sys#symbol->string mt)) ) )
-  (if full
-      (let ((spec (string-append
-		   (if (feature? #:64bit) " 64bit" "")
-		   (if (feature? #:dload) " dload" "")
-		   (if (feature? #:ptables) " ptables" "")
-		   (if (feature? #:gchooks) " gchooks" "")
-		   (if (feature? #:cross-chicken) " cross" ""))))
-	(string-append
-	 "Version " ##sys#build-version
-	 (if ##sys#build-branch (string-append " (" ##sys#build-branch ")") "")
-	 (if ##sys#build-id (string-append " (rev " ##sys#build-id ")") "")
-	 "\n"
-	 (get-config)
-	 (if (zero? (##sys#size spec))
-	     ""
-	     (string-append " [" spec " ]") )
-	 "\n"
-	 (or (##sys#build-tag) "")))
-      ##sys#build-version) )
-
-;;; Feature identifiers:
-
-(define ->feature-id ; TODO: export this?  It might be useful..
-  (let ()
-    (define (err . args)
-      (apply ##sys#signal-hook #:type-error "bad argument type - not a valid feature identifer" args) )
-    (define (prefix s)
-      (if s 
-	  (##sys#string-append s "-")
-	  "") )
-    (lambda (x)
-      (cond ((keyword? x) x)
-	    ((string? x) (string->keyword x))
-	    ((symbol? x) (string->keyword (##sys#symbol->string x)))
-	    (else (err x))))))
-
-(define ##sys#features
-  '(#:chicken
-    #:srfi-6 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62
-    ;; TODO: consider removing at least irregex-is-core-unit
-    #:irregex-is-core-unit #:full-numeric-tower #:manyargs))
-
-;; Add system features:
-
-(let ((check (lambda (f)
-	       (unless (eq? 'unknown f)
-		 (set! ##sys#features (cons (->feature-id f) ##sys#features))))))
-  (check (software-type))
-  (check (software-version))
-  (check (build-platform))
-  (check (machine-type))
-  (check (machine-byte-order)) )
-
-(when (foreign-value "HAVE_DLOAD" bool)
-  (set! ##sys#features (cons #:dload ##sys#features)))
-(when (foreign-value "HAVE_PTABLES" bool)
-  (set! ##sys#features (cons #:ptables ##sys#features)))
-(when (foreign-value "HAVE_GCHOOKS" bool)
-  (set! ##sys#features (cons #:gchooks ##sys#features)))
-(when (foreign-value "IS_CROSS_CHICKEN" bool)
-  (set! ##sys#features (cons #:cross-chicken ##sys#features)))
-(when (fx= (foreign-value "C_WORD_SIZE" int) 64)
-  (set! ##sys#features (cons #:64bit ##sys#features)))
-
-(set! ##sys#features
-  (let ((major (##sys#number->string (foreign-value "C_MAJOR_VERSION" int)))
-	(minor (##sys#number->string (foreign-value "C_MINOR_VERSION" int))))
-    (cons (->feature-id (string-append "chicken-" major))
-	  (cons (->feature-id (string-append "chicken-" major "." minor))
-		##sys#features))))
-
-(define (register-feature! . fs)
-  (for-each
-   (lambda (f)
-     (let ((id (->feature-id f)))
-       (unless (memq id ##sys#features) (set! ##sys#features (cons id ##sys#features))) ) )
-   fs)
-  (##core#undefined) )
-
-(define (unregister-feature! . fs)
-  (let ((fs (map ->feature-id fs)))
-    (set! ##sys#features
-      (let loop ((ffs ##sys#features))
-	(if (null? ffs)
-	    '()
-	    (let ((f (##sys#slot ffs 0))
-		  (r (##sys#slot ffs 1)))
-	      (if (memq f fs)
-		  (loop r)
-		  (cons f (loop r)) ) ) ) ) )
-    (##core#undefined) ) )
-
-(define (features) ##sys#features)
-
-(define (feature? . ids)
-  (let loop ((ids ids))
-    (or (null? ids)
-	(and (memq (->feature-id (##sys#slot ids 0)) ##sys#features)
-	     (loop (##sys#slot ids 1)) ) ) ) )
-
-) ; chicken.platform
-
-(import chicken.platform)
-
 ;;; Access backtrace:
 
 (define-constant +trace-buffer-entry-slot-count+ 4)
@@ -5916,3 +5757,209 @@ EOF
       (loop (- len 1) (cdr input)))
      (else input))))
 
+
+;;; Platform configuration inquiry:
+
+(module chicken.platform
+    (build-platform chicken-version chicken-home extension-information
+     feature? features machine-byte-order machine-type
+     repository-path installation-repository
+     register-feature! unregister-feature!
+     software-type software-version
+
+     ;;; TODO, move these from posix:
+     ;; get-host-name system-information
+     )
+
+(import scheme chicken chicken.fixnum chicken.foreign chicken.keyword)
+
+(define software-type
+  (let ((sym (string->symbol ((##core#primitive "C_software_type")))))
+    (lambda () sym)))
+
+(define machine-type
+  (let ((sym (string->symbol ((##core#primitive "C_machine_type")))))
+    (lambda () sym)))
+
+(define machine-byte-order
+  (let ((sym (string->symbol ((##core#primitive "C_machine_byte_order")))))
+    (lambda () sym)))
+
+(define software-version
+  (let ((sym (string->symbol ((##core#primitive "C_software_version")))))
+    (lambda () sym)))
+
+(define build-platform
+  (let ((sym (string->symbol ((##core#primitive "C_build_platform")))))
+    (lambda () sym)))
+
+(define ##sys#windows-platform
+  (and (eq? 'windows (software-type))
+       ;; Still windows even if 'Linux-like'
+       (not (eq? 'cygwin (build-platform)))))
+
+(define (chicken-version #!optional full)
+  (define (get-config)
+    (let ((bp (build-platform))
+	  (st (software-type))
+	  (sv (software-version))
+	  (mt (machine-type)))
+      (define (str x)
+	(if (eq? 'unknown x)
+	    ""
+	    (string-append (symbol->string x) "-")))
+      (string-append (str sv) (str st) (str bp) (##sys#symbol->string mt))))
+  (if full
+      (let ((spec (string-append
+		   (if (feature? #:64bit) " 64bit" "")
+		   (if (feature? #:dload) " dload" "")
+		   (if (feature? #:ptables) " ptables" "")
+		   (if (feature? #:gchooks) " gchooks" "")
+		   (if (feature? #:cross-chicken) " cross" ""))))
+	(string-append
+	 "Version " ##sys#build-version
+	 (if ##sys#build-branch (string-append " (" ##sys#build-branch ")") "")
+	 (if ##sys#build-id (string-append " (rev " ##sys#build-id ")") "")
+	 "\n"
+	 (get-config)
+	 (if (zero? (##sys#size spec))
+	     ""
+	     (string-append " [" spec " ]"))
+	 "\n"
+	 (or (##sys#build-tag) "")))
+      ##sys#build-version))
+
+;;; Installation locations
+
+(define-constant setup-file-extension "egg-info")
+
+(define-foreign-variable binary-version int "C_BINARY_VERSION")
+(define-foreign-variable installation-home c-string "C_INSTALL_SHARE_HOME")
+(define-foreign-variable install-egg-home c-string "C_INSTALL_EGG_HOME")
+
+(define chicken-prefix
+  (let ((prefix (and-let* ((p (get-environment-variable "CHICKEN_PREFIX")))
+		  (##sys#string-append
+		   p
+		   (if (memq (string-ref p (fx- (##sys#size p) 1)) '(#\\ #\/)) "" "/")))))
+    (lambda (#!optional dir)
+      (and prefix
+	   (if dir (##sys#string-append prefix dir) prefix)))))
+
+(define repository-path
+  (make-parameter
+   (or (foreign-value "C_private_repository_path()" c-string)
+       (get-environment-variable "CHICKEN_REPOSITORY_PATH")
+       (chicken-prefix
+	(##sys#string-append
+	 "lib/chicken/"
+	 (##sys#number->string binary-version)))
+       install-egg-home)))
+
+(define installation-repository
+  (make-parameter
+   (or (foreign-value "C_private_repository_path()" c-string)
+       (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
+       (chicken-prefix
+	(##sys#string-append
+	 "lib/chicken/"
+	 (##sys#number->string binary-version)))
+       install-egg-home)))
+
+(define (chicken-home)
+  (or (chicken-prefix "share/chicken") installation-home))
+
+(define extension-information
+  (let ((with-input-from-file with-input-from-file)
+	(string-append string-append)
+	(read read))
+    (lambda (id)
+      (and-let* ((rp (repository-path)))
+	(let ((p (##sys#canonicalize-extension-path
+		  id 'extension-information)))
+	  (let loop ((rp (##sys#split-path rp)))
+	    (cond ((null? rp) #f)
+		  ((file-exists? (string-append (car rp) "/" p "."
+						setup-file-extension))
+		   => (cut with-input-from-file <> read))
+		  (else (loop (cdr rp))))))))))
+
+;;; Feature identifiers:
+
+(define ->feature-id ; TODO: export this?  It might be useful..
+  (let ()
+    (define (err . args)
+      (apply ##sys#signal-hook #:type-error "bad argument type - not a valid feature identifer" args))
+    (define (prefix s)
+      (if s (##sys#string-append s "-") ""))
+    (lambda (x)
+      (cond ((keyword? x) x)
+	    ((string? x) (string->keyword x))
+	    ((symbol? x) (string->keyword (##sys#symbol->string x)))
+	    (else (err x))))))
+
+(define ##sys#features
+  '(#:chicken
+    #:srfi-6 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62
+    ;; TODO: consider removing at least irregex-is-core-unit
+    #:irregex-is-core-unit #:full-numeric-tower #:manyargs))
+
+;; Add system features:
+
+(let ((check (lambda (f)
+	       (unless (eq? 'unknown f)
+		 (set! ##sys#features (cons (->feature-id f) ##sys#features))))))
+  (check (software-type))
+  (check (software-version))
+  (check (build-platform))
+  (check (machine-type))
+  (check (machine-byte-order)))
+
+(when (foreign-value "HAVE_DLOAD" bool)
+  (set! ##sys#features (cons #:dload ##sys#features)))
+(when (foreign-value "HAVE_PTABLES" bool)
+  (set! ##sys#features (cons #:ptables ##sys#features)))
+(when (foreign-value "HAVE_GCHOOKS" bool)
+  (set! ##sys#features (cons #:gchooks ##sys#features)))
+(when (foreign-value "IS_CROSS_CHICKEN" bool)
+  (set! ##sys#features (cons #:cross-chicken ##sys#features)))
+(when (fx= (foreign-value "C_WORD_SIZE" int) 64)
+  (set! ##sys#features (cons #:64bit ##sys#features)))
+
+(set! ##sys#features
+  (let ((major (##sys#number->string (foreign-value "C_MAJOR_VERSION" int)))
+	(minor (##sys#number->string (foreign-value "C_MINOR_VERSION" int))))
+    (cons (->feature-id (string-append "chicken-" major))
+	  (cons (->feature-id (string-append "chicken-" major "." minor))
+		##sys#features))))
+
+(define (register-feature! . fs)
+  (for-each
+   (lambda (f)
+     (let ((id (->feature-id f)))
+       (unless (memq id ##sys#features) (set! ##sys#features (cons id ##sys#features)))))
+   fs)
+  (##core#undefined))
+
+(define (unregister-feature! . fs)
+  (let ((fs (map ->feature-id fs)))
+    (set! ##sys#features
+      (let loop ((ffs ##sys#features))
+	(if (null? ffs)
+	    '()
+	    (let ((f (##sys#slot ffs 0))
+		  (r (##sys#slot ffs 1)))
+	      (if (memq f fs)
+		  (loop r)
+		  (cons f (loop r)))))))
+    (##core#undefined)))
+
+(define (features) ##sys#features)
+
+(define (feature? . ids)
+  (let loop ((ids ids))
+    (or (null? ids)
+	(and (memq (->feature-id (##sys#slot ids 0)) ##sys#features)
+	     (loop (##sys#slot ids 1))))))
+
+) ; chicken.platform
