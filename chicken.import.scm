@@ -35,12 +35,12 @@
    blob-size
    blob?
    blob=?
-   build-platform
+   (build-platform . chicken.platform#build-platform)
    call/cc
    case-sensitive
    char-name
    (chicken-home . chicken.eval#chicken-home)
-   chicken-version
+   (chicken-version . chicken.platform#chicken-version)
    command-line-arguments
    condition-predicate
    condition-property-accessor
@@ -67,8 +67,8 @@
    exit-handler
    (expand . chicken.expand#expand)
    (extension-information . chicken.eval#extension-information)
-   feature?
-   features
+   (feature? . chicken.platform#feature?)
+   (features . chicken.platform#features)
    file-exists?
    finite?
    (fixnum-bits . chicken.fixnum#fixnum-bits)
@@ -123,8 +123,8 @@
    (load-noisily . chicken.eval#load-noisily)
    (load-relative . chicken.eval#load-relative)
    (load-verbose . chicken.eval#load-verbose)
-   machine-byte-order
-   machine-type
+   (machine-byte-order . chicken.platform#machine-byte-order)
+   (machine-type . chicken.platform#machine-type)
    make-blob
    make-composite-condition
    make-parameter
@@ -158,7 +158,7 @@
    quotient&modulo
    quotient&remainder
    ratnum?
-   register-feature!
+   (register-feature! . chicken.platform#register-feature!)
    remprop!
    rename-file
    (repository-path . chicken.eval#repository-path)
@@ -173,8 +173,8 @@
    signum
    singlestep
    sleep
-   software-type
-   software-version
+   (software-type . chicken.platform#software-type)
+   (software-version . chicken.platform#software-version)
    string->blob
    string->uninterned-symbol
    (strip-syntax . chicken.expand#strip-syntax)
@@ -185,7 +185,7 @@
    symbol-plist
    (syntax-error . chicken.expand#syntax-error)
    system
-   unregister-feature!
+   (unregister-feature! . chicken.platform#unregister-feature!)
    vector-resize
    vector-copy!
    void

@@ -49,7 +49,8 @@
 
 (import chicken scheme
         chicken.data-structures
-        chicken.irregex)
+        chicken.irregex
+	chicken.platform)
 
 (include "common-declarations.scm")
 

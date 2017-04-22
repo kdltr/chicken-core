@@ -40,6 +40,7 @@
 (import (chicken io))
 (import (chicken time))
 (import (chicken pathname))
+(import (chicken platform))
 (import (chicken process))
 (import (chicken pretty-print))
 

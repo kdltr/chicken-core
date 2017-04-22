@@ -63,7 +63,8 @@
 (import chicken.expand
 	chicken.foreign
 	chicken.internal
-	chicken.keyword)
+	chicken.keyword
+	chicken.platform)
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")

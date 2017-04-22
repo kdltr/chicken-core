@@ -308,6 +308,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.lolevel.import.so
 	|   |       |-- chicken.memory.import.so
 	|   |       |-- chicken.pathname.import.so
+	|   |       |-- chicken.platform.import.so
 	|   |       |-- chicken.port.import.so
 	|   |       |-- chicken.posix.import.so
 	|   |       |-- chicken.pretty-print.import.so

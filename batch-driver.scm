@@ -40,6 +40,7 @@
 	chicken.format
 	chicken.gc
 	chicken.pathname
+	chicken.platform
 	chicken.pretty-print
 	chicken.time
 	chicken.compiler.support

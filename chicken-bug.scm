@@ -33,6 +33,7 @@
 	chicken.pathname
 	chicken.port
 	chicken.posix
+	chicken.platform
 	chicken.time)
 
 (define-constant +bug-report-file+ "chicken-bug-report.~a-~a-~a")

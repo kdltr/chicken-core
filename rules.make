@@ -510,6 +510,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.fixnum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.flonum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.keyword,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.platform,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.time,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.format,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.io,extras))
@@ -538,6 +539,7 @@ batch-driver.c: batch-driver.scm mini-srfi-1.scm \
 		chicken.format.import.scm \
 		chicken.gc.import.scm \
 		chicken.pathname.import.scm \
+		chicken.platform.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.time.import.scm
 c-platform.c: c-platform.scm mini-srfi-1.scm \
@@ -608,7 +610,8 @@ support.c: support.scm mini-srfi-1.scm \
 modules.c: modules.scm \
 		chicken.expand.import.scm \
 		chicken.internal.import.scm \
-		chicken.keyword.import.scm
+		chicken.keyword.import.scm \
+		chicken.platform.import.scm
 csc.c: csc.scm \
 		chicken.data-structures.import.scm \
 		chicken.eval.import.scm \
@@ -621,6 +624,7 @@ csi.c: csi.scm \
 		chicken.format.import.scm \
 		chicken.gc.import.scm \
 		chicken.keyword.import.scm \
+		chicken.platform.import.scm \
 		chicken.io.import.scm \
 		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
@@ -631,6 +635,7 @@ chicken-bug.c: chicken-bug.scm \
 		chicken.io.import.scm \
 		chicken.keyword.import.scm \
 		chicken.pathname.import.scm \
+		chicken.platform.import.scm \
 		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.time.import.scm
@@ -653,6 +658,7 @@ chicken-install.c: chicken-install.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
 		chicken.irregex.import.scm \
+		chicken.platform.import.scm \
 		chicken.pathname.import.scm \
 		chicken.port.import.scm \
 		chicken.posix.import.scm \
@@ -666,17 +672,21 @@ chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.pathname.import.scm \
 		chicken.port.import.scm \
 		chicken.posix.import.scm
+chicken-syntax.c: chicken-syntax.scm \
+		chicken.platform.import.scm
 srfi-4.c: srfi-4.scm \
 		chicken.bitwise.import.scm \
 		chicken.expand.import.scm \
 		chicken.foreign.import.scm \
-		chicken.gc.import.scm
+		chicken.gc.import.scm \
+		chicken.platform.import.scm
 posixunix.c: posixunix.scm \
 		chicken.bitwise.import.scm \
 		chicken.foreign.import.scm \
 		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
+		chicken.platform.import.scm \
 		chicken.port.import.scm \
 		chicken.time.import.scm
 posixwin.c: posixwin.scm \
@@ -685,12 +695,14 @@ posixwin.c: posixwin.scm \
 		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
+		chicken.platform.import.scm \
 		chicken.port.import.scm \
 		chicken.time.import.scm
 data-structures.c: data-structures.scm \
 		chicken.foreign.import.scm
 expand.c: expand.scm \
 		chicken.keyword.import.scm \
+		chicken.platform.import.scm \
 		chicken.internal.import.scm
 extras.c: extras.scm \
 		chicken.data-structures.import.scm \
@@ -699,7 +711,8 @@ eval.c: eval.scm \
 		chicken.expand.import.scm \
 		chicken.foreign.import.scm \
 		chicken.internal.import.scm \
-		chicken.keyword.import.scm
+		chicken.keyword.import.scm \
+		chicken.platform.import.scm
 repl.c: repl.scm \
 		chicken.eval.import.scm
 file.c: file.scm \
@@ -715,9 +728,12 @@ lolevel.c: lolevel.scm \
 		chicken.foreign.import.scm
 pathname.c: pathname.scm \
 		chicken.data-structures.import.scm \
-		chicken.irregex.import.scm
+		chicken.irregex.import.scm \
+		chicken.platform.import.scm
 port.c: port.scm \
 		chicken.io.import.scm
+read-syntax.c: read-syntax.scm \
+		chicken.platform.import.scm
 tcp.c: tcp.scm \
 		chicken.foreign.import.scm \
 		chicken.port.import.scm \
@@ -736,6 +752,7 @@ library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations
 	-emit-import-library chicken.flonum \
 	-emit-import-library chicken.gc \
 	-emit-import-library chicken.keyword \
+	-emit-import-library chicken.platform \
 	-emit-import-library chicken.time
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal

@@ -82,7 +82,8 @@ EOF
 (import chicken.bitwise
 	chicken.expand
 	chicken.foreign
-	chicken.gc)
+	chicken.gc
+	chicken.platform)
 
 (include "common-declarations.scm")
 

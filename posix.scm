@@ -118,7 +118,7 @@
    with-output-to-pipe process process* pipe/buf process-group-id
    create-session)
 
-(import chicken scheme chicken.posix)
+(import chicken scheme chicken.posix chicken.platform)
 
 
 ;;; Like `system', but bombs on nonzero return code:

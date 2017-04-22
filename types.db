@@ -955,11 +955,9 @@
 (blob? (#(procedure #:pure #:predicate blob) blob? (*) boolean))
 
 (blob=? (#(procedure #:clean #:enforce #:foldable) blob=? (blob blob) boolean))
-(build-platform (#(procedure #:pure) build-platform () symbol))
 (call/cc (#(procedure #:enforce) call/cc ((procedure (*) . *)) . *))
 (case-sensitive (#(procedure #:clean) case-sensitive (#!optional *) *))
 (char-name (#(procedure #:clean #:enforce) char-name ((or char symbol) #!optional char) *)) ;XXX -> (or char symbol) ?
-(chicken-version (#(procedure #:pure) chicken-version (#!optional *) string))
 (command-line-arguments (#(procedure #:clean) command-line-arguments (#!optional (list-of string)) (list-of string)))
 (condition-predicate (#(procedure #:clean #:enforce) condition-predicate (symbol) (procedure ((struct condition)) boolean)))
 (condition-property-accessor (#(procedure #:clean #:enforce) condition-property-accessor (symbol symbol #!optional *) (procedure ((struct condition)) *)))
@@ -1042,8 +1040,6 @@
 (exit (procedure exit (#!optional fixnum) noreturn))
 (exit-handler (#(procedure #:clean #:enforce) exit-handler (#!optional (procedure (fixnum) . *)) procedure))
 (chicken.expand#expand (procedure chicken.expand#expand (* #!optional list) *))
-(feature? (#(procedure #:clean) feature? (#!rest symbol) boolean))
-(features (#(procedure #:clean) features () (list-of symbol)))
 (file-exists? (#(procedure #:clean #:enforce) file-exists? (string) (or false string)))
 (directory-exists? (#(procedure #:clean #:enforce) directory-exists? (string) (or false string)))
 
@@ -1220,6 +1216,20 @@
 (chicken.keyword#keyword? (#(procedure #:pure) chicken.keyword#keyword? (*) boolean))
 (chicken.keyword#string->keyword (#(procedure #:clean #:enforce) chicken.keyword#string->keyword (string) symbol))
 
+;; platform
+
+(chicken.platform#build-platform (#(procedure #:pure) chicken.platform#build-platform () symbol))
+(chicken.platform#chicken-version (#(procedure #:pure) chicken.platform#chicken-version (#!optional *) string))
+(chicken.platform#feature? (#(procedure #:clean) chicken.platform#feature? (#!rest symbol) boolean))
+(chicken.platform#features (#(procedure #:clean) chicken.platform#features () (list-of symbol)))
+(chicken.platform#software-type (#(procedure #:pure) chicken.platform#software-type () symbol))
+(chicken.platform#software-version (#(procedure #:pure) chicken.platform#software-version () symbol))
+(chicken.platform#register-feature! (#(procedure #:clean #:enforce) chicken.platform#register-feature! (#!rest symbol) undefined))
+(chicken.platform#unregister-feature! (#(procedure #:clean #:enforce) chicken.platform#unregister-feature! (#!rest symbol) undefined))
+(chicken.platform#machine-byte-order (#(procedure #:pure) chicken.platform#machine-byte-order () symbol))
+(chicken.platform#machine-type (#(procedure #:pure) chicken.platform#machine-type () symbol))
+
+
 (getter-with-setter
  (#(procedure #:clean #:enforce)
   getter-with-setter
@@ -1236,8 +1246,6 @@
   (struct transformer)))
 
 (keyword-style (#(procedure #:clean) keyword-style (#!optional symbol) symbol))
-(machine-byte-order (#(procedure #:pure) machine-byte-order () symbol))
-(machine-type (#(procedure #:pure) machine-type () symbol))
 
 (make-blob (#(procedure #:clean #:enforce) make-blob (fixnum) blob)
 	   ((fixnum) (##sys#make-blob #(1))))
@@ -1282,7 +1290,6 @@
 
 (quit (procedure quit (#!optional *) noreturn))
 
-(register-feature! (#(procedure #:clean #:enforce) register-feature! (#!rest symbol) undefined))
 (remprop! (#(procedure #:clean #:enforce) remprop! (symbol symbol) undefined))
 (rename-file (#(procedure #:clean #:enforce) rename-file (string string) string))
 (reset (procedure reset () noreturn))
@@ -1318,8 +1325,6 @@
 	((cplxnum) ((or float cplxnum)) (##sys#extended-signum #(1))))
 
 (sleep (#(procedure #:clean #:enforce) sleep (fixnum) undefined))
-(software-type (#(procedure #:pure) software-type () symbol))
-(software-version (#(procedure #:pure) software-version () symbol))
 (string->blob (#(procedure #:clean #:enforce) string->blob (string) blob))
 (string->uninterned-symbol (#(procedure #:clean #:enforce) string->uninterned-symbol (string) symbol))
 (chicken.expand#strip-syntax (#(procedure #:clean) chicken.expand#strip-syntax (*) *))
@@ -1342,7 +1347,6 @@
 
 (chicken.expand#syntax-error (procedure chicken.expand#syntax-error (* #!rest) noreturn))
 (system (#(procedure #:clean #:enforce) system (string) fixnum))
-(unregister-feature! (#(procedure #:clean #:enforce) unregister-feature! (#!rest symbol) undefined))
 (vector-resize
  (forall (a b) (#(procedure #:clean #:enforce) vector-resize ((vector-of a) fixnum #!optional b)
 	       (vector-of (or a b)))))

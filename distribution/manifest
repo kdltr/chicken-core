@@ -310,6 +310,8 @@ chicken.memory.import.scm
 chicken.memory.import.c
 chicken.pathname.import.scm
 chicken.pathname.import.c
+chicken.platform.import.scm
+chicken.platform.import.c
 chicken.port.import.scm
 chicken.port.import.c
 chicken.posix.import.scm

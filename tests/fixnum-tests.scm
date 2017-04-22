@@ -1,3 +1,5 @@
+(use (chicken platform))
+
 (define (fxo+ x y) (##core#inline "C_i_o_fixnum_plus" x y))
 (define (fxo- x y) (##core#inline "C_i_o_fixnum_difference" x y))
 

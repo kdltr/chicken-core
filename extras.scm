@@ -566,7 +566,7 @@
 (module chicken.format
   (format fprintf printf sprintf)
 
-(import scheme chicken)
+(import scheme chicken chicken.platform)
 
 (define fprintf0
   (lambda (loc port msg args)

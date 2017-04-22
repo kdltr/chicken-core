@@ -41,7 +41,8 @@
 
 (import chicken.expand
 	chicken.internal
-	chicken.keyword)
+	chicken.keyword
+	chicken.platform)
 
 (define-alias dd d)
 (define-alias dm d)
@@ -964,6 +965,7 @@
 (##sys#register-module-alias 'lolevel 'chicken.lolevel)
 (##sys#register-module-alias 'memory 'chicken.memory)
 (##sys#register-module-alias 'pathname 'chicken.pathname)
+(##sys#register-module-alias 'platform 'chicken.platform)
 (##sys#register-module-alias 'port 'chicken.port)
 (##sys#register-module-alias 'posix 'chicken.posix)
 (##sys#register-module-alias 'pretty-print 'chicken.pretty-print)

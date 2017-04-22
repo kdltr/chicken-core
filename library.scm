@@ -42,7 +42,8 @@
   (not inline ##sys#user-read-hook ##sys#error-hook ##sys#signal-hook
        ##sys#sleep-hook ##sys#schedule ##sys#default-read-info-hook
        ##sys#infix-list-hook ##sys#sharp-number-hook
-       ##sys#user-print-hook ##sys#user-interrupt-hook)
+       ##sys#user-print-hook ##sys#user-interrupt-hook
+       ##sys#windows-platform ##sys#features)
   (foreign-declare #<<EOF
 #include <errno.h>
 #include <float.h>
@@ -4384,24 +4385,41 @@ EOF
 
 ;;; Platform configuration inquiry:
 
+(module chicken.platform
+    (build-platform chicken-version
+     feature? features software-type
+     software-version register-feature! unregister-feature!
+     machine-byte-order machine-type
+
+     ;;; TODO, move these from eval:
+     ;; chicken-home extension-information
+     ;; provide provided? repository-path
+
+     ;;; TODO, move these from posix:
+     ;; get-host-name system-information
+     )
+
+(import scheme chicken.fixnum chicken.foreign chicken.keyword)
+(import (only chicken when unless))
+
 (define software-type
-  (let ([sym (string->symbol ((##core#primitive "C_software_type")))])
+  (let ((sym (string->symbol ((##core#primitive "C_software_type")))))
     (lambda () sym) ) )
 
 (define machine-type
-  (let ([sym (string->symbol ((##core#primitive "C_machine_type")))])
+  (let ((sym (string->symbol ((##core#primitive "C_machine_type")))))
     (lambda () sym) ) )
 
 (define machine-byte-order
-  (let ([sym (string->symbol ((##core#primitive "C_machine_byte_order")))])
+  (let ((sym (string->symbol ((##core#primitive "C_machine_byte_order")))))
     (lambda () sym) ) )
 
 (define software-version
-  (let ([sym (string->symbol ((##core#primitive "C_software_version")))])
+  (let ((sym (string->symbol ((##core#primitive "C_software_version")))))
     (lambda () sym) ) )
 
 (define build-platform
-  (let ([sym (string->symbol ((##core#primitive "C_build_platform")))])
+  (let ((sym (string->symbol ((##core#primitive "C_build_platform")))))
     (lambda () sym) ) )
 
 (define ##sys#windows-platform
@@ -4411,10 +4429,10 @@ EOF
 
 (define (chicken-version #!optional full)
   (define (get-config)
-    (let ([bp (build-platform)]
-	  [st (software-type)]
-	  [sv (software-version)]
-	  [mt (machine-type)] )
+    (let ((bp (build-platform))
+	  (st (software-type))
+	  (sv (software-version))
+	  (mt (machine-type)))
       (define (str x)
 	(if (eq? 'unknown x)
 	    ""
@@ -4440,10 +4458,9 @@ EOF
 	 (or (##sys#build-tag) "")))
       ##sys#build-version) )
 
-
 ;;; Feature identifiers:
 
-(define ##sys#->feature-id
+(define ->feature-id ; TODO: export this?  It might be useful..
   (let ()
     (define (err . args)
       (apply ##sys#signal-hook #:type-error "bad argument type - not a valid feature identifer" args) )
@@ -4467,7 +4484,7 @@ EOF
 
 (let ((check (lambda (f)
 	       (unless (eq? 'unknown f)
-		 (set! ##sys#features (cons (##sys#->feature-id f) ##sys#features))))))
+		 (set! ##sys#features (cons (->feature-id f) ##sys#features))))))
   (check (software-type))
   (check (software-version))
   (check (build-platform))
@@ -4488,27 +4505,26 @@ EOF
 (set! ##sys#features
   (let ((major (##sys#number->string (foreign-value "C_MAJOR_VERSION" int)))
 	(minor (##sys#number->string (foreign-value "C_MINOR_VERSION" int))))
-    (cons (##sys#->feature-id (string-append "chicken-" major))
-	  (cons (##sys#->feature-id
-		 (string-append "chicken-" major "." minor))
+    (cons (->feature-id (string-append "chicken-" major))
+	  (cons (->feature-id (string-append "chicken-" major "." minor))
 		##sys#features))))
 
 (define (register-feature! . fs)
   (for-each
    (lambda (f)
-     (let ([id (##sys#->feature-id f)])
+     (let ((id (->feature-id f)))
        (unless (memq id ##sys#features) (set! ##sys#features (cons id ##sys#features))) ) )
    fs)
   (##core#undefined) )
 
 (define (unregister-feature! . fs)
-  (let ([fs (map ##sys#->feature-id fs)])
+  (let ((fs (map ->feature-id fs)))
     (set! ##sys#features
-      (let loop ([ffs ##sys#features])
+      (let loop ((ffs ##sys#features))
 	(if (null? ffs)
 	    '()
-	    (let ([f (##sys#slot ffs 0)]
-		  [r (##sys#slot ffs 1)] )
+	    (let ((f (##sys#slot ffs 0))
+		  (r (##sys#slot ffs 1)))
 	      (if (memq f fs)
 		  (loop r)
 		  (cons f (loop r)) ) ) ) ) )
@@ -4517,13 +4533,14 @@ EOF
 (define (features) ##sys#features)
 
 (define (feature? . ids)
-  (let loop ([ids ids])
+  (let loop ((ids ids))
     (or (null? ids)
-	(and (memq (##sys#->feature-id (##sys#slot ids 0)) ##sys#features)
+	(and (memq (->feature-id (##sys#slot ids 0)) ##sys#features)
 	     (loop (##sys#slot ids 1)) ) ) ) )
 
-(define ##sys#feature? feature?)
+) ; chicken.platform
 
+(import chicken.platform)
 
 ;;; Access backtrace:
 

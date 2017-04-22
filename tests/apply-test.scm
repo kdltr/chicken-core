@@ -1,4 +1,4 @@
-(require-extension format)
+(use format (chicken platform))
 
 (define (list-tabulate n proc)
   (let loop ((i 0))

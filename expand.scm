@@ -52,7 +52,8 @@
    expansion-result-hook)
 
 (import scheme chicken
-	chicken.keyword)
+	chicken.keyword
+	chicken.platform)
 
 (include "common-declarations.scm")
 
@@ -1417,7 +1418,7 @@
 
 (##sys#extend-macro-environment
  'cond-expand
- '()
+ '((feature? . chicken.platform#feature?))
  (##sys#er-transformer
   (lambda (form r c)
     (let ((clauses (cdr form))
@@ -1430,7 +1431,7 @@
 		     x
 		     (cons 'cond-expand clauses)) )
       (define (test fx)
-	(cond ((symbol? fx) (##sys#feature? (strip-syntax fx)))
+	(cond ((symbol? fx) (feature? (strip-syntax fx)))
 	      ((not (pair? fx)) (err fx))
 	      (else
 	       (let ((head (car fx))
