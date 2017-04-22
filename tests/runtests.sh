@@ -32,49 +32,8 @@ esac
 
 rm -fr test-repository
 mkdir -p test-repository
-
-# copy files into test-repository (by hand to avoid calling `chicken-install'):
-
-for x in \
-    chicken.import.so types.db \
-    setup-api.so setup-api.import.so srfi-4.import.so \
-    setup-download.so setup-download.import.so \
-    chicken.bitwise.import.so \
-    chicken.continuation.import.so \
-    chicken.csi.import.so \
-    chicken.data-structures.import.so \
-    chicken.files.import.so \
-    chicken.flonum.import.so \
-    chicken.foreign.import.so \
-    chicken.format.import.so \
-    chicken.gc.import.so \
-    chicken.internal.import.so \
-    chicken.io.import.so \
-    chicken.irregex.import.so \
-    chicken.keyword.import.so \
-    chicken.locative.import.so \
-    chicken.lolevel.import.so \
-    chicken.memory.import.so \
-    chicken.pathname.import.so \
-    chicken.port.import.so \
-    chicken.posix.import.so \
-    chicken.pretty-print.import.so \
-    chicken.process.import.so \
-    chicken.random.import.so \
-    chicken.repl.import.so \
-    chicken.read-syntax.import.so \
-    chicken.tcp.import.so \
-    chicken.time.import.so
-do
-    cp ../$x test-repository
-done
-
-CHICKEN_REPOSITORY=${TEST_DIR}/test-repository
-CHICKEN_PREFIX=${TEST_DIR}/..
-
-export CHICKEN_REPOSITORY
-export CHICKEN_PREFIX
-
+CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
+CHICKEN_REPOSITORY_PATH=${TEST_DIR}/..:$CHICKEN_INSTALL_REPOSITORY
 CHICKEN=${TEST_DIR}/../chicken
 CHICKEN_PROFILE=${TEST_DIR}/../chicken-profile
 CHICKEN_INSTALL=${TEST_DIR}/../chicken-install
@@ -487,10 +446,10 @@ $compile2 -link reverser linking-tests.scm
 ./linking-tests
 $compile2 -link reverser linking-tests.scm -static
 ./linking-tests
-mv reverser.o reverser.import.scm "$CHICKEN_REPOSITORY"
-$compile2 -link reverser linking-tests.scm
+cp reverser.o reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
+CHICKEN_INSTALL_REPOSITORY=$CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH=$CHICKEN_REPOSITORY_PATH $compile2 -link reverser linking-tests.scm
 ./linking-tests
-$compile2 -link reverser linking-tests.scm -static
+CHICKEN_INSTALL_REPOSITORY=$CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH=$CHICKEN_REPOSITORY_PATH $compile2 -link reverser linking-tests.scm -static
 ./linking-tests
 
 echo "======================================== private repository test ..."
@@ -501,33 +460,6 @@ tmp/xxx ${TEST_DIR}/tmp
 PATH=`pwd`/tmp:$PATH xxx ${TEST_DIR}/tmp
 # this may crash, if the PATH contains a non-matching libchicken.dll on Windows:
 #PATH=$PATH:${TEST_DIR}/tmp xxx ${TEST_DIR}/tmp
-rm -fr rev-app rev-app-2 reverser/*.import.* reverser/*.so
-
-echo "======================================== reinstall tests"
-$CHICKEN_UNINSTALL -force reverser
-CSC_OPTIONS=$COMPILE_OPTIONS CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL \
-	-t local -l $TEST_DIR -csi ${TEST_DIR}/../csi reverser:1.0
-$interpret -bnq rev-app.scm 1.0
-CSC_OPTIONS=$COMPILE_OPTIONS CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL \
-	-t local -l $TEST_DIR -reinstall -force -csi ${TEST_DIR}/../csi
-$interpret -bnq rev-app.scm 1.0
-
-if test $OS_NAME != AIX -a $OS_NAME != SunOS -a $OS_NAME != GNU; then
-	echo "======================================== deployment tests"
-	mkdir rev-app
-	TARGET_LIB_PATH=${TEST_DIR}/.. CSC_OPTIONS=$COMPILE_OPTIONS \
-			  CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -csi ${TEST_DIR}/../csi -t local -l $TEST_DIR reverser
-	TARGET_LIB_PATH=${TEST_DIR}/.. CSC_OPTIONS=$COMPILE_OPTIONS \
-			  CSI_OPTIONS=$SETUP_PREFIX $compile2 -deploy rev-app.scm
-	TARGET_LIB_PATH=${TEST_DIR}/.. CSC_OPTIONS=$COMPILE_OPTIONS \
-			  CSI_OPTIONS=$SETUP_PREFIX $CHICKEN_INSTALL -csi ${TEST_DIR}/../csi -deploy -prefix rev-app -t local -l $TEST_DIR reverser
-	unset LD_LIBRARY_PATH DYLD_LIBRARY_PATH
-	# An absolute path is required on NetBSD with $ORIGIN, hence `pwd`
-	`pwd`/rev-app/rev-app 1.1
-	mv rev-app rev-app-2
-	`pwd`/rev-app-2/rev-app 1.1
-else
-	echo "Skipping deployment tests: deployment is currently unsupported on your platform."
-fi
+rm -fr reverser/*.import.* reverser/*.so
 
 echo "======================================== done."

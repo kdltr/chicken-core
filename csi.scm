@@ -189,7 +189,7 @@ EOF
 		   [(addext name)]
 		   [else
 		    (let ([name2 (string-append "/" name)])
-		      (let loop ([ps (string-split path ";")])
+		      (let loop ((ps (##sys#split-path path)))
 			(and (pair? ps)
 			     (let ([name2 (string-append (chop-separator (##sys#slot ps 0)) name2)])
 			       (or (addext name2)
@@ -477,6 +477,7 @@ EOF
                    Software version:\t~A~%~
                    Build platform:  \t~A~%~
                    Installation prefix:\t~A~%~
+                   Extension installation location:\t~A~%~
                    Extension path:  \t~A~%~
                    Include path:    \t~A~%~
                    Keyword style:   \t~A~%~
@@ -492,6 +493,7 @@ EOF
 		    (software-version)
 		    (build-platform)
 		    prefix
+                    (installation-repository)
 		    (repository-path)
 		    ##sys#include-pathnames
 		    (symbol->string (keyword-style))
@@ -988,9 +990,8 @@ EOF
 	   [quietflag (member* '("-q" "-quiet") args)]
 	   [quiet (or script quietflag eval?)]
 	   [ipath (map chop-separator 
-		       (string-split 
-			(or (get-environment-variable "CHICKEN_INCLUDE_PATH") "") 
-			";"))] )      
+		       (##sys#split-path
+			(or (get-environment-variable "CHICKEN_INCLUDE_PATH") "")))])
       (define (collect-options opt)
 	(let loop ([opts args])
 	  (cond [(member opt opts) 

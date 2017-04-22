@@ -25,9 +25,6 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-;; TODO: Rename c-backend back to "backend" and turn it into a
-;; functor?  This may require the creation of an additional file.
-;; Same goes for "platform" and "driver".
 (declare
   (unit c-backend)
   (uses data-structures extras c-platform compiler internal support))
@@ -523,11 +520,11 @@
 		     (eq? caller-rest-mode 'none)))
 	    (gen #t "C_word av2[" avl "];"))
 	   ((>= caller-argcount avl)   ; Argvec known to be re-usable?
-	    (gen #t "C_word *av2=av; /* Re-use our own argvector */"))
+	    (gen #t "C_word *av2=av;")) ; Re-use our own argvector
 	   (else      ; Need to determine dynamically. This is slower.
 	    (gen #t "C_word *av2;")
 	    (gen #t "if(c >= " avl ") {")
-	    (gen #t "  av2=av; /* Re-use our own argvector */")
+	    (gen #t "  av2=av;") ; Re-use our own argvector
 	    (gen #t "} else {")
 	    (gen #t "  av2=C_alloc(" avl ");")
 	    (gen #t "}")))
@@ -540,7 +537,7 @@
 	    (gen ";"))))
 
       (expr node temps) )
-  
+ 
     (define (header)
       (define (pad0 n)
 	(if (< n 10)
@@ -566,7 +563,8 @@
 	(unless (null? used-units)
 	  (gen #t "   uses: ")
 	  (gen-list used-units))
-	(gen #t "*/" #t #t "#include \"" target-include-file "\"")
+        (gen #t "*/")
+	(gen #t "#include \"" target-include-file "\"")
 	(when external-protos-first
 	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) )
 	(when (pair? foreign-declarations)

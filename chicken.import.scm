@@ -116,6 +116,7 @@
    implicit-exit-handler
    infinite?
    input-port-open?
+   (installation-repository . chicken.eval#installation-repository)
    (ir-macro-transformer . chicken.expand#ir-macro-transformer)
    keyword-style
    (load-library . chicken.eval#load-library)

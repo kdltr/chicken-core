@@ -336,8 +336,6 @@ chicken.time.posix.import.scm
 chicken.time.posix.import.c
 srfi-4.import.scm
 srfi-4.import.c
-setup-download.scm
-setup-api.scm
 chicken-status.scm
 chicken-status.c
 chicken-install.scm
@@ -348,12 +346,11 @@ setup.defaults
 chicken-status.mdoc
 chicken-install.mdoc
 chicken-uninstall.mdoc
-setup-download.c
-setup-api.c
-setup-api.import.c
-setup-download.import.c
-setup-api.import.scm
-setup-download.import.scm
+egg-environment.scm
+egg-download.scm
+egg-compile.scm
+egg-information.scm
+chicken-do.c
 types.db
 mac.r
 chicken.png

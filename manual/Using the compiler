@@ -41,6 +41,7 @@ the source text should be read from standard input.
      -debug-level 0             is equivalent to -no-trace -no-lambda-info
      -debug-level 1             is equivalent to -no-trace
      -debug-level 2             is the default behaviour
+     -debug-level 3             is equivalent to -debug-info
 
 ; -disable-interrupts : Equivalent to the {{(disable-interrupts)}} declaration. No interrupt-checks are generated for compiled programs.
 
@@ -58,6 +59,8 @@ the source text should be read from standard input.
 
 ; -emit-inline-file FILENAME : Write procedures that can be globally inlined in internal form to {{FILENAME}}, if global inlining is enabled. Implies {{-inline -local}}. If the inline-file would be empty (because no procedure would be inlinable) no file is generated and any existing inline-file with that name is deleted.
 
+; -emit-link-file FILENAME : write a list of statically linked extensions to {{FILENAME}}, used for identifying the static objects that need to be linked to an executable.
+
 ; -emit-type-file FILENAME : Write type-information for declarations of user-defined and globally visible variables to a file of the given name. The generated file is suitable for use with the {{-consult-type-file}} option.
 
 ; -explicit-use : Disables automatic use of the units {{library, eval}} and {{expand}}. Use this option if compiling a library unit instead of an application unit.
@@ -74,7 +77,7 @@ the source text should be read from standard input.
 
 ; -ignore-repository : Do not load any extensions from the repository (treat repository as empty). Also do not consult compiled (only interpreted) import libraries in {{import}} forms.
 
-; -include-path PATHNAME : Specifies an additional search path for files included via the {{include}} special form. This option may be given multiple times. If the environment variable {{CHICKEN_INCLUDE_PATH}} is set, it should contain a list of alternative include pathnames separated by {{;}}.
+; -include-path PATHNAME : Specifies an additional search path for files included via the {{include}} special form. This option may be given multiple times. If the environment variable {{CHICKEN_INCLUDE_PATH}} is set, it should contain a list of alternative include pathnames separated by {{:}} (unix) or {{;}} (windows).
 
 ; -inline : Enable procedure inlining for known procedures of a size below the threshold (which can be set through the {{-inline-limit}} option).
 
@@ -154,6 +157,8 @@ the source text should be read from standard input.
 ; -setup-mode : When locating extension, search the current directory first. By default, extensions are located first in the ''extension repository'', where {{chicken-install}} stores compiled extensions and their associated metadata.
 
 ; -specialize : Enable simple flow-analysis for doing some type-directed optimizations.
+
+; -static : Link extensions statically, if possible.
 
 ; -strict-types : Assume that the type of variables is not changed by assignments. This gives more type-information during specialization, but violating this assumption will result in unsafe and incorrectly behaving code.
 

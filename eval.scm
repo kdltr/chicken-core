@@ -51,12 +51,14 @@
    eval eval-handler extension-information
    load load-library load-noisily load-relative load-verbose
    interaction-environment null-environment scheme-report-environment
-   load-extension provide provided? repository-path
+   load-extension provide provided? repository-path 
+   installation-repository
    require set-dynamic-load-mode!)
 
 ;; Exclude bindings defined within this module.
 (import (except scheme eval load interaction-environment null-environment scheme-report-environment)
-	(except chicken chicken-home provide provided? repository-path require))
+	(except chicken chicken-home provide provided? repository-path
+         installation-repository require))
 
 (import chicken.expand
 	chicken.foreign
@@ -65,6 +67,7 @@
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")
+(include "egg-information.scm")
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
@@ -98,9 +101,25 @@
 (define-constant default-load-library-extension ".so")
 (define-constant environment-table-size 301)
 (define-constant source-file-extension ".scm")
-(define-constant setup-file-extension "setup-info")
-(define-constant repository-environment-variable "CHICKEN_REPOSITORY")
+(define-constant setup-file-extension "egg-info")
 (define-constant prefix-environment-variable "CHICKEN_PREFIX")
+(define-constant windows-object-file-extension ".obj")
+(define-constant unix-object-file-extension ".o")
+(define-constant loadable-file-extension ".so")
+
+(define object-file-extension
+  (cond ((eq? (software-type) 'windows) windows-object-file-extension)
+	(else unix-object-file-extension)))
+
+(define load-library-extension
+  (cond ((eq? (software-type) 'windows) windows-load-library-extension)
+	((eq? (software-version) 'macosx) macosx-load-library-extension)
+	((and (eq? (software-version) 'hpux) 
+	      (eq? (machine-type) 'hppa)) hppa-load-library-extension)
+	(else default-load-library-extension) ) )
+
+(define ##sys#load-dynamic-extension default-load-library-extension)
+
 
 ; these are actually in unit extras, but that is used by default
 
@@ -710,11 +729,7 @@
 			 [(##core#require-for-syntax)
 			  (let ((id (cadr x)))
 			    (load-extension id)
-			    (compile
-			     `(##core#begin
-			       ,@(map (lambda (x)
-					`(##sys#load-extension (##core#quote ,x)))
-				      (lookup-runtime-requirements id)))
+			    (compile '(##core#undefined)
 			     e #f tf cntr se #f))]
 
 			 [(##core#require)
@@ -1080,15 +1095,6 @@
 (define (load-noisily filename #!key (evaluator #f) (time #f) (printer #f))
   (load/internal filename evaluator #t time printer))
 
-(define load-library-extension ; this is crude...
-  (cond [(eq? (software-type) 'windows) windows-load-library-extension]
-	[(eq? (software-version) 'macosx) macosx-load-library-extension]
-	[(and (eq? (software-version) 'hpux) 
-	      (eq? (machine-type) 'hppa)) hppa-load-library-extension]
-	[else default-load-library-extension] ) )
-
-(define ##sys#load-dynamic-extension default-load-library-extension)
-
 (define dynamic-load-libraries 
   (let ((ext
 	 (if uses-soname?
@@ -1189,16 +1195,52 @@
 (define repository-path
   (make-parameter
    (or (foreign-value "C_private_repository_path()" c-string)
-       (get-environment-variable repository-environment-variable)
+       (get-environment-variable "CHICKEN_REPOSITORY_PATH")
        (chicken-prefix
 	(##sys#string-append
 	 "lib/chicken/"
 	 (##sys#number->string binary-version)))
        install-egg-home)))
 
-(define ##sys#repository-path repository-path)
+(define installation-repository
+  (make-parameter
+    (or (foreign-value "C_private_repository_path()" c-string)
+        (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
+        (chicken-prefix
+          (##sys#string-append
+            "lib/chicken/"
+            (##sys#number->string binary-version)))
+        install-egg-home)))
 
+(define ##sys#repository-path repository-path)
+(define ##sys#installation-repository installation-repository)
 (define ##sys#setup-mode #f)
+
+(define path-list-separator
+  (if ##sys#windows-platform #\; #\:))
+
+(define ##sys#split-path
+  (let ((cache '(#f)))
+    (lambda (path)
+      (cond ((not path) '())
+            ((equal? path (car cache))
+             (cdr cache))
+            (else
+              (let* ((len (string-length path))
+                     (lst (let loop ((start 0) (pos 0))
+                            (cond ((fx>= pos len)
+                                   (if (fx= pos start)
+                                       '()
+                                       (list (substring path start pos))))
+                                  ((char=? (string-ref path pos) 
+                                           path-list-separator)
+                                   (cons (substring path start pos)
+                                         (loop (fx+ pos 1)
+                                               (fx+ pos 1))))
+                                  (else 
+                                    (loop start (fx+ pos 1)))))))
+                (set! cache (cons path lst))
+                lst))))))
 
 (define ##sys#find-extension
   (let ((file-exists? file-exists?)
@@ -1215,7 +1257,7 @@
 		(file-exists? (##sys#string-append p0 source-file-extension)))))
 	(let loop ((paths (##sys#append
 			   (if ##sys#setup-mode '(".") '())
-			   (if rp (list rp) '())
+			   (if rp (##sys#split-path rp) '())
 			   (if inc? ##sys#include-pathnames '())
 			   (if ##sys#setup-mode '() '("."))) ))
 	  (and (pair? paths)
@@ -1256,34 +1298,43 @@
   (every ##sys#provided? ids))
 
 (define extension-information/internal
-  (let ([with-input-from-file with-input-from-file]
-	[string-append string-append]
-	[read read] )
+  (let ((with-input-from-file with-input-from-file)
+	(string-append string-append)
+	(read read) )
     (lambda (id loc)
       (and-let* ((rp (##sys#repository-path)))
-	(let* ((p (##sys#canonicalize-extension-path id loc))
-	       (rpath (string-append rp "/" p ".")) )
-	  (cond ((file-exists? (string-append rpath setup-file-extension))
-		 => (cut with-input-from-file <> read) )
-		(else #f) ) ) ) ) ))
+           (let ((p (##sys#canonicalize-extension-path id loc)))
+             (let loop ((rp (##sys#split-path rp)))
+               (cond ((null? rp) #f)
+                     ((file-exists? (string-append (car rp) "/" p "."
+                                                   setup-file-extension))
+                      => (cut with-input-from-file <> read) )
+                     (else (loop (cdr rp))))))))))
 
 (define (extension-information ext)
   (extension-information/internal ext 'extension-information))
 
-(define (lookup-runtime-requirements id)
-  (let ((info (extension-information/internal id #f)))
-    (cond ((not info) '())
-	  ((assq 'require-at-runtime info) => cdr)
-	  (else '()))))
+(define static-extension-available?
+  (let ((string-append string-append))
+    (lambda (id)
+      (and-let* ((rp (##sys#repository-path)))
+           (let loop ((rp (##sys#split-path rp)))
+             (cond ((null? rp) #f)
+                   ((file-exists? 
+                      (string-append (car rp) "/" 
+                                     (##sys#canonicalize-extension-path id #f)
+                                     object-file-extension)))
+                   (else (loop (cdr rp)))))))))
+
 
 ;;
 ;; Given a library specification, returns three values:
 ;;
 ;;   - an expression for loading the library, if required
 ;;   - a library id if the library was found, #f otherwise
-;;   - a requirement type (e.g. 'dynamic) or #f if provided statically
+;;   - a requirement type (e.g. 'dynamic) or #f if provided in core
 ;;
-(define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()))
+(define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()) static mark-static)
   (let ((id (library-id lib)))
     (cond
       ((assq id core-unit-requirements) =>
@@ -1300,26 +1351,10 @@
 	    `(##core#declare (uses ,id))
 	    `(##sys#load-library (##core#quote ,id)))
 	id #f))
-      ((extension-information/internal id #f) =>
-       (lambda (info)
-	 (let ((s  (assq 'syntax info))
-	       (nr (assq 'syntax-only info))
-	       (rr (assq 'require-at-runtime info)))
-	   (values
-	    `(##core#begin
-	      ,@(if (not s)
-		    '()
-		    `((##core#require-for-syntax ,id)))
-	      ,@(if (or nr (and (not rr) s))
-		    '()
-		    (map (lambda (id)
-			   `(##sys#load-extension
-			     (##core#quote ,id)
-			     (##core#quote ,alternates)))
-			 (cond (rr (cdr rr))
-			       (else (list id))))))
-	    id
-	    (if s 'dynamic/syntax 'dynamic)))))
+      ((and compiling? static (static-extension-available? id)) =>
+       (lambda (path) 
+         (mark-static id path)
+         (values `(##core#declare (uses ,id)) id 'static)))
       (else
        (values `(##sys#load-extension
 		 (##core#quote ,id)
@@ -1396,9 +1431,7 @@
 
 ;;; Find included file:
 
-(define ##sys#include-pathnames 
-  (let ((h (chicken-home)))
-    (if h (list h) '())) )
+(define ##sys#include-pathnames (list (chicken-home)))
 
 (define ##sys#resolve-include-filename
   (let ((string-append string-append) )
@@ -1428,7 +1461,7 @@
 				 ##sys#include-pathnames 
 				 (let ((rp (##sys#repository-path)))
 				   (if rp
-				       (list (##sys#repository-path))
+				       (##sys#split-path rp)
 				       '())))
 				##sys#include-pathnames) ) )
 	    (cond ((eq? paths '()) #f)

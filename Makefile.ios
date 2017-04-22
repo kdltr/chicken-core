@@ -66,6 +66,7 @@ include $(SRCDIR)/defaults.make
 
 chicken-config.h: chicken-defaults.h
 	echo "/* GENERATED */" >$@
+	echo "#define STATICBUILD 1" >>$@
 	echo "#define HAVE_DIRENT_H 1" >>$@
 	echo "#define HAVE_INTTYPES_H 1" >>$@
 	echo "#define HAVE_LIMITS_H 1" >>$@

@@ -4,22 +4,26 @@
 ;; version-number of the defaults file - checked by "chicken-install"
 ;  when defaults are loaded
 
-(version 1)
+(version 2)
+
+
+;; list of locations (eggs stored in the local fileystem)
+;
+; (location DIRECTORY ...)
+;
+; Note that these override eggs from servers.
+
+(location "/home/felix/chicken/c5-eggs"); XXX
 
 
 ;; list of servers in the order in which they will be processed
 ;
-; (server (location URL) (transport TRANSPORT))
+; (server URL ...)
 ;
-; URL may be an alias (see below) or a real URL
+; URL may be an alias (see below) or a real URL.
 
-(server
- (location "kitten-technologies")
- (transport http))
-
-(server
- (location "call-cc")
- (transport http))
+(server "kitten-technologies")
+(server "call-cc")
 
 
 ;; extensions-mappings
@@ -29,11 +33,11 @@
 (map
  (data-structures 
   extras files foreign irregex lolevel ports tcp
-  posix irregex setup-api setup-download srfi-4
+  posix irregex srfi-4
   ->) )
 
 
-;; aliases for locations
+;; aliases for servers
 ;
 ; (alias (NAME REALNAME) ...)
 

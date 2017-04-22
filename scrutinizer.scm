@@ -1697,12 +1697,18 @@
 
 ;;; type-db processing
 
-(define (load-type-database name specialize #!optional (path (##sys#repository-path)))
+(define (load-type-database name specialize #!optional 
+                            (path (##sys#repository-path)))
   (define (clean! name)
     (when specialize (mark-variable name '##compiler#clean #t)))
   (define (pure! name)
     (when specialize (mark-variable name '##compiler#pure #t)))
-  (and-let* ((dbfile (file-exists? (make-pathname path name))))
+  (define (locate)
+    (let loop ((dirs (##sys#split-path path)))
+      (cond ((null? dirs) #f)
+            ((file-exists? (make-pathname (car dirs) name)))
+            (else (loop (cdr dirs))))))
+  (and-let* ((dbfile (if (not path) (file-exists? name) (locate))))
     (debugging 'p (sprintf "loading type database `~a' ...~%" dbfile))
     (fluid-let ((scrutiny-debug #f))
       (for-each

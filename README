@@ -1,4 +1,14 @@
 
+
+                                                                          
+     _/_/_/  _/    _/  _/_/_/    _/_/_/  _/    _/  _/_/_/_/  _/      _/   
+  _/        _/    _/    _/    _/        _/  _/    _/        _/_/    _/    
+ _/        _/_/_/_/    _/    _/        _/_/      _/_/_/    _/  _/  _/     
+_/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/      
+ _/_/_/  _/    _/  _/_/_/    _/_/_/  _/    _/  _/_/_/_/  _/      _/       
+
+
+
   README file for the CHICKEN Scheme system
   =========================================
 
@@ -311,10 +321,6 @@
 	|   |       |-- chicken.time.import.so
 	|   |       |-- chicken.time.posix.import.so
 	|   |       |-- modules.db
-	|   |       |-- setup-api.import.so
-	|   |       |-- setup-api.so
-	|   |       |-- setup-download.import.so
-	|   |       |-- setup-download.so
 	|   |       |-- srfi-4.import.so
 	|   |       `-- types.db
 	|   |-- libchicken.a

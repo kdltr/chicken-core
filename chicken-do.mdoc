@@ -1,4 +1,4 @@
-.\"  Copyright (c) 2007-2017, The CHICKEN Team
+.\"  Copyright (c) 2017, The CHICKEN Team
 .\"  All rights reserved.
 .\"
 .\"  Redistribution and use in source and binary forms, with or without
@@ -25,72 +25,46 @@
 .\"
 .\"
 .Dd Mar 25, 2016
-.Dt CHICKEN-STATUS 1
+.Dt CHICKEN-DO 1
 .Os
 .Sh NAME
-.Nm chicken-status
-.Nd list installed extension libraries
+.Nm chicken-do
+.Nd Run a shell command, depending on whether the target exists and any dependency is not newer than the target.
 .Sh SYNOPSIS
 .Nm
-.Op Ar OPTION \(ba NAME ...
+.Op Ar [-q] [-h] TARGET COMMAND ... : DEPENDENCY ...
+.Op Ar ...
 .Sh DESCRIPTION
 .Nm
-lists installed extensions for the CHICKEN Scheme system matching the
-.No names Ns Pq s
-.Ar 
-or all, if no pattern has been given.
+If the file
+.Em TARGET
+does not exist, or if any of the files in
+.Em DEPENDENCY ...
+are newer than
+.Em TARGET
+then execute the shell commands in
+.Em COMMAND ...
 .Pp
 The program accepts following arguments:
 .Bl -tag -width Ds
-.It Fl e, Fl eggs
-list installed eggs
-.It Fl match
-treat
-.Ar NAME
-as a glob pattern Pc
-.It Fl f Ns , Fl files
-list installed files
-.It Fl h, Fl help
+.It Fl h
 show usage and exit
-.It Fl a, Fl all
-Scan all repositories in CHICKEN_REPOSITORY_PATH
-.It Fl host
-when cross-compiling, show status of host extensions only
-.It Fl list
-dump installed extensions and their versions in
-.Dq override
-format
-.It Fl target
-when cross-compiling, show status of target extensions only
-.It Fl version
-show version and exit
-.El
-.Sh ENVIRONMENT
-Following environment variables change the behaviour of
-.Nm
-.Bl -tag -width CHICKEN_INSTALL_PREFIX
-.It Ev CHICKEN_PREFIX
-The installation prefix where CHICKEN Scheme and its support files and
-libraries are located. Defaults to the installation time prefix given
-when configuring the system.
-.It Ev CHICKEN_INSTALL_PREFIX
-An alternative installation prefix that will be prepended to extension
-installation paths if specified.
-.It Ev CHICKEN_REPOSITORY_PATH
-One or more directories holding extension libraries, defaults to the
-installation repository.
-.It Ev CHICKEN_INSTALL_REPOSITORY
-The path where extension libraries are installed. Defaults to the package-library
-path selected during configuration
-.Pq usually $prefix/lib/chicken/<binary-version>
+.It Fl q
+Quiet operation - do not print the shell command when it is executed.
 .El
 .Sh EXIT STATUS
 .Ex -std
+.Sh EXAMPLES
+Build C program from sources:
+.Pp
+.Dl $ chicken-do prg gcc prg.c -o prg : prg.c inc.h
 .Sh SEE ALSO
 .Xr chicken 1 ,
 .Xr chicken-bug 1 ,
+.Xr chicken-status 1 ,
 .Xr chicken-install 1 ,
-.Xr chicken-uninstall 1
+.Xr chicken-uninstall 1 ,
+.Xr csc 1
 .Pp
 More information can be found in the
 .Lk http://wiki.call-cc.org/manual/index "CHICKEN User's Manual".

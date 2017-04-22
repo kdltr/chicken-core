@@ -121,10 +121,21 @@ following locations:
 
 <parameter>repository-path</parameter>
 
-Contains a string naming the path to the extension repository, which defaults to
-either the value of the environment variable {{CHICKEN_REPOSITORY}}
+Contains a string naming the paths to the extension repository, which 
+defaults to
+either the value of the environment variable {{CHICKEN_REPOSITORY_PATH}}
 or the default library path
-(usually {{/usr/local/lib/chicken}} on UNIX systems).
+(usually {{/usr/local/lib/chicken}} on UNIX systems). If multiple
+directories are given, then they should be separated by {{:}}
+(or {{;}} on Windows.)
+
+==== installation-repository
+
+<parameter>installation-repository</parameter>
+
+Contains the name of the directory where extensions are installed
+(as opposed to the possible locations where they can be loaded or
+linked at runtime.)
 
 ==== extension-information
 

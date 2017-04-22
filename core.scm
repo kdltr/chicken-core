@@ -288,11 +288,13 @@
      optimize-leaf-routines standalone-executable undefine-shadowed-macros
      verbose-mode local-definitions enable-specialization block-compilation
      inline-locally inline-substitutions-enabled strict-variable-types
+     static-extensions emit-link-file
 
      ;; These are set by the (batch) driver, and read by the (c) backend
      disable-stack-overflow-checking emit-trace-info external-protos-first
      external-variables insert-timer-checks no-argc-checks
      no-global-procedure-checks no-procedure-checks emit-debug-info
+     linked-static-extensions
 
      ;; Other, non-boolean, flags set by (batch) driver
      profiled-procedures import-libraries inline-max-size
@@ -326,6 +328,7 @@
 	chicken.eval
 	chicken.expand
 	chicken.foreign
+        chicken.pathname
 	chicken.format
 	chicken.internal
 	chicken.io
@@ -394,6 +397,8 @@
 (define bootstrap-mode #f)
 (define strict-variable-types #f)
 (define enable-specialization #f)
+(define static-extensions #f)
+(define emit-link-file #f)
 
 ;;; Other global variables:
 
@@ -420,6 +425,7 @@
 (define toplevel-lambda-id #f)
 (define file-requirements #f)
 (define provided '())
+(define linked-static-extensions '())
 
 (define unlikely-variables '(unquote unquote-splicing))
 
@@ -692,7 +698,11 @@
 			 (let ((id         (cadr x))
 			       (alternates (cddr x)))
 			   (let-values (((exp found type)
-					 (##sys#process-require id #t alternates provided)))
+					 (##sys#process-require 
+                                           id #t 
+                                           alternates provided 
+                                           static-extensions 
+                                           register-static-extension)))
 			     (unless (not type)
 			       (##sys#hash-table-update!
 				file-requirements type
@@ -1726,6 +1736,14 @@
 	(set! strict-variable-types #t))
        (else (warning "unknown declaration specifier" spec)) )
      '(##core#undefined) ) ) )
+
+
+;;; Register statically linked extension
+
+(define (register-static-extension id path)
+  (set! linked-static-extensions
+    (cons (pathname-strip-directory path)
+          linked-static-extensions)))
 
 
 ;;; Create entry procedure:

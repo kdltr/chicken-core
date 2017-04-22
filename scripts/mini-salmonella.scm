@@ -16,8 +16,7 @@
 (define *download* #f)
 (define *trunk* #f)
 
-(define *prefix* 
-  (pathname-directory (pathname-directory (pathname-directory (repository-path)))))
+(define *prefix* (get-environment-variable "CHICKEN_PREFIX"))
 
 (let loop ((args (command-line-arguments)))
   (when (pair? args)
