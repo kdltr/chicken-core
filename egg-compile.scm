@@ -698,6 +698,8 @@ EOF
 
 (define ((install-suffix mode name info) platform)
   (let* ((infostr (with-output-to-string (cut pp info)))
+         (dcmd (remove-file-command platform))
+         (mkdir (mkdir-command platform))
          (dir (destination-repository mode))
          (qdir (quotearg (slashify dir platform)))
          (dest (quotearg (slashify (make-pathname dir name +egg-info-extension+)
@@ -707,18 +709,21 @@ EOF
       ((unix)
        (printf #<<EOF
 
-mkdir -p ~a~a
+~a ~a~a
+~a ~a~a
 cat >~a~a <<ENDINFO
 ~aENDINFO~%
 EOF
-               ddir qdir ddir dest infostr))
+               mkdir ddir qdir
+               dcmd ddir dest
+               ddir dest infostr))
       ((windows)
        (printf #<<EOF
 
-mkdir ~a~a
+~a ~a~a
 echo ~a >~a~a~%
 EOF
-               ddir qdir 
+               mkdir ddir qdir
                (string-intersperse (string-split infostr "\n") "^\n\n")
                ddir dest)))))
 
