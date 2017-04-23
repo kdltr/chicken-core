@@ -598,13 +598,13 @@ Available options:
 
 ; {{-h   -help}} : show usage information and exit
 ; {{-version}} : show version and exit
-; {{-f   -files}} : list installed files
 ; {{-a   -all}} : Scan all repositories in {{CHICKEN_REPOSITORY_PATH}}
+; {{-f   -files}} : list installed files
+; {{-match}} : treat egg-names as glob patterns
 ; {{-host}} : when cross-compiling, show eggs for host system only
 ; {{-target}} : when cross-compiling, show eggs for target system only
-; {{-p   -prefix PREFIX}} : change installation prefix to {{PREFIX}}
-; {{-match}} : treat egg-names as glob patterns
 ; {{-list}} : list installed egg version in format suitable for {{chicken-install -override}}
+; {{-c   -components}} : list installed components
 
 
 === Security
