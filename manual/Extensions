@@ -565,14 +565,14 @@ Available options:
 ; {{-version}} : show version and exit
 ; {{-force}} : don't ask, install even if versions don't match
 ; {{-k   -keep}} : keep temporary files
-; {{-l   -location LOCATION}} : install from given location instead of default
-; {{-t   -transport TRANSPORT}} : use given transport instead of default
-; {{-list-versions}} : list available version for an extension
 ; {{-s   -sudo}} : use external command to elevate privileges when installing or removing files
+; {{-no-install-deps}} : do not install dependencies
 ; {{-r   -retrieve}} : only retrieve egg into current directory, don't install (giving -r more than once implies {{-recursive}})
 ; {{-recursive}} : if {{-retrieve}} is given, retrieve also dependencies
 ; {{-dry-run}} :  do not build or install, just print the locations of the generated build + install scripts
+; {{-list-versions}} : list available version for an extension
 ; {{-n   -no-install}} : do not install, only build the egg.
+; {{-purge}} : remove cached files for given eggs (or purge cache completely)
 ; {{-host}} : when cross-compiling, compile egg for host only
 ; {{-target}} : when cross-compiling, compile egg for target only
 ; {{-test}} : run included test-cases, if available
