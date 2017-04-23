@@ -589,11 +589,10 @@ Available options:
 ; {{-h   -help}} : show usage information and exit
 ; {{-version}} : show version and exit
 ; {{-force}} : don't ask, delete whatever matches
+; {{-match}} : treat egg-names as glob patterns
 ; {{-s   -sudo}} : use external command to elevate privileges for deleting files
-; {{-p   -prefix PREFIX}} : change installation prefix to {{PREFIX}}
 ; {{-host}} : when cross-compiling, remove eggs for host system only
 ; {{-target}} : when cross-compiling, remove eggs for target system only
-; {{-match}} : treat egg-names as glob patterns
 
 === chicken-status reference
 
