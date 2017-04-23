@@ -76,13 +76,13 @@
   (exit code))
 
 (define (ask eggs)
-  (print* (string-intersperse
-           (append '("About to delete the following extensions:\n\n")
-                   (map (cut string-append "  " <> "\n") eggs)
-                   '("\nDo you want to proceed ? (no/yes) "))
-           ""))
-  (flush-output)
+  (print (string-intersperse
+          (append (list "About to delete the following extensions:\n\n")
+                  (map (cut string-append "  " <> "\n") eggs))
+          ""))
   (let loop ()
+    (display "Do you want to proceed? (yes/no) ")
+    (flush-output)
     (let ((r (trim (read-line))))
       (cond ((string=? r "yes"))
             ((string=? r "no") (fini 1))
