@@ -720,34 +720,32 @@
            (append
              (list "The following installed extensions are outdated, because `"
                    (car e+d+v)
-                   "' requires later versions:\n")
-                   (filter-map
-                     (lambda (e)
-                       (cond ((assq (string->symbol (car e)) override) =>
-                              (lambda (a)
-                                (unless (equal? (cadr a) (cdr e))
-                                  (warning
-                                    (sprintf "version `~a' of extension `~a' overrides required version `~a'"
-                                             (cadr a) (car a) (cdr e))))
-                                #f))
-                             (else
-                               (conc
-                                     "  " (car e)
-                                     " (" (let ((v (assq 'version (extension-information (car e))))) 
-                                            (if v (cadr v) "???"))
-                                         " -> " (cdr e) ")"
-                                     #\newline) )))
-                     upgrade)
-                   '("\nDo you want to replace the existing extensions ? (yes/no/abort) "))
-            ""))
-  (flush-output)
+                   "' requires later versions:\n\n")
+             (filter-map
+              (lambda (e)
+                (cond ((assq (string->symbol (car e)) override) =>
+                       (lambda (a)
+                         (unless (equal? (cadr a) (cdr e))
+                           (warning
+                            (sprintf "version `~a' of extension `~a' overrides required version `~a'"
+                                     (cadr a) (car a) (cdr e))))
+                         #f))
+                      (else
+                       (conc "  " (car e)
+                             " (" (let ((v (assq 'version (extension-information (car e)))))
+                                    (if v (cadr v) "unknown"))
+                             " -> " (cdr e) ")" #\newline))))
+              upgrade))
+             ""))
   (let loop ()
+    (display "Do you want to replace the existing extensions? (yes/no/abort) ")
+    (flush-output)
     (let ((r (trim (read-line))))
       (cond ((string=? r "yes"))
             ((string=? r "no") #f)
             ((string=? r "abort") (exit 1))
             (else (loop))))))
-  
+
 (define (trim str)
   (define (left lst)
     (cond ((null? lst) '())
