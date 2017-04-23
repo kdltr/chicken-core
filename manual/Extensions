@@ -570,7 +570,7 @@ Available options:
 ; {{-r   -retrieve}} : only retrieve egg into current directory, don't install (giving -r more than once implies {{-recursive}})
 ; {{-recursive}} : if {{-retrieve}} is given, retrieve also dependencies
 ; {{-dry-run}} :  do not build or install, just print the locations of the generated build + install scripts
-; {{-list-versions}} : list available version for an extension
+; {{-list-versions}} : list available version for an extension (HTTP transport only)
 ; {{-n   -no-install}} : do not install, only build the egg.
 ; {{-purge}} : remove cached files for given eggs (or purge cache completely)
 ; {{-host}} : when cross-compiling, compile egg for host only
