@@ -1015,6 +1015,7 @@ usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
   -u   -update-db               update export database
        -repository              print path used for egg installation
        -override FILENAME       override versions for installed eggs with information from file
+  -v   -verbose                 be verbose
 
 chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
 
@@ -1076,7 +1077,7 @@ EOF
                   ((equal? arg "-dry-run")
                    (set! do-not-build #t)
                    (loop (cdr args)))
-                  ((equal? arg "-v")
+                  ((member arg '("-v" "-verbose"))
                    (set! quiet #f)
                    (loop (cdr args)))
                   ((member arg '("-k" "-keep"))
