@@ -128,15 +128,12 @@
   (define (gather-components-rec info mode)
     (case (car info)
       ((host) 
-       (if host-extensions
-           (gather-components (cdr info) 'host)
-           '()))
+       (if host-extensions (gather-components (cdr info) 'host) '()))
       ((target) 
-       (if target-extensions
-           (gather-components (cdr info) 'target)
-           '()))
+       (if target-extensions (gather-components (cdr info) 'target) '()))
       ((extension) (list (list 'extension mode (cadr info))))
       ((data) (list (list 'data mode (cadr info))))
+      ((generated-source-file) (list (list 'generated-source-file mode (cadr info))))
       ((c-include) (list (list 'c-include mode (cadr info))))
       ((scheme-include) (list (list 'scheme-include mode (cadr info))))
       ((program) (list (list 'program mode (cadr info))))))
