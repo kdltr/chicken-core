@@ -46,7 +46,7 @@
 (define +defaults-version+ 2)
 (define +module-db+ "modules.db")
 (define +defaults-file+ "setup.defaults")
-(define +short-options+ '(#\r #\h #\n #\k))
+(define +short-options+ '(#\h #\k #\s #\r #\n #\u #\v))
 (define +one-hour+ (* 60 60))
 (define +timestamp-file+ "TIMESTAMP")
 (define +status-file+ "STATUS")
