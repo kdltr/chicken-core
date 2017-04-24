@@ -13,8 +13,6 @@
 ;
 ; Note that these override eggs from servers.
 
-(location "/home/felix/chicken/c5-eggs"); XXX
-
 
 ;; list of servers in the order in which they will be processed
 ;
