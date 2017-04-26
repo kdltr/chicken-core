@@ -80,14 +80,14 @@ EOF
 
 (define (print-usage)
   (display #<<EOF
-usage: csi [FILENAME | OPTION ...]
+usage: csi [OPTION ...] [FILENAME ...]
 
   `csi' is the CHICKEN interpreter.
   
   FILENAME is a Scheme source file name with optional extension. OPTION may be
   one of the following:
 
-    -h  -help  --help             display this text and exit
+    -h  -help                     display this text and exit
         -version                  display version and exit
         -release                  print release number and exit
     -i  -case-insensitive         enable case-insensitive reading
@@ -128,9 +128,7 @@ EOF
 ) ) ;|  <--- for emacs font-lock
 
 (define (print-banner)
-  (newline)
-  (print +product+)
-  (print +banner+ (chicken-version #t) "\n") )
+  (print +banner+ (chicken-version #t) "\n"))
 
 
 ;;; Reader for REPL history:

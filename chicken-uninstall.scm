@@ -134,7 +134,7 @@
 
 (define (usage code)
   (print #<<EOF
-usage: chicken-uninstall [OPTION | NAME] ...
+usage: chicken-uninstall [OPTION ...] [NAME ...]
 
   -h   -help                    show this message and exit
        -version                 show version and exit

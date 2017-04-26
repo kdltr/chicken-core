@@ -43,7 +43,7 @@
 
 (define (print-usage)
   (display #<#EOF
-Usage: chicken-profile [FILENAME | OPTION] ...
+Usage: chicken-profile [OPTION ...] [FILENAME ...]
 
  -sort-by-calls            sort output by call frequency
  -sort-by-time             sort output by procedure execution time

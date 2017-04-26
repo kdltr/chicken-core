@@ -24,7 +24,7 @@
 .\"  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .\"
 .\"
-.Dd Mar 25, 2016
+.Dd Apr 26, 2017
 .Dt FEATHERS 1
 .Os
 .Sh NAME
@@ -36,9 +36,9 @@
 .Op Ar PROGRAM Ar ARGUMENTS ...
 .Sh DESCRIPTION
 .Nm
-runs a program compiled with CHICKEN Scheme and allows basic source-level
-debugging like setting breakpoints, single-stepping and inspection of
-procedure arguments and global variables.
+runs a program compiled with CHICKEN Scheme and allows basic
+source-level debugging like setting breakpoints, single-stepping and
+inspection of procedure arguments and global variables.
 .Pp
 The Scheme code must be compiled with debug-level 3 for debugging to be
 possible. Communication with the debugger takes place by exchanging
@@ -46,7 +46,7 @@ messages over a TCP socket, the address and port being given by the
 environment variable
 .Ev CHICKEN_DEBUGGER
 which holds a connection address of the form
-.Ao ADDRESS Ac Ns : Ao PORT Ac .
+.Ao ADDRESS Ac : Ns Ao PORT Ac .
 .Pp
 The program accepts following arguments:
 .Bl -tag -width Ds
@@ -54,20 +54,20 @@ The program accepts following arguments:
 Shows a list of supported command-line options.
 .It Fl n
 Do not load the default startup file
-.Pa .feathers
+.Pa .feathers .
 .It Fl d
 TODO: Document this
 .It Fl dir Ar DIRECTORY
 Add
 .Ar DIRECTORY
-to the list of searched paths for locating source files
+to the list of searched paths for locating source files.
 .It Fl port Ar PORT
 Select a different TCP port than the default
-.Pq 9999
+.Pq 9999 .
 .El
 .Sh ENVIRONMENT
-Following environment variables change the behaviour of
-.Nm
+The following environment variables change the behaviour of
+.Nm Ns :
 .Bl -tag -width CHICKEN_DEBUGGER
 .It Ev CHICKEN_DEBUGGER
 Should hold a TCP server address and port where the debugger is listening.
@@ -89,6 +89,6 @@ More information can be found in the
 .Sh BUGS
 Submit bug reports by e-mail to
 .Mt chicken-janitors@nongnu.org ,
-preferrably using the
+preferably using the
 .Xr chicken-bug 1
 tool.

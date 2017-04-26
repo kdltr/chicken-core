@@ -183,17 +183,17 @@
 
   (define (usage code)
     (print #<<EOF
-usage: chicken-status [OPTION | NAME] ...
+usage: chicken-status [OPTION ...] [NAME ...]
 
   -h   -help                    show this message
        -version                 show version and exit
   -a   -all                     scan all repositories in CHICKEN_REPOSITORY_PATH
-  -f   -files                   list installed files
-       -match                   treat NAME as glob pattern
-       -host                    when cross-compiling, show status of host extensions only
-       -target                  when cross-compiling, show status of target extensions only
-       -list                    dump installed extensions and their versions in "override" format
   -c   -components              list installed components
+  -f   -files                   list installed files
+       -list                    dump installed extensions and their versions in "override" format
+       -match                   treat NAME as glob pattern
+       -host                    when cross-compiling, only show host extensions
+       -target                  when cross-compiling, only show target extensions
 EOF
 );|
     (exit code))

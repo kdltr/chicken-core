@@ -302,7 +302,7 @@
 (define (usage)
   (let ((csc CSC_PROGRAM))
     (print #<#EOF
-Usage: #{csc} FILENAME | OPTION ...
+Usage: #{csc} [OPTION ...] [FILENAME ...]
 
   `#{csc}' is a driver program for the CHICKEN compiler. Files given on the
   command line are translated, compiled or linked as needed.

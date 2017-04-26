@@ -1655,7 +1655,7 @@
   (print-version)
   (newline)
   (display #<<EOF
-Usage: chicken FILENAME OPTION ...
+Usage: chicken FILENAME [OPTION ...]
 
   `chicken' is the CHICKEN compiler.
   

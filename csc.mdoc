@@ -24,7 +24,7 @@
 .\"  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .\"
 .\"
-.Dd Mar 25, 2016
+.Dd Apr 26, 2017
 .Dt CSC 1
 .Os
 .Sh NAME
@@ -32,7 +32,8 @@
 .Nd driver program for the CHICKEN Scheme compiler
 .Sh SYNOPSIS
 .Nm
-.Op Ar FILENAME \(ba OPTION ...
+.Op Ar OPTION ...
+.Op Ar FILENAME ...
 .Sh DESCRIPTION
 .Nm
 is a program that invokes the CHICKEN compiler and the host systems C compiler to generate
@@ -46,268 +47,268 @@ may be one of the following:
 .Pp
 General options:
 .Bl -tag -width Ds
-.It Fl h, Fl help
-display usage text and exit
-.It Fl v, Fl verbose
-show compiler notes and tool-invocations
+.It Fl h , Fl help
+Display usage text and exit.
+.It Fl v , Fl verbose
+Show compiler notes and tool-invocations.
 .It Fl vv
-display information about translation progress
+Display information about translation progress.
 .It Fl vvv
-display information about all compilation stages
+Display information about all compilation stages.
 .It Fl version
-display Scheme compiler version and exit
+Display Scheme compiler version and exit.
 .It Fl release
-display release number and exit
+Display release number and exit.
 .El
 .Pp
 File and pathname options:
 .Bl -tag -width Ds
-.It Fl o Ar FILENAME, Fl output-file Ar FILENAME
-specifies target executable name
-.It Fl I Ar PATHNAME, Fl include-path Ar PATHNAME
-specifies alternative path for included files
+.It Fl o Ar FILENAME , Fl output-file Ar FILENAME
+Specifies target executable name.
+.It Fl I Ar PATHNAME , Fl include-path Ar PATHNAME
+Specifies alternative path for included files.
 .It Fl to-stdout
-write compiler to stdout
-.Po implies -t Pc
-.It Fl s, Fl shared, Fl dynamic
-generate dynamically loadable shared object file
+Write compiler to stdout
+.Po implies -t Pc .
+.It Fl s , Fl shared , Fl dynamic
+Generate dynamically loadable shared object file.
 .El
 .Pp
 Language options:
 .Bl -tag -width Ds
-.It Fl D, Fl D Ar SYMBOL, Fl feature Ar SYMBOL
-register feature identifier
+.It Fl D , Fl D Ar SYMBOL , Fl feature Ar SYMBOL
+Register feature identifier.
 .It Fl no-feature Ar SYMBOL
-disable builtin feature identifier
+Disable builtin feature identifier.
 .It Fl c++
-compile via a C++ source file
-.Pq .cpp
+Compile via a C++ source file
+.Pq .cpp .
 .It Fl objc
-compile via Objective-C source file
-.Pq \&.m
+Compile via Objective-C source file
+.Pq \&.m .
 .El
 .Pp
 Syntax related options:
 .Bl -tag -width Ds
-.It Fl i, Fl case-insensitive
-don't preserve case of read symbols
-.It Fl K, Fl keyword-style Ar STYLE
-enable alternative keyword-syntax
-.Po prefix, suffix or none Pc
+.It Fl i , Fl case-insensitive
+Don't preserve case of read symbols.
+.It Fl K , Fl keyword-style Ar STYLE
+Enable alternative keyword-syntax
+.Po prefix, suffix or none Pc .
 .It Fl no-parentheses-synonyms
-disables list delimiter synonyms
+Disables list delimiter synonyms.
 .It Fl no-symbol-escape
-disables support for escaped symbols
+Disables support for escaped symbols.
 .It Fl r5rs-syntax
-disables the CHICKEN extensions to R5RS syntax
+Disables the CHICKEN extensions to R5RS syntax.
 .It Fl compile-syntax
-macros are made available at run-time
-.It Fl j Ar MODULE, Fl emit-import-library Ar MODULE
-write compile-time module information into separate file
-.It Fl J, Fl emit-all-import-libraries
-emit import-libraries for all defined modules
+Macros are made available at run-time.
+.It Fl j Ar MODULE , Fl emit-import-library Ar MODULE
+Write compile-time module information into separate file.
+.It Fl J , Fl emit-all-import-libraries
+Emit import-libraries for all defined modules.
 .It Fl no-module-registration
-do not generate module registration code
+Do not generate module registration code.
 .It Fl no-compiler-syntax
-disable expansion of compiler-macros
+Disable expansion of compiler-macros.
 .It Fl m Ar NAME , Fl module Ar NAME
-wrap compiled code in module of the given name
+Wrap compiled code in module of the given name.
 .El
 .Pp
 Translation options:
 .Bl -tag -width Ds
-.It Fl x, Fl explicit-use
-do not use units
+.It Fl x , Fl explicit-use
+Do not use units
 .Sq library
 and
 .Sq eval
-by default
-.It Fl P, Fl check-syntax
-stop compilation after macro-expansion
-.It Fl A, Fl analyze-only
-stop compilation after first analysis pass
+by default.
+.It Fl P , Fl check-syntax
+Stop compilation after macro-expansion.
+.It Fl A , Fl analyze-only
+Stop compilation after first analysis pass.
 .El
 .Pp
 Debugging options:
 .Bl -tag -width Ds
-.It Fl w, Fl no-warnings
-disable warnings
-.It Fl d0, Fl d1, Fl d2, Fl debug-level Ar NUMBER
-set level of available debugging information
+.It Fl w , Fl no-warnings
+Disable warnings.
+.It Fl d0 , Fl d1 , Fl d2 , Fl debug-level Ar NUMBER
+Set level of available debugging information.
 .It Fl no-trace
-disable rudimentary debugging information
+Disable rudimentary debugging information.
 .It Fl profile
-executable emits profiling information
+Executable emits profiling information.
 .It Fl accumulate-profile
-executable emits profiling information in append mode
+Executable emits profiling information in append mode.
 .It Fl profile-name Ar FILENAME
-name of the generated profile information file
+Name of the generated profile information file.
 .It Fl types Ar FILENAME
-load additional type database
+Load additional type database.
 .El
 .Pp
 Optimization options:
 .Bl -tag -width Ds
-.It Fl O, Fl O0, Fl O1, Fl O2, Fl O3, Fl O4, Fl O5, Fl optimize-level Ar NUMBER
-enable certain sets of optimization options
+.It Fl O , Fl O0 , Fl O1 , Fl O2 , Fl O3 , Fl O4 , Fl O5 , Fl optimize-level Ar NUMBER
+Enable certain sets of optimization options.
 .It Fl optimize-leaf-routines
-enable leaf routine optimization
+Enable leaf routine optimization.
 .It Fl no-usual-integrations
-standard procedures may be redefined
-.It Fl u, Fl unsafe
-disable safety checks
+Standard procedures may be redefined.
+.It Fl u , Fl unsafe
+Disable safety checks.
 .It Fl local
-assume globals are only modified in current file
-.It Fl b, Fl block
-enable block-compilation
+Assume globals are only modified in current file.
+.It Fl b , Fl block
+Enable block-compilation.
 .It Fl disable-interrupts
-disable interrupts in compiled code
-.It Fl f, Fl fixnum-arithmetic
-assume all numbers are fixnums
+Disable interrupts in compiled code.
+.It Fl f , Fl fixnum-arithmetic
+Assume all numbers are fixnums.
 .It Fl disable-stack-overflow-checks
-disables detection of stack-overflows
+Disables detection of stack-overflows.
 .It Fl inline
-enable inlining
+Enable inlining.
 .It Fl inline-limit Ar LIMIT
-set inlining threshold
+Set inlining threshold.
 .It Fl inline-global
-enable cross-module inlining
+Enable cross-module inlining.
 .It Fl specialize
-perform type-based specialization of primitive calls
-.It Fl oi Ar FILENAME, Fl emit-inline-file Ar FILENAME
-generate file with globally inlinable procedures
-.Po implies Fl inline Fl local Pc
+Perform type-based specialization of primitive calls.
+.It Fl oi Ar FILENAME , Fl emit-inline-file Ar FILENAME
+Generate file with globally inlinable procedures
+.Po implies Fl inline Fl local Pc .
 .It Fl consult-inline-file Ar FILENAME
-explicitly load inline file
-.It Fl ot Ar FILENAME, Fl emit-type-file Ar FILENAME
-write type-declaration information into file
+Explicitly load inline file.
+.It Fl ot Ar FILENAME , Fl emit-type-file Ar FILENAME
+Write type-declaration information into file.
 .It Fl no-argc-checks
-disable argument count checks
+Disable argument count checks.
 .It Fl no-bound-checks
-disable bound variable checks
+Disable bound variable checks.
 .It Fl no-procedure-checks
-disable procedure call checks
+Disable procedure call checks.
 .It Fl no-procedure-checks-for-usual-bindings
-disable procedure call checks only for usual bindings
+Disable procedure call checks only for usual bindings.
 .It Fl no-procedure-checks-for-toplevel-bindings
-disable procedure call checks for toplevel bindings
+Disable procedure call checks for toplevel bindings.
 .It Fl strict-types
-assume variable do not change their type
+Assume variable do not change their type.
 .It Fl clustering
-combine groups of local procedures into dispatch loop
+Combine groups of local procedures into dispatch loop.
 .It Fl lfa2
-perform additional lightweight flow-analysis pass
+Perform additional lightweight flow-analysis pass.
 .El
 .Pp
 Configuration options:
 .Bl -tag -width Ds
 .It Fl unit Ar NAME
-compile file as a library unit
+Compile file as a library unit.
 .It Fl uses Ar NAME
-declare library unit as used.
+Declare library unit as used.
 .It Fl heap-size Ar NUMBER
-specifies heap-size of compiled executable
+Specifies heap-size of compiled executable.
 .It Fl nursery Ar NUMBER Fl stack-size Ar NUMBER
-specifies nursery size of compiled executable
-.It Fl X Ar FILENAME, Fl extend Ar FILENAME
-load file before compilation commences
+Specifies nursery size of compiled executable.
+.It Fl X Ar FILENAME , Fl extend Ar FILENAME
+Load file before compilation commences.
 .It Fl prelude Ar EXPRESSION
-add expression to beginning of source file
+Add expression to beginning of source file.
 .It Fl postlude Ar EXPRESSION
-add expression to end of source file
+Add expression to end of source file.
 .It Fl prologue Ar FILENAME
-include file before main source file
+Include file before main source file.
 .It Fl epilogue Ar FILENAME
-include file after main source file
-.It Fl e, Fl embedded
-compile as embedded
+Include file after main source file.
+.It Fl e , Fl embedded
+Compile as embedded
 .Po don't generate
 .Sq Fn main
-.Pc
+.Pc .
 .It Fl gui
-compile as GUI application
+Compile as GUI application.
 .It Fl link Ar NAME
-link extension with compiled executable
+Link extension with compiled executable
 .Po implies Sq Fl uses
-.Pc
-.It Fl R Ar NAME, Fl require-extension Ar NAME
-require extension and import in compiled code
-.It Fl dll, Fl library
-compile multiple units into a dynamic library
+.Pc .
+.It Fl R Ar NAME , Fl require-extension Ar NAME
+Require extension and import in compiled code.
+.It Fl dll , Fl library
+Compile multiple units into a dynamic library.
 .El
 .Pp
 Options to other passes:
 .Bl -tag -width Ds
 .It Fl C Ar OPTION
-pass option to C compiler
+Pass option to C compiler.
 .It Fl L Ar OPTION
-pass option to linker
+Pass option to linker.
 .It Fl I Ns Ar <DIR>
-pass
-.Dq -I<DIR>
+Pass
+.Dq -I Ns Ar <DIR>
 to C compiler
-.Po add include path Pc
+.Po add include path Pc .
 .It Fl L Ns Ar <DIR>
-pass
-.Dq -L<DIR>
+Pass
+.Dq -L Ns Ar <DIR>
 to linker
-.Po add library path Pc
+.Po add library path Pc .
 .It Fl k
-keep intermediate files
+Keep intermediate files.
 .It Fl c
-stop after compilation to object files
+Stop after compilation to object files.
 .It Fl t
-stop after translation to C
+Stop after translation to C.
 .It Fl cc Ar COMPILER
-select other C compiler than the default
+Select a C compiler other than the default.
 .It Fl cxx Ar COMPILER
-select other C++ compiler than the default
+Select a C++ compiler other than the default.
 .It Fl ld Ar COMPILER
-select other linker than the default
+Select a linker other than the default.
 .It Fl l Ns Ar LIBNAME
-link with given library
+Link with given library
 .Po
-.Sq libLIBNAME
+.Sq lib Ns Ar LIBNAME
 on UNIX,
-.Sq LIBNAME.lib
+.Sq Ar LIBNAME Ns .lib
 on Windows
-.Pc
+.Pc .
 .It Fl static-libs
-link with static CHICKEN libraries and extensions
+Link with static CHICKEN libraries and extensions.
 .It Fl F Ns Ar <DIR>
-pass
-.Dq -F<DIR>
+Pass
+.Dq -F Ns Ar <DIR>
 to C compiler
-.Po add framework header path on Mac OS X Pc
+.Po add framework header path on Mac OS X Pc .
 .It Fl framework Ar NAME
-passed to linker on Mac OS X
+Passed to linker on Mac OS X.
 .It Fl rpath Ar PATHNAME
-add directory to runtime library search path
+Add directory to runtime library search path.
 .It Fl Wl,...
-pass linker options
+Pass linker options.
 .It Fl strip
-strip resulting binary
+Strip resulting binary.
 .El
 .Pp
 Inquiry options:
 .Bl -tag -width Ds
 .It Fl home
-show home-directory
-.Po where support files go Pc
+Show home-directory
+.Po where support files go Pc .
 .It Fl cflags
-show required C-compiler flags and exit
+Show required C-compiler flags and exit.
 .It Fl ldflags
-show required linker flags and exit
+Show required linker flags and exit.
 .It Fl libs
-show required libraries and exit
+Show required libraries and exit.
 .It Fl cc-name
-show name of default C compiler used
+Show name of default C compiler used.
 .It Fl cxx-name
-show name of default C++ compiler used
+Show name of default C++ compiler used.
 .It Fl ld-name
-show name of default linker used
+Show name of default linker used.
 .It Fl dry-run
-just show commands executed, don't run them
+Just show commands executed, don't run them
 .Po implies Sq Fl v
 .Pc .
 .El
@@ -315,33 +316,33 @@ just show commands executed, don't run them
 Obscure options:
 .Bl -tag -width Ds
 .It Fl debug Ar MODES
-display debugging output for the given modes
+Display debugging output for the given modes.
 .It Fl compiler Ar PATHNAME
-use other compiler than default
-.Sq chicken
+Use a compiler other than the default
+.Sq chicken .
 .It Fl raw
-do not generate implicit init- and exit code
+Do not generate implicit init- and exit code.
 .It Fl emit-external-prototypes-first
-emit prototypes for callbacks before foreign declarations
+Emit prototypes for callbacks before foreign declarations.
 .It Fl ignore-repository
-do not refer to repository for extensions
+Do not refer to repository for extensions.
 .It Fl keep-shadowed-macros
-do not remove shadowed macro
+Do not remove shadowed macros.
 .It Fl host
-compile for host when configured for cross-compiling
+Compile for host when configured for cross-compiling.
 .It Fl private-repository
-load extensions from executable path
+Load extensions from executable path.
 .It Fl deployed
-link support file to be used from a deployed executable
+Link support file to be used from a deployed executable
 .Po sets
 .Sq rpath
-accordingly, if supported on this platform
+accordingly, if supported on this platform.
 .Pc
 .It Fl no-elevation
-embed manifest on Windows to supress elevation warnings for programs named
+Embed manifest on Windows to supress elevation warnings for programs named
 .Sq install
 or
-.Sq setup
+.Sq setup .
 .El
 .Pp
 Options can be collapsed if unambiguous, so
@@ -349,12 +350,12 @@ Options can be collapsed if unambiguous, so
 is the same as
 .Dq -v -k -fixnum-arithmetic -optimize .
 .Sh ENVIRONMENT
-Following environment variables change the behaviour of
-.Nm
+The following environment variables change the behaviour of
+.Nm Ns :
 .Bl -tag -width CHICKEN_PREFIX
 .It Ev CSC_OPTIONS
 Can hold default options that should be passed to every invocation of
-.Nm
+.Nm .
 .It Ev CHICKEN_PREFIX
 The installation prefix where CHICKEN Scheme and its support files and
 libraries are located. Defaults to the installation time prefix given
@@ -373,6 +374,6 @@ More information can be found in the
 .Sh BUGS
 Submit bug reports by e-mail to
 .Mt chicken-janitors@nongnu.org ,
-preferrably using the
+preferably using the
 .Xr chicken-bug 1
 tool.

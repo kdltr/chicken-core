@@ -993,21 +993,21 @@
   
 (define (usage code)
   (print #<<EOF
-usage: chicken-install [OPTION | EXTENSION[:VERSION]] ...
+usage: chicken-install [OPTION ...] [NAME[:VERSION] ...]
 
   -h   -help                    show this message and exit
        -version                 show version and exit
        -force                   don't ask, install even if versions don't match
   -k   -keep                    keep temporary files
   -s   -sudo                    use external command to elevate privileges for filesystem operations
-       -no-install-deps         do not install dependencies
   -r   -retrieve                only retrieve egg into current directory, don't install (giving -r
                                 more than once implies `-recursive')
        -recursive               if `-retrieve' is given, retrieve also dependencies
        -dry-run                 do not build or install, just print the locations of the generated
-                                build + install scripts
+                                build & install scripts
        -list-versions           list available versions for given eggs (HTTP transport only)
   -n   -no-install              do not install, just build
+       -no-install-deps         do not install dependencies
        -purge                   remove cached files for given eggs (or purge cache completely)
        -host                    when cross-compiling, compile extension only for host
        -target                  when cross-compiling, compile extension only for target

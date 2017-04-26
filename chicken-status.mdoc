@@ -24,65 +24,65 @@
 .\"  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .\"
 .\"
-.Dd Mar 25, 2016
+.Dd Apr 23, 2017
 .Dt CHICKEN-STATUS 1
 .Os
 .Sh NAME
 .Nm chicken-status
-.Nd list installed extension libraries
+.Nd list information about installed libraries
 .Sh SYNOPSIS
 .Nm
-.Op Ar OPTION \(ba NAME ...
+.Op OPTION ...
+.Ar NAME ...
 .Sh DESCRIPTION
 .Nm
-lists installed extensions for the CHICKEN Scheme system matching the
-.No names Ns Pq s
-.Ar 
-or all, if no pattern has been given.
+lists information about installed CHICKEN Scheme extension libraries.
+.Pp
+If
+.Ar NAME
+is given, information is limited to the specified extension(s).
+Otherwise, all extensions are shown.
 .Pp
 The program accepts following arguments:
 .Bl -tag -width Ds
-.It Fl e, Fl eggs
-list installed eggs
-.It Fl match
-treat
-.Ar NAME
-as a glob pattern Pc
-.It Fl f Ns , Fl files
-list installed files
-.It Fl h, Fl help
-show usage and exit
-.It Fl a, Fl all
-Scan all repositories in CHICKEN_REPOSITORY_PATH
-.It Fl host
-when cross-compiling, show status of host extensions only
-.It Fl list
-dump installed extensions and their versions in
-.Dq override
-format
-.It Fl target
-when cross-compiling, show status of target extensions only
+.It Fl h , Fl help
+Show usage and exit.
 .It Fl version
-show version and exit
+Show version and exit.
+.It Fl a , Fl all
+Scan all repositories in CHICKEN_REPOSITORY_PATH.
+.It Fl c , Fl components
+List installed components.
+.It Fl f , Fl files
+List installed files.
+.It Fl list
+Dump installed extensions and their versions in
+.It Fl match
+Treat
+.Ar NAME
+as a glob pattern.
+.It Fl host
+When cross-compiling, only show host extensions.
+.It Fl target
+When cross-compiling, only show target extensions.
+.Dq override
+format.
 .El
 .Sh ENVIRONMENT
-Following environment variables change the behaviour of
-.Nm
-.Bl -tag -width CHICKEN_INSTALL_PREFIX
+The following environment variables change the behaviour of
+.Nm Ns :
+.Bl -tag -width CHICKEN_INSTALL_REPOSITORY
 .It Ev CHICKEN_PREFIX
 The installation prefix where CHICKEN Scheme and its support files and
-libraries are located. Defaults to the installation time prefix given
-when configuring the system.
-.It Ev CHICKEN_INSTALL_PREFIX
-An alternative installation prefix that will be prepended to extension
-installation paths if specified.
-.It Ev CHICKEN_REPOSITORY_PATH
-One or more directories holding extension libraries, defaults to the
-installation repository.
+libraries are located. Defaults to the prefix given when configuring the
+system.
 .It Ev CHICKEN_INSTALL_REPOSITORY
-The path where extension libraries are installed. Defaults to the package-library
-path selected during configuration
-.Pq usually $prefix/lib/chicken/<binary-version>
+The path where extension libraries are installed. Defaults to the
+package library path selected during configuration
+.Pq usually $prefix/lib/chicken/<binary-version> .
+.It Ev CHICKEN_REPOSITORY_PATH
+One or more directories holding extension libraries. Defaults to the
+installation repository.
 .El
 .Sh EXIT STATUS
 .Ex -std
@@ -99,6 +99,6 @@ More information can be found in the
 .Sh BUGS
 Submit bug reports by e-mail to
 .Mt chicken-janitors@nongnu.org ,
-preferrably using the
+preferably using the
 .Xr chicken-bug 1
 tool.
