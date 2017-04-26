@@ -593,8 +593,8 @@ EOF
 		(print (chicken-version))
 		(exit) ]
 	       [(-version)
-		(system (sprintf translator " -version"))
-		(exit) ]
+		(system (sprintf "~a ~a" translator " -version"))
+		(exit)]
 	       [(-c++) 
 		(set! cpp-mode #t)
 		(when osx (set! compile-options (cons "-no-cpp-precomp" compile-options))) ]
