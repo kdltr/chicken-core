@@ -797,6 +797,12 @@
 
 ;; Nested begins inside definitions were not treated correctly
 (t 3 (eval '(let () (begin 1 (begin 2 (define internal-def 3) internal-def)))))
+;; Macros that expand to "define" should not cause a letrec barrier
+(t 1 (eval '(let-syntax ((my-define (syntax-rules ()
+				      ((_ var val) (define var val)))))
+	      (let () (define (run-it) foo) (my-define foo 1) (run-it)))))
+;; Begin should not cause a letrec barrier
+(t 1 (eval '(let () (define (run-it) foo) (begin (define foo 1) (run-it)))))
 (f (eval '(let () internal-def)))
 
 ;;; renaming of keyword argument (#277)

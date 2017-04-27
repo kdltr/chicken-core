@@ -632,7 +632,15 @@
 		     (loop rest (cons (cadr x) vars) (cons (caddr x) vals) (cons #t mvars)))
 		    ((comp '##core#begin head)
 		     (loop (##sys#append (cdr x) rest) vars vals mvars))
-		    (else (fini vars vals mvars body))))))))
+		    (else
+		     ;; Do not macro-expand local definitions we are
+		     ;; in the process of introducing.
+		     (if (member (list head) vars)
+			 (fini vars vals mvars body)
+			 (let ((x2 (##sys#expand-0 x se cs?)))
+			   (if (eq? x x2)
+			       (fini vars vals mvars body)
+			       (loop (cons x2 rest) vars vals mvars)))))))))))
     (expand body) ) )
 
 
