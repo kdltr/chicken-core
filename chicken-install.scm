@@ -838,7 +838,7 @@
 
 (define (order-installed-eggs)
   (let* ((dag (reverse (sort-dependencies dependencies string=?)))
-         (ordered (map (cut assoc <> canonical-eggs) dag)))
+         (ordered (filter-map (cut assoc <> canonical-eggs) dag)))
     (unless quiet
       (d "install order:~%")
       (pp dag))
