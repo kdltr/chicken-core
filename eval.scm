@@ -1226,7 +1226,7 @@
 ;;   - a library id if the library was found, #f otherwise
 ;;   - a requirement type (e.g. 'dynamic) or #f if provided in core
 ;;
-(define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()) static mark-static)
+(define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()) static? mark-static)
   (let ((id (library-id lib)))
     (cond
       ((assq id core-unit-requirements) =>
@@ -1243,7 +1243,7 @@
 	    `(##core#declare (uses ,id))
 	    `(##sys#load-library (##core#quote ,id)))
 	id #f))
-      ((and compiling? static (static-extension-available? id)) =>
+      ((and compiling? static? (static-extension-available? id)) =>
        (lambda (path) 
          (mark-static id path)
          (values `(##core#declare (uses ,id)) id 'static)))
