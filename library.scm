@@ -5830,37 +5830,19 @@ EOF
 (define-foreign-variable installation-home c-string "C_INSTALL_SHARE_HOME")
 (define-foreign-variable install-egg-home c-string "C_INSTALL_EGG_HOME")
 
-(define chicken-prefix
-  (let ((prefix (and-let* ((p (get-environment-variable "CHICKEN_PREFIX")))
-		  (##sys#string-append
-		   p
-		   (if (memq (string-ref p (fx- (##sys#size p) 1)) '(#\\ #\/)) "" "/")))))
-    (lambda (#!optional dir)
-      (and prefix
-	   (if dir (##sys#string-append prefix dir) prefix)))))
+(define (chicken-home) installation-home)
 
 (define repository-path
   (make-parameter
    (or (foreign-value "C_private_repository_path()" c-string)
        (get-environment-variable "CHICKEN_REPOSITORY_PATH")
-       (chicken-prefix
-	(##sys#string-append
-	 "lib/chicken/"
-	 (##sys#number->string binary-version)))
        install-egg-home)))
 
 (define installation-repository
   (make-parameter
    (or (foreign-value "C_private_repository_path()" c-string)
        (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
-       (chicken-prefix
-	(##sys#string-append
-	 "lib/chicken/"
-	 (##sys#number->string binary-version)))
        install-egg-home)))
-
-(define (chicken-home)
-  (or (chicken-prefix "share/chicken") installation-home))
 
 (define extension-information
   (let ((with-input-from-file with-input-from-file)

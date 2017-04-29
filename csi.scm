@@ -439,9 +439,7 @@ EOF
 	(with-output-to-port with-output-to-port)
 	(current-output-port current-output-port) 
 	(argv argv)
-	(prefix
-	 (or (get-environment-variable "CHICKEN_PREFIX")
-	     (foreign-value "C_INSTALL_PREFIX" c-string) ) ))
+	(prefix (foreign-value "C_INSTALL_PREFIX" c-string)))
     (lambda port
       (with-output-to-port (if (pair? port) (car port) (current-output-port))
 	(lambda ()
