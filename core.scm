@@ -2004,7 +2004,7 @@
 
     ;; fullenv is constantly (append localenv env). It's there to avoid
     ;; exponential behaviour by APPEND calls when compiling deeply nested LETs
-    (define (walk n env localenv fullenv here call)
+    (define (walk n env localenv fullenv here)
       (let ((subs (node-subexpressions n))
 	    (params (node-parameters n))
 	    (class (node-class n)) )
@@ -2024,7 +2024,7 @@
 
 	  ((##core#callunit ##core#recurse)
 	   (grow 1)
-	   (walkeach subs env localenv fullenv here #f) )
+	   (walkeach subs env localenv fullenv here))
 
 	  ((##core#call)
 	   (grow 1)
@@ -2032,19 +2032,19 @@
 	     (when (eq? '##core#variable (node-class fun))
 	       (let ((name (first (node-parameters fun))))
 		 (collect! db name 'call-sites (cons here n))))
-	     (walk (first subs) env localenv fullenv here #t)
-	     (walkeach (cdr subs) env localenv fullenv here #f) ) )
+	     (walk (first subs) env localenv fullenv here)
+	     (walkeach (cdr subs) env localenv fullenv here)))
 
 	  ((let ##core#let)
 	   (let ([env2 (append params fullenv)])
 	     (let loop ([vars params] [vals subs])
 	       (if (null? vars)
-		   (walk (car vals) env (append params localenv) env2 here #f)
+		   (walk (car vals) env (append params localenv) env2 here)
 		   (let ([var (car vars)]
 			 [val (car vals)] )
 		     (db-put! db var 'home here)
 		     (assign var val env2 here)
-		     (walk val env localenv fullenv here #f)
+		     (walk val env localenv fullenv here)
 		     (loop (cdr vars) (cdr vals)) ) ) ) ) )
 
 	  ((lambda) ; this is an intermediate lambda, slightly different
@@ -2057,7 +2057,7 @@
 	       vars)
 	      (let ([tl toplevel-scope])
 		(set! toplevel-scope #f)
-		(walk (car subs) fullenv vars (append vars fullenv) #f #f)
+		(walk (car subs) fullenv vars (append vars fullenv) #f)
 		(set! toplevel-scope tl) ) ) ) )
 
 	  ((##core#lambda ##core#direct_lambda)
@@ -2082,7 +2082,7 @@
 		  (unless toplevel-lambda-id (set! toplevel-lambda-id id))
 		  (when (and (second params) (not (eq? toplevel-lambda-id id)))
 		    (set! toplevel-scope #f)) ; only if non-CPS lambda
-		  (walk (car subs) fullenv vars (append vars fullenv) id #f)
+		  (walk (car subs) fullenv vars (append vars fullenv) id)
 		  (set! toplevel-scope tl)
 		  ;; decorate ##core#call node with size
 		  (set-car! (cdddr (node-parameters n)) (- current-program-size size0)) ) ) ) ) )
@@ -2106,18 +2106,18 @@
 	     (assign var val fullenv here)
 	     (unless toplevel-scope (db-put! db var 'assigned-locally #t))
 	     (db-put! db var 'assigned #t)
-	     (walk (car subs) env localenv fullenv here #f) ) )
+	     (walk (car subs) env localenv fullenv here)))
 
 	  ((##core#primitive ##core#inline)
 	   (let ((id (first params)))
 	     (when (and first-analysis here (symbol? id) (get-real-name id))
 	       (set-real-name! id here) )
-	     (walkeach subs env localenv fullenv here #f) ) )
+	     (walkeach subs env localenv fullenv here)))
 
-	  (else (walkeach subs env localenv fullenv here #f)) ) ) )
+	  (else (walkeach subs env localenv fullenv here)))))
 
-    (define (walkeach xs env lenv fenv here call)
-      (for-each (lambda (x) (walk x env lenv fenv here call)) xs) )
+    (define (walkeach xs env lenv fenv here)
+      (for-each (lambda (x) (walk x env lenv fenv here)) xs) )
 
     (define (assign var val env here)
       (cond ((eq? '##core#undefined (node-class val))
@@ -2155,7 +2155,7 @@
     ;; Walk toplevel expression-node:
     (debugging 'p "analysis traversal phase...")
     (set! current-program-size 0)
-    (walk node '() '() '() #f #f)
+    (walk node '() '() '() #f)
 
     ;; Complete gathered database information:
     (debugging 'p "analysis gathering phase...")
