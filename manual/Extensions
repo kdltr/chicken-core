@@ -598,7 +598,6 @@ Available options:
 
 ; {{-h   -help}} : show usage information and exit
 ; {{-version}} : show version and exit
-; {{-a   -all}} : Scan all repositories in {{CHICKEN_REPOSITORY_PATH}}
 ; {{-f   -files}} : list installed files
 ; {{-match}} : treat egg-names as glob patterns
 ; {{-host}} : when cross-compiling, show eggs for host system only

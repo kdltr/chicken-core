@@ -43,13 +43,11 @@
 
   (define host-extensions #t)
   (define target-extensions #t)
-  (define all-repos #f)
 
   (define (repo-path)
-    (cond ((and cross-chicken (not host-extensions))
-           (list (destination-repository 'target)))
-          (all-repos (##sys#split-path (repository-path)))
-          (else (list (destination-repository 'host)))))
+    (if (and cross-chicken (not host-extensions))
+        (list (destination-repository 'target))
+        (##sys#split-path (repository-path))))
 
   (define (find-in-repo name)
     (let loop ((dirs (repo-path)))
@@ -231,9 +229,6 @@ EOF
 		     (loop (cdr args) pats))
                     ((string=? arg "-match")
                      (set! mtch #t)
-                     (loop (cdr args) pats))
-                    ((member arg '("-a" "-all"))
-                     (set! all-repos #t)
                      (loop (cdr args) pats))
 		    ((string=? arg "-list")
 		     (set! dump #t)
