@@ -13,7 +13,7 @@ else
     # MSYS /c/blabla "pseudo-paths" which break when used in syscalls.
     TEST_DIR=`pwd -W`
 fi
-OS_NAME=`uname -s`
+
 DYLD_LIBRARY_PATH=${TEST_DIR}/..
 LD_LIBRARY_PATH=${TEST_DIR}/..
 LIBRARY_PATH=${TEST_DIR}/..:${LIBRARY_PATH}
@@ -30,26 +30,15 @@ case `uname` in
 		DIFF_OPTS=-bu ;;
 esac
 
-rm -fr test-repository
-mkdir -p test-repository
 CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
 CHICKEN_REPOSITORY_PATH=${TEST_DIR}/..:$CHICKEN_INSTALL_REPOSITORY
 CHICKEN=${TEST_DIR}/../chicken
 CHICKEN_PROFILE=${TEST_DIR}/../chicken-profile
 CHICKEN_INSTALL=${TEST_DIR}/../chicken-install
 CHICKEN_UNINSTALL=${TEST_DIR}/../chicken-uninstall
-ASMFLAGS=
-FAST_OPTIONS="-O5 -d0 -b -disable-interrupts"
 COMPILE_OPTIONS="-compiler ${TEST_DIR}/../chicken -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -rpath ${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
 
-TEST_DIR_SEXPR=`../csi -n -include-path .. -e "(use posix) (write (current-directory))"`
-SETUP_PREFIX="-e (use (chicken pathname) setup-api)"
-SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"csc\" (make-pathname ${TEST_DIR_SEXPR} \"../csc\"))"
-SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"chicken\" (make-pathname ${TEST_DIR_SEXPR} \"../chicken\"))"
-SETUP_PREFIX="${SETUP_PREFIX} -e (register-program \"csi\" (make-pathname ${TEST_DIR_SEXPR} \"../csi\"))"
-
 TYPESDB=../types.db
-cp $TYPESDB test-repository/types.db
 
 compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out"
 compile2="../csc -compiler ${CHICKEN} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
@@ -65,7 +54,9 @@ $time true >/dev/null 2>/dev/null
 test $? -eq 127 && time=
 set -e
 
-rm -f *.exe *.so *.o *.import.* a.out ../foo.import.*
+rm -fr *.exe *.so *.o *.import.* a.out ../foo.import.* test-repository
+mkdir -p test-repository
+cp $TYPESDB test-repository/types.db
 
 echo "======================================== version tests ..."
 $compile version-tests.scm
