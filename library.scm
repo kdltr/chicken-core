@@ -5423,13 +5423,6 @@ EOF
   (if (promise? obj) obj
       (##sys#make-promise (lambda () obj))))
 
-;;; Internal string-reader:
-
-(define ##sys#read-from-string 
-  (lambda (s)
-    (let ([i (open-input-string s)])
-      (read i) ) ) )
-
 
 ;;; Convenient error printing:
 
