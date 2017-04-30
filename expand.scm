@@ -1418,7 +1418,7 @@
 
 (##sys#extend-macro-environment
  'cond-expand
- '((feature? . chicken.platform#feature?))
+ '()
  (##sys#er-transformer
   (lambda (form r c)
     (let ((clauses (cdr form))
