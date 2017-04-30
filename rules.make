@@ -866,7 +866,7 @@ endef
 $(foreach obj, $(COMPILER_OBJECTS_1),\
           $(eval $(call declare-bootstrap-compiler-object,$(obj))))
 
-csi.c: $(SRCDIR)csi.scm $(SRCDIR)banner.scm
+csi.c: $(SRCDIR)csi.scm $(SRCDIR)banner.scm $(SRCDIR)mini-srfi-1.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@
 chicken-profile.c: $(SRCDIR)chicken-profile.scm $(SRCDIR)mini-srfi-1.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 

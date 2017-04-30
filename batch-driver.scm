@@ -448,7 +448,7 @@
 	   (when (not f) (quit-compiling "cannot load extension: ~a" e))
 	   (load f)))
        extends) )
-    (set! ##sys#features (delete #:compiler-extension ##sys#features))
+    (set! ##sys#features (delete #:compiler-extension ##sys#features eq?))
     (set! ##sys#features (cons '#:compiling ##sys#features))
     (set! upap (user-post-analysis-pass))
 

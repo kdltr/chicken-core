@@ -5737,27 +5737,6 @@ EOF
 	z
 	(f (##sys#slot lst 0) (loop (##sys#slot lst 1))))))
 
-
-;; Some list-operations, used by the syntax-rules implementation, inside module
-;; implementation and in csi
-
-(define (##sys#del x lst tst)
-  (let loop ((lst lst))
-    (if (null? lst)
-	'()
-	(let ((y (car lst)))
-	  (if (tst x y)
-	      (cdr lst)
-	      (cons y (loop (cdr lst))) ) ) ) ) )
-
-(define (##sys#nodups lis elt=)
-  (let recur ((lis lis))
-    (if (null? lis) lis
-	(let* ((x (car lis))
-	       (tail (cdr lis))
-	       (new-tail (recur (##sys#del x tail elt=))))
-	  (if (eq? tail new-tail) lis (cons x new-tail))))))
-
 ;; contributed by Peter Bex
 (define (##sys#drop-right input temp)
   ;;XXX use unsafe accessors

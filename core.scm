@@ -999,7 +999,7 @@
 							     ;; Remove from list to avoid error
 							     (when (pair? il)
 							       (set! import-libraries
-								 (delete il import-libraries)))
+								 (delete il import-libraries equal?)))
 							     (values (reverse xs) '())))
 						       ((not enable-module-registration)
 							(values (reverse xs) '()))
@@ -2437,7 +2437,7 @@
 	   (when (pair? (cdr params)) (bomb "let-node has invalid format" params))
 	   (let ((c (gather (first subs) here locals))
 		 (var (first params)))
-	     (append c (delete var (gather (second subs) here (cons var locals))))))
+	     (append c (delete var (gather (second subs) here (cons var locals)) eq?))))
 
 	  ((set!)
 	   (let ((var (first params))

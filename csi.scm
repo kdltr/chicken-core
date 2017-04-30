@@ -60,6 +60,7 @@ EOF
 	chicken.repl)
 
 (include "banner.scm")
+(include "mini-srfi-1.scm")
 
 ;;; Parameters:
 
@@ -961,6 +962,7 @@ EOF
 (define-constant complex-options
   '("-D" "-feature" "-I" "-include-path" "-K" "-keyword-style" "-no-feature") )
 
+
 (define (run)
   (let* ([extraopts (parse-option-string (or (get-environment-variable "CSI_OPTIONS") ""))]
 	 [args (canonicalize-args (command-line-arguments))]
@@ -1033,7 +1035,7 @@ EOF
       (for-each register-feature! (collect-options "-D"))
       (for-each unregister-feature! (collect-options "-no-feature"))
       (set! ##sys#include-pathnames 
-	(##sys#nodups
+	(delete-duplicates
 	 (append (map chop-separator (collect-options "-include-path"))
 		 (map chop-separator (collect-options "-I"))
 		 ##sys#include-pathnames

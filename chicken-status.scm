@@ -77,7 +77,7 @@
                             (lambda (egg)
                               (any (cut string=? <> egg) patterns))
                             eggs)))))
-      (delete-duplicates names)))
+      (delete-duplicates names string=?)))
 
   (define (gather-eggs)
     (delete-duplicates

@@ -124,7 +124,7 @@
     (debugging 'p "scanning toplevel assignments...")
     (scan node '())
     (when (pair? safe)
-      (debugging 'o "safe globals" (delete-duplicates safe)))
+      (debugging 'o "safe globals" (delete-duplicates safe eq?)))
     (for-each (cut mark-variable <> '##compiler#always-bound) safe)))
 
 

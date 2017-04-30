@@ -69,7 +69,7 @@
                      (lambda (egg)
                        (any (cut string=? <> egg) patterns))
                      eggs))))
-    (delete-duplicates pats)))
+    (delete-duplicates pats string=?)))
 
 (define (fini code)
   (print "aborted.")

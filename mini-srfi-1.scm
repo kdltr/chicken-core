@@ -26,8 +26,8 @@
 
 
 (declare 
-  (unused take span drop partition split-at append-map every any cons* concatenate delete
-	  first second third fourth alist-cons delete-duplicates fifth remove
+  (unused take span drop partition split-at append-map every any cons* concatenate
+	  first second third fourth alist-cons fifth remove
 	  filter filter-map unzip1 last list-index lset-adjoin/eq? lset-difference/eq?
 	  lset-union/eq? lset-intersection/eq? list-tabulate lset<=/eq? lset=/eq? length+
 	  find find-tail iota make-list posq posv)
@@ -100,7 +100,7 @@
 	'()
 	(append (car lst) (loop (cdr lst))))))
 
-(define (delete x lst #!optional (test equal?))
+(define (delete x lst test)
   (let loop ((lst lst))
     (cond ((null? lst) lst)
 	  ((test x (car lst))
@@ -114,7 +114,7 @@
 (define (fourth x) (cadddr x))
 (define (fifth x) (car (cddddr x)))
 
-(define (delete-duplicates lst #!optional (test equal?))
+(define (delete-duplicates lst test)
   (let loop ((lst lst))
     (if (null? lst)
 	lst
