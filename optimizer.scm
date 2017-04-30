@@ -27,8 +27,7 @@
 
 (declare
   (unit optimizer)
-  (uses data-structures
-	support) )
+  (uses data-structures internal support))
 
 (module chicken.compiler.optimizer
     (scan-toplevel-assignments perform-high-level-optimizations
@@ -38,7 +37,8 @@
 
 (import chicken scheme
 	chicken.data-structures
-	chicken.compiler.support)
+	chicken.compiler.support
+	chicken.internal)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")
@@ -166,7 +166,7 @@
       (for-each (cut set-cdr! <> #f) gae))
 
     (define (simplify n)
-      (or (and-let* ((entry (##sys#hash-table-ref
+      (or (and-let* ((entry (hash-table-ref
 			     simplifications (node-class n))))
 	    (any (lambda (s)
 		   (and-let* ((vars (second s))
@@ -620,7 +620,7 @@
 ;;; Simplifications:
 
 (define (register-simplifications class . ss)
-  (##sys#hash-table-set! simplifications class ss) )
+  (hash-table-set! simplifications class ss))
 
 
 (register-simplifications
@@ -629,7 +629,7 @@
  `((##core#call d (##core#variable (a)) b . c)
    (a b c d)
    ,(lambda (db may-rewrite a b c d)
-      (let loop ((entries (or (##sys#hash-table-ref substitution-table a) '())))
+      (let loop ((entries (or (hash-table-ref substitution-table a) '())))
 	(cond ((null? entries) #f)
 	      ((simplify-named-call db may-rewrite d a b
 				    (caar entries) (cdar entries) c)
@@ -933,8 +933,8 @@
 (define substitution-table (make-vector 301 '()))
 
 (define (rewrite name . class-and-args)
-  (let ((old (or (##sys#hash-table-ref substitution-table name) '())))
-    (##sys#hash-table-set! substitution-table name (append old (list class-and-args))) ) )
+  (let ((old (or (hash-table-ref substitution-table name) '())))
+    (hash-table-set! substitution-table name (append old (list class-and-args)))))
 
 (define (simplify-named-call db may-rewrite params name cont
 			     class classargs callargs)

@@ -26,13 +26,14 @@
 
 (declare
   (unit read-syntax)
+  (uses internal)
   (disable-interrupts))
 
 (module chicken.read-syntax
   (copy-read-table define-reader-ctor set-read-syntax!
    set-sharp-read-syntax! set-parameterized-read-syntax!)
 
-(import scheme chicken chicken.platform)
+(import scheme chicken chicken.internal chicken.platform)
 
 (include "common-declarations.scm")
 
@@ -100,7 +101,7 @@
 
 (define (define-reader-ctor spec proc)
   (##sys#check-symbol spec 'define-reader-ctor)
-  (##sys#hash-table-set! sharp-comma-reader-ctors spec proc))
+  (hash-table-set! sharp-comma-reader-ctors spec proc))
 
 (set! ##sys#user-read-hook
   (let ((old ##sys#user-read-hook)
@@ -116,7 +117,7 @@
 		   (let ([spec (##sys#slot exp 0)])
 		     (if (not (symbol? spec))
 			 (err)
-			 (let ((ctor (##sys#hash-table-ref sharp-comma-reader-ctors spec)))
+			 (let ((ctor (hash-table-ref sharp-comma-reader-ctors spec)))
 			   (if ctor
 			       (apply ctor (##sys#slot exp 1))
 			       (##sys#read-error port "undefined sharp-comma constructor" spec))))))))

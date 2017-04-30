@@ -538,6 +538,7 @@ batch-driver.c: batch-driver.scm mini-srfi-1.scm \
 		chicken.data-structures.import.scm \
 		chicken.format.import.scm \
 		chicken.gc.import.scm \
+		chicken.internal.import.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
 		chicken.pretty-print.import.scm \
@@ -570,7 +571,8 @@ core.c: core.scm mini-srfi-1.scm \
 		chicken.pretty-print.import.scm
 optimizer.c: optimizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
-		chicken.data-structures.import.scm
+		chicken.data-structures.import.scm \
+		chicken.internal.import.scm
 scheduler.c: scheduler.scm \
 		chicken.format.import.scm
 scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
@@ -578,6 +580,7 @@ scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
 		chicken.data-structures.import.scm \
 		chicken.expand.import.scm \
 		chicken.format.import.scm \
+		chicken.internal.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
@@ -601,8 +604,9 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
-		chicken.keyword.import.scm \
+		chicken.internal.import.scm \
 		chicken.io.import.scm \
+		chicken.keyword.import.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
 		chicken.port.import.scm \
@@ -625,9 +629,10 @@ csi.c: csi.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
 		chicken.gc.import.scm \
+		chicken.internal.import.scm \
+		chicken.io.import.scm \
 		chicken.keyword.import.scm \
 		chicken.platform.import.scm \
-		chicken.io.import.scm \
 		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.repl.import.scm
@@ -643,6 +648,7 @@ chicken-bug.c: chicken-bug.scm \
 		chicken.time.import.scm
 chicken-profile.c: chicken-profile.scm \
 		chicken.data-structures.import.scm \
+		chicken.internal.import.scm \
 		chicken.posix.import.scm
 chicken-status.c: chicken-status.scm \
 		chicken.data-structures.import.scm \
@@ -735,6 +741,7 @@ pathname.c: pathname.scm \
 port.c: port.scm \
 		chicken.io.import.scm
 read-syntax.c: read-syntax.scm \
+		chicken.internal.import.scm \
 		chicken.platform.import.scm
 tcp.c: tcp.scm \
 		chicken.foreign.import.scm \

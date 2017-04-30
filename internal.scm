@@ -29,9 +29,23 @@
   (disable-interrupts)
   (fixnum))
 
+;; This is a bit of a grab-bag of stuff that's used in various places
+;; in the runtime and the compiler, but which is not supposed to be
+;; used by the user, and doesn't strictly belong anywhere in
+;; particular.
 (module chicken.internal
-  (library-id valid-library-specifier?
-   module-requirement string->c-identifier)
+   (;; Convert string into valid C-identifier
+    string->c-identifier
+
+    ;; Parse library specifications
+    library-id valid-library-specifier?
+
+    ;; Requirement identifier for modules
+    module-requirement
+
+    ;; Low-level hash table support
+    hash-table-ref hash-table-set! hash-table-update!
+    hash-table-for-each hash-table-size)
 
 (import scheme chicken)
 
@@ -97,5 +111,53 @@
   (##sys#string->symbol
    (##sys#string-append (##sys#slot id 1) "#")))
 
+
+;;; Low-level hashtable support:
+
+(define hash-symbol
+  (let ((cache-s #f)
+	(cache-h #f)
+	;; NOTE: All low-level hash tables share the same randomization factor
+	(rand (##core#inline "C_random_fixnum" #x10000)))
+    (lambda (s n)
+      (if (eq? s cache-s)
+	  (##core#inline "C_fixnum_modulo" cache-h n)
+	  (begin
+	    (set! cache-s s)
+	    (set! cache-h (##core#inline "C_u_i_string_hash" (##sys#slot s 1) rand))
+	    (##core#inline "C_fixnum_modulo" cache-h n))))))
+
+(define (hash-table-ref ht key)
+  (let loop ((bucket (##sys#slot ht (hash-symbol key (##core#inline "C_block_size" ht)))))
+    (and (not (eq? '() bucket))
+	 (if (eq? key (##sys#slot (##sys#slot bucket 0) 0))
+	     (##sys#slot (##sys#slot bucket 0) 1)
+	     (loop (##sys#slot bucket 1))))))
+
+(define (hash-table-set! ht key val)
+  (let* ((k (hash-symbol key (##core#inline "C_block_size" ht)))
+	 (ib (##sys#slot ht k)))
+      (let loop ((bucket ib))
+	(if (eq? '() bucket)
+	    (##sys#setslot ht k (cons (cons key val) ib))
+	    (if (eq? key (##sys#slot (##sys#slot bucket 0) 0))
+		(##sys#setslot (##sys#slot bucket 0) 1 val)
+		(loop (##sys#slot bucket 1)))))))
+
+(define (hash-table-update! ht key updtfunc valufunc)
+  (hash-table-set! ht key (updtfunc (or (hash-table-ref ht key) (valufunc)))))
+
+(define (hash-table-for-each p ht)
+  (let ((len (##core#inline "C_block_size" ht)))
+    (do ((i 0 (fx+ i 1)))
+	((fx>= i len))
+      (##sys#for-each (lambda (bucket) (p (##sys#slot bucket 0) (##sys#slot bucket 1)))
+		      (##sys#slot ht i)))))
+
+(define (hash-table-size ht)
+  (let loop ((len (##sys#size ht)) (bkt 0) (size 0))
+    (if (fx= bkt len)
+	size
+	(loop len (fx+ bkt 1) (fx+ size (##sys#length (##sys#slot ht bkt)))))))
 
 ) ; chicken.internal

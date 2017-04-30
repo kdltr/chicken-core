@@ -27,6 +27,7 @@
 (declare (block))
 
 (import chicken.data-structures
+	chicken.internal
 	chicken.posix)
 
 (include "mini-srfi-1.scm")
@@ -160,13 +161,13 @@ EOF
 	 (type (if (symbol? header) header 'instrumented)))
     (do ((line (if (symbol? header) (read) header) (read)))
 	((eof-object? line))
-      (##sys#hash-table-set!
+      (hash-table-set!
        hash (first line)
        (map (lambda (x y) (and x y (+ x y)))
-	    (or (##sys#hash-table-ref hash (first line)) '(0 0))
+	    (or (hash-table-ref hash (first line)) '(0 0))
 	    (cdr line))))
     (let ((alist '()))
-      (##sys#hash-table-for-each
+      (hash-table-for-each
        (lambda (sym counts)
 	 (set! alist (alist-cons sym counts alist)))
        hash)

@@ -52,6 +52,7 @@
    expansion-result-hook)
 
 (import scheme chicken
+	chicken.internal
 	chicken.keyword
 	chicken.platform)
 
@@ -737,11 +738,11 @@
        (pair? sexp)
        (let ([head (car sexp)])
 	 (and (symbol? head)
-	      (cond [(##sys#hash-table-ref ##sys#line-number-database head)
+	      (cond ((hash-table-ref ##sys#line-number-database head)
 		     => (lambda (pl)
-			  (let ([a (assq sexp pl)])
-			    (and a (cdr a)) ) ) ]
-		    [else #f] ) ) ) ) )
+			  (let ((a (assq sexp pl)))
+			    (and a (cdr a)))))
+		    (else #f))))))
 
 (define-constant +default-argument-count-limit+ 99999)
 

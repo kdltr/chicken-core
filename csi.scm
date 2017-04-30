@@ -49,8 +49,9 @@ EOF
 	chicken.foreign
 	chicken.format
 	chicken.gc
-	chicken.keyword
+	chicken.internal
 	chicken.io
+	chicken.keyword
 	chicken.platform
 	chicken.port
 	chicken.pretty-print
@@ -705,7 +706,7 @@ EOF
 	      (##sys#slot x 1) ) )
 	    ((##sys#generic-structure? x)
 	     (let ([st (##sys#slot x 0)])
-	       (cond ((##sys#hash-table-ref describer-table st) => (cut <> x out))
+	       (cond ((hash-table-ref describer-table st) => (cut <> x out))
 		     ((assq st bytevector-data) =>
 		      (lambda (data)
 			(apply descseq (append (map eval (cdr data)) (list 0)))) )
@@ -717,7 +718,7 @@ EOF
 
 (define (set-describer! tag proc)
   (##sys#check-symbol tag 'set-describer!)
-  (##sys#hash-table-set! describer-table tag proc) )
+  (hash-table-set! describer-table tag proc))
 
 
 ;;; Display hexdump:

@@ -82,7 +82,7 @@
     ;; Some helper procedures
 
     (define (find-lambda id)
-      (or (##sys#hash-table-ref lambda-table id)
+      (or (hash-table-ref lambda-table id)
 	  (bomb "can't find lambda" id) ) )
 
     ;; Compile a single expression
@@ -612,7 +612,7 @@
   
     (define (prototypes)
       (gen #t)
-      (##sys#hash-table-for-each
+      (hash-table-for-each
        (lambda (id ll)
 	 (let* ((n (lambda-literal-argument-count ll))
 		(customizable (lambda-literal-customizable ll))
@@ -660,7 +660,7 @@
 	      ((>= i n))
 	    (gen #t "C_word t" i "=av[" j "];")))
 
-	(##sys#hash-table-for-each
+	(hash-table-for-each
 	 (lambda (id ll)
 	   (let* ([argc (lambda-literal-argument-count ll)]
 		  [rest (lambda-literal-rest-argument ll)]
@@ -773,7 +773,7 @@
 	(else (bomb "invalid unboxed type" t))))
 
     (define (procedures)
-      (##sys#hash-table-for-each
+      (hash-table-for-each
        (lambda (id ll)
 	 (let* ((n (lambda-literal-argument-count ll))
 		(rname (real-name id db))
@@ -961,8 +961,8 @@
 
 (define (emit-procedure-table lambda-table sf)
   (gen #t #t "#ifdef C_ENABLE_PTABLES"
-       #t "static C_PTABLE_ENTRY ptable[" (add1 (##sys#hash-table-size lambda-table)) "] = {")
-  (##sys#hash-table-for-each
+       #t "static C_PTABLE_ENTRY ptable[" (add1 (hash-table-size lambda-table)) "] = {")
+  (hash-table-for-each
    (lambda (id ll)
      (gen #t "{\"" id #\: (string->c-identifier sf) "\",(void*)")
      (if (eq? 'toplevel id)

@@ -473,7 +473,7 @@
 	(nglobs 0)
 	(entries 0)
 	(nsites 0) )
-    (##sys#hash-table-for-each
+    (hash-table-for-each
      (lambda (sym plist)
        (for-each
 	(lambda (prop)
@@ -547,9 +547,9 @@
     (let ((x (lookup x0 se)))
       (d `(RESOLVE-VARIABLE: ,x0 ,x ,(map (lambda (x) (car x)) se)))
       (cond ((not (symbol? x)) x0)	; syntax?
-	    ((##sys#hash-table-ref constant-table x)
+	    ((hash-table-ref constant-table x)
 	     => (lambda (val) (walk val e se dest ldest h #f #f)))
-	    ((##sys#hash-table-ref inline-table x)
+	    ((hash-table-ref inline-table x)
 	     => (lambda (val) (walk val e se dest ldest h #f #f)))
 	    ((assq x foreign-variables)
 	     => (lambda (fv)
@@ -626,7 +626,7 @@
 	       (cond ((not (eq? x xexpanded))
 		      (walk xexpanded e se dest ldest h ln tl?))
 
-		     ((##sys#hash-table-ref inline-table name)
+		     ((hash-table-ref inline-table name)
 		      => (lambda (val)
 			   (walk (cons val (cdr x)) e se dest ldest h ln #f)))
 
@@ -704,7 +704,7 @@
                                            static-extensions 
                                            register-static-extension)))
 			     (unless (not type)
-			       (##sys#hash-table-update!
+			       (hash-table-update!
 				file-requirements type
 				(cut lset-adjoin/eq? <> id)
 				(cut list id)))
@@ -1272,7 +1272,7 @@
 			      "~ainline definition of `~s' in non-toplevel context"
 			      (if ln (sprintf "(~a) - " ln) "")
 			      name))
-			     (##sys#hash-table-set! inline-table name val)
+			     (hash-table-set! inline-table name val)
 			     '(##core#undefined)))
 
 			((##core#define-constant)
@@ -1297,11 +1297,11 @@
 			   (set! defconstant-bindings
 			     (cons (list name `(##core#quote ,val)) defconstant-bindings))
 			   (cond ((collapsable-literal? val)
-				  (##sys#hash-table-set! constant-table name `(##core#quote ,val))
+				  (hash-table-set! constant-table name `(##core#quote ,val))
 				  '(##core#undefined))
 				 ((basic-literal? val)
 				  (let ((var (gensym "constant")))
-				    (##sys#hash-table-set! constant-table name var)
+				    (hash-table-set! constant-table name var)
 				    (hide-variable var)
 				    (mark-variable var '##compiler#constant)
 				    (mark-variable var '##compiler#always-bound)
@@ -1425,9 +1425,9 @@
 						 (cons name ##sys#syntax-context)))
 				      (mapwalk x e se h ln tl?)))
 				(head2 (car x2))
-				(old (##sys#hash-table-ref line-number-database-2 head2)) )
+				(old (hash-table-ref line-number-database-2 head2)))
 			   (when ln
-			     (##sys#hash-table-set!
+			     (hash-table-set!
 			      line-number-database-2
 			      head2
 			      (cons name (alist-cons x2 ln (if old (cdr old) '()))) ) )
@@ -1496,7 +1496,7 @@
 	  (when (pair? us)
 	    (set! provided (append provided us))
 	    (set! used-units (append used-units us))
-	    (##sys#hash-table-update!
+	    (hash-table-update!
 	     file-requirements 'static
 	     (cut lset-union/eq? us <>)
 	     (lambda () us)))))
@@ -1853,9 +1853,9 @@
     (cond ((not (pair? x)))
 	  ((symbol? (car x))
 	   (let* ((name (car x))
-		  (old (or (##sys#hash-table-ref ##sys#line-number-database name) '())) )
+		  (old (or (hash-table-ref ##sys#line-number-database name) '())))
 	     (unless (assq x old)
-	       (##sys#hash-table-set! ##sys#line-number-database name (alist-cons x ln old)) )
+	       (hash-table-set! ##sys#line-number-database name (alist-cons x ln old)))
 	     (mapupdate (cdr x)) ) )
 	  (else (mapupdate x)) ) )
   (walk exp) )
@@ -2160,7 +2160,7 @@
     ;; Complete gathered database information:
     (debugging 'p "analysis gathering phase...")
     (set! current-analysis-database-size 0)
-    (##sys#hash-table-for-each
+    (hash-table-for-each
      (lambda (sym plist)
        (let ([unknown #f]
 	     [value #f]
@@ -2822,7 +2822,7 @@
 		    (debugging 'o "unused rest argument" rest id))
 		  (when (and direct rest)
 		    (bomb "bad direct lambda" id allocated rest) )
-		  (##sys#hash-table-set!
+		  (hash-table-set!
 		   lambda-table
 		   id
 		   (make-lambda-literal

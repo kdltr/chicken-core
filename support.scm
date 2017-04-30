@@ -82,8 +82,9 @@
 	chicken.files
 	chicken.foreign
 	chicken.format
-	chicken.keyword
+	chicken.internal
 	chicken.io
+	chicken.keyword
 	chicken.pathname
 	chicken.platform
 	chicken.port
@@ -412,32 +413,32 @@
 ;;; Database operations:
 
 (define (db-get db key prop)
-  (let ((plist (##sys#hash-table-ref db key)))
+  (let ((plist (hash-table-ref db key)))
     (and plist
 	 (let ([a (assq prop plist)])
 	   (and a (##sys#slot a 1)) ) ) ) )
 
 (define (db-get-all db key . props)
-  (let ((plist (##sys#hash-table-ref db key)))
+  (let ((plist (hash-table-ref db key)))
     (if plist
 	(filter-map (lambda (prop) (assq prop plist)) props)
 	'() ) ) )
 
 (define (db-put! db key prop val)
-  (let ([plist (##sys#hash-table-ref db key)])
+  (let ((plist (hash-table-ref db key)))
     (if plist
 	(let ([a (assq prop plist)])
 	  (cond [a (##sys#setslot a 1 val)]
 		[val (##sys#setslot plist 1 (alist-cons prop val (##sys#slot plist 1)))] ) )
-	(when val (##sys#hash-table-set! db key (list (cons prop val)))) ) ) )
+	(when val (hash-table-set! db key (list (cons prop val)))))))
 
 (define (collect! db key prop val)
-  (let ((plist (##sys#hash-table-ref db key)))
+  (let ((plist (hash-table-ref db key)))
     (if plist
 	(let ([a (assq prop plist)])
 	  (cond [a (##sys#setslot a 1 (cons val (##sys#slot a 1)))]
 		[else (##sys#setslot plist 1 (alist-cons prop (list val) (##sys#slot plist 1)))] ) )
-	(##sys#hash-table-set! db key (list (list prop val)))) ) )
+	(hash-table-set! db key (list (list prop val))))))
 
 (define (db-get-list db key prop)		; returns '() if not set
   (let ((x (db-get db key prop)))
@@ -451,13 +452,13 @@
 
 (define (get-line-2 exp)
   (let* ((name (car exp))
-	 (lst (##sys#hash-table-ref ##sys#line-number-database name)) )
+	 (lst (hash-table-ref ##sys#line-number-database name)))
     (cond ((and lst (assq exp (cdr lst)))
 	   => (lambda (a) (values (car lst) (cdr a))) )
 	  (else (values name #f)) ) ) )
 
 (define (display-line-number-database)
-  (##sys#hash-table-for-each
+  (hash-table-for-each
    (lambda (key val)
      (when val (printf "~S ~S~%" key (map cdr val))) )
    ##sys#line-number-database) )
@@ -753,7 +754,7 @@
 				 block-compilation inline-limit)
   (let ((lst '())
 	(out '()))
-    (##sys#hash-table-for-each
+    (hash-table-for-each
      (lambda (sym plist)
        (when (variable-visible? sym block-compilation)
 	 (and-let* ((val (assq 'local-value plist))
@@ -876,7 +877,7 @@
 ;;; Some safety checks and database dumping:
 
 (define (dump-undefined-globals db)	; Used only in batch-driver.scm
-  (##sys#hash-table-for-each
+  (hash-table-for-each
    (lambda (sym plist)
      (when (and (not (keyword? sym))
 		(assq 'global plist)
@@ -886,7 +887,7 @@
    db) )
 
 (define (dump-defined-globals db)	; Used only in batch-driver.scm
-  (##sys#hash-table-for-each
+  (hash-table-for-each
    (lambda (sym plist)
      (when (and (not (keyword? sym))
 		(assq 'global plist)
@@ -896,7 +897,7 @@
    db) )
 
 (define (dump-global-refs db)		; Used only in batch-driver.scm
-  (##sys#hash-table-for-each
+  (hash-table-for-each
    (lambda (sym plist)
      (when (and (not (keyword? sym)) (assq 'global plist))
        (let ((a (assq 'references plist)))
@@ -947,15 +948,15 @@
 ;; The latter two must either both be supplied, or neither.
 ;; TODO: Maybe create a separate record type for foreign types?
 (define (register-foreign-type! alias type #!optional arg ret)
-  (##sys#hash-table-set! foreign-type-table alias
-			 (vector type (and ret arg) (and arg ret))))
+  (hash-table-set! foreign-type-table alias
+		   (vector type (and ret arg) (and arg ret))))
 
 ;; Returns either #f (if t does not exist) or a vector with the type,
 ;; the *name* of the argument conversion procedure and the *name* of
 ;; the return value conversion procedure.  If no conversion procedures
 ;; have been supplied, the corresponding slots will be #f.
 (define (lookup-foreign-type t)
-  (##sys#hash-table-ref foreign-type-table t))
+  (hash-table-ref foreign-type-table t))
 
 ;;; Create foreign type checking expression:
 
@@ -1389,21 +1390,21 @@
   (set! real-name-table (make-vector real-name-table-size '())))
 
 (define (set-real-name! name rname)	; Used only in compiler.scm
-  (##sys#hash-table-set! real-name-table name rname) )
+  (hash-table-set! real-name-table name rname))
 
 ;; TODO: Find out why there are so many lookup functions for this and
 ;; reduce them to the minimum.
 (define (get-real-name name)
-  (##sys#hash-table-ref real-name-table name))
+  (hash-table-ref real-name-table name))
 
 ;; Arbitrary limit to prevent runoff into exponential behavior
 (define real-name-max-depth 20)
 
 (define (real-name var . db)
   (define (resolve n)
-    (let ((n2 (##sys#hash-table-ref real-name-table n)))
+    (let ((n2 (hash-table-ref real-name-table n)))
       (if n2
-	  (or (##sys#hash-table-ref real-name-table n2)
+	  (or (hash-table-ref real-name-table n2)
 	      n2) 
 	  n) ) )
   (let ((rn (resolve var)))
@@ -1427,11 +1428,11 @@
 	  (else (##sys#symbol->qualified-string rn)) ) ) )
 
 (define (real-name2 var db)		; Used only in c-backend.scm
-  (and-let* ([rn (##sys#hash-table-ref real-name-table var)])
+  (and-let* ((rn (hash-table-ref real-name-table var)))
     (real-name rn db) ) )
 
 (define (display-real-name-table)
-  (##sys#hash-table-for-each
+  (hash-table-for-each
    (lambda (key val)
      (printf "~S\t~S~%" key val) )
    real-name-table) )
@@ -1537,12 +1538,12 @@
 
 (define (read-info-hook class data val)	; Used here and in compiler.scm
   (when (and (eq? 'list-info class) (symbol? (car data)))
-    (##sys#hash-table-set!
+    (hash-table-set!
      ##sys#line-number-database
      (car data)
      (alist-cons 
       data (conc ##sys#current-source-filename ":" val)
-      (or (##sys#hash-table-ref ##sys#line-number-database (car data))
+      (or (hash-table-ref ##sys#line-number-database (car data))
 	  '() ) ) ) )
   data)
 

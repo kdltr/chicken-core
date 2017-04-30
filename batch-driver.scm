@@ -28,7 +28,7 @@
 (declare
   (unit batch-driver)
   (uses extras data-structures pathname
-	support compiler-syntax compiler optimizer
+	support compiler-syntax compiler optimizer internal
 	;; TODO: Backend should be configurable
 	scrutinizer lfa2 c-platform c-backend user-pass))
 
@@ -39,6 +39,7 @@
 	chicken.data-structures
 	chicken.format
 	chicken.gc
+	chicken.internal
 	chicken.pathname
 	chicken.platform
 	chicken.pretty-print
@@ -115,7 +116,7 @@
 	  (append default-standard-bindings
 		  default-extended-bindings
 		  internal-bindings) ) )
-      (##sys#hash-table-for-each
+      (hash-table-for-each
        (lambda (sym plist)
 	 (let ([val #f]
 	       (lval #f)
@@ -598,7 +599,7 @@
 		 (map (lambda (il) (->string (car il)))
 		      import-libraries) ", ")))
 
-	     (and-let* ((reqs (##sys#hash-table-ref file-requirements 'dynamic))
+	     (and-let* ((reqs (hash-table-ref file-requirements 'dynamic))
 			(missing (remove (cut ##sys#find-extension <> #f) reqs)))
 	       (when (null? (lset-intersection/eq? '(eval repl) used-units))
 		 (notice ; XXX only issued when "-verbose" is used

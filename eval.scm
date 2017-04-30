@@ -42,8 +42,6 @@
 #ifndef C_BINARY_VERSION
 # define C_BINARY_VERSION      0
 #endif
-
-#define C_rnd_fix()		(C_fix(rand()))
 <#
 
 (module chicken.eval
@@ -137,54 +135,6 @@
 (define (##sys#provided? id)
   (##core#inline "C_i_providedp" id))
 
-
-;;; Lo-level hashtable support:
-
-(define ##sys#hash-symbol
-  (let ([cache-s #f]
-	[cache-h #f]
-        ;; NOTE: All low-level hash tables share the same randomization factor
-        [rand (##core#inline "C_rnd_fix")] )
-    (lambda (s n)
-      (if (eq? s cache-s)
-	  (##core#inline "C_fixnum_modulo" cache-h n)
-          (begin
-            (set! cache-s s)
-            (set! cache-h (##core#inline "C_u_i_string_hash" (##sys#slot s 1) rand))
-            (##core#inline "C_fixnum_modulo" cache-h n))))))
-
-(define (##sys#hash-table-ref ht key)
-  (let loop ((bucket (##sys#slot ht (##sys#hash-symbol key (##core#inline "C_block_size" ht)))))
-      (and (not (eq? '() bucket))
-           (if (eq? key (##sys#slot (##sys#slot bucket 0) 0))
-               (##sys#slot (##sys#slot bucket 0) 1)
-               (loop (##sys#slot bucket 1))))))
-
-(define (##sys#hash-table-set! ht key val)
-  (let* ((k (##sys#hash-symbol key (##core#inline "C_block_size" ht)))
-         (ib (##sys#slot ht k)))
-      (let loop ((bucket ib))
-          (if (eq? '() bucket)
-              (##sys#setslot ht k (cons (cons key val) ib))
-              (if (eq? key (##sys#slot (##sys#slot bucket 0) 0))
-                  (##sys#setslot (##sys#slot bucket 0) 1 val)
-                  (loop (##sys#slot bucket 1)))))))
-
-(define (##sys#hash-table-update! ht key updtfunc valufunc)
-  (##sys#hash-table-set! ht key (updtfunc (or (##sys#hash-table-ref ht key) (valufunc)))) )
-
-(define (##sys#hash-table-for-each p ht)
-  (let ((len (##core#inline "C_block_size" ht)))
-    (do ((i 0 (fx+ i 1)))
-	((fx>= i len))
-      (##sys#for-each (lambda (bucket) (p (##sys#slot bucket 0) (##sys#slot bucket 1)))
-		      (##sys#slot ht i) ) ) ) )
-
-(define (##sys#hash-table-size ht)
-  (let loop ((len (##sys#size ht)) (bkt 0) (size 0))
-    (if (fx= bkt len)
-        size
-        (loop len (fx+ bkt 1) (fx+ size (##sys#length (##sys#slot ht bkt)))))))
 
 ;;; Compile lambda to closure:
 
