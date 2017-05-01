@@ -9204,6 +9204,8 @@ C_regparm C_word C_fcall C_i_o_fixnum_times(C_word n1, C_word n2)
   C_uword c = 1UL<<31UL;
 #endif
 
+  if((n1 & C_FIXNUM_BIT) == 0 || (n2 & C_FIXNUM_BIT) == 0) return C_SCHEME_FALSE;
+
   if((n1 & C_INT_SIGN_BIT) == (n2 & C_INT_SIGN_BIT)) --c;
 
   x1 = C_unfix(n1);
