@@ -137,14 +137,6 @@ Contains the name of the directory where extensions are installed
 (as opposed to the possible locations where they can be loaded or
 linked at runtime.)
 
-==== extension-information
-
-<procedure>(extension-information ID)</procedure>
-
-If an extension with the name {{ID}} is installed and if it has a setup-information
-list registered in the extension repository, then the info-list is returned. Otherwise
-{{extension-information}} returns {{#f}}.
-
 ==== require
 
 <procedure>(require ID ...)</procedure>

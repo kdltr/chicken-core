@@ -5754,7 +5754,7 @@ EOF
 ;;; Platform configuration inquiry:
 
 (module chicken.platform
-    (build-platform chicken-version chicken-home extension-information
+    (build-platform chicken-version chicken-home
      feature? features machine-byte-order machine-type
      repository-path installation-repository
      register-feature! unregister-feature!
@@ -5844,20 +5844,6 @@ EOF
        (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
        install-egg-home)))
 
-(define extension-information
-  (let ((with-input-from-file with-input-from-file)
-	(string-append string-append)
-	(read read))
-    (lambda (id)
-      (and-let* ((rp (repository-path)))
-	(let ((p (##sys#canonicalize-extension-path
-		  id 'extension-information)))
-	  (let loop ((rp (##sys#split-path rp)))
-	    (cond ((null? rp) #f)
-		  ((file-exists? (string-append (car rp) "/" p "."
-						setup-file-extension))
-		   => (cut with-input-from-file <> read))
-		  (else (loop (cdr rp))))))))))
 
 ;;; Feature identifiers:
 

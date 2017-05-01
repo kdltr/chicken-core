@@ -666,7 +666,6 @@ chicken-install.c: chicken-install.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
 		chicken.irregex.import.scm \
-		chicken.platform.import.scm \
 		chicken.pathname.import.scm \
 		chicken.port.import.scm \
 		chicken.posix.import.scm \

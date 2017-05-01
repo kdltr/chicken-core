@@ -66,7 +66,6 @@
    exit
    exit-handler
    (expand . chicken.expand#expand)
-   (extension-information . chicken.platform#extension-information)
    (feature? . chicken.platform#feature?)
    (features . chicken.platform#features)
    file-exists?

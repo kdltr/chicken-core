@@ -40,7 +40,6 @@
 (import (chicken io))
 (import (chicken time))
 (import (chicken pathname))
-(import (chicken platform))
 (import (chicken process))
 (import (chicken pretty-print))
 
@@ -732,10 +731,9 @@
                                      (cadr a) (car a) (cdr e))))
                          #f))
                       (else
-                       (conc "  " (car e)
-                             " (" (let ((v (assq 'version (extension-information (car e)))))
-                                    (if v (cadr v) "unknown"))
-                             " -> " (cdr e) ")" #\newline))))
+                       (conc "  " (car e) " ("
+                             (or (ext-version (car e)) "unknown") " -> " (cdr e)
+                             ")" #\newline))))
               upgrade))
              ""))
   (let loop ()
