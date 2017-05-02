@@ -792,7 +792,7 @@
     (apply ##sys#syntax-error-hook loc args))
   (define (iface name)
     (or (getp name '##core#interface)
-	(err "unknown interface" x exps)))
+	(err "unknown interface" name exps)))
   (cond ((eq? '* exps) exps)
 	((symbol? exps) (iface exps))
 	((not (list? exps))
