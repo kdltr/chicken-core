@@ -45,95 +45,21 @@
 <#
 
 (module chicken.eval
-  (dynamic-load-libraries
-   eval eval-handler
-   load load-library load-noisily load-relative load-verbose
-   interaction-environment null-environment scheme-report-environment
-   load-extension provide provided?
-   require set-dynamic-load-mode!)
+  (eval eval-handler
+   interaction-environment null-environment scheme-report-environment)
 
 ;; Exclude bindings defined within this module.
-(import (except scheme eval load interaction-environment null-environment scheme-report-environment)
-	(except chicken provide provided? require))
-
-(import chicken.expand
-	chicken.foreign
+(import (except scheme eval interaction-environment null-environment scheme-report-environment)
+	(except chicken eval-handler)
+	chicken.expand
 	chicken.internal
-	chicken.keyword
-	chicken.platform)
+	chicken.keyword)
 
 (include "common-declarations.scm")
-(include "mini-srfi-1.scm")
-(include "egg-information.scm")
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
 (provide* eval) ; TODO remove after a snapshot release
-
-(define-foreign-variable binary-version int "C_BINARY_VERSION")
-(define-foreign-variable uses-soname? bool "C_USES_SONAME")
-(define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
-
-(define-constant core-unit-requirements
-  '((scheme ; XXX not totally correct, also needs eval
-     . (##core#require library))
-    (chicken.foreign
-     . (##core#require-for-syntax chicken-ffi-syntax))
-    (chicken
-     . (##core#begin
-	(##core#require-for-syntax chicken-syntax)
-	(##core#require library)))))
-
-(define-constant core-units
-  '(chicken-syntax chicken-ffi-syntax continuation data-structures eval
-    expand extras file files internal irregex library lolevel pathname
-    port posix srfi-4 tcp repl read-syntax))
-
-(define-constant cygwin-default-dynamic-load-libraries '("cygchicken-0"))
-(define-constant macosx-load-library-extension ".dylib")
-(define-constant windows-load-library-extension ".dll")
-(define-constant hppa-load-library-extension ".sl")
-(define-constant default-load-library-extension ".so")
-(define-constant environment-table-size 301)
-(define-constant source-file-extension ".scm")
-(define-constant windows-object-file-extension ".obj")
-(define-constant unix-object-file-extension ".o")
-(define-constant loadable-file-extension ".so")
-
-(define object-file-extension
-  (cond ((eq? (software-type) 'windows) windows-object-file-extension)
-	(else unix-object-file-extension)))
-
-(define load-library-extension
-  (cond ((eq? (software-type) 'windows) windows-load-library-extension)
-	((eq? (software-version) 'macosx) macosx-load-library-extension)
-	((and (eq? (software-version) 'hpux) 
-	      (eq? (machine-type) 'hppa)) hppa-load-library-extension)
-	(else default-load-library-extension) ) )
-
-(define ##sys#load-dynamic-extension default-load-library-extension)
-
-
-; these are actually in unit extras, but that is used by default
-
-(define-constant builtin-features
-  '(srfi-30 srfi-46 srfi-61 srfi-62                   ; runtime
-    srfi-0 srfi-2 srfi-8 srfi-9 srfi-11 srfi-15       ; syntax
-    srfi-16 srfi-17 srfi-26 srfi-31 srfi-55 srfi-88)) ; syntax cont
-
-(define default-dynamic-load-libraries
-  (case (build-platform)
-    ((cygwin) cygwin-default-dynamic-load-libraries)
-    (else `(,(string-append "lib" install-lib-name)))))
-
-
-;;; Library registration (used for code loading):
-
-(define (##sys#provide id)
-  (##core#inline_allocate ("C_a_i_provide" 8) id))
-
-(define (##sys#provided? id)
-  (##core#inline "C_i_providedp" id))
 
 
 ;;; Compile lambda to closure:
@@ -658,7 +584,7 @@
 
 			 [(##core#require-for-syntax)
 			  (let ((id (cadr x)))
-			    (load-extension id)
+			    (chicken.load#load-extension id)
 			    (compile '(##core#undefined)
 			     e #f tf cntr se #f))]
 
@@ -873,6 +799,150 @@
 	      [else (loop (##sys#slot llist 1)
 			  (cons (##sys#slot llist 0) vars)
 			  (fx+ argc 1) ) ] ) ) ) ) )
+
+
+;;; Environments:
+
+(define interaction-environment
+  (let ((e (##sys#make-structure 'environment 'interaction-environment #f #f)))
+    (lambda () e)))
+
+(define-record-printer (environment e p)
+  (##sys#print "#<environment " #f p)
+  (##sys#print (##sys#slot e 1) #f p)
+  (##sys#write-char-0 #\> p))
+
+(define scheme-report-environment)
+(define null-environment)
+
+(let* ((r4s (module-environment 'r4rs 'scheme-report-environment/4))
+       (r5s (module-environment 'scheme 'scheme-report-environment/5))
+       (r4n (module-environment 'r4rs-null 'null-environment/4))
+       (r5n (module-environment 'r5rs-null 'null-environment/5)))
+  (define (strip se)
+    (foldr
+     (lambda (s r)
+       (if (memq (car s)
+		 '(import
+		   import-syntax
+		   import-for-syntax
+		   import-syntax-for-syntax
+		   require-extension
+		   require-extension-for-syntax
+		   require-library
+		   begin-for-syntax
+		   export
+		   module
+		   cond-expand
+		   syntax
+		   reexport))
+	   r
+	   (cons s r)))
+     '()
+     se))
+  ;; Strip non-std syntax from SEs
+  (##sys#setslot r4s 2 (strip (##sys#slot r4s 2)))
+  (##sys#setslot r4n 2 (strip (##sys#slot r4n 2)))
+  (##sys#setslot r5s 2 (strip (##sys#slot r5s 2)))
+  (##sys#setslot r5n 2 (strip (##sys#slot r5n 2)))
+  (set! scheme-report-environment
+    (lambda (n)
+      (##sys#check-fixnum n 'scheme-report-environment)
+      (case n
+	((4) r4s)
+	((5) r5s)
+	(else
+	 (##sys#error
+	  'scheme-report-environment
+	  "unsupported scheme report environment version" n)))))
+  (set! null-environment
+    (lambda (n)
+      (##sys#check-fixnum n 'null-environment)
+      (case n
+	((4) r4n)
+	((5) r5n)
+	(else
+	 (##sys#error
+	  'null-environment
+	  "unsupported null environment version" n))))))
+
+) ; eval module
+
+
+(module chicken.load
+  (dynamic-load-libraries
+   load load-extension load-library load-noisily load-relative load-verbose
+   provide provided? require set-dynamic-load-mode!)
+
+(import (except scheme load) chicken chicken.foreign chicken.internal)
+
+(include "mini-srfi-1.scm")
+(include "egg-information.scm")
+
+;;; Installation locations
+
+(define-foreign-variable binary-version int "C_BINARY_VERSION")
+(define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
+(define-foreign-variable uses-soname? bool "C_USES_SONAME")
+
+(define-constant core-unit-requirements
+  '((scheme ; XXX not totally correct, also needs eval
+     . (##core#require library))
+    (chicken.foreign
+     . (##core#require-for-syntax chicken-ffi-syntax))
+    (chicken
+     . (##core#begin
+	(##core#require-for-syntax chicken-syntax)
+	(##core#require library)))))
+
+(define-constant core-units
+  '(chicken-syntax chicken-ffi-syntax continuation data-structures eval
+    expand extras file files internal irregex library lolevel pathname
+    port posix srfi-4 tcp repl read-syntax))
+
+(define-constant cygwin-default-dynamic-load-libraries '("cygchicken-0"))
+(define-constant macosx-load-library-extension ".dylib")
+(define-constant windows-load-library-extension ".dll")
+(define-constant hppa-load-library-extension ".sl")
+(define-constant default-load-library-extension ".so")
+(define-constant source-file-extension ".scm")
+(define-constant windows-object-file-extension ".obj")
+(define-constant unix-object-file-extension ".o")
+(define-constant loadable-file-extension ".so")
+
+(define object-file-extension
+  (cond ((eq? (software-type) 'windows) windows-object-file-extension)
+	(else unix-object-file-extension)))
+
+(define load-library-extension
+  (cond ((eq? (software-type) 'windows) windows-load-library-extension)
+	((eq? (software-version) 'macosx) macosx-load-library-extension)
+	((and (eq? (software-version) 'hpux)
+	      (eq? (machine-type) 'hppa)) hppa-load-library-extension)
+	(else default-load-library-extension)))
+
+(define ##sys#load-dynamic-extension default-load-library-extension)
+
+; these are actually in unit extras, but that is used by default
+
+(define-constant builtin-features
+  '(srfi-30 srfi-46 srfi-61 srfi-62                   ; runtime
+    srfi-0 srfi-2 srfi-8 srfi-9 srfi-11 srfi-15       ; syntax
+    srfi-16 srfi-17 srfi-26 srfi-31 srfi-55 srfi-88)) ; syntax cont
+
+(define default-dynamic-load-libraries
+  (case (build-platform)
+    ((cygwin) cygwin-default-dynamic-load-libraries)
+    (else `(,(string-append "lib" install-lib-name)))))
+
+
+;;; Library registration (used for code loading):
+
+(define (##sys#provide id)
+  (##core#inline_allocate ("C_a_i_provide" 8) id))
+
+(define (##sys#provided? id)
+  (##core#inline "C_i_providedp" id))
 
 
 ;;; Pathname helpers:
@@ -1254,73 +1324,6 @@
 	       #f
 	       'dynamic)))))
 
-
-;;; Environments:
-
-(define interaction-environment
-  (let ((e (##sys#make-structure 'environment 'interaction-environment #f #f)))
-    (lambda () e)))
-
-(define-record-printer (environment e p)
-  (##sys#print "#<environment " #f p)
-  (##sys#print (##sys#slot e 1) #f p)
-  (##sys#write-char-0 #\> p))
-
-(define scheme-report-environment)
-(define null-environment)
-
-(let* ((r4s (module-environment 'r4rs 'scheme-report-environment/4))
-       (r5s (module-environment 'scheme 'scheme-report-environment/5))
-       (r4n (module-environment 'r4rs-null 'null-environment/4))
-       (r5n (module-environment 'r5rs-null 'null-environment/5)))
-  (define (strip se)
-    (foldr
-     (lambda (s r)
-       (if (memq (car s)
-		 '(import
-		   import-syntax
-		   import-for-syntax
-		   import-syntax-for-syntax
-		   require-extension
-		   require-extension-for-syntax
-		   require-library
-		   begin-for-syntax
-		   export
-		   module
-		   cond-expand
-		   syntax
-		   reexport))
-	   r
-	   (cons s r)))
-     '()
-     se))
-  ;; Strip non-std syntax from SEs
-  (##sys#setslot r4s 2 (strip (##sys#slot r4s 2)))
-  (##sys#setslot r4n 2 (strip (##sys#slot r4n 2)))
-  (##sys#setslot r5s 2 (strip (##sys#slot r5s 2)))
-  (##sys#setslot r5n 2 (strip (##sys#slot r5n 2)))
-  (set! scheme-report-environment
-    (lambda (n)
-      (##sys#check-fixnum n 'scheme-report-environment)
-      (case n
-	((4) r4s)
-	((5) r5s)
-	(else 
-	 (##sys#error 
-	  'scheme-report-environment
-	  "unsupported scheme report environment version" n)) ) ) )
-  (set! null-environment
-    (lambda (n)
-      (##sys#check-fixnum n 'null-environment)
-      (case n
-	((4) r4n)
-	((5) r5n)
-	(else
-	 (##sys#error
-	  'null-environment 
-	  "unsupported null environment version" n) )))))
-
-
 ;;; Find included file:
 
 (define ##sys#include-pathnames (list (chicken-home)))
@@ -1362,11 +1365,12 @@
 					fname) ) )
 		  (else (loop (##sys#slot paths 1))) ) ) ) ) ) )
 
-) ; eval module
+) ; chicken.load
 
-(import chicken chicken.eval)
 
 ;;; Simple invocation API:
+
+(import chicken chicken.eval chicken.load)
 
 (declare
   (hide last-error run-safe store-result store-string
@@ -1374,7 +1378,7 @@
 	CHICKEN_eval_to_string CHICKEN_eval_string_to_string
 	CHICKEN_apply CHICKEN_apply_to_string CHICKEN_eval_apply
 	CHICKEN_read CHICKEN_load CHICKEN_get_error_message))
-	
+
 (define last-error #f)
 
 (define (run-safe thunk)

@@ -266,7 +266,7 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.csi chicken.foreign
 DYNAMIC_IMPORT_LIBRARIES = srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise errno file.posix fixnum flonum \
-	format gc io keyword locative memory platform posix \
+	format gc io keyword load locative memory platform posix \
 	pretty-print process process.signal process-context random \
 	time time.posix
 DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass

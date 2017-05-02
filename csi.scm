@@ -52,6 +52,7 @@ EOF
 	chicken.internal
 	chicken.io
 	chicken.keyword
+	chicken.load
 	chicken.platform
 	chicken.port
 	chicken.pretty-print

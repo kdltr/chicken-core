@@ -40,6 +40,7 @@
 	chicken.format
 	chicken.gc
 	chicken.internal
+	chicken.load
 	chicken.pathname
 	chicken.platform
 	chicken.pretty-print

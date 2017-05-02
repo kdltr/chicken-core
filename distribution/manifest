@@ -302,6 +302,8 @@ chicken.irregex.import.scm
 chicken.irregex.import.c
 chicken.keyword.import.scm
 chicken.keyword.import.c
+chicken.load.import.scm
+chicken.load.import.c
 chicken.locative.import.scm
 chicken.locative.import.c
 chicken.lolevel.import.scm

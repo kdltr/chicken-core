@@ -328,12 +328,13 @@
 	chicken.eval
 	chicken.expand
 	chicken.foreign
-        chicken.pathname
 	chicken.format
 	chicken.internal
 	chicken.io
 	chicken.keyword
-	chicken.pretty-print)
+	chicken.load
+	chicken.pretty-print
+	chicken.pathname)
 
 (define (d arg1 . more)
   (when (##sys#debug-mode?)

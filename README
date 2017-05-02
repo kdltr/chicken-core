@@ -304,6 +304,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.io.import.so
 	|   |       |-- chicken.irregex.import.so
 	|   |       |-- chicken.keyword.import.so
+	|   |       |-- chicken.load.import.so
 	|   |       |-- chicken.locative.import.so
 	|   |       |-- chicken.lolevel.import.so
 	|   |       |-- chicken.memory.import.so

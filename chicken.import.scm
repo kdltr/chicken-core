@@ -52,7 +52,7 @@
    current-read-table
    delete-file
    directory-exists?
-   (dynamic-load-libraries . chicken.eval#dynamic-load-libraries)
+   (dynamic-load-libraries . chicken.load#dynamic-load-libraries)
    enable-warnings
    equal=?
    (er-macro-transformer . chicken.expand#er-macro-transformer)
@@ -118,10 +118,11 @@
    (installation-repository . chicken.platform#installation-repository)
    (ir-macro-transformer . chicken.expand#ir-macro-transformer)
    keyword-style
-   (load-library . chicken.eval#load-library)
-   (load-noisily . chicken.eval#load-noisily)
-   (load-relative . chicken.eval#load-relative)
-   (load-verbose . chicken.eval#load-verbose)
+   (load-extension . chicken.load#load-extension)
+   (load-library . chicken.load#load-library)
+   (load-noisily . chicken.load#load-noisily)
+   (load-relative . chicken.load#load-relative)
+   (load-verbose . chicken.load#load-verbose)
    (machine-byte-order . chicken.platform#machine-byte-order)
    (machine-type . chicken.platform#machine-type)
    make-blob
@@ -143,8 +144,8 @@
    port-name
    port-position
    port?
-   (provide . chicken.eval#provide)
-   (provided? . chicken.eval#provided?)
+   (provide . chicken.load#provide)
+   (provided? . chicken.load#provided?)
    print
    print-call-chain
    print-error-message
@@ -161,7 +162,7 @@
    remprop!
    rename-file
    (repository-path . chicken.platform#repository-path)
-   (require . chicken.eval#require)
+   (require . chicken.load#require)
    reset
    reset-handler
    return-to-host
