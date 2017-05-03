@@ -1072,7 +1072,8 @@
 			       (val (caddr x)))
 			  (when (memq var unlikely-variables)
 			    (warning
-			     (sprintf "assignment to variable `~s' possibly unintended"
+			     (sprintf "~aassignment to variable `~s' possibly unintended"
+			       (if ln (sprintf "(~a) - " ln) "")
 			       var)))
 			  (cond ((assq var foreign-variables)
 				 => (lambda (fv)
@@ -1109,15 +1110,21 @@
 					  ,var))))
 				 (cond ((##sys#macro? var)
 					(warning
-					 (sprintf "assigned global variable `~S' is syntax ~A"
-					   var
-					   (if ln (sprintf "(~a)" ln) "")))
+					 (sprintf "~aassigned global variable `~S' is syntax"
+					   (if ln (sprintf "(~a) - " ln) "")
+					   var))
 					(when undefine-shadowed-macros (##sys#undefine-macro! var)))
 				       ((and ##sys#notices-enabled
 					     (assq var (##sys#current-environment)))
-					(##sys#notice "assignment to imported value binding" var)))
+					(##sys#notice
+					 (sprintf "~aassignment to imported value binding `~S'"
+					   (if ln (sprintf "(~a) - " ln) "")
+					   var))))
 				 (when (keyword? var)
-				   (warning (sprintf "assignment to keyword `~S'" var)))
+				   (warning
+				    (sprintf "~aassignment to keyword `~S'"
+				      (if ln (sprintf "(~a) - " ln) "")
+				      var)))
 				 `(set! ,var ,(walk val e se var0 (memq var e) h ln #f))))))
 
 			((##core#debug-event)
@@ -1308,8 +1315,10 @@
 				    (mark-variable var '##compiler#always-bound)
 				    (walk `(define ,var (##core#quote ,val)) e se #f #f h ln tl?)))
 				 (else
-				  (quit-compiling "invalid compile-time value for named constant `~S'"
-					name)))))
+				  (quit-compiling
+				   "~ainvalid compile-time value for named constant `~S'"
+				   (if ln (sprintf "(~a) - " ln) "")
+				   name)))))
 
 			((##core#declare)
 			 (walk
@@ -1333,8 +1342,11 @@
 			     (if (valid-c-identifier? raw-c-name)
 				 (set! callback-names
 				   (cons (cons raw-c-name name) callback-names))
-				 (quit-compiling "name `~S' of external definition is not a valid C identifier"
-				       raw-c-name) )
+				 (let ((ln (get-line x)))
+				   (quit-compiling
+				    "~aname `~S' of external definition is not a valid C identifier"
+				    (if ln (sprintf "(~a) - " ln) "")
+				    raw-c-name)))
 			     (when (or (not (list? vars))
 				       (not (list? atypes))
 				       (not (= (length vars) (length atypes))) )
