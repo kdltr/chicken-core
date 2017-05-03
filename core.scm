@@ -1220,7 +1220,7 @@
 
 			((##core#define-external-variable)
 			 (let* ((sym (second x))
-				(ln (ln (get-line x)))
+				(ln (get-line x))
 				(name (symbol->string sym))
 				(type (third x))
 				(exported (fourth x))
