@@ -131,7 +131,7 @@ echo "specialized:"
 $time ./fft2 1000 7
 
 echo "======================================== callback tests ..."
-$compile callback-tests.scm
+$compile -extend c-id-valid.scm callback-tests.scm
 ./a.out
 
 if ./a.out twice; then

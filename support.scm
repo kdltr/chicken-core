@@ -252,8 +252,8 @@
     (and (pair? str)
 	 (let ([c0 (car str)])
 	   (and (or (char-alphabetic? c0) (char=? #\_ c0))
-		(any (lambda (c) (or (char-alphabetic? c) (char-numeric? c) (char=? #\_ c)))
-		     (cdr str) ) ) ) ) ) )
+		(every (lambda (c) (or (char-alphabetic? c) (char-numeric? c) (char=? #\_ c)))
+		       (cdr str)))))))
 
 ;; TODO: Move these to (chicken memory)?
 (define bytes->words (foreign-lambda int "C_bytestowords" int))

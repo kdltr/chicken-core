@@ -117,6 +117,7 @@ build-version.c
 buildid
 buildtag.h
 tests/clustering-tests.scm
+tests/c-id-valid.scm
 tests/data-structures-tests.scm
 tests/environment-tests.scm
 tests/gobble.scm

@@ -111,7 +111,7 @@ fft2 1000 7
 if errorlevel 1 exit /b 1
 
 echo ======================================== callback tests ...
-%compile% callback-tests.scm
+%compile% -extend c-id-valid.scm callback-tests.scm
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
