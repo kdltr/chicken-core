@@ -66,7 +66,7 @@
    (intersperse lst #\space) ) )
 
 ;; Hacky procedures to make certain names more suitable for use in C.
-(define (backslashify s) (string-translate (->string s) "\\" "\\\\"))
+(define (backslashify s) (string-translate* (->string s) '(("\\" . "\\\\"))))
 (define (uncommentify s) (string-translate* (->string s) '(("*/" . "*_/"))))
 (define (c-identifier s) (string->c-identifier (->string s)))
 
