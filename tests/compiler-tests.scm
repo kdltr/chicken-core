@@ -2,7 +2,7 @@
 
 
 (import (chicken bitwise) (chicken flonum) (chicken foreign)
-	(srfi 4))
+	(chicken condition) (srfi 4))
 (import-for-syntax data-structures expand)
 
 ;; test dropping of previous toplevel assignments

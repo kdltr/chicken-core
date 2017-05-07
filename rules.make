@@ -506,7 +506,6 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.time.posix,$(POSIXFI
 $(eval $(call declare-emitted-import-lib-dependency,chicken.process,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.process.signal,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
-$(eval $(call declare-emitted-import-lib-dependency,chicken.condition,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.fixnum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.flonum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
@@ -768,8 +767,8 @@ bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTION
 
 library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
+	-no-module-registration \
 	-emit-import-library chicken.bitwise \
-	-emit-import-library chicken.condition \
 	-emit-import-library chicken.fixnum \
 	-emit-import-library chicken.flonum \
 	-emit-import-library chicken.gc \

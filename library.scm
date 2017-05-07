@@ -4450,8 +4450,12 @@ EOF
 ;;; Condition handling:
 
 (module chicken.condition
+    ;; NOTE: We don't emit the import lib.  Due to syntax exports, it
+    ;; has to be a hardcoded primitive module.
     (abort signal current-exception-handler get-call-chain
      print-call-chain with-exception-handler
+
+     ;; [syntax] condition-case handle-exceptions
 
      ;; Condition object manipulation
      make-property-condition make-composite-condition condition?

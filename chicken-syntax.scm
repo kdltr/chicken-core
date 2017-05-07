@@ -46,7 +46,69 @@
 
 (provide* chicken-syntax) ; TODO remove after snapshot release
 
-;;; Non-standard macros:
+;;; Exceptions:
+(define ##sys#chicken.condition-macro-environment
+  (let ((me0 (##sys#macro-environment)))
+
+(##sys#extend-macro-environment
+ 'handle-exceptions
+ `((call-with-current-continuation . ,(##sys#primitive-alias 'call-with-current-continuation)))
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'handle-exceptions form '(_ variable _ . _))
+    (let ((k (r 'k))
+	  (args (r 'args)))
+      `((,(r 'call-with-current-continuation)
+	 (##core#lambda
+	  (,k)
+	  (chicken.condition#with-exception-handler
+	   (##core#lambda (,(cadr form)) (,k (##core#lambda () ,(caddr form))))
+	   (##core#lambda
+	    ()
+	    (##sys#call-with-values
+	     (##core#lambda () ,@(cdddr form))
+	     (##core#lambda
+	      ,args
+	      (,k (##core#lambda () (##sys#apply ##sys#values ,args))))))))))))))
+
+(##sys#extend-macro-environment
+ 'condition-case
+ `((else . ,(##sys#primitive-alias 'else))
+   (memv . ,(##sys#primitive-alias 'memv)))
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'condition-case form '(_ _ . _))
+    (let ((exvar (r 'exvar))
+	  (kvar (r 'kvar))
+	  (%and (r 'and))
+	  (%memv (r 'memv))
+	  (%else (r 'else)))
+      (define (parse-clause c)
+	(let* ((var (and (symbol? (car c)) (car c)))
+	       (kinds (if var (cadr c) (car c)))
+	       (body (if var
+			 `(##core#let ((,var ,exvar)) ,@(cddr c))
+			 `(##core#let () ,@(cdr c)))))
+	  (if (null? kinds)
+	      `(,%else ,body)
+	      `((,%and ,kvar ,@(map (lambda (k)
+				      `(,%memv (##core#quote ,k) ,kvar)) kinds))
+		,body))))
+      `(,(r 'handle-exceptions) ,exvar
+	(##core#let ((,kvar (,%and (##sys#structure? ,exvar
+						     (##core#quote condition))
+				   (##sys#slot ,exvar 1))))
+		    ,(let ((clauses (map parse-clause (cddr form))))
+		       `(,(r 'cond)
+			 ,@clauses
+			 ,@(if (assq %else clauses)
+			       `()   ; Don't generate two else clauses
+			       `((,%else (chicken.condition#signal ,exvar)))))))
+	,(cadr form))))))
+
+(##sys#macro-subset me0 ##sys#default-macro-environment)))
+
+;;; Other non-standard macros:
 
 (define ##sys#chicken-macro-environment
   (let ((me0 (##sys#macro-environment)))
@@ -868,66 +930,6 @@
 	     (##sys#check-syntax 'define-record-printer (cons head body) '(symbol _))
 	     `(##sys#register-record-printer ',head ,@body) ] ) ))))
 
-
-;;; Exceptions:
-
-(##sys#extend-macro-environment
- 'handle-exceptions 
- `((call-with-current-continuation . ,(##sys#primitive-alias 'call-with-current-continuation)))
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'handle-exceptions form '(_ variable _ . _))
-    (let ((k (r 'k))
-	  (args (r 'args)))
-      `((,(r 'call-with-current-continuation)
-	 (##core#lambda
-	  (,k)
-	  (chicken.condition#with-exception-handler
-	   (##core#lambda (,(cadr form)) (,k (##core#lambda () ,(caddr form))))
-	   (##core#lambda
-	    ()
-	    (##sys#call-with-values
-	     (##core#lambda () ,@(cdddr form))
-	     (##core#lambda 
-	      ,args 
-	      (,k (##core#lambda () (##sys#apply ##sys#values ,args)))) ) ) ) ) ) ) ) ) ) )
-
-(##sys#extend-macro-environment
- 'condition-case 
- `((else . ,(##sys#primitive-alias 'else))
-   (memv . ,(##sys#primitive-alias 'memv)))
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'condition-case form '(_ _ . _))
-    (let ((exvar (r 'exvar))
-	  (kvar (r 'kvar))
-	  (%and (r 'and))
-	  (%memv (r 'memv))
-	  (%else (r 'else)))
-      (define (parse-clause c)
-	(let* ((var (and (symbol? (car c)) (car c)))
-	       (kinds (if var (cadr c) (car c)))
-	       (body (if var
-			 `(##core#let ((,var ,exvar)) ,@(cddr c))
-			 `(##core#let () ,@(cdr c)))))
-	  (if (null? kinds)
-	      `(,%else ,body)
-	      `((,%and ,kvar ,@(map (lambda (k)
-				      `(,%memv (##core#quote ,k) ,kvar)) kinds))
-		,body ) ) ) )
-      `(,(r 'handle-exceptions) ,exvar
-	(##core#let ((,kvar (,%and (##sys#structure? ,exvar
-						     (##core#quote condition))
-				   (##sys#slot ,exvar 1))))
-		    ,(let ((clauses (map parse-clause (cddr form))))
-		       `(,(r 'cond)
-			 ,@clauses
-			 ,@(if (assq %else clauses)
-			       `()   ; Don't generate two else clauses
-			       `((,%else (chicken.condition#signal ,exvar)))))))
-	,(cadr form))))))
-
-
 ;;; SRFI-9:
 
 (##sys#extend-macro-environment
@@ -1350,9 +1352,11 @@
 		   t0 'define-type name))))))))))
 
 
-;; capture current macro env
+;; capture current macro env and add all the preceding ones as well
 
-(##sys#macro-subset me0 ##sys#default-macro-environment)))
+(let ((me* (##sys#macro-subset me0 ##sys#default-macro-environment)))
+  ;; TODO: omit `chicken.condition-m-e' when plain "chicken" module goes away
+  (append ##sys#chicken.condition-macro-environment me*))))
 
 ;; register features
 

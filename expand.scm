@@ -175,8 +175,11 @@
 ;;; Macro handling
 
 (define ##sys#macro-environment (make-parameter '()))
+
+;; These are all re-assigned by chicken-syntax.scm:
 (define ##sys#chicken-macro-environment '()) ; used later in chicken.import.scm
 (define ##sys#chicken-ffi-macro-environment '()) ; used later in foreign.import.scm
+(define ##sys#chicken.condition-macro-environment '()) ; used later in chicken.condition.import.scm
 
 (define (##sys#ensure-transformer t #!optional loc)
   (cond ((procedure? t) (##sys#slot (##sys#er-transformer t) 1)) ; DEPRECATED

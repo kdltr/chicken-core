@@ -532,7 +532,7 @@
   (c:define-values (a b c) (values 1 2 3)) )
 
 (module prefixed-self-reference2 ()
-  (import scheme (prefix chicken c:))
+  (import scheme (prefix chicken c:) (prefix (chicken condition) c:))
   (c:define-values (a b c) (values 1 2 3))
   (c:print "ok")
   (c:condition-case 
@@ -540,6 +540,8 @@
    (ex () (c:print "caught"))))
 
 (module prefixed-self-reference3 (a)
+  ;; TODO: Switch this around when plain "chicken" has been removed
+  ;(import (prefix scheme s.) (prefix (chicken condition) c.))
   (import (prefix scheme s.) (prefix chicken c.))
   (s.define (a x y)
 	    (c.condition-case (s.+ x y) ((exn) "not numbers")))

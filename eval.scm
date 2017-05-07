@@ -894,6 +894,10 @@
      . (##core#require library))
     (chicken.foreign
      . (##core#require-for-syntax chicken-ffi-syntax))
+    (chicken.condition
+     . (##core#begin
+	(##core#require-for-syntax chicken-syntax)
+	(##core#require library)))
     (chicken
      . (##core#begin
 	(##core#require-for-syntax chicken-syntax)

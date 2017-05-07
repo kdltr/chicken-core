@@ -421,7 +421,7 @@
     (set! ##sys#module-table (cons (cons name mod) ##sys#module-table)) 
     mod))
 
-;; same as register-builtin, but uses module's name as its library
+;; same as register-core-module, but uses module's name as its library
 (define (##sys#register-primitive-module name vexports #!optional (sexports '()))
   (##sys#register-core-module name name vexports sexports))
 
@@ -1012,7 +1012,7 @@
    (make-property-condition . chicken.condition#make-property-condition)
    (signal . chicken.condition#signal)
    (with-exception-handler . chicken.condition#with-exception-handler))
- (se-subset '(handle-exceptions) ##sys#chicken-macro-environment))
+ (se-subset '(handle-exceptions) ##sys#chicken.condition-macro-environment))
 
 (##sys#register-primitive-module
  'srfi-15 '() (se-subset '(fluid-let) ##sys#chicken-macro-environment))
