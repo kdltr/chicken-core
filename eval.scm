@@ -874,7 +874,11 @@
    load load-extension load-library load-noisily load-relative load-verbose
    provide provided? require set-dynamic-load-mode!)
 
-(import (except scheme load) chicken chicken.foreign chicken.internal)
+(import (except scheme load)
+	chicken
+	chicken.eval
+	chicken.foreign
+	chicken.internal)
 
 (include "mini-srfi-1.scm")
 (include "egg-information.scm")
