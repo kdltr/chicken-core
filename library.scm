@@ -4385,72 +4385,6 @@ EOF
 	  (string-append "#<pointer 0x" (##sys#number->string (##sys#pointer->address x) 16) ">") ) ) ) )
 
 
-;;; Access backtrace:
-
-(define-constant +trace-buffer-entry-slot-count+ 4)
-
-(define get-call-chain
-  (let ((extract
-	 (foreign-lambda* nonnull-c-string ((scheme-object x)) "C_return((C_char *)x);")))
-    (lambda (#!optional (start 0) (thread ##sys#current-thread))
-      (let* ((tbl (foreign-value "C_trace_buffer_size" int))
-	     ;; 4 slots: "raw" string, cooked1, cooked2, thread
-	     (c +trace-buffer-entry-slot-count+)
-	     (vec (##sys#make-vector (fx* c tbl) #f))
-	     (r (##core#inline "C_fetch_trace" start vec)) 
-	     (n (if (fixnum? r) r (fx* c tbl))) )
-	(let loop ((i 0))
-	  (if (fx>= i n) 
-	      '()
-	      (let ((t (##sys#slot vec (fx+ i 3)))) ; thread
-		(if (or (not t) (not thread) (eq? thread t))
-		    (cons (vector
-			   (extract (##sys#slot vec i)) ; raw
-			   (##sys#slot vec (fx+ i 1))   ; cooked1
-			   (##sys#slot vec (fx+ i 2)) ) ; cooked2
-			  (loop (fx+ i c)) )
-		    (loop (fx+ i c))) ) ) ) ) ) ) )
-
-(define (##sys#really-print-call-chain port chain header)
-  (when (pair? chain)
-    (##sys#print header #f port)
-    (for-each
-     (lambda (info) 
-       (let* ((more1 (##sys#slot info 1)) ; cooked1 (expr/form)
-	      (more2 (##sys#slot info 2)) ; cooked2 (cntr/frameinfo)
-	      (fi (##sys#structure? more2 'frameinfo)))
-	 (##sys#print "\n\t" #f port)
-	 (##sys#print (##sys#slot info 0) #f port) ; raw (mode)
-	 (##sys#print "\t  " #f port)
-	 (when (and more2 (if fi (##sys#slot more2 1)))
-	   (##sys#write-char-0 #\[ port)
-	   (##sys#print 
-	    (if fi
-		(##sys#slot more2 1)	; cntr
-		more2)
-	    #f port)
-	   (##sys#print "] " #f port) )
-	 (when more1
-	   (##sys#with-print-length-limit
-	    100
-	    (lambda ()
-	      (##sys#print more1 #t port) ) ) ) ) )
-     chain)
-    (##sys#print "\t<--\n" #f port) ) )
-
-(define (print-call-chain #!optional (port ##sys#standard-output) (start 0)
-				     (thread ##sys#current-thread)
-				     (header "\n\tCall history:\n") )
-  (##sys#check-output-port port #t 'print-call-chain)
-  (##sys#check-fixnum start 'print-call-chain)
-  (##sys#check-string header 'print-call-chain)
-  (let ((ct (##sys#get-call-chain start thread)))
-    (##sys#really-print-call-chain port ct header)
-    ct))
-
-(define ##sys#get-call-chain get-call-chain)
-
-
 ;;; Interrupt handling:
 
 (define (##sys#user-interrupt-hook)
@@ -4461,46 +4395,6 @@ EOF
 
 
 ;;; Default handlers
-
-(define ##sys#break-on-error (foreign-value "C_enable_repl" bool))
-
-(define-foreign-variable _ex_software int "EX_SOFTWARE")
-
-(define ##sys#error-handler
-  (make-parameter
-   (let ([string-append string-append])
-     (lambda (msg . args)
-       (##sys#error-handler (lambda args (##core#inline "C_halt" "error in error")))
-       (cond ((not (foreign-value "C_gui_mode" bool))
-	      (##sys#print "\nError" #f ##sys#standard-error)
-	      (when msg
-		(##sys#print ": " #f ##sys#standard-error)
-		(##sys#print msg #f ##sys#standard-error) )
-	      (##sys#with-print-length-limit
-	       400
-	       (lambda ()
-		 (cond [(fx= 1 (length args))
-			(##sys#print ": " #f ##sys#standard-error)
-			(##sys#print (##sys#slot args 0) #t ##sys#standard-error)]
-		       [else
-			(##sys#for-each
-			 (lambda (x)
-			   (##sys#print #\newline #f ##sys#standard-error)
-			   (##sys#print x #t ##sys#standard-error))
-			 args)])))
-	      (##sys#print #\newline #f ##sys#standard-error)
-	      (print-call-chain ##sys#standard-error)
-	      (when (and ##sys#break-on-error (##sys#symbol-has-toplevel-binding? 'chicken.repl#repl))
-		(chicken.repl#repl)
-		(##sys#print #\newline #f ##sys#standard-error)
-		(##core#inline "C_exit_runtime" _ex_software) )
-	      (##core#inline "C_halt" #f) )
-	     (else
-	      (let ((out (open-output-string)))
-		(when msg (##sys#print msg #f out))
-		(##sys#print #\newline #f out)
-		(##sys#for-each (lambda (x) (##sys#print x #t out) (##sys#print #\newline #f out)) args)
-		(##core#inline "C_halt" (get-output-string out)) ) ) ) ) ) ) )
 
 (define reset-handler 
   (make-parameter 
@@ -4555,15 +4449,90 @@ EOF
 
 ;;; Condition handling:
 
-(define (##sys#debugger msg . args)
-  (##core#inline "signal_debug_event" #:debugger-invocation msg args) )
+(module chicken.condition
+    (abort signal current-exception-handler get-call-chain
+     print-call-chain with-exception-handler
+
+     ;; Condition object manipulation
+     make-property-condition make-composite-condition condition?
+     condition->list condition-predicate condition-property-accessor
+     get-condition-property)
+
+(import scheme)
+(import chicken.fixnum)
+(import chicken.foreign)
+(import (only chicken get-output-string open-output-string
+	      define-constant when fixnum? let-optionals make-parameter))
+
+;;; Access backtrace:
+
+(define-constant +trace-buffer-entry-slot-count+ 4)
+
+(define get-call-chain
+  (let ((extract
+	 (foreign-lambda* nonnull-c-string ((scheme-object x)) "C_return((C_char *)x);")))
+    (lambda (#!optional (start 0) (thread ##sys#current-thread))
+      (let* ((tbl (foreign-value "C_trace_buffer_size" int))
+	     ;; 4 slots: "raw" string, cooked1, cooked2, thread
+	     (c +trace-buffer-entry-slot-count+)
+	     (vec (##sys#make-vector (fx* c tbl) #f))
+	     (r (##core#inline "C_fetch_trace" start vec))
+	     (n (if (fixnum? r) r (fx* c tbl))))
+	(let loop ((i 0))
+	  (if (fx>= i n)
+	      '()
+	      (let ((t (##sys#slot vec (fx+ i 3)))) ; thread
+		(if (or (not t) (not thread) (eq? thread t))
+		    (cons (vector
+			   (extract (##sys#slot vec i)) ; raw
+			   (##sys#slot vec (fx+ i 1))   ; cooked1
+			   (##sys#slot vec (fx+ i 2)))  ; cooked2
+			  (loop (fx+ i c)))
+		    (loop (fx+ i c))))))))))
+
+(define (##sys#really-print-call-chain port chain header)
+  (when (pair? chain)
+    (##sys#print header #f port)
+    (for-each
+     (lambda (info)
+       (let* ((more1 (##sys#slot info 1)) ; cooked1 (expr/form)
+	      (more2 (##sys#slot info 2)) ; cooked2 (cntr/frameinfo)
+	      (fi (##sys#structure? more2 'frameinfo)))
+	 (##sys#print "\n\t" #f port)
+	 (##sys#print (##sys#slot info 0) #f port) ; raw (mode)
+	 (##sys#print "\t  " #f port)
+	 (when (and more2 (if fi (##sys#slot more2 1)))
+	   (##sys#write-char-0 #\[ port)
+	   (##sys#print
+	    (if fi
+		(##sys#slot more2 1)	; cntr
+		more2)
+	    #f port)
+	   (##sys#print "] " #f port))
+	 (when more1
+	   (##sys#with-print-length-limit
+	    100
+	    (lambda ()
+	      (##sys#print more1 #t port))))))
+     chain)
+    (##sys#print "\t<--\n" #f port)))
+
+(define (print-call-chain #!optional (port ##sys#standard-output) (start 0)
+				     (thread ##sys#current-thread)
+				     (header "\n\tCall history:\n"))
+  (##sys#check-output-port port #t 'print-call-chain)
+  (##sys#check-fixnum start 'print-call-chain)
+  (##sys#check-string header 'print-call-chain)
+  (let ((ct (get-call-chain start thread)))
+    (##sys#really-print-call-chain port ct header)
+    ct))
 
 (define (##sys#signal-hook mode msg . args)
   (##core#inline "C_dbg_hook" #f)
   (##core#inline "signal_debug_event" mode msg args)
   (case mode
     [(#:user-interrupt)
-     (##sys#abort
+     (abort
       (##sys#make-structure
        'condition
        '(user-interrupt)
@@ -4587,12 +4556,12 @@ EOF
      (##sys#flush-output ##sys#standard-error)]
     [else
      (when (and (symbol? msg) (null? args))
-       (set! msg (##sys#symbol->string msg)) )
+       (set! msg (symbol->string msg)))
      (let* ([hasloc (and (or (not msg) (symbol? msg)) (pair? args))]
 	    [loc (and hasloc msg)]
 	    [msg (if hasloc (##sys#slot args 0) msg)]
 	    [args (if hasloc (##sys#slot args 1) args)] )
-       (##sys#abort
+       (abort
 	(##sys#make-structure
 	 'condition 
 	 (case mode
@@ -4613,12 +4582,12 @@ EOF
 	   [else			'(exn)] )
 	 (list '(exn . message) msg
 	       '(exn . arguments) args
-	       '(exn . call-chain) (##sys#get-call-chain)
+	       '(exn . call-chain) (get-call-chain)
 	       '(exn . location) loc) ) ) ) ] ) )
 
 (define (abort x)
   (##sys#current-exception-handler x)
-  (##sys#abort
+  (abort
    (##sys#make-structure
     'condition
     '(exn) 
@@ -4629,8 +4598,47 @@ EOF
 (define (signal x)
   (##sys#current-exception-handler x) )
 
-(define ##sys#abort abort)
-(define ##sys#signal signal)
+(define ##sys#break-on-error (foreign-value "C_enable_repl" bool))
+
+(define-foreign-variable _ex_software int "EX_SOFTWARE")
+
+(define ##sys#error-handler
+  (make-parameter
+   (let ([string-append string-append])
+     (lambda (msg . args)
+       (##sys#error-handler (lambda args (##core#inline "C_halt" "error in error")))
+       (cond ((not (foreign-value "C_gui_mode" bool))
+	      (##sys#print "\nError" #f ##sys#standard-error)
+	      (when msg
+		(##sys#print ": " #f ##sys#standard-error)
+		(##sys#print msg #f ##sys#standard-error))
+	      (##sys#with-print-length-limit
+	       400
+	       (lambda ()
+		 (cond [(fx= 1 (length args))
+			(##sys#print ": " #f ##sys#standard-error)
+			(##sys#print (##sys#slot args 0) #t ##sys#standard-error)]
+		       [else
+			(##sys#for-each
+			 (lambda (x)
+			   (##sys#print #\newline #f ##sys#standard-error)
+			   (##sys#print x #t ##sys#standard-error))
+			 args)])))
+	      (##sys#print #\newline #f ##sys#standard-error)
+	      (print-call-chain ##sys#standard-error)
+	      (when (and ##sys#break-on-error (##sys#symbol-has-toplevel-binding? 'chicken.repl#repl))
+		;; Hack to avoid hard / cyclic dependency
+		((##sys#slot 'chicken.repl#repl 0))
+		(##sys#print #\newline #f ##sys#standard-error)
+		(##core#inline "C_exit_runtime" _ex_software))
+	      (##core#inline "C_halt" #f))
+	     (else
+	      (let ((out (open-output-string)))
+		(when msg (##sys#print msg #f out))
+		(##sys#print #\newline #f out)
+		(##sys#for-each (lambda (x) (##sys#print x #t out) (##sys#print #\newline #f out)) args)
+		(##core#inline "C_halt" (get-output-string out)))))))))
+
 
 (define ##sys#last-exception #f)	; used in csi for ,exn command
 
@@ -4672,7 +4680,7 @@ EOF
 		  "uncaught exception"
 		  (cadr (member '(uncaught-exception . reason) (##sys#slot c 2))) )
 		 ((##sys#reset-handler)) ) ) ) )
-      (##sys#abort
+      (abort
        (##sys#make-structure
 	'condition 
 	'(uncaught-exception) 
@@ -4685,6 +4693,7 @@ EOF
       thunk
       (lambda () (set! ##sys#current-exception-handler oldh)) ) ) )
 
+;; TODO: Make this a proper parameter
 (define (current-exception-handler . args)
   (if (null? args)
       ##sys#current-exception-handler
@@ -4693,6 +4702,8 @@ EOF
 	(let-optionals (cdr args) ((convert? #t) (set? #t))
 	  (when set? (set! ##sys#current-exception-handler proc)))
 	proc)))
+
+;;; Condition object manipulation
 
 (define (make-property-condition kind . props)
   (##sys#make-structure
@@ -4829,6 +4840,15 @@ EOF
 	((54) (apply ##sys#signal-hook #:type-error loc "number does not fit in foreign type" args))
 	((55) (apply ##sys#signal-hook #:type-error loc "cannot compute absolute value of complex number" args))
 	(else (apply ##sys#signal-hook #:runtime-error loc "unknown internal error" args)) ) ) ) )
+
+) ; chicken.condition
+
+(import chicken.condition)
+
+;; OBSOLETE: This can be removed after bootstrapping, when the
+;; handle-exceptions macro won't be rewritten to a primitive alias.
+;; This is necessary because the compiler uses this macro itself.
+(define #%with-exception-handler with-exception-handler)
 
 
 ;;; Miscellaneous low-level routines:

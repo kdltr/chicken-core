@@ -28,6 +28,7 @@
 
 (import (scheme))
 (import (chicken))
+(import (chicken condition))
 (import (chicken foreign))
 (import (chicken data-structures))
 (import (chicken keyword))

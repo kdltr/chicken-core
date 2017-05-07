@@ -506,6 +506,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.time.posix,$(POSIXFI
 $(eval $(call declare-emitted-import-lib-dependency,chicken.process,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.process.signal,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.condition,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.fixnum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.flonum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
@@ -602,6 +603,7 @@ chicken-ffi-syntax.c: chicken-ffi-syntax.scm \
 		chicken.format.import.scm
 support.c: support.scm mini-srfi-1.scm \
 		chicken.bitwise.import.scm \
+		chicken.condition.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.expand.import.scm \
 		chicken.files.import.scm \
@@ -628,6 +630,7 @@ csc.c: csc.scm \
 		chicken.pathname.import.scm \
 		chicken.posix.import.scm
 csi.c: csi.scm \
+		chicken.condition.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
@@ -664,6 +667,7 @@ chicken-status.c: chicken-status.scm \
 		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm
 chicken-install.c: chicken-install.scm \
+		chicken.condition.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.files.import.scm \
 		chicken.foreign.import.scm \
@@ -693,6 +697,7 @@ srfi-4.c: srfi-4.scm \
 		chicken.platform.import.scm
 posixunix.c: posixunix.scm \
 		chicken.bitwise.import.scm \
+		chicken.condition.import.scm \
 		chicken.foreign.import.scm \
 		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
@@ -701,6 +706,7 @@ posixunix.c: posixunix.scm \
 		chicken.port.import.scm \
 		chicken.time.import.scm
 posixwin.c: posixwin.scm \
+		chicken.condition.import.scm \
 		chicken.bitwise.import.scm \
 		chicken.foreign.import.scm \
 		chicken.irregex.import.scm \
@@ -710,8 +716,10 @@ posixwin.c: posixwin.scm \
 		chicken.port.import.scm \
 		chicken.time.import.scm
 data-structures.c: data-structures.scm \
+		chicken.condition.import.scm \
 		chicken.foreign.import.scm
 expand.c: expand.scm \
+		chicken.condition.import.scm \
 		chicken.keyword.import.scm \
 		chicken.platform.import.scm \
 		chicken.internal.import.scm
@@ -719,6 +727,7 @@ extras.c: extras.scm \
 		chicken.data-structures.import.scm \
 		chicken.time.import.scm
 eval.c: eval.scm \
+		chicken.condition.import.scm \
 		chicken.expand.import.scm \
 		chicken.foreign.import.scm \
 		chicken.internal.import.scm \
@@ -760,6 +769,7 @@ bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTION
 library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
 	-emit-import-library chicken.bitwise \
+	-emit-import-library chicken.condition \
 	-emit-import-library chicken.fixnum \
 	-emit-import-library chicken.flonum \
 	-emit-import-library chicken.gc \

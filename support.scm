@@ -77,6 +77,7 @@
 
 (import chicken scheme
 	chicken.bitwise
+	chicken.condition
 	chicken.data-structures
 	chicken.expand
 	chicken.files

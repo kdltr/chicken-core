@@ -1003,9 +1003,15 @@
 
 (##sys#register-core-module
  'srfi-12 'library
- '(abort condition? condition-predicate condition-property-accessor
-   current-exception-handler make-composite-condition make-property-condition
-   signal with-exception-handler)
+ '((abort . chicken.condition#abort)
+   (condition? . chicken.condition#condition?)
+   (condition-predicate . chicken.condition#condition-predicate)
+   (condition-property-accessor . chicken.condition#condition-property-accessor)
+   (current-exception-handler . chicken.condition#current-exception-handler)
+   (make-composite-condition . chicken.condition#make-composite-condition)
+   (make-property-condition . chicken.condition#make-property-condition)
+   (signal . chicken.condition#signal)
+   (with-exception-handler . chicken.condition#with-exception-handler))
  (se-subset '(handle-exceptions) ##sys#chicken-macro-environment))
 
 (##sys#register-primitive-module

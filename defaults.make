@@ -265,10 +265,10 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 
 PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.csi chicken.foreign
 DYNAMIC_IMPORT_LIBRARIES = srfi-4
-DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise errno file.posix fixnum flonum \
-	format gc io keyword load locative memory platform posix \
-	pretty-print process process.signal process-context random \
-	time time.posix
+DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise condition errno file.posix	\
+	fixnum flonum format gc io keyword load locative memory		\
+	platform posix pretty-print process process.signal		\
+	process-context random time time.posix
 DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
 	eval expand file files internal irregex lolevel pathname port \

@@ -26,7 +26,7 @@
 
 (##sys#register-primitive-module
  'chicken
- '(abort
+ '((abort . chicken.condition#abort)
    add1
    argc+argv
    argv
@@ -42,13 +42,13 @@
    (chicken-home . chicken.platform#chicken-home)
    (chicken-version . chicken.platform#chicken-version)
    command-line-arguments
-   condition-predicate
-   condition-property-accessor
-   condition?
-   condition->list
+   (condition-predicate . chicken.condition#condition-predicate)
+   (condition-property-accessor . chicken.condition#condition-property-accessor)
+   (condition? . chicken.condition#condition?)
+   (condition->list . chicken.condition#condition->list)
    cplxnum?
    current-error-port
-   current-exception-handler
+   (current-exception-handler . chicken.condition#current-exception-handler)
    current-read-table
    delete-file
    directory-exists?
@@ -105,8 +105,8 @@
    (fxlen . chicken.fixnum#fxlen)
    gensym
    get
-   get-call-chain
-   get-condition-property
+   (get-call-chain . chicken.condition#get-call-chain)
+   (get-condition-property . chicken.condition#get-condition-property)
    get-environment-variable
    (get-line-number . chicken.expand#get-line-number)
    get-output-string
@@ -126,10 +126,10 @@
    (machine-byte-order . chicken.platform#machine-byte-order)
    (machine-type . chicken.platform#machine-type)
    make-blob
-   make-composite-condition
+   (make-composite-condition . chicken.condition#make-composite-condition)
    make-parameter
    make-promise
-   make-property-condition
+   (make-property-condition . chicken.condition#make-property-condition)
    module-environment
    (most-negative-fixnum . chicken.fixnum#most-negative-fixnum)
    (most-positive-fixnum . chicken.fixnum#most-positive-fixnum)
@@ -147,7 +147,7 @@
    (provide . chicken.load#provide)
    (provided? . chicken.load#provided?)
    print
-   print-call-chain
+   (print-call-chain . chicken.condition#print-call-chain)
    print-error-message
    print*
    procedure-information
@@ -169,7 +169,7 @@
    reverse-list->string
    set-port-name!
    setter
-   signal
+   (signal . chicken.condition#signal)
    signum
    singlestep
    sleep
@@ -190,5 +190,5 @@
    vector-copy!
    void
    warning
-   with-exception-handler)
+   (with-exception-handler . chicken.condition#with-exception-handler))
  ##sys#chicken-macro-environment)       ;XXX incorrect - won't work in compiled executable that does expansion

@@ -267,6 +267,8 @@ chicken.bitwise.import.scm
 chicken.bitwise.import.c
 chicken.compiler.user-pass.import.scm
 chicken.compiler.user-pass.import.c
+chicken.condition.import.scm
+chicken.condition.import.c
 chicken.continuation.import.scm
 chicken.continuation.import.c
 chicken.csi.import.scm

@@ -379,7 +379,7 @@ EOF
 	     (##sys#setslot 
 	      pt 1 
 	      (lambda ()
-		(##sys#signal arg)
+		(signal arg)
 		(ptx) ) )
 	     (##sys#thread-unblock! pt) ) )
 	  (else

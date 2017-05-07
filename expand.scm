@@ -51,6 +51,7 @@
    expansion-result-hook)
 
 (import scheme chicken
+	chicken.condition
 	chicken.internal
 	chicken.keyword
 	chicken.platform)
@@ -223,7 +224,7 @@
     (handle-exceptions ex
 	;; modify error message in condition object to include 
 	;; currently expanded macro-name
-	(##sys#abort
+	(abort
 	 (if (and (##sys#structure? ex 'condition)
 		  (memv 'exn (##sys#slot ex 1)) )
 	     (##sys#make-structure

@@ -322,6 +322,7 @@
      line-number-database-size)
 
 (import chicken scheme
+	chicken.condition
 	chicken.compiler.scrutinizer
 	chicken.compiler.support
 	chicken.data-structures

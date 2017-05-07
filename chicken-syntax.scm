@@ -873,8 +873,7 @@
 
 (##sys#extend-macro-environment
  'handle-exceptions 
- `((call-with-current-continuation . ,(##sys#primitive-alias 'call-with-current-continuation))
-   (with-exception-handler . ,(##sys#primitive-alias 'with-exception-handler)))
+ `((call-with-current-continuation . ,(##sys#primitive-alias 'call-with-current-continuation)))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'handle-exceptions form '(_ variable _ . _))
@@ -883,7 +882,7 @@
       `((,(r 'call-with-current-continuation)
 	 (##core#lambda
 	  (,k)
-	  (,(r 'with-exception-handler)
+	  (chicken.condition#with-exception-handler
 	   (##core#lambda (,(cadr form)) (,k (##core#lambda () ,(caddr form))))
 	   (##core#lambda
 	    ()
@@ -925,7 +924,7 @@
 			 ,@clauses
 			 ,@(if (assq %else clauses)
 			       `()   ; Don't generate two else clauses
-			       `((,%else (##sys#signal ,exvar)))) )) )
+			       `((,%else (chicken.condition#signal ,exvar)))))))
 	,(cadr form))))))
 
 

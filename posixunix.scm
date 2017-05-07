@@ -76,6 +76,7 @@
 
 (import scheme chicken)
 (import chicken.bitwise
+	chicken.condition
 	chicken.foreign
 	chicken.irregex
 	chicken.memory

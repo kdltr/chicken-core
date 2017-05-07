@@ -44,6 +44,7 @@
 
 (import scheme chicken)
 (import chicken.foreign)
+(import chicken.condition)
 
 (include "common-declarations.scm")
 
@@ -748,13 +749,13 @@
   (define (visit dag node edges path state)
     (case (alist-ref node (car state) pred)
       ((grey)
-       (##sys#abort
+       (abort
         (##sys#make-structure
          'condition
          '(exn runtime cycle)
          `((exn . message) "cycle detected"
            (exn . arguments) ,(list (cons node (reverse path)))
-           (exn . call-chain) ,(##sys#get-call-chain)
+           (exn . call-chain) ,(get-call-chain)
            (exn . location) topological-sort))))
       ((black)
        state)

@@ -45,6 +45,7 @@ EOF
   (editor-command toplevel-command set-describer!)
 
 (import chicken scheme
+	chicken.condition
 	chicken.data-structures
 	chicken.foreign
 	chicken.format

@@ -1374,7 +1374,7 @@
 
 ;;; Simple invocation API:
 
-(import chicken chicken.eval chicken.load)
+(import chicken chicken.eval chicken.load chicken.condition)
 
 (declare
   (hide last-error run-safe store-result store-string
