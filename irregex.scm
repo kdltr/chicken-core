@@ -31,19 +31,31 @@
   (fixnum))
 
 (module chicken.irregex
-  (irregex irregex-apply-match irregex-dfa irregex-dfa/search
-   irregex-extract irregex-flags irregex-fold irregex-fold/chunked
-   irregex-lengths irregex-match irregex-match? irregex-match-data?
-   irregex-match-end-chunk irregex-match-end-index irregex-match-names
-   irregex-match-num-submatches irregex-match-start-chunk
-   irregex-match-start-index irregex-match-subchunk
-   irregex-match-substring irregex-match-valid-index?
-   irregex-match/chunked irregex-names irregex-new-matches irregex-nfa
-   irregex-num-submatches irregex-opt irregex-quote irregex-replace
-   irregex-replace/all irregex-reset-matches! irregex-search
-   irregex-search/chunked irregex-search/matches irregex-split irregex?
-   make-irregex-chunker maybe-string->sre sre->irregex sre->string
-   string->irregex string->sre)
+    (;; Constructors, accessors and predicates
+     irregex irregex? string->sre maybe-string->sre sre->irregex
+     irregex-names irregex-num-submatches string->irregex
+
+     ;; Chunking constructor
+     make-irregex-chunker
+
+     ;; Main API
+     irregex-extract irregex-fold irregex-match irregex-match?
+     irregex-search irregex-split irregex-replace irregex-replace/all
+
+     ;; Chunked main API
+     irregex-fold/chunked irregex-match/chunked irregex-search/chunked
+
+     ;; Match extraction API
+     irregex-match-data? irregex-match-names
+     irregex-match-start-index irregex-match-end-index
+     irregex-match-num-submatches irregex-match-substring
+     irregex-match-valid-index?
+
+     ;; Chunked match API
+     irregex-match-start-chunk irregex-match-subchunk
+
+     ;; Utilities
+     sre->string irregex-opt irregex-quote)
 
 (import scheme chicken)
 
