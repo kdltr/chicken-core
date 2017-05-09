@@ -46,6 +46,7 @@
     This works like `load-relative` but for textual inclusion.
   - Keywords are now always written in "portable" style by WRITE, so
     that the reader's keyword style doesn't need to match the writer's.
+  - The environment variable `CHICKEN_PREFIX` has been removed.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This
@@ -60,6 +61,26 @@
     undocumented and not officially supported anyway.
   - define and friends are now aggressively rejected in "expression
     contexts" (i.e., anywhere but toplevel or as internal defines).
+
+- Eggs management
+  - Egg-installation and building has been completely overhauled.
+  - .meta + .setup files have been merged into a single declarative
+    ".egg" file.
+  - More static checks for egg descriptions, simplified generation
+    of OS-specific build + install commands that is (hopefully)
+    more practical for package maintainers.
+  - Egg sources are cached locally to reduce download and rebuild
+    times.
+  - Dropped many obscure or unimportant options and featurey from
+    `chicken-install`: (`-keep-installed`, `-reinstall`, `-proxy`,
+    `-no-install`, `-username`, `-password`, `-init`, `-deploy`,
+    `-keep-going`, `-scan`, `-csi`, `-show-depends`, `-show-foreign-depends`,
+    `-prefix`.
+  - Eggs can now be installed and located in multiple directories,
+    using the `CHICKEN_REPOSITORY_PATH` + `CHICKEN_INSTALL_REPOSITORY`
+    environment variables.
+  - Static compilation of eggs is now fully supported and static
+    versions of compiled eggs are available by default.
 
 
 4.12.1
@@ -228,7 +249,7 @@
   - "chicken-status"
     - -prefix and -deploy options were added, matching chicken-install.
   - The -sudo and -s options for chicken-install and chicken-uninstall
-    now honor a "SUDO" environment variable (thanks to Timo Myyr‰).
+    now honor a "SUDO" environment variable (thanks to Timo Myyr√§).
 
 - Syntax expander
   - Mixed internal define/define-values are now correctly ordered, so
