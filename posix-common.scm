@@ -257,22 +257,22 @@ EOF
           _stat_st_dev _stat_st_rdev
           _stat_st_blksize _stat_st_blocks) )
 
-(define file-modification-time
-  (getter-with-setter 
-   (lambda (f)
-     (##sys#stat f #f #t 'file-modification-time) _stat_st_mtime)
-   (lambda (f t)
-     (##sys#check-exact-integer t 'set-file-modification-time)
-     (let ((r ((foreign-lambda int "set_file_mtime" c-string scheme-object)
-	       f t)))
-       (when (fx< r 0)
-	 (posix-error 
-	  #:file-error 'set-file-modification-time
-	  "cannot set file modification-time" f t))))
-   "(file-modification-time f)"))
-
+(define (file-modification-time f) (##sys#stat f #f #t 'file-modification-time) _stat_st_mtime)
 (define (file-access-time f) (##sys#stat f #f #t 'file-access-time) _stat_st_atime)
 (define (file-change-time f) (##sys#stat f #f #t 'file-change-time) _stat_st_ctime)
+
+(define (set-file-times! f . rest)
+  (let-optionals* rest ((atime (current-seconds)) (mtime atime))
+    (when atime (##sys#check-exact-integer atime 'set-file-times!))
+    (when mtime (##sys#check-exact-integer mtime 'set-file-times!))
+    (let ((r ((foreign-lambda int "set_file_mtime"
+		c-string scheme-object scheme-object)
+	      f atime mtime)))
+      (when (fx< r 0)
+	(apply posix-error
+	       #:file-error
+	       'set-file-times! "cannot set file times" f rest)))))
+
 (define (file-owner f) (##sys#stat f #f #t 'file-owner) _stat_st_uid)
 (define (file-permissions f) (##sys#stat f #f #t 'file-permissions) _stat_st_mode)
 (define (file-size f) (##sys#stat f #f #t 'file-size) _stat_st_size)

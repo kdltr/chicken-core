@@ -2049,6 +2049,7 @@
 (chicken.posix#set-alarm! (#(procedure #:clean #:enforce) chicken.posix#set-alarm! (integer) integer))
 (chicken.posix#set-buffering-mode! (#(procedure #:clean #:enforce) chicken.posix#set-buffering-mode! (port symbol #!optional fixnum) undefined))
 (chicken.posix#set-file-position! (#(procedure #:clean #:enforce) chicken.posix#set-file-position! ((or port fixnum) integer #!optional fixnum) undefined))
+(chicken.posix#set-file-times! (#(procedure #:clean #:enforce) chicken.posix#set-file-times! (string #!optional (or false integer) (or false integer)) undefined))
 (chicken.posix#set-root-directory! (#(procedure #:clean #:enforce) chicken.posix#set-root-directory! (string) undefined))
 (chicken.posix#set-signal-handler! (#(procedure #:clean #:enforce) chicken.posix#set-signal-handler! (fixnum (or false (procedure (fixnum) . *))) undefined))
 (chicken.posix#set-signal-mask! (#(procedure #:clean #:enforce) chicken.posix#set-signal-mask! ((list-of fixnum)) undefined))

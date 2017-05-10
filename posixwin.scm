@@ -611,11 +611,26 @@ C_process(const char *app, const char *cmdlin, const char **env,
     return success;
 }
 
-static int set_file_mtime(char *filename, C_word tm)
+static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 {
+  struct stat sb;
   struct _utimbuf tb;
 
-  tb.actime = tb.modtime = C_num_to_int(tm);
+  /* Only lstat if needed */
+  if (atime == C_SCHEME_FALSE || mtime == C_SCHEME_FALSE) {
+    if (lstat(filename, &sb) == -1) return -1;
+  }
+
+  if (atime == C_SCHEME_FALSE) {
+    tb.actime = sb.st_atime;
+  } else {
+    tb.actime = C_num_to_int(atime);
+  }
+  if (mtime == C_SCHEME_FALSE) {
+    tb.modtime = sb.st_mtime;
+  } else {
+    tb.modtime = C_num_to_int(mtime);
+  }
   return _utime(filename, &tb);
 }
 EOF
@@ -655,7 +670,7 @@ EOF
    process-spawn process-wait read-symbolic-link regular-file?
    seconds->local-time seconds->string seconds->utc-time seek/cur
    seek/end seek/set set-alarm! set-buffering-mode! set-root-directory!
-   set-signal-handler! set-signal-mask! signal-handler
+   set-file-times! set-signal-handler! set-signal-mask! signal-handler
    signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
    signal/alrm signal/break signal/chld signal/cont signal/fpe
    signal/bus signal/hup signal/ill signal/int signal/io signal/kill
