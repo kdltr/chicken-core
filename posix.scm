@@ -90,18 +90,18 @@
 
 (module chicken.file.posix
   (duplicate-fileno fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd
-   fcntl/setfl file-access-time file-change-time file-close file-control
-   file-creation-mode file-link file-lock file-lock/blocking
-   file-mkstemp file-open file-owner file-permissions file-position
-   file-read file-select file-size file-stat file-test-lock
-   file-truncate file-unlock file-write fileno/stderr fileno/stdin
-   fileno/stdout open-input-file* open-output-file* open/append
-   open/binary open/creat open/excl open/fsync open/noctty open/nonblock
-   open/rdonly open/rdwr open/read open/sync open/text open/trunc
-   open/write open/wronly perm/irgrp perm/iroth perm/irusr perm/irwxg
-   perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
-   perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr port->fileno
-   seek/cur seek/end seek/set set-file-position!)
+   fcntl/setfl file-access-time file-change-time file-modification-time
+   file-close file-control file-creation-mode file-link file-lock
+   file-lock/blocking file-mkstemp file-open file-owner file-permissions
+   file-position file-read file-select file-size file-stat
+   file-test-lock file-truncate file-unlock file-write fileno/stderr
+   fileno/stdin fileno/stdout open-input-file* open-output-file*
+   open/append open/binary open/creat open/excl open/fsync open/noctty
+   open/nonblock open/rdonly open/rdwr open/read open/sync open/text
+   open/trunc open/write open/wronly perm/irgrp perm/iroth perm/irusr
+   perm/irwxg perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx
+   perm/iwgrp perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr
+   port->fileno seek/cur seek/end seek/set set-file-position!)
 (import chicken chicken.posix))
 
 (module chicken.time.posix

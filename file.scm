@@ -59,7 +59,6 @@
    file-copy
    file-execute-access?
    file-exists?
-   file-modification-time
    file-move
    file-read-access?
    file-type
