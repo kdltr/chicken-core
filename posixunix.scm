@@ -927,13 +927,6 @@ EOF
 
 ;;; Permissions and owners:
 
-(define change-file-mode
-  (lambda (fname m)
-    (##sys#check-string fname 'change-file-mode)
-    (##sys#check-fixnum m 'change-file-mode)
-    (when (fx< (##core#inline "C_chmod" (##sys#make-c-string fname 'change-file-mode) m) 0)
-      (posix-error #:file-error 'change-file-mode "cannot change file mode" fname m) ) ) )
-
 (define change-file-owner
   (lambda (fn uid gid)
     (##sys#check-string fn 'change-file-owner)
@@ -941,24 +934,6 @@ EOF
     (##sys#check-fixnum gid 'change-file-owner)
     (when (fx< (##core#inline "C_chown" (##sys#make-c-string fn 'change-file-owner) uid gid) 0)
       (posix-error #:file-error 'change-file-owner "cannot change file owner" fn uid gid) ) ) )
-
-(define-foreign-variable _r_ok int "R_OK")
-(define-foreign-variable _w_ok int "W_OK")
-(define-foreign-variable _x_ok int "X_OK")
-
-(define file-read-access?)
-(define file-write-access?)
-(define file-execute-access?)
-
-(let ()
-  (define (check filename acc loc)
-    (##sys#check-string filename loc)
-    (let ([r (fx= 0 (##core#inline "C_test_access" (##sys#make-c-string filename loc) acc))])
-      (unless r (##sys#update-errno))
-      r) )
-  (set! file-read-access? (lambda (filename) (check filename _r_ok 'file-read-access?)))
-  (set! file-write-access? (lambda (filename) (check filename _w_ok 'file-write-access?)))
-  (set! file-execute-access? (lambda (filename) (check filename _x_ok 'file-execute-access?))) )
 
 (define (create-session)
   (let ([a (##core#inline "C_setsid" #f)])

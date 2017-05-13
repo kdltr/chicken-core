@@ -1002,36 +1002,6 @@ EOF
     signal/segv signal/abrt signal/break))
 
 
-;;; Permissions and owners:
-
-(define change-file-mode
-  (lambda (fname m)
-    (##sys#check-string fname 'change-file-mode)
-    (##sys#check-fixnum m 'change-file-mode)
-    (when (fx< (##core#inline "C_chmod" (##sys#make-c-string fname 'change-file-mode) m) 0)
-      (##sys#update-errno)
-      (##sys#signal-hook #:file-error 'change-file-mode "cannot change file mode" fname m) ) ) )
-
-(define-foreign-variable _r_ok int "2")
-(define-foreign-variable _w_ok int "4")
-(define-foreign-variable _x_ok int "2")
-
-(define file-read-access?)
-(define file-write-access?)
-(define file-execute-access?)
-
-(let ()
-  (define (check filename acc loc)
-    (##sys#check-string filename loc)
-    (let ([r (fx= 0 (##core#inline "C_test_access" (##sys#make-c-string filename loc) acc))])
-      (unless r (##sys#update-errno))
-      r) )
-  (set! file-read-access? (lambda (filename) (check filename _r_ok 'file-read-access?)))
-  (set! file-write-access? (lambda (filename) (check filename _w_ok 'file-write-access?)))
-  (set! file-execute-access? (lambda (filename) (check filename _x_ok 'file-execute-access?))) )
-
-(define-foreign-variable _filename_max int "FILENAME_MAX")
-
 ;;; Using file-descriptors:
 
 (define-foreign-variable _stdin_fileno int "0")
