@@ -118,9 +118,8 @@
    process-signal process-spawn process-wait call-with-input-pipe
    call-with-output-pipe close-input-pipe close-output-pipe create-pipe
    open-input-pipe open-output-pipe with-input-from-pipe
-   with-output-to-pipe process process* pipe/buf process-group-id
-   create-session spawn/overlay spawn/wait spawn/nowait spawn/nowaito
-   spawn/detach)
+   with-output-to-pipe process process* pipe/buf
+   spawn/overlay spawn/wait spawn/nowait spawn/nowaito spawn/detach)
 
 (import chicken scheme chicken.posix chicken.platform)
 
@@ -169,5 +168,6 @@
    set-root-directory! current-effective-group-id
    current-effective-user-id current-group-id current-process-id
    current-user-id parent-process-id current-user-name
-   current-effective-user-name user-information)
+   current-effective-user-name create-session process-group-id
+   user-information)
 (import chicken chicken.posix))
