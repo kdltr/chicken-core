@@ -114,7 +114,7 @@
 
 ;;; Extended I/O 
 
-(define (##sys#read-string! n dest port start)
+(define (read-string!/port n dest port start)
   (cond ((eq? n 0) 0)
 	(else
 	 (let ((rdstring (##sys#slot (##sys#slot port 2) 7)))
@@ -147,18 +147,16 @@
     (unless (and n (fx<= (fx+ start n) dest-size))
       (set! n (fx- dest-size start))))
   (##sys#check-fixnum start 'read-string!)
-  (##sys#read-string! n dest port start) )
+  (read-string!/port n dest port start))
 
 (define-constant read-string-buffer-size 2048)
 
-(define ##sys#read-string/port
+(define read-string/port
   (lambda (n p)
-    (##sys#check-input-port p #t 'read-string)
     (cond ((eof-object? (##sys#peek-char-0 p))
 	   (if (eq? n 0) "" #!eof))
-          (n (##sys#check-fixnum n 'read-string)
-	     (let* ((str (##sys#make-string n))
-		    (n2 (##sys#read-string! n str p 0)) )
+          (n (let* ((str (##sys#make-string n))
+		    (n2 (read-string!/port n str p 0)))
 	       (if (eq? n n2)
 		   str
 		   (##sys#substring str 0 n2))))
@@ -167,8 +165,7 @@
 		 (buf (make-string read-string-buffer-size)))
 	     (let loop ()
 	       (let ((c (peek-char p))
-		     (n (##sys#read-string! read-string-buffer-size
-					    buf p 0)))
+		     (n (read-string!/port read-string-buffer-size buf p 0)))
 		 (cond ((eq? n 0)
 			(get-output-string out))
 		       (else
@@ -176,7 +173,16 @@
 			(loop))))))))))
 
 (define (read-string #!optional n (port ##sys#standard-input))
-  (##sys#read-string/port n port) )
+  (##sys#check-input-port port #t 'read-string)
+  (when n (##sys#check-fixnum n 'read-string))
+  (read-string/port n port))
+
+
+;; Make internal reader procedures available for use in srfi-4.scm:
+
+(define chicken.io#read-string/port read-string/port)
+(define chicken.io#read-string!/port read-string!/port)
+
 
 ;; <procedure>(read-buffered [PORT])</procedure>
 ;;

@@ -806,10 +806,12 @@ EOF
 	 (size (##sys#size dest)))
     (unless (and n (fx<= (fx+ start n) size))
       (set! n (fx- size start)))
-    (##sys#read-string! n dest port start)))
+    (chicken.io#read-string!/port n dest port start)))
 
 (define (read-u8vector #!optional n (p ##sys#standard-input))
-  (let ((str (##sys#read-string/port n p)))
+  (##sys#check-input-port p #t 'read-u8vector)
+  (when n (##sys#check-fixnum n 'read-u8vector))
+  (let ((str (chicken.io#read-string/port n p)))
     (cond ((eof-object? str) str)
 	  (else
 	   (##core#inline "C_string_to_bytevector" str)
