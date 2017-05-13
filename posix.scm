@@ -98,12 +98,13 @@
    fileno/stderr fileno/stdin fileno/stdout
    open-input-file* open-output-file*
    open/append open/binary open/creat open/excl open/fsync open/noctty
-   open/nonblock open/rdonly open/rdwr open/read open/sync open/text
-   open/trunc open/write open/wronly perm/irgrp perm/iroth perm/irusr
-   perm/irwxg perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx
-   perm/iwgrp perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr
-   port->fileno seek/cur seek/end seek/set set-file-group!
-   set-file-owner! set-file-permissions! set-file-position! set-file-times!)
+   open/noinherit open/nonblock open/rdonly open/rdwr open/read
+   open/sync open/text open/trunc open/write open/wronly
+   perm/irgrp perm/iroth perm/irusr perm/irwxg perm/irwxo perm/irwxu
+   perm/isgid perm/isuid perm/isvtx perm/iwgrp perm/iwoth perm/iwusr
+   perm/ixgrp perm/ixoth perm/ixusr
+   port->fileno seek/cur seek/end seek/set set-file-group! set-file-owner!
+   set-file-permissions! set-file-position! set-file-times!)
 (import chicken chicken.posix))
 
 (module chicken.time.posix
@@ -114,11 +115,12 @@
 
 (module chicken.process
   (qs system system* process-execute process-fork process-run
-   process-signal process-wait call-with-input-pipe
+   process-signal process-spawn process-wait call-with-input-pipe
    call-with-output-pipe close-input-pipe close-output-pipe create-pipe
    open-input-pipe open-output-pipe with-input-from-pipe
    with-output-to-pipe process process* pipe/buf process-group-id
-   create-session)
+   create-session spawn/overlay spawn/wait spawn/nowait spawn/nowaito
+   spawn/detach)
 
 (import chicken scheme chicken.posix chicken.platform)
 

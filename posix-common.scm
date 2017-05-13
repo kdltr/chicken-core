@@ -142,6 +142,12 @@ EOF
 
 (include "common-declarations.scm")
 
+(define-syntax define-unimplemented
+  (syntax-rules ()
+    [(_ ?name)
+     (define (?name . _)
+       (error '?name (##core#immutable '"this function is not available on this platform")) ) ] ) )
+
 
 ;;; Error codes:
 

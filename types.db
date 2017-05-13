@@ -1929,7 +1929,7 @@
 (chicken.posix#close-output-pipe (#(procedure #:clean #:enforce) chicken.posix#close-output-pipe (output-port) fixnum))
 (chicken.posix#create-directory (#(procedure #:clean #:enforce) chicken.posix#create-directory (string #!optional *) string))
 (chicken.posix#create-fifo (#(procedure #:clean #:enforce) chicken.posix#create-fifo (string #!optional fixnum) undefined))
-(chicken.posix#create-pipe (procedure chicken.posix#create-pipe () fixnum fixnum))
+(chicken.posix#create-pipe (procedure chicken.posix#create-pipe (#!optional fixnum) fixnum fixnum))
 (chicken.posix#create-session (#(procedure #:clean) chicken.posix#create-session () fixnum))
 (chicken.posix#create-symbolic-link (#(procedure #:clean #:enforce) chicken.posix#create-symbolic-link (string string) undefined))
 
@@ -1998,6 +1998,7 @@
 (chicken.posix#open/excl fixnum)
 (chicken.posix#open/fsync fixnum)
 (chicken.posix#open/noctty fixnum)
+(chicken.posix#open/noinherit fixnum)
 (chicken.posix#open/nonblock fixnum)
 (chicken.posix#open/rdonly fixnum)
 (chicken.posix#open/rdwr fixnum)
@@ -2025,17 +2026,19 @@
 (chicken.posix#perm/ixusr fixnum)
 (chicken.posix#pipe/buf fixnum)
 (chicken.posix#port->fileno (#(procedure #:clean #:enforce) chicken.posix#port->fileno (port) fixnum))
-(chicken.posix#process (#(procedure #:clean #:enforce) chicken.posix#process (string #!optional (list-of string) (list-of (pair string string))) input-port output-port fixnum))
-(chicken.posix#process* (#(procedure #:clean #:enforce) chicken.posix#process* (string #!optional (list-of string) (list-of (pair string string))) input-port output-port fixnum *))
+(chicken.posix#process (#(procedure #:clean #:enforce) chicken.posix#process (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum))
+(chicken.posix#process* (#(procedure #:clean #:enforce) chicken.posix#process* (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum *))
 
 (chicken.posix#process-execute
- (#(procedure #:clean #:enforce) chicken.posix#process-execute (string #!optional (list-of string) (list-of (pair string string))) noreturn))
+ (#(procedure #:clean #:enforce) chicken.posix#process-execute (string #!optional (list-of string) (list-of (pair string string)) fixnum) noreturn))
 
 (chicken.posix#process-fork (#(procedure #:enforce) chicken.posix#process-fork (#!optional (or (procedure () . *) false) *) fixnum))
 
 (chicken.posix#process-group-id (#(procedure #:clean #:enforce) chicken.posix#process-group-id () fixnum))
 (chicken.posix#process-run (#(procedure #:clean #:enforce) chicken.posix#process-run (string #!optional (list-of string)) fixnum))
 (chicken.posix#process-signal (#(procedure #:clean #:enforce) chicken.posix#process-signal (fixnum #!optional fixnum) undefined))
+(chicken.posix#process-spawn
+ (#(procedure #:clean #:enforce) chicken.posix#process-spawn (fixnum string #!optional (list-of string) (list-of (pair string string)) boolean) fixnum))
 (chicken.posix#process-wait (#(procedure #:clean #:enforce) chicken.posix#process-wait (#!optional fixnum *) fixnum fixnum fixnum))
 (chicken.posix#read-symbolic-link (#(procedure #:clean #:enforce) chicken.posix#read-symbolic-link (string #!optional boolean) string))
 (chicken.posix#regular-file? (#(procedure #:clean #:enforce) chicken.posix#regular-file? ((or string fixnum)) boolean))
@@ -2088,6 +2091,11 @@
 (chicken.posix#signal/xcpu fixnum)
 (chicken.posix#signal/xfsz fixnum)
 (chicken.posix#signals-list list)
+(chicken.posix#spawn/overlay fixnum)
+(chicken.posix#spawn/wait fixnum)
+(chicken.posix#spawn/nowait fixnum)
+(chicken.posix#spawn/nowaito fixnum)
+(chicken.posix#spawn/detach fixnum)
 (chicken.posix#process-sleep (#(procedure #:clean #:enforce) chicken.posix#process-sleep (fixnum) fixnum))
 (chicken.posix#block-device? (#(procedure #:clean #:enforce) chicken.posix#block-device? ((or string fixnum)) boolean))
 (chicken.posix#character-device? (#(procedure #:clean #:enforce) chicken.posix#character-device? ((or string fixnum)) boolean))

@@ -52,24 +52,25 @@
    local-time->seconds local-timezone-abbreviation
    open-input-file* open-input-pipe open-output-file* open-output-pipe
    open/append open/binary open/creat open/excl open/fsync
-   open/noctty open/nonblock open/rdonly open/rdwr
+   open/noctty open/noinherit open/nonblock open/rdonly open/rdwr
    open/read open/sync open/text open/trunc open/write open/wronly
    parent-process-id perm/irgrp perm/iroth perm/irusr perm/irwxg
    perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
    perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr pipe/buf
    port->fileno process process* process-execute process-fork
-   process-group-id process-run process-signal process-sleep process-wait
-   read-symbolic-link regular-file? seconds->local-time seconds->string
-   seconds->utc-time seek/cur seek/end seek/set set-alarm!
-   set-buffering-mode! set-file-times! set-root-directory!
-   set-signal-handler! set-signal-mask! signal-handler
+   process-group-id process-run process-signal process-sleep
+   process-spawn process-wait read-symbolic-link regular-file?
+   seconds->local-time seconds->string seconds->utc-time seek/cur
+   seek/end seek/set set-alarm! set-buffering-mode! set-file-times!
+   set-root-directory! set-signal-handler! set-signal-mask! signal-handler
    signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
    signal/alrm signal/break signal/chld signal/cont signal/fpe
    signal/bus signal/hup signal/ill signal/int signal/io signal/kill
    signal/pipe signal/prof signal/quit signal/segv signal/stop
    signal/term signal/trap signal/tstp signal/urg signal/usr1
    signal/usr2 signal/vtalrm signal/winch signal/xcpu signal/xfsz
-   signals-list block-device? character-device? fifo? socket?
+   signals-list spawn/overlay spawn/wait spawn/nowait spawn/nowaito
+   spawn/detach block-device? character-device? fifo? socket?
    string->time symbolic-link? system-information terminal-name
    terminal-port? terminal-size time->string user-information
    set-environment-variable! unset-environment-variable!
@@ -459,6 +460,14 @@ EOF
 (define open/binary _o_binary)
 (define open/text _o_text)
 
+;; Windows-only definitions
+(define open/noinherit 0)
+(define spawn/overlay 0)
+(define spawn/wait 0)
+(define spawn/nowait 0)
+(define spawn/nowaito 0)
+(define spawn/detach 0)
+
 (define-foreign-variable _s_irusr int "S_IRUSR")
 (define-foreign-variable _s_iwusr int "S_IWUSR")
 (define-foreign-variable _s_ixusr int "S_IXUSR")
@@ -723,11 +732,10 @@ EOF
 (define-foreign-variable _pipefd0 int "C_pipefds[ 0 ]")
 (define-foreign-variable _pipefd1 int "C_pipefds[ 1 ]")
 
-(define create-pipe
-  (lambda ()
-    (when (fx< (##core#inline "C_pipe" #f) 0)
-      (posix-error #:file-error 'create-pipe "cannot create pipe") )
-    (values _pipefd0 _pipefd1) ) )
+(define (create-pipe #!optional mode)
+  (when (fx< (##core#inline "C_pipe" #f) 0)
+    (posix-error #:file-error 'create-pipe "cannot create pipe") )
+  (values _pipefd0 _pipefd1)  )
 
 
 ;;; Signal processing:
@@ -1421,7 +1429,7 @@ EOF
 	       (exit 0)))
 	    pid)))))
 
-(define (process-execute filename #!optional (arglist '()) envlist)
+(define (process-execute filename #!optional (arglist '()) envlist exactf)
   (call-with-exec-args
    'process-execute filename (lambda (x) x) arglist envlist
    (lambda (prg argbuf envbuf)
@@ -1589,12 +1597,12 @@ EOF
 	     (lambda () (##sys#process loc cmd args env #t #t err?))
 	     k)))))
   (set! process
-    (lambda (cmd #!optional args env)
+    (lambda (cmd #!optional args env exactf)
       (%process 
        'process #f cmd args env
        (lambda (i o p e) (values i o p)))))
   (set! process*
-    (lambda (cmd #!optional args env)
+    (lambda (cmd #!optional args env exactf)
       (%process
        'process* #t cmd args env
        values))))
@@ -1608,5 +1616,9 @@ EOF
       (##sys#check-string dir 'set-root-directory!)
       (when (fx< (chroot dir) 0)
         (posix-error #:file-error 'set-root-directory! "unable to change root directory" dir) ) ) ) )
+
+;;; unimplemented stuff:
+
+(define-unimplemented process-spawn)
 
 ) ; chicken.posix

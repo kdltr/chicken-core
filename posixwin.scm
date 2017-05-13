@@ -685,7 +685,7 @@ EOF
    local-time->seconds local-timezone-abbreviation
    open-input-file* open-input-pipe open-output-file* open-output-pipe
    open/append open/binary open/creat open/excl open/fsync
-   open/noctty open/nonblock open/rdonly open/rdwr
+   open/noctty open/noinherit open/nonblock open/rdonly open/rdwr
    open/read open/sync open/text open/trunc open/write open/wronly
    parent-process-id perm/irgrp perm/iroth perm/irusr perm/irwxg
    perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
@@ -975,12 +975,11 @@ EOF
 (define-foreign-variable _pipefd0 int "C_pipefds[ 0 ]")
 (define-foreign-variable _pipefd1 int "C_pipefds[ 1 ]")
 
-(define create-pipe
-  (lambda (#!optional (mode (fxior open/binary open/noinherit)))
-    (when (fx< (##core#inline "C_pipe" #f mode) 0)
-      (##sys#update-errno)
-      (##sys#signal-hook #:file-error 'create-pipe "cannot create pipe") )
-    (values _pipefd0 _pipefd1) ) )
+(define (create-pipe #!optional (mode (fxior open/binary open/noinherit)))
+  (when (fx< (##core#inline "C_pipe" #f mode) 0)
+    (##sys#update-errno)
+    (##sys#signal-hook #:file-error 'create-pipe "cannot create pipe") )
+    (values _pipefd0 _pipefd1) )
 
 ;;; Signal processing:
 
@@ -1175,7 +1174,7 @@ EOF
 
 (define (process-spawn mode filename #!optional (arglist '()) envlist exactf)
   (let ((argconv (if exactf (lambda (x) x) quote-arg-string)))
-    (##sys#check-exact mode 'process-spawn)
+    (##sys#check-fixnum mode 'process-spawn)
     (call-with-exec-args
      'process-spawn filename argconv arglist envlist
      (lambda (prg argbuf envbuf)
@@ -1324,15 +1323,6 @@ EOF
 
 
 ;;; unimplemented stuff:
-
-(define-syntax define-unimplemented
-  (syntax-rules ()
-    [(_ ?name)
-     (define (?name . _)
-       (error '?name (##core#immutable '"this function is not available on this platform")) ) ] ) )
-
-(define (chown loc . _)
-  (error loc (##core#immutable '"this function is not available on this platform")))
 
 (define-unimplemented change-directory*)
 (define-unimplemented create-fifo)
