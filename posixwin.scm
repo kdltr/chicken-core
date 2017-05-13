@@ -73,7 +73,9 @@
 #include <io.h>
 #include <process.h>
 #include <signal.h>
+#include <stdio.h>
 #include <utime.h>
+#include <windows.h>
 #include <winsock2.h>
 
 #define PIPE_BUF	512
@@ -304,6 +306,28 @@ set_last_errno()
 {
     set_errno(GetLastError());
     return 0;
+}
+
+static C_word C_fchmod(C_word fd, C_word m)
+{
+  TCHAR path[MAX_PATH];
+  DWORD result;
+  HANDLE fh = (HANDLE)_get_osfhandle(C_unfix(fd));
+
+  if (fh == INVALID_HANDLE_VALUE) {
+    set_last_errno();
+    return C_fix(-1);
+  }
+
+  result = GetFinalPathNameByHandle(fh, path, MAX_PATH, VOLUME_NAME_DOS);
+  if (result == 0) {
+    set_last_errno();
+    return C_fix(-1);
+  } else if (result >= MAX_PATH) { /* Shouldn't happen */
+    errno = ENOMEM; /* For lack of anything better */
+    return C_fix(-1);
+  }
+  return C_fix(chmod(path, C_unfix(m)));
 }
 
 static int C_fcall
@@ -641,7 +665,7 @@ EOF
 
 (module chicken.posix
   (emergency-exit call-with-input-pipe call-with-output-pipe change-directory
-   change-directory* change-file-mode change-file-owner close-input-pipe
+   change-directory* change-file-owner close-input-pipe
    close-output-pipe create-directory create-fifo create-pipe
    create-session create-symbolic-link current-directory
    current-effective-group-id current-effective-user-id
@@ -652,7 +676,8 @@ EOF
    fifo? file-access-time file-change-time
    file-creation-mode file-close file-control file-execute-access?
    file-link file-lock file-lock/blocking file-mkstemp
-   file-modification-time file-open file-owner file-permissions
+   file-modification-time file-open file-owner
+   file-permissions set-file-permissions!
    file-position set-file-position! file-read file-read-access?
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr

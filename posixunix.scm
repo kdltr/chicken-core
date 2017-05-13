@@ -32,7 +32,7 @@
 
 (module chicken.posix
   (emergency-exit call-with-input-pipe call-with-output-pipe change-directory
-   change-directory* change-file-mode change-file-owner close-input-pipe
+   change-directory* change-file-owner close-input-pipe
    close-output-pipe create-directory create-fifo create-pipe
    create-session create-symbolic-link current-directory
    current-effective-group-id current-effective-user-id
@@ -43,7 +43,8 @@
    fifo? file-access-time file-change-time
    file-creation-mode file-close file-control file-execute-access?
    file-link file-lock file-lock/blocking file-mkstemp
-   file-modification-time file-open file-owner file-permissions
+   file-modification-time file-open file-owner
+   file-permissions set-file-permissions!
    file-position set-file-position! file-read file-read-access?
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr
@@ -187,6 +188,7 @@ static C_TLS struct stat C_statbuf;
 #define C_getegid           getegid
 #define C_chown(fn, u, g)   C_fix(chown(C_data_pointer(fn), C_unfix(u), C_unfix(g)))
 #define C_chmod(fn, m)      C_fix(chmod(C_data_pointer(fn), C_unfix(m)))
+#define C_fchmod(fd, m)     C_fix(fchmod(C_unfix(fd), C_unfix(m)))
 #define C_setuid(id)        C_fix(setuid(C_unfix(id)))
 #define C_setgid(id)        C_fix(setgid(C_unfix(id)))
 #define C_seteuid(id)       C_fix(seteuid(C_unfix(id)))

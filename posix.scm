@@ -101,8 +101,8 @@
    open/trunc open/write open/wronly perm/irgrp perm/iroth perm/irusr
    perm/irwxg perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx
    perm/iwgrp perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr
-   port->fileno seek/cur seek/end seek/set set-file-position!
-   set-file-times!)
+   port->fileno seek/cur seek/end seek/set set-file-permissions!
+   set-file-position! set-file-times!)
 (import chicken chicken.posix))
 
 (module chicken.time.posix

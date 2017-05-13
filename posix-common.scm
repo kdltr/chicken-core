@@ -40,6 +40,7 @@ int C_not_implemented() { return -1; }
 static C_TLS struct stat C_statbuf;
 
 #define C_stat_type         (C_statbuf.st_mode & S_IFMT)
+#define C_stat_perm         (C_statbuf.st_mode & ~S_IFMT)
 #define C_stat(fn)          C_fix(stat((char *)C_data_pointer(fn), &C_statbuf))
 #define C_fstat(f)          C_fix(fstat(C_unfix(f), &C_statbuf))
 
@@ -253,7 +254,7 @@ EOF
 			(##core#inline "C_stat" path) ) ) )
                  (else
 		  (##sys#signal-hook
-		   #:type-error loc "bad argument type - not a fixnum or string" file)) ) ) )
+		   #:type-error loc "bad argument type - not a fixnum, port or string" file)) ) ) )
     (if (fx< r 0)
 	(if err
 	    (posix-error #:file-error loc "cannot access file" file) 
@@ -267,6 +268,20 @@ EOF
           _stat_st_atime _stat_st_ctime _stat_st_mtime
           _stat_st_dev _stat_st_rdev
           _stat_st_blksize _stat_st_blocks) )
+
+(define (set-file-permissions! f p)
+  (##sys#check-fixnum p 'set-file-permissions!)
+  (let ((r (cond ((fixnum? f) (##core#inline "C_fchmod" f p))
+		 ((port? f) (##core#inline "C_fchmod" (port->fileno f) p))
+		 ((string? f)
+		  (##core#inline "C_chmod"
+				 (##sys#make-c-string f 'set-file-permissions!) p))
+		 (else
+		  (##sys#signal-hook
+		   #:type-error 'file-permissions
+		   "bad argument type - not a fixnum, port or string" f)) ) ) )
+    (when (fx< r 0)
+      (posix-error #:file-error 'set-file-permissions! "cannot change file permissions" f p) ) ))
 
 (define (file-modification-time f) (##sys#stat f #f #t 'file-modification-time) _stat_st_mtime)
 (define (file-access-time f) (##sys#stat f #f #t 'file-access-time) _stat_st_atime)
@@ -285,8 +300,14 @@ EOF
 	       'set-file-times! "cannot set file times" f rest)))))
 
 (define (file-owner f) (##sys#stat f #f #t 'file-owner) _stat_st_uid)
-(define (file-permissions f) (##sys#stat f #f #t 'file-permissions) _stat_st_mode)
 (define (file-size f) (##sys#stat f #f #t 'file-size) _stat_st_size)
+
+(define file-permissions
+  (getter-with-setter
+   (lambda (f)
+     (##sys#stat f #f #t 'file-permissions)
+     (foreign-value "C_stat_perm" unsigned-int))
+   set-file-permissions! ))
 
 (define (file-type file #!optional link (err #t))
   (and (##sys#stat file link err 'file-type)
@@ -320,14 +341,6 @@ EOF
 
 (define (directory? file)
   (eq? 'directory (file-type file #f #f)))
-
-
-(define change-file-mode
-  (lambda (fname m)
-    (##sys#check-string fname 'change-file-mode)
-    (##sys#check-fixnum m 'change-file-mode)
-    (when (fx< (##core#inline "C_chmod" (##sys#make-c-string fname 'change-file-mode) m) 0)
-      (posix-error #:file-error 'change-file-mode "cannot change file mode" fname m) ) ) )
 
 (define file-read-access?)
 (define file-write-access?)
