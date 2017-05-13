@@ -52,7 +52,8 @@
      irregex-match-valid-index?
 
      ;; Chunked match API
-     irregex-match-start-chunk irregex-match-subchunk
+     irregex-match-start-chunk irregex-match-end-chunk
+     irregex-match-subchunk
 
      ;; Utilities
      sre->string irregex-opt irregex-quote)
