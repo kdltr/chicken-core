@@ -30,10 +30,6 @@
 
 (foreign-declare "#define C_direct_continuation(dummy) t1")
 
-;; XXX Is this still used anywhere?
-(define (##sys#call-with-direct-continuation k)
-  (##core#app k (##core#inline "C_direct_continuation" #f)))
-
 (module chicken.continuation
   (continuation?
    continuation-capture
