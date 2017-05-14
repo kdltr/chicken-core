@@ -226,11 +226,13 @@ EOF
 (define (fxmod x y) (##core#inline "C_fixnum_modulo" x y) )
 (define (fxrem x y) (##core#inline "C_i_fixnum_remainder_checked" x y) )
 
-;; these are currently undocumented
+;; Overflow-detecting versions of some of the above
 (define (fx+? x y) (##core#inline "C_i_o_fixnum_plus" x y) )
 (define (fx-? x y) (##core#inline "C_i_o_fixnum_difference" x y) )
 (define (fx*? x y) (##core#inline "C_i_o_fixnum_times" x y) )
-(define (fx/? x y) (##core#inline "C_i_o_fixnum_quotient" x y)))
+(define (fx/? x y) (##core#inline "C_i_o_fixnum_quotient" x y))
+
+) ; chicken.fixnum
 
 (import chicken.fixnum)
 
