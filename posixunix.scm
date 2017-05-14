@@ -32,7 +32,7 @@
 
 (module chicken.posix
   (emergency-exit call-with-input-pipe call-with-output-pipe change-directory
-   change-directory* change-file-owner close-input-pipe
+   change-directory* close-input-pipe
    close-output-pipe create-directory create-fifo create-pipe
    create-session create-symbolic-link current-directory
    current-effective-group-id current-effective-user-id
@@ -43,8 +43,8 @@
    fifo? file-access-time file-change-time
    file-creation-mode file-close file-control file-execute-access?
    file-link file-lock file-lock/blocking file-mkstemp
-   file-modification-time file-open file-owner
-   file-permissions set-file-permissions!
+   file-modification-time file-open file-owner set-file-owner!
+   file-group set-file-group! file-permissions set-file-permissions!
    file-position set-file-position! file-read file-read-access?
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr
@@ -187,6 +187,7 @@ static C_TLS struct stat C_statbuf;
 #define C_geteuid           geteuid
 #define C_getegid           getegid
 #define C_chown(fn, u, g)   C_fix(chown(C_data_pointer(fn), C_unfix(u), C_unfix(g)))
+#define C_fchown(fd, u, g)  C_fix(fchown(C_unfix(fd), C_unfix(u), C_unfix(g)))
 #define C_chmod(fn, m)      C_fix(chmod(C_data_pointer(fn), C_unfix(m)))
 #define C_fchmod(fd, m)     C_fix(fchmod(C_unfix(fd), C_unfix(m)))
 #define C_setuid(id)        C_fix(setuid(C_unfix(id)))
@@ -927,15 +928,23 @@ EOF
 (define (current-effective-user-name)
   (car (user-information (current-effective-user-id))) )
 
-;;; Permissions and owners:
-
-(define change-file-owner
-  (lambda (fn uid gid)
-    (##sys#check-string fn 'change-file-owner)
-    (##sys#check-fixnum uid 'change-file-owner)
-    (##sys#check-fixnum gid 'change-file-owner)
-    (when (fx< (##core#inline "C_chown" (##sys#make-c-string fn 'change-file-owner) uid gid) 0)
-      (posix-error #:file-error 'change-file-owner "cannot change file owner" fn uid gid) ) ) )
+(define chown
+  (lambda (loc f uid gid)
+    (##sys#check-fixnum uid loc)
+    (##sys#check-fixnum gid loc)
+    (let ((r (cond
+	      ((port? f)
+	       (##core#inline "C_fchown" (port->fileno f) uid gid))
+	      ((fixnum? f)
+	       (##core#inline "C_fchown" f uid gid))
+	      ((string? f)
+	       (##core#inline "C_chown"
+			      (##sys#make-c-string f loc) uid gid))
+	      (else (##sys#signal-hook
+		     #:type-error loc
+		     "bad argument type - not a fixnum, port or string" f)))))
+      (when (fx< r 0)
+	(posix-error #:file-error loc "cannot change file owner" f uid gid) )) ) )
 
 (define (create-session)
   (let ([a (##core#inline "C_setsid" #f)])

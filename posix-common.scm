@@ -299,8 +299,21 @@ EOF
 	       #:file-error
 	       'set-file-times! "cannot set file times" f rest)))))
 
-(define (file-owner f) (##sys#stat f #f #t 'file-owner) _stat_st_uid)
 (define (file-size f) (##sys#stat f #f #t 'file-size) _stat_st_size)
+
+(define (set-file-owner! f uid)
+  (chown 'set-file-owner! f uid -1))
+(define (set-file-group! f gid)
+  (chown 'set-file-group! f -1 gid))
+
+(define file-owner
+  (getter-with-setter
+   (lambda (f) (##sys#stat f #f #t 'file-owner) _stat_st_uid)
+   set-file-owner!) )
+(define file-group
+  (getter-with-setter
+   (lambda (f) (##sys#stat f #f #t 'file-group) _stat_st_gid)
+   set-file-group!) )
 
 (define file-permissions
   (getter-with-setter

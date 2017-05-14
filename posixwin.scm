@@ -665,7 +665,7 @@ EOF
 
 (module chicken.posix
   (emergency-exit call-with-input-pipe call-with-output-pipe change-directory
-   change-directory* change-file-owner close-input-pipe
+   change-directory* close-input-pipe
    close-output-pipe create-directory create-fifo create-pipe
    create-session create-symbolic-link current-directory
    current-effective-group-id current-effective-user-id
@@ -676,8 +676,8 @@ EOF
    fifo? file-access-time file-change-time
    file-creation-mode file-close file-control file-execute-access?
    file-link file-lock file-lock/blocking file-mkstemp
-   file-modification-time file-open file-owner
-   file-permissions set-file-permissions!
+   file-modification-time file-open file-owner set-file-owner!
+   file-group set-file-group! file-permissions set-file-permissions!
    file-position set-file-position! file-read file-read-access?
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr
@@ -1331,8 +1331,10 @@ EOF
      (define (?name . _)
        (error '?name (##core#immutable '"this function is not available on this platform")) ) ] ) )
 
+(define (chown loc . _)
+  (error loc (##core#immutable '"this function is not available on this platform")))
+
 (define-unimplemented change-directory*)
-(define-unimplemented change-file-owner)
 (define-unimplemented create-fifo)
 (define-unimplemented create-session)
 (define-unimplemented create-symbolic-link)
@@ -1355,6 +1357,9 @@ EOF
 (define-unimplemented process-signal)
 (define-unimplemented read-symbolic-link)
 (define-unimplemented set-alarm!)
+;; Handled by chown above
+;(define-unimplemented set-file-group!)
+;(define-unimplemented set-file-owner!)
 (define-unimplemented set-group-id!)
 (define-unimplemented set-process-group-id!)
 (define-unimplemented set-root-directory!)

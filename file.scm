@@ -52,7 +52,6 @@ EOF
 
 (module chicken.file
   (block-device?
-   change-file-owner
    character-device?
    create-directory
    create-fifo
