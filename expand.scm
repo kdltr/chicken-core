@@ -33,8 +33,7 @@
   (disable-interrupts)
   (fixnum)
   (hide check-for-multiple-bindings)
-  (not inline ##sys#syntax-error-hook ##sys#compiler-syntax-hook
-       ##sys#toplevel-definition-hook))
+  (not inline ##sys#syntax-error-hook ##sys#compiler-syntax-hook))
 
 (module chicken.expand
   (expand
@@ -83,6 +82,9 @@
 (define-inline (putp sym prop val)
   (##core#inline_allocate ("C_a_i_putprop" 8) sym prop val))
 
+(define-inline (namespaced-symbol? sym)
+  (##core#inline "C_u_i_namespaced_symbolp" sym))
+
 ;;; Source file tracking
 
 (define ##sys#current-source-filename #f)
@@ -107,11 +109,7 @@
 	(else #f)))
 
 (define (macro-alias var se)
-  (if (or (##sys#qualified-symbol? var)
-	  (let* ((str (##sys#slot var 1))
-		 (len (##sys#size str)))
-	    (and (fx> len 0)
-		 (char=? #\# (##core#inline "C_subchar" str 0)))))
+  (if (or (##sys#qualified-symbol? var) (namespaced-symbol? var))
       var
       (let* ((alias (gensym var))
 	     (ua (or (lookup var se) var))

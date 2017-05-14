@@ -899,16 +899,6 @@
 (import (prefix rfoo f:))
 (f:rbar 1)
 
-;;; Internal hash-prefixed names shouldn't work within modules
-
-(module one (always-one)
-  (import scheme)
-  (define (always-one) 1))
-
-(f (eval '(module two ()
-            (import scheme)
-            (define (always-two) (+ (one#always-one) 1)))))
-
 ;;; SRFI-2 (and-let*)
 
 (t 1 (and-let* ((a 1)) a))

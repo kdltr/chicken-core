@@ -61,6 +61,8 @@
 (define-inline (putp sym prop val)
   (##core#inline_allocate ("C_a_i_putprop" 8) sym prop val))
 
+(define-inline (namespaced-symbol? sym)
+  (##core#inline "C_u_i_namespaced_symbolp" sym))
 
 ;;; Support definitions
 
@@ -173,7 +175,7 @@
 	  (set-module-exist-list! mod (append el exps)))
 	(set-module-export-list! mod (append xl exps)))))
 
-(define (##sys#toplevel-definition-hook sym mod exp val) #f)
+(define (##sys#toplevel-definition-hook sym renamed exported?) #f)
 
 (define (##sys#register-meta-expression exp)
   (and-let* ((mod (##sys#current-module)))
@@ -191,8 +193,7 @@
 		   (find-export sym mod #t)))
 	  (ulist (module-undefined-list mod)))
       (##sys#toplevel-definition-hook	; in compiler, hides unexported bindings
-       (module-rename sym (module-name mod))
-       mod exp #f)
+       sym (module-rename sym (module-name mod)) exp)
       (and-let* ((a (assq sym ulist)))
 	(set-module-undefined-list! mod (delete a ulist eq?)))
       (check-for-redef sym (##sys#current-environment) (##sys#macro-environment))
@@ -778,6 +779,7 @@
 	((getp sym '##core#aliased) 
 	 (dm "(ALIAS) marked: " sym)
 	 sym)
+	((namespaced-symbol? sym) sym)
 	((assq sym ((##sys#active-eval-environment))) =>
 	 (lambda (a)
 	   (let ((sym2 (cdr a)))

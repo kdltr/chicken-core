@@ -50,6 +50,9 @@
 
 (define-inline (intrinsic? sym) (##sys#get sym '##compiler#intrinsic))
 
+(define-inline (namespaced-symbol? sym)
+  (##core#inline "C_u_i_namespaced_symbolp" sym))
+
 (define-inline (mark-variable var mark #!optional (val #t))
   (##sys#put! var mark val) )
 

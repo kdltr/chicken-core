@@ -899,6 +899,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 # define C_strcmp                   strcmp
 # define C_strncmp                  strncmp
 # define C_strlen                   strlen
+# define C_memchr                   memchr
 # define C_memset                   memset
 # define C_memmove                  memmove
 # define C_strncasecmp              strncasecmp
@@ -1022,6 +1023,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_bignum_size(b)           (C_bytestowords(C_header_size(C_internal_bignum_vector(b)))-1)
 #define C_make_header(type, size)  ((C_header)(((type) & C_HEADER_BITS_MASK) | ((size) & C_HEADER_SIZE_MASK)))
 #define C_symbol_value(x)          (C_block_item(x, 0))
+#define C_symbol_name(x)           (C_block_item(x, 1))
 #define C_symbol_plist(x)          (C_block_item(x, 2))
 #define C_save(x)	           (*(--C_temporary_stack) = (C_word)(x))
 #define C_rescue(x, i)             (C_temporary_stack[ i ] = (x))
@@ -2247,6 +2249,11 @@ inline static C_word C_permanentp(C_word x)
                    !C_in_scratchspacep(x));
 }
 
+inline static C_word C_u_i_namespaced_symbolp(C_word x)
+{
+  C_word s = C_symbol_name(x);
+  return C_mk_bool(C_memchr(C_data_pointer(s), '#', C_header_size(s)));
+}
 
 inline static C_word C_flonum(C_word **ptr, double n)
 {

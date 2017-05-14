@@ -909,10 +909,13 @@
 ;;; change hook function to hide non-exported module bindings
 
 (set! ##sys#toplevel-definition-hook
-  (lambda (sym mod exp val)
-    (when (and (not val) (not exp))
-      (debugging 'o "hiding nonexported module bindings" sym)
-      (hide-variable sym))))
+  (lambda (sym renamed exported?)
+    (cond ((or (##sys#qualified-symbol? sym) (namespaced-symbol? sym))
+	   (unhide-variable sym))
+	  ((not exported?)
+	   (debugging 'o "hiding unexported module binding" renamed)
+	   (hide-variable renamed)))))
+
 
 ;;; Foreign callback stub and type tables:
 
@@ -1603,6 +1606,9 @@
 
 (define (variable-hidden? sym)
   (eq? (##sys#get sym '##compiler#visibility) 'hidden))
+
+(define (unhide-variable sym)
+  (when (variable-hidden? sym) (remprop! sym '##compiler#visibility)))
 
 (define (variable-visible? sym block-compilation)
   (let ((p (##sys#get sym '##compiler#visibility)))

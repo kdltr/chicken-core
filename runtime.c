@@ -4604,7 +4604,7 @@ C_word C_message(C_word msg)
    * Strictly speaking this isn't necessary for the non-gui-mode,
    * but let's try and keep this consistent across modes.
    */
-  if (memchr(C_c_string(msg), '\0', n) != NULL)
+  if (C_memchr(C_c_string(msg), '\0', n) != NULL)
     barf(C_ASCIIZ_REPRESENTATION_ERROR, "##sys#message", msg);
 
   if(C_gui_mode) {
