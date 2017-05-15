@@ -70,6 +70,10 @@ echo "======================================== compiler inlining tests  ..."
 $compile inlining-tests.scm -optimize-level 3
 ./a.out
 
+echo "======================================== compiler message tests ..."
+$compile -analyze-only messages-test.scm 2>messages.out
+diff $DIFF_OPTS messages.expected messages.out
+
 echo "======================================== optimizer tests  ..."
 $compile clustering-tests.scm -clustering
 ./a.out

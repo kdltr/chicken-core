@@ -1,5 +1,5 @@
 
-Note: (scrutiny-tests.scm:31) - assignment to imported value binding `car'
+Warning: (scrutiny-tests.scm:31) - assignment to imported value binding `car'
 
 Note: in local procedure `c',
   in local procedure `b',

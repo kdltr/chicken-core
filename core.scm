@@ -1108,24 +1108,22 @@
 				     (set! val
 				       `(let ((,var ,val))
 					  (##core#debug-event "C_DEBUG_GLOBAL_ASSIGN" ',var)
-					  ,var))))
-				 (cond ((##sys#macro? var)
-					(warning
-					 (sprintf "~aassigned global variable `~S' is syntax"
-					   (if ln (sprintf "(~a) - " ln) "")
-					   var))
-					(when undefine-shadowed-macros (##sys#undefine-macro! var)))
-				       ((and ##sys#notices-enabled
-					     (assq var (##sys#current-environment)))
-					(##sys#notice
-					 (sprintf "~aassignment to imported value binding `~S'"
-					   (if ln (sprintf "(~a) - " ln) "")
-					   var))))
-				 (when (keyword? var)
-				   (warning
-				    (sprintf "~aassignment to keyword `~S'"
-				      (if ln (sprintf "(~a) - " ln) "")
-				      var)))
+					  ,var)))
+				   ;; We use `var0` instead of `var` because the {macro,current}-environment
+				   ;; are keyed by the raw and unqualified name
+				   (cond ((##sys#macro? var0 se)
+					  (warning
+					   (sprintf "~aassignment to syntax `~S'"
+					    (if ln (sprintf "(~a) - " ln) "") var0))
+					  (when undefine-shadowed-macros (##sys#undefine-macro! var0)))
+					 ((assq var0 (##sys#current-environment))
+					  (warning
+					   (sprintf "~aassignment to imported value binding `~S'"
+					    (if ln (sprintf "(~a) - " ln) "") var0)))
+					 ((keyword? var0)
+					  (warning
+					   (sprintf "~aassignment to keyword `~S'"
+					    (if ln (sprintf "(~a) - " ln) "") var0)))))
 				 `(set! ,var ,(walk val e se var0 (memq var e) h ln #f))))))
 
 			((##core#debug-event)

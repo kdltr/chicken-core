@@ -232,6 +232,8 @@ tests/reverser/tags/1.1/reverser.scm
 tests/rev-app.scm
 tests/user-pass-tests.scm
 tests/version-tests.scm
+tests/messages-test.scm
+tests/messages.expected
 tweaks.scm
 Makefile
 Makefile.android

@@ -42,6 +42,12 @@ if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 
+echo ======================================== compiler message tests ...
+%compile% -analyze-only messages-test.scm 2>messages.out
+if errorlevel 1 exit /b 1
+fc /lb%FCBUFSIZE% /w messages.expected messages.out
+if errorlevel 1 exit /b 1
+
 echo ======================================== optimizer tests  ...
 %compile% clustering-tests.scm -clustering
 if errorlevel 1 exit /b 1
