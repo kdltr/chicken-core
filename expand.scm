@@ -206,17 +206,13 @@
       (and-let* ((l (lookup sym (##sys#macro-environment))))
 	(pair? l))))
 
-(define (##sys#unregister-macro name)
+(define (##sys#undefine-macro! name)
   (##sys#macro-environment
     ;; this builds up stack, but isn't used often anyway...
-    (let loop ((me (##sys#macro-environment)) (me2 '()))
+    (let loop ((me (##sys#macro-environment)))
       (cond ((null? me) '())
 	    ((eq? name (caar me)) (cdr me))
 	    (else (cons (car me) (loop (cdr me))))))))
-
-(define (##sys#undefine-macro! name)
-  (##sys#unregister-macro name) )
-
 
 ;; The basic macro-expander
 
