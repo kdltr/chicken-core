@@ -1115,7 +1115,9 @@
 					  (warning
 					   (sprintf "~aassignment to syntax `~S'"
 					    (if ln (sprintf "(~a) - " ln) "") var0))
-					  (when undefine-shadowed-macros (##sys#undefine-macro! var0)))
+					  (when undefine-shadowed-macros
+					    (##sys#undefine-macro! var0)
+					    (##sys#unregister-syntax-export var0 (##sys#current-module))))
 					 ((assq var0 (##sys#current-environment))
 					  (warning
 					   (sprintf "~aassignment to imported value binding `~S'"

@@ -224,6 +224,12 @@
        mod
        (cons (cons sym val) (module-defined-syntax-list mod))))))
 
+(define (##sys#unregister-syntax-export sym mod)
+  (when mod
+    (set-module-defined-syntax-list!
+     mod
+     (delete sym (module-defined-syntax-list mod) (lambda (x y) (eq? x (car y)))))))
+
 (define (register-undefined sym mod where)
   (when mod
     (let ((ul (module-undefined-list mod)))
