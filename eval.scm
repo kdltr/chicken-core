@@ -59,9 +59,6 @@
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
-(provide* eval) ; TODO remove after a snapshot release
-
-
 ;;; Compile lambda to closure:
 
 (define (eval-decorator p ll h cntr)

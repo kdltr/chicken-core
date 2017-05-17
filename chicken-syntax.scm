@@ -44,8 +44,6 @@
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")
 
-(provide* chicken-syntax) ; TODO remove after snapshot release
-
 ;;; Exceptions:
 (define ##sys#chicken.condition-macro-environment
   (let ((me0 (##sys#macro-environment)))
