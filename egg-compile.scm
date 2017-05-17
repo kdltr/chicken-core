@@ -555,7 +555,7 @@
 
 (define ((install-import-library-source name #!key mode output-file)
          srcdir platform)
-  (let* ((cmd (install-executable-command platform))
+  (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ".import.scm") mode)))
@@ -569,7 +569,7 @@
 
 (define ((install-types-file name #!key mode types-file)
          srcdir platform)
-  (let* ((cmd (install-executable-command platform))
+  (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
          (out (quotearg (conc types-file ".types")))
@@ -583,7 +583,7 @@
 
 (define ((install-inline-file name #!key mode inline-file) 
          srcdir platform)
-  (let* ((cmd (install-executable-command platform))
+  (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
          (out (quotearg (conc inline-file ".inline")))
@@ -592,7 +592,7 @@
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
-          (quotearg (slashify (conc dest "/" inline-file ".types")
+          (quotearg (slashify (conc dest "/" inline-file ".inline")
                               platform)))))
 
 (define ((install-program name #!key mode output-file) srcdir platform)
