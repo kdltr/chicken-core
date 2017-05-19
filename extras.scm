@@ -187,13 +187,6 @@
 (define ##sys#read-string/port read-string/port)
 (define ##sys#read-string!/port read-string!/port)
 
-;; <procedure>(read-buffered [PORT])</procedure>
-;;
-;; Reads any remaining data buffered after previous read operations on
-;; {{PORT}}. If no remaining data is currently buffered, an empty string
-;; is returned. This procedure will never block. Currently only useful for
-;; string-, process- and tcp ports.
-
 (define (read-buffered #!optional (port ##sys#standard-input))
   (##sys#check-input-port port #t 'read-buffered)
   (let ((rb (##sys#slot (##sys#slot port 2) 9))) ; read-buffered method
