@@ -246,36 +246,6 @@ static C_TLS int timezone;
                                      else v = C_flonum_magnitude(x);
 
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-#ifdef BITWISE_UINT_ONLY
-#define C_check_uint(x, f, n, w)    if(((x) & C_FIXNUM_BIT) != 0) n = C_unfix(x); \
-                                     else if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) \
-                                       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, w, x); \
-                                     else { double _m; \
-                                       f = C_flonum_magnitude(x); \
-                                       if(modf(f, &_m) != 0.0 || f < 0 || f > C_UWORD_MAX) \
-                                         barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, w, x); \
-                                       else n = (C_uword)f; \
-                                     }
-#else
-#define C_check_uint(x, f, n, w)    if(((x) & C_FIXNUM_BIT) != 0) n = C_unfix(x); \
-                                      else if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) \
-                                        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, w, x); \
-                                      else { double _m; \
-                                        f = C_flonum_magnitude(x); \
-                                        if(modf(f, &_m) != 0.0 || f > C_UWORD_MAX) \
-                                          barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, w, x); \
-                                        else n = (C_uword)f; \
-                                      }
-#endif
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-#ifdef C_SIXTY_FOUR
-#define C_limit_fixnum(n)            ((n) & C_MOST_POSITIVE_FIXNUM)
-#else
-#define C_limit_fixnum(n)            (n)
-#endif
-
 #define C_pte(name)                  pt[ i ].id = #name; pt[ i++ ].ptr = (void *)name;
 
 #ifndef SIGBUS
@@ -549,8 +519,6 @@ static C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable) C_regpar
 static double compute_symbol_table_load(double *avg_bucket_len, int *total);
 static C_word C_fcall convert_string_to_number(C_char *str, int radix, C_word *fix, double *flo) C_regparm;
 static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-static C_word C_fcall maybe_inexact_to_exact(C_word n) C_regparm;
 static void C_fcall mark_system_globals(void) C_regparm;
 static void C_fcall remark_system_globals(void) C_regparm;
 static void C_fcall really_remark(C_word *x) C_regparm;
@@ -890,7 +858,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
 {
   /* IMPORTANT: hardcoded table size -
      this must match the number of C_pte calls + 1 (NULL terminator)! */
-  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 66);
+  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 64);
   int i = 0;
 
   if(pt == NULL)
@@ -917,15 +885,12 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(C_times);
   C_pte(C_minus);
   C_pte(C_plus);
-  /* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-  C_pte(C_divide);
   C_pte(C_nequalp);
   C_pte(C_greaterp);
   /* IMPORTANT: have you read the comments at the start and the end of this function? */
   C_pte(C_lessp);
   C_pte(C_greater_or_equal_p);
   C_pte(C_less_or_equal_p);
-  C_pte(C_quotient);
   C_pte(C_number_to_string);
   C_pte(C_make_symbol);
   C_pte(C_string_to_symbol);
@@ -5748,38 +5713,6 @@ C_regparm C_word C_fcall C_u_i_length(C_word lst)
   return C_fix(n);
 }
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word maybe_inexact_to_exact(C_word n)
-{
-  double m;
-  C_word r;
-  
-  if(modf(C_flonum_magnitude(n), &m) == 0.0) {
-    r = (C_word)m;
-    
-    if(r == m && C_fitsinfixnump(r))
-      return C_fix(r);
-  }
-  return C_SCHEME_FALSE;
-}
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_i_inexact_to_exact(C_word n)
-{
-  C_word r;
-  
-  if(n & C_FIXNUM_BIT) return n;
-  else if(C_immediatep(n) || C_block_header(n) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "inexact->exact", n);
-
-  r = maybe_inexact_to_exact(n);
-  if (r != C_SCHEME_FALSE) return r;
-
-  barf(C_CANT_REPRESENT_INEXACT_ERROR, "inexact->exact", n);
-  return 0;
-}
-
-
 C_regparm C_word C_fcall C_i_set_car(C_word x, C_word val)
 {
   if(C_immediatep(x) || C_block_header(x) != C_PAIR_TAG)
@@ -5865,17 +5798,6 @@ void C_ccall C_signum(C_word c, C_word *av)
 }
 
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_a_i_abs(C_word **a, int c, C_word x)
-{
-  if(x & C_FIXNUM_BIT) return C_fix(labs(C_unfix(x)));
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "abs", x);
-
-  return C_flonum(a, fabs(C_flonum_magnitude(x)));
-}
-
 /* The maximum this can allocate is a cplxnum which consists of two
  * ratnums that consist of 2 fix bignums each.  So that's
  * C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM * 2 + C_SIZEOF_FIX_BIGNUM * 4 = 29 words!
@@ -5930,50 +5852,6 @@ C_s_a_u_i_integer_negate(C_word **ptr, C_word n, C_word x)
   }
 }
 
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_a_i_bitwise_and(C_word **a, int c, C_word n1, C_word n2)
-{
-  double f1, f2;
-  C_uword nn1, nn2;
-
-  C_check_uint(n1, f1, nn1, "bitwise-and");
-  C_check_uint(n2, f2, nn2, "bitwise-and");
-  nn1 = C_limit_fixnum(nn1 & nn2);
-
-  if(C_ufitsinfixnump(nn1)) return C_fix(nn1);
-  else return C_flonum(a, nn1);
-}
-
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_a_i_bitwise_ior(C_word **a, int c, C_word n1, C_word n2)
-{
-  double f1, f2;
-  C_uword nn1, nn2;
-
-  C_check_uint(n1, f1, nn1, "bitwise-ior");
-  C_check_uint(n2, f2, nn2, "bitwise-ior");
-  nn1 = C_limit_fixnum(nn1 | nn2);
-
-  if(C_ufitsinfixnump(nn1)) return C_fix(nn1);
-  else return C_flonum(a, nn1);
-}
-
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_a_i_bitwise_xor(C_word **a, int c, C_word n1, C_word n2)
-{
-  double f1, f2;
-  C_uword nn1, nn2;
-
-  C_check_uint(n1, f1, nn1, "bitwise-xor");
-  C_check_uint(n2, f2, nn2, "bitwise-xor");
-  nn1 = C_limit_fixnum(nn1 ^ nn2);
-
-  if(C_ufitsinfixnump(nn1)) return C_fix(nn1);
-  else return C_flonum(a, nn1);
-}
 
 /* Faster version that ignores sign in bignums. TODO: Omit labs() too? */
 inline static int integer_length_abs(C_word x)
@@ -6100,19 +5978,6 @@ C_regparm C_word C_fcall C_i_bit_setp(C_word n, C_word i)
       return d;
     }
   }
-}
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_a_i_bitwise_not(C_word **a, int c, C_word n)
-{
-  double f;
-  C_uword nn;
-
-  C_check_uint(n, f, nn, "bitwise-not");
-  nn = C_limit_fixnum(~nn);
-
-  if(C_ufitsinfixnump(nn)) return C_fix(nn);
-  else return C_flonum(a, nn);
 }
 
 C_regparm C_word C_fcall
@@ -6350,65 +6215,6 @@ C_s_a_i_bitwise_not(C_word **ptr, C_word n, C_word x)
     barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-not", x);
   } else {
     return C_s_a_u_i_integer_minus(ptr, 2, C_fix(-1), x);
-  }
-}
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_a_i_arithmetic_shift(C_word **a, int c, C_word n1, C_word n2)
-{
-  C_word nn;
-  C_uword unn;
-  C_word s;
-  int sgn = 1;
-
-  if((n1 & C_FIXNUM_BIT) != 0) {
-    nn = C_unfix(n1);
-
-    if((sgn = nn < 0 ? -1 : 1) >= 0) unn = nn;
-  }
-  else if(C_immediatep(n1) || C_block_header(n1) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "arithmetic-shift", n1);
-  else { 
-    double m, f;
-
-    f = C_flonum_magnitude(n1);
-    
-    if(C_isnan(f) || C_isinf(f) || C_modf(f, &m) != 0.0)
-      barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "arithmetic-shift", n1);
-
-    if(f < C_WORD_MIN || f > C_UWORD_MAX)
-      barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "arithmetic-shift", n1);
-    else if(f < 0) {
-      if(f > C_WORD_MAX)
-	barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "arithmetic-shift", n1);
-      else {
-	sgn = -1;
-	nn = (C_word)f;
-      }
-    }
-    else if(f > C_WORD_MAX) unn = (C_uword)f;
-    else {
-      nn = (C_word)f;
-      sgn = -1;
-    }
-  }
-
-  if((n2 & C_FIXNUM_BIT) != 0) s = C_unfix(n2);
-  else barf(C_BAD_ARGUMENT_TYPE_NO_FIXNUM_ERROR, "arithmetic-shift", n2);
-
-  if(sgn < 0) {
-    if(s < 0) nn >>= -s;
-    else nn = (C_word)((C_uword)nn << s);
-
-    if(C_fitsinfixnump(nn)) return C_fix(nn);
-    else return C_flonum(a, nn);
-  } 
-  else {
-    if(s < 0) unn >>= -s;
-    else unn <<= s;
-  
-    if(C_ufitsinfixnump(unn)) return C_fix(unn);
-    else return C_flonum(a, unn);
   }
 }
 
@@ -7033,7 +6839,6 @@ C_regparm C_word C_fcall C_i_foreign_ranged_integer_argumentp(C_word x, C_word b
   }
 }
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
 C_regparm C_word C_fcall C_i_foreign_unsigned_ranged_integer_argumentp(C_word x, C_word bits)
 {
   if((x & C_FIXNUM_BIT) != 0) {
@@ -7069,83 +6874,6 @@ C_regparm C_word C_fcall C_i_foreign_integer_argumentp(C_word x)
   }
 
   barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, NULL, x);
-  return C_SCHEME_UNDEFINED;
-}
-
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_i_foreign_integer64_argumentp(C_word x)
-{
-  double m, r;
-
-  if((x & C_FIXNUM_BIT) != 0) return x;
-  
-  if(C_truep(C_i_bignump(x))) {
-#ifdef C_SIXTY_FOUR
-    if (C_bignum_size(x) == 1) return x;
-#else
-    if (C_bignum_size(x) <= 2) return x;
-#endif
-    else barf(C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION, NULL, x);
-  }
-
-  /* XXX OBSOLETE: This should be removed on the next round */
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    m = C_flonum_magnitude(x);
-
-    if(m >= C_S64_MIN && m <= C_S64_MAX && C_modf(m, &r) == 0.0) return x;
-  }
-
-  barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, NULL, x);
-  return C_SCHEME_UNDEFINED;
-}
-
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_i_foreign_unsigned_integer_argumentp(C_word x)
-{
-  double m ,r;
-
-  if((x & C_FIXNUM_BIT) != 0) return x;
-
-  if(C_truep(C_i_bignump(x))) {
-    if (C_bignum_size(x) == 1) return x;
-    else barf(C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION, NULL, x);
-  }
-
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    m = C_flonum_magnitude(x);
-
-    if(m >= 0 && m <= C_UWORD_MAX && C_modf(m, &r) == 0.0) return x;
-  }
-
-  barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
-  return C_SCHEME_UNDEFINED;
-}
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_i_foreign_unsigned_integer64_argumentp(C_word x)
-{
-  double m, r;
-
-  if((x & C_FIXNUM_BIT) != 0) return x;
-
-  if(C_truep(C_i_bignump(x))) {
-#ifdef C_SIXTY_FOUR
-    if (C_bignum_size(x) == 1) return x;
-#else
-    if (C_bignum_size(x) <= 2) return x;
-#endif
-    else barf(C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION, NULL, x);
-  }
-
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    m = C_flonum_magnitude(x);
-
-    if(m >= 0 && m <= C_U64_MAX && C_modf(m, &r) == 0.0) return x;
-  }
-
-  barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
   return C_SCHEME_UNDEFINED;
 }
 
@@ -7879,35 +7607,6 @@ void C_ccall C_times(C_word c, C_word *av)
 }
 
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_2_times(C_word **ptr, C_word x, C_word y)
-{
-  C_word iresult;
-
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) {
-      iresult = C_i_o_fixnum_times(x, y);
-
-      if(iresult == C_SCHEME_FALSE)
-	return C_flonum(ptr, (double)C_unfix(x) * (double)C_unfix(y));
-      else return iresult;
-    }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, (double)C_unfix(x) * C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "*", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) 
-      return C_flonum(ptr, C_flonum_magnitude(x) * (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, C_flonum_magnitude(x) * C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "*", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "*", x);
-  /* shutup compiler */
-  return C_flonum(ptr, 0.0/0.0);
-}
-
 static C_word bignum_plus_unsigned(C_word **ptr, C_word x, C_word y, C_word negp)
 {
   C_word size, result;
@@ -8213,35 +7912,6 @@ void C_ccall C_plus(C_word c, C_word *av)
   C_kontinue(k, result);
 }
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_2_plus(C_word **ptr, C_word x, C_word y)
-{
-  C_word iresult;
-
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) {
-      iresult = C_i_o_fixnum_plus(x, y);
-
-      if(iresult == C_SCHEME_FALSE)
-	return C_flonum(ptr, (double)C_unfix(x) + (double)C_unfix(y));
-      else return iresult;
-    }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, (double)C_unfix(x) + C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "+", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) 
-      return C_flonum(ptr, C_flonum_magnitude(x) + (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, C_flonum_magnitude(x) + C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "+", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "+", x);
-  /* shutup compiler */
-  return C_flonum(ptr, 0.0/0.0);
-}
-
 static C_word bignum_minus_unsigned(C_word **ptr, C_word x, C_word y)
 {
   C_word res, size;
@@ -8459,131 +8129,6 @@ void C_ccall C_minus(C_word c, C_word *av)
   }
 }
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_2_minus(C_word **ptr, C_word x, C_word y)
-{
-  C_word iresult;
-
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) {
-      iresult = C_i_o_fixnum_difference(x, y);
-
-      if(iresult == C_SCHEME_FALSE)
-	return C_flonum(ptr, (double)C_unfix(x) - (double)C_unfix(y));
-      else return iresult;
-    }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, (double)C_unfix(x) - C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) 
-      return C_flonum(ptr, C_flonum_magnitude(x) - (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, C_flonum_magnitude(x) - C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", x);
-  /* shutup compiler */
-  return C_flonum(ptr, 0.0/0.0);
-}
-
-
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-void C_ccall C_divide(C_word c, C_word *av)
-{
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    n1, n2,
-    iresult, n3;
-  int fflag;
-  double fresult, f2;
-  C_alloc_flonum;
-
-  if(c < 3) C_bad_min_argc(c, 3);
-
-  n1 = av[ 2 ];
-
-  if(n1 & C_FIXNUM_BIT) {
-    iresult = C_unfix(n1);
-    fflag = 0;
-  }
-  else if(!C_immediatep(n1) && C_block_header(n1) == C_FLONUM_TAG) {
-    fresult = C_flonum_magnitude(n1);
-    fflag = 1;
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", n1);
-
-  if(c == 3) {
-    if(fflag) {
-      if(fresult == 0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-      fresult = 1.0 / fresult;
-    }
-    else {
-      if(iresult == 0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
-      else if(iresult == 1) C_kontinue(k, C_fix(1));
-
-      fresult = 1.0 / (double)iresult;
-      fflag = 1;
-    }
-
-    goto cont;
-  }
-
-  c -= 3;
-  av += 3;
-
-  while(c--) {
-    n1 = *(av++);
-    
-    if(n1 & C_FIXNUM_BIT) {
-      if(fflag) {
-	if((n1 = C_unfix(n1)) == 0) 
-	  barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-	fresult /= n1;
-      }
-      else {
-	if((n2 = C_unfix(n1)) == 0)
-	  barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-	n3 = iresult / n2;
-
-	if((fresult = (double)iresult / (double)n2) != n3)
-	  fflag = 1;
-	else iresult = n3;
-      }
-    }
-    else if(!C_immediatep(n1) && C_block_header(n1) == C_FLONUM_TAG) {
-      if(fflag) {
-	if((f2 = C_flonum_magnitude(n1)) == 0)
-	  barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-	fresult /= f2;
-      }
-      else {
-	fflag = 1;
-
-	if((f2 = C_flonum_magnitude(n1)) == 0)
-	  barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-	fresult = (double)iresult / f2;
-      }
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", n1);
-  }
-
- cont:
-  if(fflag) {
-    C_kontinue_flonum(k, fresult);
-  }
-  else n1 = C_fix(iresult);
-
-  C_kontinue(k, n1);
-}
 
 static C_regparm void
 integer_divrem(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r)
@@ -9181,52 +8726,6 @@ bignum_divide_unsigned(C_word **ptr, C_word num, C_word denom, C_word *q, C_word
   } else {
     *r = remainder;
   }
-}
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_2_divide(C_word **ptr, C_word x, C_word y)
-{
-  C_word iresult;
-  double fresult;
-  int fflag = 0;
-
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) {
-      if((iresult = C_unfix(y)) == 0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-      fresult = (double)C_unfix(x) / (double)iresult;
-      iresult = C_unfix(x) / iresult;
-    }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG) {
-      if((fresult = C_flonum_magnitude(y)) == 0.0)
-	barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-      fresult = (double)C_unfix(x) / fresult;
-      fflag = 1;
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    fflag = 1;
-
-    if(y & C_FIXNUM_BIT) {
-      fresult = C_flonum_magnitude(x);
-
-      if((iresult = C_unfix(y)) == 0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-      fresult = fresult / (double)iresult;
-    }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG) {
-      if((fresult = C_flonum_magnitude(y)) == 0.0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
-      
-      fresult = C_flonum_magnitude(x) / fresult;
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", x);
-
-  if(fflag || (double)iresult != fresult) return C_flonum(ptr, fresult);
-  else return C_fix(iresult);
 }
 
 /* Compare two numbers as ratnums.  Either may be rat-, fix- or bignums */
@@ -10694,205 +10193,6 @@ C_s_a_u_i_integer_gcd(C_word **ptr, C_word n, C_word x, C_word y)
    return newx;
 }
 
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-void C_ccall C_quotient(C_word c, C_word *av)
-{
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    n1, n2;
-  double f1, f2, r;
-  C_word result;
-  C_alloc_flonum;
-
-  if(c != 4) C_bad_argc(c, 4);
-
-  n1 = av[ 2 ];
-  n2 = av[ 3 ];
-
-  if(n1 &C_FIXNUM_BIT) {
-    if(n2 &C_FIXNUM_BIT) {
-      if((n2 = C_unfix(n2)) == 0)
-	barf(C_DIVISION_BY_ZERO_ERROR, "quotient");
-      
-      result = C_fix(C_unfix(n1) / n2);
-      C_kontinue(k, result);
-    }
-    else if(!C_immediatep(n2) && C_block_header(n2) == C_FLONUM_TAG) {
-      f1 = (double)C_unfix(n1);
-      f2 = C_flonum_magnitude(n2);
-      if(C_isnan(f2) || C_isinf(f2) || C_modf(f2, &r) != 0.0)
-        barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient", n2);
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "quotient", n2);
-  }
-  else if(!C_immediatep(n1) && C_block_header(n1) == C_FLONUM_TAG) {
-    f1 = C_flonum_magnitude(n1);
-    if(C_isnan(f1) || C_isinf(f1) || C_modf(f1, &r) != 0.0)
-      barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient", n1);
-
-    if(n2 &C_FIXNUM_BIT)
-      f2 = (double)C_unfix(n2);
-    else if(!C_immediatep(n2) && C_block_header(n2) == C_FLONUM_TAG) {
-      f2 = C_flonum_magnitude(n2);
-      if(C_isnan(f2) || C_isinf(f2) || C_modf(f2, &r) != 0.0)
-        barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient", n2);
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "quotient", n2);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "quotient", n1);
-
-  if(f2 == 0)
-    barf(C_DIVISION_BY_ZERO_ERROR, "quotient");
-
-  modf(f1 / f2, &r);
-  C_kontinue_flonum(k, r);
-}
-
-
-/* TODO OBSOLETE XXX: This needs to go, but still translated by c-platform */
-C_regparm C_word C_fcall
-C_a_i_string_to_number(C_word **a, int c, C_word str, C_word radix0)
-{
-  int radix, radixpf = 0, sharpf = 0, ratf = 0, exactf = 0, exactpf = 0, periodf = 0, expf = 0;
-  C_word n1, n;
-  C_char *sptr, *eptr, *rptr;
-  double fn1, fn;
-
-  if(radix0 & C_FIXNUM_BIT) radix = C_unfix(radix0);
-  else barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "string->number", radix0);
-
-  if (radix < 2 || radix > 36) /* Makes no sense and isn't supported */
-    barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "string->number", radix0);
-
-  if(C_immediatep(str) || C_header_bits(str) != C_STRING_TYPE)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "string->number", str);
-
-  if((n = C_header_size(str)) == 0) {
-  fail:
-    n = C_SCHEME_FALSE;
-    goto fini;
-  }
-
-  if(n >= STRING_BUFFER_SIZE - 1) goto fail;
-
-  C_memcpy(sptr = buffer, C_c_string(str), n > (STRING_BUFFER_SIZE - 1) ? STRING_BUFFER_SIZE : n);
-  buffer[ n ] = '\0';
-  if (n != strlen(buffer)) /* Don't barf; this is simply invalid number syntax */
-    goto fail;
-  
-  while(*sptr == '#') {
-    switch(C_tolower((int)*(++sptr))) {
-    case 'b': if(radixpf) goto fail; else { radix = 2; radixpf = 1; } break;
-    case 'o': if(radixpf) goto fail; else { radix = 8; radixpf = 1; } break;
-    case 'd': if(radixpf) goto fail; else { radix = 10; radixpf = 1; } break;
-    case 'x': if(radixpf) goto fail; else { radix = 16; radixpf = 1; } break;
-    case 'e': if(exactpf) goto fail; else { exactf = 1; exactpf = 1; } break;
-    case 'i': if(exactpf) goto fail; else { exactf = 0; exactpf = 1; } break;
-    default: goto fail;  /* Unknown prefix type */
-    }
-
-    ++sptr;
-  }
-  
-  /* Scan for embedded special characters and do basic sanity checking: */
-  for(eptr = sptr, rptr = sptr; *eptr != '\0'; ++eptr) {
-    switch(C_tolower((int)*eptr)) {
-    case '.': 
-      if(periodf || ratf || expf) goto fail;
-      
-      periodf = 1;
-      break;
-
-    case '#':
-      if (expf || (eptr == rptr) ||
-	  (!sharpf && (eptr == rptr+1) && (C_strchr("+-.", *rptr) != NULL)))
-        goto fail;
-      
-      sharpf = 1;
-      *eptr = '0';
-      
-      break;
-    case '/':
-      if(periodf || ratf || expf || eptr == sptr) goto fail;
-      
-      sharpf = 0; /* Allow sharp signs in the denominator */
-      ratf = 1;
-      rptr = eptr+1;
-      break;
-    case 'e':
-    case 'd':
-    case 'f':
-    case 'l':
-    case 's':
-      /* Don't set exp flag if we see the "f" in "inf.0" (preceded by 'n') */
-      /* Other failure modes are handled elsewhere. */
-      if(radix == 10 && eptr > sptr && C_tolower((int)*(eptr-1)) != 'n') {
-        if (ratf) goto fail;
-	
-        expf = 1;
-	sharpf = 0;
-	*eptr = 'e'; /* strtod() normally only understands 'e', not dfls */
-      }
-      break;
-    default:
-      if(sharpf) goto fail;
-      break;
-    }
-  }
-  if (eptr == rptr) goto fail; /* Disallow "empty" numbers like "#x" and "1/" */
-  
-  /* check for rational representation: */
-  if(rptr != sptr) {
-    if (*(rptr) == '-' || *(rptr) == '+') {
-      n = C_SCHEME_FALSE;
-      goto fini;
-    }
-    *(rptr-1) = '\0';
-
-    switch(convert_string_to_number(sptr, radix, &n1, &fn1)) {
-    case 0:
-      n = C_SCHEME_FALSE;
-      goto fini;
-
-    case 1:
-      fn1 = (double)n1;
-      break;
-
-      /* case 2: nop */
-    }
-
-    sptr = rptr;
-  }    
-  
-  /* convert number and return result: */
-  switch(convert_string_to_number(sptr, radix, &n, &fn)) {
-  case 0: 			/* failed */
-    n = C_SCHEME_FALSE;
-    break;
-
-  case 1:			/* fixnum */
-    if(sharpf || ratf || (exactpf && !exactf)) {
-      n = C_flonum(a, ratf ? fn1 / (double)n : (double)n);
-
-      if(exactpf && exactf) n = maybe_inexact_to_exact(n);
-    }
-    else n = C_fix(n);
-
-    break;
-
-  case 2:			/* flonum */
-    n = C_flonum(a, ratf ? fn1 / fn : fn);
-
-    if(exactpf && exactf) n = maybe_inexact_to_exact(n);
-
-    break;
-  }
-
- fini:
-  return n;
-}
 
 C_regparm C_word C_fcall
 C_s_a_i_digits_to_integer(C_word **ptr, C_word n, C_word str, C_word start, C_word end, C_word radix, C_word negp)

@@ -802,7 +802,7 @@
    ;;           -> (##core#inline "C_fixnum_shift_right" <x> -<int>)
    ;; (arithmetic-shift <x> <+int>)
    ;;           -> (##core#inline "C_fixnum_shift_left" <x> <int>)
-   ;; _ -> (##core#inline "C_a_i_arithmetic_shift" <x> <y>)
+   ;; _ -> (##core#inline "C_i_fixnum_arithmetic_shift" <x> <y>)
    ;;
    ;; not in fixnum-mode:
    ;; _ -> (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 6) <x> <y>)

@@ -1364,8 +1364,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_pointer_eqp(x, y)             C_mk_bool(C_c_pointer_nn(x) == C_c_pointer_nn(y))
 #define C_a_int_to_num(ptr, n, i)       C_int_to_num(ptr, i)
 #define C_a_unsigned_int_to_num(ptr, n, i)  C_unsigned_int_to_num(ptr, i)
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-backend.scm */
-#define C_a_double_to_num(ptr, n)       C_double_to_number(C_flonum(ptr, n))
 #define C_a_i_vector                    C_vector
 #define C_list                          C_a_i_list
 #define C_i_setslot(x, i, y)            (C_mutate2(&C_block_item(x, C_unfix(i)), y), C_SCHEME_UNDEFINED)
@@ -1425,12 +1423,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_u_i_cddadr(x)                 C_u_i_cdr( C_u_i_cdadr( x ) )
 #define C_u_i_cdddar(x)                 C_u_i_cdr( C_u_i_cddar( x ) )
 #define C_u_i_cddddr(x)                 C_u_i_cdr( C_u_i_cdddr( x ) )
-
-/* XXX TODO OBSOLETE: These 4 can be removed after recompiling c-platform.scm */
-#define C_a_i_times( ptr, n, x, y)      C_2_times( ptr, x, y)
-#define C_a_i_plus(  ptr, n, x, y)      C_2_plus(  ptr, x, y)
-#define C_a_i_minus( ptr, n, x, y)      C_2_minus( ptr, x, y)
-#define C_a_i_divide(ptr, n, x, y)      C_2_divide(ptr, x, y)
 
 #ifdef HAVE_STATEMENT_EXPRESSIONS
 # define C_i_not_pair_p(x)              ({C_word tmp = (x); C_mk_bool(C_immediatep(tmp) || C_block_header(tmp) != C_PAIR_TAG);})
@@ -1910,8 +1902,6 @@ C_fctexport C_cpsproc(C_u_call_with_values) C_noret;
 C_fctexport C_cpsproc(C_times) C_noret;
 C_fctexport C_cpsproc(C_plus) C_noret;
 C_fctexport C_cpsproc(C_minus) C_noret;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_cpsproc(C_divide) C_noret;
 C_fctexport C_cpsproc(C_quotient_and_remainder) C_noret;
 C_fctexport C_cpsproc(C_u_integer_quotient_and_remainder) C_noret;
 C_fctexport C_cpsproc(C_bitwise_and) C_noret;
@@ -1928,8 +1918,6 @@ C_fctexport C_cpsproc(C_open_file_port) C_noret;
 C_fctexport C_cpsproc(C_allocate_vector) C_noret;
 C_fctexport C_cpsproc(C_string_to_symbol) C_noret;
 C_fctexport C_cpsproc(C_build_symbol) C_noret;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_cpsproc(C_quotient) C_noret;
 C_fctexport C_cpsproc(C_number_to_string) C_noret;
 C_fctexport C_cpsproc(C_fixnum_to_string) C_noret;
 C_fctexport C_cpsproc(C_flonum_to_string) C_noret;
@@ -1973,8 +1961,6 @@ C_fctexport C_word C_a_i_string(C_word **a, int c, ...);
 C_fctexport C_word C_a_i_record(C_word **a, int c, ...);
 C_fctexport C_word C_a_i_port(C_word **a, int c);
 C_fctexport C_word C_fcall C_a_i_bytevector(C_word **a, int c, C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_a_i_abs(C_word **a, int c, C_word n) C_regparm;
 C_fctexport C_word C_fcall C_i_listp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_string_equal_p(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_string_ci_equal_p(C_word x, C_word y) C_regparm;
@@ -2030,8 +2016,6 @@ C_fctexport C_word C_fcall C_i_memv(C_word x, C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_i_member(C_word x, C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_i_length(C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_u_i_length(C_word lst) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_i_inexact_to_exact(C_word n) C_regparm;
 C_fctexport C_word C_fcall C_i_check_closure_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_fixnum_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_exact_2(C_word x, C_word loc) C_regparm;
@@ -2048,14 +2032,6 @@ C_fctexport C_word C_fcall C_i_check_vector_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_structure_2(C_word x, C_word st, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_char_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_port_2(C_word x, C_word in, C_word op, C_word loc) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_2_times(C_word **ptr, C_word x, C_word y) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_2_plus(C_word **ptr, C_word x, C_word y) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_2_minus(C_word **ptr, C_word x, C_word y) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_2_divide(C_word **ptr, C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_bignum_cmp(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_nequalp(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_equalp(C_word x, C_word y) C_regparm;
@@ -2080,18 +2056,8 @@ C_fctexport C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc) C_r
 C_fctexport C_word C_fcall C_i_locative_set(C_word loc, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_locative_to_object(C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_word object, C_word index, C_word weak) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_a_i_bitwise_and(C_word **a, int c, C_word n1, C_word n2) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_a_i_bitwise_ior(C_word **a, int c, C_word n1, C_word n2) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_a_i_bitwise_not(C_word **a, int c, C_word n1) C_regparm;
 C_fctexport C_word C_fcall C_i_bit_setp(C_word n, C_word i) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_length(C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_a_i_bitwise_xor(C_word **a, int c, C_word n1, C_word n2) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_a_i_arithmetic_shift(C_word **a, int c, C_word n1, C_word n2) C_regparm;
 C_fctexport C_word C_fcall C_a_i_exp(C_word **a, int c, C_word n) C_regparm;
 C_fctexport C_word C_fcall C_a_i_log(C_word **a, int c, C_word n) C_regparm;
 C_fctexport C_word C_fcall C_a_i_sin(C_word **a, int c, C_word n) C_regparm;
@@ -2131,8 +2097,6 @@ C_fctexport C_word C_fcall C_i_tty_forcedp(void) C_regparm;
 
 
 C_fctexport C_word C_fcall C_a_i_cpu_time(C_word **a, int c, C_word buf) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_a_i_string_to_number(C_word **a, int c, C_word str, C_word radix) C_regparm;
 C_fctexport C_word C_fcall C_a_i_exact_to_inexact(C_word **a, int c, C_word n) C_regparm;
 C_fctexport C_word C_fcall C_i_file_exists_p(C_word name, C_word file, C_word dir) C_regparm;
 
@@ -2173,12 +2137,6 @@ C_fctexport C_word C_fcall C_i_foreign_pointer_argumentp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_foreign_scheme_or_c_pointer_argumentp(C_word x) C_regparm;
 /* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
 C_fctexport C_word C_fcall C_i_foreign_integer_argumentp(C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_i_foreign_unsigned_integer_argumentp(C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_i_foreign_integer64_argumentp(C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_i_foreign_unsigned_integer64_argumentp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_foreign_ranged_integer_argumentp(C_word x, C_word bits) C_regparm;
 C_fctexport C_word C_fcall C_i_foreign_unsigned_ranged_integer_argumentp(C_word x, C_word bits) C_regparm;
 
@@ -2281,25 +2239,6 @@ inline static C_word C_string_to_pbytevector(C_word s)
   return C_pbytevector(C_header_size(s), (C_char *)C_data_pointer(s));
 }
 
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-inline static C_word C_flonum_in_fixnum_range_p(C_word n)
-{
-  double f = C_flonum_magnitude(n);
-
-  return C_mk_bool(f <= (double)C_MOST_POSITIVE_FIXNUM && f >= (double)C_MOST_NEGATIVE_FIXNUM);
-}
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-backend.scm */
-inline static C_word C_double_to_number(C_word n)
-{
-  double m, f = C_flonum_magnitude(n);
-
-  if(f <= (double)C_MOST_POSITIVE_FIXNUM
-     && f >= (double)C_MOST_NEGATIVE_FIXNUM && C_modf(f, &m) == 0.0) 
-    return C_fix(f);
-  else return n;
-}
 
 inline static C_word C_a_i_record1(C_word **ptr, int n, C_word x1)
 {
@@ -2497,25 +2436,7 @@ inline static C_word C_i_bignump(C_word x)
 
 
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-inline static C_word C_fits_in_int_p(C_word x)
-{
-  double n, m;
-
-  if(x & C_FIXNUM_BIT) return C_SCHEME_TRUE;
-
-  if(C_truep(C_i_bignump(x))) {
-    return C_mk_bool(C_bignum_size(x) == 1 &&
-                     (!C_bignum_negativep(x) ||
-                      !(C_bignum_digits(x)[0] & C_INT_SIGN_BIT)));
-  }
-
-  n = C_flonum_magnitude(x);
-  return C_mk_bool(C_modf(n, &m) == 0.0 && n >= C_WORD_MIN && n <= C_WORD_MAX);
-}
-
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
+/* XXX TODO OBSOLETE (but still used by C_flonum_to_string) */
 inline static C_word C_fits_in_unsigned_int_p(C_word x)
 {
   double n, m;
@@ -2523,7 +2444,6 @@ inline static C_word C_fits_in_unsigned_int_p(C_word x)
   if(x & C_FIXNUM_BIT) return C_SCHEME_TRUE;
   if(C_truep(C_i_bignump(x))) return C_mk_bool(C_bignum_size(x) == 1);
 
-  /* XXX OBSOLETE remove on the next round, remove check above */
   n = C_flonum_magnitude(x);
   return C_mk_bool(C_modf(n, &m) == 0.0 && n >= 0 && n <= C_UWORD_MAX);
 }
