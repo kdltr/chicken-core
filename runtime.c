@@ -517,7 +517,7 @@ static C_word C_fcall hash_string(int len, C_char *str, C_word m, C_word r, int 
 static C_word C_fcall lookup(C_word key, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
 static C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable) C_regparm;
 static double compute_symbol_table_load(double *avg_bucket_len, int *total);
-static C_word C_fcall convert_string_to_number(C_char *str, int radix, C_word *fix, double *flo) C_regparm;
+static double C_fcall decode_flonum_literal(C_char *str) C_regparm;
 static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
 static void C_fcall mark_system_globals(void) C_regparm;
 static void C_fcall remark_system_globals(void) C_regparm;
@@ -10297,93 +10297,32 @@ str_to_bignum(C_word bignum, char *str, char *str_end, int radix)
   return C_bignum_simplify(bignum);
 }
 
-static int from_n_nary(C_char *str, int base, double *r)
+
+static C_regparm double C_fcall decode_flonum_literal(C_char *str)
 {
-  double n = 0;
-  C_char *ptr = str;
-
-  while(*ptr != '\0') {
-    int c = C_tolower((int)(*(ptr++)));
-
-    if(c < '0') return 0;
-    else if(c >= '0' + base) {
-      if(base < 10) return 0;
-      else if(c < 'a') return 0;
-      else if(c >= 'a' + base - 10) return 0;
-      else n = n * base + c - 'a' + 10;
-    }
-    else n = n * base + c - '0';
-  }
-
-  *r = n;
-  return 1;
-}
-
-
-/* TODO OBSOLETE XXX: This needs to go, but still used in decode_literal */
-C_regparm C_word C_fcall convert_string_to_number(C_char *str, int radix, C_word *fix, double *flo)
-{
-  C_ulong ln;
-  C_word n;
-  C_char *eptr, *eptr2;
-  double fn;
+  C_char *eptr;
+  double flo;
   int len = C_strlen(str);
 
-  if(radix == 10) {
-    if (len == 6) {
-      if((*str == '+' || *str == '-') &&
-         C_strchr("inIN", *(str+1)) != NULL &&
-         C_strchr("naNA", *(str+2)) != NULL &&
-         C_strchr("fnFN", *(str+3)) != NULL &&
-         *(str+4) == '.' && *(str+5) == '0') {
-        if (*(str+1) == 'i' || *(str+1) == 'I')   /* Inf */
-          *flo = 1.0/0.0;
-        else                                      /* NaN */
-          *flo = 0.0/0.0;
-        if (*str == '-')
-          *flo *= -1.0;
-        return 2;
-      }
-    }
-    /* Prevent C parser from accepting things like "-inf" on its own... */
-    for(n = 0; n < len; ++n) {
-      if (C_strchr("+-0123456789e.", *(str+n)) == NULL)
-        return 0;
-    }
+  /* We only need to be able to parse what C_flonum_to_string() emits,
+   * so we avoid too much error checking.
+   */
+  if (len == 6) { /* Only perform comparisons when necessary */
+    if (!C_strcmp(str, "-inf.0")) return -1.0 / 0.0;
+    if (!C_strcmp(str, "+inf.0")) return 1.0 / 0.0;
+    if (!C_strcmp(str, "+nan.0")) return 0.0 / 0.0;
   }
-
-  if(C_strpbrk(str, "xX\0") != NULL) return 0;
 
   errno = 0;
-  n = C_strtow(str, &eptr, radix);
-  
-  if(((n == C_LONG_MAX || n == C_LONG_MIN) && errno != 0) || *eptr != '\0') {
-    if(radix != 10)
-      return from_n_nary(str, radix, flo) ? 2 : 0;
+  flo = C_strtod(str, &eptr);
 
-    errno = 0;
-    fn = C_strtod(str, &eptr2);
+  if((flo == HUGE_VAL && errno != 0) ||
+     (flo == -HUGE_VAL && errno != 0) ||
+     (*eptr != '\0' && C_strcmp(eptr, ".0") != 0)) {
+    panic(C_text("could not decode flonum literal"));
+  }
 
-    if((fn == HUGE_VAL && errno != 0) || fn == -HUGE_VAL) return 0;
-    else if(eptr2 == str) return 0;
-    else if(*eptr2 == '\0' || (eptr != eptr2 && !C_strncmp(eptr2, ".0", C_strlen(eptr2)))) {
-      *flo = fn;
-      return 2;
-    }
-
-    return 0;
-  }
-  else if((n & C_INT_SIGN_BIT) != (((C_uword)n << 1) & C_INT_SIGN_BIT)) { /* doesn't fit into fixnum? */
-    if(*eptr == '\0' || !C_strncmp(eptr, ".0", C_strlen(eptr))) {
-      *flo = (double)n;
-      return 2;
-    }
-    else return 0;
-  }
-  else {
-    *fix = n;
-    return 1;
-  }
+  return flo;
 }
 
 
@@ -11941,14 +11880,6 @@ static C_regparm C_word C_fcall decode_literal2(C_word **ptr, C_char **str,
       return C_fix(val); 
 
 #ifdef C_SIXTY_FOUR
-    case (C_FLONUM_TYPE >> (24 + 32)) & 0xff:
-#else
-    case (C_FLONUM_TYPE >> 24) & 0xff:
-#endif
-      bits = C_FLONUM_TYPE;
-      break;
-
-#ifdef C_SIXTY_FOUR
     case ((C_STRING_TYPE | C_GC_FORWARDING_BIT) >> (24 + 32)) & 0xff:
 #else
     case ((C_STRING_TYPE | C_GC_FORWARDING_BIT) >> 24) & 0xff:
@@ -11970,35 +11901,14 @@ static C_regparm C_word C_fcall decode_literal2(C_word **ptr, C_char **str,
 
   val = (C_word)(*ptr);
 
+  if((bits & C_SPECIALBLOCK_BIT) != 0)
+    panic(C_text("literals with special bit cannot be decoded"));
+
   if(bits == C_FLONUM_TYPE) {
-    C_word ln;
-    double fn;
-
-    switch (convert_string_to_number(*str, 10, &ln, &fn)) {
-    case 0: 			/* failed */
-      panic(C_text("invalid encoded numeric literal"));
-      break;
-
-    /* XXX OBSOLETE: remove when we get rid of convert_string_to_number,
-     * which can be done after recompilation when we know bignums are
-     * always encoded as bignums.  Then this can be moved to the switch()
-     * below.
-     */
-    case 1:			/* fixnum */
-      val = C_fix(ln);
-      break;
-
-    case 2:			/* flonum */
-      val = C_flonum(ptr, fn);
-      break;
-    }
-
+    val = C_flonum(ptr, decode_flonum_literal(*str));
     while(*((*str)++) != '\0');      /* skip terminating '\0' */
     return val;
   }
-
-  if((bits & C_SPECIALBLOCK_BIT) != 0)
-    panic(C_text("literals with special bit cannot be decoded"));
 
   size = decode_size(str);
 
