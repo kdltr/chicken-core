@@ -183,6 +183,9 @@
 (define chicken.io#read-string/port read-string/port)
 (define chicken.io#read-string!/port read-string!/port)
 
+;; XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm
+(define ##sys#read-string/port read-string/port)
+(define ##sys#read-string!/port read-string!/port)
 
 ;; <procedure>(read-buffered [PORT])</procedure>
 ;;
