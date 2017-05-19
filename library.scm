@@ -1396,23 +1396,17 @@ EOF
 (define (log a #!optional b)
   (if b (##sys#/-2 (##sys#log-1 a) (##sys#log-1 b)) (##sys#log-1 a)))
 
-;; OBSOLETE: These can be removed after integration into core and
-;; bootstrapping, when the compiler can write these objects natively.
-(define %i (make-complex 0 1))
-(define %-i (make-complex 0 -1))
-(define %i2 (make-complex 0 2))
-
 (define (sin n)
   (##sys#check-number n 'sin)
   (if (cplxnum? n)
-      (let ((in (* %i n)))
-	(##sys#/-2 (- (exp in) (exp (- in))) %i2))
+      (let ((in (* +i n)))
+	(##sys#/-2 (- (exp in) (exp (- in))) +2i))
       (##core#inline_allocate ("C_a_i_sin" 4) (exact->inexact n))))
 
 (define (cos n)
   (##sys#check-number n 'cos)
   (if (cplxnum? n)
-      (let ((in (* %i n)))
+      (let ((in (* +i n)))
 	(##sys#/-2 (+ (exp in) (exp (- in))) 2) )
       (##core#inline_allocate ("C_a_i_cos" 4) (exact->inexact n))))
 
@@ -1432,9 +1426,9 @@ EOF
                                  (##core#inline_allocate
                                   ("C_a_i_fix_to_flo" 4) n)))
         ;; General definition can return compnums
-        (else (* %-i (##sys#log-1
-		      (+ (* %i n)
-			 (##sys#sqrt/loc 'asin (- 1 (* n n)))))))))
+        (else (* -i (##sys#log-1
+		     (+ (* +i n)
+			(##sys#sqrt/loc 'asin (- 1 (* n n)))))))))
 
 ;; General case:
 ;; cos^{-1}(z) = 1/2\pi + i\ln(iz + \sqrt{1-z^2}) = 1/2\pi - sin^{-1}(z) = sin(1) - sin(z)
@@ -1456,9 +1450,9 @@ EOF
   (cond ((cplxnum? n)
 	 (if b
 	     (##sys#error-bad-real n 'atan)
-	     (let ((in (* %i n)))
+	     (let ((in (* +i n)))
 	       (##sys#/-2 (- (##sys#log-1 (+ 1 in))
-			     (##sys#log-1 (- 1 in))) %i2))))
+			     (##sys#log-1 (- 1 in))) +2i))))
         (b
 	 (##core#inline_allocate
 	  ("C_a_i_atan2" 4) (exact->inexact n) (exact->inexact b)))
