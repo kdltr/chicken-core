@@ -28,7 +28,7 @@
   (import (scheme))
   (import (chicken))
   (import (chicken data-structures)
-	  (chicken files)
+	  (chicken file)
 	  (chicken foreign)
 	  (chicken format)
 	  (chicken irregex)

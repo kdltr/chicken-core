@@ -954,7 +954,6 @@
 (##sys#register-module-alias 'eval 'chicken.eval)
 (##sys#register-module-alias 'expand 'chicken.expand)
 (##sys#register-module-alias 'file 'chicken.file)
-(##sys#register-module-alias 'files 'chicken.files)
 (##sys#register-module-alias 'fixnum 'chicken.fixnum)
 (##sys#register-module-alias 'flonum 'chicken.flonum)
 (##sys#register-module-alias 'foreign 'chicken.foreign)

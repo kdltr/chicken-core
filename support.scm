@@ -27,7 +27,7 @@
 
 (declare (unit support)
 	 (not inline ##sys#user-read-hook) ; XXX: Is this needed?
-	 (uses data-structures extras files internal pathname port))
+	 (uses data-structures extras file internal pathname port))
 
 (module chicken.compiler.support
     (compiler-cleanup-hook bomb collected-debugging-output debugging
@@ -80,7 +80,7 @@
 	chicken.condition
 	chicken.data-structures
 	chicken.expand
-	chicken.files
+	chicken.file
 	chicken.foreign
 	chicken.format
 	chicken.internal

@@ -1,7 +1,8 @@
 ;;;; makedist.scm - Make distribution tarballs
 
 
-(use data-structures files irregex posix
+(use data-structures irregex posix
+     (chicken file)
      (chicken format)
      (chicken io)
      (chicken pathname)

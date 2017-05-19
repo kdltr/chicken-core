@@ -1595,13 +1595,13 @@
 (chicken.random#random (#(procedure #:clean #:enforce) chicken.random#random (fixnum) fixnum))
 (chicken.random#randomize (#(procedure #:clean #:enforce) chicken.random#randomize (#!optional fixnum) undefined))
 
-;; files
+;; file
 
-(chicken.files#create-temporary-directory (#(procedure #:clean #:enforce) chicken.files#create-temporary-directory () string))
-(chicken.files#create-temporary-file (#(procedure #:clean #:enforce) chicken.files#create-temporary-file (#!optional string) string))
-(chicken.files#delete-file* (#(procedure #:clean #:enforce) chicken.files#delete-file* (string) *))
-(chicken.files#file-copy (#(procedure #:clean #:enforce) chicken.files#file-copy (string string #!optional * fixnum) fixnum))
-(chicken.files#file-move (#(procedure #:clean #:enforce) chicken.files#file-move (string string #!optional * fixnum) fixnum))
+(chicken.file#create-temporary-directory (#(procedure #:clean #:enforce) chicken.file#create-temporary-directory () string))
+(chicken.file#create-temporary-file (#(procedure #:clean #:enforce) chicken.file#create-temporary-file (#!optional string) string))
+(chicken.file#delete-file* (#(procedure #:clean #:enforce) chicken.file#delete-file* (string) *))
+(chicken.file#file-copy (#(procedure #:clean #:enforce) chicken.file#file-copy (string string #!optional * fixnum) fixnum))
+(chicken.file#file-move (#(procedure #:clean #:enforce) chicken.file#file-move (string string #!optional * fixnum) fixnum))
 
 ;; pathname
 

@@ -1,4 +1,4 @@
-(require-extension data-structures files flonum format io port posix srfi-4 tcp)
+(require-extension data-structures file flonum format io port posix srfi-4 tcp)
 
 (include "test.scm")
 (test-begin)

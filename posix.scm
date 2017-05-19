@@ -35,7 +35,7 @@
 
 (declare
   (unit posix)
-  (uses scheduler irregex pathname extras files port lolevel)
+  (uses scheduler irregex pathname extras port lolevel)
   (disable-interrupts)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
 

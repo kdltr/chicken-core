@@ -35,9 +35,9 @@ VPATH=$(SRCDIR)
 
 LIBCHICKEN_SCHEME_OBJECTS_1 = \
        library eval read-syntax repl data-structures pathname port file \
-       files extras lolevel tcp srfi-4 continuation $(POSIXFILE) \
-       internal irregex scheduler debugger-client profiler stub expand \
-       modules chicken-syntax chicken-ffi-syntax build-version
+       extras lolevel tcp srfi-4 continuation $(POSIXFILE) internal \
+       irregex scheduler debugger-client profiler stub expand modules \
+       chicken-syntax chicken-ffi-syntax build-version
 LIBCHICKEN_OBJECTS_1 = $(LIBCHICKEN_SCHEME_OBJECTS_1) runtime
 LIBCHICKEN_SHARED_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=$(O))
 LIBCHICKEN_STATIC_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=-static$(O))
@@ -605,7 +605,7 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.condition.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.expand.import.scm \
-		chicken.files.import.scm \
+		chicken.file.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
 		chicken.internal.import.scm \
@@ -658,6 +658,7 @@ chicken-profile.c: chicken-profile.scm \
 		chicken.posix.import.scm
 chicken-status.c: chicken-status.scm \
 		chicken.data-structures.import.scm \
+		chicken.file.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
 		chicken.irregex.import.scm \
@@ -668,7 +669,7 @@ chicken-status.c: chicken-status.scm \
 chicken-install.c: chicken-install.scm \
 		chicken.condition.import.scm \
 		chicken.data-structures.import.scm \
-		chicken.files.import.scm \
+		chicken.file.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
@@ -680,6 +681,7 @@ chicken-install.c: chicken-install.scm \
 		chicken.tcp.import.scm
 chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.data-structures.import.scm \
+		chicken.file.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
 		chicken.irregex.import.scm \
@@ -735,14 +737,10 @@ eval.c: eval.scm \
 repl.c: repl.scm \
 		chicken.eval.import.scm
 file.c: file.scm \
-		chicken.files.import.scm \
-		chicken.posix.import.scm
-files.c: files.scm \
-		chicken.data-structures.import.scm \
 		chicken.io.import.scm \
 		chicken.foreign.import.scm \
-		chicken.irregex.import.scm \
-		chicken.pathname.import.scm
+		chicken.pathname.import.scm \
+		chicken.posix.import.scm
 lolevel.c: lolevel.scm \
 		chicken.foreign.import.scm
 pathname.c: pathname.scm \
@@ -829,8 +827,6 @@ port.c: $(SRCDIR)port.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.port
 file.c: $(SRCDIR)file.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.file
-files.c: $(SRCDIR)files.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.files
 lolevel.c: $(SRCDIR)lolevel.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
 	-emit-import-library chicken.locative \

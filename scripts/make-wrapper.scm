@@ -3,7 +3,7 @@
 ; usage: csi -s make-wrapper.scm NAME BINPATH
 
 
-(use extras files)
+(use pathname)
 
 
 (let* ((args (command-line-arguments))

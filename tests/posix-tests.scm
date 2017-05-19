@@ -1,5 +1,5 @@
 (import (chicken pathname)
-        (chicken files)
+        (chicken file)
         (chicken platform)
         (chicken posix)
         (chicken lolevel))

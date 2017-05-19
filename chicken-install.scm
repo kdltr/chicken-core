@@ -32,7 +32,7 @@
 (import (chicken foreign))
 (import (chicken data-structures))
 (import (chicken keyword))
-(import (chicken files))
+(import (chicken file))
 (import (chicken format))
 (import (chicken irregex))
 (import (chicken tcp))

@@ -29,7 +29,7 @@
   (import (scheme)
           (chicken))
   (import (chicken data-structures)
-	  (chicken files)
+	  (chicken file)
           (chicken foreign)
           (chicken io)
 	  (chicken format)
