@@ -1191,6 +1191,11 @@
 (chicken.fixnum#fxxor (#(procedure #:clean #:foldable) chicken.fixnum#fxxor (fixnum fixnum) fixnum))
 (chicken.fixnum#fxlen (#(procedure #:clean #:foldable) chicken.fixnum#fxlen (fixnum) fixnum))
 
+(chicken.fixnum#fx+? (#(procedure #:pure) chicken.fixnum#fx+? ((or fixnum false) (or fixnum false)) (or fixnum false)))
+(chicken.fixnum#fx-? (#(procedure #:pure) chicken.fixnum#fx-? ((or fixnum false) (or fixnum false)) (or fixnum false)))
+(chicken.fixnum#fx*? (#(procedure #:pure) chicken.fixnum#fx*? ((or fixnum false) (or fixnum false)) (or fixnum false)))
+(chicken.fixnum#fx/? (#(procedure #:clean) chicken.fixnum#fx/? ((or fixnum false) (or fixnum false)) (or fixnum false)))
+
 (gensym (#(procedure #:clean) gensym (#!optional (or string symbol)) symbol))
 
 (get (#(procedure #:clean #:enforce) get (symbol symbol #!optional *) *)
