@@ -107,6 +107,8 @@
 ;; Type specifiers and variable names in foreign-lambda in macros
 ;; are incorrectly renamed in modules, too.
 (foreign-declare "void foo(void *abc) { printf(\"hi\\n\"); }")
+;; This is silly but at least it ensures we can represent enum values
+(foreign-declare "enum intlimits {min=INT_MIN, zero=0, max=INT_MAX};")
 
 (module foo ()
   (import chicken scheme foreign) ; "chicken" includes an export for "void"
@@ -343,6 +345,10 @@
 
 (test-ffi-type-limits
  integer signed (foreign-value "sizeof(int) * CHAR_BIT" int))
+
+(test-ffi-type-limits
+ (enum intlimits) signed
+ (foreign-value "sizeof(enum intlimits) * CHAR_BIT" int))
 
 (test-ffi-type-limits
  unsigned-long unsigned

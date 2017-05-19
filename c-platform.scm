@@ -596,16 +596,14 @@
 (rewrite 'chicken.flonum#fpgcd 16 2 "C_a_i_flonum_gcd" #f words-per-flonum)
 
 (rewrite 'zero? 5 "C_eqp" 0 'fixnum)
-(rewrite 'zero? 2 1 "C_i_zerop" #t)
 (rewrite 'zero? 2 1 "C_u_i_zerop" #f)
+(rewrite 'zero? 2 1 "C_i_zerop" #t)
 (rewrite 'positive? 5 "C_fixnum_greaterp" 0 'fixnum)
 (rewrite 'positive? 5 "C_flonum_greaterp" 0 'flonum)
 (rewrite 'positive? 2 1 "C_i_positivep" #t)
-(rewrite 'positive? 2 1 "C_u_i_positivep" #f)
 (rewrite 'negative? 5 "C_fixnum_lessp" 0 'fixnum)
 (rewrite 'negative? 5 "C_flonum_lessp" 0 'flonum)
 (rewrite 'negative? 2 1 "C_i_negativep" #t)
-(rewrite 'negative? 2 1 "C_u_i_negativep" #f)
 
 (rewrite 'vector-length 6 "C_fix" "C_header_size" #f)
 (rewrite 'string-length 6 "C_fix" "C_header_size" #f)
@@ -707,8 +705,8 @@
 (rewrite 'odd? 14 'fixnum 1 "C_i_fixnumoddp" "C_i_fixnumoddp")
 (rewrite 'remainder 14 'fixnum 2 "C_fixnum_modulo" "C_fixnum_modulo")
 
-(rewrite 'even? 17 1 "C_i_evenp" "C_u_i_evenp")
-(rewrite 'odd? 17 1 "C_i_oddp" "C_u_i_oddp")
+(rewrite 'even? 17 1 "C_i_evenp")
+(rewrite 'odd? 17 1 "C_i_oddp")
 
 (rewrite 'chicken.fixnum#fxodd? 2 1 "C_i_fixnumoddp" #t)
 (rewrite 'chicken.fixnum#fxeven? 2 1 "C_i_fixnumevenp" #t)

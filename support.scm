@@ -1102,7 +1102,11 @@
 			`(slot-ref ,param 'this) )
 		       ((const) (repeat (cadr t)))
 		       ((enum)
-			(if unsafe param `(##sys#foreign-integer-argument ,param)))
+			(if unsafe
+			    param
+			    `(##sys#foreign-ranged-integer-argument
+			      ;; enums are integer size, according to the C standard.
+			      ,param (foreign-value "sizeof(int) * CHAR_BIT" int))))
 		       ((nonnull-pointer nonnull-c-pointer)
 			`(##sys#foreign-pointer-argument ,param) )
 		       (else param) ) )

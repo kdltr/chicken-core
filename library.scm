@@ -5012,7 +5012,7 @@ EOF
 (define (##sys#foreign-pointer-argument x) (##core#inline "C_i_foreign_pointer_argumentp" x))
 (define (##sys#foreign-tagged-pointer-argument x tx) (##core#inline "C_i_foreign_tagged_pointer_argumentp" x tx))
 
-;; OBSOLETE (but still used by "enum"
+;; OBSOLETE
 (define (##sys#foreign-integer-argument x) (##core#inline "C_i_foreign_integer_argumentp" x))
 
 (define (##sys#foreign-ranged-integer-argument obj size)
