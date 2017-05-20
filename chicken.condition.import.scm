@@ -34,6 +34,7 @@
    (with-exception-handler . chicken.condition#with-exception-handler)
    (make-property-condition . chicken.condition#make-property-condition)
    (make-composite-condition . chicken.condition#make-composite-condition)
+   (condition . chicken.condition#condition)
    (condition? . chicken.condition#condition?)
    (condition->list . chicken.condition#condition->list)
    (condition-predicate . chicken.condition#condition-predicate)

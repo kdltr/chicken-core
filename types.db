@@ -948,6 +948,7 @@
 ;; condition
 
 (chicken.condition#abort (procedure chicken.condition#abort (*) noreturn))
+(chicken.condition#condition (#(procedure #:clean #:enforce) chicken.condition#condition (list #!rest list) (struct condition)))
 (chicken.condition#condition? (#(procedure #:pure #:predicate (struct condition)) chicken.condition#condition? (*) boolean))
 (chicken.condition#condition->list (#(procedure #:clean #:enforce) chicken.condition#condition->list ((struct condition)) (list-of (pair symbol *))))
 (chicken.condition#condition-predicate (#(procedure #:clean #:enforce) chicken.condition#condition-predicate (symbol) (procedure ((struct condition)) boolean)))

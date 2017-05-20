@@ -4449,9 +4449,9 @@ EOF
      ;; [syntax] condition-case handle-exceptions
 
      ;; Condition object manipulation
-     make-property-condition make-composite-condition condition?
-     condition->list condition-predicate condition-property-accessor
-     get-condition-property)
+     make-property-condition make-composite-condition
+     condition condition? condition->list condition-predicate
+     condition-property-accessor get-condition-property)
 
 (import scheme)
 (import chicken.fixnum)
@@ -4700,13 +4700,21 @@ EOF
 
 ;;; Condition object manipulation
 
+(define (prop-list->kind-prefixed-prop-list loc kind plist)
+  (let loop ((props plist))
+    (cond ((null? props) '())
+	  ((or (not (pair? props)) (not (pair? (cdr props))))
+	   (##sys#signal-hook
+	    #:type-error loc "argument is not an even property list" plist))
+	  (else (cons (cons kind (car props))
+		      (cons (cadr props)
+			    (loop (cddr props))))))))
+
 (define (make-property-condition kind . props)
   (##sys#make-structure
    'condition (list kind)
-   (let loop ((props props))
-     (if (null? props)
-	 '()
-	 (cons (cons kind (car props)) (cons (cadr props) (loop (cddr props)))) ) ) ) )
+   (prop-list->kind-prefixed-prop-list
+    'make-property-condition kind props)))
 
 (define (make-composite-condition c1 . conds)
   (let ([conds (cons c1 conds)])
@@ -4715,6 +4723,15 @@ EOF
      'condition
      (apply ##sys#append (map (lambda (c) (##sys#slot c 1)) conds))
      (apply ##sys#append (map (lambda (c) (##sys#slot c 2)) conds)) ) ) )
+
+(define (condition arg1 . args)
+  (let* ((args (cons arg1 args))
+	 (keys (apply ##sys#append
+		      (map (lambda (c)
+			     (prop-list->kind-prefixed-prop-list
+			      'condition (car c) (cdr c)))
+			     args))))
+    (##sys#make-structure 'condition (map car args) keys)))
 
 (define (condition? x) (##sys#structure? x 'condition))
 
