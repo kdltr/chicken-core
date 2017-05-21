@@ -105,6 +105,10 @@
 - Build system
   - Fixed broken compilation on NetBSD, due to missing _NETBSD_SOURCE.
 
+- Compiler
+  - The scrutinizer no longer uses 'fixnum as the type for fixnums
+    that might not fit into a fixnum on 32-bit architectures.
+
 
 4.12.0
 

@@ -196,16 +196,13 @@
     (define (constant-result lit)
       (cond ((string? lit) 'string)
 	    ((symbol? lit) 'symbol)
+	    ;; Do not assume fixnum width matches target platforms!
+	    ((or (big-fixnum? lit) (small-bignum? lit)) 'integer)
 	    ((fixnum? lit) 'fixnum)
-	    ((flonum? lit) 'float)	; Why not "flonum", for consistency?
 	    ((bignum? lit) 'bignum)
+	    ((flonum? lit) 'float)	; Why not "flonum", for consistency?
 	    ((ratnum? lit) 'ratnum)
 	    ((cplxnum? lit) 'cplxnum)
-	    ((number? lit) 
-	     (case number-type 
-	       ((fixnum) 'fixnum)
-	       ((flonum) 'flonum)
-	       (else 'number)))		; in case...
 	    ((boolean? lit)
 	     (if lit 'true 'false))
 	    ((null? lit) 'null)

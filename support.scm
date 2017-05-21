@@ -64,7 +64,7 @@
      clear-real-name-table! get-real-name set-real-name!
      real-name real-name2 display-real-name-table
      source-info->string source-info->line call-info constant-form-eval
-     dump-nodes read-info-hook read/source-info big-fixnum?
+     dump-nodes read-info-hook read/source-info big-fixnum? small-bignum?
      hide-variable export-variable variable-hidden? variable-visible?
      mark-variable variable-mark intrinsic? predicate? foldable?
      load-identifier-database
@@ -1595,6 +1595,11 @@
        (feature? #:64bit)
        (or (fx> x 1073741823)
 	   (fx< x -1073741824) ) ) )
+
+(define (small-bignum? x) ;; XXX: This should probably be in c-platform
+  (and (bignum? x)
+       (not (feature? #:64bit))
+       (fx<= (integer-length x) 62) ) )
 
 
 ;;; symbol visibility and other global variable properties

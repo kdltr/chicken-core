@@ -219,6 +219,7 @@
 (mx (forall (a) (procedure (#!rest a) a)) +)
 (mx (list fixnum) '(1))
 
+
 (mx port (open-input-string "foo"))
 (mx input-port (open-input-string "bar"))
 (mx port (open-output-string))
@@ -374,3 +375,22 @@
  (compiler-typecase 1
    (number #t)
    (fixnum #f)))
+
+;; Always a fixnum
+(assert
+ (compiler-typecase #x3fffffff
+   (bignum #f)
+   (fixnum #t)))
+
+;; Is a fixnum on 64-bit, bignum on 32-bit, thus type must be 'integer
+(assert
+ (compiler-typecase #x4fffffff
+   (fixnum #f)
+   (bignum #f)
+   (integer #t)))
+
+;; Always a bignum
+(assert
+ (compiler-typecase #x7fffffffffffffff
+   (fixnum #f)
+   (bignum #t)))
