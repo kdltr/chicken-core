@@ -163,13 +163,10 @@
     (define (constant-result lit)
       (cond ((string? lit) 'string)
 	    ((symbol? lit) 'symbol)
+	    ;; Do not assume fixnum width matches target platforms!
+	    ((big-fixnum? lit) 'number)
 	    ((fixnum? lit) 'fixnum)
 	    ((flonum? lit) 'float)
-	    ((number? lit) 
-	     (case number-type 
-	       ((fixnum) 'fixnum)
-	       ((flonum) 'flonum)
-	       (else 'number)))		; in case...
 	    ((boolean? lit)
 	     (if lit 'true 'false))
 	    ((null? lit) 'null)
