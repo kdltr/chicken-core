@@ -143,15 +143,17 @@
                       (oname #f)
                       (opts '()))
             (for-each compile-extension/program (cddr info))
-            (let ((dest (destination-repository mode #t)))
-              (when (eq? #t tfile) (set! tfile target))
-              (when (eq? #t ifile) (set! ifile target))
+            (let ((dest (destination-repository mode #t))
+                  ;; Respect install-name if specified
+                  (rtarget (or oname target)))
+              (when (eq? #t tfile) (set! tfile rtarget))
+              (when (eq? #t ifile) (set! ifile rtarget))
               (addfiles 
                 (if (memq 'static link) 
-                    (list (conc dest "/" target objext)
-                          (conc dest "/" target +link-file-extension+))
+                    (list (conc dest "/" rtarget objext)
+                          (conc dest "/" rtarget +link-file-extension+))
                     '())
-                (if (memq 'dynamic link) (list (conc dest "/" target ".so")) '())
+                (if (memq 'dynamic link) (list (conc dest "/" rtarget ".so")) '())
                 (if tfile 
                     (list (conc dest "/" tfile ".types"))
                     '())
@@ -159,8 +161,8 @@
                     (list (conc dest "/" ifile ".inline"))
                     '())
                 (list (if (uses-compiled-import-library? mode)
-                          (conc dest "/" target ".import.so")
-                          (conc dest "/" target ".import.scm")))))
+                          (conc dest "/" rtarget ".import.so")
+                          (conc dest "/" rtarget ".import.scm")))))
             (set! exts 
               (cons (list target dependencies: deps source: src options: opts 
                           link-options: lopts linkage: link custom: cbuild
@@ -235,13 +237,15 @@
             (for-each compile-extension/program (cddr info))
             (let ((dest (if (eq? mode 'target) 
                             default-bindir   ; XXX wrong!
-                            host-bindir)))
-              (addfiles (list (conc dest "/" target exeext))))
-            (set! prgs 
-              (cons (list target dependencies: deps source: src options: opts 
-                          link-options: lopts linkage: link custom: cbuild
-                          mode: mode output-file: (or oname target))                         
-                    prgs))))))
+                            host-bindir))
+                  ;; Respect install-name if specified
+                  (rtarget (or oname target)))
+              (addfiles (list (conc dest "/" rtarget exeext)))
+	      (set! prgs
+		(cons (list target dependencies: deps source: src options: opts
+			    link-options: lopts linkage: link custom: cbuild
+			    mode: mode output-file: rtarget)
+		      prgs)))))))
     (define (compile-extension/program info)
       (case (car info)
         ((target) 
