@@ -4456,8 +4456,8 @@ EOF
 (import scheme)
 (import chicken.fixnum)
 (import chicken.foreign)
-(import (only chicken get-output-string open-output-string
-	      define-constant when fixnum? let-optionals make-parameter))
+(import (only chicken get-output-string open-output-string when unless
+	      define-constant fixnum? let-optionals make-parameter))
 
 ;;; Access backtrace:
 
@@ -4736,20 +4736,20 @@ EOF
 (define (condition? x) (##sys#structure? x 'condition))
 
 (define (condition->list x)
-  (or (condition? x)
-      (##sys#signal-hook
-       #:type-error 'condition->list
-       "argument is not a condition object" x))
-  (map
-   (lambda (k)
-     (cons k (let loop ((props (##sys#slot x 2))
-			(res '()))
-	       (cond ((null? props)
-		      res)
-		     ((eq? k (caar props))
-		      (loop (cddr props) (cons (list (cdar props) (cadr props)) res)))
-		     (else (loop (cddr props) res))))))
-   (##sys#slot x 1)))
+  (unless (condition? x)
+    (##sys#signal-hook
+     #:type-error 'condition->list
+     "argument is not a condition object" x))
+  (map (lambda (k)
+	 (cons k (let loop ((props (##sys#slot x 2)))
+		   (cond ((null? props) '())
+			 ((eq? (caar props) k)
+			  (cons (cdar props)
+				(cons (cadr props)
+				      (loop (cddr props)))))
+			 (else
+			  (loop (cddr props)))))))
+       (##sys#slot x 1)))
 
 (define (condition-predicate kind)
   (lambda (c) 
