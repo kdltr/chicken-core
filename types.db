@@ -950,9 +950,9 @@
 (chicken.condition#abort (procedure chicken.condition#abort (*) noreturn))
 (chicken.condition#condition (#(procedure #:clean #:enforce) chicken.condition#condition (list #!rest list) (struct condition)))
 (chicken.condition#condition? (#(procedure #:pure #:predicate (struct condition)) chicken.condition#condition? (*) boolean))
-(chicken.condition#condition->list (#(procedure #:clean #:enforce) chicken.condition#condition->list ((struct condition)) (list-of (pair symbol *))))
-(chicken.condition#condition-predicate (#(procedure #:clean #:enforce) chicken.condition#condition-predicate (symbol) (procedure ((struct condition)) boolean)))
-(chicken.condition#condition-property-accessor (#(procedure #:clean #:enforce) chicken.condition#condition-property-accessor (symbol symbol #!optional *) (procedure ((struct condition)) *)))
+(chicken.condition#condition->list (#(procedure #:clean #:enforce) chicken.condition#condition->list ((struct condition)) (list-of pair)))
+(chicken.condition#condition-predicate (#(procedure #:clean #:enforce) chicken.condition#condition-predicate (*) (procedure ((struct condition)) boolean)))
+(chicken.condition#condition-property-accessor (#(procedure #:clean #:enforce) chicken.condition#condition-property-accessor (* * #!optional *) (procedure ((struct condition)) *)))
 
 (chicken.condition#current-exception-handler
  (#(procedure #:clean #:enforce) chicken.condition#current-exception-handler (#!optional (procedure (*) noreturn) boolean boolean) procedure)
@@ -961,9 +961,9 @@
 		  #(tmp1))))
  (() ##sys#current-exception-handler))
 (chicken.condition#get-call-chain (#(procedure #:clean #:enforce) chicken.condition#get-call-chain (#!optional fixnum (struct thread)) (list-of vector)))
-(chicken.condition#get-condition-property (#(procedure #:clean #:enforce) chicken.condition#get-condition-property ((struct condition) symbol symbol #!optional *) *))
+(chicken.condition#get-condition-property (#(procedure #:clean #:enforce) chicken.condition#get-condition-property ((struct condition) * * #!optional *) *))
 (chicken.condition#make-composite-condition (#(procedure #:clean #:enforce) chicken.condition#make-composite-condition (#!rest (struct condition)) (struct condition)))
-(chicken.condition#make-property-condition (#(procedure #:clean #:enforce) chicken.condition#make-property-condition (symbol #!rest *) (struct condition)))
+(chicken.condition#make-property-condition (#(procedure #:clean #:enforce) chicken.condition#make-property-condition (* #!rest *) (struct condition)))
 (chicken.condition#with-exception-handler (#(procedure #:enforce) chicken.condition#with-exception-handler ((procedure (*) . *) (procedure () . *)) . *))
 (chicken.condition#signal (procedure chicken.condition#signal (*) . *))
 
