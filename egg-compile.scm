@@ -47,6 +47,13 @@
 
 ;;; some utilities
 
+(define override-prefix
+  (let ((prefix (get-environment-variable "CHICKEN_INSTALL_PREFIX")))
+    (lambda (dir default)
+      (if prefix
+          (string-append prefix dir)
+          default))))
+
 (define (object-extension platform)
   (case platform
     ((unix) +unix-object-extension+)
@@ -191,7 +198,7 @@
             (let* ((dest (or dest 
                              (if (eq? mode 'target)
                                  default-sharedir    ; XXX wrong!
-                                 host-sharedir)))
+                                 (override-prefix "/share" host-sharedir))))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! data
@@ -217,7 +224,7 @@
             (let* ((dest (or dest 
                              (if (eq? mode 'target) 
                                  default-incdir   ; XXX wrong!
-                                 host-incdir)))
+                                 (override-prefix "/include" host-incdir))))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! cinc
@@ -232,7 +239,7 @@
             (let* ((dest (or dest
                              (if (eq? mode 'target) 
                                  default-sharedir   ; XXX wrong!
-                                 host-sharedir)))
+                                 (override-prefix "/share" host-sharedir))))
                    (dest (normalize-pathname (conc dest "/"))))
               (addfiles (map (cut conc dest <>) files)))
             (set! scminc 
@@ -251,7 +258,7 @@
             (for-each compile-extension/program (cddr info))
             (let ((dest (if (eq? mode 'target) 
                             default-bindir   ; XXX wrong!
-                            host-bindir))
+                            (override-prefix "/bin" host-bindir)))
                   ;; Respect install-name if specified
                   (rtarget (or oname target)))
               (addfiles (list (conc dest "/" rtarget exeext)))
@@ -633,7 +640,9 @@
          (ext (executable-extension platform))
          (sname (prefix srcdir name))
          (out (quotearg (target-file (conc sname ext) mode)))
-         (dest (if (eq? mode 'target) default-bindir host-bindir))
+         (dest (if (eq? mode 'target)
+                   default-bindir
+                   (override-prefix "/bin" host-bindir)))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform))
          (destf (quotearg (slashify (conc dest "/" output-file ext) 
@@ -649,7 +658,7 @@
          (mkdir (mkdir-command platform))
          (dest (or destination (if (eq? mode 'target)
                                    default-sharedir 
-                                   host-sharedir)))
+                                   (override-prefix "/share" host-sharedir))))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
@@ -662,7 +671,7 @@
          (mkdir (mkdir-command platform))
          (dest (or destination (if (eq? mode 'target) 
                                    default-incdir 
-                                   host-incdir)))
+                                   (override-prefix "/include" host-incdir))))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
