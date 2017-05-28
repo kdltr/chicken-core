@@ -4,6 +4,8 @@
   - CVE-2017-6949: Remove unchecked malloc() call in SRFI-4 constructors
     when allocating in non-GC memory, resulting in potential 1-word
     buffer overrun and/or segfault (thanks to Lemonboy).
+  - `length' no longer crashes on improper lists (fixes #1375, thanks to
+    "megane").
 
 - Core Libraries
   - Unit "posix": If file-lock, file-lock/blocking or file-unlock are
