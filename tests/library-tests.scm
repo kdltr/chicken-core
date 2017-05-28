@@ -706,3 +706,8 @@ A
 (assert (not (member "foo" '("bar"))))
 (assert (not (member "foo" '())))
 (assert-fail (member "foo" "foo"))
+
+;; length
+
+(assert-fail (length 1))
+(assert-fail (length '(x . y)))

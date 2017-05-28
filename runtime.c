@@ -5690,7 +5690,7 @@ C_regparm C_word C_fcall C_i_length(C_word lst)
       }
     }
 
-    if(C_immediatep(slow) || C_block_header(lst) != C_PAIR_TAG)
+    if(C_immediatep(slow) || C_block_header(slow) != C_PAIR_TAG)
       barf(C_NOT_A_PROPER_LIST_ERROR, "length", lst);
 
     slow = C_u_i_cdr(slow);
