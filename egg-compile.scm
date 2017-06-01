@@ -96,6 +96,19 @@
      (error "cyclic dependencies" dag))))
 
 
+;;; collect import libraries for all modules
+
+(define (import-libraries mods dest rtarget mode)
+  (define (implib name)
+    (conc dest "/" name ".import."
+          (if (uses-compiled-import-library? mode)
+              "so"
+              "scm")))
+  (if mods
+      (map implib mods)
+      (list (implib rtarget))))
+
+
 ;;; compile an egg-information tree into abstract build/install operations
 
 (define (compile-egg-info info platform mode)
@@ -116,6 +129,7 @@
         (deps '())
         (lopts '())
         (opts '())
+        (mods #f)
         (tfile #f)
         (ifile #f)
         (objext (object-extension platform))
@@ -141,6 +155,7 @@
                       (ifile #f)
                       (lopts '())
                       (oname #f)
+                      (mods #f)
                       (opts '()))
             (for-each compile-extension/program (cddr info))
             (let ((dest (destination-repository mode #t))
@@ -160,15 +175,14 @@
                 (if ifile 
                     (list (conc dest "/" ifile ".inline"))
                     '())
-                (list (if (uses-compiled-import-library? mode)
-                          (conc dest "/" rtarget ".import.so")
-                          (conc dest "/" rtarget ".import.scm")))))
-            (set! exts 
-              (cons (list target dependencies: deps source: src options: opts 
-                          link-options: lopts linkage: link custom: cbuild
-                          mode: mode types-file: tfile inline-file: ifile
-                          output-file: (or oname target))
-                    exts))))
+                (import-libraries mods dest rtarget mode))
+              (set! exts
+                (cons (list target dependencies: deps source: src options: opts
+                            link-options: lopts linkage: link custom: cbuild
+                            mode: mode types-file: tfile inline-file: ifile
+                            modules: (or mods (list rtarget))
+                            output-file: rtarget)
+                    exts)))))
         ((data)
           (fluid-let ((target (check-target (cadr info) data))
                       (dest #f)
@@ -244,7 +258,7 @@
 	      (set! prgs
 		(cons (list target dependencies: deps source: src options: opts
 			    link-options: lopts linkage: link custom: cbuild
-			    mode: mode output-file: rtarget)
+			    mode: mode output-file: oname)
 		      prgs)))))))
     (define (compile-extension/program info)
       (case (car info)
@@ -268,6 +282,8 @@
          (set! src (->string (arg info 1 name?))))
         ((install-name)
          (set! oname (->string (arg info 1 name?))))
+        ((modules)
+         (set! mods (map ->string (cdr info))))
         ((dependencies)
          (set! deps (append deps (map ->dep (cdr info)))))))
     (define (compile-data/include info)
@@ -326,7 +342,8 @@
           (lambda (id)
             (cond ((assq id exts) =>
                    (lambda (data)
-                     (let ((link (get-keyword linkage: (cdr data))))
+                     (let ((link (get-keyword linkage: (cdr data)))
+                           (mods (get-keyword modules: (cdr data))))
                        (append (if (memq 'dynamic link) 
                                    (list (apply compile-dynamic-extension data))
                                    '())
@@ -336,7 +353,10 @@
                                    (list (apply compile-static-extension data))
                                    '())
                                (if (uses-compiled-import-library? mode)
-                                   (list (apply compile-import-library data))
+                                   (map (lambda (mod)
+                                          (apply compile-import-library
+                                             mod (cdr data))) ; override name
+                                     mods)
                                    '())))))
                   ((assq id prgs) =>
                    (lambda (data)
@@ -355,7 +375,8 @@
         (append
           (append-map
             (lambda (ext)          
-              (let ((link (get-keyword linkage: (cdr ext))))
+              (let ((link (get-keyword linkage: (cdr ext)))
+                    (mods (get-keyword modules: (cdr ext))))
                 (append
                   (if (memq 'static link)
                       (list (apply install-static-extension ext))
@@ -364,8 +385,14 @@
                       (list (apply install-dynamic-extension ext))
                       '())
                   (if (uses-compiled-import-library? (get-keyword mode: ext))
-                      (list (apply install-import-library ext))
-                      (list (apply install-import-library-source ext)))
+                      (map (lambda (mod)
+                             (apply install-import-library
+                                    mod (cdr ext))) ; override name
+                        mods)
+                      (map (lambda (mod)
+                             (apply install-import-library-source
+                                    mod (cdr ext))) ; s.a.
+                        mods))
                   (if (get-keyword types-file: (cdr ext))
                       (list (apply install-types-file ext))
                       '())
@@ -551,13 +578,13 @@
       (print dcmd " " ddir destf))
     (print cmd " " out " " ddir destf)))
 
-(define ((install-import-library name #!key mode output-file)
+(define ((install-import-library name #!key mode)
          srcdir platform)
   ((install-dynamic-extension name mode: mode ext: ".import.so"
-                              output-file: output-file)
+                              output-file: name)
    srcdir platform))
 
-(define ((install-import-library-source name #!key mode output-file)
+(define ((install-import-library-source name #!key mode)
          srcdir platform)
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
@@ -568,7 +595,7 @@
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
-          (quotearg (slashify (conc dest "/" output-file ".import.scm")
+          (quotearg (slashify (conc dest "/" name ".import.scm")
                               platform)))))
 
 (define ((install-types-file name #!key mode types-file)
