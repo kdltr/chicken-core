@@ -203,7 +203,7 @@
  '()
  (##sys#er-transformer
   (lambda (form r c)
-    (##sys#check-syntax 'define-foreign-type form '(_ symbol symbol . #(_ 0 2)))
+    (##sys#check-syntax 'define-foreign-type form '(_ symbol _ . #(_ 0 2)))
     `(##core#define-foreign-type ,@(cdr form)))))
 
 (##sys#extend-macro-environment
