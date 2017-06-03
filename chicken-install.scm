@@ -192,6 +192,7 @@
     (generated-source-file #f #t #t)
     (program #f #t #t)
     (data #f #t #t)
+    (modules #f #f #f)
     (c-include #f #f #t)
     (scheme-include #f #f #t)))
 
