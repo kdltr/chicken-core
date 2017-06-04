@@ -3183,7 +3183,7 @@ C_regparm C_word C_fcall C_mutate_scratch_slot(C_word *slot, C_word val)
 
 void C_save_and_reclaim(void *trampoline, int n, C_word *av)
 {
-  C_word new_size = nmax(1UL << C_ilen(n), DEFAULT_TEMPORARY_STACK_SIZE);
+  C_word new_size = nmax((C_word)1 << C_ilen(n), DEFAULT_TEMPORARY_STACK_SIZE);
 
   assert(av > C_temporary_stack_bottom || av < C_temporary_stack_limit);
   assert(C_temporary_stack == C_temporary_stack_bottom);
@@ -9866,9 +9866,9 @@ bignum_destructive_divide_normalized(C_word big_u, C_word big_v, C_word big_q)
     rhat = hat % vn_1;
 
     /* Two whiles is faster than one big check with an OR.  Thanks, Gauche! */
-    while(qhat >= (1UL << C_BIGNUM_HALF_DIGIT_LENGTH)) { qhat--; rhat += vn_1; }
+    while(qhat >= ((C_word)1 << C_BIGNUM_HALF_DIGIT_LENGTH)) { qhat--; rhat += vn_1; }
     while(qhat * vn_2 > C_BIGNUM_DIGIT_COMBINE(rhat, C_uhword_ref(u, j+n-2))
-	  && rhat < (1UL << C_BIGNUM_HALF_DIGIT_LENGTH)) {
+	  && rhat < ((C_word)1 << C_BIGNUM_HALF_DIGIT_LENGTH)) {
       qhat--;
       rhat += vn_1;
     }
