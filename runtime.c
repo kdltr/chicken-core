@@ -9866,9 +9866,9 @@ bignum_destructive_divide_normalized(C_word big_u, C_word big_v, C_word big_q)
     rhat = hat % vn_1;
 
     /* Two whiles is faster than one big check with an OR.  Thanks, Gauche! */
-    while(qhat >= ((C_word)1 << C_BIGNUM_HALF_DIGIT_LENGTH)) { qhat--; rhat += vn_1; }
+    while(qhat >= ((C_uword)1 << C_BIGNUM_HALF_DIGIT_LENGTH)) { qhat--; rhat += vn_1; }
     while(qhat * vn_2 > C_BIGNUM_DIGIT_COMBINE(rhat, C_uhword_ref(u, j+n-2))
-	  && rhat < ((C_word)1 << C_BIGNUM_HALF_DIGIT_LENGTH)) {
+	  && rhat < ((C_uword)1 << C_BIGNUM_HALF_DIGIT_LENGTH)) {
       qhat--;
       rhat += vn_1;
     }
