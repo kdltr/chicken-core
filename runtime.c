@@ -5859,11 +5859,11 @@ C_s_a_u_i_integer_negate(C_word **ptr, C_word n, C_word x)
 }
 
 
-/* Faster version that ignores sign in bignums. TODO: Omit labs() too? */
+/* Faster version that ignores sign */
 inline static int integer_length_abs(C_word x)
 {
   if (x & C_FIXNUM_BIT) {
-    return C_ilen(labs(C_unfix(x)));
+    return C_ilen(C_wabs(C_unfix(x)));
   } else {
     C_uword result = (C_bignum_size(x) - 1) * C_BIGNUM_DIGIT_LENGTH,
             *last_digit = C_bignum_digits(x) + C_bignum_size(x) - 1,

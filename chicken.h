@@ -584,6 +584,7 @@ void *alloca ();
 #define C_S64_MAX    INT64_MAX
 
 #if defined(C_LLP)
+# define C_wabs                   llabs
 # define C_long                   C_s64
 # ifndef LONG_LONG_MAX
 #  define C_LONG_MAX              LLONG_MAX
@@ -593,6 +594,7 @@ void *alloca ();
 #  define C_LONG_MIN              LONG_LONG_MIN
 # endif
 #else
+# define C_wabs                   labs
 # define C_long                   long
 # define C_LONG_MAX               LONG_MAX
 # define C_LONG_MIN               LONG_MIN
@@ -2526,7 +2528,7 @@ inline static C_uword C_num_to_unsigned_int(C_word x)
 inline static C_word C_int_to_num(C_word **ptr, C_word n)
 {
   if(C_fitsinfixnump(n)) return C_fix(n);
-  else return C_bignum1(ptr, n < 0, labs(n));
+  else return C_bignum1(ptr, n < 0, C_wabs(n));
 }
 
 
@@ -2571,7 +2573,7 @@ inline static C_word C_long_to_num(C_word **ptr, C_long n)
   if(C_fitsinfixnump(n)) {
     return C_fix(n);
   } else {
-    return C_bignum1(ptr, n < 0, labs(n));
+    return C_bignum1(ptr, n < 0, C_wabs(n));
   }
 }
 
@@ -2992,7 +2994,7 @@ inline static C_word C_a_i_fixnum_difference(C_word **ptr, C_word n, C_word x, C
   C_word z = C_unfix(x) - C_unfix(y);
 
   if(!C_fitsinfixnump(z)) {
-    return C_bignum1(ptr, z < 0, labs(z));
+    return C_bignum1(ptr, z < 0, C_wabs(z));
   } else {
     return C_fix(z);
   }
@@ -3003,7 +3005,7 @@ inline static C_word C_a_i_fixnum_plus(C_word **ptr, C_word n, C_word x, C_word 
   C_word z = C_unfix(x) + C_unfix(y);
 
   if(!C_fitsinfixnump(z)) {
-    return C_bignum1(ptr, z < 0, labs(z));
+    return C_bignum1(ptr, z < 0, C_wabs(z));
   } else {
     return C_fix(z);
   }
