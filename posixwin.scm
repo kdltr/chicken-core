@@ -483,9 +483,8 @@ get_user_name()
     Returns: zero return value indicates failure.
 */
 static int C_fcall
-C_process(const char * app, const char * cmdlin, const char ** env,
-	  C_word * phandle,
-	  int * pstdin_fd, int * pstdout_fd, int * pstderr_fd,
+C_process(const char *app, const char *cmdlin, const char **env,
+	  int *phandle, int *pstdin_fd, int *pstdout_fd, int *pstderr_fd,
 	  int params)
 {
     int i;
