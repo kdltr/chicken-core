@@ -357,7 +357,7 @@ sysinfo()
 	if (get_hostname() && GetVersionEx(&ovf))
 	{
 	    SYSTEM_INFO si;
-	    _snprintf(C_osver, sizeof(C_osver) - 1, "%d.%d.%d",
+	    _snprintf(C_osver, sizeof(C_osver) - 1, "%lu.%lu.%lu",
 			ovf.dwMajorVersion, ovf.dwMinorVersion, ovf.dwBuildNumber);
 	    strncpy(C_osrel, "Win", sizeof(C_osrel) - 1);
 	    switch (ovf.dwPlatformId)
