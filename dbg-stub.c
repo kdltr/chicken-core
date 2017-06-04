@@ -75,7 +75,7 @@ static WSADATA wsa;
 
 #ifdef C_SIXTY_FOUR
 # define C_HEADER_BITS_SHIFT      56
-# ifdef LLP
+# ifdef C_LLP
 #  define UWORD_COUNT_FORMAT_STRING     "%llu"
 # else
 #  define UWORD_COUNT_FORMAT_STRING     "%lu"

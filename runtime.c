@@ -194,7 +194,7 @@ static C_TLS int timezone;
 
 #ifdef C_SIXTY_FOUR
 # define FORWARDING_BIT_SHIFT          63
-# ifdef LLP
+# ifdef C_LLP
 #  define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffffffffffeLL)
 #  define UWORD_FORMAT_STRING           "0x%016llx"
 #  define UWORD_COUNT_FORMAT_STRING     "%llu"
