@@ -157,10 +157,13 @@
                         str))))
 
 (define (optname? x)
-  (and (list? x) (pair? x)
-       (or (null? (cdr x)) 
-           (string? (cadr x))
-           (symbol? (cadr x)))))
+  (and (list? x) 
+       (or (null? x)
+           (string? (car x))
+           (symbol? (car x)))))
+
+(define (nameprop? x)
+  (and (list? x) (or (symbol? (car x)) (string? (car x)))))
 
 ;; ENTRY = (NAME TOPLEVEL? NESTED? NAMED? [VALIDATOR])
 (define egg-info-items
@@ -172,7 +175,7 @@
     (dependencies #t #f #f ,list?)
     (test-dependencies #t #f #f ,list?)
     (build-dependencies #t #f #f ,list?)
-    (components #t #f #f)
+    (components #t #t #f)
     (foreign-dependencies #t #f #f ,list?)
     (platform #t #f #f)
     (installed-files #t #f #f ,list?)
@@ -183,11 +186,11 @@
     (link-options #f #f #f)
     (custom-build #f #f #f)
     (linkage #f #f #f)
-    (install-name #f #f #f (disjoin string? symbol?))
+    (install-name #f #f #f ,nameprop?)
     (target #f #t #f)
     (host #f #t #f)
-    (types-file #f #f ,optname?)
-    (inline-file #f #f ,optname?)
+    (types-file #f #f #f ,optname?)
+    (inline-file #f #f #f ,optname?)
     (extension #f #t #t)
     (generated-source-file #f #t #t)
     (program #f #t #t)
@@ -211,8 +214,8 @@
                             (error "egg information item not allowed at toplevel" 
                                    item))
                           (when (and named
-                                     (or (null? (cddr item))
-                                         (not (symbol? (caddr item)))))
+                                     (or (null? (cdr item))
+                                         (not (symbol? (cadr item)))))
                             (error "unnamed egg information item" item))
                           (when (and validator
                                      (not (validator (cdr item))))
