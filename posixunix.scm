@@ -370,12 +370,12 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
   if (atime == C_SCHEME_FALSE) {
     tb.actime = sb.st_atime;
   } else {
-    tb.actime = C_num_to_int(atime);
+    tb.actime = C_num_to_int64(atime);
   }
   if (mtime == C_SCHEME_FALSE) {
     tb.modtime = sb.st_mtime;
   } else {
-    tb.modtime = C_num_to_int(mtime);
+    tb.modtime = C_num_to_int64(mtime);
   }
   return utime(filename, &tb);
 }
