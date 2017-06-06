@@ -357,6 +357,12 @@
 (test-ffi-type-limits
  long signed (foreign-value "sizeof(long) * CHAR_BIT" int))
 
+(test-ffi-type-limits
+ ssize_t signed (foreign-value "sizeof(ssize_t) * CHAR_BIT" int))
+
+(test-ffi-type-limits
+ size_t unsigned (foreign-value "sizeof(size_t) * CHAR_BIT" int))
+
 
 ;; #1059: foreign vector types use wrong lolevel accessors, causing
 ;; paranoid DEBUGBUILD assertions to fail.

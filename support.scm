@@ -975,7 +975,7 @@
 		 (integer64 . "C_s64") (unsigned-integer64 . "C_u64")
 		 (short . "short") (unsigned-short . "unsigned short")
 		 (long . "long") (unsigned-long . "unsigned long")
-		 (size_t . "size_t"))))
+		 (ssize_t . "ssize_t") (size_t . "size_t"))))
     (lambda (param type)
       (follow-without-loop
        type
@@ -1030,14 +1030,14 @@
 		  `(##sys#foreign-struct-wrapper-argument 
 		    ',(##sys#slot (assq t tmap) 1)
 		    ,param) ) )
-	     ((integer32 integer64 integer short long size_t)
+	     ((integer32 integer64 integer short long ssize_t)
 	      (let* ((foreign-type (##sys#slot (assq t ftmap) 1))
 		     (size-expr (sprintf "sizeof(~A) * CHAR_BIT" foreign-type)))
 		(if unsafe
 		    param
 		    `(##sys#foreign-ranged-integer-argument
 		      ,param (foreign-value ,size-expr int)))))
-	     ((unsigned-short unsigned-long unsigned-integer
+	     ((unsigned-short unsigned-long unsigned-integer size_t
 			      unsigned-integer32 unsigned-integer64)
 	      (let* ((foreign-type (##sys#slot (assq t ftmap) 1))
 		     (size-expr (sprintf "sizeof(~A) * CHAR_BIT" foreign-type)))
@@ -1155,11 +1155,11 @@
                   unsigned-c-string unsigned-c-string* nonnull-unsigned-c-string*
 		  c-string-list c-string-list*)
 	(words->bytes 3) )
-       ((unsigned-integer long integer size_t unsigned-long integer32 unsigned-integer32)
+       ((unsigned-integer long integer unsigned-long integer32 unsigned-integer32)
 	(words->bytes 6) )    ; 1 bignum digit on 32-bit (overallocs on 64-bit)
        ((float double number) 
 	(words->bytes 4) )		; possibly 8-byte aligned 64-bit double
-       ((integer64 unsigned-integer64)
+       ((integer64 unsigned-integer64 size_t ssize_t)
 	(words->bytes 7))     ; 2 bignum digits on 32-bit (overallocs on 64-bit)
        (else
 	(cond ((and (symbol? t) (lookup-foreign-type t))
@@ -1182,11 +1182,10 @@
        ((char int short bool unsigned-short unsigned-char unsigned-int long unsigned-long byte unsigned-byte
 	      c-pointer nonnull-c-pointer unsigned-integer integer float c-string symbol
 	      scheme-pointer nonnull-scheme-pointer int32 unsigned-int32 integer32 unsigned-integer32
-              unsigned-c-string unsigned-c-string* nonnull-unsigned-c-string* size_t
+              unsigned-c-string unsigned-c-string* nonnull-unsigned-c-string*
 	      nonnull-c-string c-string* nonnull-c-string* c-string-list c-string-list*)
 	(words->bytes 1) )
-       ;; XXX TODO FIXME: What is "number" doing here?
-       ((double number integer64 unsigned-integer64)
+       ((double integer64 unsigned-integer64 size_t ssize_t)
 	(words->bytes 2) )
        (else
 	(cond ((and (symbol? t) (lookup-foreign-type t))
@@ -1276,7 +1275,7 @@
       ((nonnull-s64vector) '(struct s64vector))
       ((nonnull-f32vector) '(struct f32vector))
       ((nonnull-f64vector) '(struct f64vector))
-      ((integer long size_t integer32 unsigned-integer32 integer64 unsigned-integer64
+      ((integer long size_t ssize_t integer32 unsigned-integer32 integer64 unsigned-integer64
 		unsigned-long) 
        'integer)
       ((c-pointer)

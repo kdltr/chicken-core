@@ -82,6 +82,11 @@
   - Static compilation of eggs is now fully supported and static
     versions of compiled eggs are available by default.
 
+- Foreign function interface
+  - The foreign type specifier "ssize_t" is now accepted, and "size_t"
+    arguments now only accept positive integers.  Return values of
+    type size_t are no longer truncated on 32-bit platforms.
+
 
 4.12.1
 

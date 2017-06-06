@@ -1129,9 +1129,10 @@
 		   c-string-list c-string-list*)
 	    (string-append ns "+3") )
 	   ((unsigned-integer unsigned-integer32 long integer integer32 
-			      unsigned-long size_t number)
+			      unsigned-long number)
 	    (string-append ns "+C_SIZEOF_FIX_BIGNUM"))
-	   ((unsigned-integer64 integer64) ; On 32-bit systems, needs 2 digits
+	   ((unsigned-integer64 integer64 size_t ssize_t)
+	    ;; On 32-bit systems, needs 2 digits
 	    (string-append ns "+C_SIZEOF_BIGNUM(2)"))
 	   ((c-string c-string* unsigned-c-string unsigned-c-string unsigned-c-string*)
 	    (string-append ns "+2+(" var "==NULL?1:C_bytestowords(C_strlen(" var ")))") )
@@ -1203,6 +1204,7 @@
       ((unsigned-int32 unsigned-integer32) (str "C_u32"))
       ((int integer bool) (str "int"))
       ((size_t) (str "size_t"))
+      ((ssize_t) (str "ssize_t"))
       ((int32 integer32) (str "C_s32"))
       ((integer64) (str "C_s64"))
       ((unsigned-integer64) (str "C_u64"))
@@ -1303,7 +1305,8 @@
       ((double number float) "C_c_double(")
       ((integer integer32) "C_num_to_int(")
       ((integer64) "C_num_to_int64(")
-      ((size_t) "(size_t)C_num_to_int(")
+      ((size_t) "(size_t)C_num_to_uint64(")
+      ((ssize_t) "(ssize_t)C_num_to_int64(")
       ((unsigned-integer64) "C_num_to_uint64(")
       ((long) "C_num_to_long(")
       ((unsigned-integer unsigned-integer32) "C_num_to_unsigned_int(")
@@ -1384,9 +1387,8 @@
        (sprintf "C_mpointer(&~a,(void*)" dest) )
       ((c-pointer) (sprintf "C_mpointer_or_false(&~a,(void*)" dest))
       ((integer integer32) (sprintf "C_int_to_num(&~a," dest))
-      ((integer64) (sprintf "C_int64_to_num(&~a," dest))
-      ((size_t) (sprintf "C_int_to_num(&~a,(int)" dest)) ; XXX 64 bits?
-      ((unsigned-integer64) (sprintf "C_uint64_to_num(&~a," dest))
+      ((integer64 ssize_t) (sprintf "C_int64_to_num(&~a," dest))
+      ((unsigned-integer64 size_t) (sprintf "C_uint64_to_num(&~a," dest))
       ((unsigned-integer unsigned-integer32) (sprintf "C_unsigned_int_to_num(&~a," dest))
       ((long) (sprintf "C_long_to_num(&~a," dest))
       ((unsigned-long) (sprintf "C_unsigned_long_to_num(&~a," dest))
