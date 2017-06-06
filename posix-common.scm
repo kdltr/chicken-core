@@ -247,7 +247,7 @@ EOF
 (stat-mode S_IFSOCK)
 (stat-mode S_IFIFO)
 
-(define (##sys#stat file link err loc)
+(define (stat file link err loc)
   (let ((r (cond ((fixnum? file) (##core#inline "C_fstat" file))
                  ((port? file) (##core#inline "C_fstat" (port->fileno file)))
                  ((string? file)
@@ -268,7 +268,7 @@ EOF
 	#t)))
 
 (define (file-stat f #!optional link)
-  (##sys#stat f link #t 'file-stat)
+  (stat f link #t 'file-stat)
   (vector _stat_st_ino _stat_st_mode _stat_st_nlink
           _stat_st_uid _stat_st_gid _stat_st_size
           _stat_st_atime _stat_st_ctime _stat_st_mtime
@@ -289,9 +289,9 @@ EOF
     (when (fx< r 0)
       (posix-error #:file-error 'set-file-permissions! "cannot change file permissions" f p) ) ))
 
-(define (file-modification-time f) (##sys#stat f #f #t 'file-modification-time) _stat_st_mtime)
-(define (file-access-time f) (##sys#stat f #f #t 'file-access-time) _stat_st_atime)
-(define (file-change-time f) (##sys#stat f #f #t 'file-change-time) _stat_st_ctime)
+(define (file-modification-time f) (stat f #f #t 'file-modification-time) _stat_st_mtime)
+(define (file-access-time f) (stat f #f #t 'file-access-time) _stat_st_atime)
+(define (file-change-time f) (stat f #f #t 'file-change-time) _stat_st_ctime)
 
 (define (set-file-times! f . rest)
   (let-optionals* rest ((atime (current-seconds)) (mtime atime))
@@ -305,7 +305,7 @@ EOF
 	       #:file-error
 	       'set-file-times! "cannot set file times" f rest)))))
 
-(define (file-size f) (##sys#stat f #f #t 'file-size) _stat_st_size)
+(define (file-size f) (stat f #f #t 'file-size) _stat_st_size)
 
 (define (set-file-owner! f uid)
   (chown 'set-file-owner! f uid -1))
@@ -314,22 +314,22 @@ EOF
 
 (define file-owner
   (getter-with-setter
-   (lambda (f) (##sys#stat f #f #t 'file-owner) _stat_st_uid)
+   (lambda (f) (stat f #f #t 'file-owner) _stat_st_uid)
    set-file-owner!) )
 (define file-group
   (getter-with-setter
-   (lambda (f) (##sys#stat f #f #t 'file-group) _stat_st_gid)
+   (lambda (f) (stat f #f #t 'file-group) _stat_st_gid)
    set-file-group!) )
 
 (define file-permissions
   (getter-with-setter
    (lambda (f)
-     (##sys#stat f #f #t 'file-permissions)
+     (stat f #f #t 'file-permissions)
      (foreign-value "C_stat_perm" unsigned-int))
    set-file-permissions! ))
 
 (define (file-type file #!optional link (err #t))
-  (and (##sys#stat file link err 'file-type)
+  (and (stat file link err 'file-type)
        (select (foreign-value "C_stat_type" unsigned-int)
 	 ((S_IFREG) 'regular-file)
 	 ((S_IFLNK) 'symbolic-link)
