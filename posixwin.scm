@@ -640,9 +640,9 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
   struct stat sb;
   struct _utimbuf tb;
 
-  /* Only lstat if needed */
+  /* Only stat if needed */
   if (atime == C_SCHEME_FALSE || mtime == C_SCHEME_FALSE) {
-    if (lstat(filename, &sb) == -1) return -1;
+    if (stat(filename, &sb) == -1) return -1;
   }
 
   if (atime == C_SCHEME_FALSE) {
