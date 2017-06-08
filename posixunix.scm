@@ -88,8 +88,8 @@
 
 (include "posix-common.scm")
 
-(declare
-  (foreign-declare #<<EOF
+#>
+
 static C_TLS int C_wait_status;
 
 #include <sys/time.h>
@@ -400,8 +400,7 @@ static C_word C_i_fifo_p(C_word name)
   else return C_SCHEME_FALSE;
 }
 
-EOF
-) )
+<#
 
 ;; Faster versions of common operations
 
