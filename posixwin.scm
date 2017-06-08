@@ -1325,6 +1325,7 @@ EOF
 ;;; unimplemented stuff:
 
 (define-unimplemented change-directory*)
+(define-unimplemented chown) ; covers set-file-group! and set-file-owner!
 (define-unimplemented create-fifo)
 (define-unimplemented create-session)
 (define-unimplemented create-symbolic-link)
@@ -1347,9 +1348,6 @@ EOF
 (define-unimplemented process-signal)
 (define-unimplemented read-symbolic-link)
 (define-unimplemented set-alarm!)
-;; Handled by chown above
-;(define-unimplemented set-file-group!)
-;(define-unimplemented set-file-owner!)
 (define-unimplemented set-group-id!)
 (define-unimplemented set-process-group-id!)
 (define-unimplemented set-root-directory!)

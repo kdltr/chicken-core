@@ -309,6 +309,7 @@ EOF
 
 (define (set-file-owner! f uid)
   (chown 'set-file-owner! f uid -1))
+
 (define (set-file-group! f gid)
   (chown 'set-file-group! f -1 gid))
 
@@ -316,6 +317,7 @@ EOF
   (getter-with-setter
    (lambda (f) (stat f #f #t 'file-owner) _stat_st_uid)
    set-file-owner!) )
+
 (define file-group
   (getter-with-setter
    (lambda (f) (stat f #f #t 'file-group) _stat_st_gid)
