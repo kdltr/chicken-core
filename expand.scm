@@ -250,7 +250,8 @@
       (let ((exp2
 	     (if cs
 		 ;; compiler-syntax may "fall through"
-		 (fluid-let ((##sys#syntax-rules-mismatch (lambda (input) exp))) ; a bit of a hack
+		 (fluid-let ((chicken.internal.syntax-rules#syntax-rules-mismatch
+			      (lambda (input) exp))) ; a bit of a hack
 		   (handler exp se dse))
 		 (handler exp se dse))) )
 	(when (and (not cs) (eq? exp exp2))
@@ -735,9 +736,6 @@
 					 (loop (cdr lst)))))))))
 			   (else (loop (cdr cx))))))))
 	  (##sys#syntax-error-hook (get-output-string out))))))
-
-(define (##sys#syntax-rules-mismatch input)
-  (##sys#syntax-error-hook "no rule matches form" input))
 
 (define (get-line-number sexp)
   (and ##sys#line-number-database

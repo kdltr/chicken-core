@@ -784,7 +784,9 @@ read-syntax.c: $(SRCDIR)read-syntax.scm $(SRCDIR)common-declarations.scm
 repl.c: $(SRCDIR)repl.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.repl
 expand.c: $(SRCDIR)expand.scm $(SRCDIR)synrules.scm $(SRCDIR)common-declarations.scm
-	$(bootstrap-lib) -emit-import-library chicken.expand
+	$(bootstrap-lib) \
+	-no-module-registration \
+	-emit-import-library chicken.expand
 modules.c: $(SRCDIR)modules.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib)
 extras.c: $(SRCDIR)extras.scm $(SRCDIR)common-declarations.scm
