@@ -1196,10 +1196,7 @@
 					  (fourth x)
 					  (symbol->string var))))
 			   (set! foreign-variables
-			     (cons (list var type
-					 (if (string? name)
-					     name
-					     (symbol->string name)))
+			     (cons (list var type name)
 				   foreign-variables))
 			   '(##core#undefined) ) )
 
