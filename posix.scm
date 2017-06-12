@@ -39,11 +39,65 @@
   (disable-interrupts)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
 
+(module chicken.posix
+  (block-device? call-with-input-pipe call-with-output-pipe
+   change-directory change-directory* character-device? close-input-pipe
+   close-output-pipe create-directory create-fifo create-pipe
+   create-session create-symbolic-link current-directory
+   current-effective-group-id current-effective-user-id
+   current-effective-user-name current-group-id current-process-id
+   current-user-id current-user-name delete-directory directory
+   directory? duplicate-fileno emergency-exit fcntl/dupfd fcntl/getfd
+   fcntl/getfl fcntl/setfd fcntl/setfl fifo? fifo? file-access-time
+   file-change-time file-close file-control file-creation-mode
+   file-execute-access? file-group file-link file-lock
+   file-lock/blocking file-mkstemp file-modification-time file-open
+   file-owner file-permissions file-position file-read file-read-access?
+   file-select file-size file-stat file-test-lock file-truncate
+   file-type file-unlock file-write file-write-access? fileno/stderr
+   fileno/stdin fileno/stdout find-files get-environment-variables
+   get-host-name glob local-time->seconds local-timezone-abbreviation
+   open-input-file* open-input-pipe open-output-file* open-output-pipe
+   open/append open/binary open/creat open/excl open/fsync open/noctty
+   open/noinherit open/nonblock open/rdonly open/rdwr open/read
+   open/sync open/text open/trunc open/write open/wronly
+   parent-process-id perm/irgrp perm/iroth perm/irusr perm/irwxg
+   perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
+   perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr pipe/buf
+   port->fileno process process* process-execute process-fork
+   process-group-id process-run process-signal process-sleep
+   process-spawn process-wait read-symbolic-link regular-file?
+   seconds->local-time seconds->string seconds->utc-time seek/cur
+   seek/end seek/set set-alarm! set-buffering-mode!
+   set-environment-variable! set-file-group! set-file-owner!
+   set-file-permissions! set-file-position! set-file-times!
+   set-root-directory! set-signal-handler! set-signal-mask!
+   signal-handler signal-mask signal-mask! signal-masked? signal-unmask!
+   signal/abrt signal/alrm signal/break signal/bus signal/chld
+   signal/cont signal/fpe signal/hup signal/ill signal/int signal/io
+   signal/kill signal/pipe signal/prof signal/quit signal/segv
+   signal/stop signal/term signal/trap signal/tstp signal/urg
+   signal/usr1 signal/usr2 signal/vtalrm signal/winch signal/xcpu
+   signal/xfsz signals-list socket? spawn/detach spawn/nowait
+   spawn/nowaito spawn/overlay spawn/wait string->time symbolic-link?
+   system-information terminal-name terminal-port? terminal-size
+   time->string unset-environment-variable! user-information
+   utc-time->seconds with-input-from-pipe with-output-to-pipe)
+
+(import scheme chicken)
+(import chicken.bitwise
+	chicken.foreign
+	chicken.irregex
+	chicken.memory
+	chicken.pathname
+	chicken.port
+	chicken.time)
+
 (cond-expand
   (platform-unix
    (include "posixunix.scm"))
   (platform-windows
-   (include "posixwin.scm")))
+   (include "posixwin.scm"))))
 
 (module chicken.errno *
 (import scheme chicken)

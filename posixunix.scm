@@ -30,62 +30,6 @@
 (define-foreign-variable _stat_st_blksize unsigned-int "C_statbuf.st_blksize")
 (define-foreign-variable _stat_st_blocks unsigned-int "C_statbuf.st_blocks")
 
-(module chicken.posix
-  (emergency-exit call-with-input-pipe call-with-output-pipe change-directory
-   change-directory* close-input-pipe
-   close-output-pipe create-directory create-fifo create-pipe
-   create-session create-symbolic-link current-directory
-   current-effective-group-id current-effective-user-id
-   current-effective-user-name get-environment-variables
-   current-group-id current-process-id current-user-id current-user-name
-   delete-directory directory directory? duplicate-fileno
-   fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd fcntl/setfl
-   fifo? file-access-time file-change-time
-   file-creation-mode file-close file-control file-execute-access?
-   file-link file-lock file-lock/blocking file-mkstemp
-   file-modification-time file-open file-owner set-file-owner!
-   file-group set-file-group! file-permissions set-file-permissions!
-   file-position set-file-position! file-read file-read-access?
-   file-select file-size file-stat file-test-lock file-truncate
-   file-type file-unlock file-write file-write-access? fileno/stderr
-   fileno/stdin fileno/stdout find-files get-host-name glob
-   local-time->seconds local-timezone-abbreviation
-   open-input-file* open-input-pipe open-output-file* open-output-pipe
-   open/append open/binary open/creat open/excl open/fsync
-   open/noctty open/noinherit open/nonblock open/rdonly open/rdwr
-   open/read open/sync open/text open/trunc open/write open/wronly
-   parent-process-id perm/irgrp perm/iroth perm/irusr perm/irwxg
-   perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
-   perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr pipe/buf
-   port->fileno process process* process-execute process-fork
-   process-group-id process-run process-signal process-sleep
-   process-spawn process-wait read-symbolic-link regular-file?
-   seconds->local-time seconds->string seconds->utc-time seek/cur
-   seek/end seek/set set-alarm! set-buffering-mode! set-file-times!
-   set-root-directory! set-signal-handler! set-signal-mask! signal-handler
-   signal-mask signal-mask! signal-masked? signal-unmask! signal/abrt
-   signal/alrm signal/break signal/chld signal/cont signal/fpe
-   signal/bus signal/hup signal/ill signal/int signal/io signal/kill
-   signal/pipe signal/prof signal/quit signal/segv signal/stop
-   signal/term signal/trap signal/tstp signal/urg signal/usr1
-   signal/usr2 signal/vtalrm signal/winch signal/xcpu signal/xfsz
-   signals-list spawn/overlay spawn/wait spawn/nowait spawn/nowaito
-   spawn/detach block-device? character-device? fifo? socket?
-   string->time symbolic-link? system-information terminal-name
-   terminal-port? terminal-size time->string user-information
-   set-environment-variable! unset-environment-variable!
-   utc-time->seconds with-input-from-pipe with-output-to-pipe)
-
-(import scheme chicken)
-(import chicken.bitwise
-	chicken.condition
-	chicken.foreign
-	chicken.irregex
-	chicken.memory
-	chicken.pathname
-	chicken.port
-	chicken.time)
-
 (include "posix-common.scm")
 
 #>
@@ -1619,5 +1563,3 @@ static C_word C_i_fifo_p(C_word name)
 ;;; unimplemented stuff:
 
 (define-unimplemented process-spawn)
-
-) ; chicken.posix
