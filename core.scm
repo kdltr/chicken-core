@@ -1218,7 +1218,7 @@
 					(define
 					 ,ret
 					 ,(if (pair? (cdr conv)) (second conv) '##sys#values)) )
-				     e se dest ldest h ln #f) ) ]
+				     e se dest ldest h ln tl?))]
 				 [else
 				  (register-foreign-type! name type)
 				  '(##core#undefined) ] ) ) )
