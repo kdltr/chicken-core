@@ -1204,6 +1204,11 @@
 			 (let ((name (second x))
 			       (type (strip-syntax (third x)))
 			       (conv (cdddr x)))
+			   (unless tl?
+			     (quit-compiling
+			      "~adefinition of foreign type `~s' in non-toplevel context"
+			      (if ln (sprintf "(~a) - " ln) "")
+			      name))
 			   (cond [(pair? conv)
 				  (let ([arg (gensym)]
 					[ret (gensym)] )
