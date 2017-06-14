@@ -115,7 +115,6 @@ static C_TLS struct stat C_statbuf;
 #define C_mkdir(str)        C_fix(mkdir(C_c_string(str), S_IRWXU | S_IRWXG | S_IRWXO))
 #define C_fchdir(fd)        C_fix(fchdir(C_unfix(fd)))
 #define C_chdir(str)        C_fix(chdir(C_c_string(str)))
-#define C_rmdir(str)        C_fix(rmdir(C_c_string(str)))
 
 #define open_binary_input_pipe(a, n, name)   C_mpointer(a, popen(C_c_string(name), "r"))
 #define open_text_input_pipe(a, n, name)     open_binary_input_pipe(a, n, name)

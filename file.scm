@@ -35,7 +35,7 @@
 
 (declare
   (unit file)
-  (uses extras pathname posix)
+  (uses extras irregex pathname posix)
   (fixnum)
   (disable-interrupts)
   (foreign-declare #<<EOF
@@ -47,6 +47,8 @@
 #else
 # define C_mkdir(str)	    C_fix(mkdir(C_c_string(str)))
 #endif
+
+#define C_rmdir(str)	    C_fix(rmdir(C_c_string(str)))
 EOF
 ))
 
@@ -83,12 +85,23 @@ EOF
 (import chicken scheme
 	chicken.foreign
 	chicken.io
+	chicken.irregex
 	chicken.pathname
 	chicken.posix)
 
 (include "common-declarations.scm")
 
 (define-foreign-variable strerror c-string "strerror(errno)")
+
+;; TODO: Some duplication from POSIX, to give better error messages.
+;; This really isn't so much posix-specific, and code like this is
+;; also in library.scm.  This should be deduplicated across the board.
+(define posix-error
+  (let ([strerror (foreign-lambda c-string "strerror" int)]
+	[string-append string-append] )
+    (lambda (type loc msg . args)
+      (let ([rn (##sys#update-errno)])
+	(apply ##sys#signal-hook type loc (string-append msg " - " (strerror rn)) args) ) ) ) )
 
 
 ;;; Like `delete-file', but does nothing if the file doesn't exist:
@@ -97,6 +110,30 @@ EOF
   (lambda (file)
     (and (file-exists? file) (delete-file file))))
 
+
+;;; Directory management:
+
+(define delete-directory
+  (lambda (name #!optional recursive)
+    (define (rmdir dir)
+      (let ((sname (##sys#make-c-string dir)))
+	(unless (fx= 0 (##core#inline "C_rmdir" sname))
+	  (posix-error #:file-error 'delete-directory "cannot delete directory" dir))))
+    (##sys#check-string name 'delete-directory)
+    (if recursive
+	(let ((files (find-files ; relies on `find-files' to list dir-contents before dir
+		      name
+		      dotfiles: #t
+		      follow-symlinks: #f)))
+	  (for-each
+	   (lambda (f)
+	     ((cond ((symbolic-link? f) delete-file)
+		    ((directory? f) rmdir)
+		    (else delete-file))
+	      f))
+	   files)
+	  (rmdir name))
+	(rmdir name))))
 
 ;;; file-copy and file-move : they do what you'd think.
 
@@ -219,5 +256,67 @@ EOF
 		     #:file-error 'create-temporary-directory
 		     (##sys#string-append "cannot create temporary directory - " strerror)
 		     pn)))))))))
+
+
+;;; Filename globbing:
+
+(define glob
+  (lambda paths
+    (let conc-loop ((paths paths))
+      (if (null? paths)
+	  '()
+	  (let ((path (car paths)))
+	    (let-values (((dir fil ext) (decompose-pathname path)))
+	      (let ((rx (##sys#glob->regexp (make-pathname #f (or fil "*") ext))))
+		(let loop ((fns (directory (or dir ".") #t)))
+		  (cond ((null? fns) (conc-loop (cdr paths)))
+			((irregex-match rx (car fns)) =>
+			 (lambda (m)
+			   (cons (make-pathname dir (irregex-match-substring m))
+				 (loop (cdr fns)))))
+			(else (loop (cdr fns))))))))))))
+
+
+;;; Find matching files:
+
+(define (find-files dir #!key (test (lambda _ #t))
+			      (action (lambda (x y) (cons x y)))
+			      (seed '())
+			      (limit #f)
+			      (dotfiles #f)
+			      (follow-symlinks #f))
+  (##sys#check-string dir 'find-files)
+  (let* ((depth 0)
+	 (lproc
+	  (cond ((not limit) (lambda _ #t))
+		((fixnum? limit) (lambda _ (fx< depth limit)))
+		(else limit)))
+	 (pproc
+	  (if (procedure? test)
+	      test
+	      (let ((test (irregex test))) ; force compilation
+		(lambda (x) (irregex-match test x))))))
+    (let loop ((dir dir)
+	       (fs (directory dir dotfiles))
+	       (r seed))
+      (if (null? fs)
+	  r
+	  (let* ((filename (##sys#slot fs 0))
+		 (f (make-pathname dir filename))
+		 (rest (##sys#slot fs 1)))
+	    (cond ((directory? f)
+		   (cond ((member filename '("." "..")) (loop dir rest r))
+			 ((and (symbolic-link? f) (not follow-symlinks))
+			  (loop dir rest (if (pproc f) (action f r) r)))
+			 ((lproc f)
+			  (loop dir
+				rest
+				(fluid-let ((depth (fx+ depth 1)))
+				  (loop f
+					(directory f dotfiles)
+					(if (pproc f) (action f r) r)))))
+			 (else (loop dir rest (if (pproc f) (action f r) r)))))
+		  ((pproc f) (loop dir rest (action f r)))
+		  (else (loop dir rest r))))))))
 
 )

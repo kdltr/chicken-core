@@ -702,7 +702,6 @@ posixunix.c: posixunix.scm \
 		chicken.bitwise.import.scm \
 		chicken.condition.import.scm \
 		chicken.foreign.import.scm \
-		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
@@ -712,7 +711,6 @@ posixwin.c: posixwin.scm \
 		chicken.condition.import.scm \
 		chicken.bitwise.import.scm \
 		chicken.foreign.import.scm \
-		chicken.irregex.import.scm \
 		chicken.memory.import.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
@@ -742,6 +740,7 @@ repl.c: repl.scm \
 		chicken.eval.import.scm
 file.c: file.scm \
 		chicken.io.import.scm \
+		chicken.irregex.import.scm \
 		chicken.foreign.import.scm \
 		chicken.pathname.import.scm \
 		chicken.posix.import.scm

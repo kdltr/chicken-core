@@ -1,4 +1,4 @@
-(use data-structures posix)
+(use (chicken file) (chicken process-context) data-structures)
 (include "test.scm")
 
 (handle-exceptions exn
@@ -21,7 +21,7 @@
             "find-files-test-dir/dir-link-target/foo"
             "find-files-test-dir/dir-link-target/bar"))
 
-(change-directory "find-files-test-dir")
+(current-directory "find-files-test-dir")
 
 (cond-expand
   ((and windows (not cygwin))		; Cannot handle symlinks
@@ -209,5 +209,5 @@
 
 (test-end "find-files")
 
-(change-directory "..")
+(current-directory "..")
 (delete-directory "find-files-test-dir" #t)

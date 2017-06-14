@@ -35,7 +35,7 @@
 
 (declare
   (unit posix)
-  (uses scheduler irregex pathname extras port lolevel)
+  (uses scheduler pathname extras port lolevel)
   (disable-interrupts)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
 
@@ -46,7 +46,7 @@
    create-session create-symbolic-link current-directory
    current-effective-group-id current-effective-user-id
    current-effective-user-name current-group-id current-process-id
-   current-user-id current-user-name delete-directory directory
+   current-user-id current-user-name directory
    directory? duplicate-fileno emergency-exit fcntl/dupfd fcntl/getfd
    fcntl/getfl fcntl/setfd fcntl/setfl fifo? fifo? file-access-time
    file-change-time file-close file-control file-creation-mode
@@ -55,8 +55,8 @@
    file-owner file-permissions file-position file-read file-read-access?
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr
-   fileno/stdin fileno/stdout find-files get-environment-variables
-   get-host-name glob local-time->seconds local-timezone-abbreviation
+   fileno/stdin fileno/stdout get-environment-variables
+   get-host-name local-time->seconds local-timezone-abbreviation
    open-input-file* open-input-pipe open-output-file* open-output-pipe
    open/append open/binary open/creat open/excl open/fsync open/noctty
    open/noinherit open/nonblock open/rdonly open/rdwr open/read
@@ -87,7 +87,6 @@
 (import scheme chicken)
 (import chicken.bitwise
 	chicken.foreign
-	chicken.irregex
 	chicken.memory
 	chicken.pathname
 	chicken.port

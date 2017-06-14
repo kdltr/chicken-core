@@ -117,7 +117,6 @@ static C_TLS TCHAR C_username[255 + 1] = "";
 
 #define C_mkdir(str)	    C_fix(mkdir(C_c_string(str)))
 #define C_chdir(str)	    C_fix(chdir(C_c_string(str)))
-#define C_rmdir(str)	    C_fix(rmdir(C_c_string(str)))
 
 /* DIRENT stuff */
 struct dirent

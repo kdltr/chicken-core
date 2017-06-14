@@ -507,28 +507,6 @@ EOF
 	     #:file-error
 	     'current-directory "cannot retrieve current directory") ) ) ) )
 
-(define delete-directory
-  (lambda (name #!optional recursive)
-    (define (rmdir dir)
-      (let ((sname (##sys#make-c-string dir)))
-	(unless (fx= 0 (##core#inline "C_rmdir" sname))
-	  (posix-error #:file-error 'delete-directory "cannot delete directory" dir) )))
-    (##sys#check-string name 'delete-directory)
-    (if recursive
-      (let ((files (find-files ; relies on `find-files' to list dir-contents before dir
-                     name
-                     dotfiles: #t
-                     follow-symlinks: #f)))
-        (for-each
-          (lambda (f)
-            ((cond ((symbolic-link? f) delete-file)
-                   ((directory? f) rmdir)
-                   (else delete-file))
-             f))
-          files)
-        (rmdir name))
-      (rmdir name))))
-
 (define-inline (*create-directory loc name)
   (unless (fx= 0 (##core#inline "C_mkdir" (##sys#make-c-string name loc)))
     (posix-error #:file-error loc "cannot create directory" name)) )
@@ -574,72 +552,6 @@ EOF
 			       (not show-dotfiles?) ) )
 		      (loop)
 		      (cons file (loop)) ) ) ) ) ) ) ) )
-
-;;; Filename globbing:
-
-(define glob
-  (lambda paths
-    (let conc-loop ((paths paths))
-      (if (null? paths)
-	  '()
-	  (let ((path (car paths)))
-	    (let-values (((dir fil ext) (decompose-pathname path)))
-	      (let ((rx (##sys#glob->regexp (make-pathname #f (or fil "*") ext))))
-		(let loop ((fns (directory (or dir ".") #t)))
-		  (cond ((null? fns) (conc-loop (cdr paths)))
-			((irregex-match rx (car fns))
-			 => (lambda (m)
-			      (cons 
-			       (make-pathname dir (irregex-match-substring m))
-			       (loop (cdr fns)))) )
-			(else (loop (cdr fns))) ) ) ) ) ) ) ) ) )
-
-
-;;; Find matching files:
-
-(define (##sys#find-files dir pred action id limit follow dot loc)
-  (##sys#check-string dir loc)
-  (let* ((depth 0)
-         (lproc
-          (cond ((not limit) (lambda _ #t))
-                ((fixnum? limit) (lambda _ (fx< depth limit)))
-                (else limit) ) )
-         (pproc
-          (if (procedure? pred)
-              pred
-              (let ((pred (irregex pred))) ; force compilation
-                (lambda (x) (irregex-match pred x))))))
-    (let loop ((dir dir)
-               (fs (directory dir dot))
-               (r id))
-      (if (null? fs)
-          r
-          (let* ((filename (##sys#slot fs 0))
-                 (f (make-pathname dir filename))
-                 (rest (##sys#slot fs 1)))
-            (cond ((directory? f)
-                   (cond ((member filename '("." "..")) (loop dir rest r))
-                         ((and (symbolic-link? f) (not follow))
-                          (loop dir rest (if (pproc f) (action f r) r)))
-                         ((lproc f)
-                          (loop dir
-                                rest
-                                (fluid-let ((depth (fx+ depth 1)))
-                                  (loop f
-                                        (directory f dot)
-                                        (if (pproc f) (action f r) r)))))
-                         (else (loop dir rest (if (pproc f) (action f r) r)))))
-                  ((pproc f) (loop dir rest (action f r)))
-                  (else (loop dir rest r))))))))
-
-(define (find-files dir #!key (test (lambda _ #t))
-			      (action (lambda (x y) (cons x y)))
-                              (seed '())
-                              (limit #f)
-                              (dotfiles #f)
-                              (follow-symlinks #f))
-  (##sys#find-files dir test action seed limit follow-symlinks dotfiles 'find-files))
-
 
 ;;; umask
 

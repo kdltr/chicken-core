@@ -1588,9 +1588,13 @@
 
 (chicken.file#create-temporary-directory (#(procedure #:clean #:enforce) chicken.file#create-temporary-directory () string))
 (chicken.file#create-temporary-file (#(procedure #:clean #:enforce) chicken.file#create-temporary-file (#!optional string) string))
+(chicken.file#delete-directory (#(procedure #:clean #:enforce) chicken.file#delete-directory (string #!optional *) string))
 (chicken.file#delete-file* (#(procedure #:clean #:enforce) chicken.file#delete-file* (string) *))
 (chicken.file#file-copy (#(procedure #:clean #:enforce) chicken.file#file-copy (string string #!optional * fixnum) fixnum))
 (chicken.file#file-move (#(procedure #:clean #:enforce) chicken.file#file-move (string string #!optional * fixnum) fixnum))
+(chicken.file#find-files (#(procedure #:enforce) chicken.file#find-files (string #!rest) list))
+(chicken.file#glob (#(procedure #:clean #:enforce) chicken.file#glob (#!rest string) list))
+
 
 ;; pathname
 
@@ -1933,7 +1937,6 @@
 (chicken.posix#current-process-id (#(procedure #:clean) chicken.posix#current-process-id () fixnum))
 (chicken.posix#current-user-id (#(procedure #:clean) chicken.posix#current-user-id () fixnum))
 (chicken.posix#current-user-name (#(procedure #:clean) chicken.posix#current-user-name () string))
-(chicken.posix#delete-directory (#(procedure #:clean #:enforce) chicken.posix#delete-directory (string #!optional *) string))
 (chicken.posix#directory (#(procedure #:clean #:enforce) chicken.posix#directory (#!optional string *) (list-of string)))
 (chicken.posix#directory? (#(procedure #:clean #:enforce) chicken.posix#directory? ((or string fixnum)) boolean))
 (chicken.posix#duplicate-fileno (#(procedure #:clean #:enforce) chicken.posix#duplicate-fileno (fixnum #!optional fixnum) fixnum))
@@ -1972,9 +1975,7 @@
 (chicken.posix#fileno/stderr fixnum)
 (chicken.posix#fileno/stdin fixnum)
 (chicken.posix#fileno/stdout fixnum)
-(chicken.posix#find-files (#(procedure #:enforce) chicken.posix#find-files (string #!rest) list))
 (chicken.posix#get-host-name (#(procedure #:clean) chicken.posix#get-host-name () string))
-(chicken.posix#glob (#(procedure #:clean #:enforce) chicken.posix#glob (#!rest string) list))
 (chicken.posix#local-time->seconds (#(procedure #:clean #:enforce) chicken.posix#local-time->seconds ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)) integer))
 (chicken.posix#local-timezone-abbreviation (#(procedure #:clean) chicken.posix#local-timezone-abbreviation () string))
 (chicken.posix#open-input-file* (#(procedure #:clean #:enforce) chicken.posix#open-input-file* (fixnum #!optional symbol) input-port))
