@@ -269,8 +269,9 @@
 					     (lambda (v)
 					       (##sys#error 'eval "environment is not mutable" evalenv var)) ;XXX var?
 					     (lambda (v)
-					       (##sys#persist-symbol var)
-					       (##sys#setslot var 0 (##core#app val v))))))
+					       (let ((result (##core#app val v)))
+						 (##core#inline "C_i_persist_symbol" var)
+						 (##sys#setslot var 0 result))))))
 				      ((zero? i) (lambda (v) (##sys#setslot (##sys#slot v 0) j (##core#app val v))))
 				      (else
 				       (lambda (v)

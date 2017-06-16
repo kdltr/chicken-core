@@ -2279,8 +2279,11 @@ C_regparm C_word C_fcall C_intern_in(C_word **ptr, int len, C_char *str, C_SYMBO
 
 C_regparm C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYMBOL_TABLE *stable)
 {
-  /* Intern as usual, but remember slot, if looked up symbol is in nursery.
-     also: allocate in static memory. */
+  /* Intern as usual, but remember slot, and allocate in static
+   * memory.  If symbol already exists, replace its string by a fresh
+   * statically allocated string to ensure it never gets collected, as
+   * lf[] entries are not tracked by the GC.
+   */
   int key;
   C_word s;
 
@@ -2291,6 +2294,11 @@ C_regparm C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYM
   if(C_truep(s = lookup(key, len, str, stable))) {
     if(C_in_stackp(s)) C_mutate_slot(slot, s);
     
+    if(!C_truep(C_permanentp(C_symbol_name(s)))) {
+      /* Replace by statically allocated string, and persist it */
+      C_set_block_item(s, 1, C_static_string(C_heaptop, len, str));
+      C_i_persist_symbol(s);
+    }
     return s;
   }
 
@@ -2333,6 +2341,7 @@ C_regparm C_word C_fcall C_intern3(C_word **ptr, C_char *str, C_word value)
   C_word s = C_intern_in(ptr, C_strlen(str), str, symbol_table);
   
   C_mutate2(&C_block_item(s,0), value);
+  C_i_persist_symbol(s); /* Symbol has a value now; persist it */
   return s;
 }
 
@@ -2385,7 +2394,8 @@ C_regparm C_word C_fcall C_i_persist_symbol(C_word sym)
 }
 
 /* Possibly remove "persistence" of symbol, to allowed it to be GC'ed.
- * This is only done if the symbol is unbound and has an empty plist.
+ * This is only done if the symbol is unbound, has an empty plist and
+ * is allocated in managed memory.
  */
 C_regparm C_word C_fcall C_i_unpersist_symbol(C_word sym)
 {
@@ -2393,7 +2403,10 @@ C_regparm C_word C_fcall C_i_unpersist_symbol(C_word sym)
 
   C_i_check_symbol(sym);
 
-  if (C_persistable_symbol(sym)) return C_SCHEME_FALSE;
+  if (C_persistable_symbol(sym) ||
+      C_truep(C_permanentp(C_symbol_name(sym)))) {
+    return C_SCHEME_FALSE;
+  }
 
   bucket = lookup_bucket(sym, NULL);
   if (C_truep(bucket)) { /* It could be an uninterned symbol(?) */
@@ -2464,7 +2477,13 @@ C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stabl
   C_set_block_item(sym, 2, C_SCHEME_END_OF_LIST);
   *ptr = p;
   b2 = stable->table[ key ];	/* previous bucket */
-  bucket = C_a_weak_pair(ptr, sym, b2); /* create new bucket */
+
+  /* Create new weak or strong bucket depending on persistability */
+  if (C_persistable_symbol(sym) || C_truep(C_permanentp(string))) {
+    bucket = C_a_pair(ptr, sym, b2);
+  } else {
+    bucket = C_a_weak_pair(ptr, sym, b2);
+  }
 
   if(ptr != C_heaptop) C_mutate_slot(&stable->table[ key ], bucket);
   else {
@@ -4138,10 +4157,41 @@ C_regparm void C_fcall update_symbol_tables(int mode)
 
 	assert((h & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE);
 
+#ifdef DEBUGBUILD
+        /* Detect inconsistencies before dropping / keeping the symbol */
+	{
+	  C_word str = C_symbol_name(sym);
+          int str_perm;
+
+	  h = C_block_header(str);
+
+	  while(is_fptr(h)) {
+	    str = fptr_to_ptr(h);
+	    h = C_block_header(str);
+	  }
+
+          str_perm = !C_in_stackp(str) && !C_in_heapp(str) &&
+                  !C_in_scratchspacep(str) &&
+                  (mode == GC_REALLOC ? !C_in_new_heapp(str) : 1);
+
+	  if ((C_persistable_symbol(sym) || str_perm) &&
+              (C_block_header(bucket) == C_WEAK_PAIR_TAG)) {
+	    C_dbg(C_text("GC"), C_text("Offending symbol: `%.*s'\n"),
+		  (int)C_header_size(str), C_c_string(str));
+	    panic(C_text("Persistable symbol found in weak pair"));
+	  } else if (!C_persistable_symbol(sym) && !str_perm &&
+		     (C_block_header(bucket) == C_PAIR_TAG)) {
+	    C_dbg(C_text("GC"), C_text("Offending symbol: `%.*s'...\n"),
+		  (int)C_header_size(str), C_c_string(str));
+	    panic(C_text("Unpersistable symbol found in strong pair"));
+	  }
+	}
+#endif
+
 	/* If the symbol is unreferenced, drop it: */
-	if(!C_truep(C_permanentp(sym)) && (mode == GC_REALLOC ?
-					   !C_in_new_heapp(sym) :
-					   !C_in_fromspacep(sym))) {
+	if(mode == GC_REALLOC ?
+           !C_in_new_heapp(sym) :
+           !C_in_fromspacep(sym)) {
 
 	  if(last) C_set_block_item(last, 1, C_block_item(bucket,1));
 	  else stp->table[ i ] = C_block_item(bucket,1);

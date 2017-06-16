@@ -275,7 +275,6 @@ EOF
 (define ##sys#gc (##core#primitive "C_gc"))
 (define (##sys#setslot x i y) (##core#inline "C_i_setslot" x i y))
 (define (##sys#setislot x i y) (##core#inline "C_i_set_i_slot" x i y))
-(define (##sys#persist-symbol s) (##core#inline "C_i_persist_symbol" s))
 (define ##sys#allocate-vector (##core#primitive "C_allocate_vector"))
 (define (argc+argv) (##sys#values main_argc main_argv))
 (define ##sys#make-structure (##core#primitive "C_make_structure"))
