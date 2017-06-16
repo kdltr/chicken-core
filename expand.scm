@@ -41,14 +41,7 @@
    strip-syntax
    syntax-error
    er-macro-transformer
-   ir-macro-transformer
-
-   ;; These must be exported or the compiler will assume they're never
-   ;; assigned to.
-   define-definition
-   define-syntax-definition
-   define-values-definition
-   expansion-result-hook)
+   ir-macro-transformer)
 
 (import scheme chicken
 	chicken.condition
@@ -952,6 +945,14 @@
 
 (define ##sys#er-transformer er-macro-transformer)
 (define ##sys#ir-transformer ir-macro-transformer)
+
+
+;; Expose some internals for use in core.scm and chicken-syntax.scm:
+
+(define chicken.expand#define-definition define-definition)
+(define chicken.expand#define-syntax-definition define-syntax-definition)
+(define chicken.expand#define-values-definition define-values-definition)
+(define chicken.expand#expansion-result-hook expansion-result-hook)
 
 ) ; chicken.expand module
 

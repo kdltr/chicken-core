@@ -525,7 +525,7 @@
       output))
 
   (define (canonicalize-body/ln ln body se cs?)
-    (fluid-let ((expansion-result-hook
+    (fluid-let ((chicken.expand#expansion-result-hook
 		 (handle-expansion-result ln)))
       (##sys#canonicalize-body body se cs?)))
 
@@ -622,7 +622,7 @@
 	     (let* ((name0 (lookup (car x) se))
 		    (name (or (and (symbol? name0) (##sys#get name0 '##core#primitive)) name0))
 		    (xexpanded
-		     (fluid-let ((expansion-result-hook
+		     (fluid-let ((chicken.expand#expansion-result-hook
 				  (handle-expansion-result ln)))
 		       (expand x se compiler-syntax-enabled))))
 	       (cond ((not (eq? x xexpanded))
