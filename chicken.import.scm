@@ -130,7 +130,6 @@
    make-parameter
    make-promise
    (make-property-condition . chicken.condition#make-property-condition)
-   module-environment
    (most-negative-fixnum . chicken.fixnum#most-negative-fixnum)
    (most-positive-fixnum . chicken.fixnum#most-positive-fixnum)
    nan?

@@ -45,8 +45,10 @@
 <#
 
 (module chicken.eval
-  (eval eval-handler
-   interaction-environment null-environment scheme-report-environment)
+  (eval-handler module-environment
+
+   ;; TODO These should only be exported by the scheme module (and r4rs/r5rs):
+   eval interaction-environment null-environment scheme-report-environment)
 
 ;; Exclude bindings defined within this module.
 (import (except scheme eval interaction-environment null-environment scheme-report-environment)
@@ -752,6 +754,12 @@
   (apply (eval-handler) x env))
 
 
+;;; User-facing `module-environment` procedure:
+
+(define (module-environment name)
+  (chicken.module#module-environment name))
+
+
 ;;; Setting properties dynamically scoped
 
 (define-values (##sys#put/restore! ##sys#with-property-restore)
@@ -812,10 +820,10 @@
 (define scheme-report-environment)
 (define null-environment)
 
-(let* ((r4s (module-environment 'r4rs 'scheme-report-environment/4))
-       (r5s (module-environment 'scheme 'scheme-report-environment/5))
-       (r4n (module-environment 'r4rs-null 'null-environment/4))
-       (r5n (module-environment 'r5rs-null 'null-environment/5)))
+(let* ((r4s (chicken.module#module-environment 'r4rs 'scheme-report-environment/4))
+       (r5s (chicken.module#module-environment 'scheme 'scheme-report-environment/5))
+       (r4n (chicken.module#module-environment 'r4rs-null 'null-environment/4))
+       (r5n (chicken.module#module-environment 'r5rs-null 'null-environment/5)))
   (define (strip se)
     (foldr
      (lambda (s r)

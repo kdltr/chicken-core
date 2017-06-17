@@ -1057,7 +1057,7 @@
 
 (register-feature! 'module-environments)
 
-(define (module-environment mname #!optional (ename mname))
+(define (chicken.module#module-environment mname #!optional (ename mname))
   (let ((mod (find-module/import-library mname 'module-environment)))
     (if (not mod)
 	(##sys#syntax-error-hook

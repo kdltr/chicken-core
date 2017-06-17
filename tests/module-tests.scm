@@ -1,5 +1,6 @@
 ;;;; module-tests.scm
 
+(import (chicken eval))
 
 (cond-expand
  (compiling

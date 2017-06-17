@@ -862,6 +862,8 @@
 (chicken.eval#interaction-environment
  (#(procedure #:clean) chicken.eval#interaction-environment () (struct environment)))
 
+(chicken.eval#module-environment
+ (#(procedure #:clean #:enforce) chicken.eval#module-environment ((or symbol (list-of (or symbol fixnum)))) (struct environment)))
 
 ;; chicken
 
@@ -1266,7 +1268,6 @@
 (chicken.flonum#minimum-flonum float)
 (chicken.fixnum#most-negative-fixnum fixnum)
 (chicken.fixnum#most-positive-fixnum fixnum)
-(module-environment (#(procedure #:clean #:enforce) module-environment ((or symbol (list-of (or symbol fixnum))) #!optional *) (struct environment)))
 (on-exit (#(procedure #:clean #:enforce) on-exit ((procedure () . *)) undefined))
 (open-input-string (#(procedure #:clean #:enforce) open-input-string (string #!rest) input-port))
 (open-output-string (#(procedure #:clean) open-output-string (#!rest) output-port))

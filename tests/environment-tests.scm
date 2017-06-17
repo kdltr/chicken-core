@@ -33,6 +33,8 @@
 (test-equal 1 (eval '(if #t 1 2) (null-environment 5)))
 (test-equal (eval '((lambda (x) x) 123) (null-environment 5)) 123)
 
+(import (chicken eval))
+
 (define baz 100)
 
 (module foo (bar)
