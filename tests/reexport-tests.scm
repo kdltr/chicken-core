@@ -2,8 +2,8 @@
 
 
 (module my-r4rs ()
-  (import scheme chicken)
-  (reexport 
+  (import (chicken module))
+  (reexport
     (except scheme 
       dynamic-wind values call-with-values eval scheme-report-environment
       null-environment interaction-environment)))
@@ -24,7 +24,7 @@
   (syntax-rules ()
     ((_ name imp ...)
      (module name ()
-       (import scheme imp ...)
+       (import (chicken module) imp ...)
        (reexport imp ...)))))
 
 (compound-module
@@ -49,7 +49,7 @@
 (module
  m5
  *					; () works here
- (import chicken scheme m4)
+ (import (chicken module) m4)
  (reexport m4))
 
 (import m5)

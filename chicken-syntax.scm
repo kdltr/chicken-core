@@ -1139,6 +1139,7 @@
 
 ;;; interface definition
 
+;; TODO: Move this into "chicken.module"
 (##sys#extend-macro-environment
  'define-interface '()
  (##sys#er-transformer
@@ -1166,6 +1167,7 @@
 
 ;;; functor definition
 
+;; TODO: Move this into "chicken.module"
 (##sys#extend-macro-environment
  'functor '()
  (##sys#er-transformer

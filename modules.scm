@@ -985,6 +985,9 @@
 
 (define-inline (se-subset names env) (map (cut assq <> env) names))
 
+(##sys#register-core-module
+ 'chicken.module #f '() ##sys#chicken.module-macro-environment)
+
 (##sys#register-primitive-module
  'srfi-0 '() (se-subset '(cond-expand) ##sys#default-macro-environment))
 

@@ -975,13 +975,6 @@
        ##sys#current-meta-environment ##sys#meta-macro-environment
        #t #f 'import-syntax-for-syntax)))
 
-(##sys#extend-macro-environment
- 'reexport '()
- (##sys#er-transformer
-  (cut ##sys#expand-import <> <> <>
-       ##sys#current-environment ##sys#macro-environment
-       #f #t 'reexport)))
-
 (set! chicken.expand#import-definition
   (##sys#extend-macro-environment
    'import '()
@@ -1001,6 +994,7 @@
 		       `(##core#require ,lib ,(module-requirement name)))))
 	       (cdr x)))))))
 
+;; TODO Move this out of the initial environment:
 (##sys#extend-macro-environment
  'begin-for-syntax '()
  (##sys#er-transformer
@@ -1015,8 +1009,82 @@
   (lambda (x r c)
     `(,(r 'begin-for-syntax) (,(r 'import) ,@(cdr x))))))
 
-;; contains only syntax-related bindings
+;; The "initial" macro environment, containing only import forms
 (define ##sys#initial-macro-environment (##sys#macro-environment))
+
+(##sys#extend-macro-environment
+ 'module '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'module x '(_ _ _ . #(_ 0)))
+    (let ((len (length x))
+	  (name (library-id (cadr x))))
+      (cond ((and (fx>= len 4) (c (r '=) (caddr x)))
+	     (let* ((x (strip-syntax x))
+		    (app (cadddr x)))
+	       (cond ((fx> len 4)
+		      ;; feature suggested by syn:
+		      ;;
+		      ;; (module NAME = FUNCTORNAME BODY ...)
+		      ;; ~>
+		      ;; (begin
+		      ;;   (module _NAME * BODY ...)
+		      ;;   (module NAME = (FUNCTORNAME _NAME)))
+		      ;;
+		      ;; - the use of "_NAME" is a bit stupid, but it must be
+		      ;;   externally visible to generate an import library from
+		      ;;   and compiling "NAME" separately may need an import-lib
+		      ;;   for stuff in "BODY" (say, syntax needed by syntax exported
+		      ;;   from the functor, or something like this...)
+		      (let ((mtmp (string->symbol
+				   (##sys#string-append
+				    "_"
+				    (symbol->string name))))
+			    (%module (r 'module)))
+			`(##core#begin
+			  (,%module ,mtmp * ,@(cddddr x))
+			  (,%module ,name = (,app ,mtmp)))))
+		     (else
+		      (##sys#check-syntax
+		       'module x '(_ _ _ (_ . #(_ 0))))
+		      (##sys#instantiate-functor
+		       name
+		       (library-id (car app))
+		       (cdr app)))))) ; functor arguments
+	    (else
+	     ;;XXX use module name in "loc" argument?
+	     (let ((exports (##sys#validate-exports (strip-syntax (caddr x)) 'module)))
+	       `(##core#module
+		 ,name
+		 ,(if (eq? '* exports)
+		      #t
+		      exports)
+		 ,@(let ((body (cdddr x)))
+		     (if (and (pair? body)
+			      (null? (cdr body))
+			      (string? (car body)))
+			 `((##core#include ,(car body) ,##sys#current-source-filename))
+			 body))))))))))
+
+(##sys#extend-macro-environment
+ 'export '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (let ((exps (##sys#validate-exports (strip-syntax (cdr x)) 'export))
+	  (mod (##sys#current-module)))
+      (when mod
+	(##sys#add-to-export-list mod exps))
+      '(##core#undefined)))))
+
+(##sys#extend-macro-environment
+ 'reexport '()
+ (##sys#er-transformer
+  (cut ##sys#expand-import <> <> <>
+       ##sys#current-environment ##sys#macro-environment
+       #f #t 'reexport)))
+
+;; The chicken.module syntax environment
+(define ##sys#chicken.module-macro-environment (##sys#macro-environment))
 
 (##sys#extend-macro-environment
  'lambda
@@ -1502,74 +1570,6 @@
  (##sys#er-transformer
   (lambda (x r c)
     `(,(r 'begin-for-syntax) (,(r 'require-extension) ,@(cdr x))))))
-
-(##sys#extend-macro-environment
- 'module
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'module x '(_ _ _ . #(_ 0)))
-    (let ((len (length x))
-	  (name (library-id (cadr x))))
-      (cond ((and (fx>= len 4) (c (r '=) (caddr x)))
-	     (let* ((x (strip-syntax x))
-		    (app (cadddr x)))
-	       (cond ((fx> len 4)
-		      ;; feature suggested by syn:
-		      ;;
-		      ;; (module NAME = FUNCTORNAME BODY ...)
-		      ;; ~>
-		      ;; (begin
-		      ;;   (module _NAME * BODY ...)
-		      ;;   (module NAME = (FUNCTORNAME _NAME)))
-		      ;;
-		      ;; - the use of "_NAME" is a bit stupid, but it must be
-		      ;;   externally visible to generate an import library from
-		      ;;   and compiling "NAME" separately may need an import-lib
-		      ;;   for stuff in "BODY" (say, syntax needed by syntax exported
-		      ;;   from the functor, or something like this...)
-		      (let ((mtmp (string->symbol
-				   (##sys#string-append
-				    "_"
-				    (symbol->string name))))
-			    (%module (r 'module)))
-			`(##core#begin
-			  (,%module ,mtmp * ,@(cddddr x))
-			  (,%module ,name = (,app ,mtmp)))))
-		     (else
-		      (##sys#check-syntax 
-		       'module x '(_ _ _ (_ . #(_ 0))))
-		      (##sys#instantiate-functor
-		       name
-		       (library-id (car app))
-		       (cdr app))))))	; functor arguments
-	    (else
-	     ;;XXX use module name in "loc" argument?
-	     (let ((exports
-		    (##sys#validate-exports (strip-syntax (caddr x)) 'module)))
-	       `(##core#module 
-		 ,name
-		 ,(if (eq? '* exports)
-		      #t 
-		      exports)
-		 ,@(let ((body (cdddr x)))
-		     (if (and (pair? body) 
-			      (null? (cdr body))
-			      (string? (car body)))
-			 `((##core#include ,(car body) ,##sys#current-source-filename))
-			 body))))))))))
-
-(##sys#extend-macro-environment
- 'export
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (let ((exps (##sys#validate-exports (strip-syntax (cdr x)) 'export))
-	  (mod (##sys#current-module)))
-      (when mod
-	(##sys#add-to-export-list mod exps))
-      '(##core#undefined)))))
-
 
 ;;; syntax-rules
 

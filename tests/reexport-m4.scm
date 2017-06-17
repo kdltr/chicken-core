@@ -2,7 +2,7 @@
 (module
  reexport-m4
  (baz)
- (import chicken scheme reexport-m3)
+ (import chicken scheme (chicken module) reexport-m3)
  (reexport reexport-m3)
  (define-syntax baz
    (ir-macro-transformer

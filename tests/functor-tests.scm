@@ -116,6 +116,7 @@
 (module (2x noop) = ((double printer) (noop printer)))
 
 (module (2x write) = (double printer)
+  (import (chicken module))
   (reexport (rename (scheme) (write print))))
 
 (define output
