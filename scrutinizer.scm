@@ -37,14 +37,14 @@
 (import chicken scheme
 	chicken.compiler.support
 	chicken.data-structures
-	chicken.expand
 	chicken.format
 	chicken.internal
 	chicken.io
 	chicken.pathname
 	chicken.platform
 	chicken.port
-	chicken.pretty-print)
+	chicken.pretty-print
+	chicken.syntax)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")

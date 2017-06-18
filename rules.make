@@ -519,6 +519,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.pretty-print,extras)
 $(eval $(call declare-emitted-import-lib-dependency,chicken.random,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.locative,lolevel))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.memory,lolevel))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.syntax,expand))
 
 chicken.c: chicken.scm mini-srfi-1.scm \
 		chicken.compiler.batch-driver.import.scm \
@@ -566,12 +567,12 @@ core.c: core.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.data-structures.import.scm \
 		chicken.eval.import.scm \
-		chicken.expand.import.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
 		chicken.keyword.import.scm \
 		chicken.load.import.scm \
-		chicken.pretty-print.import.scm
+		chicken.pretty-print.import.scm \
+		chicken.syntax.import.scm
 optimizer.c: optimizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.data-structures.import.scm \
@@ -581,14 +582,14 @@ scheduler.c: scheduler.scm \
 scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.data-structures.import.scm \
-		chicken.expand.import.scm \
 		chicken.format.import.scm \
 		chicken.internal.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
 		chicken.port.import.scm \
-		chicken.pretty-print.import.scm
+		chicken.pretty-print.import.scm \
+		chicken.syntax.import.scm
 lfa2.c: lfa2.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.format.import.scm
@@ -604,7 +605,6 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.bitwise.import.scm \
 		chicken.condition.import.scm \
 		chicken.data-structures.import.scm \
-		chicken.expand.import.scm \
 		chicken.file.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
@@ -616,13 +616,14 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.random.import.scm \
+		chicken.syntax.import.scm \
 		chicken.time.import.scm
 modules.c: modules.scm \
-		chicken.expand.import.scm \
 		chicken.internal.import.scm \
 		chicken.keyword.import.scm \
 		chicken.load.import.scm \
-		chicken.platform.import.scm
+		chicken.platform.import.scm \
+		chicken.syntax.import.scm
 csc.c: csc.scm \
 		chicken.data-structures.import.scm \
 		chicken.format.import.scm \
@@ -692,10 +693,10 @@ chicken-syntax.c: chicken-syntax.scm \
 		chicken.platform.import.scm
 srfi-4.c: srfi-4.scm \
 		chicken.bitwise.import.scm \
-		chicken.expand.import.scm \
 		chicken.foreign.import.scm \
 		chicken.gc.import.scm \
-		chicken.platform.import.scm
+		chicken.platform.import.scm \
+		chicken.syntax.import.scm
 posixunix.c: posixunix.scm \
 		chicken.bitwise.import.scm \
 		chicken.condition.import.scm \
@@ -729,11 +730,11 @@ extras.c: extras.scm \
 		chicken.time.import.scm
 eval.c: eval.scm \
 		chicken.condition.import.scm \
-		chicken.expand.import.scm \
 		chicken.foreign.import.scm \
 		chicken.internal.import.scm \
 		chicken.keyword.import.scm \
-		chicken.platform.import.scm
+		chicken.platform.import.scm \
+		chicken.syntax.import.scm
 repl.c: repl.scm \
 		chicken.eval.import.scm
 file.c: file.scm \
@@ -786,7 +787,7 @@ repl.c: $(SRCDIR)repl.scm $(SRCDIR)common-declarations.scm
 expand.c: $(SRCDIR)expand.scm $(SRCDIR)synrules.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
 	-no-module-registration \
-	-emit-import-library chicken.expand
+	-emit-import-library chicken.syntax
 modules.c: $(SRCDIR)modules.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib)
 extras.c: $(SRCDIR)extras.scm $(SRCDIR)common-declarations.scm

@@ -35,7 +35,7 @@
   (hide check-for-multiple-bindings)
   (not inline ##sys#syntax-error-hook ##sys#compiler-syntax-hook))
 
-(module chicken.expand
+(module chicken.syntax
   (expand
    get-line-number
    strip-syntax
@@ -43,7 +43,7 @@
    er-macro-transformer
    ir-macro-transformer)
 
-(import scheme chicken
+(import scheme (except chicken expand get-line-number strip-syntax syntax-error er-macro-transformer ir-macro-transformer)
 	chicken.condition
 	chicken.internal
 	chicken.keyword
@@ -606,7 +606,7 @@
 				(##sys#check-syntax
 				 'define x '(_ (_ . lambda-list) . #(_ 1)) #f se)
 				(loop2
-				 (expand-curried-define head (cddr x) se)))
+				 (chicken.syntax#expand-curried-define head (cddr x) se)))
 			       (else
 				(##sys#check-syntax
 				 'define x
@@ -638,7 +638,8 @@
 
 ;;; A simple expression matcher
 
-(define match-expression
+;; Used by "quasiquote", below
+(define chicken.syntax#match-expression
   (lambda (exp pat vars)
     (let ((env '()))
       (define (mwalk x p)
@@ -657,7 +658,8 @@
 
 ;;; Expand "curried" lambda-list syntax for `define'
 
-(define (expand-curried-define head body se)
+;; Used by "define", below
+(define (chicken.syntax#expand-curried-define head body se)
   (let ((name #f))
     (define (loop head body)
       (if (symbol? (car head))
@@ -949,17 +951,16 @@
 
 ;; Expose some internals for use in core.scm and chicken-syntax.scm:
 
-(define chicken.expand#define-definition define-definition)
-(define chicken.expand#define-syntax-definition define-syntax-definition)
-(define chicken.expand#define-values-definition define-values-definition)
-(define chicken.expand#expansion-result-hook expansion-result-hook)
+(define chicken.syntax#define-definition define-definition)
+(define chicken.syntax#define-syntax-definition define-syntax-definition)
+(define chicken.syntax#define-values-definition define-values-definition)
+(define chicken.syntax#expansion-result-hook expansion-result-hook)
 
-) ; chicken.expand module
-
+) ; chicken.syntax module
 
 ;;; Macro definitions:
 
-(import chicken chicken.expand chicken.internal)
+(import chicken chicken.syntax chicken.internal)
 
 (##sys#extend-macro-environment
  'import-syntax '()
@@ -975,7 +976,7 @@
        ##sys#current-meta-environment ##sys#meta-macro-environment
        #t #f 'import-syntax-for-syntax)))
 
-(set! chicken.expand#import-definition
+(set! chicken.syntax#import-definition
   (##sys#extend-macro-environment
    'import '()
    (##sys#er-transformer
@@ -1126,7 +1127,7 @@
     (##sys#check-syntax 'begin x '(_ . #(_ 0)))
     `(##core#begin ,@(cdr x)))))
 
-(set! chicken.expand#define-definition
+(set! chicken.syntax#define-definition
   (##sys#extend-macro-environment
    'define
    '()
@@ -1141,7 +1142,7 @@
                  (let ((name (or (getp head '##core#macro-alias) head)))
                    (##sys#register-export name (##sys#current-module)))
 		 (when (c (r 'define) head)
-		   (chicken.expand#defjam-error x))
+		   (chicken.syntax#defjam-error x))
 		 `(##core#begin
 		    (##core#ensure-toplevel-definition ,head)
 		    (##core#set!
@@ -1149,12 +1150,12 @@
 		     ,(if (pair? body) (car body) '(##core#undefined)))))
 		((pair? (car head))
 		 (##sys#check-syntax 'define form '(_ (_ . lambda-list) . #(_ 1)))
-		 (loop (chicken.expand#expand-curried-define head body '()))) ;XXX '() should be se
+		 (loop (chicken.syntax#expand-curried-define head body '()))) ;XXX '() should be se
 		(else
 		 (##sys#check-syntax 'define form '(_ (symbol . lambda-list) . #(_ 1)))
 		 (loop (list (car x) (car head) `(##core#lambda ,(cdr head) ,@body)))))))))))
 
-(set! chicken.expand#define-syntax-definition
+(set! chicken.syntax#define-syntax-definition
   (##sys#extend-macro-environment
    'define-syntax
    '()
@@ -1166,7 +1167,7 @@
 	(let ((name (or (getp head '##core#macro-alias) head)))
 	  (##sys#register-export name (##sys#current-module)))
 	(when (c (r 'define-syntax) head)
-	  (chicken.expand#defjam-error form))
+	  (chicken.syntax#defjam-error form))
 	`(##core#define-syntax ,head ,body))))))
 
 (define (check-for-multiple-bindings bindings form loc)
@@ -1457,16 +1458,16 @@
 		       (else
 			`(##sys#cons ,(walk head n) ,(walk tail n)) ) ) ) ) ) )
       (define (simplify x)
-	(cond ((chicken.expand#match-expression x '(##sys#cons a (##core#quote ())) '(a))
+	(cond ((chicken.syntax#match-expression x '(##sys#cons a (##core#quote ())) '(a))
 	       => (lambda (env) (simplify `(##sys#list ,(cdr (assq 'a env))))) )
-	      ((chicken.expand#match-expression x '(##sys#cons a (##sys#list . b)) '(a b))
+	      ((chicken.syntax#match-expression x '(##sys#cons a (##sys#list . b)) '(a b))
 	       => (lambda (env)
 		    (let ((bxs (assq 'b env)))
 		      (if (fx< (length bxs) 32)
 			  (simplify `(##sys#list ,(cdr (assq 'a env))
 						 ,@(cdr bxs) ) ) 
 			  x) ) ) )
-	      ((chicken.expand#match-expression x '(##sys#append a (##core#quote ())) '(a))
+	      ((chicken.syntax#match-expression x '(##sys#append a (##core#quote ())) '(a))
 	       => (lambda (env) (cdr (assq 'a env))) )
 	      (else x) ) )
       (##sys#check-syntax 'quasiquote form '(_ _))

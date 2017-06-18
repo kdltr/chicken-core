@@ -39,11 +39,11 @@
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
-(import chicken.expand
-	chicken.internal
+(import chicken.internal
 	chicken.keyword
 	chicken.load
-	chicken.platform)
+	chicken.platform
+	chicken.syntax)
 
 (define-alias dd d)
 (define-alias dm d)
@@ -958,7 +958,6 @@
 (##sys#register-module-alias 'data-structures 'chicken.data-structures)
 (##sys#register-module-alias 'errno 'chicken.errno)
 (##sys#register-module-alias 'eval 'chicken.eval)
-(##sys#register-module-alias 'expand 'chicken.expand)
 (##sys#register-module-alias 'file 'chicken.file)
 (##sys#register-module-alias 'fixnum 'chicken.fixnum)
 (##sys#register-module-alias 'flonum 'chicken.flonum)
@@ -980,6 +979,7 @@
 (##sys#register-module-alias 'random 'chicken.random)
 (##sys#register-module-alias 'read-syntax 'chicken.read-syntax)
 (##sys#register-module-alias 'repl 'chicken.repl)
+(##sys#register-module-alias 'syntax 'chicken.syntax)
 (##sys#register-module-alias 'tcp 'chicken.tcp)
 (##sys#register-module-alias 'time 'chicken.time)
 

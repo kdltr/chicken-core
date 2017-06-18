@@ -23,6 +23,15 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
+;; OBSOLETE: This can be removed after bootstrapping
+(if (not (##sys#symbol-has-toplevel-binding? 'chicken.syntax#expand))
+    (begin
+      (set! chicken.syntax#expand chicken.expand#expand)
+      (set! chicken.syntax#er-macro-transformer chicken.expand#er-macro-transformer)
+      (set! chicken.syntax#ir-macro-transformer chicken.expand#ir-macro-transformer)
+      (set! chicken.syntax#strip-syntax chicken.expand#strip-syntax)
+      (set! chicken.syntax#syntax-error chicken.expand#syntax-error)
+      (set! chicken.syntax#get-line-number chicken.expand#get-line-number)))
 
 (##sys#register-primitive-module
  'chicken
@@ -55,7 +64,7 @@
    (dynamic-load-libraries . chicken.load#dynamic-load-libraries)
    enable-warnings
    equal=?
-   (er-macro-transformer . chicken.expand#er-macro-transformer)
+   (er-macro-transformer . chicken.syntax#er-macro-transformer)
    errno
    error
    (eval-handler . chicken.eval#eval-handler)
@@ -65,7 +74,7 @@
    executable-pathname
    exit
    exit-handler
-   (expand . chicken.expand#expand)
+   (expand . chicken.syntax#expand)
    (feature? . chicken.platform#feature?)
    (features . chicken.platform#features)
    file-exists?
@@ -108,7 +117,7 @@
    (get-call-chain . chicken.condition#get-call-chain)
    (get-condition-property . chicken.condition#get-condition-property)
    get-environment-variable
-   (get-line-number . chicken.expand#get-line-number)
+   (get-line-number . chicken.syntax#get-line-number)
    get-output-string
    get-properties
    getter-with-setter
@@ -116,7 +125,7 @@
    infinite?
    input-port-open?
    (installation-repository . chicken.platform#installation-repository)
-   (ir-macro-transformer . chicken.expand#ir-macro-transformer)
+   (ir-macro-transformer . chicken.syntax#ir-macro-transformer)
    keyword-style
    (load-extension . chicken.load#load-extension)
    (load-library . chicken.load#load-library)
@@ -176,13 +185,13 @@
    (software-version . chicken.platform#software-version)
    string->blob
    string->uninterned-symbol
-   (strip-syntax . chicken.expand#strip-syntax)
+   (strip-syntax . chicken.syntax#strip-syntax)
    sub1
    subvector
    symbol-append
    symbol-escape
    symbol-plist
-   (syntax-error . chicken.expand#syntax-error)
+   (syntax-error . chicken.syntax#syntax-error)
    system
    (unregister-feature! . chicken.platform#unregister-feature!)
    vector-resize

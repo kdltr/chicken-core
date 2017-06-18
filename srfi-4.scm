@@ -80,10 +80,10 @@ EOF
 
 (import scheme chicken)
 (import chicken.bitwise
-	chicken.expand
 	chicken.foreign
 	chicken.gc
-	chicken.platform)
+	chicken.platform
+	chicken.syntax)
 
 (include "common-declarations.scm")
 

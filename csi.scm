@@ -57,7 +57,8 @@ EOF
 	chicken.platform
 	chicken.port
 	chicken.pretty-print
-	chicken.repl)
+	chicken.repl
+	chicken.syntax)
 
 (include "banner.scm")
 (include "mini-srfi-1.scm")

@@ -1020,12 +1020,6 @@
 	 ((* (or symbol char eof null undefined)) (eq? #(1) #(2)))
 	 ((number number) (= #(1) #(2))))
 
-(chicken.expand#er-macro-transformer
- (#(procedure #:clean #:enforce) 
-  chicken.expand#er-macro-transformer
-  ((procedure (* (procedure (*) *) (procedure (* *) *)) *))
-  (struct transformer)))
-
 (errno (#(procedure #:clean) errno () fixnum))
 (error (procedure error (* #!rest) noreturn))
 (##sys#error (procedure ##sys#error (* #!rest) noreturn))
@@ -1035,7 +1029,6 @@
 (executable-pathname (#(procedure #:pure) executable-pathname () (or string false)))
 (exit (procedure exit (#!optional fixnum) noreturn))
 (exit-handler (#(procedure #:clean #:enforce) exit-handler (#!optional (procedure (fixnum) . *)) procedure))
-(chicken.expand#expand (procedure chicken.expand#expand (* #!optional list) *))
 (file-exists? (#(procedure #:clean #:enforce) file-exists? (string) (or false string)))
 (directory-exists? (#(procedure #:clean #:enforce) directory-exists? (string) (or false string)))
 
@@ -1252,12 +1245,6 @@
 (implicit-exit-handler
  (#(procedure #:clean #:enforce) implicit-exit-handler (#!optional (procedure () . *)) procedure))
 
-(chicken.expand#ir-macro-transformer
- (#(procedure #:clean #:enforce)
-  chicken.expand#ir-macro-transformer
-  ((procedure (* (procedure (*) *) (procedure (* *) *)) *))
-  (struct transformer)))
-
 (keyword-style (#(procedure #:clean) keyword-style (#!optional symbol) symbol))
 
 (make-blob (#(procedure #:clean #:enforce) make-blob (fixnum) blob)
@@ -1336,7 +1323,6 @@
 (sleep (#(procedure #:clean #:enforce) sleep (fixnum) undefined))
 (string->blob (#(procedure #:clean #:enforce) string->blob (string) blob))
 (string->uninterned-symbol (#(procedure #:clean #:enforce) string->uninterned-symbol (string) symbol))
-(chicken.expand#strip-syntax (#(procedure #:clean) chicken.expand#strip-syntax (*) *))
 
 (sub1 (#(procedure #:clean #:enforce #:foldable) sub1 (number) number)
       ((fixnum) (integer)
@@ -1354,7 +1340,6 @@
 (symbol-plist (#(procedure #:clean #:enforce) symbol-plist (symbol) list)
 	      ((symbol) (##sys#slot #(1) '2)))
 
-(chicken.expand#syntax-error (procedure chicken.expand#syntax-error (* #!rest) noreturn))
 (system (#(procedure #:clean #:enforce) system (string) fixnum))
 (vector-resize
  (forall (a b) (#(procedure #:clean #:enforce) vector-resize ((vector-of a) fixnum #!optional b)
@@ -2293,6 +2278,21 @@
 (srfi-4#number-vector? (#(procedure #:pure #:predicate (or (struct u8vector) (struct u16vector) (struct s8vector) (struct s16vector) (struct u32vector) (struct s32vector) (struct u64vector) (struct s64vector) (struct f32vector) (struct f64vector))) srfi-4#number-vector? (*) boolean))
 (##sys#srfi-4-vector? (#(procedure #:pure #:predicate (or (struct u8vector) (struct u16vector) (struct s8vector) (struct s16vector) (struct u32vector) (struct s32vector) (struct u64vector) (struct s64vector) (struct f32vector) (struct f64vector))) ##sys#srfi-4-vector? (*) boolean))
 
+;; syntax
+
+(chicken.syntax#er-macro-transformer
+ (#(procedure #:clean #:enforce)
+  chicken.syntax#er-macro-transformer
+  ((procedure (* (procedure (*) *) (procedure (* *) *)) *))
+  (struct transformer)))
+(chicken.syntax#expand (procedure chicken.syntax#expand (* #!optional list) *))
+(chicken.syntax#ir-macro-transformer
+ (#(procedure #:clean #:enforce)
+  chicken.syntax#ir-macro-transformer
+  ((procedure (* (procedure (*) *) (procedure (* *) *)) *))
+  (struct transformer)))
+(chicken.syntax#strip-syntax (#(procedure #:clean) chicken.syntax#strip-syntax (*) *))
+(chicken.syntax#syntax-error (procedure chicken.syntax#syntax-error (* #!rest) noreturn))
 
 ;; tcp
 

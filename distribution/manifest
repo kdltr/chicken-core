@@ -279,8 +279,6 @@ chicken.errno.import.scm
 chicken.errno.import.c
 chicken.eval.import.scm
 chicken.eval.import.c
-chicken.expand.import.scm
-chicken.expand.import.c
 chicken.file.import.scm
 chicken.file.import.c
 chicken.file.posix.import.scm
@@ -333,6 +331,8 @@ chicken.read-syntax.import.scm
 chicken.read-syntax.import.c
 chicken.repl.import.scm
 chicken.repl.import.c
+chicken.syntax.import.scm
+chicken.syntax.import.c
 chicken.tcp.import.scm
 chicken.tcp.import.c
 chicken.time.import.scm

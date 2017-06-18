@@ -53,9 +53,9 @@
 ;; Exclude bindings defined within this module.
 (import (except scheme eval interaction-environment null-environment scheme-report-environment)
 	(except chicken eval-handler)
-	chicken.expand
 	chicken.internal
-	chicken.keyword)
+	chicken.keyword
+	chicken.syntax)
 
 (include "common-declarations.scm")
 

@@ -79,7 +79,6 @@
 	chicken.bitwise
 	chicken.condition
 	chicken.data-structures
-	chicken.expand
 	chicken.file
 	chicken.foreign
 	chicken.format
@@ -91,6 +90,7 @@
 	chicken.port
 	chicken.pretty-print
 	chicken.random
+	chicken.syntax
 	chicken.time)
 
 (include "tweaks")

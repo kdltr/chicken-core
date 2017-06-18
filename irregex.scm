@@ -58,7 +58,9 @@
      ;; Utilities
      sre->string irregex-opt irregex-quote)
 
-(import scheme chicken)
+(import scheme
+	chicken
+	chicken.syntax)
 
 (include "common-declarations.scm")
 
