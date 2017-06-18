@@ -265,7 +265,7 @@
 	      (set! prgs
 		(cons (list target dependencies: deps source: src options: opts
 			    link-options: lopts linkage: link custom: cbuild
-			    mode: mode output-file: oname)
+			    mode: mode output-file: rtarget)
 		      prgs)))))))
     (define (compile-extension/program info)
       (case (car info)
