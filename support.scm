@@ -1144,6 +1144,8 @@
 ;;; Compute foreign result size:
 
 (define (estimate-foreign-result-size type)
+  (define (err t)
+    (quit-compiling "cannot compute size for unknown foreign type `~S' result" type))
   (follow-without-loop
    type
    (lambda (t next)
@@ -1168,8 +1170,9 @@
 	       (case (car t)
 		 ((ref nonnull-pointer pointer c-pointer nonnull-c-pointer function instance instance-ref nonnull-instance) 
 		  (words->bytes 3) )
-		 (else 0) ) )
-	      (else 0) ) ) ) )
+		 ((enum) (words->bytes 6)) ; 1 bignum digit on 32-bit (overallocs on 64-bit)
+		 (else (err t))))
+	      (else (err t))))))
    (lambda () (quit-compiling "foreign type `~S' refers to itself" type)) ) )
 
 (define (estimate-foreign-result-location-size type) ; Used only in compiler.scm
@@ -1179,8 +1182,8 @@
    type
    (lambda (t next)
      (case t
-       ((char int short bool unsigned-short unsigned-char unsigned-int long unsigned-long byte unsigned-byte
-	      c-pointer nonnull-c-pointer unsigned-integer integer float c-string symbol
+       ((char int short bool unsigned-short unsigned-char unsigned-int long unsigned-long byte
+	      unsigned-byte c-pointer nonnull-c-pointer unsigned-integer integer float c-string symbol
 	      scheme-pointer nonnull-scheme-pointer int32 unsigned-int32 integer32 unsigned-integer32
               unsigned-c-string unsigned-c-string* nonnull-unsigned-c-string*
 	      nonnull-c-string c-string* nonnull-c-string* c-string-list c-string-list*)
@@ -1193,7 +1196,7 @@
 	      ((pair? t)
 	       (case (car t)
 		 ((ref nonnull-pointer pointer c-pointer nonnull-c-pointer function
-		       scheme-pointer nonnull-scheme-pointer)
+		       scheme-pointer nonnull-scheme-pointer enum)
 		  (words->bytes 1))
 		 (else (err t)) ) )
 	      (else (err t)) ) ) ) )
@@ -1293,7 +1296,7 @@
 		((ref pointer function c-pointer)
 		 '(or boolean pointer locative))
 		((const) (foreign-type->scrutiny-type (cadr t) mode))
-		((enum) 'number)
+		((enum) 'integer)
 		((nonnull-pointer nonnull-c-pointer) 'pointer)
 		(else '*)))
 	     (else '*))))))
