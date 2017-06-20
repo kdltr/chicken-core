@@ -216,14 +216,10 @@
   (if host-mode host-libs default-libs))
 
 (define (default-library-files)
-  (list (string-append (if host-mode host-libdir default-libdir)
-                       (string-append "/" (default-library)))))
-
-(define (default-shared-library-files)
   (list (string-append "-l" (if host-mode INSTALL_LIB_NAME TARGET_LIB_NAME))))
 
 (define (library-files) (default-library-files))
-(define (shared-library-files) (default-shared-library-files))
+(define (shared-library-files) (default-library-files))
 
 (define translate-options '())
 
@@ -600,10 +596,10 @@ EOF
 		(when osx (set! compile-options (cons "-no-cpp-precomp" compile-options))) ]
 	       [(-objc) 
 		(set! objc-mode #t) ]
-	       [(-static) 
-		(set! translate-options
-                  (cons "-static" translate-options))
-		(set! static #t) ]
+	       [(-static)
+		(set! translate-options (cons "-static" translate-options))
+		(set! link-options (cons "-static" link-options))
+		(set! static #t)]
 	       [(-cflags)
 		(set! inquiry-only #t) 
 		(set! show-cflags #t) ]
