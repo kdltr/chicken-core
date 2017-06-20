@@ -21,6 +21,7 @@ LIBRARY_PATH=${TEST_DIR}/..:${LIBRARY_PATH}
 # the binary are read by the OS itself, which uses $PATH (mingw too)
 # Oddly, prefixing .. with ${TEST_DIR}/ does _not_ work on mingw!
 PATH=..:${PATH}
+
 export DYLD_LIBRARY_PATH LD_LIBRARY_PATH LIBRARY_PATH PATH
 
 case `uname` in
@@ -30,13 +31,15 @@ case `uname` in
 		DIFF_OPTS=-bu ;;
 esac
 
-CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
-CHICKEN_REPOSITORY_PATH=${TEST_DIR}/..:$CHICKEN_INSTALL_REPOSITORY
 CHICKEN=${TEST_DIR}/../chicken
 CHICKEN_PROFILE=${TEST_DIR}/../chicken-profile
 CHICKEN_INSTALL=${TEST_DIR}/../chicken-install
 CHICKEN_UNINSTALL=${TEST_DIR}/../chicken-uninstall
-COMPILE_OPTIONS="-compiler ${TEST_DIR}/../chicken -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -rpath ${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
+CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
+CHICKEN_REPOSITORY_PATH=${TEST_DIR}/..:$CHICKEN_INSTALL_REPOSITORY
+COMPILE_OPTIONS="-compiler ${CHICKEN} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -rpath ${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
+
+export CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH
 
 TYPESDB=../types.db
 
@@ -442,9 +445,9 @@ $compile2 -link reverser linking-tests.scm
 $compile2 -link reverser linking-tests.scm -static
 ./linking-tests
 cp reverser.o reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
-CHICKEN_INSTALL_REPOSITORY=$CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH=$CHICKEN_REPOSITORY_PATH $compile2 -link reverser linking-tests.scm
+$compile2 -link reverser linking-tests.scm
 ./linking-tests
-CHICKEN_INSTALL_REPOSITORY=$CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH=$CHICKEN_REPOSITORY_PATH $compile2 -link reverser linking-tests.scm -static
+$compile2 -link reverser linking-tests.scm -static
 ./linking-tests
 
 echo "======================================== private repository test ..."

@@ -7,8 +7,8 @@ set TEST_DIR=%cd%
 
 set CHICKEN=..\chicken
 set CHICKEN_PROFILE=..\chicken-profile
-set CHICKEN_INSTALL_REPOSITORY=
-set CHICKEN_REPOSITORY_PATH=
+set CHICKEN_INSTALL_REPOSITORY=%TEST_DIR%\test-repository
+set CHICKEN_REPOSITORY_PATH=%TEST_DIR%\..;%CHICKEN_INSTALL_REPOSITORY%
 set PATH=%cd%\..;%PATH%
 
 set TYPESDB=..\types.db
@@ -574,8 +574,6 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 linking-tests
 if errorlevel 1 exit /b 1
-set CHICKEN_INSTALL_REPOSITORY=test-repository
-set CHICKEN_REPOSITORY_PATH=test-repository
 mkdir %CHICKEN_INSTALL_REPOSITORY%
 move reverser.o %CHICKEN_INSTALL_REPOSITORY%
 move reverser.import.scm %CHICKEN_INSTALL_REPOSITORY%
