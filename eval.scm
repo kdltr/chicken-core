@@ -583,10 +583,8 @@
 			  (compile `(##sys#provide (##core#quote ,(cadr x))) e #f tf cntr se #f)]
 
 			 [(##core#require-for-syntax)
-			  (let ((id (cadr x)))
-			    (chicken.load#load-extension id)
-			    (compile '(##core#undefined)
-			     e #f tf cntr se #f))]
+			  (chicken.load#load-extension (cadr x) '() 'require)
+			  (compile '(##core#undefined) e #f tf cntr se #f)]
 
 			 [(##core#require)
 			  (let ((id         (cadr x))
@@ -876,9 +874,9 @@
 
 
 (module chicken.load
-  (dynamic-load-libraries
-   load load-extension load-library load-noisily load-relative load-verbose
-   provide provided? require set-dynamic-load-mode!)
+  (dynamic-load-libraries set-dynamic-load-mode!
+   load-library load-noisily load-relative load-verbose
+   provide provided? require)
 
 (import (except scheme load)
 	chicken
@@ -1098,13 +1096,14 @@
 		    (close-input-port in))))))))
       (##core#undefined))))
 
-(define (load filename . evaluator)
-  (load/internal filename (optional evaluator #f)))
+;; Exported by "scheme", so use full name to avoid exporting it here.
+;; TODO: Maybe change this later to (set! scheme#load (lambda ..))
+(define (chicken.load#load filename #!optional evaluator)
+  (load/internal filename evaluator))
 
-(define (load-relative filename . evaluator)
-  (load/internal
-   (make-relative-pathname ##sys#current-load-filename filename)
-   (optional evaluator #f)))
+(define (load-relative filename #!optional evaluator)
+  (let ((fn (make-relative-pathname ##sys#current-load-filename filename)))
+    (load/internal fn evaluator)))
 
 (define (load-noisily filename #!key (evaluator #f) (time #f) (printer #f))
   (load/internal filename evaluator #t time printer))
@@ -1258,7 +1257,7 @@
 		 (or (check pa)
 		     (loop (##sys#slot paths 1)) ) ) ) ) ) ) ))
 
-(define (load-extension/internal id alternates loc)
+(define (chicken.load#load-extension id alternates loc)
   (cond ((##sys#provided? id))
 	((any ##sys#provided? alternates))
 	((memq id core-units)
@@ -1270,17 +1269,9 @@
 	(else
 	 (##sys#error loc "cannot load extension" id))))
 
-(define (##sys#load-extension id #!optional (alternates '()) loc)
-  (load-extension/internal id alternates loc)
-  (##core#undefined))
-
-(define (load-extension id)
-  (##sys#check-symbol id 'load-extension)
-  (##sys#load-extension id '() 'load-extension))
-
 (define (require . ids)
   (for-each (cut ##sys#check-symbol <> 'require) ids)
-  (for-each (cut ##sys#load-extension <> '() 'require) ids))
+  (for-each (cut chicken.load#load-extension <> '() 'require) ids))
 
 (define (provide . ids)
   (for-each (cut ##sys#check-symbol <> 'provide) ids)
@@ -1332,9 +1323,10 @@
          (mark-static id path)
          (values `(##core#declare (uses ,id)) id 'static)))
       (else
-       (values `(##sys#load-extension
+       (values `(chicken.load#load-extension
 		 (##core#quote ,id)
-		 (##core#quote ,alternates))
+		 (##core#quote ,alternates)
+		 (##core#quote require))
 	       #f
 	       'dynamic)))))
 

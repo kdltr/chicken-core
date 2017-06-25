@@ -693,7 +693,7 @@
 			   ,(walk (caddr x) e se dest ldest h ln #f)))
 
 			((##core#require-for-syntax)
-			 (load-extension (cadr x))
+			 (chicken.load#load-extension (cadr x) '() 'require)
 			 '(##core#undefined))
 
 			((##core#require)

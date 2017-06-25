@@ -127,7 +127,6 @@
    (installation-repository . chicken.platform#installation-repository)
    (ir-macro-transformer . chicken.syntax#ir-macro-transformer)
    keyword-style
-   (load-extension . chicken.load#load-extension)
    (load-library . chicken.load#load-library)
    (load-noisily . chicken.load#load-noisily)
    (load-relative . chicken.load#load-relative)

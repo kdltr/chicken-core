@@ -1210,14 +1210,17 @@
 
 ;; load
 
+(chicken.load#dynamic-load-libraries
+ (#(procedure #:clean) chicken.load#dynamic-load-libraries (#!optional (list-of string)) (list-of string)))
 (chicken.load#load (procedure chicken.load#load (string #!optional (procedure (*) . *)) undefined))
-(chicken.load#load-extension (#(procedure #:enforce) chicken.load#load-extension (symbol) undefined))
 (chicken.load#load-library (#(procedure #:enforce) chicken.load#load-library (symbol #!optional string) undefined))
+(chicken.load#load-noisily (procedure chicken.load#load-noisily (string #!optional (procedure (*) . *) boolean (procedure (*) . *)) undefined))
 (chicken.load#load-relative (#(procedure #:enforce) chicken.load#load-relative (string #!optional (procedure (*) . *)) undefined))
 (chicken.load#load-verbose (#(procedure #:clean) chicken.load#load-verbose (#!optional *) *))
 (chicken.load#provide (#(procedure #:clean #:enforce) chicken.load#provide (#!rest symbol) undefined))
 (chicken.load#provided? (#(procedure #:clean #:enforce) chicken.load#provided? (#!rest symbol) boolean))
 (chicken.load#require (#(procedure #:clean) chicken.load#require (#!rest symbol) undefined))
+(chicken.load#set-dynamic-load-mode! (#(procedure #:clean #:enforce) chicken.load#set-dynamic-load-mode! ((or symbol (list-of symbol))) undefined))
 
 ;; platform
 

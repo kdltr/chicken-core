@@ -39,9 +39,9 @@
 
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
-(import chicken.internal
+(import scheme
+	chicken.internal
 	chicken.keyword
-	chicken.load
 	chicken.platform
 	chicken.syntax)
 
