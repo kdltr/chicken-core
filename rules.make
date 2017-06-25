@@ -642,7 +642,8 @@ csi.c: csi.scm \
 		chicken.platform.import.scm \
 		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
-		chicken.repl.import.scm
+		chicken.repl.import.scm \
+		chicken.syntax.import.scm
 chicken-bug.c: chicken-bug.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
@@ -734,6 +735,8 @@ eval.c: eval.scm \
 		chicken.internal.import.scm \
 		chicken.keyword.import.scm \
 		chicken.platform.import.scm \
+		chicken.syntax.import.scm
+irregex.c: irregex.scm \
 		chicken.syntax.import.scm
 repl.c: repl.scm \
 		chicken.eval.import.scm
