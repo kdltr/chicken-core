@@ -193,7 +193,6 @@ static C_TLS int timezone;
 /* Constants: */
 
 #ifdef C_SIXTY_FOUR
-# define FORWARDING_BIT_SHIFT          63
 # ifdef C_LLP
 #  define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffffffffffeLL)
 #  define UWORD_FORMAT_STRING           "0x%016llx"
@@ -205,7 +204,6 @@ static C_TLS int timezone;
 # endif
 #else
 # define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffe)
-# define FORWARDING_BIT_SHIFT          31
 # define UWORD_FORMAT_STRING           "0x%08x"
 # define UWORD_COUNT_FORMAT_STRING     "%u"
 #endif
@@ -242,9 +240,13 @@ static C_TLS int timezone;
 #define C_uhword_set(x, p, d)        (C_uhword_ref(x,p) = (d))
 
 #define free_tmp_bignum(b)           C_free((void *)(b))
+
+/* Forwarding pointers abuse the fact that objects must be
+ * word-aligned, so we can just drop the lowest bit.
+ */
 #define is_fptr(x)                   (((x) & C_GC_FORWARDING_BIT) != 0)
-#define ptr_to_fptr(x)               ((((x) >> FORWARDING_BIT_SHIFT) & 1) | C_GC_FORWARDING_BIT | ((x) & ~1))
-#define fptr_to_ptr(x)               (((C_uword)(x) << FORWARDING_BIT_SHIFT) | ((x) & ~(C_GC_FORWARDING_BIT | 1)))
+#define ptr_to_fptr(x)               (((C_uword)(x) >> 1) | C_GC_FORWARDING_BIT)
+#define fptr_to_ptr(x)               ((C_uword)(x) << 1)
 
 #define C_check_real(x, w, v)       if(((x) & C_FIXNUM_BIT) != 0) v = C_unfix(x); \
                                      else if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) \
