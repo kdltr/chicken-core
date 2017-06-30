@@ -799,7 +799,6 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   C_initial_timer_interrupt_period = INITIAL_TIMER_INTERRUPT_PERIOD;
   C_timer_interrupt_counter = INITIAL_TIMER_INTERRUPT_PERIOD;
   memset(signal_mapping_table, 0, sizeof(int) * NSIG);
-  initialize_symbol_table();
   C_dlerror = "cannot load compiled code dynamically - this is a statically linked executable";
   error_location = C_SCHEME_FALSE;
   C_pre_gc_hook = NULL;
@@ -816,6 +815,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   callback_continuation_level = 0;
   gc_ms = 0;
   (void)C_randomize(C_fix(time(NULL)));
+  initialize_symbol_table();
 
   if (profiling) {
 #ifndef C_NONUNIX

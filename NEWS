@@ -97,6 +97,9 @@
     buffer overrun and/or segfault (thanks to Lemonboy).
   - CVE-2017-9334: `length' no longer crashes on improper lists (fixes
     #1375, thanks to "megane").
+  - The randomization factor of the symbol table was set before
+    the random seed was set, causing it to have a fixed value on many
+    platforms.
 
 - Core Libraries
   - Unit "posix": If file-lock, file-lock/blocking or file-unlock are
