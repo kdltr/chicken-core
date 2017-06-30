@@ -4132,6 +4132,25 @@ C_regparm void C_fcall update_locative_table(int mode)
   if(mode != GC_REALLOC) locative_table_count = hi;
 }
 
+static C_regparm void fixup_symbol_forwards(C_word sym)
+{
+  C_word val, h;
+  int i, s = C_header_size(sym); /* 3 */
+
+  for (i = 0; i < s; i++) {
+    val = C_block_item(sym, i);
+    if (!C_immediatep(val)) {
+      h = C_block_header(val);
+
+      while(is_fptr(h)) {
+        val = fptr_to_ptr(h);
+        h = C_block_header(val);
+      }
+      C_set_block_item(sym, i, val);
+    }
+  }
+}
+
 C_regparm void C_fcall update_symbol_tables(int mode)
 {
   int weakn = 0, i;
@@ -4159,16 +4178,10 @@ C_regparm void C_fcall update_symbol_tables(int mode)
 
 #ifdef DEBUGBUILD
         /* Detect inconsistencies before dropping / keeping the symbol */
+        fixup_symbol_forwards(sym);
 	{
 	  C_word str = C_symbol_name(sym);
           int str_perm;
-
-	  h = C_block_header(str);
-
-	  while(is_fptr(h)) {
-	    str = fptr_to_ptr(h);
-	    h = C_block_header(str);
-	  }
 
           str_perm = !C_in_stackp(str) && !C_in_heapp(str) &&
                   !C_in_scratchspacep(str) &&
@@ -4196,7 +4209,10 @@ C_regparm void C_fcall update_symbol_tables(int mode)
 	  if(last) C_set_block_item(last, 1, C_block_item(bucket,1));
 	  else stp->table[ i ] = C_block_item(bucket,1);
 
+#ifndef NDEBUG
+          fixup_symbol_forwards(sym);
 	  assert(!C_persistable_symbol(sym));
+#endif
 	  ++weakn;
 	} else {
 	  C_set_block_item(bucket,0,sym); /* Might have moved */
