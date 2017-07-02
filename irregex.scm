@@ -56,7 +56,7 @@
      irregex-match-subchunk
 
      ;; Utilities
-     sre->string irregex-opt irregex-quote)
+     glob->sre sre->string irregex-opt irregex-quote)
 
 (import scheme
 	chicken
@@ -220,49 +220,47 @@
 (include "irregex-core.scm")
 (include "irregex-utils.scm")
 
-(define ##sys#glob->regexp
+(define glob->sre
   (let ((list->string list->string)
         (string->list string->list))
-    (lambda (s #!optional sre?)
-      (##sys#check-string s 'glob->regexp)
-      (let ((sre
-	     (cons 
-	      ':
-	      (let loop ((cs (string->list s)) (dir #t))
-		(if (null? cs)
-		    '()
-		    (let ((c (car cs))
-			  (rest (cdr cs)) )
-		      (cond ((char=? c #\*) 
-			     (if dir
-				 `((or (: (~ ("./\\"))
-					  (* (~ ("/\\"))))
-				       (* (~ ("./\\"))))
-				   ,@(loop rest #f))
-				 `((* (~ ("/\\"))) ,@(loop rest #f))))
-			    ((char=? c #\?)  (cons 'any (loop rest #f)))
-			    ((char=? c #\[)
-			     (let loop2 ((rest rest) (s '()))
-			       (cond ((not (pair? rest))
-				      (error 'glob->regexp
-					     "unexpected end of character class" s))
-				     ((char=? #\] (car rest))
-				      `(,(if (> (length s) 1)
-					     `(or ,@s) 
-					     (car s))
-					,@(loop (cdr rest) #f)))
-				     ((and (pair? (cdr rest))
-					   (pair? (cddr rest))
-					   (char=? #\- (cadr rest)) )
-				      (loop2 (cdddr rest)
-					     (cons `(/ ,(car rest) ,(caddr rest)) s)))
-				     ((and (pair? (cdr rest))
-					   (char=? #\- (car rest)))
-				      (loop2 (cddr rest)
-					     (cons `(~ ,(cadr rest)) s)))
-				     (else
-				      (loop2 (cdr rest) (cons (car rest) s))))))
-			    (else (cons c (loop rest (memq c '(#\\ #\/))))))))))))
-	(if sre? sre (irregex sre))))))
+    (lambda (s)
+      (##sys#check-string s 'glob->sre)
+      (cons
+       ':
+       (let loop ((cs (string->list s)) (dir #t))
+	 (if (null? cs)
+	     '()
+	     (let ((c (car cs))
+		   (rest (cdr cs)) )
+	       (cond ((char=? c #\*)
+		      (if dir
+			  `((or (: (~ ("./\\"))
+				   (* (~ ("/\\"))))
+				(* (~ ("./\\"))))
+			    ,@(loop rest #f))
+			  `((* (~ ("/\\"))) ,@(loop rest #f))))
+		     ((char=? c #\?)  (cons 'any (loop rest #f)))
+		     ((char=? c #\[)
+		      (let loop2 ((rest rest) (s '()))
+			(cond ((not (pair? rest))
+			       (error 'glob->sre
+				      "unexpected end of character class" s))
+			      ((char=? #\] (car rest))
+			       `(,(if (> (length s) 1)
+				      `(or ,@s)
+				      (car s))
+				 ,@(loop (cdr rest) #f)))
+			      ((and (pair? (cdr rest))
+				    (pair? (cddr rest))
+				    (char=? #\- (cadr rest)) )
+			       (loop2 (cdddr rest)
+				      (cons `(/ ,(car rest) ,(caddr rest)) s)))
+			      ((and (pair? (cdr rest))
+				    (char=? #\- (car rest)))
+			       (loop2 (cddr rest)
+				      (cons `(~ ,(cadr rest)) s)))
+			      (else
+			       (loop2 (cdr rest) (cons (car rest) s))))))
+		     (else (cons c (loop rest (memq c '(#\\ #\/)))))))))))))
 
 )

@@ -267,7 +267,7 @@ EOF
 	  '()
 	  (let ((path (car paths)))
 	    (let-values (((dir fil ext) (decompose-pathname path)))
-	      (let ((rx (##sys#glob->regexp (make-pathname #f (or fil "*") ext))))
+	      (let ((rx (irregex (glob->sre (make-pathname #f (or fil "*") ext)))))
 		(let loop ((fns (directory (or dir ".") #t)))
 		  (cond ((null? fns) (conc-loop (cdr paths)))
 			((irregex-match rx (car fns)) =>

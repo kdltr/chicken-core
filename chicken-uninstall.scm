@@ -62,8 +62,7 @@
          (pats (if mtch
                    (concatenate 
                      (map (lambda (pat)
-                            (grep (irregex (##sys#glob->regexp pat))
-                                  eggs))
+                            (grep (irregex (glob->sre pat)) eggs))
                        patterns))
                    (filter 
                      (lambda (egg)

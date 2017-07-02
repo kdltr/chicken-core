@@ -1730,6 +1730,7 @@
 (chicken.irregex#sre->irregex (#(procedure #:clean) chicken.irregex#sre->irregex (#!rest) *))
 (chicken.irregex#string->irregex (#(procedure #:clean #:enforce) chicken.irregex#string->irregex (string #!rest) *))
 (chicken.irregex#string->sre (#(procedure #:clean #:enforce) chicken.irregex#string->sre (string #!rest) *))
+(chicken.irregex#glob->sre (#(procedure #:clean #:enforce) chicken.irregex#glob->sre (string) (pair symbol *)))
 
 
 ;; memory
