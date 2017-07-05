@@ -117,6 +117,15 @@
     ("C_i_portp" port)
     ("C_i_nullp" null)))
 
+;; Maps foreign type checks to types
+
+(define +ffi-type-check-map+
+  '(("C_i_foreign_fixnum_argumentp" fixnum)
+    ("C_i_foreign_integer_argumentp" integer fixnum bignum)
+    ("C_i_foreign_char_argumentp" char)
+    ("C_i_foreign_flonum_argumentp" flonum)
+    ("C_i_foreign_string_argumentp" string)
+    ("C_i_foreign_symbol_argumentp" symbol)))
 
 ;; Maps constructors to types
 
@@ -313,6 +322,17 @@
 			    ((member r1 (cdr a))
 			     (extinguish! n "C_i_noop")))
 		      '*)))
+		 ((assoc (first params) +ffi-type-check-map+) =>
+		  (lambda (a)
+		    (let ((arg (first subs))
+			  (r1 (walk (first subs) te ae)))
+		      (when (member r1 (cdr a))
+			(node-class-set! n (node-class arg))
+			(node-parameters-set! n (node-parameters arg))
+			(node-subexpressions-set! n (node-subexpressions arg)))
+		      ;; the ffi checks are enforcing so we always end up with
+		      ;; the correct type
+		      r1)))
 		 ((assoc (first params) +predicate-map+) =>
 		  (lambda (a)
 		    (let ((arg (first subs)))
