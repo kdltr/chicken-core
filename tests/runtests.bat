@@ -463,6 +463,10 @@ echo ======================================== find-files tests ...
 %interpret% -bnq test-find-files.scm
 if errorlevel 1 exit /b 1
 
+echo "======================================== record-renaming tests ..."
+%interpret% -bnq record-rename-test.scm
+if errorlevel 1 exit /b 1
+
 echo ======================================== regular expression tests ...
 %interpret% -bnq test-irregex.scm
 if errorlevel 1 exit /b 1

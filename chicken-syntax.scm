@@ -124,9 +124,14 @@
  (##sys#er-transformer
   (lambda (x r c)
     (##sys#check-syntax 'define-record x '(_ symbol . _))
-    (let* ((name (cadr x))
+    (let* ((type-name (cadr x))
+	   (plain-name (strip-syntax type-name))
+	   (prefix (symbol->string plain-name))
+	   (tag (if (##sys#current-module)
+		    (symbol-append
+		     (##sys#module-name (##sys#current-module)) '|#| plain-name)
+		    plain-name))
 	   (slots (cddr x))
-	   (prefix (symbol->string name))
 	   (%define (r 'define))
 	   (%setter (r 'setter))
 	   (%getter-with-setter (r 'getter-with-setter))
@@ -144,14 +149,15 @@
 			   'define-record "invalid slot specification" slot))))
 		 slots)))
       `(##core#begin
+	(,%define ,type-name (##core#quote ,tag))
 	(,%define 
 	 ,(string->symbol (string-append "make-" prefix))
 	 (##core#lambda 
 	  ,slotnames
-	  (##sys#make-structure (##core#quote ,name) ,@slotnames)))
+	  (##sys#make-structure (##core#quote ,tag) ,@slotnames)))
 	(,%define
 	 ,(string->symbol (string-append prefix "?"))
-	 (##core#lambda (x) (##sys#structure? x ',name)) )
+	 (##core#lambda (x) (##sys#structure? x (##core#quote ,tag))))
 	,@(let mapslots ((slots slots) (i 1))
 	    (if (eq? slots '())
 		slots
@@ -163,7 +169,7 @@
 		       (setrcode
 			`(##core#lambda 
 			  (x val)
-			  (##core#check (##sys#check-structure x (##core#quote ,name)))
+			  (##core#check (##sys#check-structure x (##core#quote ,tag)))
 			  (##sys#block-set! x ,i val) ) ))
 		  (cons
 		   `(##core#begin
@@ -176,12 +182,12 @@
 			   `(,%getter-with-setter
 			     (##core#lambda
 			      (x) 
-			      (##core#check (##sys#check-structure x (##core#quote ,name)))
+			      (##core#check (##sys#check-structure x (##core#quote ,tag)))
 			      (##sys#block-ref x ,i) )
 			     ,setrcode)
 			   `(##core#lambda 
 			     (x)
-			     (##core#check (##sys#check-structure x (##core#quote ,name)))
+			     (##core#check (##sys#check-structure x (##core#quote ,tag)))
 			     (##sys#block-ref x ,i) ) ) ) )
 		   (mapslots (##sys#slot slots 1) (fx+ i 1)) ) ) ) ) ) ) ) ) )
 
@@ -921,12 +927,25 @@
 	     (##sys#check-syntax 
 	      'define-record-printer (cons head body)
 	      '((symbol symbol symbol) . #(_ 1)))
-	     `(##sys#register-record-printer 
-	       ',(##sys#slot head 0)
-	       (##core#lambda ,(##sys#slot head 1) ,@body)) ]
-	    [else
+	     (let* ((plain-name (strip-syntax (##sys#slot head 0)))
+		    (tag (if (##sys#current-module)
+			     (symbol-append
+			      (##sys#module-name (##sys#current-module))
+			      '|#| plain-name)
+			     plain-name)))
+	       `(##sys#register-record-printer
+		 (##core#quote ,tag)
+		 (##core#lambda ,(##sys#slot head 1) ,@body)))]
+	    (else
 	     (##sys#check-syntax 'define-record-printer (cons head body) '(symbol _))
-	     `(##sys#register-record-printer ',head ,@body) ] ) ))))
+	     (let* ((plain-name (strip-syntax head))
+		    (tag (if (##sys#current-module)
+			     (symbol-append
+			      (##sys#module-name (##sys#current-module))
+			      '|#| plain-name)
+			     plain-name)))
+	       `(##sys#register-record-printer
+		 (##core#quote ,tag) ,@body))))))))
 
 ;;; SRFI-9:
 
@@ -939,7 +958,13 @@
      'define-record-type 
      form
      '(_ variable #(variable 1) variable . _)) 
-    (let* ((t (cadr form))
+    (let* ((type-name (cadr form))
+	   (plain-name (strip-syntax type-name))
+	   (tag (if (##sys#current-module)
+		    (symbol-append
+		     (##sys#module-name (##sys#current-module))
+		     '|#| plain-name)
+		    plain-name))
 	   (conser (caddr form))
 	   (pred (cadddr form))
 	   (slots (cddddr form))
@@ -950,15 +975,17 @@
 	   (y (r 'y))
 	   (slotnames (map car slots)))
       `(##core#begin
+	;; TODO: Maybe wrap this in an opaque object?
+	(,%define ,type-name (##core#quote ,tag))
 	(,%define ,conser
 		  (##sys#make-structure 
-		   (##core#quote ,t)
+		   (##core#quote ,tag)
 		   ,@(map (lambda (sname)
 			    (if (memq sname vars)
 				sname
 				'(##core#undefined) ) )
 			  slotnames) ) )
-	(,%define (,pred ,x) (##sys#structure? ,x (##core#quote ,t)))
+	(,%define (,pred ,x) (##sys#structure? ,x (##core#quote ,tag)))
 	,@(let loop ([slots slots] [i 1])
 	    (if (null? slots)
 		'()
@@ -974,7 +1001,7 @@
 			      (##core#check
 			       (##sys#check-structure
 				,x
-				(##core#quote ,t)
+				(##core#quote ,tag)
 				(##core#quote ,(cadr slot))))
 			      (##sys#block-ref ,x ,i) ) )
 		       (set (and settable
@@ -983,7 +1010,7 @@
 				   (##core#check
 				    (##sys#check-structure
 				     ,x
-				     (##core#quote ,t) 
+				     (##core#quote ,tag)
 				     (##core#quote ,ssetter)))
 				   (##sys#block-set! ,x ,i ,y)) )))
 		  `((,%define

@@ -62,6 +62,11 @@
     undocumented and not officially supported anyway.
   - define and friends are now aggressively rejected in "expression
     contexts" (i.e., anywhere but toplevel or as internal defines).
+  - define-record and define-record-type now create record types
+    which are tagged with the module in which they're defined, so
+    predicates no longer return #t for records with the same tag
+    defined in another module. This tag is now also available under
+    an identifier that matches the record type name (fixes #1342).
 
 - Eggs management
   - Egg-installation and building has been completely overhauled.

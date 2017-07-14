@@ -366,6 +366,9 @@ $compile posix-tests.scm
 echo "======================================== find-files tests ..."
 $interpret -bnq test-find-files.scm
 
+echo "======================================== record-renaming tests ..."
+$interpret -bnq record-rename-test.scm
+
 echo "======================================== regular expression tests ..."
 $interpret -bnq test-irregex.scm
 $interpret -bnq test-glob.scm

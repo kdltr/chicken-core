@@ -129,6 +129,7 @@ tests/linking-tests.scm
 tests/compiler-tests.scm
 tests/inlining-tests.scm
 tests/locative-stress-test.scm
+tests/record-rename-test.scm
 tests/r4rstest.scm
 tests/null.scm
 tests/sgrep.scm
