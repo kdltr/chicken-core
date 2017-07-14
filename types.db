@@ -2099,7 +2099,6 @@
 (chicken.posix#terminal-port? (#(procedure #:clean #:enforce) chicken.posix#terminal-port? (port) boolean))
 (chicken.posix#terminal-size (#(procedure #:clean #:enforce) chicken.posix#terminal-size (port) fixnum fixnum))
 (chicken.posix#time->string (#(procedure #:clean #:enforce) chicken.posix#time->string ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum) #!optional string) string))
-(chicken.posix#unmap-file-from-memory (#(procedure #:clean #:enforce) chicken.posix#unmap-file-from-memory ((struct mmap) #!optional fixnum) undefined))
 (chicken.posix#unset-environment-variable! (#(procedure #:clean #:enforce) chicken.posix#unset-environment-variable! (string) undefined))
 (chicken.posix#user-information (#(procedure #:clean #:enforce) chicken.posix#user-information ((or string fixnum) #!optional *) *))
 (chicken.posix#utc-time->seconds (#(procedure #:clean #:enforce) chicken.posix#utc-time->seconds ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)) integer))
