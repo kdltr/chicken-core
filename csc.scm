@@ -283,14 +283,17 @@
 
 ;;; Locate object files for linking:
 
+(define (repo-path)
+  (if (and cross-chicken (not host-mode))
+      (destination-repository 'target)
+      (repository-path)))
+
 (define (find-object-file name)
-  (or (file-exists? (make-pathname #f name object-extension))
-      (and (not ignore-repository)
-           (file-exists? (make-pathname (destination-repository (if host-mode
-                                                                    'host
-                                                                    'target))
-                                        name object-extension)))
-      (stop "could not find linked extension: ~a" name)))
+  (let ((o (make-pathname #f name object-extension)))
+    (or (file-exists? o)
+	(and (not ignore-repository)
+	     (chicken.load#find-file o (repo-path)))
+	(stop "could not find linked extension: ~a" name))))
 
 
 ;;; Display usage information:
@@ -542,8 +545,7 @@ EOF
 	     (exit) )
 	   (when (pair? linked-extensions)
 	     (set! object-files ; add objects from linked extensions
-	       (append object-files
-                (map find-object-file linked-extensions))))
+	       (append object-files (map find-object-file linked-extensions))))
 	   (cond [(null? scheme-files)
 		  (when (and (null? c-files) 
 			     (null? object-files))
@@ -953,22 +955,19 @@ EOF
                 transient-link-files)))))
 
 (define (collect-linked-objects object-files)
-  (let ((hrepo (destination-repository 'host))
-        (trepo (destination-repository 'target)))
-    (define (locate lst)   ; add repo-path
-      (map (lambda (ofile)
-             (make-pathname (destination-repository (if host-mode 'host 'target))
-                            ofile))
-            lst))
-    (let loop ((os object-files) (os2 object-files))
-      (if (null? os)
-          (delete-duplicates (reverse os2) string=?)
-          (let* ((o (car os))
-                 (lfile (pathname-replace-extension o "link"))
-                 (newos (if (file-exists? lfile)
-                            (locate (with-input-from-file lfile read))
-                            '())))
-            (loop (append newos (cdr os)) (append newos os2)))))))
+  (define (locate lst)
+    (map (lambda (ofile)
+	   (chicken.load#find-file ofile (repo-path)))
+	 lst))
+  (let loop ((os object-files) (os2 object-files))
+    (if (null? os)
+	(delete-duplicates (reverse os2) string=?)
+	(let* ((o (car os))
+	       (lfile (pathname-replace-extension o "link"))
+	       (newos (if (file-exists? lfile)
+			  (locate (with-input-from-file lfile read))
+			  '())))
+	  (loop (append newos (cdr os)) (append newos os2))))))
 
 (define (copy-files from to)
   (command

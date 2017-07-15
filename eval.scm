@@ -1234,7 +1234,13 @@
                 (set! cache (cons path lst))
                 lst))))))
 
-(define ##sys#find-extension
+(define (find-file name search-path)
+  (let loop ((p (##sys#split-path search-path)))
+    (cond ((null? p) #f)
+	  ((file-exists? (string-append (car p) "/" name)))
+	  (else (loop (cdr p))))))
+
+(define find-dynamic-extension
   (let ((file-exists? file-exists?)
 	(string-append string-append))
     (lambda (path inc?)
@@ -1262,7 +1268,7 @@
 	((any ##sys#provided? alternates))
 	((memq id core-units)
          (load-library/internal id #f loc))
-	((##sys#find-extension id #f) =>
+	((find-dynamic-extension id #f) =>
 	 (lambda (ext)
 	   (load/internal ext #f #f #f #f id)
 	   (##sys#provide id)))
@@ -1281,18 +1287,15 @@
   (for-each (cut ##sys#check-symbol <> 'provided?) ids)
   (every ##sys#provided? ids))
 
-(define static-extension-available?
-  (let ((string-append string-append))
-    (lambda (id)
-      (and-let* ((rp (repository-path)))
-           (let loop ((rp (##sys#split-path rp)))
-             (cond ((null? rp) #f)
-                   ((file-exists? 
-                      (string-append (car rp) "/" 
-                                     (##sys#canonicalize-extension-path id #f)
-                                     object-file-extension)))
-                   (else (loop (cdr rp)))))))))
+(define (find-static-extension id)
+  (let ((p (##sys#canonicalize-extension-path id #f)))
+    (find-file (##sys#string-append p object-file-extension)
+	       (repository-path))))
 
+;; Export for internal use in csc, modules and batch-driver:
+(define chicken.load#find-file find-file)
+(define chicken.load#find-static-extension find-static-extension)
+(define chicken.load#find-dynamic-extension find-dynamic-extension)
 
 ;;
 ;; Given a library specification, returns three values:
@@ -1318,8 +1321,8 @@
 	    `(##core#declare (uses ,id))
 	    `(##sys#load-library (##core#quote ,id)))
 	id #f))
-      ((and compiling? static? (static-extension-available? id)) =>
-       (lambda (path) 
+      ((and compiling? static? (find-static-extension id)) =>
+       (lambda (path)
          (mark-static id path)
          (values `(##core#declare (uses ,id)) id 'static)))
       (else

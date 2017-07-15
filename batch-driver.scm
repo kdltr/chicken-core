@@ -601,7 +601,7 @@
 		      import-libraries) ", ")))
 
 	     (and-let* ((reqs (hash-table-ref file-requirements 'dynamic))
-			(missing (remove (cut ##sys#find-extension <> #f) reqs)))
+			(missing (remove (cut chicken.load#find-dynamic-extension <> #f) reqs)))
 	       (when (null? (lset-intersection/eq? '(eval repl) used-units))
 		 (notice ; XXX only issued when "-verbose" is used
 		  (sprintf "~A has dynamic requirements but doesn't load (chicken eval): ~A"

@@ -567,7 +567,7 @@
   (let* ((mname (##sys#resolve-module-name lib loc))
 	 (mod (##sys#find-module mname #f loc)))
     (unless mod
-      (and-let* ((il (##sys#find-extension
+      (and-let* ((il (chicken.load#find-dynamic-extension
 		      (string-append (symbol->string mname) ".import")
 		      #t)))
 	(parameterize ((##sys#current-module #f)

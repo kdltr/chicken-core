@@ -119,19 +119,13 @@
 
 (define (repo-path)
   (if (and cross-chicken (not host-extension))
-      (list (destination-repository 'target))
-      (##sys#split-path (repository-path))))
+      (destination-repository 'target)
+      (repository-path)))
 
 (define (install-path)
   (if (and cross-chicken (not host-extension))
       (destination-repository 'target)
       (destination-repository 'host)))
-
-(define (find-in-repo name)
-  (let loop ((dirs (repo-path)))
-    (cond ((null? dirs) #f)
-          ((file-exists? (make-pathname (car dirs) name)))
-          (else (loop (cdr dirs))))))
 
 (define (build-script-extension mode platform)
   (string-append "build"
@@ -690,8 +684,9 @@
   (cond ((or (eq? x 'chicken) (equal? x "chicken"))
          (chicken-version))
         ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
-                (sf (find-in-repo 
-                      (make-pathname #f ep +egg-info-extension+))))
+                (sf (chicken.load#find-file
+                     (make-pathname #f ep +egg-info-extension+)
+                     (repo-path))))
            (and sf
                 (file-exists? sf)
                 (load-egg-info sf))) =>

@@ -1652,12 +1652,7 @@
 ;;; Load support files
 
 (define (load-identifier-database name)	; Used only in batch-driver.scm
-  (define (locate)
-    (let loop ((dirs (##sys#split-path (repository-path))))
-      (cond ((null? dirs) #f)
-            ((file-exists? (make-pathname (car dirs) name)))
-            (else (loop (cdr dirs))))))
-  (and-let* ((dbfile (locate)))
+  (and-let* ((dbfile (chicken.load#find-file name (repository-path))))
     (debugging 'p (sprintf "loading identifier database ~a ...~%" dbfile))
     (for-each
      (lambda (e)

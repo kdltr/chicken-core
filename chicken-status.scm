@@ -46,21 +46,17 @@
 
   (define (repo-path)
     (if (and cross-chicken (not host-extensions))
-        (list (destination-repository 'target))
-        (##sys#split-path (repository-path))))
-
-  (define (find-in-repo name)
-    (let loop ((dirs (repo-path)))
-      (cond ((null? dirs) #f)
-            ((file-exists? (make-pathname (car dirs) name)))
-            (else (loop (cdr dirs))))))
+        (destination-repository 'target)
+        (repository-path)))
 
   (define (grep rx lst)
     (filter (cut irregex-search rx <>) lst))
 
   (define (read-info egg)
-    (load-egg-info 
-     (or (find-in-repo (make-pathname #f egg +egg-info-extension+))
+    (load-egg-info
+     (or (chicken.load#find-file
+          (make-pathname #f egg +egg-info-extension+)
+          (repo-path))
          (error "egg not found" egg))))
 
   (define (filter-eggs patterns mtch)
@@ -84,7 +80,7 @@
         (lambda (dir)
           (map pathname-file 
             (glob (make-pathname dir "*" +egg-info-extension+))))
-        (repo-path))
+        (##sys#split-path (repo-path)))
       equal?))
 
   (define (format-string str cols #!optional right (padc #\space))

@@ -9,7 +9,7 @@ set CHICKEN=..\chicken
 set CHICKEN_PROFILE=..\chicken-profile
 set CHICKEN_INSTALL_REPOSITORY=%TEST_DIR%\test-repository
 set CHICKEN_REPOSITORY_PATH=%TEST_DIR%\..;%CHICKEN_INSTALL_REPOSITORY%
-set PATH=%cd%\..;%PATH%
+set PATH=%TEST_DIR%\..;%PATH%
 
 set TYPESDB=..\types.db
 rem Increase this when tests start failing on "inexplicable" diffs
@@ -20,9 +20,10 @@ set compile2=..\csc -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -incl
 set compile_s=..\csc -s -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/..
 set interpret=..\csi -n -include-path %TEST_DIR%/..
 
-del /f /q /s *.exe *.so *.o *.import.* ..\foo.import.* test-repository
-mkdir test-repository
-copy %TYPESDB% test-repository
+del /f /q /s *.exe *.so *.o *.import.* ..\foo.import.* %CHICKEN_INSTALL_REPOSITORY%
+rmdir /q /s %CHICKEN_INSTALL_REPOSITORY%
+mkdir %CHICKEN_INSTALL_REPOSITORY%
+copy %TYPESDB% %CHICKEN_INSTALL_REPOSITORY%
 
 echo ======================================== version tests ...
 %compile% version-tests.scm
@@ -578,7 +579,6 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 linking-tests
 if errorlevel 1 exit /b 1
-mkdir %CHICKEN_INSTALL_REPOSITORY%
 move reverser.o %CHICKEN_INSTALL_REPOSITORY%
 move reverser.import.scm %CHICKEN_INSTALL_REPOSITORY%
 %compile2% -link reverser linking-tests.scm
