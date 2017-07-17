@@ -974,6 +974,9 @@
 	   (x (r 'x))
 	   (y (r 'y))
 	   (slotnames (map car slots)))
+      ;; TODO OBSOLETE remove after snapshot release
+      (unless (feature? #:namespaced-record-type-tags)
+	(set! tag plain-name))
       `(##core#begin
 	;; TODO: Maybe wrap this in an opaque object?
 	(,%define ,type-name (##core#quote ,tag))

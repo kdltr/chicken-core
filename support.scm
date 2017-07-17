@@ -479,8 +479,13 @@
 (define-record-printer (node n out)
   (fprintf out "#<node ~a ~a>" (node-class n) (node-parameters n)))
 
-(define (make-node c p s)
-  (##sys#make-structure 'node c p s) ) ; this kludge is for allowing the inlined `make-node'
+;; this kludge is for allowing the inlined `make-node'
+(cond-expand
+  (namespaced-record-type-tags
+   (define (make-node c p s)
+     (##sys#make-structure 'chicken.compiler.support#node c p s)))
+  (else ; TODO OBSOLETE remove after snapshot release
+   (define (make-node c p s) (##sys#make-structure 'node c p s))))
 
 (define (varnode var) (make-node '##core#variable (list var) '()))
 (define (qnode const) (make-node 'quote (list const) '()))
