@@ -49,12 +49,12 @@
    make-broadcast-port
    make-concatenated-port
    set-buffering-mode!
-   with-error-to-port
+   with-error-output-to-port
    with-input-from-port
    with-input-from-string
    with-output-to-port
    with-output-to-string
-   with-error-to-string)
+   with-error-output-to-string)
 
 (import scheme chicken)
 (import chicken.foreign
@@ -216,8 +216,8 @@
   (fluid-let ((##sys#standard-output port))
     (thunk) ) )
 
-(define (with-error-to-port port thunk)
-  (##sys#check-output-port port #t 'with-error-to-port)
+(define (with-error-output-to-port port thunk)
+  (##sys#check-output-port port #t 'with-error-output-to-port)
   (fluid-let ((##sys#standard-error port))
     (thunk) ) )
 
@@ -245,7 +245,7 @@
       (thunk) 
       (get-output-string ##sys#standard-output) ) ) )
 
-(define with-error-to-string
+(define with-error-output-to-string
   (lambda (thunk)
     (fluid-let ((##sys#standard-error (open-output-string)))
       (thunk)
