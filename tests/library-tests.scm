@@ -403,6 +403,11 @@
   (assert (keyword? empty-kw))
   (assert (string=? "" (keyword->string empty-kw))))
 
+;; TODO: It should eventually be possible to distinguish these (#1077)
+#;(let ((nul-sym (with-input-from-string "|\\x00|" read)))
+  (assert (not (keyword? nul-sym)))
+  (assert (string=? "\x00" (symbol->string nul-sym))))
+
 (assert (keyword? (with-input-from-string "42:" read)))
 (assert (keyword? (with-input-from-string ".:" read)))
 

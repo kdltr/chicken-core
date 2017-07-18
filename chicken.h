@@ -2215,6 +2215,15 @@ inline static C_word C_u_i_namespaced_symbolp(C_word x)
   return C_mk_bool(C_memchr(C_data_pointer(s), '#', C_header_size(s)));
 }
 
+inline static C_word C_u_i_keywordp(C_word x)
+{
+  /* TODO: This representation is rather bogus */
+  C_word n = C_symbol_name(x);
+  return C_mk_bool(C_symbol_value(x) == x &&
+                   C_header_size(n) > 0 &&
+                   ((C_byte *)C_data_pointer(n))[0] == '\0');
+}
+
 inline static C_word C_flonum(C_word **ptr, double n)
 {
   C_word 
@@ -2705,9 +2714,8 @@ inline static C_word C_i_symbolp(C_word x)
 
 inline static int C_persistable_symbol(C_word x)
 {
-  C_word val = C_symbol_value(x);
   /* Symbol is bound (and not a keyword), or has a non-empty plist */
-  return ((val != C_SCHEME_UNBOUND && val != x) ||
+  return ((C_truep(C_boundp(x)) && !C_truep(C_u_i_keywordp(x))) ||
           C_symbol_plist(x) != C_SCHEME_END_OF_LIST);
 }
 
