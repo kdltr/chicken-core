@@ -48,6 +48,7 @@
    make-bidirectional-port
    make-broadcast-port
    make-concatenated-port
+   set-buffering-mode!
    with-error-to-port
    with-input-from-port
    with-input-from-string
@@ -56,10 +57,32 @@
    with-error-to-string)
 
 (import scheme chicken)
-(import chicken.io)
+(import chicken.foreign
+	chicken.io)
 
 (include "common-declarations.scm")
 
+(define-foreign-variable _iofbf int "_IOFBF")
+(define-foreign-variable _iolbf int "_IOLBF")
+(define-foreign-variable _ionbf int "_IONBF")
+(define-foreign-variable _bufsiz int "BUFSIZ")
+
+(define (set-buffering-mode! port mode . size)
+  (##sys#check-port port 'set-buffering-mode!)
+  (let ((size (if (pair? size) (car size) _bufsiz))
+	(mode (case mode
+		((#:full) _iofbf)
+		((#:line) _iolbf)
+		((#:none) _ionbf)
+		(else (##sys#error 'set-buffering-mode! "invalid buffering-mode" mode port)))))
+    (##sys#check-fixnum size 'set-buffering-mode!)
+    (when (fx< (if (eq? 'stream (##sys#slot port 7))
+		   ((foreign-lambda* int ((scheme-object p) (int m) (int s))
+		     "C_return(setvbuf(C_port_file(p), NULL, m, s));")
+		    port mode size)
+		   -1)
+	       0)
+      (##sys#error 'set-buffering-mode! "cannot set buffering mode" port mode size))))
 
 ;;;; Port-mapping (found in Gauche):
 

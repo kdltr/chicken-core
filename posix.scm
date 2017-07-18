@@ -68,8 +68,8 @@
    process-group-id process-run process-signal process-sleep
    process-spawn process-wait read-symbolic-link regular-file?
    seconds->local-time seconds->string seconds->utc-time seek/cur
-   seek/end seek/set set-alarm! set-buffering-mode!
-   set-environment-variable! set-file-group! set-file-owner!
+   seek/end seek/set
+   set-alarm! set-environment-variable! set-file-group! set-file-owner!
    set-file-permissions! set-file-position! set-file-times!
    set-root-directory! set-signal-handler! set-signal-mask!
    signal-handler signal-mask signal-mask! signal-masked? signal-unmask!

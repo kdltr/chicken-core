@@ -150,7 +150,6 @@ static C_TLS struct stat C_statbuf;
 #define C_ftruncate(f, n)   C_fix(ftruncate(C_unfix(f), C_num_to_int(n)))
 #define C_uname             C_fix(uname(&C_utsname))
 #define C_alarm             alarm
-#define C_setvbuf(p, m, s)  C_fix(setvbuf(C_port_file(p), NULL, C_unfix(m), C_unfix(s)))
 #define C_test_access(fn, m)     C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_close(fd)         C_fix(close(C_unfix(fd)))
 #define C_umask(m)          C_fix(umask(C_unfix(m)))
@@ -1285,27 +1284,6 @@ static C_word C_i_fifo_p(C_word name)
 ;;; Other things:
 
 (define set-alarm! (foreign-lambda int "C_alarm" int))
-
-(define-foreign-variable _iofbf int "_IOFBF")
-(define-foreign-variable _iolbf int "_IOLBF")
-(define-foreign-variable _ionbf int "_IONBF")
-(define-foreign-variable _bufsiz int "BUFSIZ")
-
-(define set-buffering-mode!
-  (lambda (port mode . size)
-    (##sys#check-port port 'set-buffering-mode!)
-    (let ([size (if (pair? size) (car size) _bufsiz)]
-	  [mode (case mode
-		  [(#:full) _iofbf]
-		  [(#:line) _iolbf]
-		  [(#:none) _ionbf]
-		  [else (##sys#error 'set-buffering-mode! "invalid buffering-mode" mode port)] ) ] )
-      (##sys#check-fixnum size 'set-buffering-mode!)
-      (when (fx< (if (eq? 'stream (##sys#slot port 7))
-		     (##core#inline "C_setvbuf" port mode size)
-		     -1)
-		 0)
-	(##sys#error 'set-buffering-mode! "cannot set buffering mode" port mode size) ) ) ) )
 
 (define (terminal-port? port)
   (##sys#check-open-port port 'terminal-port?)

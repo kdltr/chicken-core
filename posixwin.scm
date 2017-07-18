@@ -202,7 +202,6 @@ readdir(DIR * dir)
 #define close_pipe(p)			     C_fix(_pclose(C_port_file(p)))
 
 #define C_chmod(fn, m)	    C_fix(chmod(C_data_pointer(fn), C_unfix(m)))
-#define C_setvbuf(p, m, s)  C_fix(setvbuf(C_port_file(p), NULL, C_unfix(m), C_unfix(s)))
 #define C_test_access(fn, m)	    C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_pipe(d, m)	    C_fix(_pipe(C_pipefds, PIPE_BUF, C_unfix(m)))
 #define C_close(fd)	    C_fix(close(C_unfix(fd)))
@@ -1052,27 +1051,6 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
   (if (terminal-port? port)
       (values 0 0)
       (##sys#error 'terminal-size "port is not connected to a terminal" port)))
-
-(define-foreign-variable _iofbf int "_IOFBF")
-(define-foreign-variable _iolbf int "_IOLBF")
-(define-foreign-variable _ionbf int "_IONBF")
-(define-foreign-variable _bufsiz int "BUFSIZ")
-
-(define set-buffering-mode!
-  (lambda (port mode . size)
-    (##sys#check-open-port port 'set-buffering-mode!)
-    (let ([size (if (pair? size) (car size) _bufsiz)]
-	  [mode (case mode
-		  [(###full) _iofbf]
-		  [(###line) _iolbf]
-		  [(###none) _ionbf]
-		  [else (##sys#error 'set-buffering-mode! "invalid buffering-mode" mode port)] ) ] )
-      (##sys#check-fixnum size 'set-buffering-mode!)
-      (when (fx< (if (eq? 'stream (##sys#slot port 7))
-		     (##core#inline "C_setvbuf" port mode size)
-		     -1)
-		 0)
-	(##sys#error 'set-buffering-mode! "cannot set buffering mode" port mode size) ) ) ) )
 
 ;;; Process handling:
 
