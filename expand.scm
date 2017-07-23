@@ -1084,6 +1084,66 @@
        ##sys#current-environment ##sys#macro-environment
        #f #t 'reexport)))
 
+;;; functor definition
+
+(##sys#extend-macro-environment
+ 'functor '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'functor x '(_ (_ . #((_ _) 0)) _ . _))
+    (let* ((x (strip-syntax x))
+	   (head (cadr x))
+	   (name (car head))
+	   (args (cdr head))
+	   (exps (caddr x))
+	   (body (cdddr x))
+	   (registration
+	    `(##sys#register-functor
+	      (##core#quote ,(library-id name))
+	      (##core#quote
+	       ,(map (lambda (arg)
+		       (let ((argname (car arg))
+			     (exps (##sys#validate-exports (cadr arg) 'functor)))
+			 (unless (or (symbol? argname)
+				     (and (list? argname)
+					  (= 2 (length argname))
+					  (symbol? (car argname))
+					  (valid-library-specifier? (cadr argname))))
+			   (##sys#syntax-error-hook "invalid functor argument" name arg))
+			 (cons argname exps)))
+		     args))
+	      (##core#quote ,(##sys#validate-exports exps 'functor))
+	      (##core#quote ,body))))
+      `(##core#module ,(library-id name)
+	#t
+	(import scheme chicken)
+	(begin-for-syntax ,registration))))))
+
+;;; interface definition
+
+(##sys#extend-macro-environment
+ 'define-interface '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'define-interface x '(_ variable _))
+    (let ((name (strip-syntax (cadr x))))
+      (when (eq? '* name)
+	(syntax-error-hook
+	 'define-interface "`*' is not allowed as a name for an interface"))
+      `(##core#elaborationtimeonly
+	(##sys#put/restore!
+	 (##core#quote ,name)
+	 (##core#quote ##core#interface)
+	 (##core#quote
+	  ,(let ((exps (strip-syntax (caddr x))))
+	     (cond ((eq? '* exps) '*)
+		   ((symbol? exps) `(#:interface ,exps))
+		   ((list? exps)
+		    (##sys#validate-exports exps 'define-interface))
+		   (else
+		    (syntax-error-hook
+		     'define-interface "invalid exports" (caddr x))))))))))))
+
 ;; The chicken.module syntax environment
 (define ##sys#chicken.module-macro-environment (##sys#macro-environment))
 
