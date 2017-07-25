@@ -161,7 +161,6 @@
    program-name
    promise?
    put!
-   quit
    quotient&modulo
    quotient&remainder
    ratnum?

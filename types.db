@@ -1288,8 +1288,6 @@
       ((symbol symbol *)
        (##core#inline_allocate ("C_a_i_putprop" 8) #(1) #(2) #(3))))
 
-(quit (procedure quit (#!optional *) noreturn))
-
 (remprop! (#(procedure #:clean #:enforce) remprop! (symbol symbol) undefined))
 (rename-file (#(procedure #:clean #:enforce) rename-file (string string) string))
 (reset (procedure reset () noreturn))
@@ -1307,6 +1305,7 @@
 
 (chicken.repl#repl (#(procedure #:enforce) chicken.repl#repl (#!optional (procedure (*) . *)) undefined))
 (chicken.repl#repl-prompt (#(procedure #:clean #:enforce) chicken.repl#repl-prompt (#!optional (procedure () string)) procedure))
+(chicken.repl#quit (procedure chicken.repl#quit (#!optional *) noreturn))
 
 (set-port-name! (#(procedure #:clean #:enforce) set-port-name! (port string) undefined)
 		((port string) (##sys#setslot #(1) '3 #(2))))

@@ -238,8 +238,6 @@ EOF
 
 (define (exit #!optional (code 0)) ((##sys#exit-handler) code))
 (define (reset) ((##sys#reset-handler)))
-(define (##sys#quit-hook result) ((##sys#exit-handler) 0))
-(define (quit #!optional result) (##sys#quit-hook result))
 (define (##sys#debug-mode?) (##core#inline "C_i_debug_modep"))
 
 (define (error . args)

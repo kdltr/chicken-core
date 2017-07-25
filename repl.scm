@@ -30,7 +30,7 @@
   (not inline ##sys#repl-read-hook ##sys#repl-print-hook ##sys#read-prompt-hook))
 
 (module chicken.repl
-  (repl repl-prompt)
+  (quit repl repl-prompt)
 
 (import scheme
 	chicken
@@ -46,6 +46,9 @@
 (define (##sys#repl-print-hook x port)
   (##sys#with-print-length-limit ##sys#repl-print-length-limit (cut ##sys#print x #t port))
   (##sys#write-char-0 #\newline port))
+
+(define (quit-hook result) (exit))
+(define (quit #!optional result) (quit-hook result))
 
 (define repl-prompt
   (make-parameter (lambda () "#;> ")))
@@ -86,7 +89,7 @@
 	    (ehandler (##sys#error-handler))
 	    (rhandler (##sys#reset-handler))
 	    (lv #f)
-	    (qh ##sys#quit-hook)
+	    (qh quit-hook)
 	    (uie ##sys#unbound-in-eval))
 
 	(define (saveports)
@@ -104,7 +107,7 @@
 	   (##sys#dynamic-wind
 	    (lambda ()
 	      (set! lv (load-verbose))
-	      (set! ##sys#quit-hook (lambda (result) (k result)))
+	      (set! quit-hook (lambda (result) (k result)))
 	      (load-verbose #t)
 	      (##sys#error-handler
 	       (lambda (msg . args)
@@ -176,7 +179,7 @@
 		      (loop))))))
 	    (lambda ()
 	      (load-verbose lv)
-	      (set! ##sys#quit-hook qh)
+	      (set! quit-hook qh)
 	      (set! ##sys#unbound-in-eval uie)
 	      (##sys#error-handler ehandler)
 	      (##sys#reset-handler rhandler))))))))))
