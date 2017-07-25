@@ -1586,6 +1586,7 @@
 
 ;; file
 
+(chicken.file#create-directory (#(procedure #:clean #:enforce) chicken.file#create-directory (string #!optional *) string))
 (chicken.file#create-temporary-directory (#(procedure #:clean #:enforce) chicken.file#create-temporary-directory () string))
 (chicken.file#create-temporary-file (#(procedure #:clean #:enforce) chicken.file#create-temporary-file (#!optional string) string))
 (chicken.file#delete-directory (#(procedure #:clean #:enforce) chicken.file#delete-directory (string #!optional *) string))
@@ -1922,7 +1923,6 @@
 (chicken.posix#change-directory* (#(procedure #:clean #:enforce) chicken.posix#change-directory* (fixnum) fixnum))
 (chicken.posix#close-input-pipe (#(procedure #:clean #:enforce) chicken.posix#close-input-pipe (input-port) fixnum))
 (chicken.posix#close-output-pipe (#(procedure #:clean #:enforce) chicken.posix#close-output-pipe (output-port) fixnum))
-(chicken.posix#create-directory (#(procedure #:clean #:enforce) chicken.posix#create-directory (string #!optional *) string))
 (chicken.posix#create-fifo (#(procedure #:clean #:enforce) chicken.posix#create-fifo (string #!optional fixnum) undefined))
 (chicken.posix#create-pipe (procedure chicken.posix#create-pipe (#!optional fixnum) fixnum fixnum))
 (chicken.posix#create-session (#(procedure #:clean) chicken.posix#create-session () fixnum))

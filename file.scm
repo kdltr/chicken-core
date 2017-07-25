@@ -113,6 +113,24 @@ EOF
 
 ;;; Directory management:
 
+(define-inline (*create-directory loc name)
+  (unless (fx= 0 (##core#inline "C_mkdir" (##sys#make-c-string name loc)))
+    (posix-error #:file-error loc "cannot create directory" name)))
+
+(define create-directory
+  (lambda (name #!optional recursive)
+    (##sys#check-string name 'create-directory)
+    (unless (or (fx= 0 (##sys#size name))
+                (file-exists? name))
+      (if recursive
+	  (let loop ((dir (let-values (((dir file ext) (decompose-pathname name)))
+			    (if file (make-pathname dir file ext) dir))))
+	    (when (and dir (not (directory? dir)))
+	      (loop (pathname-directory dir))
+	      (*create-directory 'create-directory dir)))
+	  (*create-directory 'create-directory name)))
+    name))
+
 (define delete-directory
   (lambda (name #!optional recursive)
     (define (rmdir dir)

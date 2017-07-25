@@ -42,7 +42,7 @@
 (module chicken.posix
   (block-device? call-with-input-pipe call-with-output-pipe
    change-directory change-directory* character-device? close-input-pipe
-   close-output-pipe create-directory create-fifo create-pipe
+   close-output-pipe create-fifo create-pipe
    create-session create-symbolic-link current-directory
    current-effective-group-id current-effective-user-id
    current-effective-user-name current-group-id current-process-id

@@ -112,7 +112,6 @@ static C_TLS struct timeval C_timeval;
 static C_TLS char C_hostbuf[ 256 ];
 static C_TLS struct stat C_statbuf;
 
-#define C_mkdir(str)        C_fix(mkdir(C_c_string(str), S_IRWXU | S_IRWXG | S_IRWXO))
 #define C_fchdir(fd)        C_fix(fchdir(C_unfix(fd)))
 #define C_chdir(str)        C_fix(chdir(C_c_string(str)))
 
