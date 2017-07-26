@@ -1197,12 +1197,8 @@
 
 (gensym (#(procedure #:clean) gensym (#!optional (or string symbol)) symbol))
 
-(get (#(procedure #:clean #:enforce) get (symbol symbol #!optional *) *)
-     ((symbol symbol *) (##core#inline "C_i_getprop" #(1) #(2) #(3))))
-
 (get-environment-variable (#(procedure #:clean #:enforce) get-environment-variable (string) *))
 (get-output-string (#(procedure #:clean #:enforce) get-output-string (output-port) string))
-(get-properties (#(procedure #:clean #:enforce) get-properties (symbol list) symbol * list))
 
 ;; keyword
 
@@ -1241,6 +1237,17 @@
 (chicken.platform#repository-path (#(procedure #:clean) chicken.platform#repository-path (#!optional *) *))
 (chicken.platform#installation-repository (#(procedure #:clean) chicken.platform#installation-repository (#!optional *) *))
 
+;; plist
+
+(chicken.plist#get (#(procedure #:clean #:enforce) chicken.plist#get (symbol symbol #!optional *) *)
+		   ((symbol symbol *) (##core#inline "C_i_getprop" #(1) #(2) #(3))))
+(chicken.plist#get-properties (#(procedure #:clean #:enforce) chicken.plist#get-properties (symbol list) symbol * list))
+(chicken.plist#put! (#(procedure #:clean #:enforce) chicken.plist#put! (symbol symbol *) undefined)
+		    ((symbol symbol *)
+		     (##core#inline_allocate ("C_a_i_putprop" 8) #(1) #(2) #(3))))
+(chicken.plist#remprop! (#(procedure #:clean #:enforce) chicken.plist#remprop! (symbol symbol) undefined))
+(chicken.plist#symbol-plist (#(procedure #:clean #:enforce) chicken.plist#symbol-plist (symbol) list)
+			    ((symbol) (##sys#slot #(1) '2)))
 
 (getter-with-setter
  (#(procedure #:clean #:enforce)
@@ -1284,11 +1291,6 @@
 (make-promise (#(procedure #:enforce) make-promise (*) (struct promise))
               (((struct promise)) #(1)))
 
-(put! (#(procedure #:clean #:enforce) put! (symbol symbol *) undefined)
-      ((symbol symbol *)
-       (##core#inline_allocate ("C_a_i_putprop" 8) #(1) #(2) #(3))))
-
-(remprop! (#(procedure #:clean #:enforce) remprop! (symbol symbol) undefined))
 (rename-file (#(procedure #:clean #:enforce) rename-file (string string) string))
 (reset (procedure reset () noreturn))
 (reset-handler (#(procedure #:clean #:enforce) reset-handler (#!optional (procedure () . *)) procedure))
@@ -1337,9 +1339,6 @@
 
 (subvector (forall (a) (#(procedure #:clean #:enforce) subvector ((vector-of a) fixnum #!optional fixnum) (vector-of a))))
 (symbol-escape (#(procedure #:clean) symbol-escape (#!optional *) *))
-
-(symbol-plist (#(procedure #:clean #:enforce) symbol-plist (symbol) list)
-	      ((symbol) (##sys#slot #(1) '2)))
 
 (system (#(procedure #:clean #:enforce) system (string) fixnum))
 (vector-resize

@@ -88,6 +88,7 @@
 	chicken.keyword
 	chicken.pathname
 	chicken.platform
+	chicken.plist
 	chicken.port
 	chicken.pretty-print
 	chicken.random

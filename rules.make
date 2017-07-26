@@ -512,6 +512,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.flonum,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.keyword,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.platform,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.plist,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.time,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.load,eval))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.format,extras))
@@ -615,6 +616,7 @@ support.c: support.scm mini-srfi-1.scm \
 		chicken.keyword.import.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
+		chicken.plist.import.scm \
 		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.random.import.scm \
@@ -780,6 +782,7 @@ library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations
 	-emit-import-library chicken.gc \
 	-emit-import-library chicken.keyword \
 	-emit-import-library chicken.platform \
+	-emit-import-library chicken.plist \
 	-emit-import-library chicken.time
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal

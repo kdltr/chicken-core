@@ -5608,6 +5608,11 @@ EOF
 
 ;;; Property lists
 
+(module chicken.plist
+  (get get-properties put! remprop! symbol-plist)
+
+(import scheme chicken)
+
 (define (put! sym prop val)
   (##sys#check-symbol sym 'put!)
   (##core#inline_allocate ("C_a_i_putprop" 8) sym prop val) )
@@ -5669,6 +5674,8 @@ EOF
 	  (if (memq prop props)
 	      (values prop (##sys#slot tl 0) nxt)
 	      (loop nxt) ) ) ) ) )
+
+) ; chicken.plist
 
 
 ;;; Print timing information (support for "time" macro):

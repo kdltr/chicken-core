@@ -109,13 +109,11 @@
    (fxxor . chicken.fixnum#fxxor)
    (fxlen . chicken.fixnum#fxlen)
    gensym
-   get
    (get-call-chain . chicken.condition#get-call-chain)
    (get-condition-property . chicken.condition#get-condition-property)
    get-environment-variable
    (get-line-number . chicken.syntax#get-line-number)
    get-output-string
-   get-properties
    getter-with-setter
    implicit-exit-handler
    infinite?
@@ -155,12 +153,10 @@
    procedure-information
    program-name
    promise?
-   put!
    quotient&modulo
    quotient&remainder
    ratnum?
    (register-feature! . chicken.platform#register-feature!)
-   remprop!
    rename-file
    (repository-path . chicken.platform#repository-path)
    (require . chicken.load#require)
@@ -182,7 +178,6 @@
    subvector
    symbol-append
    symbol-escape
-   symbol-plist
    (syntax-error . chicken.syntax#syntax-error)
    system
    (unregister-feature! . chicken.platform#unregister-feature!)

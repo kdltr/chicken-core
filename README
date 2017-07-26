@@ -310,6 +310,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.memory.import.so
 	|   |       |-- chicken.pathname.import.so
 	|   |       |-- chicken.platform.import.so
+	|   |       |-- chicken.plist.import.so
 	|   |       |-- chicken.port.import.so
 	|   |       |-- chicken.posix.import.so
 	|   |       |-- chicken.pretty-print.import.so
