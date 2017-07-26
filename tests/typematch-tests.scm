@@ -1,7 +1,7 @@
 ;;;; typematch-tests.scm
 
 
-(use chicken.memory data-structures locative)
+(use chicken.blob chicken.memory data-structures locative)
 
 
 (define (make-list n x)

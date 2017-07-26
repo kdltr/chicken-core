@@ -77,6 +77,7 @@
 
 (import chicken scheme
 	chicken.bitwise
+	chicken.blob
 	chicken.condition
 	chicken.data-structures
 	chicken.file

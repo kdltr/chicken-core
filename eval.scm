@@ -53,6 +53,7 @@
 ;; Exclude bindings defined within this module.
 (import (except scheme eval interaction-environment null-environment scheme-report-environment)
 	(except chicken eval-handler)
+	chicken.blob
 	chicken.internal
 	chicken.keyword
 	chicken.syntax)

@@ -960,7 +960,7 @@
 
 ;;; Macro definitions:
 
-(import chicken chicken.syntax chicken.internal)
+(import chicken chicken.blob chicken.syntax chicken.internal)
 
 (##sys#extend-macro-environment
  'import-syntax '()

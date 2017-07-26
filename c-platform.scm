@@ -159,9 +159,9 @@
     chicken.bitwise#bitwise-ior chicken.bitwise#bitwise-xor
     chicken.bitwise#arithmetic-shift chicken.bitwise#bit-set?
     add1 sub1 exact-integer? nan? finite? infinite?
-    void flush-output print print* error call/cc blob-size
-    identity blob=? equal=? make-polar make-rectangular real-part imag-part
-    string->symbol symbol-append foldl foldr setter
+    void flush-output print print* error call/cc chicken.blob#blob-size
+    identity chicken.blob#blob=? equal=? make-polar make-rectangular
+    real-part imag-part string->symbol symbol-append foldl foldr setter
     current-error-port current-thread chicken.keyword#get-keyword
     srfi-4#u8vector-length srfi-4#s8vector-length
     srfi-4#u16vector-length srfi-4#s16vector-length
@@ -852,7 +852,7 @@
 (rewrite '##sys#foreign-ranged-integer-argument 17 2 "C_i_foreign_ranged_integer_argumentp")
 (rewrite '##sys#foreign-unsigned-ranged-integer-argument 17 2 "C_i_foreign_unsigned_ranged_integer_argumentp")
 
-(rewrite 'blob-size 2 1 "C_block_size" #f)
+(rewrite 'chicken.blob#blob-size 2 1 "C_block_size" #f)
 
 ;; TODO: Move this stuff to types.db
 (rewrite 'srfi-4#u8vector-ref 2 2 "C_u_i_u8vector_ref" #f)

@@ -2138,6 +2138,11 @@ EOF
 
 ;;; Blob:
 
+(module chicken.blob
+  (blob->string string->blob blob? blob=? blob-size make-blob)
+
+(import scheme chicken)
+
 (define (##sys#make-blob size)
   (let ([bv (##sys#allocate-vector size #t #f #t)])
     (##core#inline "C_string_to_bytevector" bv)
@@ -2175,6 +2180,8 @@ EOF
   (let ((n (##sys#size b1)))
     (and (eq? (##sys#size b2) n)
 	 (zero? (##core#inline "C_string_compare" b1 b2 n)))))
+
+) ; chicken.blob
 
 
 ;;; Vectors:

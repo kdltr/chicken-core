@@ -285,6 +285,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |   `-- 9
 	|   |       |-- chicken.import.so
 	|   |       |-- chicken.bitwise.import.so
+	|   |       |-- chicken.blob.import.so
 	|   |       |-- chicken.compiler.user-pass.import.so
 	|   |       |-- chicken.condition.import.so
 	|   |       |-- chicken.continuation.import.so

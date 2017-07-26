@@ -934,14 +934,17 @@
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-not (integer) integer)
 	     ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_not" 5) #(1))))
 
-(blob->string (#(procedure #:clean #:enforce) blob->string (blob) string))
+;; blob
 
-(blob-size (#(procedure #:clean #:enforce #:foldable) blob-size (blob) fixnum)
+(chicken.blob#blob? (#(procedure #:pure #:predicate blob) chicken.blob#blob? (*) boolean))
+(chicken.blob#blob=? (#(procedure #:clean #:enforce #:foldable) chicken.blob#blob=? (blob blob) boolean))
+(chicken.blob#blob-size (#(procedure #:clean #:enforce #:foldable) chicken.blob#blob-size (blob) fixnum)
 	   ((blob) (##sys#size #(1))))
+(chicken.blob#blob->string (#(procedure #:clean #:enforce) chicken.blob#blob->string (blob) string))
+(chicken.blob#make-blob (#(procedure #:clean #:enforce) chicken.blob#make-blob (fixnum) blob)
+	   ((fixnum) (##sys#make-blob #(1))))
+(chicken.blob#string->blob (#(procedure #:clean #:enforce) chicken.blob#string->blob (string) blob))
 
-(blob? (#(procedure #:pure #:predicate blob) blob? (*) boolean))
-
-(blob=? (#(procedure #:clean #:enforce #:foldable) blob=? (blob blob) boolean))
 (call/cc (#(procedure #:enforce) call/cc ((procedure (*) . *)) . *))
 (case-sensitive (#(procedure #:clean) case-sensitive (#!optional *) *))
 (char-name (#(procedure #:clean #:enforce) char-name ((or char symbol) #!optional char) *)) ;XXX -> (or char symbol) ?
@@ -1250,9 +1253,6 @@
 
 (keyword-style (#(procedure #:clean) keyword-style (#!optional symbol) symbol))
 
-(make-blob (#(procedure #:clean #:enforce) make-blob (fixnum) blob)
-	   ((fixnum) (##sys#make-blob #(1))))
-
 (make-parameter (#(procedure #:clean #:enforce) make-parameter (* #!optional procedure) procedure))
 (chicken.flonum#maximum-flonum float)
 (chicken.flonum#minimum-flonum float)
@@ -1323,7 +1323,6 @@
 	((cplxnum) ((or float cplxnum)) (##sys#extended-signum #(1))))
 
 (sleep (#(procedure #:clean #:enforce) sleep (fixnum) undefined))
-(string->blob (#(procedure #:clean #:enforce) string->blob (string) blob))
 (string->uninterned-symbol (#(procedure #:clean #:enforce) string->uninterned-symbol (string) symbol))
 
 (sub1 (#(procedure #:clean #:enforce #:foldable) sub1 (number) number)

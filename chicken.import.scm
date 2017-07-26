@@ -40,10 +40,6 @@
    argc+argv
    argv
    bignum?
-   blob->string
-   blob-size
-   blob?
-   blob=?
    (build-platform . chicken.platform#build-platform)
    call/cc
    case-sensitive
@@ -133,7 +129,6 @@
    (load-verbose . chicken.load#load-verbose)
    (machine-byte-order . chicken.platform#machine-byte-order)
    (machine-type . chicken.platform#machine-type)
-   make-blob
    (make-composite-condition . chicken.condition#make-composite-condition)
    make-parameter
    make-promise
@@ -181,7 +176,6 @@
    sleep
    (software-type . chicken.platform#software-type)
    (software-version . chicken.platform#software-version)
-   string->blob
    string->uninterned-symbol
    (strip-syntax . chicken.syntax#strip-syntax)
    sub1
