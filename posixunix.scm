@@ -38,7 +38,6 @@ static C_TLS int C_wait_status;
 
 #include <sys/time.h>
 #include <sys/wait.h>
-#include <sys/utsname.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -94,7 +93,6 @@ extern char **environ;
 # define FILENAME_MAX          1024
 #endif
 
-static C_TLS struct utsname C_utsname;
 static C_TLS struct flock C_flock;
 static C_TLS DIR *temphandle;
 static C_TLS struct passwd *C_user;
@@ -109,7 +107,6 @@ static C_TLS struct passwd *C_user;
 static C_TLS int C_pipefds[ 2 ];
 static C_TLS time_t C_secs;
 static C_TLS struct timeval C_timeval;
-static C_TLS char C_hostbuf[ 256 ];
 static C_TLS struct stat C_statbuf;
 
 #define C_fchdir(fd)        C_fix(fchdir(C_unfix(fd)))
@@ -147,7 +144,6 @@ static C_TLS struct stat C_statbuf;
 #define C_pipe(d)           C_fix(pipe(C_pipefds))
 #define C_truncate(f, n)    C_fix(truncate((char *)C_data_pointer(f), C_num_to_int(n)))
 #define C_ftruncate(f, n)   C_fix(ftruncate(C_unfix(f), C_num_to_int(n)))
-#define C_uname             C_fix(uname(&C_utsname))
 #define C_alarm             alarm
 #define C_test_access(fn, m)     C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_close(fd)         C_fix(close(C_unfix(fd)))
@@ -788,25 +784,7 @@ static C_word C_i_fifo_p(C_word name)
     (posix-error #:process-error 'signal-unmask! "cannot unblock signal") ) )
 
 
-;;; Getting system-, group- and user-information:
-
-(define-foreign-variable _uname int "C_uname")
-(define-foreign-variable _uname-sysname nonnull-c-string "C_utsname.sysname")
-(define-foreign-variable _uname-nodename nonnull-c-string "C_utsname.nodename")
-(define-foreign-variable _uname-release nonnull-c-string "C_utsname.release")
-(define-foreign-variable _uname-version nonnull-c-string "C_utsname.version")
-(define-foreign-variable _uname-machine nonnull-c-string "C_utsname.machine")
-
-(define system-information
-  (lambda ()
-    (when (fx< _uname 0)
-      (##sys#update-errno)
-      (##sys#error 'system-information "cannot retrieve system information") )
-    (list _uname-sysname
-          _uname-nodename
-          _uname-release
-          _uname-version
-          _uname-machine) ) )
+;;; Getting group- and user-information:
 
 (define current-user-id
   (getter-with-setter
@@ -1317,17 +1295,6 @@ static C_word C_i_fifo_p(C_word name)
 	    (posix-error #:error 'terminal-size
 			 "Unable to get size of terminal" port))))))
   
-(define get-host-name
-  (let ([getit
-	 (foreign-lambda* c-string ()
-	   "if(gethostname(C_hostbuf, 256) == -1) C_return(NULL);"
-	   "else C_return(C_hostbuf);") ] )
-    (lambda ()
-      (let ([host (getit)])
-        (unless host
-          (posix-error #:error 'get-host-name "cannot retrieve host-name") )
-        host) ) ) )
-
 
 ;;; Process handling:
 

@@ -56,7 +56,7 @@
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr
    fileno/stdin fileno/stdout get-environment-variables
-   get-host-name local-time->seconds local-timezone-abbreviation
+   local-time->seconds local-timezone-abbreviation
    open-input-file* open-input-pipe open-output-file* open-output-pipe
    open/append open/binary open/creat open/excl open/fsync open/noctty
    open/noinherit open/nonblock open/rdonly open/rdwr open/read
@@ -80,7 +80,7 @@
    signal/usr1 signal/usr2 signal/vtalrm signal/winch signal/xcpu
    signal/xfsz signals-list socket? spawn/detach spawn/nowait
    spawn/nowaito spawn/overlay spawn/wait string->time symbolic-link?
-   system-information terminal-name terminal-port? terminal-size
+   terminal-name terminal-port? terminal-size
    time->string unset-environment-variable! user-information
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 

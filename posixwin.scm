@@ -101,14 +101,7 @@ static C_TLS char C_rdbuf; /* one-char buffer for read */
 static C_TLS int C_exstatus;
 
 /* platform information; initialized for cached testing */
-static C_TLS char C_hostname[256] = "";
-static C_TLS char C_osver[16] = "";
-static C_TLS char C_osrel[16] = "";
-static C_TLS char C_processor[16] = "";
 static C_TLS char C_shlcmd[256] = "";
-
-/* Windows NT or better */
-static int C_isNT = 0;
 
 /* Current user name */
 static C_TLS TCHAR C_username[255 + 1] = "";
@@ -352,104 +345,34 @@ process_wait(C_word h, C_word t)
 
 #define C_process_wait(p, t) (process_wait(C_unfix(p), C_truep(t)) ? C_SCHEME_TRUE : C_SCHEME_FALSE)
 
-static int C_fcall
-get_hostname()
-{
-    /* Do we already have hostname? */
-    if (strlen(C_hostname))
-    {
-	return 1;
-    }
-    else
-    {
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(1, 1), &wsa) == 0)
-	{
-	    int nok = gethostname(C_hostname, sizeof(C_hostname));
-	    WSACleanup();
-	    return !nok;
-	}
-	return 0;
-    }
-}
+
+static C_TLS int C_isNT = 0;
+
 
 static int C_fcall
-sysinfo()
+C_windows_nt()
 {
-    /* Do we need to build the sysinfo? */
-    if (!strlen(C_osrel))
-    {
-	OSVERSIONINFO ovf;
-	ZeroMemory(&ovf, sizeof(ovf));
-	ovf.dwOSVersionInfoSize = sizeof(ovf);
-	if (get_hostname() && GetVersionEx(&ovf))
-	{
-	    SYSTEM_INFO si;
-	    _snprintf(C_osver, sizeof(C_osver) - 1, "%lu.%lu.%lu",
-			ovf.dwMajorVersion, ovf.dwMinorVersion, ovf.dwBuildNumber);
-	    strncpy(C_osrel, "Win", sizeof(C_osrel) - 1);
-	    switch (ovf.dwPlatformId)
-	    {
-	    case VER_PLATFORM_WIN32s:
-		strncpy(C_osrel, "Win32s", sizeof(C_osrel) - 1);
-		break;
-	    case VER_PLATFORM_WIN32_WINDOWS:
-		if (ovf.dwMajorVersion == 4)
-		{
-		    if (ovf.dwMinorVersion == 0)
-			strncpy(C_osrel, "Win95", sizeof(C_osrel) - 1);
-		    else if (ovf.dwMinorVersion == 10)
-			strncpy(C_osrel, "Win98", sizeof(C_osrel) - 1);
-		    else if (ovf.dwMinorVersion == 90)
-			strncpy(C_osrel, "WinMe", sizeof(C_osrel) - 1);
-		}
-		break;
-	    case VER_PLATFORM_WIN32_NT:
-		C_isNT = 1;
-		if (ovf.dwMajorVersion == 6)
-		    strncpy(C_osrel, "WinVista", sizeof(C_osrel) - 1);
-		else if (ovf.dwMajorVersion == 5)
-		{
-		    if (ovf.dwMinorVersion == 2)
-			strncpy(C_osrel, "WinServer2003", sizeof(C_osrel) - 1);
-		    else if (ovf.dwMinorVersion == 1)
-			strncpy(C_osrel, "WinXP", sizeof(C_osrel) - 1);
-		    else if ( ovf.dwMinorVersion == 0)
-			strncpy(C_osrel, "Win2000", sizeof(C_osrel) - 1);
-		}
-		else if (ovf.dwMajorVersion <= 4)
-		   strncpy(C_osrel, "WinNT", sizeof(C_osrel) - 1);
-		break;
-	    }
-	    GetSystemInfo(&si);
-	    strncpy(C_processor, "Unknown", sizeof(C_processor) - 1);
-	    switch (si.wProcessorArchitecture)
-	    {
-	    case PROCESSOR_ARCHITECTURE_INTEL:
-		strncpy(C_processor, "x86", sizeof(C_processor) - 1);
-		break;
-#	    ifdef PROCESSOR_ARCHITECTURE_IA64
-	    case PROCESSOR_ARCHITECTURE_IA64:
-		strncpy(C_processor, "IA64", sizeof(C_processor) - 1);
-		break;
-#	    endif
-#	    ifdef PROCESSOR_ARCHITECTURE_AMD64
-	    case PROCESSOR_ARCHITECTURE_AMD64:
-		strncpy(C_processor, "x64", sizeof(C_processor) - 1);
-		break;
-#	    endif
-#	    ifdef PROCESSOR_ARCHITECTURE_IA32_ON_WIN64
-	    case PROCESSOR_ARCHITECTURE_IA32_ON_WIN64:
-		strncpy(C_processor, "WOW64", sizeof(C_processor) - 1);
-		break;
-#	    endif
-	    }
-	}
-	else
-	    return set_last_errno();
+  static int has_info = 0;
+
+  if(!has_info) {
+    OSVERSIONINFO ovf;
+    ZeroMemory(&ovf, sizeof(ovf));
+    ovf.dwOSVersionInfoSize = sizeof(ovf);
+    has_info = 1;
+
+    if(GetVersionEx(&ovf)) {
+      SYSTEM_INFO si;
+
+      switch (ovf.dwPlatformId) {
+      case VER_PLATFORM_WIN32_NT:
+        return C_isNT = 1;
+      }
     }
-    return 1;
+  }
+
+  return C_isNT;
 }
+
 
 static int C_fcall
 get_shlcmd()
@@ -457,22 +380,17 @@ get_shlcmd()
     /* Do we need to build the shell command pathname? */
     if (!strlen(C_shlcmd))
     {
-	if (sysinfo()) /* for C_isNT */
-	{
-	    char *cmdnam = C_isNT ? "\\cmd.exe" : "\\command.com";
-	    UINT len = GetSystemDirectory(C_shlcmd, sizeof(C_shlcmd) - strlen(cmdnam));
-	    if (len)
-		C_strlcpy(C_shlcmd + len, cmdnam, sizeof(C_shlcmd));
-	    else
-		return set_last_errno();
-	}
-	else
-	    return 0;
+      char *cmdnam = C_windows_nt() ? "\\cmd.exe" : "\\command.com";
+      UINT len = GetSystemDirectory(C_shlcmd, sizeof(C_shlcmd) - strlen(cmdnam));
+      if (len)
+	C_strlcpy(C_shlcmd + len, cmdnam, sizeof(C_shlcmd));
+      else
+	return set_last_errno();
     }
+
     return 1;
 }
 
-#define C_get_hostname() (get_hostname() ? C_SCHEME_TRUE : C_SCHEME_FALSE)
 #define C_sysinfo() (sysinfo() ? C_SCHEME_TRUE : C_SCHEME_FALSE)
 #define C_get_shlcmd() (get_shlcmd() ? C_SCHEME_TRUE : C_SCHEME_FALSE)
 
@@ -1212,27 +1130,8 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
     (values pid #t _exstatus)
     (values -1 #f #f) ) )
 
-(define-foreign-variable _hostname c-string "C_hostname")
-(define-foreign-variable _osver c-string "C_osver")
-(define-foreign-variable _osrel c-string "C_osrel")
-(define-foreign-variable _processor c-string "C_processor")
 
-(define get-host-name
-  (lambda ()
-    (if (##core#inline "C_get_hostname")
-      _hostname
-      (##sys#error 'get-host-name "cannot retrieve host-name") ) ) )
-
-
-;;; Getting system-, group- and user-information:
-
-(define system-information
-  (lambda ()
-    (if (##core#inline "C_sysinfo")
-      (list "windows" _hostname _osrel _osver _processor)
-      (begin
-	(##sys#update-errno)
-	(##sys#error 'system-information "cannot retrieve system-information") ) ) ) )
+;;; Getting group- and user-information:
 
 (define-foreign-variable _username c-string "C_username")
 

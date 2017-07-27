@@ -5744,9 +5744,6 @@ EOF
      repository-path installation-repository
      register-feature! unregister-feature!
      software-type software-version
-
-     ;;; TODO, move these from posix:
-     ;; get-host-name system-information
      )
 
 (import scheme chicken chicken.fixnum chicken.foreign chicken.keyword)
