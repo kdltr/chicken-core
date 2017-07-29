@@ -30,6 +30,25 @@
 	     (and (eqv? 127 (car result))
 		  (eqv? 99 (cadr result))))))))))
 
+(define-syntax test-subv
+  (er-macro-transformer
+    (lambda (x r c)
+      (let* ((t (strip-syntax (cadr x)))
+	     (make (symbol-append 'make- t 'vector))
+	     (subv (symbol-append 'sub   t 'vector))
+	     (len  (symbol-append t 'vector-length)))
+	`(let ((x (,make 10)))
+	   (assert (eq? (,len (,subv x 0 5)) 5)))))))
+
+(test-subv u8)
+(test-subv s8)
+(test-subv u16)
+(test-subv s16)
+(test-subv u32)
+(test-subv s32)
+(test-subv u64)
+(test-subv s64)
+
 (test1 u8 0 255)
 (test1 u16 0 65535)
 (test1 u32 0 4294967295)
@@ -129,3 +148,12 @@
 	 (with-output-to-string
 	   (lambda ()
 	     (write-u8vector #u8())))))
+
+; make sure the N parameter is a fixnum
+(assert
+  (handle-exceptions exn #t
+    (make-f64vector 4.0) #f))
+; catch the overflow
+(assert
+  (handle-exceptions exn #t
+    (make-f64vector most-positive-fixnum) #f))
