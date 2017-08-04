@@ -17,6 +17,8 @@
     in other words, it always returns #t (thanks to Moritz Heidkamp)
   - Unit srfi-4: Fixed typo that broke SRFI-17 generalised set! syntax
     on s8vectors (thanks to Kristian Lein-Mathisen).
+  - Large literals no longer crash with "invalid encoded numeric literal"
+    on mingw-64 (#1344, thanks to Lemonboy).
 
 - Syntax expander
   - Renaming an identifier twice no longer results in an undo of the
