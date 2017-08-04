@@ -48,6 +48,8 @@
     that the reader's keyword style doesn't need to match the writer's.
   - The environment variable `CHICKEN_PREFIX` has been removed.
   - Added the `glob->sre` procedure to the irregex library.
+  - Removed the `get-host-name' and `system-information' procedures.
+    These are available in the "system-information" egg.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This
