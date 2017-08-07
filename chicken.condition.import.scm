@@ -31,6 +31,7 @@
    (current-exception-handler . chicken.condition#current-exception-handler)
    (get-call-chain . chicken.condition#get-call-chain)
    (print-call-chain . chicken.condition#print-call-chain)
+   (print-error-message . chicken.condition#print-error-message)
    (with-exception-handler . chicken.condition#with-exception-handler)
    (make-property-condition . chicken.condition#make-property-condition)
    (make-composite-condition . chicken.condition#make-composite-condition)

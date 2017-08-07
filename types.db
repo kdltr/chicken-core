@@ -969,6 +969,7 @@
 (chicken.condition#get-condition-property (#(procedure #:clean #:enforce) chicken.condition#get-condition-property ((struct condition) * * #!optional *) *))
 (chicken.condition#make-composite-condition (#(procedure #:clean #:enforce) chicken.condition#make-composite-condition (#!rest (struct condition)) (struct condition)))
 (chicken.condition#make-property-condition (#(procedure #:clean #:enforce) chicken.condition#make-property-condition (* #!rest *) (struct condition)))
+(chicken.condition#print-error-message (#(procedure #:clean #:enforce) chicken.condition#print-error-message (* #!optional output-port string) undefined))
 (chicken.condition#with-exception-handler (#(procedure #:enforce) chicken.condition#with-exception-handler ((procedure (*) . *) (procedure () . *)) . *))
 (chicken.condition#signal (procedure chicken.condition#signal (*) . *))
 
@@ -1282,7 +1283,6 @@
 
 (print (procedure print (#!rest *) undefined))
 (print-call-chain (#(procedure #:clean #:enforce) print-call-chain (#!optional output-port fixnum * string) undefined))
-(print-error-message (#(procedure #:clean #:enforce) print-error-message (* #!optional output-port string) undefined))
 (print* (procedure print* (#!rest) undefined))
 (procedure-information (#(procedure #:clean #:enforce) procedure-information (procedure) *))
 (program-name (#(procedure #:clean #:enforce) program-name (#!optional string) string))

@@ -148,7 +148,6 @@
    (provided? . chicken.load#provided?)
    print
    (print-call-chain . chicken.condition#print-call-chain)
-   print-error-message
    print*
    procedure-information
    program-name

@@ -4448,7 +4448,7 @@ EOF
     ;; NOTE: We don't emit the import lib.  Due to syntax exports, it
     ;; has to be a hardcoded primitive module.
     (abort signal current-exception-handler get-call-chain
-     print-call-chain with-exception-handler
+     print-call-chain print-error-message with-exception-handler
 
      ;; [syntax] condition-case handle-exceptions
 
@@ -4776,6 +4776,86 @@ EOF
 (define get-condition-property
   (lambda (c kind prop . err-def)
     ((apply condition-property-accessor kind prop err-def) c)))
+
+
+;;; Convenient error printing:
+
+(define print-error-message
+  (let* ((display display)
+	 (newline newline)
+	 (write write)
+	 (string-append string-append)
+	 (errmsg (condition-property-accessor 'exn 'message #f))
+	 (errloc (condition-property-accessor 'exn 'location #f))
+	 (errargs (condition-property-accessor 'exn 'arguments #f))
+	 (writeargs
+	  (lambda (args port)
+	    (##sys#for-each
+	     (lambda (x)
+	       (##sys#with-print-length-limit 80 (lambda () (write x port)))
+	       (newline port) )
+	     args) ) ) )
+    (lambda (ex . args)
+      (let-optionals args ((port ##sys#standard-output)
+			   (header "Error"))
+	(##sys#check-output-port port #t 'print-error-message)
+	(newline port)
+	(display header port)
+	(cond ((and (not (##sys#immediate? ex)) (eq? 'condition (##sys#slot ex 0)))
+	       (cond ((errmsg ex) =>
+		      (lambda (msg)
+			(display ": " port)
+			(let ((loc (errloc ex)))
+			  (when (and loc (symbol? loc))
+			    (display (string-append "(" (##sys#symbol->qualified-string loc) ") ") port) ) )
+			(display msg port) ) )
+		     (else
+		      (let ((kinds (##sys#slot ex 1)))
+			(if (equal? '(user-interrupt) kinds)
+			    (display ": *** user interrupt ***" port)
+			    (begin
+			      (display ": <condition> " port)
+			      (display (##sys#slot ex 1) port) ) ) ) ) )
+	       (let ((args (errargs ex)))
+		 (cond
+		   ((not args))
+		   ((fx= 1 (length args))
+		    (display ": " port)
+		    (writeargs args port))
+		   (else
+		    (newline port)
+		    (writeargs args port)))))
+	      ((string? ex)
+	       (display ": " port)
+	       (display ex port)
+	       (newline port))
+	      (else
+	       (display ": uncaught exception: " port)
+	       (writeargs (list ex) port) ) ) ) ) ) )
+
+
+;;; Show exception message and backtrace as warning
+;;; (used for threads and finalizers)
+
+(define ##sys#show-exception-warning
+  (let ((print-error-message print-error-message)
+	(display display)
+	(write-char write-char)
+	(print-call-chain print-call-chain)
+	(open-output-string open-output-string)
+	(get-output-string get-output-string) )
+    (lambda (exn cause #!optional (thread ##sys#current-thread))
+      (when ##sys#warnings-enabled
+	(let ((o (open-output-string)))
+	  (display "Warning" o)
+	  (when thread
+	    (display " (" o)
+	    (display thread o)
+	    (write-char #\) o))
+	  (display ": " o)
+	  (display cause o)
+	  (print-error-message exn ##sys#standard-error (get-output-string o))
+	  (print-call-chain ##sys#standard-error 0 thread) ) ))))
 
 
 ;;; Error hook (called by runtime-system):
@@ -5454,85 +5534,6 @@ EOF
 (define (make-promise obj)
   (if (promise? obj) obj
       (##sys#make-promise (lambda () obj))))
-
-
-;;; Convenient error printing:
-
-(define print-error-message
-  (let* ([display display]
-	 [newline newline] 
-	 [write write]
-	 [string-append string-append]
-	 [errmsg (condition-property-accessor 'exn 'message #f)]
-	 [errloc (condition-property-accessor 'exn 'location #f)]
-	 [errargs (condition-property-accessor 'exn 'arguments #f)] 
-	 [writeargs
-	  (lambda (args port)
-	    (##sys#for-each 
-	     (lambda (x)
-	       (##sys#with-print-length-limit 80 (lambda () (write x port)))
-	       (newline port) )
-	     args) ) ] )
-    (lambda (ex . args)
-      (let-optionals args ([port ##sys#standard-output]
-			   [header "Error"] )
-	(##sys#check-output-port port #t 'print-error-message)
-	(newline port)
-	(display header port)
-	(cond [(and (not (##sys#immediate? ex)) (eq? 'condition (##sys#slot ex 0)))
-	       (cond ((errmsg ex) =>
-		      (lambda (msg)
-			(display ": " port)
-			(let ([loc (errloc ex)])
-			  (when (and loc (symbol? loc))
-			    (display (string-append "(" (##sys#symbol->qualified-string loc) ") ") port) ) )
-			(display msg port) ) )
-		     (else 
-		      (let ((kinds (##sys#slot ex 1)))
-			(if (equal? '(user-interrupt) kinds)
-			    (display ": *** user interrupt ***" port)
-			    (begin
-			      (display ": <condition> " port)
-			      (display (##sys#slot ex 1) port) ) ) ) ) )
-	       (and-let* ([args (errargs ex)])
-		 (if (fx= 1 (length args))
-		     (begin
-		       (display ": " port)
-		       (writeargs args port) )
-		     (begin
-		       (newline port)
-		       (writeargs args port) ) ) ) ]
-	      [(string? ex)
-	       (display ": " port)
-	       (display ex port)
-	       (newline port) ]
-	      [else
-	       (display ": uncaught exception: " port)
-	       (writeargs (list ex) port) ] ) ) ) ) )
-
-
-;;; Show exception message and backtrace as warning
-;;; (used for threads and finalizers)
-
-(define ##sys#show-exception-warning
-  (let ((print-error-message print-error-message)
-	(display display)
-	(write-char write-char)
-	(print-call-chain print-call-chain)
-	(open-output-string open-output-string)
-	(get-output-string get-output-string) )
-    (lambda (exn cause #!optional (thread ##sys#current-thread))
-      (when ##sys#warnings-enabled
-	(let ((o (open-output-string)))
-	  (display "Warning" o)
-	  (when thread
-	    (display " (" o)
-	    (display thread o)
-	    (write-char #\) o))
-	  (display ": " o)
-	  (display cause o)
-	  (print-error-message exn ##sys#standard-error (get-output-string o))
-	  (print-call-chain ##sys#standard-error 0 thread) ) ))))
 
 
 ;;; We need this here so `location' works:
