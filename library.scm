@@ -1186,7 +1186,9 @@ EOF
 (define bitwise-ior (##core#primitive "C_bitwise_ior"))
 (define bitwise-xor (##core#primitive "C_bitwise_xor"))
 (define (bitwise-not n) (##core#inline_allocate ("C_s_a_i_bitwise_not" 5) n))
-(define (bit-set? n i) (##core#inline "C_i_bit_setp" n i))
+(define (bit->boolean n i) (##core#inline "C_i_bit_to_bool" n i)) ; DEPRECATED
+;; XXX NOT YET! Reintroduce at a later time.  See #1385:
+;; (define (bit-set? i n) (##core#inline "C_i_bit_setp" i n))
 (define (integer-length x) (##core#inline "C_i_integer_length" x))
 (define (arithmetic-shift n m)
   (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 5) n m)))

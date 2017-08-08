@@ -157,7 +157,7 @@
     chicken.bitwise#integer-length
     chicken.bitwise#bitwise-and chicken.bitwise#bitwise-not
     chicken.bitwise#bitwise-ior chicken.bitwise#bitwise-xor
-    chicken.bitwise#arithmetic-shift chicken.bitwise#bit-set?
+    chicken.bitwise#arithmetic-shift chicken.bitwise#bit->boolean
     add1 sub1 exact-integer? nan? finite? infinite?
     void flush-output print print* error call/cc chicken.blob#blob-size
     identity chicken.blob#blob=? equal=? make-polar make-rectangular
@@ -1013,7 +1013,7 @@
 		      (list arg)) ) ) ) ) ) ) )
 
 (rewrite
- 'chicken.bitwise#bit-set? 8
+ 'chicken.bitwise#bit->boolean 8
  (lambda (db classargs cont callargs)
    (and (= 2 (length callargs))
 	(make-node
@@ -1021,7 +1021,7 @@
 	 (list cont
 	       (make-node
 		'##core#inline 
-		(list (if (eq? number-type 'fixnum) "C_u_i_bit_setp" "C_i_bit_setp"))
+		(list (if (eq? number-type 'fixnum) "C_u_i_bit_to_bool" "C_i_bit_to_bool"))
 		callargs) ) ) ) ) )
 
 (rewrite

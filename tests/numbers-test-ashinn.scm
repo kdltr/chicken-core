@@ -140,7 +140,7 @@
   (test-equal (arithmetic-shift #x100000000000000010000000000000000 64)
 	      #x1000000000000000100000000000000000000000000000000)
 
-  (test-assert (not (bit-set? 1 64)))
-  (test-assert (bit-set? #x10000000000000000 64)))
+  (test-assert (not (bit->boolean 1 64)))
+  (test-assert (bit->boolean #x10000000000000000 64)))
 
 (test-end)

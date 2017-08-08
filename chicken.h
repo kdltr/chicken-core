@@ -1488,7 +1488,8 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_u_i_u64vector_set(x, i, v)    ((((C_u64 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ] = C_num_to_uint64(v)), C_SCHEME_UNDEFINED)
 #define C_u_i_s64vector_set(x, i, v)    ((((C_s64 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ] = C_num_to_int64(v)), C_SCHEME_UNDEFINED)
 
-#define C_u_i_bit_setp(x, i)            C_mk_bool((C_unfix(x) & (1 << C_unfix(i))) != 0)
+/* DEPRECATED */
+#define C_u_i_bit_to_bool(x, i)         C_mk_bool((C_unfix(x) & (1 << C_unfix(i))) != 0)
 
 #define C_u_i_pointer_u8_ref(ptr)         C_fix(*((unsigned char *)C_block_item(ptr, 0)))
 #define C_u_i_pointer_s8_ref(ptr)         C_fix(*((signed char *)C_block_item(ptr, 0)))
@@ -2058,7 +2059,7 @@ C_fctexport C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc) C_r
 C_fctexport C_word C_fcall C_i_locative_set(C_word loc, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_locative_to_object(C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_word object, C_word index, C_word weak) C_regparm;
-C_fctexport C_word C_fcall C_i_bit_setp(C_word n, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_bit_to_bool(C_word n, C_word i) C_regparm; /* DEPRECATED */
 C_fctexport C_word C_fcall C_i_integer_length(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_a_i_exp(C_word **a, int c, C_word n) C_regparm;
 C_fctexport C_word C_fcall C_a_i_log(C_word **a, int c, C_word n) C_regparm;
@@ -2986,10 +2987,11 @@ inline static C_word C_s_a_u_i_integer_abs(C_word **ptr, C_word n, C_word x)
   }
 }
 
-inline static C_word C_i_fixnum_bit_setp(C_word n, C_word i)
+/* DEPRECATED */
+inline static C_word C_i_fixnum_bit_to_bool(C_word n, C_word i)
 {
     if (i & C_INT_SIGN_BIT) {
-      C_not_an_uinteger_error(C_text("bit-set?"), i);
+      C_not_an_uinteger_error(C_text("bit->boolean"), i);
     } else {
       i = C_unfix(i);
       if (i >= C_WORD_SIZE) return C_mk_bool(n & C_INT_SIGN_BIT);

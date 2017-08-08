@@ -901,10 +901,10 @@
 (ratnum? (#(procedure #:pure #:predicate ratnum) ratnum? (*) boolean))
 (cplxnum? (#(procedure #:pure #:predicate cplxnum) cplxnum? (*) boolean))
 
-(chicken.bitwise#bit-set?
- (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bit-set? (integer integer) boolean)
-	  ((fixnum fixnum) (##core#inline "C_i_fixnum_bit_setp" #(1) #(2)))
-	  ((* *) (##core#inline "C_i_bit_setp" #(1) #(2))))
+(chicken.bitwise#bit->boolean
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bit->boolean (integer integer) boolean)
+	  ((fixnum fixnum) (##core#inline "C_i_fixnum_bit_to_bool" #(1) #(2)))
+	  ((* *) (##core#inline "C_i_bit_to_bool" #(1) #(2))))
 
 (chicken.bitwise#bitwise-and
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-and (#!rest integer) integer)

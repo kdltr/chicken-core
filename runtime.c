@@ -6021,18 +6021,19 @@ inline static C_word maybe_negate_bignum_for_bitwise_op(C_word x, C_word size)
   return nx;
 }
 
-C_regparm C_word C_fcall C_i_bit_setp(C_word n, C_word i)
+/* DEPRECATED */
+C_regparm C_word C_fcall C_i_bit_to_bool(C_word n, C_word i)
 {
   if (!C_truep(C_i_exact_integerp(n))) {
-    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bit-set?", n);
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bit->boolean", n);
   } else if (!(i & C_FIXNUM_BIT)) {
     if (!C_immediatep(i) && C_truep(C_bignump(i)) && !C_bignum_negativep(i)) {
       return C_i_integer_negativep(n); /* A bit silly, but strictly correct */
     } else {
-      barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, "bit-set?", i);
+      barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, "bit->boolean", i);
     }
   } else if (i & C_INT_SIGN_BIT) {
-    barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, "bit-set?", i);
+    barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, "bit->boolean", i);
   } else {
     i = C_unfix(i);
     if (n & C_FIXNUM_BIT) {

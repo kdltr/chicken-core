@@ -50,6 +50,9 @@
   - Added the `glob->sre` procedure to the irregex library.
   - Removed the `get-host-name' and `system-information' procedures.
     These are available in the "system-information" egg.
+  - Renamed bit-set? to bit->boolean because of swapped argument order
+    with respect to SRFI-33 and SRFI-60, which was confusing (fixes
+    #1385, thanks to Lemonboy).
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This
