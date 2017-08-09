@@ -4380,6 +4380,70 @@ EOF
 	  (string-append "#<pointer 0x" (##sys#number->string (##sys#pointer->address x) 16) ">") ) ) ) )
 
 
+;;; Access backtrace:
+
+(define-constant +trace-buffer-entry-slot-count+ 4)
+
+(define get-call-chain
+  (let ((extract
+	 (foreign-lambda* nonnull-c-string ((scheme-object x)) "C_return((C_char *)x);")))
+    (lambda (#!optional (start 0) (thread ##sys#current-thread))
+      (let* ((tbl (foreign-value "C_trace_buffer_size" int))
+	     ;; 4 slots: "raw" string, cooked1, cooked2, thread
+	     (c +trace-buffer-entry-slot-count+)
+	     (vec (##sys#make-vector (fx* c tbl) #f))
+	     (r (##core#inline "C_fetch_trace" start vec))
+	     (n (if (fixnum? r) r (fx* c tbl))))
+	(let loop ((i 0))
+	  (if (fx>= i n)
+	      '()
+	      (let ((t (##sys#slot vec (fx+ i 3)))) ; thread
+		(if (or (not t) (not thread) (eq? thread t))
+		    (cons (vector
+			   (extract (##sys#slot vec i)) ; raw
+			   (##sys#slot vec (fx+ i 1))   ; cooked1
+			   (##sys#slot vec (fx+ i 2)))  ; cooked2
+			  (loop (fx+ i c)))
+		    (loop (fx+ i c))))))))))
+
+(define (##sys#really-print-call-chain port chain header)
+  (when (pair? chain)
+    (##sys#print header #f port)
+    (for-each
+     (lambda (info)
+       (let* ((more1 (##sys#slot info 1)) ; cooked1 (expr/form)
+	      (more2 (##sys#slot info 2)) ; cooked2 (cntr/frameinfo)
+	      (fi (##sys#structure? more2 'frameinfo)))
+	 (##sys#print "\n\t" #f port)
+	 (##sys#print (##sys#slot info 0) #f port) ; raw (mode)
+	 (##sys#print "\t  " #f port)
+	 (when (and more2 (if fi (##sys#slot more2 1)))
+	   (##sys#write-char-0 #\[ port)
+	   (##sys#print
+	    (if fi
+		(##sys#slot more2 1)	; cntr
+		more2)
+	    #f port)
+	   (##sys#print "] " #f port))
+	 (when more1
+	   (##sys#with-print-length-limit
+	    100
+	    (lambda ()
+	      (##sys#print more1 #t port))))))
+     chain)
+    (##sys#print "\t<--\n" #f port)))
+
+(define (print-call-chain #!optional (port ##sys#standard-output) (start 0)
+				     (thread ##sys#current-thread)
+				     (header "\n\tCall history:\n"))
+  (##sys#check-output-port port #t 'print-call-chain)
+  (##sys#check-fixnum start 'print-call-chain)
+  (##sys#check-string header 'print-call-chain)
+  (let ((ct (get-call-chain start thread)))
+    (##sys#really-print-call-chain port ct header)
+    ct))
+
+
 ;;; Interrupt handling:
 
 (define (##sys#user-interrupt-hook)
@@ -4447,8 +4511,8 @@ EOF
 (module chicken.condition
     ;; NOTE: We don't emit the import lib.  Due to syntax exports, it
     ;; has to be a hardcoded primitive module.
-    (abort signal current-exception-handler get-call-chain
-     print-call-chain print-error-message with-exception-handler
+    (abort signal current-exception-handler
+     print-error-message with-exception-handler
 
      ;; [syntax] condition-case handle-exceptions
 
@@ -4460,71 +4524,9 @@ EOF
 (import scheme)
 (import chicken.fixnum)
 (import chicken.foreign)
-(import (only chicken get-output-string open-output-string when unless
-	      define-constant fixnum? let-optionals make-parameter))
-
-;;; Access backtrace:
-
-(define-constant +trace-buffer-entry-slot-count+ 4)
-
-(define get-call-chain
-  (let ((extract
-	 (foreign-lambda* nonnull-c-string ((scheme-object x)) "C_return((C_char *)x);")))
-    (lambda (#!optional (start 0) (thread ##sys#current-thread))
-      (let* ((tbl (foreign-value "C_trace_buffer_size" int))
-	     ;; 4 slots: "raw" string, cooked1, cooked2, thread
-	     (c +trace-buffer-entry-slot-count+)
-	     (vec (##sys#make-vector (fx* c tbl) #f))
-	     (r (##core#inline "C_fetch_trace" start vec))
-	     (n (if (fixnum? r) r (fx* c tbl))))
-	(let loop ((i 0))
-	  (if (fx>= i n)
-	      '()
-	      (let ((t (##sys#slot vec (fx+ i 3)))) ; thread
-		(if (or (not t) (not thread) (eq? thread t))
-		    (cons (vector
-			   (extract (##sys#slot vec i)) ; raw
-			   (##sys#slot vec (fx+ i 1))   ; cooked1
-			   (##sys#slot vec (fx+ i 2)))  ; cooked2
-			  (loop (fx+ i c)))
-		    (loop (fx+ i c))))))))))
-
-(define (##sys#really-print-call-chain port chain header)
-  (when (pair? chain)
-    (##sys#print header #f port)
-    (for-each
-     (lambda (info)
-       (let* ((more1 (##sys#slot info 1)) ; cooked1 (expr/form)
-	      (more2 (##sys#slot info 2)) ; cooked2 (cntr/frameinfo)
-	      (fi (##sys#structure? more2 'frameinfo)))
-	 (##sys#print "\n\t" #f port)
-	 (##sys#print (##sys#slot info 0) #f port) ; raw (mode)
-	 (##sys#print "\t  " #f port)
-	 (when (and more2 (if fi (##sys#slot more2 1)))
-	   (##sys#write-char-0 #\[ port)
-	   (##sys#print
-	    (if fi
-		(##sys#slot more2 1)	; cntr
-		more2)
-	    #f port)
-	   (##sys#print "] " #f port))
-	 (when more1
-	   (##sys#with-print-length-limit
-	    100
-	    (lambda ()
-	      (##sys#print more1 #t port))))))
-     chain)
-    (##sys#print "\t<--\n" #f port)))
-
-(define (print-call-chain #!optional (port ##sys#standard-output) (start 0)
-				     (thread ##sys#current-thread)
-				     (header "\n\tCall history:\n"))
-  (##sys#check-output-port port #t 'print-call-chain)
-  (##sys#check-fixnum start 'print-call-chain)
-  (##sys#check-string header 'print-call-chain)
-  (let ((ct (get-call-chain start thread)))
-    (##sys#really-print-call-chain port ct header)
-    ct))
+(import (only chicken get-call-chain print-call-chain when unless
+	      get-output-string open-output-string let-optionals
+	      make-parameter))
 
 (define (##sys#signal-hook mode msg . args)
   (##core#inline "C_dbg_hook" #f)

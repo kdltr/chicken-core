@@ -965,7 +965,6 @@
 		(let ((#(tmp2) (set! ##sys#current-exception-handler #(tmp1))))
 		  #(tmp1))))
  (() ##sys#current-exception-handler))
-(chicken.condition#get-call-chain (#(procedure #:clean #:enforce) chicken.condition#get-call-chain (#!optional fixnum (struct thread)) (list-of vector)))
 (chicken.condition#get-condition-property (#(procedure #:clean #:enforce) chicken.condition#get-condition-property ((struct condition) * * #!optional *) *))
 (chicken.condition#make-composite-condition (#(procedure #:clean #:enforce) chicken.condition#make-composite-condition (#!rest (struct condition)) (struct condition)))
 (chicken.condition#make-property-condition (#(procedure #:clean #:enforce) chicken.condition#make-property-condition (* #!rest *) (struct condition)))
@@ -1281,8 +1280,10 @@
 (port-closed? (#(procedure #:clean #:enforce) port-closed? (port) boolean)
 	      ((port) (eq? (##sys#slot #(1) '8) '0)))
 
-(print (procedure print (#!rest *) undefined))
+(get-call-chain (#(procedure #:clean #:enforce) get-call-chain (#!optional fixnum (struct thread)) (list-of vector)))
 (print-call-chain (#(procedure #:clean #:enforce) print-call-chain (#!optional output-port fixnum * string) undefined))
+
+(print (procedure print (#!rest *) undefined))
 (print* (procedure print* (#!rest) undefined))
 (procedure-information (#(procedure #:clean #:enforce) procedure-information (procedure) *))
 (program-name (#(procedure #:clean #:enforce) program-name (#!optional string) string))

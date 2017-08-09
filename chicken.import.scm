@@ -109,7 +109,7 @@
    (fxxor . chicken.fixnum#fxxor)
    (fxlen . chicken.fixnum#fxlen)
    gensym
-   (get-call-chain . chicken.condition#get-call-chain)
+   get-call-chain
    (get-condition-property . chicken.condition#get-condition-property)
    get-environment-variable
    (get-line-number . chicken.syntax#get-line-number)
@@ -147,7 +147,7 @@
    (provide . chicken.load#provide)
    (provided? . chicken.load#provided?)
    print
-   (print-call-chain . chicken.condition#print-call-chain)
+   print-call-chain
    print*
    procedure-information
    program-name
