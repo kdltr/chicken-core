@@ -159,8 +159,6 @@
    rename-file
    (repository-path . chicken.platform#repository-path)
    (require . chicken.load#require)
-   reset
-   reset-handler
    return-to-host
    reverse-list->string
    set-port-name!

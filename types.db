@@ -1293,8 +1293,6 @@
               (((struct promise)) #(1)))
 
 (rename-file (#(procedure #:clean #:enforce) rename-file (string string) string))
-(reset (procedure reset () noreturn))
-(reset-handler (#(procedure #:clean #:enforce) reset-handler (#!optional (procedure () . *)) procedure))
 (return-to-host (procedure return-to-host () . *))
 (reverse-list->string (#(procedure #:clean #:enforce) reverse-list->string ((list-of char)) string))
 
@@ -1308,6 +1306,8 @@
 
 (chicken.repl#repl (#(procedure #:enforce) chicken.repl#repl (#!optional (procedure (*) . *)) undefined))
 (chicken.repl#repl-prompt (#(procedure #:clean #:enforce) chicken.repl#repl-prompt (#!optional (procedure () string)) procedure))
+(chicken.repl#reset (procedure chicken.repl#reset () noreturn))
+(chicken.repl#reset-handler (#(procedure #:clean #:enforce) chicken.repl#reset-handler (#!optional (procedure () . *)) procedure))
 (chicken.repl#quit (procedure chicken.repl#quit (#!optional *) noreturn))
 
 (set-port-name! (#(procedure #:clean #:enforce) set-port-name! (port string) undefined)

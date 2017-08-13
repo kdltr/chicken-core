@@ -237,7 +237,6 @@ EOF
 ;;; System routines:
 
 (define (exit #!optional (code 0)) ((##sys#exit-handler) code))
-(define (reset) ((##sys#reset-handler)))
 (define (##sys#debug-mode?) (##core#inline "C_i_debug_modep"))
 
 (define (error . args)
@@ -4453,11 +4452,6 @@ EOF
 
 ;;; Default handlers
 
-(define reset-handler 
-  (make-parameter 
-   (lambda ()
-     ((##sys#exit-handler) _ex_software)) ) )
-
 (define exit-in-progress #f)
 
 (define exit-handler
@@ -4476,8 +4470,11 @@ EOF
      (##sys#cleanup-before-exit) ) ) )
 
 (define ##sys#exit-handler exit-handler)
-(define ##sys#reset-handler reset-handler)
 (define ##sys#implicit-exit-handler implicit-exit-handler)
+(define ##sys#reset-handler ; Exposed by chicken.repl
+  (make-parameter
+   (lambda ()
+     ((##sys#exit-handler) _ex_software))))
 
 (define force-finalizers (make-parameter #t))
 

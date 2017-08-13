@@ -30,7 +30,7 @@
   (not inline ##sys#repl-read-hook ##sys#repl-print-hook ##sys#read-prompt-hook))
 
 (module chicken.repl
-  (quit repl repl-prompt)
+  (quit repl repl-prompt reset reset-handler)
 
 (import scheme
 	chicken
@@ -49,6 +49,9 @@
 
 (define (quit-hook result) (exit))
 (define (quit #!optional result) (quit-hook result))
+
+(define reset-handler ##sys#reset-handler)
+(define (reset) ((reset-handler)))
 
 (define repl-prompt
   (make-parameter (lambda () "#;> ")))
