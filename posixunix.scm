@@ -560,23 +560,6 @@ static C_word C_i_fifo_p(C_word name)
 		(and fdsw (if (fixnum? fdsw) (and (memq fdsw wl) fdsw) wl)))))))))
 
 
-;;; Directory stuff:
-
-(define change-directory
-  (lambda (name)
-    (##sys#check-string name 'change-directory)
-    (let ((sname (##sys#make-c-string name 'change-directory)))
-      (unless (fx= 0 (##core#inline "C_chdir" sname))
-	(posix-error #:file-error 'change-directory "cannot change current directory" name) )
-      name)))
-
-(define (change-directory* fd)
-  (##sys#check-fixnum fd 'change-directory*) 
-  (unless (fx= 0 (##core#inline "C_fchdir" fd)) 
-    (posix-error #:file-error 'change-directory* "cannot change current directory" fd) )
-  fd)
-
-
 ;;; Pipes:
 
 (define open-input-pipe)

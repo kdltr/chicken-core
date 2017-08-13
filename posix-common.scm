@@ -494,6 +494,20 @@ EOF
 
 ;;; Set or get current directory:
 
+(define change-directory
+  (lambda (name)
+    (##sys#check-string name 'change-directory)
+    (let ((sname (##sys#make-c-string name 'change-directory)))
+      (unless (fx= 0 (##core#inline "C_chdir" sname))
+       (posix-error #:file-error 'change-directory "cannot change current directory" name))
+      name)))
+
+(define (change-directory* fd)
+  (##sys#check-fixnum fd 'change-directory*)
+  (unless (fx= 0 (##core#inline "C_fchdir" fd))
+    (posix-error #:file-error 'change-directory* "cannot change current directory" fd))
+  fd)
+
 (define (current-directory #!optional dir)
   (if dir
       (change-directory dir)

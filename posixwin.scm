@@ -33,7 +33,6 @@
 ; symbolic-link?
 ; set-signal-mask!  signal-mask	 signal-masked?	 signal-mask!  signal-unmask!
 ; user-information
-; change-directory*
 ; change-file-owner
 ; current-user-id  current-group-id  current-effective-user-id	current-effective-group-id
 ; current-effective-user-name
@@ -305,26 +304,40 @@ set_last_errno()
     return 0;
 }
 
-static C_word C_fchmod(C_word fd, C_word m)
+static int fd_to_path(C_word fd, TCHAR path[])
 {
-  TCHAR path[MAX_PATH];
   DWORD result;
   HANDLE fh = (HANDLE)_get_osfhandle(C_unfix(fd));
 
   if (fh == INVALID_HANDLE_VALUE) {
     set_last_errno();
-    return C_fix(-1);
+    return -1;
   }
 
   result = GetFinalPathNameByHandle(fh, path, MAX_PATH, VOLUME_NAME_DOS);
   if (result == 0) {
     set_last_errno();
-    return C_fix(-1);
+    return -1;
   } else if (result >= MAX_PATH) { /* Shouldn't happen */
     errno = ENOMEM; /* For lack of anything better */
-    return C_fix(-1);
+    return -1;
+  } else {
+    return 0;
   }
-  return C_fix(chmod(path, C_unfix(m)));
+}
+
+static C_word C_fchmod(C_word fd, C_word m)
+{
+  TCHAR path[MAX_PATH];
+  if (fd_to_path(fd, path) == -1) return C_fix(-1);
+  else return C_fix(chmod(path, C_unfix(m)));
+}
+
+static C_word C_fchdir(C_word fd)
+{
+  TCHAR path[MAX_PATH];
+  if (fd_to_path(fd, path) == -1) return C_fix(-1);
+  else return C_fix(chdir(path));
 }
 
 static int C_fcall
@@ -724,19 +737,6 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 		  (loop (fx+ count 1))
 		  (posix-error #:file-error 'file-mkstemp "cannot create temporary file" template))
 	      (values fd tmpl)))))))
-
-;;; Directory stuff:
-
-(define change-directory
-  (lambda (name)
-    (##sys#check-string name 'change-directory)
-    (let ((sname (##sys#make-c-string name 'change-directory)))
-      (unless (fx= 0 (##core#inline "C_chdir" sname))
-	(##sys#update-errno)
-	(##sys#signal-hook
-	 #:file-error 'change-directory "cannot change current directory" name) )
-      name)))
-
 
 ;;; Pipes:
 
@@ -1145,7 +1145,6 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; unimplemented stuff:
 
-(define-unimplemented change-directory*)
 (define-unimplemented chown) ; covers set-file-group! and set-file-owner!
 (define-unimplemented create-fifo)
 (define-unimplemented create-session)
