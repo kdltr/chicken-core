@@ -30,7 +30,7 @@
   (disable-interrupts))
 
 (module chicken.read-syntax
-  (copy-read-table define-reader-ctor set-read-syntax!
+  (copy-read-table current-read-table define-reader-ctor set-read-syntax!
    set-sharp-read-syntax! set-parameterized-read-syntax!)
 
 (import scheme chicken chicken.internal chicken.platform)
@@ -42,6 +42,8 @@
     (if a
 	(##sys#setslot a 1 proc)
 	(set! ##sys#read-marks (cons (cons sym proc) ##sys#read-marks)))))
+
+(define current-read-table ##sys#current-read-table)
 
 (define ((syntax-setter loc slot wrap) chr proc)
   (if (symbol? chr)

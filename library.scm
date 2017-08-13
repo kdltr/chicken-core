@@ -3171,7 +3171,7 @@ EOF
 (define keyword-style (make-parameter #:suffix))
 (define parentheses-synonyms (make-parameter #t))
 (define symbol-escape (make-parameter #t))
-(define current-read-table (make-parameter (##sys#make-structure 'read-table #f #f #f)))
+(define ##sys#current-read-table (make-parameter (##sys#make-structure 'read-table #f #f #f)))
 
 (define ##sys#read-warning
   (let ([string-append string-append])
@@ -3202,7 +3202,7 @@ EOF
 	(case-sensitive case-sensitive)
 	(parentheses-synonyms parentheses-synonyms)
 	(symbol-escape symbol-escape)
-	(current-read-table current-read-table)
+	(current-read-table ##sys#current-read-table)
 	(kwprefix (string (integer->char 0))))
     (lambda (port infohandler)
       (let ((csp (case-sensitive))

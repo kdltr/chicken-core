@@ -982,6 +982,8 @@
 ;; read-syntax
 
 (chicken.read-syntax#copy-read-table (#(procedure #:clean #:enforce) chicken.read-syntax#copy-read-table ((struct read-table)) (struct read-table)))
+(chicken.read-syntax#current-read-table
+ (#(procedure #:clean) chicken.read-syntax#current-read-table (#!optional (struct read-table)) (struct read-table)))
 (chicken.read-syntax#define-reader-ctor (#(procedure #:clean #:enforce) chicken.read-syntax#define-reader-ctor (symbol procedure) undefined))
 
 (chicken.read-syntax#set-parameterized-read-syntax!
@@ -1010,9 +1012,6 @@
 (chicken.time#cpu-time (#(procedure #:clean) chicken.time#cpu-time () fixnum fixnum))
 (chicken.time#current-seconds (#(procedure #:clean) chicken.time#current-seconds () integer))
 (chicken.time#current-milliseconds (#(procedure #:clean) chicken.time#current-milliseconds () integer))
-
-(current-read-table
- (#(procedure #:clean) current-read-table (#!optional (struct read-table)) (struct read-table)))
 
 (delete-file (#(procedure #:clean #:enforce) delete-file (string) string))
 (enable-warnings (#(procedure #:clean) enable-warnings (#!optional *) *))

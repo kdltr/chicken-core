@@ -54,7 +54,6 @@
    cplxnum?
    current-error-port
    (current-exception-handler . chicken.condition#current-exception-handler)
-   current-read-table
    delete-file
    directory-exists?
    (dynamic-load-libraries . chicken.load#dynamic-load-libraries)
