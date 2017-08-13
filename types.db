@@ -1486,14 +1486,6 @@
 (chicken.data-structures#join (#(procedure #:clean #:enforce) chicken.data-structures#join ((list-of list) #!optional list) list))
 (chicken.data-structures#list-of? (#(procedure #:clean #:enforce) chicken.data-structures#list-of? ((procedure (*) *)) (procedure (list) boolean)))
 
-(chicken.data-structures#merge
- (forall (e)
-	 (#(procedure #:enforce) chicken.data-structures#merge ((list-of e) (list-of e) (procedure (e e) *)) (list-of e))))
-
-(chicken.data-structures#merge!
- (forall (e)
-	 (#(procedure #:enforce) chicken.data-structures#merge! ((list-of e) (list-of e) (procedure (e e) *)) (list-of e))))
-
 (chicken.data-structures#o (#(procedure #:clean #:enforce) chicken.data-structures#o (#!rest (procedure (*) *)) (procedure (*) *)))
 
 (chicken.data-structures#rassoc
@@ -1502,22 +1494,6 @@
                   (or false (pair b c)))))
 (chicken.data-structures#reverse-string-append (#(procedure #:clean #:enforce) chicken.data-structures#reverse-string-append ((list-of string)) string))
 
-(chicken.data-structures#sort
- (forall (e (s (or (vector-of e) (list-of e))))
-	 (#(procedure #:enforce)
-	  chicken.data-structures#sort
-	  (s (procedure (e e) *))
-	  s)))
-
-(chicken.data-structures#sort!
- (forall (e (s (or (vector-of e) (list-of e))))
-	 (#(procedure #:enforce)
-	  chicken.data-structures#sort!
-	  (s (procedure (e e) *))
-	  s)))
-
-(chicken.data-structures#sorted? (#(procedure #:enforce) chicken.data-structures#sorted? ((or list vector) (procedure (* *) *)) boolean))
-(chicken.data-structures#topological-sort (#(procedure #:enforce) chicken.data-structures#topological-sort ((list-of list) (procedure (* *) *)) list))
 (chicken.data-structures#string-chomp (#(procedure #:clean #:enforce) chicken.data-structures#string-chomp (string #!optional string) string))
 (chicken.data-structures#string-chop (#(procedure #:clean #:enforce) chicken.data-structures#string-chop (string fixnum) (list-of string)))
 (chicken.data-structures#string-compare3 (#(procedure #:clean #:enforce) chicken.data-structures#string-compare3 (string string) fixnum))
@@ -2104,6 +2080,34 @@
 
 (chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string #!rest) undefined))
 (chicken.process#qs (#(procedure #:clean #:enforce) chicken.process#qs (string) string))
+
+;; sort
+
+(chicken.sort#merge
+ (forall (e)
+	 (#(procedure #:enforce) chicken.sort#merge ((list-of e) (list-of e) (procedure (e e) *)) (list-of e))))
+
+(chicken.sort#merge!
+ (forall (e)
+	 (#(procedure #:enforce) chicken.sort#merge! ((list-of e) (list-of e) (procedure (e e) *)) (list-of e))))
+
+(chicken.sort#sort
+ (forall (e (s (or (vector-of e) (list-of e))))
+	 (#(procedure #:enforce)
+	  chicken.sort#sort
+	  (s (procedure (e e) *))
+	  s)))
+
+(chicken.sort#sort!
+ (forall (e (s (or (vector-of e) (list-of e))))
+	 (#(procedure #:enforce)
+	  chicken.sort#sort!
+	  (s (procedure (e e) *))
+	  s)))
+
+(chicken.sort#sorted? (#(procedure #:enforce) chicken.sort#sorted? ((or list vector) (procedure (* *) *)) boolean))
+(chicken.sort#topological-sort (#(procedure #:enforce) chicken.sort#topological-sort ((list-of list) (procedure (* *) *)) list))
+
 
 ;; srfi-4
 

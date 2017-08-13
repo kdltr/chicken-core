@@ -1,6 +1,7 @@
 ;;;; data-structures-tests.scm
 
-(use data-structures)
+(import (chicken data-structures)
+	(chicken sort))
 
 (define-syntax assert-error
   (syntax-rules ()

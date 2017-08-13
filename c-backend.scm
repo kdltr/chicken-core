@@ -41,6 +41,7 @@
 	chicken.foreign
 	chicken.format
 	chicken.internal
+	chicken.sort
 	chicken.time
 	chicken.compiler.core
 	chicken.compiler.c-platform

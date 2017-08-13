@@ -25,7 +25,11 @@
 
 (declare (block))
 
-(import chicken.data-structures
+(module main ()
+
+(import chicken scheme)
+
+(import (only chicken.data-structures chop string-intersperse)
 	chicken.foreign
 	chicken.format
 	chicken.io
@@ -34,6 +38,7 @@
 	chicken.port
 	chicken.posix
 	chicken.platform
+	chicken.sort
 	chicken.time)
 
 (define-constant +bug-report-file+ "chicken-bug-report.~a-~a-~a")
@@ -164,3 +169,5 @@ EOF
   (print "\nA bug report has been written to `" fname "'."))
 
 (main (command-line-arguments))
+
+)

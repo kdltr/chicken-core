@@ -319,6 +319,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.process-context.import.so
 	|   |       |-- chicken.random.import.so
 	|   |       |-- chicken.repl.import.so
+	|   |       |-- chicken.sort.import.so
 	|   |       |-- chicken.read-syntax.import.so
 	|   |       |-- chicken.syntax.import.so
 	|   |       |-- chicken.tcp.import.so

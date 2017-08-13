@@ -26,9 +26,14 @@
 
 (declare (block))
 
-(import chicken.data-structures
+(module main ()
+
+(import chicken scheme)
+(import (only chicken.data-structures string-intersperse)
+	chicken.file
 	chicken.internal
-	chicken.posix)
+	chicken.posix
+	chicken.sort)
 
 (include "mini-srfi-1.scm")
 
@@ -251,3 +256,5 @@ EOF
       (for-each print-row data))))
   
 (run (command-line-arguments))
+
+)

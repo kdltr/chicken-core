@@ -58,6 +58,7 @@ EOF
 	chicken.port
 	chicken.pretty-print
 	chicken.repl
+	chicken.sort
 	chicken.syntax)
 
 (include "banner.scm")

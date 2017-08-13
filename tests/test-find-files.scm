@@ -1,4 +1,7 @@
-(use (chicken file) (chicken process-context) data-structures)
+(use (chicken file)
+     (chicken process-context)
+     (chicken sort))
+
 (include "test.scm")
 
 (handle-exceptions exn

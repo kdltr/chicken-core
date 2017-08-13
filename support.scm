@@ -92,6 +92,7 @@
 	chicken.port
 	chicken.pretty-print
 	chicken.random
+	chicken.sort
 	chicken.syntax
 	chicken.time)
 

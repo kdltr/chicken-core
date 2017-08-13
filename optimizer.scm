@@ -36,9 +36,10 @@
      default-optimization-passes rewrite)
 
 (import chicken scheme
-	chicken.data-structures
 	chicken.compiler.support
-	chicken.internal)
+	chicken.data-structures
+	chicken.internal
+	chicken.sort)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")
