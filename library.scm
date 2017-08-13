@@ -4439,9 +4439,7 @@ EOF
   (##sys#check-output-port port #t 'print-call-chain)
   (##sys#check-fixnum start 'print-call-chain)
   (##sys#check-string header 'print-call-chain)
-  (let ((ct (get-call-chain start thread)))
-    (##sys#really-print-call-chain port ct header)
-    ct))
+  (##sys#really-print-call-chain port (get-call-chain start thread) header))
 
 
 ;;; Interrupt handling:
