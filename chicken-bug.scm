@@ -29,7 +29,7 @@
 
 (import chicken scheme)
 
-(import (only chicken.data-structures chop string-intersperse)
+(import (only chicken.data-structures chop)
 	chicken.foreign
 	chicken.format
 	chicken.io
@@ -39,6 +39,7 @@
 	chicken.posix
 	chicken.platform
 	chicken.sort
+	(only chicken.string string-intersperse)
 	chicken.time)
 
 (define-constant +bug-report-file+ "chicken-bug-report.~a-~a-~a")

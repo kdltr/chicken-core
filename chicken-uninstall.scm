@@ -28,15 +28,15 @@
 
   (import (scheme)
           (chicken))
-  (import (chicken data-structures)
-	  (chicken file)
+  (import (chicken file)
           (chicken foreign)
           (chicken io)
 	  (chicken format)
 	  (chicken irregex)
 	  (chicken port)
           (chicken pathname)
-	  (chicken posix))
+	  (chicken posix)
+	  (chicken string))
 
 (include "mini-srfi-1.scm")
 (include "egg-environment.scm")

@@ -4,7 +4,7 @@
 
 (import (chicken pathname)
         (chicken posix)
-        (chicken data-structures))
+        (chicken string))
 
 (define program-path
   (cond-expand

@@ -320,6 +320,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.random.import.so
 	|   |       |-- chicken.repl.import.so
 	|   |       |-- chicken.sort.import.so
+	|   |       |-- chicken.string.import.so
 	|   |       |-- chicken.read-syntax.import.so
 	|   |       |-- chicken.syntax.import.so
 	|   |       |-- chicken.tcp.import.so

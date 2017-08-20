@@ -30,12 +30,12 @@
 (import scheme
         chicken
         chicken.posix
-	chicken.data-structures
 	chicken.foreign
 	chicken.format
+        chicken.io
         chicken.process
 	chicken.pathname
-        chicken.io)
+	chicken.string)
 
 (include "egg-environment.scm")
 (include "mini-srfi-1.scm")

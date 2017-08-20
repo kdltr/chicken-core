@@ -79,7 +79,7 @@
 	chicken.bitwise
 	chicken.blob
 	chicken.condition
-	chicken.data-structures
+	(only chicken.data-structures butlast alist-ref atom?)
 	chicken.file
 	chicken.foreign
 	chicken.format
@@ -93,6 +93,7 @@
 	chicken.pretty-print
 	chicken.random
 	chicken.sort
+	chicken.string
 	chicken.syntax
 	chicken.time)
 

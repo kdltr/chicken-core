@@ -2,7 +2,7 @@
 ;
 ; by Alex Shinn, lifted from match-test by felix
 
-(use data-structures) ; ->string
+(use (only chicken.string ->string))
 (use time) ; current-milliseconds
 
 (define *pass* 0)

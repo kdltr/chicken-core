@@ -48,7 +48,7 @@
    pathname-strip-extension)
 
 (import chicken scheme
-        chicken.data-structures
+        chicken.string
         chicken.irregex
 	chicken.platform)
 

@@ -31,13 +31,6 @@
 (module chicken.data-structures
   (alist-ref alist-update alist-update! atom? butlast
    chop compress flatten intersperse join rassoc tail?
-   conc ->string string-chop string-chomp
-   string-compare3 string-compare3-ci
-   reverse-string-append
-   string-intersperse string-split
-   string-translate string-translate*
-   substring=? substring-ci=?
-   substring-index substring-index-ci
    any? constantly complement compose
    conjoin disjoin each flip identity list-of? o)
 
@@ -279,7 +272,21 @@
 		 a
 		 (loop (##sys#slot l 1)) ) ) ) ) ) )
 
+) ; chicken.data-structures
 
+
+(module chicken.string
+  (conc ->string string-chop string-chomp
+   string-compare3 string-compare3-ci
+   reverse-string-append
+   string-intersperse string-split
+   string-translate string-translate*
+   substring=? substring-ci=?
+   substring-index substring-index-ci)
+
+(import scheme chicken)
+(import chicken.foreign)
+(import chicken.condition)
 
 ; (reverse-string-append l) = (apply string-append (reverse l))
 
@@ -586,7 +593,7 @@
 	(##sys#substring str 0 diff)
 	str) ) )
 
-) ; chicken.data-structures
+) ; chicken.string
 
 
 (module chicken.sort

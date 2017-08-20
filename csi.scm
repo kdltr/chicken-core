@@ -46,7 +46,7 @@ EOF
 
 (import chicken scheme
 	chicken.condition
-	chicken.data-structures
+	(only chicken.data-structures atom?)
 	chicken.foreign
 	chicken.format
 	chicken.gc
@@ -59,6 +59,7 @@ EOF
 	chicken.pretty-print
 	chicken.repl
 	chicken.sort
+	chicken.string
 	chicken.syntax)
 
 (include "banner.scm")

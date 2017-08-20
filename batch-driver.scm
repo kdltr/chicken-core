@@ -36,7 +36,6 @@
     (compile-source-file)
 
 (import chicken scheme
-	chicken.data-structures
 	chicken.format
 	chicken.gc
 	chicken.internal
@@ -44,6 +43,7 @@
 	chicken.pathname
 	chicken.platform
 	chicken.pretty-print
+	chicken.string
 	chicken.time
 	chicken.compiler.support
 	chicken.compiler.compiler-syntax

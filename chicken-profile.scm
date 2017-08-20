@@ -29,11 +29,11 @@
 (module main ()
 
 (import chicken scheme)
-(import (only chicken.data-structures string-intersperse)
-	chicken.file
+(import chicken.file
 	chicken.internal
 	chicken.posix
-	chicken.sort)
+	chicken.sort
+	chicken.string)
 
 (include "mini-srfi-1.scm")
 

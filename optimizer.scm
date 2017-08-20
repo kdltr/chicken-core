@@ -37,9 +37,10 @@
 
 (import chicken scheme
 	chicken.compiler.support
-	chicken.data-structures
+	(only chicken.data-structures o alist-ref alist-update! butlast)
 	chicken.internal
-	chicken.sort)
+	chicken.sort
+	chicken.string)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")

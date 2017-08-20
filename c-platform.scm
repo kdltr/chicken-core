@@ -204,10 +204,8 @@
     chicken.memory#pointer-u32-set! chicken.memory#pointer-s32-set!
     chicken.memory#pointer-f32-set! chicken.memory#pointer-f64-set!
     chicken.data-structures#o
-    chicken.data-structures#substring-index
-    chicken.data-structures#substring-index-ci
-    chicken.data-structures#substring=?
-    chicken.data-structures#substring-ci=?
+    chicken.string#substring-index chicken.string#substring-index-ci
+    chicken.string#substring=? chicken.string#substring-ci=?
     chicken.data-structures#any? chicken.data-structures#atom?
     chicken.data-structures#alist-ref chicken.data-structures#rassoc
     chicken.io#read-string chicken.format#format
@@ -1039,10 +1037,10 @@
 (rewrite 'read-char 23 0 '##sys#read-char/port '##sys#standard-input)
 (rewrite 'write-char 23 1 '##sys#write-char/port '##sys#standard-output)
 (rewrite 'chicken.io#read-string 23 1 'chicken.io#read-string/port '##sys#standard-input)
-(rewrite 'chicken.data-structures#substring=? 23 2 '##sys#substring=? 0 0 #f)
-(rewrite 'chicken.data-structures#substring-ci=? 23 2 '##sys#substring-ci=? 0 0 #f)
-(rewrite 'chicken.data-structures#substring-index 23 2 '##sys#substring-index 0)
-(rewrite 'chicken.data-structures#substring-index-ci 23 2 '##sys#substring-index-ci 0)
+(rewrite 'chicken.string#substring=? 23 2 '##sys#substring=? 0 0 #f)
+(rewrite 'chicken.string#substring-ci=? 23 2 '##sys#substring-ci=? 0 0 #f)
+(rewrite 'chicken.string#substring-index 23 2 '##sys#substring-index 0)
+(rewrite 'chicken.string#substring-index-ci 23 2 '##sys#substring-index-ci 0)
 
 (rewrite 'chicken.keyword#get-keyword 7 2 "C_i_get_keyword" #f #t)
 (rewrite '##sys#get-keyword 7 2 "C_i_get_keyword" #f #t)

@@ -29,7 +29,7 @@
 (import (scheme))
 (import (chicken))
 (import (chicken condition))
-(import (chicken data-structures))
+(import (only (chicken data-structures) o constantly))
 (import (chicken foreign))
 (import (chicken keyword))
 (import (chicken file))
@@ -44,6 +44,7 @@
 (import (chicken pathname))
 (import (chicken process))
 (import (chicken pretty-print))
+(import (chicken string))
 
 (define +defaults-version+ 2)
 (define +module-db+ "modules.db")

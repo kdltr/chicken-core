@@ -1,4 +1,4 @@
-(use data-structures irregex chicken.platform)
+(use irregex chicken.platform chicken.string)
 
 (let* ((version-tokens (string-split (chicken-version) "."))
        (major (string->number (car version-tokens)))

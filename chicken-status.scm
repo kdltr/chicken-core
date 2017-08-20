@@ -27,8 +27,7 @@
 
   (import (scheme))
   (import (chicken))
-  (import (only (chicken data-structures) ->string)
-	  (chicken file)
+  (import (chicken file)
 	  (chicken foreign)
 	  (chicken format)
 	  (chicken irregex)
@@ -36,7 +35,8 @@
 	  (chicken posix)
           (chicken pathname)
 	  (chicken pretty-print)
-	  (chicken sort))
+	  (chicken sort)
+	  (only (chicken string) ->string))
 
   (include "mini-srfi-1.scm")
   (include "egg-environment.scm")

@@ -325,7 +325,7 @@
 	chicken.condition
 	chicken.compiler.scrutinizer
 	chicken.compiler.support
-	chicken.data-structures
+	(only chicken.data-structures butlast rassoc o)
 	chicken.eval
 	chicken.foreign
 	chicken.format
@@ -335,6 +335,7 @@
 	chicken.load
 	chicken.pretty-print
 	chicken.pathname
+	chicken.string
 	chicken.syntax)
 
 (define (d arg1 . more)

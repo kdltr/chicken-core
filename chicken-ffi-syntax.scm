@@ -39,8 +39,8 @@
   (no-bound-checks)
   (no-procedure-checks))
 
-(import chicken.data-structures
-	chicken.format)
+(import chicken.format
+	chicken.string)
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")

@@ -36,7 +36,8 @@
 
 (import chicken scheme
 	chicken.compiler.support
-	chicken.data-structures
+	(only chicken.data-structures
+	      identity constantly alist-ref alist-update! butlast atom?)
 	chicken.format
 	chicken.internal
 	chicken.io
@@ -44,6 +45,7 @@
 	chicken.platform
 	chicken.port
 	chicken.pretty-print
+	chicken.string
 	chicken.syntax)
 
 (include "tweaks")

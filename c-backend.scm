@@ -36,12 +36,13 @@
 
 (import chicken scheme
 	chicken.bitwise
-	chicken.data-structures
+	(only chicken.data-structures intersperse)
 	chicken.flonum
 	chicken.foreign
 	chicken.format
 	chicken.internal
 	chicken.sort
+	chicken.string
 	chicken.time
 	chicken.compiler.core
 	chicken.compiler.c-platform

@@ -253,7 +253,7 @@
   (pp pretty-print pretty-print-width)
 
 (import scheme chicken
-	chicken.data-structures)
+	chicken.string)
 
 (define generic-write
   (lambda (obj display? width output)

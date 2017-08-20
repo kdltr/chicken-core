@@ -338,6 +338,8 @@ chicken.repl.import.scm
 chicken.repl.import.c
 chicken.sort.import.scm
 chicken.sort.import.c
+chicken.string.import.scm
+chicken.string.import.c
 chicken.syntax.import.scm
 chicken.syntax.import.c
 chicken.tcp.import.scm

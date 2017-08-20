@@ -39,7 +39,7 @@
 	chicken.compiler.c-platform
 	chicken.compiler.support
 	chicken.compiler.user-pass
-	chicken.data-structures)
+	chicken.string)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")
