@@ -342,12 +342,6 @@ void *alloca ();
 #define ___s64              C_s64
 
 
-/* Mingw's isnormal() is broken on 32bit; use GCC's builtin (see #1062) */
-#ifdef __MINGW32__
-# undef isnormal
-# define isnormal __builtin_isnormal
-#endif
-
 /* Constants: */
 
 #define C_STACK_RESERVE                   0x10000
