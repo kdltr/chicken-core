@@ -1,13 +1,14 @@
 ;;;; makedist.scm - Make distribution tarballs
 
 
-(use data-structures irregex posix
-     (chicken file)
-     (chicken format)
-     (chicken io)
-     (chicken pathname)
-     (chicken platform)
-     (chicken process))
+(import (chicken data-structures)
+        (chicken file)
+        (chicken format)
+        (chicken io)
+        (chicken irregex)
+        (chicken pathname)
+        (chicken process)
+        (chicken string))
 
 (include "mini-srfi-1.scm")
 
