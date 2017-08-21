@@ -159,7 +159,6 @@
    (repository-path . chicken.platform#repository-path)
    (require . chicken.load#require)
    return-to-host
-   reverse-list->string
    set-port-name!
    setter
    (signal . chicken.condition#signal)

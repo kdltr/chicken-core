@@ -278,7 +278,7 @@
 (module chicken.string
   (conc ->string string-chop string-chomp
    string-compare3 string-compare3-ci
-   reverse-string-append
+   reverse-list->string reverse-string-append
    string-intersperse string-split
    string-translate string-translate*
    substring=? substring-ci=?
@@ -304,6 +304,9 @@
 	    result)))
       (make-string i)))
   (rev-string-append l 0))
+
+(define (reverse-list->string l)
+  (##sys#reverse-list->string l))
 
 ;;; Anything->string conversion:
 

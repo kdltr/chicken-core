@@ -662,7 +662,7 @@ EOF
 
 ;;; By Sven Hartrumpf:
 
-(define (reverse-list->string l)
+(define (##sys#reverse-list->string l)
   (if (list? l)
       (let* ((n (length l))
 	     (s (##sys#make-string n)))
@@ -674,8 +674,6 @@ EOF
 		 (iter (##sys#slot l2 1) (fx- n2 1)) ) ) )
 	s )
       (##sys#error-not-a-proper-list l 'reverse-list->string) ) )
-
-(define ##sys#reverse-list->string reverse-list->string)
 
 (define (string-fill! s c)
   (##sys#check-string s 'string-fill!)

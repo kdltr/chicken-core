@@ -211,7 +211,7 @@
 		  (push 
 		   (if (= 1 (length chunk))
 		       `(##sys#write-char-0 ,(car chunk) ,%out)
-		       `(##sys#print ,(reverse-list->string chunk) #f ,%out)))))
+		       `(##sys#print ,(##sys#reverse-list->string chunk) #f ,%out)))))
 	      (define (push exp)
 		(set! code (cons exp code)))
 	      (let loop ((chunk '()))

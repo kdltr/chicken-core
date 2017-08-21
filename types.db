@@ -1293,7 +1293,6 @@
 
 (rename-file (#(procedure #:clean #:enforce) rename-file (string string) string))
 (return-to-host (procedure return-to-host () . *))
-(reverse-list->string (#(procedure #:clean #:enforce) reverse-list->string ((list-of char)) string))
 
 ;; gc
 
@@ -1440,11 +1439,35 @@
 (##sys#provided? (procedure ##sys#provided? (symbol) boolean)
   ((symbol) (##core#inline "C_i_providedp" #(1))))
 
+;; string
+
+(chicken.string#->string (procedure chicken.string#->string (*) string)
+  ((string) #(1)))
+
+(chicken.string#conc (procedure chicken.string#conc (#!rest) string))
+
+(chicken.string#string-chomp (#(procedure #:clean #:enforce) chicken.string#string-chomp (string #!optional string) string))
+(chicken.string#string-chop (#(procedure #:clean #:enforce) chicken.string#string-chop (string fixnum) (list-of string)))
+(chicken.string#string-compare3 (#(procedure #:clean #:enforce) chicken.string#string-compare3 (string string) fixnum))
+(chicken.string#string-compare3-ci (#(procedure #:clean #:enforce) chicken.string#string-compare3-ci (string string) fixnum))
+(chicken.string#string-intersperse (#(procedure #:clean #:enforce) chicken.string#string-intersperse ((list-of string) #!optional string) string))
+(chicken.string#string-split (#(procedure #:clean #:enforce) chicken.string#string-split (string #!optional string *) (list-of string)))
+(chicken.string#string-translate (#(procedure #:clean #:enforce) chicken.string#string-translate (string * #!optional *) string))
+(chicken.string#string-translate* (#(procedure #:clean #:enforce) chicken.string#string-translate* (string (list-of (pair string string))) string))
+
+(chicken.string#substring=? (#(procedure #:clean #:enforce #:foldable) chicken.string#substring=? (string string #!optional fixnum fixnum fixnum) boolean))
+(chicken.string#substring-ci=? (#(procedure #:clean #:enforce #:foldable) chicken.string#substring-ci=? (string string #!optional fixnum fixnum fixnum) boolean))
+(chicken.string#substring-index (#(procedure #:clean #:enforce #:foldable) chicken.string#substring-index (string string #!optional fixnum) (or false fixnum))
+  ((* *) (##sys#substring-index #(1) #(2) '0))
+  ((* * *) (##sys#substring-index #(1) #(2) #(3))))
+(chicken.string#substring-index-ci (#(procedure #:clean #:enforce #:foldable) chicken.string#substring-index-ci (string string #!optional fixnum) (or false fixnum))
+  ((* *) (##sys#substring-index-ci #(1) #(2) '0))
+  ((* * *) (##sys#substring-index-ci #(1) #(2) #(3))))
+
+(chicken.string#reverse-list->string (#(procedure #:clean #:enforce) chicken.string#reverse-list->string ((list-of char)) string))
+(chicken.string#reverse-string-append (#(procedure #:clean #:enforce) chicken.string#reverse-string-append ((list-of string)) string))
 
 ;; data-structures
-
-(chicken.data-structures#->string (procedure chicken.data-structures#->string (*) string)
-	  ((string) #(1)))
 
 (chicken.data-structures#alist-ref
  (forall (a b c d)
@@ -1474,7 +1497,6 @@
 (chicken.data-structures#complement (#(procedure #:clean #:enforce) chicken.data-structures#complement ((procedure (#!rest) *)) (procedure (#!rest) boolean)))
 (chicken.data-structures#compose (#(procedure #:clean #:enforce) chicken.data-structures#compose (#!rest procedure) procedure))
 (chicken.data-structures#compress (forall (a) (#(procedure #:clean #:enforce) chicken.data-structures#compress (list (list-of a)) (list-of a))))
-(chicken.data-structures#conc (procedure chicken.data-structures#conc (#!rest) string))
 (chicken.data-structures#conjoin (#(procedure #:clean #:enforce) chicken.data-structures#conjoin (#!rest (procedure (*) *)) (procedure (*) *)))
 (chicken.data-structures#constantly (forall (a) (#(procedure #:pure) chicken.data-structures#constantly (a) (procedure (#!rest) a))))
 (chicken.data-structures#disjoin (#(procedure #:clean #:enforce) chicken.data-structures#disjoin (#!rest (procedure (*) *)) (procedure (*) *)))
@@ -1492,37 +1514,17 @@
  (forall (a b c) (#(procedure #:clean #:foldable) chicken.data-structures#rassoc
                   (a (list-of (pair b c)) #!optional (procedure (a b) *))
                   (or false (pair b c)))))
-(chicken.data-structures#reverse-string-append (#(procedure #:clean #:enforce) chicken.data-structures#reverse-string-append ((list-of string)) string))
-
-(chicken.data-structures#string-chomp (#(procedure #:clean #:enforce) chicken.data-structures#string-chomp (string #!optional string) string))
-(chicken.data-structures#string-chop (#(procedure #:clean #:enforce) chicken.data-structures#string-chop (string fixnum) (list-of string)))
-(chicken.data-structures#string-compare3 (#(procedure #:clean #:enforce) chicken.data-structures#string-compare3 (string string) fixnum))
-(chicken.data-structures#string-compare3-ci (#(procedure #:clean #:enforce) chicken.data-structures#string-compare3-ci (string string) fixnum))
-(chicken.data-structures#string-intersperse (#(procedure #:clean #:enforce) chicken.data-structures#string-intersperse ((list-of string) #!optional string) string))
-(chicken.data-structures#string-split (#(procedure #:clean #:enforce) chicken.data-structures#string-split (string #!optional string *) (list-of string)))
-(chicken.data-structures#string-translate (#(procedure #:clean #:enforce) chicken.data-structures#string-translate (string * #!optional *) string))
-(chicken.data-structures#string-translate* (#(procedure #:clean #:enforce) chicken.data-structures#string-translate* (string (list-of (pair string string))) string))
-(chicken.data-structures#substring-ci=? (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#substring-ci=? (string string #!optional fixnum fixnum fixnum) boolean))
-
-(chicken.data-structures#substring-index (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#substring-index (string string #!optional fixnum) (or false fixnum))
-		 ((* *) (##sys#substring-index #(1) #(2) '0))
-		 ((* * *) (##sys#substring-index #(1) #(2) #(3))))
 
 (##sys#substring-index
  (#(procedure #:clean #:enforce #:foldable) ##sys#substring-index
   (string string fixnum)
   (or false fixnum)))
 
-(chicken.data-structures#substring-index-ci (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#substring-index-ci (string string #!optional fixnum) (or false fixnum))
-		    ((* *) (##sys#substring-index-ci #(1) #(2) '0))
-		    ((* * *) (##sys#substring-index-ci #(1) #(2) #(3))))
-
 (##sys#substring-index-ci
  (#(procedure #:clean #:enforce #:foldable) ##sys#substring-index-ci
   (string string fixnum)
   (or false fixnum)))
 
-(chicken.data-structures#substring=? (#(procedure #:clean #:enforce #:foldable) chicken.data-structures#substring=? (string string #!optional fixnum fixnum fixnum) boolean))
 (chicken.data-structures#tail? (#(procedure #:clean) chicken.data-structures#tail? (* *) boolean))
 
 ;; io
