@@ -736,6 +736,7 @@ posixwin.c: posixwin.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
 		chicken.port.import.scm \
+		chicken.string.import.scm \
 		chicken.time.import.scm
 data-structures.c: data-structures.scm \
 		chicken.condition.import.scm \

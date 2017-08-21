@@ -582,7 +582,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 <#
 
-(import (only chicken.data-structures string-intersperse)
+(import (only chicken.string string-intersperse)
 	(only chicken.random random))
 
 ;;; Lo-level I/O:
