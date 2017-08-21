@@ -178,8 +178,6 @@
     srfi-4#blob->u32vector/shared srfi-4#blob->s32vector/shared
     srfi-4#blob->u64vector/shared srfi-4#blob->s64vector/shared
     srfi-4#blob->f32vector/shared srfi-4#blob->f64vector/shared
-    chicken.lolevel#number-of-slots chicken.lolevel#make-record-instance
-    chicken.lolevel#block-ref chicken.lolevel#block-set!
     chicken.memory#u8vector-ref chicken.memory#s8vector-ref
     chicken.memory#u16vector-ref chicken.memory#s16vector-ref
     chicken.memory#u32vector-ref chicken.memory#s32vector-ref
@@ -190,6 +188,10 @@
     chicken.memory#u16vector-set! chicken.memory#s16vector-set!
     chicken.memory#u32vector-set! chicken.memory#s32vector-set!
     chicken.memory#u64vector-set! chicken.memory#s64vector-set!
+    chicken.memory.representation#number-of-slots
+    chicken.memory.representation#make-record-instance
+    chicken.memory.representation#block-ref
+    chicken.memory.representation#block-set!
     chicken.locative#locative-ref chicken.locative#locative-set!
     chicken.locative#locative->object chicken.locative#locative?
     chicken.memory#pointer+ chicken.memory#pointer=?
@@ -558,8 +560,8 @@
 (rewrite 'list-tail 2 2 "C_i_list_tail" #t)
 (rewrite '##sys#structure? 2 2 "C_i_structurep" #t)
 (rewrite '##sys#bytevector? 2 2 "C_bytevectorp" #t)
-(rewrite 'chicken.lolevel#block-ref 2 2 "C_slot" #f)	; ok to be unsafe, lolevel is anyway
-(rewrite 'chicken.lolevel#number-of-slots 2 1 "C_block_size" #f)
+(rewrite 'chicken.memory.representation#block-ref 2 2 "C_slot" #f)	; ok to be unsafe, lolevel is anyway
+(rewrite 'chicken.memory.representation#number-of-slots 2 1 "C_block_size" #f)
 
 (rewrite 'assv 14 'fixnum 2 "C_i_assq" "C_u_i_assq")
 (rewrite 'assv 2 2 "C_i_assv" #t)
@@ -650,9 +652,9 @@
 (rewrite 'setter 11 1 '##sys#setter #t)
 (rewrite 'for-each 11 2 '##sys#for-each #t)
 (rewrite 'map 11 2 '##sys#map #t)
-(rewrite 'chicken.lolevel#block-set! 11 3 '##sys#setslot #t)
+(rewrite 'chicken.memory.representation#block-set! 11 3 '##sys#setslot #t)
 (rewrite '##sys#block-set! 11 3 '##sys#setslot #f)
-(rewrite 'chicken.lolevel#make-record-instance 11 #f '##sys#make-structure #f)
+(rewrite 'chicken.memory.representation#make-record-instance 11 #f '##sys#make-structure #f)
 (rewrite 'substring 11 3 '##sys#substring #f)
 (rewrite 'string-append 11 2 '##sys#string-append #f)
 (rewrite 'string->list 11 1 '##sys#string->list #t)
@@ -974,7 +976,6 @@
     (srfi-4#f32vector-ref . srfi-4#f32vector-set!)
     (srfi-4#f64vector-ref . srfi-4#f64vector-set!)
     (chicken.locative#locative-ref . chicken.locative#locative-set!)
-    (chicken.lolevel#block-ref . chicken.lolevel#block-set!)
     (chicken.memory#pointer-u8-ref . chicken.memory#pointer-u8-set!)
     (chicken.memory#pointer-s8-ref . chicken.memory#pointer-s8-set!)
     (chicken.memory#pointer-u16-ref . chicken.memory#pointer-u16-set!)
@@ -982,7 +983,8 @@
     (chicken.memory#pointer-u32-ref . chicken.memory#pointer-u32-set!)
     (chicken.memory#pointer-s32-ref . chicken.memory#pointer-s32-set!)
     (chicken.memory#pointer-f32-ref . chicken.memory#pointer-f32-set!)
-    (chicken.memory#pointer-f64-ref . chicken.memory#pointer-f64-set!)))
+    (chicken.memory#pointer-f64-ref . chicken.memory#pointer-f64-set!)
+    (chicken.memory.representation#block-ref . chicken.memory.representation#block-set!) ))
 
 (rewrite
  '##sys#setter 8

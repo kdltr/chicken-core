@@ -267,12 +267,12 @@ PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.condition chicken.csi chicken.forei
 DYNAMIC_IMPORT_LIBRARIES = srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise blob errno file.posix	\
 	fixnum flonum format gc io keyword load locative memory		\
-	platform plist posix pretty-print process process.signal	\
-	process-context random syntax sort string time time.posix
+	memory.representation platform plist posix pretty-print		\
+	process process.signal process-context random syntax		\
+	sort string time time.posix
 DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
-	eval file internal irregex lolevel pathname port \
-	read-syntax repl tcp
+	eval file internal irregex pathname port read-syntax repl tcp
 
 # targets
 

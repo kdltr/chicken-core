@@ -1775,43 +1775,43 @@
 	(((or locative procedure port)) (let ((#(tmp) #(1))) '#f)))
 
 
-;; lolevel
+;; memory.representation
 
-(chicken.lolevel#block-ref (#(procedure #:clean #:enforce) chicken.lolevel#block-ref (* fixnum) *))
-(chicken.lolevel#block-set! (#(procedure #:enforce) chicken.lolevel#block-set! (* fixnum *) *))
-(chicken.lolevel#extend-procedure (#(procedure #:clean #:enforce) chicken.lolevel#extend-procedure (procedure *) procedure))
-(chicken.lolevel#extended-procedure? (#(procedure #:clean) chicken.lolevel#extended-procedure (*) boolean))
+(chicken.memory.representation#block-ref (#(procedure #:clean #:enforce) chicken.memory.representation#block-ref (* fixnum) *))
+(chicken.memory.representation#block-set! (#(procedure #:enforce) chicken.memory.representation#block-set! (* fixnum *) *))
+(chicken.memory.representation#extend-procedure (#(procedure #:clean #:enforce) chicken.memory.representation#extend-procedure (procedure *) procedure))
+(chicken.memory.representation#extended-procedure? (#(procedure #:clean) chicken.memory.representation#extended-procedure (*) boolean))
 
-(chicken.lolevel#mutate-procedure!
- (#(procedure #:enforce) chicken.lolevel#mutate-procedure! (procedure (procedure (procedure) . *)) procedure))
+(chicken.memory.representation#mutate-procedure!
+ (#(procedure #:enforce) chicken.memory.representation#mutate-procedure! (procedure (procedure (procedure) . *)) procedure))
 
-(chicken.lolevel#number-of-bytes (#(procedure #:clean) chicken.lolevel#number-of-bytes (*) fixnum)
+(chicken.memory.representation#number-of-bytes (#(procedure #:clean) chicken.memory.representation#number-of-bytes (*) fixnum)
 		 (((or blob string)) (##sys#size #(1)))
 		 (((or port procedure symbol pair vector locative float pointer-vector))
 		  ;; would be applicable to all structure types, but we can't specify
 		  ;; "(struct *)" (yet)
 		  (##core#inline "C_bytes" (##sys#size #(1)))))
 
-(chicken.lolevel#number-of-slots (#(procedure #:clean #:foldable) chicken.lolevel#number-of-slots (*) fixnum)
+(chicken.memory.representation#number-of-slots (#(procedure #:clean #:foldable) chicken.memory.representation#number-of-slots (*) fixnum)
 		 (((or vector symbol pair)) (##sys#size #(1))))
 
-(chicken.lolevel#object-become! (procedure chicken.lolevel#object-become! (list) *))
-(chicken.lolevel#object-copy (#(procedure #:clean) chicken.lolevel#object-copy (*) *))
-(chicken.lolevel#procedure-data (#(procedure #:clean #:enforce) chicken.lolevel#procedure-data (procedure) *))
-(chicken.lolevel#record->vector (#(procedure #:clean) chicken.lolevel#record->vector (*) vector))
+(chicken.memory.representation#object-become! (procedure chicken.memory.representation#object-become! (list) *))
+(chicken.memory.representation#object-copy (#(procedure #:clean) chicken.memory.representation#object-copy (*) *))
+(chicken.memory.representation#procedure-data (#(procedure #:clean #:enforce) chicken.memory.representation#procedure-data (procedure) *))
+(chicken.memory.representation#record->vector (#(procedure #:clean) chicken.memory.representation#record->vector (*) vector))
 
-(chicken.lolevel#record-instance? (#(procedure #:clean) chicken.lolevel#record-instance? (* #!optional symbol) boolean)
+(chicken.memory.representation#record-instance? (#(procedure #:clean) chicken.memory.representation#record-instance? (* #!optional symbol) boolean)
 		  ((* symbol) (##sys#structure? #(1) #(2)))
 		  ((*) (let ((#(tmp) #(1)))
 			 (if (##sys#immediate? #(tmp))
 			     '#f
 			     (##sys#generic-structure? #(tmp))))))
 
-(chicken.lolevel#record-instance-length (#(procedure #:clean) chicken.lolevel#record-instance-length (*) fixnum))
-(chicken.lolevel#record-instance-slot (#(procedure #:clean #:enforce) chicken.lolevel#record-instance-slot (* fixnum) *))
-(chicken.lolevel#record-instance-slot-set! (#(procedure #:clean #:enforce) chicken.lolevel#record-instance-slot-set! (* fixnum *) undefined))
-(chicken.lolevel#record-instance-type (#(procedure #:clean) chicken.lolevel#record-instance-type (*) *))
-(chicken.lolevel#set-procedure-data! (#(procedure #:clean #:enforce) chicken.lolevel#set-procedure-data! (procedure *) undefined))
+(chicken.memory.representation#record-instance-length (#(procedure #:clean) chicken.memory.representation#record-instance-length (*) fixnum))
+(chicken.memory.representation#record-instance-slot (#(procedure #:clean #:enforce) chicken.memory.representation#record-instance-slot (* fixnum) *))
+(chicken.memory.representation#record-instance-slot-set! (#(procedure #:clean #:enforce) chicken.memory.representation#record-instance-slot-set! (* fixnum *) undefined))
+(chicken.memory.representation#record-instance-type (#(procedure #:clean) chicken.memory.representation#record-instance-type (*) *))
+(chicken.memory.representation#set-procedure-data! (#(procedure #:clean #:enforce) chicken.memory.representation#set-procedure-data! (procedure *) undefined))
 
 ;; locative
 

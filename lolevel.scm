@@ -407,7 +407,7 @@ EOF
 ) ; chicken.memory
 
 
-(module chicken.lolevel
+(module chicken.memory.representation
   (block-ref block-set! extend-procedure extended-procedure?
    make-record-instance mutate-procedure! number-of-bytes
    number-of-slots object-become! object-copy procedure-data
@@ -558,7 +558,7 @@ EOF
     (##sys#become! (list (cons old (proc new))))
     new ) )
 
-) ; chicken.lolevel
+) ; chicken.memory.representation
 
 
 (module chicken.locative

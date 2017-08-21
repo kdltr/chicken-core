@@ -969,7 +969,6 @@
 (##sys#register-module-alias 'irregex 'chicken.irregex)
 (##sys#register-module-alias 'keyword 'chicken.keyword)
 (##sys#register-module-alias 'locative 'chicken.locative)
-(##sys#register-module-alias 'lolevel 'chicken.lolevel)
 (##sys#register-module-alias 'memory 'chicken.memory)
 (##sys#register-module-alias 'pathname 'chicken.pathname)
 (##sys#register-module-alias 'platform 'chicken.platform)

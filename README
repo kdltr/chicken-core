@@ -306,8 +306,8 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.keyword.import.so
 	|   |       |-- chicken.load.import.so
 	|   |       |-- chicken.locative.import.so
-	|   |       |-- chicken.lolevel.import.so
 	|   |       |-- chicken.memory.import.so
+	|   |       |-- chicken.memory.representation.import.so
 	|   |       |-- chicken.pathname.import.so
 	|   |       |-- chicken.platform.import.so
 	|   |       |-- chicken.plist.import.so

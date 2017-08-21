@@ -2,7 +2,7 @@
         (chicken file)
         (chicken platform)
         (chicken posix)
-        (chicken lolevel))
+        (chicken memory representation))
 
 (define-syntax assert-error
   (syntax-rules ()

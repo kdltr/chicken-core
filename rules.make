@@ -521,6 +521,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.pretty-print,extras)
 $(eval $(call declare-emitted-import-lib-dependency,chicken.random,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.locative,lolevel))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.memory,lolevel))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.memory.representation,lolevel))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.syntax,expand))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.sort,data-structures))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.string,data-structures))
@@ -864,8 +865,8 @@ file.c: $(SRCDIR)file.scm $(SRCDIR)common-declarations.scm
 lolevel.c: $(SRCDIR)lolevel.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
 	-emit-import-library chicken.locative \
-	-emit-import-library chicken.lolevel \
-	-emit-import-library chicken.memory
+	-emit-import-library chicken.memory \
+	-emit-import-library chicken.memory.representation
 tcp.c: $(SRCDIR)tcp.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.tcp
 srfi-4.c: $(SRCDIR)srfi-4.scm $(SRCDIR)common-declarations.scm
