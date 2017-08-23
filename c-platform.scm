@@ -248,8 +248,6 @@
 
 ;;; Rewriting-definitions for this platform:
 
-(rewrite '+ 19 0 "C_fixnum_plus" "C_u_fixnum_plus" #f)
-
 (let ()
   ;; (add1 <x>) -> (##core#inline "C_fixnum_increase" <x>)     [fixnum-mode]
   ;; (add1 <x>) -> (##core#inline "C_u_fixnum_increase" <x>)   [fixnum-mode + unsafe]
@@ -579,6 +577,10 @@
 
 (rewrite 'abs 14 'fixnum 1 "C_fixnum_abs" "C_fixnum_abs")
 
+(rewrite 'chicken.bitwise#bitwise-and 19)
+(rewrite 'chicken.bitwise#bitwise-xor 19)
+(rewrite 'chicken.bitwise#bitwise-ior 19)
+
 (rewrite 'chicken.bitwise#bitwise-and 21 -1 "C_fixnum_and" "C_u_fixnum_and" "C_s_a_i_bitwise_and" 5)
 (rewrite 'chicken.bitwise#bitwise-xor 21 0 "C_fixnum_xor" "C_fixnum_xor" "C_s_a_i_bitwise_xor" 5)
 (rewrite 'chicken.bitwise#bitwise-ior 21 0 "C_fixnum_or" "C_u_fixnum_or" "C_s_a_i_bitwise_ior" 5)
@@ -663,9 +665,17 @@
 (rewrite 'lcm 12 '##sys#lcm #t 2)
 (rewrite 'chicken.data-structures#identity 12 #f #t 1)
 
+(rewrite 'gcd 19)
+(rewrite 'lcm 19)
+
 (rewrite 'gcd 18 0)
 (rewrite 'lcm 18 1)
 (rewrite 'list 18 '())
+
+(rewrite '+ 19)
+(rewrite '- 19)
+(rewrite '* 19)
+(rewrite '/ 19)
 
 (rewrite '+ 16 2 "C_s_a_i_plus" #t 29)
 (rewrite '- 16 2 "C_s_a_i_minus" #t 29)

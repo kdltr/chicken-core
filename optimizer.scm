@@ -1224,35 +1224,34 @@
 	  (intrinsic? name)
 	  (make-node '##core#call (list #t) (list cont (qnode (first classargs))) ) ) )
 
-    ;; (<op>) -> <id>
-    ;; (<op> <x>) -> <x>
-    ;; (<op> <x1> ...) -> (##core#inline <fixop> <x1> (##core#inline <fixop> ...)) [fixnum-mode]
-    ;; (<op> <x1> ...) -> (##core#inline <ufixop> <x1> (##core#inline <ufixop> ...)) [fixnum-mode + unsafe]
-    ;; - Remove "<id>" from arguments.
-    ((19) ; classargs = (<id> <fixop> <ufixop> <fixmode>)
+    ;; (<op> <x1> ... <xn>) -> (<op> (<op> <x1> ...) <xn>) [in CPS]
+    ((19)
      (and may-rewrite
 	  (intrinsic? name)
-	  (let* ((id (first classargs))
-		 (fixop (if unsafe (third classargs) (second classargs)))
-		 (callargs 
-		  (filter
-		   (lambda (x)
-		     (not (and (eq? 'quote (node-class x))
-			       (eq? id (first (node-parameters x))) ) ) )
-		   callargs) ) )
-	    (cond ((null? callargs) (make-node '##core#call (list #t) (list cont (qnode id))))
-		  ((null? (cdr callargs))
-		   (make-node '##core#call (list #t) (list cont (first callargs))) )
-		  ((or (fourth classargs) (eq? number-type 'fixnum))
-		   (make-node
-		    '##core#call (list #t)
-		    (list
-		     cont
-		     (fold-inner
-		      (lambda (x y)
-			(make-node '##core#inline (list fixop) (list x y)) )
-		      callargs) ) ) )
-		  (else #f) ) ) ) )
+	  (> (length callargs) 2)
+	  (let ((callargs (reverse callargs)))
+	    (let lp ((xn (car callargs))
+		     (xn-1 (cadr callargs))
+		     (rest (cddr callargs))
+		     (cont cont))
+	      (if (null? rest)
+		  (make-node
+		   '##core#call (list #t)
+		   (list (varnode name) cont xn-1 xn))
+		  (let ((r (gensym 'r))
+			(id (gensym 'va)))
+		    (make-node
+		     'let (list id)
+		     (list
+		      (make-node
+		       '##core#lambda (list id #t (list r) 0)
+		       (list (make-node
+			      '##core#call (list #t)
+			      (list (varnode name) cont (varnode r) xn))))
+		      (lp xn-1
+			  (car rest)
+			  (cdr rest)
+			  (varnode id))))))))))
 
     ;; (<op> ...) -> (##core#inline <iop> <arg1> ... (quote <x>) <argN>)
     ((20) ; classargs = (<argc> <iop> <x> <safe>)
