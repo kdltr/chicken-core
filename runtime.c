@@ -12473,6 +12473,9 @@ static void C_ccall dump_heap_state_2(C_word c, C_word *av)
       case C_WEAK_PAIR_TYPE: C_fprintf(C_stderr,      C_text("weak pair      ")); break;
       case C_VECTOR_TYPE: C_fprintf(C_stderr,         C_text("vector         ")); break;
       case C_BYTEVECTOR_TYPE: C_fprintf(C_stderr,     C_text("bytevector     ")); break;
+      case C_BIGNUM_TYPE: C_fprintf(C_stderr,         C_text("bignum         ")); break;
+      case C_CPLXNUM_TYPE: C_fprintf(C_stderr,        C_text("cplxnum        ")); break;
+      case C_RATNUM_TYPE: C_fprintf(C_stderr,         C_text("ratnum         ")); break;
 	/* XXX this is sort of funny: */
       case C_BYTEBLOCK_BIT: C_fprintf(C_stderr,        C_text("blob           ")); break;
       default:
