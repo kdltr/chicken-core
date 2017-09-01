@@ -786,7 +786,7 @@ static C_word C_i_fifo_p(C_word name)
       (##sys#update-errno)
       (##sys#error 
 	 'effective-user-id!-setter "cannot set effective user ID" id) ) )
-   "(current-effective-used-id)"))
+   "(current-effective-user-id)"))
 
 (define current-group-id
   (getter-with-setter
