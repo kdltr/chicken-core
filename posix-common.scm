@@ -508,18 +508,21 @@ EOF
     (posix-error #:file-error 'change-directory* "cannot change current directory" fd))
   fd)
 
-(define (current-directory #!optional dir)
-  (if dir
-      (change-directory dir)
-      (let* ((buffer (make-string 1024))
-	     (len (##core#inline "C_curdir" buffer)) )
-	#+(or unix cygwin)
-	(##sys#update-errno)
-	(if len
-	    (##sys#substring buffer 0 len)
-	    (##sys#signal-hook
-	     #:file-error
-	     'current-directory "cannot retrieve current directory") ) ) ) )
+(define current-directory
+  (getter-with-setter
+   (lambda ()
+     (let* ((buffer (make-string 1024))
+	   (len (##core#inline "C_curdir" buffer)))
+      #+(or unix cygwin)
+      (##sys#update-errno)
+      (if len
+	  (##sys#substring buffer 0 len)
+	  (##sys#signal-hook
+	   #:file-error
+	   'current-directory "cannot retrieve current directory"))))
+   (lambda (dir)
+     ((if (fixnum? dir) change-directory* change-directory) dir))
+  "(current-directory)"))
 
 (define directory
   (lambda (#!optional (spec (current-directory)) show-dotfiles?)

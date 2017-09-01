@@ -1903,8 +1903,7 @@
 (chicken.posix#create-session (#(procedure #:clean) chicken.posix#create-session () fixnum))
 (chicken.posix#create-symbolic-link (#(procedure #:clean #:enforce) chicken.posix#create-symbolic-link (string string) undefined))
 
-;; extra arg for "parameterize" - ugh, what a hack...
-(chicken.posix#current-directory (#(procedure #:clean #:enforce) chicken.posix#current-directory (#!optional string *) string))
+(chicken.posix#current-directory (#(procedure #:clean #:enforce) chicken.posix#current-directory () string))
 
 (chicken.posix#current-effective-group-id (#(procedure #:clean) chicken.posix#current-effective-group-id () fixnum))
 (chicken.posix#current-effective-user-id (#(procedure #:clean) chicken.posix#current-effective-user-id () fixnum))
