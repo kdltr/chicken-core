@@ -214,13 +214,14 @@
 (import chicken chicken.posix))
 
 (module chicken.process-context
-  (command-line-arguments argv get-environment-variable
+  (change-directory change-directory* current-directory
+   command-line-arguments argv get-environment-variable
    get-environment-variables set-environment-variable!
    unset-environment-variable! emergency-exit exit on-exit
-   executable-pathname program-name current-directory
-   set-root-directory! current-effective-group-id
-   current-effective-user-id current-group-id current-process-id
-   current-user-id parent-process-id current-user-name
-   current-effective-user-name create-session process-group-id
-   user-information)
+   executable-pathname program-name set-root-directory!
+   current-effective-group-id current-effective-user-id
+   current-group-id current-process-id current-user-id
+   parent-process-id current-user-name
+   current-effective-user-name create-session
+   process-group-id user-information)
 (import chicken chicken.posix))

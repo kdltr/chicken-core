@@ -24,7 +24,7 @@
             "find-files-test-dir/dir-link-target/foo"
             "find-files-test-dir/dir-link-target/bar"))
 
-(current-directory "find-files-test-dir")
+(change-directory "find-files-test-dir")
 
 (cond-expand
   ((and windows (not cygwin))		; Cannot handle symlinks
@@ -212,5 +212,5 @@
 
 (test-end "find-files")
 
-(current-directory "..")
+(change-directory "..")
 (delete-directory "find-files-test-dir" #t)
