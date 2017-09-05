@@ -181,7 +181,6 @@ usage: chicken-status [OPTION ...] [NAME ...]
 
   -h   -help                    show this message
        -version                 show version and exit
-  -a   -all                     scan all repositories in CHICKEN_REPOSITORY_PATH
   -c   -components              list installed components
   -f   -files                   list installed files
        -list                    dump installed extensions and their versions in "override" format
