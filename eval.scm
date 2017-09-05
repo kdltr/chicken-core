@@ -590,7 +590,7 @@
 			 [(##core#require)
 			  (let ((id         (cadr x))
 				(alternates (cddr x)))
-			    (let-values (((exp _ _) (##sys#process-require id #f alternates)))
+			    (let-values (((exp _) (##sys#process-require id #f alternates)))
 			      (compile exp e #f tf cntr se #f)))]
 
 			 [(##core#elaborationtimeonly ##core#elaborationtimetoo) ; <- Note this!
@@ -1302,36 +1302,32 @@
 ;; Given a library specification, returns three values:
 ;;
 ;;   - an expression for loading the library, if required
-;;   - a library id if the library was found, #f otherwise
 ;;   - a requirement type (e.g. 'dynamic) or #f if provided in core
 ;;
 (define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()) static? mark-static)
   (let ((id (library-id lib)))
     (cond
       ((assq id core-unit-requirements) =>
-       (lambda (x) (values (cdr x) id #f)))
+       (lambda (x) (values (cdr x) #f)))
       ((memq id builtin-features)
-       (values '(##core#undefined) id #f))
+       (values '(##core#undefined) #f))
       ((memq id provided)
-       (values '(##core#undefined) id #f))
+       (values '(##core#undefined) #f))
       ((any (cut memq <> provided) alternates)
-       (values '(##core#undefined) id #f))
+       (values '(##core#undefined) #f))
       ((memq id core-units)
-       (values
-	(if compiling?
-	    `(##core#declare (uses ,id))
-	    `(##sys#load-library (##core#quote ,id)))
-	id #f))
+       (if compiling?
+	   (values `(##core#declare (uses ,id)) #f)
+	   (values `(##sys#load-library (##core#quote ,id)) #f)))
       ((and compiling? static? (find-static-extension id)) =>
        (lambda (path)
-         (mark-static id path)
-         (values `(##core#declare (uses ,id)) id 'static)))
+	 (mark-static id path)
+	 (values `(##core#declare (uses ,id)) 'static)))
       (else
        (values `(chicken.load#load-extension
 		 (##core#quote ,id)
 		 (##core#quote ,alternates)
 		 (##core#quote require))
-	       #f
 	       'dynamic)))))
 
 ;;; Find included file:

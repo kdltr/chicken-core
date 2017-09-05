@@ -700,12 +700,12 @@
 			((##core#require)
 			 (let ((id         (cadr x))
 			       (alternates (cddr x)))
-			   (let-values (((exp found type)
-					 (##sys#process-require 
-                                           id #t 
-                                           alternates provided 
-                                           static-extensions 
-                                           register-static-extension)))
+			   (let-values (((exp type)
+					 (##sys#process-require
+					  id #t
+					  alternates provided
+					  static-extensions
+					  register-static-extension)))
 			     (unless (not type)
 			       (hash-table-update!
 				file-requirements type
