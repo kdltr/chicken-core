@@ -1264,7 +1264,7 @@
 		 (or (check pa)
 		     (loop (##sys#slot paths 1)) ) ) ) ) ) ) ))
 
-(define (chicken.load#load-extension id alternates loc)
+(define (load-extension/internal id alternates loc)
   (cond ((##sys#provided? id))
 	((any ##sys#provided? alternates))
 	((memq id core-units)
@@ -1275,6 +1275,10 @@
 	   (##sys#provide id)))
 	(else
 	 (##sys#error loc "cannot load extension" id))))
+
+(define (chicken.load#load-extension id alternates loc)
+  (load-extension/internal id alternates loc)
+  (##core#undefined))
 
 (define (require . ids)
   (for-each (cut ##sys#check-symbol <> 'require) ids)
