@@ -428,6 +428,7 @@
                    default-static-compilation-options
                    options))
          (out (quotearg (target-file (conc sname
+                                           ".static"
                                            (object-extension platform))
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
@@ -550,7 +551,8 @@
          (mkdir (mkdir-command platform))
          (ext (object-extension platform))
          (sname (prefix srcdir name))
-         (out (quotearg (target-file (conc sname ext) mode)))
+         (out (quotearg (target-file (conc sname ".static" ext)
+                                     mode)))
          (outlnk (quotearg (conc sname +link-file-extension+)))
          (dest (destination-repository mode))
          (dfile (quotearg (slashify dest platform)))
