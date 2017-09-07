@@ -601,6 +601,14 @@ rem this may crash, if the PATH contains a non-matching libchicken.dll on Window
 set PATH=%PATH%;%CD%\tmp xxx %CD%\tmp
 del /f /q /s rev-app rev-app-2 reverser\*.import.* reverser\*.so
 
+echo ======================================== multiple return values tests ...
+%interpret% -s multiple-values.scm
+if errorlevel 1 exit /b 1
+%compile% multiple-values.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+
 rem echo ======================================== reinstall tests
 rem currently disabled for windows
 

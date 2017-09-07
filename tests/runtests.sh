@@ -463,4 +463,9 @@ PATH=`pwd`/tmp:$PATH xxx ${TEST_DIR}/tmp
 #PATH=$PATH:${TEST_DIR}/tmp xxx ${TEST_DIR}/tmp
 rm -fr reverser/*.import.* reverser/*.so
 
+echo "======================================== multiple return values tests ..."
+$interpret -s multiple-values.scm
+$compile multiple-values.scm
+./a.out
+
 echo "======================================== done."
