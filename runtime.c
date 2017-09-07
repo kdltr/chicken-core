@@ -538,7 +538,6 @@ static void set_profile_timer(C_uword freq);
 static void take_profile_sample();
 
 static C_cpsproc(call_cc_wrapper) C_noret;
-static C_cpsproc(call_cc_values_wrapper) C_noret;
 static C_cpsproc(gc_2) C_noret;
 static C_cpsproc(allocate_vector_2) C_noret;
 static C_cpsproc(generic_trampoline) C_noret;
@@ -866,7 +865,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
 {
   /* IMPORTANT: hardcoded table size -
      this must match the number of C_pte calls + 1 (NULL terminator)! */
-  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 64);
+  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 63);
   int i = 0;
 
   if(pt == NULL)
@@ -875,7 +874,6 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(termination_continuation);
   C_pte(callback_return_continuation);
   C_pte(values_continuation);
-  C_pte(call_cc_values_wrapper);
   C_pte(call_cc_wrapper);
   C_pte(C_gc);
   C_pte(C_allocate_vector);
@@ -7094,10 +7092,7 @@ void C_ccall C_call_cc(C_word c, C_word *av)
   if(C_immediatep(cont) || C_header_bits(cont) != C_CLOSURE_TYPE)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "call-with-current-continuation", cont);
   
-  /* Check for values-continuation: */
-  if(C_block_item(k, 0) == (C_word)values_continuation)
-    wrapper = C_closure(&a, 2, (C_word)call_cc_values_wrapper, k);
-  else wrapper = C_closure(&a, 2, (C_word)call_cc_wrapper, k);
+  wrapper = C_closure(&a, 2, (C_word)call_cc_wrapper, k);
   
   av2[ 0 ] = cont;
   av2[ 1 ] = k;
@@ -7111,28 +7106,11 @@ void C_ccall call_cc_wrapper(C_word c, C_word *av)
   C_word
     closure = av[ 0 ],
     /* av[ 1 ] is current k and ignored */
-    result,
     k = C_block_item(closure, 1);
-
-  if(c != 3) C_bad_argc(c, 3);
-
-  result = av[ 2 ];
-  C_kontinue(k, result);
-}
-
-
-void C_ccall call_cc_values_wrapper(C_word c, C_word *av)
-{
-  C_word
-    closure = av[ 0 ],
-    /* av[ 1 ] is current k and ignored */
-    k = C_block_item(closure, 1),
-    x1,
-    n = c;
   
   av[ 0 ] = k;               /* reuse av */
-  C_memmove(av + 1, av + 2, (n - 1) * sizeof(C_word));
-  C_do_apply(n - 1, av);
+  C_memmove(av + 1, av + 2, (c - 1) * sizeof(C_word));
+  C_do_apply(c - 1, av);
 }
 
 

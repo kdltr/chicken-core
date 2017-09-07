@@ -12,6 +12,9 @@
     unreferenced symbols instead of a maximum of 997 per major GC.
   - The -:w option has been removed; symbols are now always collected.
   - Increased the "binary compatibility version" to 9.
+  - Continuations which discard additional values beyond the first now
+    also accept multiple values via direct invocation after being
+    captured through `call/cc`, not just via `values` (#1390)
 
 - Compiler
   - Fixed an off by one allocation problem in generated C code for (list ...).
