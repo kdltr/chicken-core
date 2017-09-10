@@ -29,12 +29,13 @@
 
 (import scheme
         chicken
-        chicken.posix
+	chicken.file
 	chicken.foreign
 	chicken.format
         chicken.io
-        chicken.process
 	chicken.pathname
+        chicken.posix
+        chicken.process
 	chicken.string)
 
 (include "egg-environment.scm")

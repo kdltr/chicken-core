@@ -640,10 +640,14 @@ modules.c: modules.scm \
 		chicken.platform.import.scm \
 		chicken.syntax.import.scm
 csc.c: csc.scm \
-		chicken.string.import.scm \
+		chicken.file.import.scm \
+		chicken.foreign.import.scm \
 		chicken.format.import.scm \
+		chicken.io.import.scm \
 		chicken.pathname.import.scm \
-		chicken.posix.import.scm
+		chicken.posix.import.scm \
+		chicken.process.import.scm \
+		chicken.string.import.scm
 csi.c: csi.scm \
 		chicken.condition.import.scm \
 		chicken.data-structures.import.scm \

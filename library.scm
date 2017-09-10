@@ -2897,26 +2897,6 @@ EOF
       (##sys#values (##sys#slot port 4) (##sys#slot port 5))
       (##sys#error 'port-position "cannot compute position of port" port) ) )
 
-(define (delete-file filename)
-  (##sys#check-string filename 'delete-file)
-  (unless (eq? 0 (##core#inline "C_delete_file" (##sys#make-c-string filename 'delete-file)))
-    (##sys#update-errno)
-    (##sys#signal-hook
-     #:file-error 'delete-file
-     (##sys#string-append "cannot delete file - " strerror) filename) )
-  filename)
-
-(define (rename-file old new)
-  (##sys#check-string old 'rename-file)
-  (##sys#check-string new 'rename-file)
-  (unless (eq? 0 (##core#inline "C_rename_file" (##sys#make-c-string old 'rename-file) (##sys#make-c-string new)))
-    (##sys#update-errno)
-    (##sys#signal-hook
-     #:file-error 'rename-file
-     (##sys#string-append "cannot rename file - " strerror) old new) )
-  new)
-
-
 ;;; Decorate procedure with arbitrary data
 ;
 ; warning: may modify proc, if it already has a suitable decoration!

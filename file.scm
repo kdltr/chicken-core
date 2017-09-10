@@ -104,12 +104,30 @@ EOF
 	(apply ##sys#signal-hook type loc (string-append msg " - " (strerror rn)) args) ) ) ) )
 
 
+(define (delete-file filename)
+  (##sys#check-string filename 'delete-file)
+  (unless (eq? 0 (##core#inline "C_delete_file" (##sys#make-c-string filename 'delete-file)))
+    (##sys#update-errno)
+    (##sys#signal-hook
+     #:file-error 'delete-file
+     (##sys#string-append "cannot delete file - " strerror) filename))
+  filename)
+
 ;;; Like `delete-file', but does nothing if the file doesn't exist:
 
 (define delete-file*
   (lambda (file)
     (and (file-exists? file) (delete-file file))))
 
+(define (rename-file old new)
+  (##sys#check-string old 'rename-file)
+  (##sys#check-string new 'rename-file)
+  (unless (eq? 0 (##core#inline "C_rename_file" (##sys#make-c-string old 'rename-file) (##sys#make-c-string new)))
+    (##sys#update-errno)
+    (##sys#signal-hook
+     #:file-error 'rename-file
+     (##sys#string-append "cannot rename file - " strerror) old new))
+  new)
 
 ;;; Directory management:
 

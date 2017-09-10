@@ -54,7 +54,6 @@
    cplxnum?
    current-error-port
    (current-exception-handler . chicken.condition#current-exception-handler)
-   delete-file
    directory-exists?
    (dynamic-load-libraries . chicken.load#dynamic-load-libraries)
    enable-warnings
@@ -155,7 +154,6 @@
    quotient&remainder
    ratnum?
    (register-feature! . chicken.platform#register-feature!)
-   rename-file
    (repository-path . chicken.platform#repository-path)
    (require . chicken.load#require)
    return-to-host
