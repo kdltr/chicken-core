@@ -791,7 +791,7 @@ endef
 
 bootstrap-lib = $(CHICKEN) $(call profile-flags, $@) $< $(CHICKEN_LIBRARY_OPTIONS) -output-file $@
 
-library.c: $(SRCDIR)library.scm $(SRCDIR)banner.scm $(SRCDIR)common-declarations.scm
+library.c: $(SRCDIR)library.scm
 	$(bootstrap-lib) \
 	-no-module-registration \
 	-emit-import-library chicken.bitwise \

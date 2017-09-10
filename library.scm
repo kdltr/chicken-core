@@ -178,9 +178,6 @@ signal_debug_event(C_word mode, C_word msg, C_word args)
 EOF
 ) )
 
-(include "common-declarations.scm")
-(include "banner.scm")
-
 (define-constant namespace-max-id-len 31)
 (define-constant char-name-table-size 37)
 (define-constant output-string-initial-size 256)
