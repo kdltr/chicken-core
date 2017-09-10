@@ -45,7 +45,7 @@
 (include "mini-srfi-1.scm")
 
 ;;; Exceptions:
-(define ##sys#chicken.condition-macro-environment
+(set! ##sys#chicken.condition-macro-environment
   (let ((me0 (##sys#macro-environment)))
 
 (##sys#extend-macro-environment
@@ -103,6 +103,161 @@
 			       `()   ; Don't generate two else clauses
 			       `((,%else (chicken.condition#signal ,exvar)))))))
 	,(cadr form))))))
+
+(##sys#macro-subset me0 ##sys#default-macro-environment)))
+
+
+;;; type-related syntax
+
+(set! ##sys#chicken.type-macro-environment
+  (let ((me0 (##sys#macro-environment)))
+
+(##sys#extend-macro-environment
+ ': '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax ': x '(_ symbol _ . _))
+    (if (not (memq #:compiling ##sys#features))
+	'(##core#undefined)
+	(let* ((type1 (chicken.syntax#strip-syntax (caddr x)))
+	       (name1 (cadr x)))
+	  ;; we need pred/pure info, so not using
+	  ;; "chicken.compiler.scrutinizer#check-and-validate-type"
+	  (let-values (((type pred pure)
+			(chicken.compiler.scrutinizer#validate-type
+			 type1
+			 (chicken.syntax#strip-syntax name1))))
+	    (cond ((not type)
+		   (chicken.syntax#syntax-error ': "invalid type syntax" name1 type1))
+		  (else
+		   `(##core#declare
+		     (type (,name1 ,type1 ,@(cdddr x)))
+		     ,@(if pure `((pure ,name1)) '())
+		     ,@(if pred `((predicate (,name1 ,pred))) '()))))))))))
+
+(##sys#extend-macro-environment
+ 'the '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'the x '(_ _ _))
+    (if (not (memq #:compiling ##sys#features))
+	(caddr x)
+	`(##core#the ,(chicken.compiler.scrutinizer#check-and-validate-type (cadr x) 'the)
+		     #t
+		     ,(caddr x))))))
+
+(##sys#extend-macro-environment
+ 'assume '()
+ (syntax-rules ()
+   ((_ ((var type) ...) body ...)
+    (let ((var (the type var)) ...) body ...))))
+
+(##sys#extend-macro-environment
+ 'define-specialization '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
+	  (else
+	   (##sys#check-syntax 'define-specialization x '(_ (variable . #(_ 0)) _ . #(_ 0 1)))
+	   (let* ((head (cadr x))
+		  (name (car head))
+		  (gname (##sys#globalize name '())) ;XXX correct?
+		  (args (cdr head))
+		  (alias (gensym name))
+		  (galias (##sys#globalize alias '())) ;XXX and this?
+		  (rtypes (and (pair? (cdddr x)) (chicken.syntax#strip-syntax (caddr x))))
+		  (%define (r 'define))
+		  (body (if rtypes (cadddr x) (caddr x))))
+	     (let loop ((args args) (anames '()) (atypes '()))
+	       (cond ((null? args)
+		      (let ((anames (reverse anames))
+			    (atypes (reverse atypes))
+			    (spec
+			     `(,galias ,@(let loop2 ((anames anames) (i 1))
+					   (if (null? anames)
+					       '()
+					       (cons (vector i)
+						     (loop2 (cdr anames) (fx+ i 1))))))))
+			(##sys#put!
+			 gname '##compiler#local-specializations
+			 (##sys#append
+			  (##sys#get gname '##compiler#local-specializations '())
+			  (list
+			   (cons atypes
+				 (if (and rtypes (pair? rtypes))
+				     (list
+				      (map (cut chicken.compiler.scrutinizer#check-and-validate-type
+						<>
+						'define-specialization)
+					   rtypes)
+				      spec)
+				     (list spec))))))
+			`(##core#begin
+			  (##core#declare (inline ,alias) (hide ,alias))
+			  (,%define (,alias ,@anames)
+				    (##core#let ,(map (lambda (an at)
+							(list an `(##core#the ,at #t ,an)))
+						      anames atypes)
+						,body)))))
+		     (else
+		      (let ((arg (car args)))
+			(cond ((symbol? arg)
+			       (loop (cdr args) (cons arg anames) (cons '* atypes)))
+			      ((and (list? arg) (fx= 2 (length arg)) (symbol? (car arg)))
+			       (loop
+				(cdr args)
+				(cons (car arg) anames)
+				(cons
+				 (chicken.compiler.scrutinizer#check-and-validate-type
+				  (cadr arg)
+				  'define-specialization)
+				 atypes)))
+			      (else (chicken.syntax#syntax-error
+				     'define-specialization
+				     "invalid argument syntax" arg head)))))))))))))
+
+(##sys#extend-macro-environment
+ 'compiler-typecase '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'compiler-typecase x '(_ _ . #((_ . #(_ 1)) 1)))
+    (let ((val (memq #:compiling ##sys#features))
+	  (var (gensym))
+	  (ln (chicken.syntax#get-line-number x)))
+      `(##core#let ((,var ,(cadr x)))
+	 (##core#typecase
+	  ,ln
+	  ,var		; must be variable (see: CPS transform)
+	  ,@(map (lambda (clause)
+		 (let ((hd (chicken.syntax#strip-syntax (car clause))))
+		   (list
+		    (if (eq? hd 'else)
+			'else
+			(if val
+			    (chicken.compiler.scrutinizer#check-and-validate-type
+			     hd
+			     'compiler-typecase)
+			    hd))
+		    `(##core#begin ,@(cdr clause)))))
+		 (cddr x))))))))
+
+(##sys#extend-macro-environment
+ 'define-type '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'define-type x '(_ variable _))
+    (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
+	  (else
+	   (let ((name (chicken.syntax#strip-syntax (cadr x)))
+		 (%quote (r 'quote))
+		 (t0 (chicken.syntax#strip-syntax (caddr x))))
+	     `(##core#elaborationtimeonly
+	       (##sys#put/restore!
+		(,%quote ,name)
+		(,%quote ##compiler#type-abbreviation)
+		(,%quote
+		 ,(chicken.compiler.scrutinizer#check-and-validate-type
+		   t0 'define-type name))))))))))
 
 (##sys#macro-subset me0 ##sys#default-macro-environment)))
 
@@ -1167,161 +1322,12 @@
     (##core#let-compiler-syntax (binding ...) body ...))))
 
 
-;;; type-related syntax
-
-(##sys#extend-macro-environment
- ': '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax ': x '(_ symbol _ . _))
-    (if (not (memq #:compiling ##sys#features)) 
-	'(##core#undefined)
-	(let* ((type1 (chicken.syntax#strip-syntax (caddr x)))
-	       (name1 (cadr x)))
-	  ;; we need pred/pure info, so not using
-	  ;; "chicken.compiler.scrutinizer#check-and-validate-type"
-	  (let-values (((type pred pure)
-			(chicken.compiler.scrutinizer#validate-type
-			 type1
-			 (chicken.syntax#strip-syntax name1))))
-	    (cond ((not type)
-		   (chicken.syntax#syntax-error ': "invalid type syntax" name1 type1))
-		  (else
-		   `(##core#declare 
-		     (type (,name1 ,type1 ,@(cdddr x)))
-		     ,@(if pure `((pure ,name1)) '())
-		     ,@(if pred `((predicate (,name1 ,pred))) '()))))))))))
-
-(##sys#extend-macro-environment
- 'the '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'the x '(_ _ _))
-    (if (not (memq #:compiling ##sys#features)) 
-	(caddr x)
-	`(##core#the ,(chicken.compiler.scrutinizer#check-and-validate-type (cadr x) 'the)
-		     #t
-		     ,(caddr x))))))
-
-(##sys#extend-macro-environment
- 'assume '()
- (syntax-rules ()
-   ((_ ((var type) ...) body ...)
-    (let ((var (the type var)) ...) body ...))))
-
-(##sys#extend-macro-environment
- 'define-specialization '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
-	  (else
-	   (##sys#check-syntax 'define-specialization x '(_ (variable . #(_ 0)) _ . #(_ 0 1)))
-	   (let* ((head (cadr x))
-		  (name (car head))
-		  (gname (##sys#globalize name '())) ;XXX correct?
-		  (args (cdr head))
-		  (alias (gensym name))
-		  (galias (##sys#globalize alias '())) ;XXX and this?
-		  (rtypes (and (pair? (cdddr x)) (chicken.syntax#strip-syntax (caddr x))))
-		  (%define (r 'define))
-		  (body (if rtypes (cadddr x) (caddr x))))
-	     (let loop ((args args) (anames '()) (atypes '()))
-	       (cond ((null? args)
-		      (let ((anames (reverse anames))
-			    (atypes (reverse atypes))
-			    (spec
-			     `(,galias ,@(let loop2 ((anames anames) (i 1))
-					   (if (null? anames)
-					       '()
-					       (cons (vector i)
-						     (loop2 (cdr anames) (fx+ i 1))))))))
-			(##sys#put! 
-			 gname '##compiler#local-specializations
-			 (##sys#append
-			  (##sys#get gname '##compiler#local-specializations '())
-			  (list
-			   (cons atypes
-				 (if (and rtypes (pair? rtypes))
-				     (list
-				      (map (cut chicken.compiler.scrutinizer#check-and-validate-type
-						<>
-						'define-specialization)
-					   rtypes)
-				      spec)
-				     (list spec))))))
-			`(##core#begin
-			  (##core#declare (inline ,alias) (hide ,alias))
-			  (,%define (,alias ,@anames)
-				    (##core#let ,(map (lambda (an at)
-							(list an `(##core#the ,at #t ,an)))
-						      anames atypes)
-						,body)))))
-		     (else
-		      (let ((arg (car args)))
-			(cond ((symbol? arg)
-			       (loop (cdr args) (cons arg anames) (cons '* atypes)))
-			      ((and (list? arg) (fx= 2 (length arg)) (symbol? (car arg)))
-			       (loop
-				(cdr args)
-				(cons (car arg) anames)
-				(cons 
-				 (chicken.compiler.scrutinizer#check-and-validate-type 
-				  (cadr arg) 
-				  'define-specialization)
-				 atypes)))
-			      (else (chicken.syntax#syntax-error
-				     'define-specialization
-				     "invalid argument syntax" arg head)))))))))))))
-
-(##sys#extend-macro-environment
- 'compiler-typecase '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'compiler-typecase x '(_ _ . #((_ . #(_ 1)) 1)))
-    (let ((val (memq #:compiling ##sys#features))
-	  (var (gensym))
-	  (ln (chicken.syntax#get-line-number x)))
-      `(##core#let ((,var ,(cadr x)))
-		   (##core#typecase 
-		    ,ln
-		    ,var		; must be variable (see: CPS transform)
-		    ,@(map (lambda (clause)
-			     (let ((hd (chicken.syntax#strip-syntax (car clause))))
-			       (list
-				(if (eq? hd 'else)
-				    'else
-				    (if val
-					(chicken.compiler.scrutinizer#check-and-validate-type
-					 hd
-					 'compiler-typecase)
-					hd))
-				`(##core#begin ,@(cdr clause)))))
-			   (cddr x))))))))
-
-(##sys#extend-macro-environment
- 'define-type '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'define-type x '(_ variable _))
-    (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
-	  (else
-	   (let ((name (chicken.syntax#strip-syntax (cadr x)))
-		 (%quote (r 'quote))
-		 (t0 (chicken.syntax#strip-syntax (caddr x))))
-	     `(##core#elaborationtimeonly
-	       (##sys#put/restore!
-		(,%quote ,name)
-		(,%quote ##compiler#type-abbreviation)
-		(,%quote
-		 ,(chicken.compiler.scrutinizer#check-and-validate-type
-		   t0 'define-type name))))))))))
-
-
 ;; capture current macro env and add all the preceding ones as well
 
-(let ((me* (##sys#macro-subset me0 ##sys#default-macro-environment)))
-  ;; TODO: omit `chicken.condition-m-e' when plain "chicken" module goes away
-  (append ##sys#chicken.condition-macro-environment me*))))
+;; TODO: omit `chicken.{condition,type}-m-e' when plain "chicken" module goes away
+(append ##sys#chicken.condition-macro-environment
+	##sys#chicken.type-macro-environment
+	(##sys#macro-subset me0 ##sys#default-macro-environment))))
 
 ;; register features
 

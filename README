@@ -326,6 +326,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.tcp.import.so
 	|   |       |-- chicken.time.import.so
 	|   |       |-- chicken.time.posix.import.so
+	|   |       |-- chicken.type.import.so
 	|   |       |-- modules.db
 	|   |       |-- srfi-4.import.so
 	|   |       `-- types.db

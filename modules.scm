@@ -987,6 +987,9 @@
 (##sys#register-core-module
  'chicken.module #f '() ##sys#chicken.module-macro-environment)
 
+(##sys#register-core-module
+ 'chicken.type #f '() ##sys#chicken.type-macro-environment)
+
 (##sys#register-primitive-module
  'srfi-0 '() (se-subset '(cond-expand) ##sys#default-macro-environment))
 
