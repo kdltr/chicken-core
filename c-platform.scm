@@ -208,7 +208,7 @@
     chicken.data-structures#o
     chicken.string#substring-index chicken.string#substring-index-ci
     chicken.string#substring=? chicken.string#substring-ci=?
-    chicken.data-structures#any? chicken.data-structures#atom?
+    chicken.data-structures#atom?
     chicken.data-structures#alist-ref chicken.data-structures#rassoc
     chicken.io#read-string chicken.format#format
     chicken.format#printf chicken.format#sprintf chicken.format#fprintf))
@@ -1006,21 +1006,6 @@
 (rewrite 'current-input-port 3 '##sys#standard-input 0)
 (rewrite 'current-output-port 3 '##sys#standard-output 0)
 (rewrite 'current-error-port 3 '##sys#standard-error 0)
-
-(rewrite
- 'chicken.data-structures#any? 8
- (lambda (db classargs cont callargs) 
-   (and (= 1 (length callargs))
-	(let ((arg (car callargs)))
-	  (make-node
-	   '##core#call (list #t) 
-	   (list cont
-		 (if (and (eq? '##core#variable (node-class arg))
-			  (not (db-get db (car (node-parameters arg)) 'global)) )
-		     (qnode #t)
-		     (make-node 
-		      '##core#inline '("C_anyp")
-		      (list arg)) ) ) ) ) ) ) )
 
 (rewrite
  'chicken.bitwise#bit->boolean 8

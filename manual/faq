@@ -516,7 +516,6 @@ and compiler settings:
 The following extended bindings are handled specially: 
 
 {{add1}}
-{{any?}}
 {{arithmetic-shift}}
 {{atom?}}
 {{bignum?}}

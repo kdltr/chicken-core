@@ -1485,9 +1485,6 @@
           (a b (list-of (pair c d)) #!optional (procedure (a c) *))
           (list-of (pair c (or b d))))))
 
-(chicken.data-structures#any? (#(procedure #:pure #:foldable) chicken.data-structures#any? (*) boolean)
-      ((*) (let ((#(tmp) #(1))) '#t)))
-
 (chicken.data-structures#atom? (#(procedure #:pure #:foldable) chicken.data-structures#atom? (*) boolean)
        ((pair) (let ((#(tmp) #(1))) '#f))
        (((not (or pair list))) (let ((#(tmp) #(1))) '#t)))

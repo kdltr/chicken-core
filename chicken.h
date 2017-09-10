@@ -1164,7 +1164,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_anypointerp(x)          C_mk_bool(C_block_header(x) == C_POINTER_TAG || C_block_header(x) == C_TAGGED_POINTER_TAG)
 #define C_specialp(x)             C_mk_bool(C_header_bits(x) & C_SPECIALBLOCK_BIT)
 #define C_byteblockp(x)           C_mk_bool(C_header_bits(x) & C_BYTEBLOCK_BIT)
-#define C_anyp(x)                 C_SCHEME_TRUE
 #define C_sametypep(x, y)         C_mk_bool(C_header_bits(x) == C_header_bits(y))
 #define C_eqp(x, y)               C_mk_bool((x) == (y))
 #define C_vemptyp(x)              C_mk_bool(C_header_size(x) == 0)

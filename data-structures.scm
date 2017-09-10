@@ -31,7 +31,7 @@
 (module chicken.data-structures
   (alist-ref alist-update alist-update! atom? butlast
    chop compress flatten intersperse join rassoc tail?
-   any? constantly complement compose
+   constantly complement compose
    conjoin disjoin each flip identity list-of? o)
 
 (import scheme chicken)
@@ -114,8 +114,6 @@
 		   (begin
 		     (apply h args)
 		     (loop t) ) ) ) ) ) ) ) )
-
-(define (any? x) #t)
 
 
 ;;; List operators:
