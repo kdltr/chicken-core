@@ -263,7 +263,8 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 
 # import libraries
 
-PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.condition chicken.csi chicken.foreign
+PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.base chicken.condition \
+	chicken.csi chicken.foreign
 DYNAMIC_IMPORT_LIBRARIES = srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise blob errno file.posix	\
 	fixnum flonum format gc io keyword load locative memory		\

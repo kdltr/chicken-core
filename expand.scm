@@ -173,7 +173,8 @@
 (define ##sys#chicken-macro-environment '()) ; used later in chicken.import.scm
 (define ##sys#chicken-ffi-macro-environment '()) ; used later in foreign.import.scm
 (define ##sys#chicken.condition-macro-environment '()) ; used later in chicken.condition.import.scm
-(define ##sys#chicken.type-macro-environment '()) ; used later in chicken.condition.import.scm
+(define ##sys#chicken.type-macro-environment '()) ; used later in chicken.type.import.scm
+(define ##sys#chicken.base-macro-environment '()) ; used later in chicken.base.import.scm
 
 (define (##sys#ensure-transformer t #!optional loc)
   (cond ((procedure? t) (##sys#slot (##sys#er-transformer t) 1)) ; DEPRECATED
@@ -1618,13 +1619,6 @@
 		     '(##core#undefined)
 		     `(##core#require ,lib ,(module-requirement name)))))
 	     (cdr x))))))
-
-(##sys#extend-macro-environment
- 'require-extension
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    `(,(r 'import) ,@(cdr x)))))
 
 (##sys#extend-macro-environment
  'require-extension-for-syntax

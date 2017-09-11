@@ -261,9 +261,9 @@
 
 (##sys#macro-subset me0 ##sys#default-macro-environment)))
 
-;;; Other non-standard macros:
+;;; Non-standard macros that provide core/"base" functionality:
 
-(define ##sys#chicken-macro-environment
+(set! ##sys#chicken.base-macro-environment
   (let ((me0 (##sys#macro-environment)))
 
 (##sys#extend-macro-environment
@@ -288,8 +288,8 @@
 		    plain-name))
 	   (slots (cddr x))
 	   (%define (r 'define))
-	   (%setter (r 'setter))
-	   (%getter-with-setter (r 'getter-with-setter))
+	   (%setter (r 'chicken.base#setter))
+	   (%getter-with-setter (r 'chicken.base#getter-with-setter))
 	   (slotnames
 	    (map (lambda (slot)
 		   (cond ((symbol? slot) slot)
@@ -366,20 +366,6 @@
 		   (##core#lambda ,vars ,@rest)) ) ) ) ) )))
 
 (##sys#extend-macro-environment
- 'time '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (let ((rvar (r 't)))
-      `(##core#begin
-	(##sys#start-timer)
-	(##sys#call-with-values 
-	 (##core#lambda () ,@(cdr form))
-	 (##core#lambda 
-	  ,rvar
-	  (##sys#display-times (##sys#stop-timer))
-	  (##sys#apply ##sys#values ,rvar) ) ) ) ) ) ) )
-
-(##sys#extend-macro-environment
  'declare '()
  (##sys#er-transformer
   (lambda (form r c)
@@ -398,49 +384,6 @@
   (lambda (form r c)
     (##sys#check-syntax 'include-relative form '(_ string))
     `(##core#include ,(cadr form) ,##sys#current-source-filename))))
-
-(##sys#extend-macro-environment
- 'assert '()
- (##sys#er-transformer
-  (let ((string-append string-append))
-    (lambda (form r c)
-      (##sys#check-syntax 'assert form '#(_ 1))
-      (let* ((exp (cadr form))
-	     (msg-and-args (cddr form))
-	     (msg (optional msg-and-args "assertion failed"))
-	     (tmp (r 'tmp)))
-	(when (string? msg)
-	  (and-let* ((ln (chicken.syntax#get-line-number form)))
-	    (set! msg (string-append "(" ln ") " msg))))
-	`(##core#let ((,tmp ,exp))
-	   (##core#if (##core#check ,tmp)
-		      ,tmp
-		      (##sys#error
-		       ,msg
-		       ,@(if (pair? msg-and-args)
-			     (cdr msg-and-args)
-			     `((##core#quote ,(chicken.syntax#strip-syntax exp))))))))))))
-
-(##sys#extend-macro-environment
- 'ensure
- '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'ensure form '#(_ 3))
-    (let ((pred (cadr form))
-	  (exp (caddr form))
-	  (args (cdddr form))
-	  (tmp (r 'tmp)))
-      `(##core#let
-	([,tmp ,exp])
-	(##core#if (##core#check (,pred ,tmp))
-		   ,tmp
-		   (##sys#signal-hook
-		    #:type-error
-		    ,@(if (pair? args)
-			  args
-			  `((##core#immutable (##core#quote "argument has incorrect type"))
-			    ,tmp (##core#quote ,pred)) ) ) ) ) ) ) ) )
 
 (##sys#extend-macro-environment
  'fluid-let '()
@@ -473,33 +416,6 @@
 		    ,@(map (lambda (id ot) `(##core#set! ,id ,ot))
 			   ids old-tmps)
 		    (##core#undefined) ) ) ) ) )))
-
-(##sys#extend-macro-environment
- 'eval-when '()
- (##sys#er-transformer
-  (lambda (form r compare)
-    (##sys#check-syntax 'eval-when form '#(_ 2))
-    (let* ((situations (cadr form))
-	   (body `(##core#begin ,@(cddr form)))
-	   (e #f)
-	   (c #f)
-	   (l #f))
-      (let loop ((ss situations))
-	(if (pair? ss)
-	    (let ((s (car ss)))
-	      (cond ((compare s 'eval) (set! e #t))
-		    ((compare s 'load) (set! l #t))
-		    ((compare s 'compile) (set! c #t))
-		    (else (##sys#error "invalid situation specifier" (car ss))))
-	      (loop (cdr ss)))))
-      (if (memq '#:compiling ##sys#features)
-	  (cond ((and c l) `(##core#compiletimetoo ,body))
-		(c `(##core#compiletimeonly ,body))
-		(l body)
-		(else '(##core#undefined)))
-	  (if e 
-	      body
-	      '(##core#undefined)))))))
 
 (##sys#extend-macro-environment
  'parameterize '()
@@ -739,42 +655,6 @@
 		       `(##core#let ((,var ,(cadr b)))
 			 (##core#if ,var ,(fold bs2) #f) ) ) ] ) ) ) ) ) ) ) )
 
-(##sys#extend-macro-environment
- 'select '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'select form '(_ _ . _))
-    (let ((exp (cadr form))
-	  (body (cddr form))
-	  (tmp (r 'tmp))
-	  (%else (r 'else))
-	  (%or (r 'or)))
-      `(##core#let
-	((,tmp ,exp))
-	,(let expand ((clauses body) (else? #f))
-	   (cond ((null? clauses)
-		  '(##core#undefined) )
-		 ((not (pair? clauses))
-		  (chicken.syntax#syntax-error 'select "invalid syntax" clauses))
-		 (else
-		  (let ((clause (##sys#slot clauses 0))
-			(rclauses (##sys#slot clauses 1)) )
-		    (##sys#check-syntax 'select clause '#(_ 1))
-		    (cond ((c %else (car clause))
-			   (expand rclauses #t)
-			   `(##core#begin ,@(cdr clause)) )
-			  (else?
-			   (##sys#notice
-			    "non-`else' clause following `else' clause in `select'"
-			    (chicken.syntax#strip-syntax clause))
-			   (expand rclauses #t)
-			   '(##core#begin))
-			  (else
-			   `(##core#if
-			     (,%or ,@(map (lambda (x) `(##sys#eqv? ,tmp ,x)) 
-					  (car clause) ) )
-			     (##core#begin ,@(cdr clause)) 
-			     ,(expand rclauses #f) ) ) ) ) ) ) ) ) ) ) ) )
 
 
 ;;; Optional argument handling:
@@ -1106,7 +986,7 @@
 
 (##sys#extend-macro-environment
  'define-record-type
- `((getter-with-setter . ,(##sys#primitive-alias 'getter-with-setter)))
+ `()
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 
@@ -1124,7 +1004,7 @@
 	   (pred (cadddr form))
 	   (slots (cddddr form))
 	   (%define (r 'define))
-	   (%getter-with-setter (r 'getter-with-setter))
+	   (%getter-with-setter (r 'chicken.base#getter-with-setter))
 	   (vars (cdr conser))
 	   (x (r 'x))
 	   (y (r 'y))
@@ -1276,6 +1156,151 @@
 			   ,(car head))
 	  `(##core#letrec* ((,head ,@(cddr form))) ,head))))))
 
+;;; use
+
+(##sys#extend-macro-environment
+ 'use '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'use x '(_ . #(_ 0)))
+    `(,(r 'require-extension) ,@(cdr x)))))
+
+(##sys#extend-macro-environment
+ 'require-extension
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    `(,(r 'import) ,@(cdr x)))))
+
+(##sys#macro-subset me0 ##sys#default-macro-environment)))
+
+
+;;; Remaining non-standard macros:
+
+(set! ##sys#chicken-macro-environment
+  (let ((me0 (##sys#macro-environment)))
+
+(##sys#extend-macro-environment
+ 'time '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (let ((rvar (r 't)))
+      `(##core#begin
+	(##sys#start-timer)
+	(##sys#call-with-values
+	 (##core#lambda () ,@(cdr form))
+	 (##core#lambda
+	  ,rvar
+	  (##sys#display-times (##sys#stop-timer))
+	  (##sys#apply ##sys#values ,rvar))))))))
+
+(##sys#extend-macro-environment
+ 'assert '()
+ (##sys#er-transformer
+  (let ((string-append string-append))
+    (lambda (form r c)
+      (##sys#check-syntax 'assert form '#(_ 1))
+      (let* ((exp (cadr form))
+	     (msg-and-args (cddr form))
+	     (msg (optional msg-and-args "assertion failed"))
+	     (tmp (r 'tmp)))
+	(when (string? msg)
+	  (and-let* ((ln (chicken.syntax#get-line-number form)))
+	    (set! msg (string-append "(" ln ") " msg))))
+	`(##core#let ((,tmp ,exp))
+	   (##core#if (##core#check ,tmp)
+		      ,tmp
+		      (##sys#error
+		       ,msg
+		       ,@(if (pair? msg-and-args)
+			     (cdr msg-and-args)
+			     `((##core#quote ,(chicken.syntax#strip-syntax exp))))))))))))
+
+(##sys#extend-macro-environment
+ 'ensure
+ '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'ensure form '#(_ 3))
+    (let ((pred (cadr form))
+	  (exp (caddr form))
+	  (args (cdddr form))
+	  (tmp (r 'tmp)))
+      `(##core#let
+	([,tmp ,exp])
+	(##core#if (##core#check (,pred ,tmp))
+		   ,tmp
+		   (##sys#signal-hook
+		    #:type-error
+		    ,@(if (pair? args)
+			  args
+			  `((##core#immutable (##core#quote "argument has incorrect type"))
+			    ,tmp (##core#quote ,pred))))))))))
+
+(##sys#extend-macro-environment
+ 'eval-when '()
+ (##sys#er-transformer
+  (lambda (form r compare)
+    (##sys#check-syntax 'eval-when form '#(_ 2))
+    (let* ((situations (cadr form))
+	   (body `(##core#begin ,@(cddr form)))
+	   (e #f)
+	   (c #f)
+	   (l #f))
+      (let loop ((ss situations))
+	(if (pair? ss)
+	    (let ((s (car ss)))
+	      (cond ((compare s 'eval) (set! e #t))
+		    ((compare s 'load) (set! l #t))
+		    ((compare s 'compile) (set! c #t))
+		    (else (##sys#error "invalid situation specifier" (car ss))))
+	      (loop (cdr ss)))))
+      (if (memq '#:compiling ##sys#features)
+	  (cond ((and c l) `(##core#compiletimetoo ,body))
+		(c `(##core#compiletimeonly ,body))
+		(l body)
+		(else '(##core#undefined)))
+	  (if e
+	      body
+	      '(##core#undefined)))))))
+
+(##sys#extend-macro-environment
+ 'select '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'select form '(_ _ . _))
+    (let ((exp (cadr form))
+	  (body (cddr form))
+	  (tmp (r 'tmp))
+	  (%else (r 'else))
+	  (%or (r 'or)))
+      `(##core#let
+	((,tmp ,exp))
+	,(let expand ((clauses body) (else? #f))
+	   (cond ((null? clauses)
+		  '(##core#undefined))
+		 ((not (pair? clauses))
+		  (chicken.syntax#syntax-error 'select "invalid syntax" clauses))
+		 (else
+		  (let ((clause (##sys#slot clauses 0))
+			(rclauses (##sys#slot clauses 1)))
+		    (##sys#check-syntax 'select clause '#(_ 1))
+		    (cond ((c %else (car clause))
+			   (expand rclauses #t)
+			   `(##core#begin ,@(cdr clause)))
+			  (else?
+			   (##sys#notice
+			    "non-`else' clause following `else' clause in `select'"
+			    (chicken.syntax#strip-syntax clause))
+			   (expand rclauses #t)
+			   '(##core#begin))
+			  (else
+			   `(##core#if
+			     (,%or ,@(map (lambda (x) `(##sys#eqv? ,tmp ,x))
+					  (car clause)))
+			     (##core#begin ,@(cdr clause))
+			     ,(expand rclauses #f)))))))))))))
+
 
 ;;; Definitions available at macroexpansion-time:
 
@@ -1287,15 +1312,6 @@
     `(,(r 'begin-for-syntax)
       (,(r 'define) ,@(cdr form))))))
 
-
-;;; use
-
-(##sys#extend-macro-environment
- 'use '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'use x '(_ . #(_ 0)))
-    `(,(r 'require-extension) ,@(cdr x)))))
 
 (##sys#extend-macro-environment
  'use-for-syntax '()
@@ -1324,9 +1340,10 @@
 
 ;; capture current macro env and add all the preceding ones as well
 
-;; TODO: omit `chicken.{condition,type}-m-e' when plain "chicken" module goes away
+;; TODO: omit `chicken.{base,condition,type}-m-e' when plain "chicken" module goes away
 (append ##sys#chicken.condition-macro-environment
 	##sys#chicken.type-macro-environment
+	##sys#chicken.base-macro-environment
 	(##sys#macro-subset me0 ##sys#default-macro-environment))))
 
 ;; register features

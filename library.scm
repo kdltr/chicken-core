@@ -178,6 +178,135 @@ signal_debug_event(C_word mode, C_word msg, C_word args)
 EOF
 ) )
 
+;; Pre-declaration of chicken.base, so it can be used later on.  Many
+;; declarations will be set! further down in this file, mostly to
+;; avoid a cyclic dependency on itself (only pure Scheme and core
+;; language operations are allowed in here).  Also, this declaration
+;; is incomplete: the module itself is defined as a primitive module
+;; due to syntax exports, which are missing here.
+(module chicken.base
+  (;; [syntax] and-let* case-lambda cut cute declare define-constant
+   ;; define-inline define-record define-record-type
+   ;; define-record-printer define-values fluid-let include
+   ;; include-relative let-optionals let-values let*-values
+   ;; letrec-values nth-value optional parameterize rec receive
+   ;; set!-values unless when use require-library require-extension
+   bignum? flonum? fixnum? ratnum? cplxnum? finite? infinite? nan?
+   exact-integer? exact-integer-sqrt exact-integer-nth-root
+
+   get-call-chain print print* add1 sub1 call/cc
+   current-error-port error void gensym print-call-chain
+   make-promise promise? char-name enable-warnings
+   equal=? finite? foldl foldr getter-with-setter make-parameter
+   notice procedure-information setter signum string->uninterned-symbol
+   subvector symbol-append vector-copy! vector-resize
+   warning quotient&remainder quotient&modulo
+   ;; TODO: Move from data-structures.scm:
+   ;; alist-ref alist-update alist-update! rassoc atom? butlast chop
+   ;; compress flatten intersperse join list-of? tail? constantly
+   ;; complement compose conjoin disjoin each flip identity o
+   )
+
+(import scheme)
+
+(define (fixnum? x) (##core#inline "C_fixnump" x))
+(define (flonum? x) (##core#inline "C_i_flonump" x))
+(define (bignum? x) (##core#inline "C_i_bignump" x))
+(define (ratnum? x) (##core#inline "C_i_ratnump" x))
+(define (cplxnum? x) (##core#inline "C_i_cplxnump" x))
+(define (exact-integer? x) (##core#inline "C_i_exact_integerp" x))
+(define exact-integer-sqrt)
+(define exact-integer-nth-root)
+
+(define quotient&remainder (##core#primitive "C_quotient_and_remainder"))
+;; Modulo's sign follows y (whereas remainder's sign follows x)
+;; Inlining this is not much use: quotient&remainder is primitive
+(define (quotient&modulo x y)
+  (call-with-values (lambda () (quotient&remainder x y))
+    (lambda (div rem)
+      (if (positive? y)
+	  (if (negative? rem)
+	      (values div (+ rem y))
+	      (values div rem))
+	  (if (positive? rem)
+	      (values div (+ rem y))
+	      (values div rem))))))
+
+
+(define (finite? x) (##core#inline "C_i_finitep" x))
+(define (infinite? x) (##core#inline "C_i_infinitep" x))
+(define (nan? x) (##core#inline "C_i_nanp" x))
+
+(define signum (##core#primitive "C_signum"))
+
+(define equal=?)
+(define get-call-chain)
+(define print-call-chain)
+(define print)
+(define print*)
+(define (add1 n) (+ n 1))
+(define (sub1 n) (- n 1))
+(define current-error-port)
+
+(define (error . args)
+  (if (pair? args)
+      (apply ##sys#signal-hook #:error args)
+      (##sys#signal-hook #:error #f)))
+
+(define (void . _) (##core#undefined))
+
+(define call/cc)
+(define char-name)
+(define enable-warnings)
+; (define enable-notices)???
+(define getter-with-setter)
+(define make-parameter)
+(define procedure-information)
+(define setter)
+(define string->uninterned-symbol)
+
+(define gensym)
+
+(define vector-copy!)
+(define subvector)
+(define vector-resize)
+
+(define symbol-append)
+(define warning)
+(define notice)
+
+;;; Promises:
+
+(define (promise? x)
+  (##sys#structure? x 'promise))
+
+(define (##sys#make-promise proc)
+  (##sys#make-structure 'promise proc))
+
+(define (make-promise obj)
+  (if (promise? obj) obj
+      (##sys#make-promise (lambda () obj))))
+
+;;; fast folds with correct argument order
+
+(define (foldl f z lst)
+  (##sys#check-list lst 'foldl)
+  (let loop ((lst lst) (z z))
+    (if (not (pair? lst))
+	z
+	(loop (##sys#slot lst 1) (f z (##sys#slot lst 0))))))
+
+(define (foldr f z lst)
+  (##sys#check-list lst 'foldr)
+  (let loop ((lst lst))
+    (if (not (pair? lst))
+	z
+	(f (##sys#slot lst 0) (loop (##sys#slot lst 1))))))
+
+) ; chicken.base
+
+(import (except chicken.base gensym add1 sub1)) ;;; see end of this file
+
 (define-constant namespace-max-id-len 31)
 (define-constant char-name-table-size 37)
 (define-constant output-string-initial-size 256)
@@ -236,27 +365,25 @@ EOF
 (define (exit #!optional (code 0)) ((##sys#exit-handler) code))
 (define (##sys#debug-mode?) (##core#inline "C_i_debug_modep"))
 
-(define (error . args)
-  (if (pair? args)
-      (apply ##sys#signal-hook #:error args)
-      (##sys#signal-hook #:error #f)))
-
 (define ##sys#warnings-enabled #t)
 (define ##sys#notices-enabled (##sys#debug-mode?))
 
-(define (warning msg . args)
-  (when ##sys#warnings-enabled
-    (apply ##sys#signal-hook #:warning msg args) ) )
+(set! chicken.base#warning
+  (lambda (msg . args)
+    (when ##sys#warnings-enabled
+      (apply ##sys#signal-hook #:warning msg args))))
 
-(define (notice msg . args)
-  (when (and ##sys#notices-enabled
-	     ##sys#warnings-enabled)
-    (apply ##sys#signal-hook #:notice msg args) ) )
+(set! chicken.base#notice
+  (lambda (msg . args)
+    (when (and ##sys#notices-enabled
+	       ##sys#warnings-enabled)
+      (apply ##sys#signal-hook #:notice msg args))))
 
-(define (enable-warnings . bool)
-  (if (pair? bool) 
-      (set! ##sys#warnings-enabled (car bool))
-      ##sys#warnings-enabled) )
+(set! chicken.base#enable-warnings
+  (lambda bool
+    (if (pair? bool)
+	(set! ##sys#warnings-enabled (car bool))
+	##sys#warnings-enabled)))
 
 (define ##sys#error error)
 (define ##sys#warn warning)
@@ -296,7 +423,6 @@ EOF
 (define (##sys#message str) (##core#inline "C_message" str))
 (define (##sys#byte x i) (##core#inline "C_subbyte" x i))
 (define (##sys#setbyte x i n) (##core#inline "C_setbyte" x i n))
-(define (void . _) (##core#undefined))
 (define ##sys#void void)
 (define ##sys#undefined-value (##core#undefined))
 (define (##sys#halt msg) (##core#inline "C_halt" msg))
@@ -838,16 +964,6 @@ EOF
 ;; [MpNT]  Tiplea at al., "MpNT: A Multi-Precision Number Theory Package"
 ;; [MCA]   Richard P. Brent & Paul Zimmermann, "Modern Computer Arithmetic"
 
-(define (fixnum? x) (##core#inline "C_fixnump" x))
-(define (flonum? x) (##core#inline "C_i_flonump" x))
-(define (bignum? x) (##core#inline "C_i_bignump" x))
-(define (ratnum? x) (##core#inline "C_i_ratnump" x))
-(define (cplxnum? x) (##core#inline "C_i_cplxnump" x))
-
-(define (finite? x) (##core#inline "C_i_finitep" x))
-(define (infinite? x) (##core#inline "C_i_infinitep" x))
-(define (nan? x) (##core#inline "C_i_nanp" x))
-
 (module chicken.flonum *
 (import chicken scheme chicken.foreign)
 
@@ -1015,8 +1131,6 @@ EOF
 (define + (##core#primitive "C_plus"))
 (define - (##core#primitive "C_minus"))
 (define * (##core#primitive "C_times"))
-(define (add1 n) (+ n 1))
-(define (sub1 n) (- n 1))
 
 (define (number? x) (##core#inline "C_i_numberp" x))
 (define ##sys#number? number?)
@@ -1024,7 +1138,6 @@ EOF
 (define (real? x) (##core#inline "C_i_realp" x))
 (define (rational? n) (##core#inline "C_i_rationalp" n))
 (define (integer? x) (##core#inline "C_i_integerp" x))
-(define (exact-integer? x) (##core#inline "C_i_exact_integerp" x))
 (define ##sys#integer? integer?)
 (define (exact? x) (##core#inline "C_i_exactp" x))
 (define (inexact? x) (##core#inline "C_i_inexactp" x))
@@ -1125,8 +1238,6 @@ EOF
    ((ratnum? x) (##core#inline "C_u_i_integer_signum" (%ratnum-numerator x)))
    ((cplxnum? x) (make-polar 1 (angle x)))
    (else (##sys#error-bad-number x 'signum))))
-
-(define signum (##core#primitive "C_signum"))
 
 (define-inline (%flo->int x)
   (##core#inline_allocate ("C_s_a_u_i_flo_to_int" 5) x))
@@ -1327,19 +1438,6 @@ EOF
 (define (quotient a b) (##core#inline_allocate ("C_s_a_i_quotient" 5) a b))
 (define (remainder a b) (##core#inline_allocate ("C_s_a_i_remainder" 5) a b))
 (define (modulo a b) (##core#inline_allocate ("C_s_a_i_modulo" 5) a b))
-(define quotient&remainder (##core#primitive "C_quotient_and_remainder"))
-
-;; Modulo's sign follows y (whereas remainder's sign follows x)
-;; Inlining this is not much use: quotient&remainder is primitive
-(define (quotient&modulo x y)
-  (receive (div rem) (quotient&remainder x y)
-    (if (positive? y)
-        (if (negative? rem)
-            (values div (+ rem y))
-            (values div rem))
-        (if (positive? rem)
-            (values div (+ rem y))
-            (values div rem)))))
 
 (define (even? n) (##core#inline "C_i_evenp" n))
 (define (odd? n) (##core#inline "C_i_oddp" n))
@@ -1483,9 +1581,10 @@ EOF
 		    (- (+ r (arithmetic-shift s 1)) 1))
             (values s r)))))
 
-(define (exact-integer-sqrt x)
-  (##sys#check-exact-uinteger x 'exact-integer-sqrt)
-  (##sys#exact-integer-sqrt x))
+(set! chicken.base#exact-integer-sqrt
+  (lambda (x)
+    (##sys#check-exact-uinteger x 'exact-integer-sqrt)
+    (##sys#exact-integer-sqrt x)))
 
 ;; This procedure is so large because it tries very hard to compute
 ;; exact results if at all possible.
@@ -1515,10 +1614,11 @@ EOF
 
 (define (sqrt x) (##sys#sqrt/loc 'sqrt x))
 
-(define (exact-integer-nth-root k n)
-  (##sys#check-exact-uinteger k 'exact-integer-nth-root)
-  (##sys#check-exact-uinteger n 'exact-integer-nth-root)
-  (##sys#exact-integer-nth-root/loc 'exact-integer-nth-root k n))
+(set! chicken.base#exact-integer-nth-root
+  (lambda (k n)
+    (##sys#check-exact-uinteger k 'exact-integer-nth-root)
+    (##sys#check-exact-uinteger n 'exact-integer-nth-root)
+    (##sys#exact-integer-nth-root/loc 'exact-integer-nth-root k n)))
 
 ;; Generalized Newton's algorithm for positive integers, with a little help
 ;; from Wikipedia ;)  https://en.wikipedia.org/wiki/Nth_root_algorithm
@@ -1993,7 +2093,6 @@ EOF
 
 ;;; Symbols:
 
-(define ##sys#make-symbol (##core#primitive "C_make_symbol"))
 (define (symbol? x) (##core#inline "C_i_symbolp" x))
 (define ##sys#snafu '##sys#fnord)
 (define ##sys#intern-symbol (##core#primitive "C_string_to_symbol"))
@@ -2061,30 +2160,30 @@ EOF
       (##sys#check-string str 'string->symbol)
       (##sys#intern-symbol (string-copy str)) ) ) )
 
-(define string->uninterned-symbol
-  (let ([string-copy string-copy])
+(set! chicken.base#string->uninterned-symbol
+  (let ((string-copy string-copy))
     (lambda (str)
       (##sys#check-string str 'string->uninterned-symbol)
-      (##sys#make-symbol (string-copy str)) ) ) )
+      ((##core#primitive "C_make_symbol") (string-copy str)))))
 
-(define gensym
-  (let ([counter -1])
+(set! chicken.base#gensym
+  (let ((counter -1))
     (lambda str-or-sym
-      (let ([err (lambda (prefix) (##sys#signal-hook #:type-error 'gensym "argument is not a string or symbol" prefix))])
+      (let ((err (lambda (prefix) (##sys#signal-hook #:type-error 'gensym "argument is not a string or symbol" prefix))))
 	(set! counter (fx+ counter 1))
-	(##sys#make-symbol
+	((##core#primitive "C_make_symbol")
 	 (##sys#string-append
 	  (if (eq? str-or-sym '())
 	      "g"
-	      (let ([prefix (car str-or-sym)])
+	      (let ((prefix (car str-or-sym)))
 		(or (and (##core#inline "C_blockp" prefix)
-			 (cond [(##core#inline "C_stringp" prefix) prefix]
-			       [(##core#inline "C_symbolp" prefix) (##sys#symbol->string prefix)]
-			       [else (err prefix)] ) )
+			 (cond ((##core#inline "C_stringp" prefix) prefix)
+			       ((##core#inline "C_symbolp" prefix) (##sys#symbol->string prefix))
+			       (else (err prefix))))
 		    (err prefix) ) ) )
 	  (##sys#number->string counter) ) ) ) ) ) )
 
-(define symbol-append
+(set! chicken.base#symbol-append
   (let ((string-append string-append))
     (lambda ss
       (##sys#intern-symbol
@@ -2231,37 +2330,40 @@ EOF
 	((fx>= i len))
       (##sys#setslot v i x) ) ) )
 
-(define (vector-copy! from to . n)
-  (##sys#check-vector from 'vector-copy!)
-  (##sys#check-vector to 'vector-copy!)
-  (let* ((len-from (##sys#size from))
-	 (len-to (##sys#size to))
-	 (n (if (pair? n) (car n) (fxmin len-to len-from))) )
-    (##sys#check-fixnum n 'vector-copy!)
-    (when (or (fx> n len-to) (fx> n len-from))
-      (##sys#signal-hook 
-       #:bounds-error 'vector-copy!
-       "cannot copy vector - count exceeds length" from to n) )
-    (do ((i 0 (fx+ i 1)))
-	((fx>= i n))
-      (##sys#setslot to i (##sys#slot from i)) ) ) )
+(set! chicken.base#vector-copy!
+  (lambda (from to . n)
+    (##sys#check-vector from 'vector-copy!)
+    (##sys#check-vector to 'vector-copy!)
+    (let* ((len-from (##sys#size from))
+	   (len-to (##sys#size to))
+	   (n (if (pair? n) (car n) (fxmin len-to len-from))))
+      (##sys#check-fixnum n 'vector-copy!)
+      (when (or (fx> n len-to) (fx> n len-from))
+	(##sys#signal-hook
+	 #:bounds-error 'vector-copy!
+	 "cannot copy vector - count exceeds length" from to n))
+      (do ((i 0 (fx+ i 1)))
+	  ((fx>= i n))
+	(##sys#setslot to i (##sys#slot from i))))))
 
-(define (subvector v i #!optional j)
-  (##sys#check-vector v 'subvector)
-  (let* ((len (##sys#size v))
-	 (j (or j len))
-	 (len2 (fx- j i)))
-    (##sys#check-range i 0 (fx+ len 1) 'subvector)
-    (##sys#check-range j 0 (fx+ len 1) 'subvector)
-    (let ((v2 (make-vector len2)))
-      (do ((k 0 (fx+ k 1)))
-	  ((fx>= k len2) v2)
-	(##sys#setslot v2 k (##sys#slot v (fx+ k i)))))))
+(set! chicken.base#subvector
+  (lambda (v i #!optional j)
+    (##sys#check-vector v 'subvector)
+    (let* ((len (##sys#size v))
+	   (j (or j len))
+	   (len2 (fx- j i)))
+      (##sys#check-range i 0 (fx+ len 1) 'subvector)
+      (##sys#check-range j 0 (fx+ len 1) 'subvector)
+      (let ((v2 (make-vector len2)))
+	(do ((k 0 (fx+ k 1)))
+	    ((fx>= k len2) v2)
+	  (##sys#setslot v2 k (##sys#slot v (fx+ k i))))))))
 
-(define (vector-resize v n #!optional init)
-  (##sys#check-vector v 'vector-resize)
-  (##sys#check-fixnum n 'vector-resize)
-  (##sys#vector-resize v n init) )
+(set! chicken.base#vector-resize
+  (lambda (v n #!optional init)
+    (##sys#check-vector v 'vector-resize)
+    (##sys#check-fixnum n 'vector-resize)
+    (##sys#vector-resize v n init)))
 
 (define (##sys#vector-resize v n init)
   (let ((v2 (##sys#make-vector n init))
@@ -2337,9 +2439,9 @@ EOF
   (##sys#check-char c 'char-alphabetic?)
   (##core#inline "C_u_i_char_alphabeticp" c) )
 
-(define char-name
-  (let ([chars-to-names (make-vector char-name-table-size '())]
-	[names-to-chars '()] )
+(set! chicken.base#char-name
+  (let ((chars-to-names (make-vector char-name-table-size '()))
+	(names-to-chars '()))
     (define (lookup-char c)
       (let* ([code (char->integer c)]
 	     [key (##core#inline "C_fixnum_modulo" code char-name-table-size)] )
@@ -2501,7 +2603,7 @@ EOF
 	 (apply cont results) )
        (proc continuation)))))
 
-(define call/cc call-with-current-continuation)
+(set! chicken.base#call/cc call-with-current-continuation)
 
 (define (##sys#dynamic-unwind winds n)
   (cond [(eq? ##sys#dynamic-winds winds)]
@@ -2733,14 +2835,15 @@ EOF
 	  (when set? (set! ##sys#standard-output p)))
 	p)))
 
-(define (current-error-port . args)
-  (if (null? args)
-      ##sys#standard-error
-      (let ((p (car args)))
-	(##sys#check-port p 'current-error-port)
-	(let-optionals (cdr args) ((convert? #t) (set? #t))
-	  (when set? (set! ##sys#standard-error p)))
-	p)))
+(set! chicken.base#current-error-port
+  (lambda args
+    (if (null? args)
+	##sys#standard-error
+	(let ((p (car args)))
+	  (##sys#check-port p 'current-error-port)
+	  (let-optionals (cdr args) ((convert? #t) (set? #t))
+	    (when set? (set! ##sys#standard-error p)))
+	  p))))
 
 (define (##sys#tty-port? port)
   (and (not (zero? (##sys#peek-unsigned-integer port 0)))
@@ -2931,7 +3034,7 @@ EOF
     (##core#inline "C_copy_memory" s info sz)
     s) )
 
-(define procedure-information
+(set! chicken.base#procedure-information
   (lambda (x)
     (##sys#check-closure x 'procedure-information)
     (and-let* ((info (##sys#lambda-info x)))
@@ -2945,7 +3048,7 @@ EOF
 (define-inline (setter? x) 
   (and (pair? x) (eq? setter-tag (##sys#slot x 0))) )
 
-(define setter
+(set! chicken.base#setter
   (##sys#decorate-lambda 
    (lambda (proc)
      (or (and-let* (((procedure? proc))
@@ -2972,27 +3075,28 @@ EOF
 
 (define ##sys#setter setter)
 
-(define (getter-with-setter get set #!optional info)
-  (##sys#check-closure get 'getter-with-setter)
-  (##sys#check-closure set 'getter-with-setter)
-  (let ((getdec (cond (info
-		       (##sys#check-string info 'getter-with-setter)
-		       (##sys#make-lambda-info info))
-		      (else (##sys#lambda-info get))))
-	(p1 (##sys#decorate-lambda
-	     (##sys#copy-closure get)
-	     setter?
-	     (lambda (proc i)
-	       (##sys#setslot proc i (cons setter-tag set))
-	       proc) )))
-    (if getdec
-	(##sys#decorate-lambda
-	 p1
-	 ##sys#lambda-info?
-	 (lambda (p i)
-	   (##sys#setslot p i getdec)
-	   p))
-	p1)))
+(set! chicken.base#getter-with-setter
+  (lambda (get set #!optional info)
+    (##sys#check-closure get 'getter-with-setter)
+    (##sys#check-closure set 'getter-with-setter)
+    (let ((getdec (cond (info
+			 (##sys#check-string info 'getter-with-setter)
+			 (##sys#make-lambda-info info))
+			(else (##sys#lambda-info get))))
+	  (p1 (##sys#decorate-lambda
+	       (##sys#copy-closure get)
+	       setter?
+	       (lambda (proc i)
+		 (##sys#setslot proc i (cons setter-tag set))
+		 proc))))
+      (if getdec
+	  (##sys#decorate-lambda
+	   p1
+	   ##sys#lambda-info?
+	   (lambda (p i)
+	     (##sys#setslot p i getdec)
+	     p))
+	  p1))))
 
 (set! car (getter-with-setter car set-car! "(car p)"))
 (set! cdr (getter-with-setter cdr set-cdr! "(cdr p)"))
@@ -3023,7 +3127,7 @@ EOF
 (define ##sys#default-parameter-vector (##sys#make-vector default-parameter-vector-size))
 (define ##sys#current-parameter-vector '#())
 
-(define make-parameter
+(set! chicken.base#make-parameter
   (let ((count 0))
     (lambda (init #!optional (guard (lambda (x) x)))
       (let* ((val (guard init))
@@ -3856,17 +3960,19 @@ EOF
 (define-inline (*print-each lst)
   (for-each (cut ##sys#print <> #f ##sys#standard-output) lst) )
  
-(define (print . args)
-  (##sys#check-output-port ##sys#standard-output #t 'print)
-  (*print-each args)
-  (##sys#write-char-0 #\newline ##sys#standard-output) 
-  (void) )
+(set! chicken.base#print
+  (lambda args
+    (##sys#check-output-port ##sys#standard-output #t 'print)
+    (*print-each args)
+    (##sys#write-char-0 #\newline ##sys#standard-output)
+    (void)))
 
-(define (print* . args)
-  (##sys#check-output-port ##sys#standard-output #t 'print)
-  (*print-each args)
-  (##sys#flush-output ##sys#standard-output)
-  (void) )
+(define print*
+  (lambda args
+    (##sys#check-output-port ##sys#standard-output #t 'print)
+    (*print-each args)
+    (##sys#flush-output ##sys#standard-output)
+    (void)))
 
 (define current-print-length (make-parameter 0))
 (define ##sys#print-length-limit (make-parameter #f))
@@ -4340,7 +4446,7 @@ EOF
 
 (define-constant +trace-buffer-entry-slot-count+ 4)
 
-(define get-call-chain
+(set! chicken.base#get-call-chain
   (let ((extract
 	 (foreign-lambda* nonnull-c-string ((scheme-object x)) "C_return((C_char *)x);")))
     (lambda (#!optional (start 0) (thread ##sys#current-thread))
@@ -4389,13 +4495,14 @@ EOF
      chain)
     (##sys#print "\t<--\n" #f port)))
 
-(define (print-call-chain #!optional (port ##sys#standard-output) (start 0)
-				     (thread ##sys#current-thread)
-				     (header "\n\tCall history:\n"))
-  (##sys#check-output-port port #t 'print-call-chain)
-  (##sys#check-fixnum start 'print-call-chain)
-  (##sys#check-string header 'print-call-chain)
-  (##sys#really-print-call-chain port (get-call-chain start thread) header))
+(set! chicken.base#print-call-chain
+  (lambda (#!optional (port ##sys#standard-output) (start 0)
+		      (thread ##sys#current-thread)
+		      (header "\n\tCall history:\n"))
+    (##sys#check-output-port port #t 'print-call-chain)
+    (##sys#check-fixnum start 'print-call-chain)
+    (##sys#check-string header 'print-call-chain)
+    (##sys#really-print-call-chain port (get-call-chain start thread) header)))
 
 
 ;;; Interrupt handling:
@@ -5477,19 +5584,6 @@ EOF
 (define ##sys#map-n map)
 
 
-;;; Promises:
-
-(define (##sys#make-promise proc)
-  (##sys#make-structure 'promise proc))
-
-(define (promise? x)
-  (##sys#structure? x 'promise) )
-
-(define (make-promise obj)
-  (if (promise? obj) obj
-      (##sys#make-promise (lambda () obj))))
-
-
 ;;; We need this here so `location' works:
  
 (define (##sys#make-locative obj index weak? loc)
@@ -5687,22 +5781,6 @@ EOF
 (define ##sys#filter-heap-objects (##core#primitive "C_filter_heap_objects"))
 
 
-;;; fast folds with correct argument order
-
-(define (foldl f z lst)
-  (##sys#check-list lst 'foldl)
-  (let loop ((lst lst) (z z))
-    (if (not (pair? lst))
-	z
-	(loop (##sys#slot lst 1) (f z (##sys#slot lst 0))))))
-
-(define (foldr f z lst)
-  (##sys#check-list lst 'foldr)
-  (let loop ((lst lst))
-    (if (not (pair? lst))
-	z
-	(f (##sys#slot lst 0) (loop (##sys#slot lst 1))))))
-
 ;;; Platform configuration inquiry:
 
 (module chicken.platform
@@ -5873,3 +5951,12 @@ EOF
 	     (loop (##sys#slot ids 1))))))
 
 ) ; chicken.platform
+
+
+;; TODO: Figure out how to ensure chicken.base is always available at
+;; syntax expansion time.  Related to #1131?  This is a temporary
+;; workaround (go ahead, laugh....) so at least macros have gensym,
+;; add1 and so on available without needing (import (chicken base)):
+(define gensym chicken.base#gensym)
+(define add1 chicken.base#add1)
+(define sub1 chicken.base#sub1)

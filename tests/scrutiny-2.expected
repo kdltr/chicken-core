@@ -42,16 +42,16 @@ Note: at toplevel:
   (scrutiny-tests-2.scm:22) in procedure call to `null?', the predicate is called with an argument of type `float' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:23) in procedure call to `fixnum?', the predicate is called with an argument of type `fixnum' and will always return true
+  (scrutiny-tests-2.scm:23) in procedure call to `chicken.base#fixnum?', the predicate is called with an argument of type `fixnum' and will always return true
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:23) in procedure call to `fixnum?', the predicate is called with an argument of type `float' and will always return false
+  (scrutiny-tests-2.scm:23) in procedure call to `chicken.base#fixnum?', the predicate is called with an argument of type `float' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:25) in procedure call to `flonum?', the predicate is called with an argument of type `float' and will always return true
+  (scrutiny-tests-2.scm:25) in procedure call to `chicken.base#flonum?', the predicate is called with an argument of type `float' and will always return true
 
 Note: at toplevel:
-  (scrutiny-tests-2.scm:25) in procedure call to `flonum?', the predicate is called with an argument of type `fixnum' and will always return false
+  (scrutiny-tests-2.scm:25) in procedure call to `chicken.base#flonum?', the predicate is called with an argument of type `fixnum' and will always return false
 
 Note: at toplevel:
   (scrutiny-tests-2.scm:27) in procedure call to `number?', the predicate is called with an argument of type `fixnum' and will always return true

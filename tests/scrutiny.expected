@@ -25,10 +25,10 @@ Warning: at toplevel:
   (scrutiny-tests.scm:21) in procedure call to `string?', expected 1 argument but was given 0 arguments
 
 Warning: at toplevel:
-  (scrutiny-tests.scm:23) expected a single result in argument #1 of procedure call `(print (values 1 2))', but received 2 results
+  (scrutiny-tests.scm:23) expected a single result in argument #1 of procedure call `(chicken.base#print (values 1 2))', but received 2 results
 
 Warning: at toplevel:
-  (scrutiny-tests.scm:24) expected a single result in argument #1 of procedure call `(print (values))', but received zero results
+  (scrutiny-tests.scm:24) expected a single result in argument #1 of procedure call `(chicken.base#print (values))', but received zero results
 
 Warning: at toplevel:
   (scrutiny-tests.scm:27) in procedure call to `x', expected a value of type `(procedure () *)' but was given a value of type `fixnum'
@@ -108,7 +108,7 @@ Warning: at toplevel:
   (scrutiny-tests.scm:163) in procedure call to `apply1', expected argument #2 of type `(list-of number)' but was given an argument of type `(list symbol fixnum fixnum)'
 
 Note: at toplevel:
-  (scrutiny-tests.scm:176) in procedure call to `fixnum?', the predicate is called with an argument of type `fixnum' and will always return true
+  (scrutiny-tests.scm:176) in procedure call to `chicken.base#fixnum?', the predicate is called with an argument of type `fixnum' and will always return true
 
 Note: at toplevel:
   (scrutiny-tests.scm:184) in procedure call to `symbol?', the predicate is called with an argument of type `(or char string)' and will always return false
@@ -198,18 +198,18 @@ Warning: in toplevel procedure `list-ref-standard-warn4':
   (scrutiny-tests.scm:279) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `list-ref-type-warn1':
-  (scrutiny-tests.scm:283) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:283) in procedure call to `chicken.base#add1', expected argument #1 of type `number' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `list-ref-type-warn2':
-  (scrutiny-tests.scm:285) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:285) in procedure call to `chicken.base#add1', expected argument #1 of type `number' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `list-ref-type-warn3':
-  (scrutiny-tests.scm:289) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:289) in procedure call to `chicken.base#add1', expected argument #1 of type `number' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `append-result-type-warn1':
-  (scrutiny-tests.scm:301) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:301) in procedure call to `chicken.base#add1', expected argument #1 of type `number' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `append-result-type-warn2':
-  (scrutiny-tests.scm:306) in procedure call to `add1', expected argument #1 of type `number' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:306) in procedure call to `chicken.base#add1', expected argument #1 of type `number' but was given an argument of type `symbol'
 
 Warning: redefinition of standard binding: car

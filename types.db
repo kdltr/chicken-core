@@ -227,7 +227,6 @@
 
 (symbol? (#(procedure #:pure #:predicate symbol) symbol? (*) boolean))
 
-(symbol-append (#(procedure #:clean #:enforce #:foldable) symbol-append (#!rest symbol) symbol))
 (symbol->string (#(procedure #:clean #:enforce) symbol->string (symbol) string))
 (string->symbol (#(procedure #:clean #:enforce #:foldable) string->symbol (string) symbol))
 
@@ -458,30 +457,6 @@
 	   (##core#inline_allocate ("C_s_a_u_i_integer_remainder" 5) #(1) #(2)))
 	  ((* *) (##core#inline_allocate ("C_s_a_i_remainder" 5) #(1) #(2))))
 
-(quotient&remainder (#(procedure #:clean #:enforce #:foldable) quotient&remainder ((or integer float) (or integer float)) (or integer float) (or integer float))
-	  ((float float) (float float)
-	   (let ((#(tmp1) #(1)))
-	     (let ((#(tmp2) #(2)))
-	       (##sys#values
-		(##core#inline_allocate
-		 ("C_a_i_flonum_actual_quotient_checked" 4) #(tmp1) #(tmp2))
-		(##core#inline_allocate
-		 ("C_a_i_flonum_remainder_checked" 4) #(tmp1) #(tmp2))))))
-	   ;;XXX flonum/mixed case
-	   ((fixnum fixnum) (integer fixnum)
-	    (let ((#(tmp1) #(1)))
-	      (let ((#(tmp2) #(2)))
-		(##sys#values
-		 (##core#inline_allocate ("C_a_i_fixnum_quotient_checked" 5)
-					 #(tmp1) #(tmp2))
-		 (##core#inline
-		  "C_i_fixnum_remainder_checked" #(tmp1) #(tmp2))))))
-	   ((integer integer) (integer integer)
-	    ((##core#primitive "C_u_integer_quotient_and_remainder") #(1) #(2))))
-
-;; TODO: Add nonspecializing type specific entries, to help flow analysis?
-(quotient&modulo (#(procedure #:clean #:enforce #:foldable) quotient&modulo ((or integer float) (or integer float)) (or integer float) (or integer float)))
-
 (modulo (#(procedure #:clean #:enforce #:foldable) modulo ((or integer float) (or integer float)) (or integer float))
 	  ((float float) (float)
 	   (##core#inline_allocate
@@ -711,11 +686,9 @@
 (##sys#vector->list (forall (a) (#(procedure #:clean #:enforce) ##sys#vector->list ((vector-of a)) (list-of a))))
 (list->vector (forall (a) (#(procedure #:clean #:enforce) list->vector ((list-of a)) (vector-of a))))
 (##sys#list->vector (forall (a) (#(procedure #:clean #:enforce) ##sys#list->vector ((list-of a)) (vector-of a))))
-(vector-fill! (#(procedure #:enforce) vector-fill! (vector *) undefined))
 
 (procedure? (#(procedure #:pure #:predicate procedure) procedure? (*) boolean))
 
-(vector-copy! (#(procedure #:enforce) vector-copy! (vector vector #!optional fixnum) undefined))
 
 (map (forall (a b) (#(procedure #:enforce) map ((procedure (a #!rest) b) (list-of a) #!rest list) (list-of b))))
 
@@ -867,7 +840,13 @@
 
 ;; chicken
 
-(add1 (#(procedure #:clean #:enforce #:foldable) add1 (number) number)
+(argc+argv (#(procedure #:clean) argc+argv () fixnum pointer))
+(argv (#(procedure #:clean) argv () (list-of string)))
+
+
+;; base
+
+(chicken.base#add1 (#(procedure #:clean #:enforce #:foldable) chicken.base#add1 (number) number)
       ((fixnum) (integer)
        (##core#inline_allocate ("C_a_i_fixnum_plus" 5) #(1) '1))
       ((integer) (integer)
@@ -877,8 +856,135 @@
       ((*) (number)
        (##core#inline_allocate ("C_s_a_i_plus" 29) #(1) '1)))
 
-(argc+argv (#(procedure #:clean) argc+argv () fixnum pointer))
-(argv (#(procedure #:clean) argv () (list-of string)))
+(chicken.base#sub1 (#(procedure #:clean #:enforce #:foldable) chicken.base#sub1 (number) number)
+      ((fixnum) (integer)
+       (##core#inline_allocate ("C_a_i_fixnum_difference" 5) #(1) '1))
+      ((integer) (integer)
+       (##core#inline_allocate ("C_s_a_u_i_integer_minus" 5) #(1) '1))
+      ((float) (float)
+       (##core#inline_allocate ("C_a_i_flonum_difference" 4) #(1) '1.0))
+      ((*) (number)
+       (##core#inline_allocate ("C_s_a_i_minus" 29) #(1) '1)))
+
+(chicken.base#subvector (forall (a) (#(procedure #:clean #:enforce) chicken.base#subvector ((vector-of a) fixnum #!optional fixnum) (vector-of a))))
+(chicken.base#vector-copy! (#(procedure #:enforce) chicken.base#vector-copy! (vector vector #!optional fixnum) undefined))
+(chicken.base#vector-fill! (#(procedure #:enforce) chicken.base#vector-fill! (vector *) undefined))
+(chicken.base#vector-resize
+ (forall (a b) (#(procedure #:clean #:enforce) chicken.base#vector-resize ((vector-of a) fixnum #!optional b)
+		(vector-of (or a b)))))
+
+(chicken.base#void (#(procedure #:pure) chicken.base#void (#!rest) undefined))
+(chicken.base#warning (procedure chicken.base#warning (* #!rest) undefined))
+(chicken.base#notice (procedure chicken.base#notice (* #!rest) undefined))
+
+(chicken.base#exact-integer-nth-root (#(procedure #:clean #:enforce #:foldable) chicken.base#exact-integer-nth-root (integer integer) integer integer)
+		    ((integer integer) (##sys#exact-integer-nth-root/loc 'exact-integer-nth-root #(1) #(2))))
+
+(chicken.base#exact-integer-sqrt (#(procedure #:clean #:enforce #:foldable) chicken.base#exact-integer-sqrt (integer) integer integer)
+		    ((integer) (##sys#exact-integer-sqrt #(1))))
+
+(chicken.base#fixnum? (#(procedure #:pure #:predicate fixnum) chicken.base#fixnum? (*) boolean))
+(chicken.base#flonum? (#(procedure #:pure #:predicate float) chicken.base#flonum? (*) boolean))
+(chicken.base#bignum? (#(procedure #:pure #:predicate bignum) chicken.base#bignum? (*) boolean))
+(chicken.base#ratnum? (#(procedure #:pure #:predicate ratnum) chicken.base#ratnum? (*) boolean))
+(chicken.base#cplxnum? (#(procedure #:pure #:predicate cplxnum) chicken.base#cplxnum? (*) boolean))
+
+(chicken.base#foldl (forall (a b) (#(procedure #:enforce) chicken.base#foldl ((procedure (a b) a) a (list-of b)) a)))
+(chicken.base#foldr (forall (a b) (#(procedure #:enforce) chicken.base#foldr ((procedure (a b) b) b (list-of a)) b)))
+
+(chicken.base#nan? (#(procedure #:clean #:enforce #:foldable) chicken.base#nan? (number) boolean)
+      (((or integer ratnum)) (let ((#(tmp) #(1))) '#f))
+      ((float) (##core#inline "C_u_i_flonum_nanp" #(1)))
+      ((*) (##core#inline "C_i_nanp" #(1))))
+
+(chicken.base#infinite? (#(procedure #:clean #:enforce #:foldable) chicken.base#infinite? (number) boolean)
+	   (((or integer ratnum)) (let ((#(tmp) #(1))) '#f))
+	   ((float) (##core#inline "C_u_i_flonum_infinitep" #(1)))
+	   ((*) (##core#inline "C_i_infinitep" #(1))))
+
+(chicken.base#finite? (#(procedure #:clean #:enforce #:foldable) chicken.base#finite? (number) boolean)
+	 (((or integer ratnum)) (let ((#(tmp) #(1))) '#t))
+	 ((float) (##core#inline "C_u_i_flonum_finitep" #(1)))
+	 ((*) (##core#inline "C_i_finitep" #(1))))
+
+(chicken.base#get-call-chain (#(procedure #:clean #:enforce) chicken.base#get-call-chain (#!optional fixnum (struct thread)) (list-of vector)))
+(chicken.base#print-call-chain (#(procedure #:clean #:enforce) chicken.base#print-call-chain (#!optional output-port fixnum * string) undefined))
+
+(chicken.base#print (procedure chicken.base#print (#!rest *) undefined))
+(chicken.base#print* (procedure chicken.base#print* (#!rest) undefined))
+(chicken.base#procedure-information (#(procedure #:clean #:enforce) chicken.base#procedure-information (procedure) *))
+(chicken.base#promise? (#(procedure #:pure #:predicate (struct promise)) chicken.base#promise? (*) boolean))
+
+(chicken.base#make-promise (#(procedure #:enforce) chicken.base#make-promise (*) (struct promise))
+              (((struct promise)) #(1)))
+
+(chicken.base#call/cc (#(procedure #:enforce) chicken.base#call/cc ((procedure (*) . *)) . *))
+
+(chicken.base#current-error-port
+ (#(procedure #:clean #:enforce) chicken.base#current-error-port (#!optional output-port boolean boolean) output-port)
+ ((output-port) (let ((#(tmp1) #(1)))
+		  (let ((#(tmp2) (set! ##sys#standard-error #(tmp1))))
+		    #(tmp1))))
+ (() ##sys#standard-error))
+
+(chicken.base#enable-warnings (#(procedure #:clean) chicken.base#enable-warnings (#!optional *) *))
+
+(chicken.base#error (procedure chicken.base#error (* #!rest) noreturn))
+(chicken.base#equal=? (#(procedure #:clean #:foldable) chicken.base#equal=? (* *) boolean)
+	 ((fixnum fixnum) (eq? #(1) #(2)))
+	 (((or symbol char eof null undefined) *) (eq? #(1) #(2)))
+	 ((* (or symbol char eof null undefined)) (eq? #(1) #(2)))
+	 ((number number) (= #(1) #(2))))
+
+(chicken.base#gensym (#(procedure #:clean) chicken.base#gensym (#!optional (or string symbol)) symbol))
+(chicken.base#char-name (#(procedure #:clean #:enforce) chicken.base#char-name ((or char symbol) #!optional char) *)) ;XXX -> (or char symbol) ?
+
+(chicken.base#getter-with-setter
+ (#(procedure #:clean #:enforce)
+  chicken.base#getter-with-setter
+  ((procedure (#!rest) *) (procedure (* #!rest) . *) #!optional string)
+  procedure))
+(chicken.base#setter (#(procedure #:clean #:enforce) chicken.base#setter (procedure) procedure))
+
+(chicken.base#signum (#(procedure #:clean #:enforce) chicken.base#signum (number) (or fixnum float cplxnum))
+	((fixnum) (fixnum) (##core#inline "C_i_fixnum_signum" #(1)))
+	((integer) (fixnum) (##core#inline "C_u_i_integer_signum" #(1)))
+	((float) (float)
+	 (##core#inline_allocate ("C_a_u_i_flonum_signum" 4) #(1)))
+	((ratnum) (fixnum)
+	 (##core#inline "C_u_i_integer_signum"
+			(##core#inline "C_u_i_ratnum_num" #(1))))
+	((cplxnum) ((or float cplxnum)) (##sys#extended-signum #(1))))
+
+(chicken.base#make-parameter (#(procedure #:clean #:enforce) chicken.base#make-parameter (* #!optional procedure) procedure))
+(chicken.base#string->uninterned-symbol (#(procedure #:clean #:enforce) chicken.base#string->uninterned-symbol (string) symbol))
+(chicken.base#symbol-append (#(procedure #:clean #:enforce #:foldable) chicken.base#symbol-append (#!rest symbol) symbol))
+
+(chicken.base#quotient&remainder (#(procedure #:clean #:enforce #:foldable) chicken.base#quotient&remainder ((or integer float) (or integer float)) (or integer float) (or integer float))
+	  ((float float) (float float)
+	   (let ((#(tmp1) #(1)))
+	     (let ((#(tmp2) #(2)))
+	       (##sys#values
+		(##core#inline_allocate
+		 ("C_a_i_flonum_actual_quotient_checked" 4) #(tmp1) #(tmp2))
+		(##core#inline_allocate
+		 ("C_a_i_flonum_remainder_checked" 4) #(tmp1) #(tmp2))))))
+	   ;;XXX flonum/mixed case
+	   ((fixnum fixnum) (integer fixnum)
+	    (let ((#(tmp1) #(1)))
+	      (let ((#(tmp2) #(2)))
+		(##sys#values
+		 (##core#inline_allocate ("C_a_i_fixnum_quotient_checked" 5)
+					 #(tmp1) #(tmp2))
+		 (##core#inline
+		  "C_i_fixnum_remainder_checked" #(tmp1) #(tmp2))))))
+	   ((integer integer) (integer integer)
+	    ((##core#primitive "C_u_integer_quotient_and_remainder") #(1) #(2))))
+
+;; TODO: Add nonspecializing type specific entries, to help flow analysis?
+(chicken.base#quotient&modulo (#(procedure #:clean #:enforce #:foldable) chicken.base#quotient&modulo ((or integer float) (or integer float)) (or integer float) (or integer float)))
+
+;; bitwise
 
 (chicken.bitwise#integer-length
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#integer-length (integer) fixnum)
@@ -888,18 +994,6 @@
 (chicken-bitwise#arithmetic-shift
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#arithmetic-shift (integer fixnum) integer)
 		((* *) (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 5) #(1) #(2))))
-
-(exact-integer-nth-root (#(procedure #:clean #:enforce #:foldable) exact-integer-nth-root (integer integer) integer integer)
-		    ((integer integer) (##sys#exact-integer-nth-root/loc 'exact-integer-nth-root #(1) #(2))))
-
-(exact-integer-sqrt (#(procedure #:clean #:enforce #:foldable) exact-integer-sqrt (integer) integer integer)
-		    ((integer) (##sys#exact-integer-sqrt #(1))))
-
-(fixnum? (#(procedure #:pure #:predicate fixnum) fixnum? (*) boolean))
-(flonum? (#(procedure #:pure #:predicate float) flonum? (*) boolean))
-(bignum? (#(procedure #:pure #:predicate bignum) bignum? (*) boolean))
-(ratnum? (#(procedure #:pure #:predicate ratnum) ratnum? (*) boolean))
-(cplxnum? (#(procedure #:pure #:predicate cplxnum) cplxnum? (*) boolean))
 
 (chicken.bitwise#bit->boolean
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bit->boolean (integer integer) boolean)
@@ -945,9 +1039,7 @@
 	   ((fixnum) (##sys#make-blob #(1))))
 (chicken.blob#string->blob (#(procedure #:clean #:enforce) chicken.blob#string->blob (string) blob))
 
-(call/cc (#(procedure #:enforce) call/cc ((procedure (*) . *)) . *))
 (case-sensitive (#(procedure #:clean) case-sensitive (#!optional *) *))
-(char-name (#(procedure #:clean #:enforce) char-name ((or char symbol) #!optional char) *)) ;XXX -> (or char symbol) ?
 (command-line-arguments (#(procedure #:clean) command-line-arguments (#!optional (list-of string)) (list-of string)))
 
 ;; condition
@@ -1000,12 +1092,6 @@
  (#(procedure #:clean #:enforce) chicken.read-syntax#set-sharp-read-syntax!
   (char (or false (procedure (input-port) . *))) undefined))
 
-(current-error-port
- (#(procedure #:clean #:enforce) current-error-port (#!optional output-port boolean boolean) output-port)
- ((output-port) (let ((#(tmp1) #(1))) 
-		  (let ((#(tmp2) (set! ##sys#standard-error #(tmp1))))
-		    #(tmp1))))
- (() ##sys#standard-error))
 
 ;; time
 
@@ -1013,16 +1099,7 @@
 (chicken.time#current-seconds (#(procedure #:clean) chicken.time#current-seconds () integer))
 (chicken.time#current-milliseconds (#(procedure #:clean) chicken.time#current-milliseconds () integer))
 
-(enable-warnings (#(procedure #:clean) enable-warnings (#!optional *) *))
-
-(equal=? (#(procedure #:clean #:foldable) equal=? (* *) boolean)
-	 ((fixnum fixnum) (eq? #(1) #(2)))
-	 (((or symbol char eof null undefined) *) (eq? #(1) #(2)))
-	 ((* (or symbol char eof null undefined)) (eq? #(1) #(2)))
-	 ((number number) (= #(1) #(2))))
-
 (errno (#(procedure #:clean) errno () fixnum))
-(error (procedure error (* #!rest) noreturn))
 (##sys#error (procedure ##sys#error (* #!rest) noreturn))
 (##sys#signal-hook (procedure ##sys#signal-hook (* #!rest) noreturn))
 (##sys#debug-mode? (procedure ##sys#debug-mode? () boolean)
@@ -1035,25 +1112,7 @@
 
 (flush-output (#(procedure #:enforce) flush-output (#!optional output-port) undefined))
 
-(foldl (forall (a b) (#(procedure #:enforce) foldl ((procedure (a b) a) a (list-of b)) a)))
-(foldr (forall (a b) (#(procedure #:enforce) foldr ((procedure (a b) b) b (list-of a)) b)))
-
 (force-finalizers (procedure force-finalizers () undefined))
-
-(nan? (#(procedure #:clean #:enforce #:foldable) nan? (number) boolean)
-      (((or integer ratnum)) (let ((#(tmp) #(1))) '#f))
-      ((float) (##core#inline "C_u_i_flonum_nanp" #(1)))
-      ((*) (##core#inline "C_i_nanp" #(1))))
-
-(infinite? (#(procedure #:clean #:enforce #:foldable) infinite? (number) boolean)
-	   (((or integer ratnum)) (let ((#(tmp) #(1))) '#f))
-	   ((float) (##core#inline "C_u_i_flonum_infinitep" #(1)))
-	   ((*) (##core#inline "C_i_infinitep" #(1))))
-
-(finite? (#(procedure #:clean #:enforce #:foldable) finite? (number) boolean)
-	 (((or integer ratnum)) (let ((#(tmp) #(1))) '#t))
-	 ((float) (##core#inline "C_u_i_flonum_finitep" #(1)))
-	 ((*) (##core#inline "C_i_finitep" #(1))))
 
 ;; flonum
 
@@ -1193,8 +1252,6 @@
 (chicken.fixnum#fx*? (#(procedure #:pure) chicken.fixnum#fx*? ((or fixnum false) (or fixnum false)) (or fixnum false)))
 (chicken.fixnum#fx/? (#(procedure #:clean) chicken.fixnum#fx/? ((or fixnum false) (or fixnum false)) (or fixnum false)))
 
-(gensym (#(procedure #:clean) gensym (#!optional (or string symbol)) symbol))
-
 (get-environment-variable (#(procedure #:clean #:enforce) get-environment-variable (string) *))
 (get-output-string (#(procedure #:clean #:enforce) get-output-string (output-port) string))
 
@@ -1247,18 +1304,11 @@
 (chicken.plist#symbol-plist (#(procedure #:clean #:enforce) chicken.plist#symbol-plist (symbol) list)
 			    ((symbol) (##sys#slot #(1) '2)))
 
-(getter-with-setter
- (#(procedure #:clean #:enforce)
-  getter-with-setter
-  ((procedure (#!rest) *) (procedure (* #!rest) . *) #!optional string)
-  procedure))
-
 (implicit-exit-handler
  (#(procedure #:clean #:enforce) implicit-exit-handler (#!optional (procedure () . *)) procedure))
 
 (keyword-style (#(procedure #:clean) keyword-style (#!optional symbol) symbol))
 
-(make-parameter (#(procedure #:clean #:enforce) make-parameter (* #!optional procedure) procedure))
 (chicken.flonum#maximum-flonum float)
 (chicken.flonum#minimum-flonum float)
 (chicken.fixnum#most-negative-fixnum fixnum)
@@ -1278,17 +1328,7 @@
 (port-closed? (#(procedure #:clean #:enforce) port-closed? (port) boolean)
 	      ((port) (eq? (##sys#slot #(1) '8) '0)))
 
-(get-call-chain (#(procedure #:clean #:enforce) get-call-chain (#!optional fixnum (struct thread)) (list-of vector)))
-(print-call-chain (#(procedure #:clean #:enforce) print-call-chain (#!optional output-port fixnum * string) undefined))
-
-(print (procedure print (#!rest *) undefined))
-(print* (procedure print* (#!rest) undefined))
-(procedure-information (#(procedure #:clean #:enforce) procedure-information (procedure) *))
 (program-name (#(procedure #:clean #:enforce) program-name (#!optional string) string))
-(promise? (#(procedure #:pure #:predicate (struct promise)) promise? (*) boolean))
-
-(make-promise (#(procedure #:enforce) make-promise (*) (struct promise))
-              (((struct promise)) #(1)))
 
 (return-to-host (procedure return-to-host () . *))
 
@@ -1309,41 +1349,13 @@
 (set-port-name! (#(procedure #:clean #:enforce) set-port-name! (port string) undefined)
 		((port string) (##sys#setslot #(1) '3 #(2))))
 
-(setter (#(procedure #:clean #:enforce) setter (procedure) procedure))
-
-(signum (#(procedure #:clean #:enforce) signum (number) (or fixnum float cplxnum))
-	((fixnum) (fixnum) (##core#inline "C_i_fixnum_signum" #(1)))
-	((integer) (fixnum) (##core#inline "C_u_i_integer_signum" #(1)))
-	((float) (float)
-	 (##core#inline_allocate ("C_a_u_i_flonum_signum" 4) #(1)))
-	((ratnum) (fixnum)
-	 (##core#inline "C_u_i_integer_signum"
-			(##core#inline "C_u_i_ratnum_num" #(1))))
-	((cplxnum) ((or float cplxnum)) (##sys#extended-signum #(1))))
 
 (sleep (#(procedure #:clean #:enforce) sleep (fixnum) undefined))
-(string->uninterned-symbol (#(procedure #:clean #:enforce) string->uninterned-symbol (string) symbol))
 
-(sub1 (#(procedure #:clean #:enforce #:foldable) sub1 (number) number)
-      ((fixnum) (integer)
-       (##core#inline_allocate ("C_a_i_fixnum_difference" 5) #(1) '1))
-      ((integer) (integer)
-       (##core#inline_allocate ("C_s_a_u_i_integer_minus" 5) #(1) '1))
-      ((float) (float) 
-       (##core#inline_allocate ("C_a_i_flonum_difference" 4) #(1) '1.0))
-      ((*) (number)
-       (##core#inline_allocate ("C_s_a_i_minus" 29) #(1) '1)))
-
-(subvector (forall (a) (#(procedure #:clean #:enforce) subvector ((vector-of a) fixnum #!optional fixnum) (vector-of a))))
 (symbol-escape (#(procedure #:clean) symbol-escape (#!optional *) *))
 
 (system (#(procedure #:clean #:enforce) system (string) fixnum))
-(vector-resize
- (forall (a b) (#(procedure #:clean #:enforce) vector-resize ((vector-of a) fixnum #!optional b)
-	       (vector-of (or a b)))))
-(void (#(procedure #:pure) void (#!rest) undefined))
 (##sys#void (#(procedure #:pure) void (#!rest) undefined))
-(warning (procedure warning (* #!rest) undefined))
 
 ;; chicken (internal)
 

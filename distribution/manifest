@@ -266,6 +266,8 @@ chicken-syntax.c
 common-declarations.scm
 chicken.import.scm
 chicken.import.c
+chicken.base.import.scm
+chicken.base.import.c
 chicken.bitwise.import.scm
 chicken.bitwise.import.c
 chicken.blob.import.scm

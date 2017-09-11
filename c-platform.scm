@@ -61,7 +61,7 @@
     (bound-to-procedure
      ##sys#for-each ##sys#map ##sys#print ##sys#setter
      ##sys#setslot ##sys#dynamic-wind ##sys#call-with-values
-     ##sys#start-timer ##sys#stop-timer ##sys#gcd ##sys#lcm ##sys#make-promise ##sys#structure? ##sys#slot 
+     ##sys#start-timer ##sys#stop-timer ##sys#gcd ##sys#lcm ##sys#structure? ##sys#slot
      ##sys#allocate-vector ##sys#list->vector ##sys#block-ref ##sys#block-set!
      ##sys#list ##sys#cons ##sys#append ##sys#vector ##sys#foreign-char-argument ##sys#foreign-fixnum-argument
      ##sys#foreign-flonum-argument ##sys#error ##sys#peek-c-string ##sys#peek-nonnull-c-string 
@@ -76,8 +76,8 @@
        ##sys#profile-entry ##sys#profile-exit) ) ) )
 
 (define default-units '(library eval))
-(define default-imports '(scheme chicken))
-(define default-syntax-imports '(scheme chicken))
+(define default-imports '(scheme chicken chicken.base))
+(define default-syntax-imports '(scheme chicken chicken.base))
 
 (define words-per-flonum 4)
 
@@ -134,7 +134,7 @@
     char-lower-case? char-upper-case? char-upcase char-downcase string? string=? string>? string<?
     string>=? string<=? string-ci=? string-ci<? string-ci>? string-ci<=? string-ci>=?
     string-append string->list list->string vector? vector->list list->vector string read
-    read-char substring string-fill! vector-fill! make-string make-vector open-input-file
+    read-char substring string-fill! vector-copy! vector-fill! make-string make-vector open-input-file
     open-output-file call-with-input-file call-with-output-file close-input-port close-output-port
     values call-with-values vector procedure? memq memv member assq assv assoc list-tail
     list-ref abs char-ready? peek-char list->string string->list
@@ -153,16 +153,29 @@
 	 fxrem fxshl fxshr fxxor)))
 
 (define-constant +extended-bindings+
-  '(bignum? cplxnum? fixnum? flonum? ratnum?
+  '(chicken.base#bignum? chicken.base#cplxnum? chicken.base#fixnum?
+    chicken.base#flonum? chicken.base#ratnum?
+    chicken.base#add1 chicken.base#sub1
+    chicken.base#nan? chicken.base#finite? chicken.base#infinite?
+    chicken.base#gensym
+    chicken.base#void chicken.base#print chicken.base#print*
+    chicken.base#error chicken.base#call/cc chicken.base#char-name
+    chicken.base#current-error-port
+    chicken.base#symbol-append chicken.base#foldl chicken.base#foldr
+    chicken.base#setter chicken.base#getter-with-setter
+
     chicken.bitwise#integer-length
     chicken.bitwise#bitwise-and chicken.bitwise#bitwise-not
     chicken.bitwise#bitwise-ior chicken.bitwise#bitwise-xor
     chicken.bitwise#arithmetic-shift chicken.bitwise#bit->boolean
-    add1 sub1 exact-integer? nan? finite? infinite?
-    void flush-output print print* error call/cc chicken.blob#blob-size
-    identity chicken.blob#blob=? equal=? make-polar make-rectangular
-    real-part imag-part string->symbol symbol-append foldl foldr setter
-    current-error-port current-thread chicken.keyword#get-keyword
+
+    chicken.blob#blob-size
+    chicken.blob#blob=? equal=?
+
+    exact-integer? flush-output make-polar make-rectangular
+    real-part imag-part string->symbol current-thread
+
+    chicken.keyword#get-keyword
     srfi-4#u8vector-length srfi-4#s8vector-length
     srfi-4#u16vector-length srfi-4#s16vector-length
     srfi-4#u32vector-length srfi-4#u64vector-length
@@ -205,9 +218,9 @@
     chicken.memory#pointer-u16-set! chicken.memory#pointer-s16-set!
     chicken.memory#pointer-u32-set! chicken.memory#pointer-s32-set!
     chicken.memory#pointer-f32-set! chicken.memory#pointer-f64-set!
-    chicken.data-structures#o
     chicken.string#substring-index chicken.string#substring-index-ci
     chicken.string#substring=? chicken.string#substring-ci=?
+    chicken.data-structures#identity chicken.data-structures#o
     chicken.data-structures#atom?
     chicken.data-structures#alist-ref chicken.data-structures#rassoc
     chicken.io#read-string chicken.format#format
@@ -236,7 +249,7 @@
     ##sys#foreign-string-argument ##sys#foreign-pointer-argument ##sys#void
     ##sys#foreign-ranged-integer-argument ##sys#foreign-unsigned-ranged-integer-argument
     ##sys#peek-fixnum ##sys#setislot ##sys#poke-integer ##sys#permanent? ##sys#values ##sys#poke-double
-    ##sys#intern-symbol ##sys#make-symbol ##sys#null-pointer? ##sys#peek-byte
+    ##sys#intern-symbol ##sys#null-pointer? ##sys#peek-byte
     ##sys#file-exists? ##sys#substring-index ##sys#substring-index-ci ##sys#lcm ##sys#gcd))
 
 (for-each
@@ -268,8 +281,8 @@
 	       (make-node
 		'##core#inline_allocate (list aiop 36)
 		(list (car callargs) (qnode 1))))))))
-  (rewrite 'add1 8 (op1 "C_fixnum_increase" "C_u_fixnum_increase" "C_s_a_i_plus"))
-  (rewrite 'sub1 8 (op1 "C_fixnum_decrease" "C_u_fixnum_decrease" "C_s_a_i_minus")))
+  (rewrite 'chicken.base#add1 8 (op1 "C_fixnum_increase" "C_u_fixnum_increase" "C_s_a_i_plus"))
+  (rewrite 'chicken.base#sub1 8 (op1 "C_fixnum_decrease" "C_u_fixnum_decrease" "C_s_a_i_minus")))
 
 (let ()
   (define (eqv?-id db classargs cont callargs)
@@ -489,15 +502,15 @@
 (rewrite 'rational? 2 1 "C_i_rationalp" #t)
 (rewrite 'real? 2 1 "C_i_realp" #t)
 (rewrite 'integer? 2 1 "C_i_integerp" #t)
-(rewrite 'exact-integer? 2 1 "C_i_exact_integerp" #t)
-(rewrite 'flonum? 2 1 "C_i_flonump" #t)
-(rewrite 'fixnum? 2 1 "C_fixnump" #t)
-(rewrite 'bignum? 2 1 "C_i_bignump" #t)
-(rewrite 'cplxnum? 2 1 "C_i_cplxnump" #t)
-(rewrite 'ratnum? 2 1 "C_i_ratnump" #t)
-(rewrite 'nan? 2 1 "C_i_nanp" #f)
-(rewrite 'finite? 2 1 "C_i_finitep" #f)
-(rewrite 'infinite? 2 1 "C_i_infinitep" #f)
+(rewrite 'chicken.base#exact-integer? 2 1 "C_i_exact_integerp" #t)
+(rewrite 'chicken.base#flonum? 2 1 "C_i_flonump" #t)
+(rewrite 'chicken.base#fixnum? 2 1 "C_fixnump" #t)
+(rewrite 'chicken.base#bignum? 2 1 "C_i_bignump" #t)
+(rewrite 'chicken.base#cplxnum? 2 1 "C_i_cplxnump" #t)
+(rewrite 'chicken.base#ratnum? 2 1 "C_i_ratnump" #t)
+(rewrite 'chicken.base#nan? 2 1 "C_i_nanp" #f)
+(rewrite 'chicken.base#finite? 2 1 "C_i_finitep" #f)
+(rewrite 'chicken.base#infinite? 2 1 "C_i_infinitep" #f)
 (rewrite 'chicken.flonum#fpinteger? 2 1 "C_u_i_fpintegerp" #f)
 (rewrite '##sys#pointer? 2 1 "C_anypointerp" #t)
 (rewrite 'pointer? 2 1 "C_i_safe_pointerp" #t)
@@ -958,7 +971,7 @@
 				    '##core#call (list #t)
 				    (list val cont (qnode #f)) ) ) ) ) ) ) ) ) ) ) ) )
   (rewrite 'call-with-current-continuation 8 rewrite-call/cc)
-  (rewrite 'call/cc 8 rewrite-call/cc) )
+  (rewrite 'chicken.base#call/cc 8 rewrite-call/cc))
 
 (define setter-map
   '((car . set-car!)

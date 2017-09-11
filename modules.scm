@@ -40,6 +40,7 @@
 (define-syntax d (syntax-rules () ((_ . _) (void))))
 
 (import scheme
+	chicken.base
 	chicken.internal
 	chicken.keyword
 	chicken.platform
@@ -994,22 +995,22 @@
  'srfi-0 '() (se-subset '(cond-expand) ##sys#default-macro-environment))
 
 (##sys#register-primitive-module
- 'srfi-2 '() (se-subset '(and-let*) ##sys#chicken-macro-environment))
+ 'srfi-2 '() (se-subset '(and-let*) ##sys#chicken.base-macro-environment))
 
 (##sys#register-core-module
  'srfi-6 'library '(open-input-string open-output-string get-output-string))
 
 (##sys#register-primitive-module
- 'srfi-8 '() (se-subset '(receive) ##sys#chicken-macro-environment))
+ 'srfi-8 '() (se-subset '(receive) ##sys#chicken.base-macro-environment))
 
 (##sys#register-primitive-module
- 'srfi-9 '() (se-subset '(define-record-type) ##sys#chicken-macro-environment))
+ 'srfi-9 '() (se-subset '(define-record-type) ##sys#chicken.base-macro-environment))
 
 (##sys#register-core-module
  'srfi-10 'read-syntax '((define-reader-ctor . chicken.read-syntax#define-reader-ctor)))
 
 (##sys#register-primitive-module
- 'srfi-11 '() (se-subset '(let-values let*-values) ##sys#chicken-macro-environment))
+ 'srfi-11 '() (se-subset '(let-values let*-values) ##sys#chicken.base-macro-environment))
 
 (##sys#register-core-module
  'srfi-12 'library
@@ -1025,32 +1026,32 @@
  (se-subset '(handle-exceptions) ##sys#chicken.condition-macro-environment))
 
 (##sys#register-primitive-module
- 'srfi-15 '() (se-subset '(fluid-let) ##sys#chicken-macro-environment))
+ 'srfi-15 '() (se-subset '(fluid-let) ##sys#chicken.base-macro-environment))
 
 (##sys#register-primitive-module
- 'srfi-16 '() (se-subset '(case-lambda) ##sys#chicken-macro-environment))
+ 'srfi-16 '() (se-subset '(case-lambda) ##sys#chicken.base-macro-environment))
 
 (##sys#register-primitive-module
  'srfi-17 '() (se-subset '(set!) ##sys#default-macro-environment))
 
 (##sys#register-core-module
- 'srfi-23 'library '(error))
+ 'srfi-23 'library '((error . chicken.base#error)))
 
 (##sys#register-primitive-module
- 'srfi-26 '() (se-subset '(cut cute) ##sys#chicken-macro-environment))
+ 'srfi-26 '() (se-subset '(cut cute) ##sys#chicken.base-macro-environment))
 
 (##sys#register-core-module
  'srfi-28 'extras '((format . chicken.format#format)))
 
 (##sys#register-primitive-module
- 'srfi-31 '() (se-subset '(rec) ##sys#chicken-macro-environment))
+ 'srfi-31 '() (se-subset '(rec) ##sys#chicken.base-macro-environment))
 
 (##sys#register-core-module
- 'srfi-39 'library '(make-parameter)
- (se-subset '(parameterize) ##sys#chicken-macro-environment))
+ 'srfi-39 'library '((make-parameter . chicken.base#make-parameter))
+ (se-subset '(parameterize) ##sys#chicken.base-macro-environment))
 
 (##sys#register-primitive-module
- 'srfi-55 '() (se-subset '(require-extension) ##sys#default-macro-environment))
+ 'srfi-55 '() (se-subset '(require-extension) ##sys#chicken.base-macro-environment))
 
 (##sys#register-core-module
  'srfi-98 'posix
