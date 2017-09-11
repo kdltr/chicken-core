@@ -290,19 +290,21 @@ property only makes sense for extension libraries.
 
 ====== types-file
 
-[egg property] (types-file NAME)
+[egg property] (types-file [NAME])
 
 Specifies that a "type-database" file should be generated and
 installed for this component. This property is only used for
-extension libraries.
+extension libraries. The name is optional and defaults to the
+name of the extensions (with the proper extension).
 
 ====== inline-file
 
-[egg property] (inline-file NAME)
+[egg property] (inline-file [NAME])
 
 Specifies that an "inline" file should be generated and installed
 for this component. This property is only used for extension
-libraries.
+libraries. The name is optional and defaults to the
+name of the extensions (with the proper extension).
 
 ====== custom-build
 

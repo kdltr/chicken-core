@@ -354,10 +354,17 @@
                        (append (if (memq 'dynamic link) 
                                    (list (apply compile-dynamic-extension data))
                                    '())
-                               ;; static must come last, as *.o file will be overwritten
-                               ;; and removed by dynamic build (meh)
                                (if (memq 'static link) 
-                                   (list (apply compile-static-extension data))
+                                   ;; if compiling both static + dynamic, override
+                                   ;; types-file: + inline-file: properties to
+                                   ;; avoid generating things twice:
+                                   (list (apply compile-static-extension
+                                                (if (memq 'dynamic link)
+                                                    (cons (car data)
+                                                          (append '(types-file: #f
+                                                                    inline-file: #f)
+                                                                  (cdr data)))
+                                                    data)))
                                    '())
                                (if (uses-compiled-import-library? mode)
                                    (map (lambda (mod)
@@ -417,16 +424,25 @@
 
 ;;; shell code generation - build operations
 
-(define ((compile-static-extension name #!key mode dependencies source 
-                                   (options '()) custom) 
+(define ((compile-static-extension name #!key mode dependencies
+                                   source (options '())
+                                   custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom))
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
-         (opts (if (null? options) 
-                   default-static-compilation-options
-                   options))
+         (opts (append (if (null? options)
+                           default-static-compilation-options
+                           options)
+                       (if types-file
+                           (list "-emit-type-file"
+                                 (quotearg (prefix srcdir (conc types-file ".types"))))
+                           '())
+                       (if inline-file
+                           (list "-emit-inline-file"
+                                 (quotearg (prefix srcdir (conc inline-file ".inline"))))
+                           '())))
          (out (quotearg (target-file (conc sname
                                            ".static"
                                            (object-extension platform))
@@ -446,14 +462,22 @@
 
 (define ((compile-dynamic-extension name #!key mode dependencies mode
                                     source (options '()) (link-options '()) 
-                                    custom) 
+                                    custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom)) 
                   default-csc))
          (sname (prefix srcdir name))
-         (opts (if (null? options) 
-                   default-dynamic-compilation-options
-                   options))
+         (opts (append (if (null? options)
+                           default-dynamic-compilation-options
+                           options)
+                       (if types-file
+                           (list "-emit-type-file"
+                                 (quotearg (prefix srcdir (conc types-file ".types"))))
+                           '())
+                       (if inline-file
+                           (list "-emit-inline-file"
+                                 (quotearg (prefix srcdir (conc inline-file ".inline"))))
+                           '())))
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname ".so") mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
@@ -611,8 +635,7 @@
          srcdir platform)
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
-         (sname (prefix srcdir name))
-         (out (quotearg (conc types-file ".types")))
+         (out (quotearg (prefix srcdir (conc types-file ".types"))))
          (dest (destination-repository mode))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
@@ -626,7 +649,7 @@
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
-         (out (quotearg (conc inline-file ".inline")))
+         (out (quotearg (prefix srcdir (conc inline-file ".inline"))))
          (dest (destination-repository mode))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
