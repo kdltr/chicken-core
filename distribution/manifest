@@ -160,6 +160,7 @@ tests/test-glob.scm
 tests/matchable.scm
 tests/module-tests.scm
 tests/module-tests-2.scm
+tests/multiple-values.scm
 tests/test-finalizers.scm
 tests/test-finalizers-2.scm
 tests/test-find-files.scm
