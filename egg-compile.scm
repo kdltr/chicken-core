@@ -834,6 +834,6 @@ EOF
          (lambda (m) (string-append default-csc (irregex-match-substring m 1))))
         ((irregex-match "^cc( .+)$" cmd) =>
          (lambda (m) (string-append default-cc (irregex-match-substring m 1))))
-        ((irregex-match "^c++( .+)$" cmd) =>
+        ((irregex-match "^c\\+\\+( .+)$" cmd) =>
          (lambda (m) (string-append default-cxx (irregex-match-substring m 1))))
         (else cmd)))
