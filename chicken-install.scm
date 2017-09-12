@@ -176,7 +176,7 @@
     (platform #t #f #f)
     (installed-files #t #f #f ,list?)
     (maintainer #t #f #f)
-    (files #f #t #f ,list?)
+    (files #f #f #f ,list?)
     (source #f #f #f)
     (csc-options #f #f #f)
     (link-options #f #f #f)
