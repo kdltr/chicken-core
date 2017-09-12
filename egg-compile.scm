@@ -648,7 +648,6 @@
          srcdir platform)
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
-         (sname (prefix srcdir name))
          (out (quotearg (prefix srcdir (conc inline-file ".inline"))))
          (dest (destination-repository mode))
          (dfile (quotearg (slashify dest platform)))
