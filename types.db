@@ -1013,7 +1013,6 @@
 (chicken.time#current-seconds (#(procedure #:clean) chicken.time#current-seconds () integer))
 (chicken.time#current-milliseconds (#(procedure #:clean) chicken.time#current-milliseconds () integer))
 
-(delete-file (#(procedure #:clean #:enforce) delete-file (string) string))
 (enable-warnings (#(procedure #:clean) enable-warnings (#!optional *) *))
 
 (equal=? (#(procedure #:clean #:foldable) equal=? (* *) boolean)
@@ -1291,7 +1290,6 @@
 (make-promise (#(procedure #:enforce) make-promise (*) (struct promise))
               (((struct promise)) #(1)))
 
-(rename-file (#(procedure #:clean #:enforce) rename-file (string string) string))
 (return-to-host (procedure return-to-host () . *))
 
 ;; gc
@@ -1562,11 +1560,13 @@
 (chicken.file#create-temporary-directory (#(procedure #:clean #:enforce) chicken.file#create-temporary-directory () string))
 (chicken.file#create-temporary-file (#(procedure #:clean #:enforce) chicken.file#create-temporary-file (#!optional string) string))
 (chicken.file#delete-directory (#(procedure #:clean #:enforce) chicken.file#delete-directory (string #!optional *) string))
+(chicken.file#delete-file (#(procedure #:clean #:enforce) chicken.file#delete-file (string) string))
 (chicken.file#delete-file* (#(procedure #:clean #:enforce) chicken.file#delete-file* (string) *))
 (chicken.file#file-copy (#(procedure #:clean #:enforce) chicken.file#file-copy (string string #!optional * fixnum) fixnum))
 (chicken.file#file-move (#(procedure #:clean #:enforce) chicken.file#file-move (string string #!optional * fixnum) fixnum))
 (chicken.file#find-files (#(procedure #:enforce) chicken.file#find-files (string #!rest) list))
 (chicken.file#glob (#(procedure #:clean #:enforce) chicken.file#glob (#!rest string) list))
+(chicken.file#rename-file (#(procedure #:clean #:enforce) chicken.file#rename-file (string string) string))
 
 
 ;; pathname
