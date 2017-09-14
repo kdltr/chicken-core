@@ -11717,21 +11717,18 @@ static void C_ccall copy_closure_2(C_word c, C_word *av)
 }
 
 
-/* Creating black holes: */
+/* Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn */
 
 void C_ccall C_call_with_cthulhu(C_word c, C_word *av)
 {
   C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
     proc = av[ 2 ],
     *a = C_alloc(C_SIZEOF_CLOSURE(1)),
-    av2[ 3 ];
+    av2[ 2 ];
 
-  av2[ 0 ] = C_closure(&a, 1, (C_word)termination_continuation); /* k */
-  av2[ 1 ] = proc;
-  av2[ 2 ] = C_SCHEME_END_OF_LIST;
-  C_do_apply(3, av2);
+  av2[ 0 ] = proc;
+  av2[ 1 ] = C_closure(&a, 1, (C_word)termination_continuation); /* k */
+  C_do_apply(2, av2);
 }
 
 
