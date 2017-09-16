@@ -20,6 +20,10 @@
   - Large literals no longer crash with "invalid encoded numeric literal"
     on mingw-64 (#1344, thanks to Lemonboy).
 
+- Runtime system:
+  - The profiler no longer uses malloc from a signal handler which may
+    cause deadlocks (#1414, thanks to Lemonboy).
+
 - Syntax expander
   - Renaming an identifier twice no longer results in an undo of the
     rename (fixes #1362, thanks to "megane").

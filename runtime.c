@@ -488,7 +488,9 @@ static C_TLS FINALIZER_NODE
 static C_TLS void *current_module_handle;
 static C_TLS int flonum_print_precision = FLONUM_PRINT_PRECISION;
 static C_TLS HDUMP_BUCKET **hdump_table;
-static C_TLS PROFILE_BUCKET **profile_table = NULL;
+static C_TLS PROFILE_BUCKET
+  *next_profile_bucket = NULL,
+  **profile_table = NULL;
 static C_TLS int 
   pending_interrupts[ MAX_PENDING_INTERRUPTS ],
   pending_interrupts_count,
@@ -3993,10 +3995,10 @@ static void take_profile_sample()
   }
 
   /* Not found, allocate a new item and use it as bucket's new head */
-  b = (PROFILE_BUCKET *)C_malloc(sizeof(PROFILE_BUCKET));
+  b = next_profile_bucket;
+  next_profile_bucket = NULL;
 
-  if(b == NULL)
-    panic(C_text("out of memory - cannot allocate profile table-bucket"));
+  assert(b != NULL);
 
   b->next = *bp;
   b->key = key;
@@ -4012,6 +4014,17 @@ done:
 
 C_regparm void C_fcall C_trace(C_char *name)
 {
+  /*
+   * When profiling, pre-allocate profile bucket if necessary.  This
+   * is used in the signal handler, because it may not malloc.
+   */
+  if(profiling && next_profile_bucket == NULL) {
+    next_profile_bucket = (PROFILE_BUCKET *)C_malloc(sizeof(PROFILE_BUCKET));
+    if (next_profile_bucket == NULL) {
+      panic(C_text("out of memory - cannot allocate profile table-bucket"));
+    }
+  }
+
   if(show_trace) {
     C_fputs(name, C_stderr);
     C_fputc('\n', C_stderr);
@@ -4032,6 +4045,14 @@ C_regparm void C_fcall C_trace(C_char *name)
 
 C_regparm C_word C_fcall C_emit_trace_info2(char *raw, C_word x, C_word y, C_word t)
 {
+  /* See above */
+  if(profiling && next_profile_bucket == NULL) {
+    next_profile_bucket = (PROFILE_BUCKET *)C_malloc(sizeof(PROFILE_BUCKET));
+    if (next_profile_bucket == NULL) {
+      panic(C_text("out of memory - cannot allocate profile table-bucket"));
+    }
+  }
+
   if(trace_buffer_top >= trace_buffer_limit) {
     trace_buffer_top = trace_buffer;
     trace_buffer_full = 1;
