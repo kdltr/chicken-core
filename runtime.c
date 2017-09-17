@@ -4374,10 +4374,8 @@ static void take_profile_sample()
     tb = trace_buffer_top - 1;
   }
 
-  key = tb->raw;
-  if (key == NULL) return; /* May happen while in C_trace() */
-
   /* We could also just hash the pointer but that's a bit trickier */
+  key = tb->raw;
   bp = profile_table + hash_string(C_strlen(key), key, PROFILE_TABLE_SIZE, 0, 0);
   b = *bp;
 
