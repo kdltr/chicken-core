@@ -1,6 +1,7 @@
 (use (chicken file)
      (chicken process-context)
-     (chicken sort))
+     (chicken sort)
+     (chicken string))
 
 (include "test.scm")
 
