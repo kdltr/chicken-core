@@ -170,7 +170,9 @@ EOF
     (##sys#restore-thread-state-buffer thread)
     ;;XXX WRONG! this sets the t/i-period ("quantum") for the _next_ thread
     (##core#inline "C_set_initial_timer_interrupt_period" (##sys#slot thread 9))
-    ((##sys#slot thread 1)) )
+    ;; Call upon ye ancient gods to forget about the current
+    ;; continuation; it still refers to the old thread (#1367).
+    (##sys#call-with-cthulhu (##sys#slot thread 1)) )
   (let* ([ct ##sys#current-thread]
 	 [eintr #f]
 	 [cts (##sys#slot ct 3)] )

@@ -136,6 +136,9 @@
 - Runtime system:
   - The profiler no longer uses malloc from a signal handler which may
     cause deadlocks (#1414, thanks to Lemonboy).
+  - The scheduler no longer indirectly hangs on to the old thread
+    when switching to a new one, which caused excessive memory
+    consumption (#1367, thanks to "megane").
 
 - Syntax expander
   - Renaming an identifier twice no longer results in an undo of the
