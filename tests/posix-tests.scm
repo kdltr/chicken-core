@@ -39,7 +39,8 @@
 (receive (in out pid)
     (process "../csi" '("-n" "-I" ".." "-e"
                         "(write 'err (current-error-port)) (write 'ok)"))
-  (assert (equal? 'ok (read in))))
+  (assert (equal? 'ok (read in)))
+  (newline (current-error-port)))
 
 (receive (in out pid err)
     (process* "../csi" '("-n" "-I" ".." "-e"

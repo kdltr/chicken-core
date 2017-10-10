@@ -363,6 +363,14 @@ echo "======================================== posix tests ..."
 $compile posix-tests.scm
 ./a.out
 
+echo "======================================== file access tests ..."
+if test -n "$MSYSTEM"; then
+  $interpret -s file-access-tests.scm //
+  $interpret -s file-access-tests.scm \\
+else
+  $interpret -s file-access-tests.scm /
+fi
+
 echo "======================================== find-files tests ..."
 $interpret -bnq test-find-files.scm
 

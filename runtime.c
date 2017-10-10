@@ -28,7 +28,6 @@
 
 #include "chicken.h"
 #include <assert.h>
-#include <errno.h>
 #include <float.h>
 #include <signal.h>
 #include <sys/stat.h>
@@ -12580,7 +12579,7 @@ C_i_file_exists_p(C_word name, C_word file, C_word dir)
   struct stat buf;
   int res;
 
-  res = stat(C_c_string(name), &buf);
+  res = C_stat(C_c_string(name), &buf);
 
   if(res != 0) {
     switch(errno) {

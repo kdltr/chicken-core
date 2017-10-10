@@ -28,9 +28,6 @@
   (foreign-declare #<<EOF
 
 #include <signal.h>
-#include <errno.h>
-
-#include <sys/stat.h>
 
 static int C_not_implemented(void);
 int C_not_implemented() { return -1; }
@@ -41,8 +38,9 @@ static C_TLS struct stat C_statbuf;
 
 #define C_stat_type         (C_statbuf.st_mode & S_IFMT)
 #define C_stat_perm         (C_statbuf.st_mode & ~S_IFMT)
-#define C_stat(fn)          C_fix(stat((char *)C_data_pointer(fn), &C_statbuf))
-#define C_fstat(f)          C_fix(fstat(C_unfix(f), &C_statbuf))
+
+#define C_u_i_stat(fn)      C_fix(C_stat((char *)C_data_pointer(fn), &C_statbuf))
+#define C_u_i_fstat(fd)     C_fix(fstat(C_unfix(fd), &C_statbuf))
 
 #ifndef S_IFSOCK
 # define S_IFSOCK           0140000
@@ -248,16 +246,13 @@ EOF
 (stat-mode S_IFIFO)
 
 (define (stat file link err loc)
-  (let ((r (cond ((fixnum? file) (##core#inline "C_fstat" file))
-                 ((port? file) (##core#inline "C_fstat" (port->fileno file)))
+  (let ((r (cond ((fixnum? file) (##core#inline "C_u_i_fstat" file))
+                 ((port? file) (##core#inline "C_u_i_fstat" (port->fileno file)))
                  ((string? file)
-                  (let ((path (##sys#make-c-string
-			       (##sys#platform-fixup-pathname
-                                file)
-			       loc)))
+                  (let ((path (##sys#make-c-string file loc)))
 		    (if link
-			(##core#inline "C_lstat" path)
-			(##core#inline "C_stat" path) ) ) )
+			(##core#inline "C_u_i_lstat" path)
+			(##core#inline "C_u_i_stat" path))))
                  (else
 		  (##sys#signal-hook
 		   #:type-error loc "bad argument type - not a fixnum, port or string" file)) ) ) )

@@ -199,7 +199,7 @@ readdir(DIR * dir)
 
 #define C_getenventry(i)   environ[ i ]
 
-#define C_lstat(fn)	    C_stat(fn)
+#define C_u_i_lstat(fn)     C_u_i_stat(fn)
 
 #define C_u_i_execvp(f,a)   C_fix(execvp(C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a)))
 #define C_u_i_execve(f,a,e) C_fix(execve(C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a), (const char *const *)C_c_pointer_vector_or_null(e)))
@@ -577,7 +577,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
   /* Only stat if needed */
   if (atime == C_SCHEME_FALSE || mtime == C_SCHEME_FALSE) {
-    if (stat(filename, &sb) == -1) return -1;
+    if (C_stat(filename, &sb) == -1) return -1;
   }
 
   if (atime == C_SCHEME_FALSE) {

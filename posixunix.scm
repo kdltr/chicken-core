@@ -149,7 +149,7 @@ static C_TLS struct stat C_statbuf;
 #define C_close(fd)         C_fix(close(C_unfix(fd)))
 #define C_umask(m)          C_fix(umask(C_unfix(m)))
 
-#define C_lstat(fn)         C_fix(lstat((char *)C_data_pointer(fn), &C_statbuf))
+#define C_u_i_lstat(fn)     C_fix(lstat((char *)C_data_pointer(fn), &C_statbuf))
 
 #define C_u_i_execvp(f,a)   C_fix(execvp(C_data_pointer(f), (char *const *)C_c_pointer_vector_or_null(a)))
 #define C_u_i_execve(f,a,e) C_fix(execve(C_data_pointer(f), (char *const *)C_c_pointer_vector_or_null(a), (char *const *)C_c_pointer_vector_or_null(e)))

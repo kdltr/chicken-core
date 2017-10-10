@@ -2749,20 +2749,6 @@ EOF
 (define (##sys#port-data port) (##sys#slot port 9))
 (define (##sys#set-port-data! port data) (##sys#setslot port 9 data))
 
-(define ##sys#platform-fixup-pathname
-  (let* ([bp (string->symbol ((##core#primitive "C_build_platform")))]
-	 [fixsuffix (eq? bp 'mingw32)])
-    (lambda (name)
-      (if fixsuffix
-	  (let ([end (fx- (##sys#size name) 1)])
-	    (if (fx>= end 0)
-		(let ([c (##core#inline "C_subchar" name end)])
-		  (if (or (eq? c #\\) (eq? c #\/))
-		      (##sys#substring name 0 end)
-		      name) )
-		name) )
-	  name) ) ) )
-
 (define open-input-file)
 (define open-output-file)
 (define close-input-port)
@@ -2858,17 +2844,11 @@ EOF
 
 (define (file-exists? name)
   (##sys#check-string name 'file-exists?)
-  (and (##sys#file-exists?
-        (##sys#platform-fixup-pathname name)
-        #f #f 'file-exists?)
-       name) )
+  (and (##sys#file-exists? name #f #f 'file-exists?) name))
 
 (define (directory-exists? name)
   (##sys#check-string name 'directory-exists?)
-  (and (##sys#file-exists?
-        (##sys#platform-fixup-pathname name)
-        #f #t 'directory-exists?)
-       name) )
+  (and (##sys#file-exists? name #f #t 'directory-exists?) name))
 
 (define (##sys#flush-output port)
   ((##sys#slot (##sys#slot port 2) 5) port) ; flush-output

@@ -146,6 +146,7 @@ tests/embedded3.c
 tests/embedded4.scm
 tests/executable-tests.scm
 tests/condition-tests.scm
+tests/file-access-tests.scm
 tests/fixnum-tests.scm
 tests/numbers-string-conversion-tests.scm
 tests/numbers-test.scm

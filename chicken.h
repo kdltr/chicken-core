@@ -120,6 +120,7 @@
 /* Headers */
 
 #include <ctype.h>
+#include <errno.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <math.h>
@@ -132,6 +133,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 
 /* Byteorder in machine word */
@@ -3487,6 +3489,47 @@ inline static size_t C_strlcat(char *dst, const char *src, size_t sz)
       if (sz) sz--;    /* i.e. well formed string */
    dst--;
    return dst - start + C_strlcpy(dst, src, sz);
+}
+#endif
+
+/*
+ * MinGW's stat() is less than ideal in a couple of ways, so we provide a
+ * wrapper that:
+ *
+ *  1. Strips all trailing slashes and retries on failure, since stat() will
+ *     yield ENOENT when given two (on MSYS) or more (on MinGW and MSYS2).
+ *  2. Fails with ENOTDIR when given a path to a non-directory file that ends
+ *     in a slash, since in this case MinGW's stat() will succeed but return a
+ *     non-directory mode in buf.st_mode.
+ */
+#ifndef __MINGW32__
+# define C_stat stat
+#else
+inline static int C_stat(const char *path, struct stat *buf)
+{
+  size_t len = C_strlen(path);
+  char slash = len && C_strchr("\\/", path[len - 1]), *str;
+
+  if(stat(path, buf) == 0)
+    goto dircheck;
+
+  if(slash && errno == ENOENT) {
+    C_strlcpy((str = C_alloca(len + 1)), path, len + 1);
+    while(len > 1 && C_strchr("\\/", path[--len]))
+      str[len] = '\0';
+    if(stat(str, buf) == 0)
+      goto dircheck;
+  }
+
+  return -1;
+
+dircheck:
+  if(slash && !S_ISDIR(buf->st_mode)) {
+    errno = ENOTDIR;
+    return -1;
+  }
+
+  return 0;
 }
 #endif
 

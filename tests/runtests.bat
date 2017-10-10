@@ -460,6 +460,12 @@ if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 
+echo ======================================== file access tests ...
+%interpret% -s file-access-tests.scm /
+if errorlevel 1 exit /b 1
+%interpret% -s file-access-tests.scm \
+if errorlevel 1 exit /b 1
+
 echo ======================================== find-files tests ...
 %interpret% -bnq test-find-files.scm
 if errorlevel 1 exit /b 1
