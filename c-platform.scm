@@ -66,8 +66,8 @@
      ##sys#list ##sys#cons ##sys#append ##sys#vector ##sys#foreign-char-argument ##sys#foreign-fixnum-argument
      ##sys#foreign-flonum-argument ##sys#error ##sys#peek-c-string ##sys#peek-nonnull-c-string 
      ##sys#peek-and-free-c-string ##sys#peek-and-free-nonnull-c-string
-     ##sys#foreign-block-argument ##sys#foreign-string-argument ##sys#foreign-pointer-argument ##sys#foreign-integer-argument
-     ##sys#call-with-current-continuation) ) )
+     ##sys#foreign-block-argument ##sys#foreign-string-argument
+     ##sys#foreign-pointer-argument ##sys#call-with-current-continuation)))
 
 (define default-profiling-declarations
   '((##core#declare

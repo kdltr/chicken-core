@@ -38,16 +38,8 @@
      (no-argc-checks)))
   (else))
 
-;; TODO OBSOLETE remove after snapshot release
-(register-feature! #:namespaced-record-type-tags)
-
-(cond-expand
-  (namespaced-record-type-tags
-   (define-inline (node? x) (##sys#structure? x 'chicken.compiler.support#node))
-   (define-inline (make-node c p s) (##sys#make-structure 'chicken.compiler.support#node c p s)))
-  (else ; TODO OBSOLETE remove after snapshot release
-   (define-inline (node? x) (##sys#structure? x 'node))
-   (define-inline (make-node c p s) (##sys#make-structure 'node c p s))))
+(define-inline (node? x) (##sys#structure? x 'chicken.compiler.support#node))
+(define-inline (make-node c p s) (##sys#make-structure 'chicken.compiler.support#node c p s))
 
 (cond-expand
   ((not debugbuild)

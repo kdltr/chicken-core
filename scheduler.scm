@@ -457,7 +457,7 @@ EOF
 		  (let* ((tmo1 (caar ##sys#timeout-list))
 			 (now (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)))
 		    (max 0 (- tmo1 now)) )
-		  0.0) ) )		; otherwise immediate timeout.
+		  0))) ; otherwise immediate timeout.
     (dbg "waiting for I/O with timeout " tmo)
     (let ((n ((foreign-lambda int "C_ready_fds_timeout" bool unsigned-integer)
 	      (or rq? to?) tmo)))

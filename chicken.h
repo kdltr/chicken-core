@@ -1113,9 +1113,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
  */
 #if C_STACK_GROWS_DOWNWARD
 # define C_demand(n)              (C_stress && ((C_word)(C_stack_pointer - C_stack_limit) > ((n)+C_scratch_usage)))
-/* OBSOLETE: */
-# define C_stack_probe(p)         (C_stress && (((C_word *)(p)-C_scratch_usage) >= C_stack_limit))
-
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
 				      if(_sp < (C_byte *)C_stack_hard_limit && \
@@ -1125,9 +1122,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 #else
 # define C_demand(n)              (C_stress && ((C_word)(C_stack_limit - C_stack_pointer) > ((n)+C_scratch_usage)))
-/* OBSOLETE: */
-# define C_stack_probe(p)         (C_stress && (((C_word *)(p)+C_scratch_usage) < C_stack_limit))
-
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
 				      if(_sp > (C_byte *)C_stack_hard_limit && \
@@ -1186,16 +1180,12 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_setsubchar(x, i, n)     (((C_char *)C_data_pointer(x))[ C_unfix(i) ] = C_character_code(n), C_SCHEME_UNDEFINED)
 #define C_setsubbyte(x, i, n)     (((C_char *)C_data_pointer(x))[ C_unfix(i) ] = C_unfix(n), C_SCHEME_UNDEFINED)
 
-/* XXX TODO OBSOLETE, but still used by fx* */
 #define C_fixnum_times(n1, n2)          (C_fix(C_unfix(n1) * C_unfix(n2)))
-/* XXX TODO OBSOLETE, but still used by C_fixnum_plus, which is fx+ */
 #define C_u_fixnum_plus(n1, n2)         (((n1) - C_FIXNUM_BIT) + (n2))
 #define C_fixnum_plus(n1, n2)           (C_u_fixnum_plus(n1, n2) | C_FIXNUM_BIT)
-/* XXX TODO OBSOLETE, but still used by C_fixnum_difference, which is fx- */
 #define C_u_fixnum_difference(n1, n2)   ((n1) - (n2) + C_FIXNUM_BIT)
 #define C_fixnum_difference(n1, n2)     (C_u_fixnum_difference(n1, n2) | C_FIXNUM_BIT)
 #define C_u_fixnum_divide(n1, n2)       (C_fix(C_unfix(n1) / C_unfix(n2)))
-/* XXX TODO OBSOLETE, but still used in unsafe mode in c-platform.scm */
 #define C_u_fixnum_modulo(n1, n2)       (C_fix(C_unfix(n1) % C_unfix(n2)))
 #define C_u_fixnum_and(n1, n2)          ((n1) & (n2))
 #define C_fixnum_and(n1, n2)            (C_u_fixnum_and(n1, n2) | C_FIXNUM_BIT)
@@ -1205,7 +1195,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_fixnum_not(n)                 ((~(n)) | C_FIXNUM_BIT)
 #define C_fixnum_shift_left(n1, n2)     (C_fix(((C_uword)C_unfix(n1) << (C_uword)C_unfix(n2))))
 #define C_fixnum_shift_right(n1, n2)    (((n1) >> (C_uword)C_unfix(n2)) | C_FIXNUM_BIT)
-/* XXX TODO OBSOLETE, but still used by C_fixnum_negate, which is fxneg */
 #define C_u_fixnum_negate(n)            (-(n) + 2 * C_FIXNUM_BIT)
 #define C_fixnum_negate(n)              (C_u_fixnum_negate(n) | C_FIXNUM_BIT)
 #define C_fixnum_greaterp(n1, n2)       (C_mk_bool((C_word)(n1) > (C_word)(n2)))
@@ -1943,7 +1932,6 @@ C_fctexport C_cpsproc(C_register_finalizer) C_noret;
 C_fctexport C_cpsproc(C_set_dlopen_flags) C_noret;
 C_fctexport C_cpsproc(C_dload) C_noret;
 C_fctexport C_cpsproc(C_become) C_noret;
-C_fctexport C_cpsproc(C_locative_ref) C_noret; /* DEPRECATED */
 C_fctexport C_cpsproc(C_call_with_cthulhu) C_noret;
 C_fctexport C_cpsproc(C_copy_closure) C_noret;
 C_fctexport C_cpsproc(C_dump_heap_state) C_noret;
@@ -1973,12 +1961,8 @@ C_fctexport C_word C_fcall C_i_infinitep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_zerop(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_u_i_zerop(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_positivep(C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_u_i_positivep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_positivep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_negativep(C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_u_i_negativep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_negativep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_car(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_cdr(C_word x) C_regparm;
@@ -1991,13 +1975,9 @@ C_fctexport C_word C_fcall C_i_cdddr(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_cadddr(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_cddddr(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_list_tail(C_word lst, C_word i) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
 C_fctexport C_word C_fcall C_i_evenp(C_word x) C_regparm;
-C_fctexport C_word C_fcall C_u_i_evenp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_evenp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_oddp(C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_u_i_oddp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_oddp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_vector_ref(C_word v, C_word i) C_regparm;
 C_fctexport C_word C_fcall C_i_block_ref(C_word x, C_word i) C_regparm;
@@ -2133,8 +2113,6 @@ C_fctexport C_word C_fcall C_i_foreign_symbol_argumentp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_foreign_tagged_pointer_argumentp(C_word x, C_word t) C_regparm;
 C_fctexport C_word C_fcall C_i_foreign_pointer_argumentp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_foreign_scheme_or_c_pointer_argumentp(C_word x) C_regparm;
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_fctexport C_word C_fcall C_i_foreign_integer_argumentp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_foreign_ranged_integer_argumentp(C_word x, C_word bits) C_regparm;
 C_fctexport C_word C_fcall C_i_foreign_unsigned_ranged_integer_argumentp(C_word x, C_word bits) C_regparm;
 
@@ -2472,12 +2450,10 @@ inline static C_word C_num_to_int(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return C_unfix(x);
-  } else if (C_truep(C_bignump(x))) {
+  } else {
+    C_CHECKp(x,C_bignump(C_VAL1(x)),0);
     if (C_bignum_negativep(x)) return -(C_word)C_bignum_digits(x)[0];
     else return (C_word)C_bignum_digits(x)[0];  /* should never be larger */
-  } else {
-    /* XXX OBSOLETE remove on the next round, remove check above */
-    return (C_word)C_flonum_magnitude(x);
   }
 }
 
@@ -2486,16 +2462,13 @@ inline static C_s64 C_num_to_int64(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_s64)C_unfix(x);
-  } else if (C_truep(C_bignump(x))) {
+  } else {
     C_s64 num = C_bignum_digits(x)[0];
 #ifndef C_SIXTY_FOUR
     if (C_bignum_size(x) > 1) num |= (C_s64)(((C_u64)C_bignum_digits(x)[1]) << 32);
 #endif
     if (C_bignum_negativep(x)) return -num;
     else return num;
-  } else {
-    /* XXX OBSOLETE remove on the next round, remove check above */
-    return (C_s64)C_flonum_magnitude(x);
   }
 }
 
@@ -2504,15 +2477,12 @@ inline static C_u64 C_num_to_uint64(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_u64)C_unfix(x);
-  } else if (C_truep(C_bignump(x))) {
-    C_u64 num = C_bignum_digits(x)[0];
+  } else {
+    C_s64 num = C_bignum_digits(x)[0];
 #ifndef C_SIXTY_FOUR
     if (C_bignum_size(x) > 1) num |= ((C_u64)C_bignum_digits(x)[1]) << 32;
 #endif
     return num;
-  } else {
-    /* XXX OBSOLETE remove on the next round, remove check above */
-    return (C_u64)C_flonum_magnitude(x);
   }
 }
 
@@ -2521,11 +2491,8 @@ inline static C_uword C_num_to_unsigned_int(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_uword)C_unfix(x);
-  } else if (C_truep(C_bignump(x))) {
-    return C_bignum_digits(x)[0]; /* should never be larger */
   } else {
-    /* XXX OBSOLETE remove on the next round, remove check above */
-    return (C_uword)C_flonum_magnitude(x);
+    return C_bignum_digits(x)[0]; /* should never be larger */
   }
 }
 
@@ -2632,12 +2599,9 @@ inline static C_long C_num_to_long(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_long)C_unfix(x);
-  } else if (C_truep(C_bignump(x))) {
+  } else {
     if (C_bignum_negativep(x)) return -(C_long)C_bignum_digits(x)[0];
     else return (C_long)C_bignum_digits(x)[0];
-  } else {
-    /* XXX OBSOLETE remove on the next round, remove check above */
-    return (C_long)C_flonum_magnitude(x);
   }
 }
 
@@ -2646,11 +2610,8 @@ inline static C_ulong C_num_to_unsigned_long(C_word x)
 {
   if(x & C_FIXNUM_BIT) {
     return (C_ulong)C_unfix(x);
-  } else if (C_truep(C_bignump(x))) {
-    return (C_ulong)C_bignum_digits(x)[0];
   } else {
-    /* XXX OBSOLETE remove on the next round, remove check above */
-    return (C_ulong)C_flonum_magnitude(x);
+    return (C_ulong)C_bignum_digits(x)[0];
   }
 }
 

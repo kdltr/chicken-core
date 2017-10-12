@@ -5002,12 +5002,6 @@ EOF
 
 (import chicken.condition)
 
-;; OBSOLETE: This can be removed after bootstrapping, when the
-;; handle-exceptions macro won't be rewritten to a primitive alias.
-;; This is necessary because the compiler uses this macro itself.
-(define #%with-exception-handler with-exception-handler)
-
-
 ;;; Miscellaneous low-level routines:
 
 (define (##sys#structure? x s) (##core#inline "C_i_structurep" x s))
@@ -5173,9 +5167,6 @@ EOF
 (define (##sys#foreign-symbol-argument x) (##core#inline "C_i_foreign_symbol_argumentp" x))
 (define (##sys#foreign-pointer-argument x) (##core#inline "C_i_foreign_pointer_argumentp" x))
 (define (##sys#foreign-tagged-pointer-argument x tx) (##core#inline "C_i_foreign_tagged_pointer_argumentp" x tx))
-
-;; OBSOLETE
-(define (##sys#foreign-integer-argument x) (##core#inline "C_i_foreign_integer_argumentp" x))
 
 (define (##sys#foreign-ranged-integer-argument obj size)
   (##core#inline "C_i_foreign_ranged_integer_argumentp" obj size))

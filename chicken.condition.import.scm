@@ -39,7 +39,4 @@
    (condition-predicate . chicken.condition#condition-predicate)
    (condition-property-accessor . chicken.condition#condition-property-accessor)
    (get-condition-property . chicken.condition#get-condition-property))
- ;; OBSOLETE: This can be removed after bootstrapping
- (if (##sys#symbol-has-toplevel-binding? '##sys#chicken.condition-macro-environment)
-     ##sys#chicken.condition-macro-environment
-     ##sys#chicken-macro-environment))
+ ##sys#chicken.condition-macro-environment)

@@ -183,10 +183,6 @@
 (define chicken.io#read-string/port read-string/port)
 (define chicken.io#read-string!/port read-string!/port)
 
-;; XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm
-(define ##sys#read-string/port read-string/port)
-(define ##sys#read-string!/port read-string!/port)
-
 (define (read-buffered #!optional (port ##sys#standard-input))
   (##sys#check-input-port port #t 'read-buffered)
   (let ((rb (##sys#slot (##sys#slot port 2) 9))) ; read-buffered method

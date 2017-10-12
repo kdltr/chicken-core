@@ -23,16 +23,6 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-;; OBSOLETE: This can be removed after bootstrapping
-(if (not (##sys#symbol-has-toplevel-binding? 'chicken.syntax#expand))
-    (begin
-      (set! chicken.syntax#expand chicken.expand#expand)
-      (set! chicken.syntax#er-macro-transformer chicken.expand#er-macro-transformer)
-      (set! chicken.syntax#ir-macro-transformer chicken.expand#ir-macro-transformer)
-      (set! chicken.syntax#strip-syntax chicken.expand#strip-syntax)
-      (set! chicken.syntax#syntax-error chicken.expand#syntax-error)
-      (set! chicken.syntax#get-line-number chicken.expand#get-line-number)))
-
 ;; OBSOLETE: This can be removed after bootstrapping (needed for
 ;; macros and constant evaluation in compiler)
 (if (not (##sys#symbol-has-toplevel-binding? 'chicken.base#add1))

@@ -866,7 +866,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
 {
   /* IMPORTANT: hardcoded table size -
      this must match the number of C_pte calls + 1 (NULL terminator)! */
-  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 63);
+  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 62);
   int i = 0;
 
   if(pt == NULL)
@@ -921,7 +921,6 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(C_peek_uint64);
   C_pte(C_context_switch);
   C_pte(C_register_finalizer);
-  C_pte(C_locative_ref); /* OBSOLETE */
   C_pte(C_copy_closure);
   C_pte(C_dump_heap_state);
   C_pte(C_filter_heap_objects);
@@ -5383,13 +5382,6 @@ C_regparm C_word C_fcall C_i_integer_positivep(C_word x)
   else return C_mk_nbool(C_bignum_negativep(x));
 }
 
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_u_i_positivep(C_word x)
-{
-  return C_i_positivep(x);
-}
-
-
 C_regparm C_word C_fcall C_i_negativep(C_word x)
 {
   if (x & C_FIXNUM_BIT)
@@ -5408,12 +5400,6 @@ C_regparm C_word C_fcall C_i_negativep(C_word x)
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "negative?", x);
 }
 
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_u_i_negativep(C_word x)
-{
-  return C_i_negativep(x);
-}
 
 C_regparm C_word C_fcall C_i_integer_negativep(C_word x)
 {
@@ -5440,12 +5426,6 @@ C_regparm C_word C_fcall C_i_evenp(C_word x)
   } else { /* No need to try extended number */
     barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "even?", x);
   }
-}
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_u_i_evenp(C_word x)
-{
-  return C_i_evenp(x);
 }
 
 C_regparm C_word C_fcall C_i_integer_evenp(C_word x)
@@ -5475,12 +5455,6 @@ C_regparm C_word C_fcall C_i_oddp(C_word x)
   }
 }
 
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_u_i_oddp(C_word x)
-{
-  return C_i_oddp(x);
-}
 
 C_regparm C_word C_fcall C_i_integer_oddp(C_word x)
 {
@@ -6944,30 +6918,6 @@ C_regparm C_word C_fcall C_i_foreign_unsigned_ranged_integer_argumentp(C_word x,
     barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
   }
 }
-
-/* XXX TODO OBSOLETE: This can be removed after recompiling c-platform.scm */
-C_regparm C_word C_fcall C_i_foreign_integer_argumentp(C_word x)
-{
-  double m;
-
-  if((x & C_FIXNUM_BIT) != 0) return x;
-
-  if(C_truep(C_i_bignump(x))) {
-    if (C_bignum_size(x) == 1) return x;
-    else barf(C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION, NULL, x);
-  }
-
-  /* XXX OBSOLETE: This should be removed on the next round */
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    m = C_flonum_magnitude(x);
-
-    if(m >= C_WORD_MIN && m <= C_WORD_MAX) return x;
-  }
-
-  barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, NULL, x);
-  return C_SCHEME_UNDEFINED;
-}
-
 
 /* I */
 C_regparm C_word C_fcall C_i_not_pair_p_2(C_word x)
@@ -11441,49 +11391,6 @@ C_regparm C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_w
 
   locative_table[ locative_table_count++ ] = (C_word)loc;
   return (C_word)loc;
-}
-
-/* DEPRECATED */
-void C_ccall C_locative_ref(C_word c, C_word *av)
-{
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    loc,
-    *ptr, val,
-#ifdef C_SIXTY_FOUR
-    ab[nmax(C_SIZEOF_BIGNUM(2), WORDS_PER_FLONUM)],
-#else
-    ab[nmax(C_SIZEOF_BIGNUM(1), WORDS_PER_FLONUM)],
-#endif
-    *a = ab;
-
-  if(c != 3) C_bad_argc(c, 3);
-
-  loc = av[ 2 ];
-
-  if(C_immediatep(loc) || C_block_header(loc) != C_LOCATIVE_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-ref", loc);
-
-  ptr = (C_word *)C_block_item(loc, 0);
-
-  if(ptr == NULL) barf(C_LOST_LOCATIVE_ERROR, "locative-ref", loc);
-
-  switch(C_unfix(C_block_item(loc, 2))) {
-  case C_SLOT_LOCATIVE: C_kontinue(k, *ptr);
-  case C_CHAR_LOCATIVE: C_kontinue(k, C_make_character(*((char *)ptr)));
-  case C_U8_LOCATIVE: C_kontinue(k, C_fix(*((unsigned char *)ptr)));
-  case C_S8_LOCATIVE: C_kontinue(k, C_fix(*((char *)ptr)));
-  case C_U16_LOCATIVE: C_kontinue(k, C_fix(*((unsigned short *)ptr)));
-  case C_S16_LOCATIVE: C_kontinue(k, C_fix(*((short *)ptr)));
-  case C_U32_LOCATIVE: C_kontinue(k, C_unsigned_int_to_num(&a, *((C_u32 *)ptr)));
-  case C_S32_LOCATIVE: C_kontinue(k, C_int_to_num(&a, *((C_s32 *)ptr)));
-  case C_U64_LOCATIVE: C_kontinue(k, C_uint64_to_num(&a, *((C_u64 *)ptr)));
-  case C_S64_LOCATIVE: C_kontinue(k, C_int64_to_num(&a, *((C_s64 *)ptr)));
-  case C_F32_LOCATIVE: C_kontinue(k, C_flonum(&a, *((float *)ptr)));
-  case C_F64_LOCATIVE: C_kontinue(k, C_flonum(&a, *((double *)ptr)));
-  default: panic(C_text("bad locative type"));
-  }
 }
 
 C_regparm C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc)

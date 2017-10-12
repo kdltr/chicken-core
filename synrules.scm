@@ -86,11 +86,6 @@
       (loop (- len 1) (cdr input)))
      (else input))))
 
-;; OBSOLETE
-;; These two can be removed after the next snapshot
-(define ##sys#drop-right drop-right)
-(define ##sys#take-right take-right)
-
 (define (process-syntax-rules ellipsis rules subkeywords r c)
 
   (define %append '##sys#append)
