@@ -15,7 +15,7 @@
   - Continuations which discard additional values beyond the first now
     also accept multiple values via direct invocation after being
     captured through `call/cc`, not just via `values` (#1390)
-  - Removed the deprecated C_locative_ref C function.
+  - Removed the deprecated C_locative_ref and C_mutate2 C functions.
 
 - Compiler
   - Fixed an off by one allocation problem in generated C code for (list ...).

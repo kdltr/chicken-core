@@ -2052,7 +2052,7 @@ C_word C_fcall C_restore_callback_continuation(void)
   assert(!C_immediatep(p) && C_block_header(p) == C_PAIR_TAG);
   k = C_u_i_car(p);
 
-  C_mutate2(&C_block_item(callback_continuation_stack_symbol, 0), C_u_i_cdr(p));
+  C_mutate(&C_block_item(callback_continuation_stack_symbol, 0), C_u_i_cdr(p));
   --callback_continuation_level;
   return k;
 }
@@ -2068,7 +2068,7 @@ C_word C_fcall C_restore_callback_continuation2(int level)
 
   k = C_u_i_car(p);
 
-  C_mutate2(&C_block_item(callback_continuation_stack_symbol, 0), C_u_i_cdr(p));
+  C_mutate(&C_block_item(callback_continuation_stack_symbol, 0), C_u_i_cdr(p));
   --callback_continuation_level;
   return k;
 }
@@ -2340,7 +2340,7 @@ C_regparm C_word C_fcall C_intern3(C_word **ptr, C_char *str, C_word value)
 {
   C_word s = C_intern_in(ptr, C_strlen(str), str, symbol_table);
   
-  C_mutate2(&C_block_item(s,0), value);
+  C_mutate(&C_block_item(s,0), value);
   C_i_persist_symbol(s); /* Symbol has a value now; persist it */
   return s;
 }
@@ -2491,7 +2491,7 @@ C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stabl
        heap-top (say, in a toplevel literal frame allocation) then we have
        to inform the memory manager that a 2nd gen. block points to a 
        1st gen. block, hence the mutation: */
-    C_mutate2(&C_block_item(bucket,1), b2);
+    C_mutate(&C_block_item(bucket,1), b2);
     stable->table[ key ] = bucket;
   }
 
@@ -4566,12 +4566,12 @@ C_word C_fetch_trace(C_word starti, C_word buffer)
       if(ptr >= trace_buffer_limit) ptr = trace_buffer;
 
       /* outside-pointer, will be ignored by GC */
-      C_mutate2(&C_block_item(buffer, p++), (C_word)ptr->raw);
+      C_mutate(&C_block_item(buffer, p++), (C_word)ptr->raw);
 
       /* subject to GC */
-      C_mutate2(&C_block_item(buffer, p++), ptr->cooked1);
-      C_mutate2(&C_block_item(buffer, p++), ptr->cooked2);
-      C_mutate2(&C_block_item(buffer, p++), ptr->thread);
+      C_mutate(&C_block_item(buffer, p++), ptr->cooked1);
+      C_mutate(&C_block_item(buffer, p++), ptr->cooked2);
+      C_mutate(&C_block_item(buffer, p++), ptr->thread);
     }
   }
 
@@ -5782,7 +5782,7 @@ C_regparm C_word C_fcall C_i_set_car(C_word x, C_word val)
   if(C_immediatep(x) || C_block_header(x) != C_PAIR_TAG)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "set-car!", x);
 
-  C_mutate2(&C_u_i_car(x), val);
+  C_mutate(&C_u_i_car(x), val);
   return C_SCHEME_UNDEFINED;
 }
 
@@ -5792,7 +5792,7 @@ C_regparm C_word C_fcall C_i_set_cdr(C_word x, C_word val)
   if(C_immediatep(x) || C_block_header(x) != C_PAIR_TAG)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "set-cdr!", x);
 
-  C_mutate2(&C_u_i_cdr(x), val);
+  C_mutate(&C_u_i_cdr(x), val);
   return C_SCHEME_UNDEFINED;
 }
 
@@ -5809,7 +5809,7 @@ C_regparm C_word C_fcall C_i_vector_set(C_word v, C_word i, C_word x)
 
     if(j < 0 || j >= C_header_size(v)) barf(C_OUT_OF_RANGE_ERROR, "vector-set!", v, i);
 
-    C_mutate2(&C_block_item(v, j), x);
+    C_mutate(&C_block_item(v, j), x);
   }
   else barf(C_BAD_ARGUMENT_TYPE_ERROR, "vector-set!", i);
 
@@ -11434,7 +11434,7 @@ C_regparm C_word C_fcall C_i_locative_set(C_word loc, C_word x)
     barf(C_LOST_LOCATIVE_ERROR, "locative-set!", loc);
 
   switch(C_unfix(C_block_item(loc, 2))) {
-  case C_SLOT_LOCATIVE: C_mutate2(ptr, x); break;
+  case C_SLOT_LOCATIVE: C_mutate(ptr, x); break;
 
   case C_CHAR_LOCATIVE:
     if((x & C_IMMEDIATE_TYPE_BITS) != C_CHARACTER_BITS)
@@ -12138,7 +12138,7 @@ C_putprop(C_word **ptr, C_word sym, C_word prop, C_word val)
 
   while(pl != C_SCHEME_END_OF_LIST) {
     if(C_block_item(pl, 0) == prop) {
-      C_mutate2(&C_u_i_car(C_u_i_cdr(pl)), val);
+      C_mutate(&C_u_i_car(C_u_i_cdr(pl)), val);
       return val;
     }
     else pl = C_u_i_cdr(C_u_i_cdr(pl));
