@@ -176,7 +176,6 @@
     (-x "-explicit-use")
     (-u "-unsafe")
     (-j "-emit-import-library")
-    (-n "-emit-inline-file")		; DEPRECATED
     (-b "-block")
     (-types "-consult-type-file")))
 
