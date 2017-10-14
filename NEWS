@@ -23,6 +23,7 @@
 
 - Tools
   - The new "-link" option to csc allows linking with objects from extensions.
+  - The ambiguous "-l<libname>" option for csc has been removed (#1193).
 
 - Core libraries
   - Removed support for memory-mapped files (posix), queues

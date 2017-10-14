@@ -450,9 +450,6 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
     -cc COMPILER                   select other C compiler than the default
     -cxx COMPILER                  select other C++ compiler than the default
     -ld COMPILER                   select other linker than the default 
-    -lLIBNAME                      link with given library
-                                    (`libLIBNAME' on UNIX,
-                                     `LIBNAME.lib' on Windows)
     -static                        link with static CHICKEN libraries and
                                     extensions (if possible)
     -F<DIR>                        pass \"-F<DIR>\" to C compiler
@@ -766,9 +763,7 @@ EOF
 		       (t-options arg) ]
 		      [(and (> (string-length arg) 1)
 			    (char=? #\- (string-ref arg 0)) )
-		       (cond [(char=? #\l (string-ref arg 1))
-			      (set! link-options (append link-options (list arg))) ]
- 			     [(char=? #\L (string-ref arg 1))
+		       (cond [(char=? #\L (string-ref arg 1))
  			      (set! link-options (append link-options (list arg))) ]
  			     [(char=? #\I (string-ref arg 1))
  			      (set! compile-options (append compile-options (list arg))) ]
