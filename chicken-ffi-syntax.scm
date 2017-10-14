@@ -39,7 +39,8 @@
   (no-bound-checks)
   (no-procedure-checks))
 
-(import chicken.format
+(import chicken.base
+	chicken.format
 	chicken.string)
 
 (include "common-declarations.scm")

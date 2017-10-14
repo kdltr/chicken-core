@@ -5951,12 +5951,3 @@ EOF
 	     (loop (##sys#slot ids 1))))))
 
 ) ; chicken.platform
-
-
-;; TODO: Figure out how to ensure chicken.base is always available at
-;; syntax expansion time.  Related to #1131?  This is a temporary
-;; workaround (go ahead, laugh....) so at least macros have gensym,
-;; add1 and so on available without needing (import (chicken base)):
-(define gensym chicken.base#gensym)
-(define add1 chicken.base#add1)
-(define sub1 chicken.base#sub1)
