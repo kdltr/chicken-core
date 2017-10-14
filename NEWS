@@ -59,6 +59,9 @@
   - Renamed bit-set? to bit->boolean because of swapped argument order
     with respect to SRFI-33 and SRFI-60, which was confusing (fixes
     #1385, thanks to Lemonboy).
+  - file-{read,write,execute}-access will now raise an exception when
+    the file doesn't exist or some other non-access related problem is
+    detected (fixes #1386, thanks to Vasilij Schneidermann).
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This
