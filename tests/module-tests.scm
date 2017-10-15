@@ -10,6 +10,18 @@
 
 (test-begin "modules")
 
+(test-assert
+ "r4rs"
+ (module test-r4rs ()
+   (import r4rs)
+   (equal? 1 1)))
+
+(test-assert
+ "r4rs-null"
+ (module test-r4rs-null ()
+   (import r4rs-null)
+   (begin #t)))
+
 (test-equal "internal/variable"
 (module foo (abc def)
   (import scheme)

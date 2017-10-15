@@ -894,10 +894,10 @@
 (define-foreign-variable install-lib-name c-string "C_INSTALL_LIB_NAME")
 (define-foreign-variable uses-soname? bool "C_USES_SONAME")
 
+;;; Core unit information
+
 (define-constant core-unit-requirements
-  '((scheme ; XXX not totally correct, also needs eval
-     . (##core#require library))
-    (chicken.foreign
+  '((chicken.foreign
      . (##core#require-for-syntax chicken-ffi-syntax))
     (chicken.condition
      . (##core#begin

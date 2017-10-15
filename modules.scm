@@ -941,13 +941,13 @@
        ;;    ##sys#initial-macro-environment and thus always available inside 
        ;;    modules.
        ##sys#default-macro-environment))
-  (##sys#register-primitive-module 'r4rs r4rs-values r4rs-syntax)
-  (##sys#register-primitive-module 
-   'scheme
+  (##sys#register-core-module 'r4rs 'library r4rs-values r4rs-syntax)
+  (##sys#register-core-module
+   'scheme 'library
    (append '(dynamic-wind values call-with-values) r4rs-values)
    r4rs-syntax)
-  (##sys#register-primitive-module 'r4rs-null '() r4rs-syntax)
-  (##sys#register-primitive-module 'r5rs-null '() r4rs-syntax))
+  (##sys#register-core-module 'r4rs-null #f '() r4rs-syntax)
+  (##sys#register-core-module 'r5rs-null #f '() r4rs-syntax))
 
 (##sys#register-module-alias 'r5rs 'scheme)
 (##sys#register-module-alias 'srfi-88 'chicken.keyword)
