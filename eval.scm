@@ -608,7 +608,7 @@
 			  (compile '(##core#undefined) e #f tf cntr se #f) ]
 
 			 [(##core#define-inline ##core#define-constant)
-			  (compile `(,(rename 'define se) ,@(cdr x)) e #f tf cntr se #f) ]
+			  (compile `(,(rename 'define se) ,@(cdr x)) e #f tf cntr se tl?) ]
                    
 			 [(##core#primitive ##core#inline ##core#inline_allocate ##core#foreign-lambda 
 					    ##core#define-foreign-variable 
