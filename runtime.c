@@ -10432,7 +10432,7 @@ void C_ccall C_fixnum_to_string(C_word c, C_word *av)
 void C_ccall C_flonum_to_string(C_word c, C_word *av)
 {
   C_char *p;
-  double f;
+  double f, fa, m;
   C_word *a,
     /* self = av[ 0 ] */
     k = av[ 1 ],
@@ -10440,6 +10440,7 @@ void C_ccall C_flonum_to_string(C_word c, C_word *av)
     radix = ((c == 3) ? 10 : C_unfix(av[ 3 ]));
 
   f = C_flonum_magnitude(num);
+  fa = fabs(f);
 
   /* XXX TODO: Should inexacts be printable in other bases than 10?
    * Perhaps output a string starting with #i?
@@ -10450,7 +10451,7 @@ void C_ccall C_flonum_to_string(C_word c, C_word *av)
     barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "number->string", C_fix(radix));
   }
 
-  if(C_fits_in_unsigned_int_p(num) == C_SCHEME_TRUE) { /* Use fast int code */
+  if(f == 0.0 || (C_modf(f, &m) == 0.0 && log2(fa) < C_WORD_SIZE)) { /* Use fast int code */
     if(f < 0) {
       p = to_n_nary((C_uword)-f, radix, 1, 1);
     } else {
