@@ -53,3 +53,5 @@
 (test-error (eval 'baz format-env))
 
 (test-end)
+
+(test-exit)

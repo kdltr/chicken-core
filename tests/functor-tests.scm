@@ -5,7 +5,7 @@
 
 
 (include "test.scm")
-(test-begin)
+(test-begin "functor tests")
 
 ;;
 
@@ -240,3 +240,5 @@
 ;;
 
 (test-end)
+
+(test-exit)

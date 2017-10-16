@@ -5,9 +5,13 @@
 (import (only chicken.string ->string))
 (import time) ; current-milliseconds
 
+(define *current-group-name* "")
 (define *pass* 0)
 (define *fail* 0)
 (define *start* 0)
+(define *total-pass* 0)
+(define *total-fail* 0)
+(define *total-start* 0)
 (define *fail-token* (gensym))
 
 (define (run-test name thunk expect eq pass-msg fail-msg)
@@ -30,9 +34,15 @@
       (else (display (car ls)) (lp (cdr ls))))))
 
 (define (test-begin . o)
+  (set! *current-group-name* (if (null? o) "<unnamed>" (car o)))
+  (print "== " *current-group-name* " ==")
+  (set! *total-pass* (+ *total-pass* *pass*))
+  (set! *total-fail* (+ *total-fail* *fail*))
   (set! *pass* 0)
   (set! *fail* 0)
-  (set! *start* (current-milliseconds)))
+  (set! *start* (current-milliseconds))
+  (when (= 0 *total-start*)
+    (set! *total-start* (current-milliseconds))))
 
 (define (format-float n prec)
   (let* ((str (number->string n))
@@ -68,8 +78,25 @@
 	   "%) tests passed")
     (print "  " *fail* " ("
 	   (format-percent *fail* total)
+	   "%) tests failed"))
+    (print "-- " *current-group-name* " --\n\n"))
+
+(define (test-exit . o)
+  (print " TOTALS: ")
+  (set! *total-pass* (+ *total-pass* *pass*)) ; should be 0
+  (set! *total-fail* (+ *total-fail* *fail*)) ; should be 0
+  (let ((end (current-milliseconds))
+        (total (+ *total-pass* *total-fail*)))
+    (print "  " total " tests completed in "
+	   (format-float (exact->inexact (/ (- end *total-start*) 1000)) 3)
+	   " seconds")
+    (print "  " *total-pass* " ("
+	   (format-percent *total-pass* total)
+	   "%) tests passed")
+    (print "  " *total-fail* " ("
+	   (format-percent *total-fail* total)
 	   "%) tests failed")
-    (exit (if (zero? *fail*) 0 1))))
+    (exit (if (zero? *total-fail*) 0 1))))
 
 (define (run-equal name thunk expect eq)
   (run-test name thunk expect eq

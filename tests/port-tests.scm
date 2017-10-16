@@ -2,7 +2,7 @@
         file flonum format io port posix srfi-4 tcp)
 
 (include "test.scm")
-(test-begin)
+(test-begin "ports")
 
 (define-syntax assert-error
   (syntax-rules ()
@@ -436,3 +436,5 @@ EOF
 ;;;
 
 (test-end)
+
+(test-exit)
