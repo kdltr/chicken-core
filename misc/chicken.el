@@ -150,7 +150,6 @@
 	(dotimes 1)
 	(compiler-typecase 1)
 	(ecase 1)
-	(use 0)
 	(require-extension 0)
 	(import 0)
 	(handle-exceptions 2)

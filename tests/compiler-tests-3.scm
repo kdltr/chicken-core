@@ -1,6 +1,6 @@
 ;;; compiler-tests-3.scm - tests for unboxing
 
-(use flonum)
+(import flonum)
 
 ;;; unboxing introduced binding in test-position of conditional
 

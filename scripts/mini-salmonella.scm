@@ -4,7 +4,7 @@
 (module mini-salmonella ()
 
 (import scheme chicken)
-(use posix file extras data-structures setup-api (chicken process))
+(import posix file extras data-structures setup-api (chicken process))
 
 (define (usage code)
   (print "usage: mini-salmonella [-h] [-test] [-debug] [-download] [-trunk] EGGDIR [PREFIX]")

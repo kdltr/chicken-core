@@ -1,6 +1,6 @@
 ;;; x.scm
 
-(use gc)
+(import gc)
 
 (define (bar x) (gc) (* x x))
 

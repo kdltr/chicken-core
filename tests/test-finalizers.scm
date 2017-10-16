@@ -2,7 +2,7 @@
 
 (import (chicken format))
 
-(use gc)
+(import gc)
 
 (##sys#eval-debug-level 0)		; disable keeping trace-buffer with frameinfo
 

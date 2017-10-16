@@ -67,6 +67,8 @@
   - The core units have been converted to modules under the "chicken"
     namespace.
   - Added support for list-style library names.
+  - The "use" and "use-for-syntax" special forms have been removed
+    in favor of "import" and "import-for-syntax" to reduce confusion.
 
 - Syntax expander
   - Removed support for (define-syntax (foo e r c) ...), which was

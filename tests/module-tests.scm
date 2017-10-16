@@ -173,7 +173,7 @@
 
 (module m15 ()
   (import scheme chicken)
-  (use (prefix (rename srfi-4 (u8vector u)) 99:))
+  (import (prefix (rename srfi-4 (u8vector u)) 99:))
   (print 99:u))
 
 

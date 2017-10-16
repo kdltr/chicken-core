@@ -1,8 +1,8 @@
 ;;;: test-irregex.scm
 
 
-(use (only chicken.string string-split string-intersperse)
-     format io irregex port)
+(import (only chicken.string string-split string-intersperse)
+        format io irregex port)
 
 (include "test.scm")
 

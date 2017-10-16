@@ -2,7 +2,7 @@
 
 (include "test.scm")
 
-(use bitwise flonum format posix (chicken platform))
+(import bitwise flonum format posix (chicken platform))
 
 ;; The default "comparator" doesn't know how to deal with extended number types
 (current-test-comparator

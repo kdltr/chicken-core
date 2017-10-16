@@ -2,8 +2,8 @@
 ;
 ; by Alex Shinn, lifted from match-test by felix
 
-(use (only chicken.string ->string))
-(use time) ; current-milliseconds
+(import (only chicken.string ->string))
+(import time) ; current-milliseconds
 
 (define *pass* 0)
 (define *fail* 0)

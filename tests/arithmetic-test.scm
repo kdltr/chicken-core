@@ -15,7 +15,7 @@
   (else))
 
 
-(use pretty-print random (chicken platform))
+(import pretty-print random (chicken platform))
 
 (define range 2)
 (define random-range 32000)

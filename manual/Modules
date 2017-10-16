@@ -337,14 +337,6 @@ and used in an identical manner:
   #;3> (greet "you")
   Hello, you !
 
-If you are depending on external libraries inside your module, follow the general rule of {{(import chicken scheme) (use anything-else)}} like so:
-
- (module test (hello greet)
-   (import chicken scheme)
-   (use posix)
-   (use srfi-4)
-   ...)
-
 If you want to keep macro-definitions in a separate file, use import
 libraries:
 

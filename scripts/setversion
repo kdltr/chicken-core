@@ -3,7 +3,8 @@
 exec csi -s "$0" "$@"
 |#
 
-(use file format io irregex (chicken process) (chicken string))
+(import (chicken file) (chicken format) (chicken io)
+        (chicken irregex) (chicken process) (chicken string))
 
 (define buildversion (with-input-from-file "buildversion" read-line))
 

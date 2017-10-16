@@ -1,6 +1,6 @@
 ;;;; test-gc-hooks.scm
 
-(use gc)
+(import gc)
 
 #>
 

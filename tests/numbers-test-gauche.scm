@@ -48,7 +48,7 @@
 
 ;; Gauche compat
 
-(use bitwise)
+(import bitwise)
 
 (define (greatest-fixnum) most-positive-fixnum)
 (define (least-fixnum) most-negative-fixnum)

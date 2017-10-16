@@ -1,7 +1,7 @@
 ;;;; Unit lolevel testing
 
-(use chicken.format chicken.locative chicken.platform
-     chicken.memory chicken.memory.representation srfi-4)
+(import chicken.format chicken.locative chicken.platform
+        chicken.memory chicken.memory.representation srfi-4)
 
 (define-syntax assert-error
   (syntax-rules ()

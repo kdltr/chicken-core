@@ -1153,14 +1153,8 @@
 			   ,(car head))
 	  `(##core#letrec* ((,head ,@(cddr form))) ,head))))))
 
-;;; use
 
-(##sys#extend-macro-environment
- 'use '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'use x '(_ . #(_ 0)))
-    `(,(r 'require-extension) ,@(cdr x)))))
+;;; SRFI-55
 
 (##sys#extend-macro-environment
  'require-extension
@@ -1308,14 +1302,6 @@
     (##sys#check-syntax 'define-for-syntax form '(_ _ . _))
     `(,(r 'begin-for-syntax)
       (,(r 'define) ,@(cdr form))))))
-
-
-(##sys#extend-macro-environment
- 'use-for-syntax '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'use-for-syntax x '(_ . #(_ 0)))
-    `(,(r 'require-extension-for-syntax) ,@(cdr x)))))
 
 
 ;;; compiler syntax

@@ -1,7 +1,7 @@
 ;;;; srfi-4-tests.scm
 
 
-(use srfi-4 port)
+(import srfi-4 port)
 (import-for-syntax chicken)
 
 (define-syntax test1

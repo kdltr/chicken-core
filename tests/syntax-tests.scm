@@ -1,7 +1,7 @@
 ;;;; syntax-tests.scm - various macro tests
 
-(use-for-syntax pretty-print)
-(use gc pretty-print)
+(import-for-syntax pretty-print)
+(import gc pretty-print)
 
 (define-syntax t
   (syntax-rules ()
@@ -1085,10 +1085,10 @@
 (foo 3)
 
 
-;; #578: "use" with import-specifier has no effect for internal modules on csi's top-level
+;; #578: import with specifier has no effect for internal modules on csi's top-level
 
-(use srfi-4)
-(use (prefix srfi-4 other-))
+(import srfi-4)
+(import (prefix srfi-4 other-))
 u8vector
 other-u8vector
 

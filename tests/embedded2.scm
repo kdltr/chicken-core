@@ -1,4 +1,4 @@
-(use gc pretty-print)
+(import gc pretty-print)
 
 #>
 #include <assert.h>

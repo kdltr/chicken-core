@@ -215,8 +215,7 @@ and the "egg" which calls the C functions can be implemented like this:
 
 <enscript highlight=scheme>
 (module memcpy-demo (input->output)
-    (import chicken scheme foreign)
-    (use srfi-4)
+    (import chicken scheme foreign srfi-4)
 
     (define CopyResults (foreign-lambda void "CopyResults" f64vector))
 
