@@ -915,7 +915,8 @@ EOF
 ;;; Link object files and libraries:
 
 (define (run-linking)
-  (set! object-files (collect-linked-objects object-files))
+  (set! object-files
+    (collect-linked-objects object-files generated-object-files))
   (let* ((files (map quotewrap object-files))
 	 (target (quotewrap target-filename))
 	 (targetdir #f))
@@ -949,20 +950,22 @@ EOF
         (append generated-object-files
                 transient-link-files)))))
 
-(define (collect-linked-objects object-files)
+(define (collect-linked-objects ofiles gen-ofiles)
   (define (locate lst)
     (map (lambda (ofile)
 	   (chicken.load#find-file ofile (repo-path)))
 	 lst))
-  (let loop ((os object-files) (os2 object-files))
-    (if (null? os)
-	(delete-duplicates (reverse os2) string=?)
-	(let* ((o (car os))
-	       (lfile (pathname-replace-extension o "link"))
-	       (newos (if (file-exists? lfile)
-			  (locate (with-input-from-file lfile read))
-			  '())))
-	  (loop (append newos (cdr os)) (append newos os2))))))
+  (let loop ((os ofiles) (os2 ofiles))
+    (cond ((null? os)
+           (delete-duplicates (reverse os2) string=?))
+          ((or static (not (member (car os) gen-ofiles)))
+           (let* ((o (car os))
+                  (lfile (pathname-replace-extension o "link"))
+                  (newos (if (file-exists? lfile)
+                             (locate (with-input-from-file lfile read))
+                             '())))
+             (loop (append newos (cdr os)) (append newos os2))))
+          (else (loop (cdr os) (cons (car os) os2))))))
 
 (define (copy-files from to)
   (command
