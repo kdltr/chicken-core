@@ -267,6 +267,14 @@
   (let ((me0 (##sys#macro-environment)))
 
 (##sys#extend-macro-environment
+ 'begin-for-syntax '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'begin-for-syntax x '(_ . #(_ 0)))
+    (##sys#register-meta-expression `(##core#begin ,@(cdr x)))
+    `(##core#elaborationtimeonly (##core#begin ,@(cdr x))))))
+
+(##sys#extend-macro-environment
  'define-constant
  '()
  (##sys#er-transformer

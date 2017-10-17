@@ -835,7 +835,6 @@
 		   require-extension
 		   require-extension-for-syntax
 		   require-library
-		   begin-for-syntax
 		   export
 		   module
 		   cond-expand
