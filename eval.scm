@@ -828,18 +828,20 @@
     (foldr
      (lambda (s r)
        (if (memq (car s)
-		 '(import
-		   import-syntax
-		   import-for-syntax
-		   import-syntax-for-syntax
-		   require-extension
-		   require-extension-for-syntax
-		   require-library
+		 '(cond-expand
+		   define-interface
+		   delay-force
 		   export
+		   functor
+		   import
+		   import-for-syntax
+		   import-syntax
+		   import-syntax-for-syntax
+		   letrec*
 		   module
-		   cond-expand
-		   syntax
-		   reexport))
+		   reexport
+		   require-library
+		   syntax))
 	   r
 	   (cons s r)))
      '()
