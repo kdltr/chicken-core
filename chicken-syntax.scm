@@ -50,7 +50,7 @@
 
 (##sys#extend-macro-environment
  'handle-exceptions
- `((call-with-current-continuation . ,(##sys#primitive-alias 'call-with-current-continuation)))
+ `((call-with-current-continuation . scheme#call-with-current-continuation))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'handle-exceptions form '(_ variable _ . _))
@@ -72,7 +72,7 @@
 (##sys#extend-macro-environment
  'condition-case
  `((else . ,(##sys#primitive-alias 'else))
-   (memv . ,(##sys#primitive-alias 'memv)))
+   (memv . scheme#memv))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'condition-case form '(_ _ . _))
@@ -613,7 +613,7 @@
 
 (##sys#extend-macro-environment
  'nth-value 
- `((list-ref . ,(##sys#primitive-alias 'list-ref)))
+ `((list-ref . scheme#list-ref))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'nth-value form '(_ _ _))
@@ -742,8 +742,9 @@
 
 (##sys#extend-macro-environment
  'let-optionals 
- `((car . ,(##sys#primitive-alias 'car))
-   (cdr . ,(##sys#primitive-alias 'cdr)))
+ `((null? . scheme#null?)
+   (car . scheme#car)
+   (cdr . scheme#cdr))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'let-optionals form '(_ _ . _))
@@ -777,7 +778,7 @@
 	  (if (null? vars)
 	      `(,body-proc . ,(reverse non-defaults))
 	      (let ((v (car vars)))
-		`(##core#if (null? ,rest)
+		`(##core#if (,(r 'null?) ,rest)
 		       (,(car defaulters) . ,(reverse non-defaults))
 		       (##core#let ((,v (,(r 'car) ,rest)) ; we use car/cdr, because of rest-list optimization
 			       (,rest (,(r 'cdr) ,rest)))
@@ -830,9 +831,9 @@
 
 (##sys#extend-macro-environment
  'optional 
- `((null? . ,(##sys#primitive-alias 'null?))
-   (car . ,(##sys#primitive-alias 'car))
-   (cdr . ,(##sys#primitive-alias 'cdr)) )
+ `((null? . scheme#null?)
+   (car . scheme#car)
+   (cdr . scheme#cdr) )
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'optional form '(_ _ . #(_ 0 1)))
@@ -858,9 +859,9 @@
 
 (##sys#extend-macro-environment
  'let-optionals* 
- `((null? . ,(##sys#primitive-alias 'null?))
-   (car . ,(##sys#primitive-alias 'car))
-   (cdr . ,(##sys#primitive-alias 'cdr)))
+ `((null? . scheme#null?)
+   (car . scheme#car)
+   (cdr . scheme#cdr))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'let-optionals* form '(_ _ list . _))
@@ -893,11 +894,11 @@
 
 (##sys#extend-macro-environment
  'case-lambda 
- `((>= . ,(##sys#primitive-alias '>=))
-   (car . ,(##sys#primitive-alias 'car))
-   (cdr . ,(##sys#primitive-alias 'cdr))
-   (eq? . ,(##sys#primitive-alias 'eq?))
-   (length . ,(##sys#primitive-alias 'length)))
+ `((>= . scheme#>=)
+   (car . scheme#car)
+   (cdr . scheme#cdr)
+   (eq? . scheme#eq?)
+   (length . scheme#length))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'case-lambda form '(_ . _))
@@ -1075,7 +1076,7 @@
 
 (##sys#extend-macro-environment
  'cut 
- `((apply . ,(##sys#primitive-alias 'apply)))
+ `((apply . scheme#apply))
  (##sys#er-transformer
   (lambda (form r c)
     (let ((%<> (r '<>))
@@ -1108,7 +1109,7 @@
 
 (##sys#extend-macro-environment
  'cute 
- `((apply . ,(##sys#primitive-alias 'apply)))
+ `((apply . scheme#apply))
  (##sys#er-transformer
   (lambda (form r c)
     (let ((%apply (r 'apply))

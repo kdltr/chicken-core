@@ -1014,7 +1014,13 @@
     (##sys#check-syntax 'module x '(_ _ _ . #(_ 0)))
     (let ((len (length x))
 	  (name (library-id (cadr x))))
-      (cond ((and (fx>= len 4) (c (r '=) (caddr x)))
+      ;; We strip syntax here instead of doing a hygienic comparison
+      ;; to "=".  This is a tradeoff; either we do this, or we must
+      ;; include a mapping of (= . scheme#=) in our syntax env.  In
+      ;; the initial environment, = is bound to scheme#=, but when
+      ;; using -explicit-use that's not the case.  Doing an unhygienic
+      ;; comparison ensures module will work in both cases.
+      (cond ((and (fx>= len 4) (eq? '= (strip-syntax (caddr x))))
 	     (let* ((x (strip-syntax x))
 		    (app (cadddr x)))
 	       (cond ((fx> len 4)
@@ -1393,7 +1399,7 @@
 
 (##sys#extend-macro-environment
  'case
- '()
+ '((eqv? . scheme#eqv?))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'case form '(_ _ . #(_ 0)))
@@ -1550,11 +1556,7 @@
  '()
  (##sys#er-transformer
   (lambda (form r c)
-    (let ((clauses (cdr form))
-	  (%or (r 'or))
-	  (%not (r 'not))
-	  (%else (r 'else))
-	  (%and (r 'and)))
+    (let ((clauses (cdr form)))
       (define (err x) 
 	(##sys#error "syntax error in `cond-expand' form"
 		     x
@@ -1565,20 +1567,21 @@
 	      (else
 	       (let ((head (car fx))
 		     (rest (cdr fx)))
-		 (cond ((c %and head)
-			(or (eq? rest '())
-			    (if (pair? rest)
-				(and (test (car rest))
-				     (test `(,%and ,@(cdr rest))) )
-				(err fx) ) ) )
-		       ((c %or head)
-			(and (not (eq? rest '()))
-			     (if (pair? rest)
-				 (or (test (car rest))
-				     (test `(,%or ,@(cdr rest))) )
-				 (err fx) ) ) )
-		       ((c %not head) (not (test (cadr fx))))
-		       (else (err fx)) ) ) ) ) )
+		 (case (strip-syntax head)
+		   ((and)
+		    (or (eq? rest '())
+			(if (pair? rest)
+			    (and (test (car rest))
+				 (test `(and ,@(cdr rest))) )
+			    (err fx) ) ) )
+		   ((or)
+		    (and (not (eq? rest '()))
+			 (if (pair? rest)
+			     (or (test (car rest))
+				 (test `(or ,@(cdr rest))) )
+			     (err fx) ) ) )
+		   ((not) (not (test (cadr fx))))
+		   (else (err fx)) ) ) ) ) )
       (let expand ((cls clauses))
 	(cond ((eq? cls '())
 	       (##sys#apply
@@ -1591,7 +1594,7 @@
 		 (if (not (pair? clause)) 
 		     (err clause)
 		     (let ((id (car clause)))
-		       (cond ((c id %else)
+		       (cond ((eq? (strip-syntax id) 'else)
 			      (let ((rest (cdr clause)))
 				(if (eq? rest '())
 				    '(##core#undefined)

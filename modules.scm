@@ -322,24 +322,24 @@
       (##sys#register-compiled-module
        ',(module-name mod)
        ',(module-library mod)
-       (list
+       (scheme#list
 	,@(map (lambda (ie)
 		 (if (symbol? (cdr ie))
 		     `'(,(car ie) . ,(cdr ie))
-		     `(list ',(car ie) '() ,(cdr ie))))
+		     `(scheme#list ',(car ie) '() ,(cdr ie))))
 	       (module-iexports mod)))
        ',(module-vexports mod)
-       (list 
+       (scheme#list
 	,@(map (lambda (sexport)
 		 (let* ((name (car sexport))
 			(a (assq name dlist)))
 		   (cond ((pair? a) 
-			  `(cons ',(car sexport) ,(strip-syntax (cdr a))))
+			  `(scheme#cons ',(car sexport) ,(strip-syntax (cdr a))))
 			 (else
 			  (dm "re-exported syntax" name mname)
 			  `',name))))
 	       sexports))
-       (list 
+       (scheme#list
 	,@(if (null? sexports)
 	      '() 			; no syntax exported - no more info needed
 	      (let loop ((sd (module-defined-syntax-list mod)))
@@ -347,7 +347,7 @@
 		      ((assq (caar sd) sexports) (loop (cdr sd)))
 		      (else
 		       (let ((name (caar sd)))
-			 (cons `(cons ',(caar sd) ,(strip-syntax (cdar sd)))
+			 (cons `(scheme#cons ',(caar sd) ,(strip-syntax (cdar sd)))
 			       (loop (cdr sd)))))))))))))
 
 (define (##sys#register-compiled-module name lib iexports vexports sexports #!optional
@@ -902,39 +902,131 @@
 ;;; built-in modules (needed for eval environments)
 
 (let ((r4rs-values
-       '(not boolean? eq? eqv? equal? pair?
-	     cons car cdr caar cadr cdar cddr caaar caadr cadar caddr cdaar cdadr
-	     cddar cdddr caaaar caaadr caadar caaddr cadaar cadadr caddar cadddr cdaaar
-	     cdaadr cdadar cdaddr cddaar cddadr cdddar cddddr set-car! set-cdr!
-	     null? list? list length list-tail list-ref append reverse memq memv
-	     member assq assv assoc symbol? symbol->string string->symbol number?
-	     integer? exact? real? complex? inexact? rational? zero? odd? even?
-	     positive? negative?  max min + - * / = > < >= <= quotient remainder
-	     modulo gcd lcm abs floor ceiling truncate round rationalize
-	     exact->inexact inexact->exact exp log expt sqrt
-	     sin cos tan asin acos atan
-	     number->string string->number char? char=? char>? char<? char>=?
-	     char<=? char-ci=? char-ci<? char-ci>?  char-ci>=? char-ci<=?
-	     char-alphabetic? char-whitespace? char-numeric? char-upper-case?
-	     char-lower-case? char-upcase char-downcase char->integer integer->char
-	     string? string=?  string>? string<? string>=? string<=? string-ci=?
-	     string-ci<? string-ci>? string-ci>=? string-ci<=?  make-string
-	     string-length string-ref string-set! string-append string-copy
-	     string->list list->string substring string-fill! vector? make-vector
-	     vector-ref vector-set! string vector vector-length vector->list
-	     list->vector vector-fill! procedure? map for-each apply force
-	     call-with-current-continuation input-port? output-port?
-	     current-input-port current-output-port call-with-input-file
-	     call-with-output-file open-input-file open-output-file
-	     close-input-port close-output-port (load . chicken.load#load)
-	     read read-char peek-char write display write-char newline eof-object?
-	     with-input-from-file with-output-to-file (eval . chicken.eval#eval)
-	     char-ready? imag-part real-part make-rectangular make-polar angle
-	     magnitude numerator denominator
-	     (scheme-report-environment . chicken.eval#scheme-report-environment)
-	     (null-environment . chicken.eval#null-environment)
-	     (interaction-environment . chicken.eval#interaction-environment)
-	     else))
+       '((not . scheme#not) (boolean? . scheme#boolean?)
+	 (eq? . scheme#eq?) (eqv? . scheme#eqv?) (equal? . scheme#equal?)
+	 (pair? . scheme#pair?) (cons . scheme#cons)
+	 (car . scheme#car) (cdr . scheme#cdr)
+	 (caar . scheme#caar) (cadr . scheme#cadr) (cdar . scheme#cdar)
+	 (cddr . scheme#cddr)
+	 (caaar . scheme#caaar) (caadr . scheme#caadr)
+	 (cadar . scheme#cadar) (caddr . scheme#caddr)
+	 (cdaar . scheme#cdaar) (cdadr . scheme#cdadr)
+	 (cddar . scheme#cddar) (cdddr . scheme#cdddr)
+	 (caaaar . scheme#caaaar) (caaadr . scheme#caaadr)
+	 (caadar . scheme#caadar) (caaddr . scheme#caaddr)
+	 (cadaar . scheme#cadaar) (cadadr . scheme#cadadr)
+	 (caddar . scheme#caddar) (cadddr . scheme#cadddr)
+	 (cdaaar . scheme#cdaaar) (cdaadr . scheme#cdaadr)
+	 (cdadar . scheme#cdadar) (cdaddr . scheme#cdaddr)
+	 (cddaar . scheme#cddaar) (cddadr . scheme#cddadr)
+	 (cdddar . scheme#cdddar) (cddddr . scheme#cddddr)
+	 (set-car! . scheme#set-car!) (set-cdr! . scheme#set-cdr!)
+	 (null? . scheme#null?) (list? . scheme#list?)
+	 (list . scheme#list) (length . scheme#length)
+	 (list-tail . scheme#list-tail) (list-ref . scheme#list-ref)
+	 (append . scheme#append) (reverse . scheme#reverse)
+	 (memq . scheme#memq) (memv . scheme#memv)
+	 (member . scheme#member) (assq . scheme#assq)
+	 (assv . scheme#assv) (assoc . scheme#assoc)
+	 (symbol? . scheme#symbol?)
+	 (symbol->string . scheme#symbol->string)
+	 (string->symbol . scheme#string->symbol)
+	 (number? . scheme#number?) (integer? . scheme#integer?)
+	 (exact? . scheme#exact?) (real? . scheme#real?)
+	 (complex? . scheme#complex?) (inexact? . scheme#inexact?)
+	 (rational? . scheme#rational?) (zero? . scheme#zero?)
+	 (odd? . scheme#odd?) (even? . scheme#even?)
+	 (positive? . scheme#positive?) (negative? . scheme#negative?)
+	 (max . scheme#max) (min . scheme#min)
+	 (+ . scheme#+) (- . scheme#-) (* . scheme#*) (/ . scheme#/)
+	 (= . scheme#=) (> . scheme#>) (< . scheme#<)
+	 (>= . scheme#>=) (<= . scheme#<=)
+	 (quotient . scheme#quotient) (remainder . scheme#remainder)
+	 (modulo . scheme#modulo)
+	 (gcd . scheme#gcd) (lcm . scheme#lcm) (abs . scheme#abs)
+	 (floor . scheme#floor) (ceiling . scheme#ceiling)
+	 (truncate . scheme#truncate) (round . scheme#round)
+	 (rationalize . scheme#rationalize)
+	 (exact->inexact . scheme#exact->inexact)
+	 (inexact->exact . scheme#inexact->exact)
+	 (exp . scheme#exp) (log . scheme#log) (expt . scheme#expt)
+	 (sqrt . scheme#sqrt)
+	 (sin . scheme#sin) (cos . scheme#cos) (tan . scheme#tan)
+	 (asin . scheme#asin) (acos . scheme#acos) (atan . scheme#atan)
+	 (number->string . scheme#number->string)
+	 (string->number . scheme#string->number)
+	 (char? . scheme#char?) (char=? . scheme#char=?)
+	 (char>? . scheme#char>?) (char<? . scheme#char<?)
+	 (char>=? . scheme#char>=?) (char<=? . scheme#char<=?)
+	 (char-ci=? . scheme#char-ci=?)
+	 (char-ci<? . scheme#char-ci<?) (char-ci>? . scheme#char-ci>?)
+	 (char-ci>=? . scheme#char-ci>=?) (char-ci<=? . scheme#char-ci<=?)
+	 (char-alphabetic? . scheme#char-alphabetic?)
+	 (char-whitespace? . scheme#char-whitespace?)
+	 (char-numeric? . scheme#char-numeric?)
+	 (char-upper-case? . scheme#char-upper-case?)
+	 (char-lower-case? . scheme#char-lower-case?)
+	 (char-upcase . scheme#char-upcase)
+	 (char-downcase . scheme#char-downcase)
+	 (char->integer . scheme#char->integer)
+	 (integer->char . scheme#integer->char)
+	 (string? . scheme#string?) (string=? . scheme#string=?)
+	 (string>? . scheme#string>?) (string<? . scheme#string<?)
+	 (string>=? . scheme#string>=?) (string<=? . scheme#string<=?)
+	 (string-ci=? . scheme#string-ci=?)
+	 (string-ci<? . scheme#string-ci<?)
+	 (string-ci>? . scheme#string-ci>?)
+	 (string-ci>=? . scheme#string-ci>=?)
+	 (string-ci<=? . scheme#string-ci<=?)
+	 (make-string . scheme#make-string)
+	 (string-length . scheme#string-length)
+	 (string-ref . scheme#string-ref)
+	 (string-set! . scheme#string-set!)
+	 (string-append . scheme#string-append)
+	 (string-copy . scheme#string-copy)
+	 (string->list . scheme#string->list)
+	 (list->string . scheme#list->string)
+	 (substring . scheme#substring)
+	 (string-fill! . scheme#string-fill!)
+	 (vector? . scheme#vector?) (make-vector . scheme#make-vector)
+	 (vector-ref . scheme#vector-ref)
+	 (vector-set! . scheme#vector-set!)
+	 (string . scheme#string) (vector . scheme#vector)
+	 (vector-length . scheme#vector-length)
+	 (vector->list . scheme#vector->list)
+	 (list->vector . scheme#list->vector)
+	 (vector-fill! . scheme#vector-fill!)
+	 (procedure? . scheme#procedure?)
+	 (map . scheme#map) (for-each . scheme#for-each)
+	 (apply . scheme#apply) (force . scheme#force)
+	 (call-with-current-continuation . scheme#call-with-current-continuation)
+	 (input-port? . scheme#input-port?)
+	 (output-port? . scheme#output-port?)
+	 (current-input-port . scheme#current-input-port)
+	 (current-output-port . scheme#current-output-port)
+	 (call-with-input-file . scheme#call-with-input-file)
+	 (call-with-output-file . scheme#call-with-output-file)
+	 (open-input-file . scheme#open-input-file)
+	 (open-output-file . scheme#open-output-file)
+	 (close-input-port . scheme#close-input-port)
+	 (close-output-port . scheme#close-output-port)
+	 (load . chicken.load#load) (read . scheme#read)
+	 (read-char . scheme#read-char) (peek-char . scheme#peek-char)
+	 (write . scheme#write) (display . scheme#display)
+	 (write-char . scheme#write-char) (newline . scheme#newline)
+	 (eof-object? . scheme#eof-object?)
+	 (with-input-from-file . scheme#with-input-from-file)
+	 (with-output-to-file . scheme#with-output-to-file)
+	 (eval . chicken.eval#eval) (char-ready? . scheme#char-ready?)
+	 (imag-part . scheme#imag-part) (real-part . scheme#real-part)
+	 (make-rectangular . scheme#make-rectangular)
+	 (make-polar . scheme#make-polar)
+	 (angle . scheme#angle) (magnitude . scheme#magnitude)
+	 (numerator . scheme#numerator)
+	 (denominator . scheme#denominator)
+	 (scheme-report-environment . chicken.eval#scheme-report-environment)
+	 (null-environment . chicken.eval#null-environment)
+	 (interaction-environment . chicken.eval#interaction-environment)))
       (r4rs-syntax
        ;;XXX better would be to move these into the "chicken"
        ;;    module. "import[-for-syntax]" and "reexport" are in
@@ -944,7 +1036,10 @@
   (##sys#register-core-module 'r4rs 'library r4rs-values r4rs-syntax)
   (##sys#register-core-module
    'scheme 'library
-   (append '(dynamic-wind values call-with-values) r4rs-values)
+   (append '((dynamic-wind . scheme#dynamic-wind)
+	     (values . scheme#values)
+	     (call-with-values . scheme#call-with-values))
+	   r4rs-values)
    r4rs-syntax)
   (##sys#register-core-module 'r4rs-null #f '() r4rs-syntax)
   (##sys#register-core-module 'r5rs-null #f '() r4rs-syntax))

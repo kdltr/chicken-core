@@ -2202,10 +2202,10 @@
 	  (list (list-ref (cdr arg1) index)))
 	rtypes))
 
-  (define-special-case vector-ref vector-ref-result-type)
+  (define-special-case scheme#vector-ref vector-ref-result-type)
   (define-special-case ##sys#vector-ref vector-ref-result-type)
 
-  (define-special-case vector-set!
+  (define-special-case scheme#vector-set!
     (lambda (node args loc rtypes)
       (or (and-let* ((index (known-length-vector-index node args loc 3))
 		     (subs (node-subexpressions node))
@@ -2300,17 +2300,17 @@
 		  (else #f)))
 	  rtypes)))
 
-  (define-special-case list-ref
+  (define-special-case scheme#list-ref
     (list+index-call-result-type-special-case
      (lambda (_ result-type)
        (and (pair? result-type)
 	    (list (cadr result-type))))))
 
-  (define-special-case list-tail
+  (define-special-case scheme#list-tail
     (list+index-call-result-type-special-case
      (lambda (_ result-type) (list result-type)))))
 
-(define-special-case list
+(define-special-case scheme#list
   (lambda (node args loc rtypes)
     (if (null? (cdr args))
 	'(null)
@@ -2322,7 +2322,7 @@
 	'(null)
 	`((list ,@(map walked-result (cdr args)))))))
 
-(define-special-case vector
+(define-special-case scheme#vector
   (lambda (node args loc rtypes)
     `((vector ,@(map walked-result (cdr args))))))
 
@@ -2330,7 +2330,7 @@
   (lambda (node args loc rtypes)
     `((vector ,@(map walked-result (cdr args))))))
 
-(define-special-case reverse
+(define-special-case scheme#reverse
   (lambda (node args loc rtypes)
     (or (and-let* ((subs (node-subexpressions node))
 		   ((= (length subs) 2))
@@ -2389,7 +2389,7 @@
     (cond ((derive-result-type) => list)
 	  (else rtypes)))
 
-  (define-special-case append append-special-case)
+  (define-special-case scheme#append append-special-case)
   (define-special-case ##sys#append append-special-case))
 
 ;;; Special cases for make-list/make-vector with a known size
@@ -2413,7 +2413,7 @@
 	    `((,type ,@(make-list size fill))))
 	  rtypes)))
 
-  (define-special-case make-vector
+  (define-special-case scheme#make-vector
     (complex-object-constructor-result-type-special-case 'vector)))
 
 

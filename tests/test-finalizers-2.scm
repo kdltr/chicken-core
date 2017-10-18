@@ -8,14 +8,6 @@
 	'()
 	(cons (proc i) (loop (fx+ i 1))))))
 
-(define (circular-list x1 . lst)
-  (let ((lst1 (cons x1 lst)))
-    (let loop ((lst lst1))
-      (if (null? (cdr lst))
-	  (set-cdr! lst lst1)
-	  (loop (cdr lst))))
-    lst1))
-
 (define *n* 1000)
 (define *count* 0)
 
@@ -48,7 +40,7 @@ freef(void *r)
 (print "creating gc roots")
 
 (let* ((x (list-tabulate *n* list))
-       (fs (circular-list #t #f))
+       (fs (list-tabulate *n* (lambda (x) (zero? (modulo x 2)))))
        (rs (map makef fs x)))
   (for-each 
    (lambda (x f e)

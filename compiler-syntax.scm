@@ -51,7 +51,7 @@
       (set! compiler-syntax-statistics
 	(alist-update! name (add1 a) compiler-syntax-statistics)))))
 
-(define (r-c-s names transformer #!optional (se '()))
+(define (r-c-s names transformer se)
   (let ((t (cons (##sys#ensure-transformer
 		  (##sys#er-transformer transformer)
 		  (car names))
@@ -63,13 +63,11 @@
 
 (define-syntax define-internal-compiler-syntax
   (syntax-rules ()
-    ((_ (names . llist) (se ...) . body)
-     (r-c-s 
-      'names (lambda llist . body) 
-      `((se . ,(##sys#primitive-alias 'se)) ...)))))
+    ((_ (names . llist) se . body)
+     (r-c-s 'names (lambda llist . body) se))))
 
-(define-internal-compiler-syntax ((for-each ##sys#for-each #%for-each) x r c)
-  (pair?)
+(define-internal-compiler-syntax ((scheme#for-each ##sys#for-each #%for-each) x r c)
+  '((pair? . scheme#pair?))
   (let ((%let (r 'let))
 	(%if (r 'if))
 	(%loop (r 'for-each-loop))
@@ -80,7 +78,7 @@
 	(%pair? (r 'pair?))
 	(%lambda (r 'lambda))
 	(lsts (cddr x)))
-    (if (and (memq 'for-each standard-bindings) ; we have to check this because the db (and thus 
+    (if (and (memq 'scheme#for-each standard-bindings) ; we have to check this because the db (and thus 
 	     (> (length+ x) 2))			 ; intrinsic marks) isn't set up yet
 	(let ((vars (map (lambda _ (gensym)) lsts)))
 	  `(,%let ((,%proc ,(cadr x))
@@ -98,8 +96,8 @@
 				 ,@(map (lambda (v) `(##sys#slot ,v 1)) vars) ) )))))
 	x)))
 
-(define-internal-compiler-syntax ((map ##sys#map #%map) x r c)
-  (pair? cons)
+(define-internal-compiler-syntax ((scheme#map ##sys#map #%map) x r c)
+  '((pair? . scheme#pair?) (cons . scheme#cons))
   (let ((%let (r 'let))
 	(%if (r 'if))
 	(%loop (r 'map-loop))
@@ -115,7 +113,7 @@
 	(%and (r 'and))
 	(%pair? (r 'pair?))
 	(lsts (cddr x)))
-    (if (and (memq 'map standard-bindings) ; s.a.
+    (if (and (memq 'scheme#map standard-bindings) ; s.a.
 	     (> (length+ x) 2))
 	(let ((vars (map (lambda _ (gensym)) lsts)))
 	  `(,%let ((,%node (,%cons (##core#undefined) (,%quote ()))))
@@ -140,7 +138,7 @@
 		       (##sys#slot ,%result 1))))))
 	x)))
 
-(define-internal-compiler-syntax ((chicken.data-structures#o) x r c) ()
+(define-internal-compiler-syntax ((chicken.data-structures#o) x r c) '()
   (if (and (fx> (length x) 1)
 	   (memq 'chicken.data-structures#o extended-bindings)) ; s.a.
       (let ((%tmp (r 'tmp)))
@@ -148,7 +146,12 @@
       x))
 
 (define-internal-compiler-syntax ((chicken.format#sprintf chicken.format#format) x r c)
-  (display write number->string write-char open-output-string get-output-string)
+  `((display . scheme#display)
+    (write . scheme#write)
+    (number->string . scheme#number->string)
+    (write-char . scheme#write-char)
+    (open-output-string . ,(##sys#primitive-alias 'open-output-string))
+    (get-output-string . ,(##sys#primitive-alias 'get-output-string)))
   (let* ((out (gensym 'out))
 	 (code (compile-format-string
 		(if (eq? (car x) 'chicken.format#sprintf) 'sprintf 'format)
@@ -160,14 +163,24 @@
 	x)))
 
 (define-internal-compiler-syntax ((chicken.format#fprintf) x r c)
-  (display write number->string write-char open-output-string get-output-string)
+  '((display . scheme#display)
+    (write . scheme#write)
+    (number->string . scheme#number->string)
+    (write-char . scheme#write-char)
+    (open-output-string . ,(##sys#primitive-alias 'open-output-string))
+    (get-output-string . ,(##sys#primitive-alias 'get-output-string)))
   (if (>= (length x) 3)
       (let ((code (compile-format-string 'fprintf (cadr x) x (cddr x) r c)))
 	(or code x))
       x))
 
 (define-internal-compiler-syntax ((chicken.format#printf) x r c)
-  (display write number->string write-char open-output-string get-output-string)
+  '((display . scheme#display)
+    (write . scheme#write)
+    (number->string . scheme#number->string)
+    (write-char . scheme#write-char)
+    (open-output-string . ,(##sys#primitive-alias 'open-output-string))
+    (get-output-string . ,(##sys#primitive-alias 'get-output-string)))
   (let ((code (compile-format-string 'printf '##sys#standard-output x (cdr x) r c)))
     (or code x)))
 
@@ -260,10 +273,10 @@
 			       (loop '()) )
 			     (loop (cons c chunk)))))))))))))
 
-(define-internal-compiler-syntax ((foldr #%foldr) x r c)
-  (pair?)
+(define-internal-compiler-syntax ((chicken.base#foldr #%foldr) x r c)
+  '((pair? . scheme#pair?))
   (if (and (fx= (length x) 4)
-	   (memq 'foldr extended-bindings) ) ; s.a.
+	   (memq 'chicken.base#foldr extended-bindings) ) ; s.a.
       (let ((f (cadr x))
 	    (z (caddr x))
 	    (lst (cadddr x))
@@ -282,10 +295,10 @@
 			      ,z))))
       x))
 
-(define-internal-compiler-syntax ((foldl #%foldl) x r c) 
-  (pair?)
+(define-internal-compiler-syntax ((chicken.base#foldl #%foldl) x r c)
+  '((pair? . scheme#pair?))
   (if (and (fx= (length x) 4)
-	   (memq 'foldl extended-bindings) ) ; s.a.
+	   (memq 'chicken.base#foldl extended-bindings) ) ; s.a.
       (let ((f (cadr x))
 	    (z (caddr x))
 	    (lst (cadddr x))

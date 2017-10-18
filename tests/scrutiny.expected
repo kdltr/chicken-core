@@ -16,31 +16,31 @@ Note: in toplevel procedure `b':
 Warning: in toplevel procedure `foo':
   branches in conditional expression differ in the number of results:
 
-(if x (values 1 2) (values 1 2 (+ (+ ...))))
+(if x (scheme#values 1 2) (scheme#values 1 2 (scheme#+ (scheme#+ ...))))
 
 Warning: at toplevel:
   (scrutiny-tests.scm:19) in procedure call to `bar', expected argument #2 of type `number' but was given an argument of type `symbol'
 
 Warning: at toplevel:
-  (scrutiny-tests.scm:21) in procedure call to `string?', expected 1 argument but was given 0 arguments
+  (scrutiny-tests.scm:21) in procedure call to `scheme#string?', expected 1 argument but was given 0 arguments
 
 Warning: at toplevel:
-  (scrutiny-tests.scm:23) expected a single result in argument #1 of procedure call `(chicken.base#print (values 1 2))', but received 2 results
+  (scrutiny-tests.scm:23) expected a single result in argument #1 of procedure call `(chicken.base#print (scheme#values 1 2))', but received 2 results
 
 Warning: at toplevel:
-  (scrutiny-tests.scm:24) expected a single result in argument #1 of procedure call `(chicken.base#print (values))', but received zero results
+  (scrutiny-tests.scm:24) expected a single result in argument #1 of procedure call `(chicken.base#print (scheme#values))', but received zero results
 
 Warning: at toplevel:
   (scrutiny-tests.scm:27) in procedure call to `x', expected a value of type `(procedure () *)' but was given a value of type `fixnum'
 
 Warning: at toplevel:
-  (scrutiny-tests.scm:29) in procedure call to `+', expected argument #1 of type `number' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:29) in procedure call to `scheme#+', expected argument #1 of type `number' but was given an argument of type `symbol'
 
 Warning: at toplevel:
-  (scrutiny-tests.scm:29) in procedure call to `+', expected argument #2 of type `number' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:29) in procedure call to `scheme#+', expected argument #2 of type `number' but was given an argument of type `symbol'
 
 Warning: at toplevel:
-  assignment of value of type `fixnum' to toplevel variable `car' does not match declared type `(forall (a) (procedure car ((pair a *)) a))'
+  assignment of value of type `fixnum' to toplevel variable `scheme#car' does not match declared type `(forall (a) (procedure scheme#car ((pair a *)) a))'
 
 Warning: at toplevel:
   expected a single result in `let' binding of `g19', but received 2 results
@@ -54,34 +54,34 @@ Note: in toplevel procedure `foo':
 (if bar 3 (##core#undefined))
 
 Warning: in toplevel procedure `foo2':
-  (scrutiny-tests.scm:58) in procedure call to `string-append', expected argument #1 of type `string' but was given an argument of type `number'
+  (scrutiny-tests.scm:58) in procedure call to `scheme#string-append', expected argument #1 of type `string' but was given an argument of type `number'
 
 Warning: at toplevel:
   (scrutiny-tests.scm:66) in procedure call to `foo3', expected argument #1 of type `string' but was given an argument of type `fixnum'
 
 Warning: in toplevel procedure `foo4':
-  (scrutiny-tests.scm:71) in procedure call to `+', expected argument #1 of type `number' but was given an argument of type `string'
+  (scrutiny-tests.scm:71) in procedure call to `scheme#+', expected argument #1 of type `number' but was given an argument of type `string'
 
 Warning: in toplevel procedure `foo5':
-  (scrutiny-tests.scm:77) in procedure call to `+', expected argument #1 of type `number' but was given an argument of type `string'
+  (scrutiny-tests.scm:77) in procedure call to `scheme#+', expected argument #1 of type `number' but was given an argument of type `string'
 
 Warning: in toplevel procedure `foo6':
-  (scrutiny-tests.scm:83) in procedure call to `+', expected argument #1 of type `number' but was given an argument of type `string'
+  (scrutiny-tests.scm:83) in procedure call to `scheme#+', expected argument #1 of type `number' but was given an argument of type `string'
 
 Warning: at toplevel:
-  (scrutiny-tests.scm:90) in procedure call to `+', expected argument #1 of type `number' but was given an argument of type `string'
+  (scrutiny-tests.scm:90) in procedure call to `scheme#+', expected argument #1 of type `number' but was given an argument of type `string'
 
 Warning: in toplevel procedure `foo10':
   (scrutiny-tests.scm:104) in procedure call to `foo9', expected argument #1 of type `string' but was given an argument of type `number'
 
 Warning: in toplevel procedure `foo10':
-  (scrutiny-tests.scm:105) in procedure call to `+', expected argument #1 of type `number' but was given an argument of type `string'
+  (scrutiny-tests.scm:105) in procedure call to `scheme#+', expected argument #1 of type `number' but was given an argument of type `string'
 
 Note: in toplevel procedure `foo10':
   expression returns a result of type `string' but is declared to return `pair', which is not compatible
 
 Warning: in toplevel procedure `foo10':
-  (scrutiny-tests.scm:109) in procedure call to `string-append', expected argument #1 of type `string' but was given an argument of type `pair'
+  (scrutiny-tests.scm:109) in procedure call to `scheme#string-append', expected argument #1 of type `string' but was given an argument of type `pair'
 
 Warning: in toplevel procedure `foo10':
   expression returns 2 values but is declared to have a single result
@@ -90,10 +90,10 @@ Warning: in toplevel procedure `foo10':
   expression returns zero values but is declared to have a single result of type `*'
 
 Warning: in toplevel procedure `foo10':
-  (scrutiny-tests.scm:112) in procedure call to `*', expected argument #1 of type `number' but was given an argument of type `string'
+  (scrutiny-tests.scm:112) in procedure call to `scheme#*', expected argument #1 of type `number' but was given an argument of type `string'
 
 Warning: in toplevel procedure `foo#blabla':
-  (scrutiny-tests.scm:137) in procedure call to `+', expected argument #2 of type `number' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:137) in procedure call to `scheme#+', expected argument #2 of type `number' but was given an argument of type `symbol'
 
 Warning: at toplevel:
   use of deprecated `deprecated-procedure'
@@ -111,31 +111,31 @@ Note: at toplevel:
   (scrutiny-tests.scm:176) in procedure call to `chicken.base#fixnum?', the predicate is called with an argument of type `fixnum' and will always return true
 
 Note: at toplevel:
-  (scrutiny-tests.scm:184) in procedure call to `symbol?', the predicate is called with an argument of type `(or char string)' and will always return false
+  (scrutiny-tests.scm:184) in procedure call to `scheme#symbol?', the predicate is called with an argument of type `(or char string)' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests.scm:185) in procedure call to `string?', the predicate is called with an argument of type `(not (or char string))' and will always return false
+  (scrutiny-tests.scm:185) in procedure call to `scheme#string?', the predicate is called with an argument of type `(not (or char string))' and will always return false
 
 Note: at toplevel:
   (scrutiny-tests.scm:188) in procedure call to `char-or-string?', the predicate is called with an argument of type `fixnum' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests.scm:189) in procedure call to `symbol?', the predicate is called with an argument of type `(or char string)' and will always return false
+  (scrutiny-tests.scm:189) in procedure call to `scheme#symbol?', the predicate is called with an argument of type `(or char string)' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests.scm:190) in procedure call to `string?', the predicate is called with an argument of type `fixnum' and will always return false
+  (scrutiny-tests.scm:190) in procedure call to `scheme#string?', the predicate is called with an argument of type `fixnum' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests.scm:194) in procedure call to `symbol?', the predicate is called with an argument of type `char' and will always return false
+  (scrutiny-tests.scm:194) in procedure call to `scheme#symbol?', the predicate is called with an argument of type `char' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests.scm:195) in procedure call to `string?', the predicate is called with an argument of type `symbol' and will always return false
+  (scrutiny-tests.scm:195) in procedure call to `scheme#string?', the predicate is called with an argument of type `symbol' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests.scm:199) in procedure call to `symbol?', the predicate is called with an argument of type `(or char string)' and will always return false
+  (scrutiny-tests.scm:199) in procedure call to `scheme#symbol?', the predicate is called with an argument of type `(or char string)' and will always return false
 
 Note: at toplevel:
-  (scrutiny-tests.scm:200) in procedure call to `string?', the predicate is called with an argument of type `symbol' and will always return false
+  (scrutiny-tests.scm:200) in procedure call to `scheme#string?', the predicate is called with an argument of type `symbol' and will always return false
 
 Warning: at toplevel:
   (scrutiny-tests.scm:204) in procedure call to `f', expected argument #1 of type `pair' but was given an argument of type `null'
@@ -147,55 +147,55 @@ Warning: at toplevel:
   (scrutiny-tests.scm:208) in procedure call to `f', expected argument #1 of type `list' but was given an argument of type `(pair fixnum fixnum)'
 
 Warning: in toplevel procedure `vector-ref-warn1':
-  (scrutiny-tests.scm:214) in procedure call to `vector-ref', index -1 out of range for vector of length 3
+  (scrutiny-tests.scm:214) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 3
 
 Warning: in toplevel procedure `vector-ref-warn2':
-  (scrutiny-tests.scm:216) in procedure call to `vector-ref', index 3 out of range for vector of length 3
+  (scrutiny-tests.scm:216) in procedure call to `scheme#vector-ref', index 3 out of range for vector of length 3
 
 Warning: in toplevel procedure `vector-ref-warn3':
-  (scrutiny-tests.scm:217) in procedure call to `vector-ref', index 4 out of range for vector of length 3
+  (scrutiny-tests.scm:217) in procedure call to `scheme#vector-ref', index 4 out of range for vector of length 3
 
 Warning: in toplevel procedure `vector-ref-standard-warn1':
-  (scrutiny-tests.scm:220) in procedure call to `vector-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:220) in procedure call to `scheme#vector-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `vector-set!-warn1':
-  (scrutiny-tests.scm:221) in procedure call to `vector-set!', index -1 out of range for vector of length 3
+  (scrutiny-tests.scm:221) in procedure call to `scheme#vector-set!', index -1 out of range for vector of length 3
 
 Warning: in toplevel procedure `vector-set!-warn2':
-  (scrutiny-tests.scm:222) in procedure call to `vector-set!', index 3 out of range for vector of length 3
+  (scrutiny-tests.scm:222) in procedure call to `scheme#vector-set!', index 3 out of range for vector of length 3
 
 Warning: in toplevel procedure `vector-set!-warn3':
-  (scrutiny-tests.scm:223) in procedure call to `vector-set!', index 4 out of range for vector of length 3
+  (scrutiny-tests.scm:223) in procedure call to `scheme#vector-set!', index 4 out of range for vector of length 3
 
 Warning: in toplevel procedure `vector-set!-standard-warn1':
-  (scrutiny-tests.scm:226) in procedure call to `vector-set!', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:226) in procedure call to `scheme#vector-set!', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `list-ref-warn1':
-  (scrutiny-tests.scm:232) in procedure call to `list-ref', index -1 is negative, which is never valid
+  (scrutiny-tests.scm:232) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
 
 Warning: in toplevel procedure `list-ref-warn2':
-  (scrutiny-tests.scm:235) in procedure call to `list-ref', index -1 is negative, which is never valid
+  (scrutiny-tests.scm:235) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
 
 Warning: in toplevel procedure `list-ref-warn3':
-  (scrutiny-tests.scm:238) in procedure call to `list-ref', index -1 is negative, which is never valid
+  (scrutiny-tests.scm:238) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
 
 Warning: in toplevel procedure `list-ref-warn4':
-  (scrutiny-tests.scm:240) in procedure call to `list-ref', index 3 out of range for proper list of length 3
+  (scrutiny-tests.scm:240) in procedure call to `scheme#list-ref', index 3 out of range for proper list of length 3
 
 Warning: in toplevel procedure `list-ref-warn5':
-  (scrutiny-tests.scm:246) in procedure call to `list-ref', index 4 out of range for proper list of length 3
+  (scrutiny-tests.scm:246) in procedure call to `scheme#list-ref', index 4 out of range for proper list of length 3
 
 Warning: in toplevel procedure `list-ref-standard-warn1':
-  (scrutiny-tests.scm:275) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:275) in procedure call to `scheme#list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `list-ref-standard-warn2':
-  (scrutiny-tests.scm:276) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:276) in procedure call to `scheme#list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `list-ref-standard-warn3':
-  (scrutiny-tests.scm:278) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:278) in procedure call to `scheme#list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `list-ref-standard-warn4':
-  (scrutiny-tests.scm:279) in procedure call to `list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
+  (scrutiny-tests.scm:279) in procedure call to `scheme#list-ref', expected argument #2 of type `fixnum' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `list-ref-type-warn1':
   (scrutiny-tests.scm:283) in procedure call to `chicken.base#add1', expected argument #1 of type `number' but was given an argument of type `symbol'
@@ -212,4 +212,4 @@ Warning: in toplevel procedure `append-result-type-warn1':
 Warning: in toplevel procedure `append-result-type-warn2':
   (scrutiny-tests.scm:306) in procedure call to `chicken.base#add1', expected argument #1 of type `number' but was given an argument of type `symbol'
 
-Warning: redefinition of standard binding: car
+Warning: redefinition of standard binding: scheme#car

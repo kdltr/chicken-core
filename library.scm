@@ -178,12 +178,392 @@ signal_debug_event(C_word mode, C_word msg, C_word args)
 EOF
 ) )
 
-;; Pre-declaration of chicken.base, so it can be used later on.  Many
-;; declarations will be set! further down in this file, mostly to
-;; avoid a cyclic dependency on itself (only pure Scheme and core
-;; language operations are allowed in here).  Also, this declaration
-;; is incomplete: the module itself is defined as a primitive module
-;; due to syntax exports, which are missing here.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; NOTE: Modules defined here will typically exclude syntax
+;; definitions, those are handled by expand.scm or modules.scm.
+;; Handwritten import libraries (or a special-case module in
+;; modules.scm for scheme) contains the value exports merged with
+;; syntactic exports.  The upshot of this is that any module that
+;; refers to another module defined *earlier* in this file cannot use
+;; macros from the earlier module!
+
+;; We get around that problem for now by using "chicken" when
+;; importing things like "when", "unless" from chicken.base,
+;; "handle-exceptions" from chicken.condition.  For "scheme" there's a
+;; workaround available: we import r5rs-null which contains only the
+;; syntactic definitions from r5rs and reexport it straight away in
+;; this file, so that we may use at least the scheme definitions
+;; normally. For other modules, this still is a major TODO!  Also, the
+;; scheme module contains too many syntactic definitions, which is
+;; also a TODO.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Pre-declaration of scheme, so it can be used later on.  We only use
+;; scheme macros and core language forms in here, to avoid a cyclic
+;; dependency on itself.  All actual definitions are set! below.
+;; Also, this declaration is incomplete: the module itself is defined
+;; as a primitive module due to syntax exports, which are missing
+;; here.  See modules.scm for the full definition.
+(module scheme
+    (;; [syntax]
+     ;; We are reexporting these because otherwise the module here
+     ;; will be inconsistent with the built-in one, and be void of
+     ;; syntax definitions, causing problems below.
+     lambda quote syntax if begin define define-syntax
+     let letrec letrec* let-syntax letrec-syntax set! and or cond
+     case let* do quasiquote delay
+     ;; TODO: Better control the set of macros exported by "scheme"
+     ;; The following are not standard macros!
+     delay-force cond-expand require-library syntax-rules
+
+     not boolean? eq? eqv? equal? pair?
+     cons car cdr caar cadr cdar cddr caaar caadr cadar caddr cdaar
+     cdadr cddar cdddr caaaar caaadr caadar caaddr cadaar cadadr
+     caddar cadddr cdaaar cdaadr cdadar cdaddr cddaar cddadr cdddar
+     cddddr set-car! set-cdr!
+     null? list? list length list-tail list-ref append reverse memq memv
+     member assq assv assoc symbol? symbol->string string->symbol number?
+     integer? exact? real? complex? inexact? rational? zero? odd? even?
+     positive? negative?  max min + - * / = > < >= <= quotient remainder
+     modulo gcd lcm abs floor ceiling truncate round rationalize
+     exact->inexact inexact->exact exp log expt sqrt
+     sin cos tan asin acos atan
+     number->string string->number char? char=? char>? char<? char>=?
+     char<=? char-ci=? char-ci<? char-ci>?  char-ci>=? char-ci<=?
+     char-alphabetic? char-whitespace? char-numeric? char-upper-case?
+     char-lower-case? char-upcase char-downcase
+     char->integer integer->char
+     string? string=?  string>? string<? string>=? string<=? string-ci=?
+     string-ci<? string-ci>? string-ci>=? string-ci<=?  make-string
+     string-length string-ref string-set! string-append string-copy
+     string->list list->string substring string-fill! vector? make-vector
+     vector-ref vector-set! string vector vector-length vector->list
+     list->vector vector-fill! procedure? map for-each apply force
+     call-with-current-continuation input-port? output-port?
+     current-input-port current-output-port call-with-input-file
+     call-with-output-file open-input-file open-output-file
+     close-input-port close-output-port
+     read read-char peek-char write display write-char newline
+     eof-object? with-input-from-file with-output-to-file
+     char-ready? imag-part real-part make-rectangular make-polar angle
+     magnitude numerator denominator values call-with-values dynamic-wind
+     ;; NOTE: {null,scheme-report,interaction}-environment and eval
+     ;; are defined in chicken.eval, load is defined in chicken.load!
+     ;; The definition of "scheme" in modules.scm includes these.
+     )
+
+;; We use r5rs-null to get just the syntax exports for "scheme",
+;; because importing them from "scheme" would be importing then from
+;; the module currently being defined, which is initially empty....
+(import r5rs-null)
+
+;;; Operations on booleans:
+
+(define (not x) (##core#inline "C_i_not" x))
+(define (boolean? x) (##core#inline "C_booleanp" x))
+
+
+;;; Equivalence predicates:
+
+(define (eq? x y) (##core#inline "C_eqp" x y))
+(define (eqv? x y) (##core#inline "C_i_eqvp" x y))
+(define (equal? x y) (##core#inline "C_i_equalp" x y))
+
+
+;;; Pairs and lists:
+
+(define (pair? x) (##core#inline "C_i_pairp" x))
+(define (cons x y) (##core#inline_allocate ("C_a_i_cons" 3) x y))
+(define (car x) (##core#inline "C_i_car" x))
+(define (cdr x) (##core#inline "C_i_cdr" x))
+
+(define (set-car! x y) (##core#inline "C_i_set_car" x y))
+(define (set-cdr! x y) (##core#inline "C_i_set_cdr" x y))
+(define (cadr x) (##core#inline "C_i_cadr" x))
+(define (caddr x) (##core#inline "C_i_caddr" x))
+(define (cadddr x) (##core#inline "C_i_cadddr" x))
+(define (cddddr x) (##core#inline "C_i_cddddr" x))
+
+(define (caar x) (##core#inline "C_i_caar" x))
+(define (cdar x) (##core#inline "C_i_cdar" x))
+(define (cddr x) (##core#inline "C_i_cddr" x))
+(define (caaar x) (car (car (car x))))
+(define (caadr x) (car (##core#inline "C_i_cadr" x)))
+(define (cadar x) (##core#inline "C_i_cadr" (car x)))
+(define (cdaar x) (cdr (car (car x))))
+(define (cdadr x) (cdr (##core#inline "C_i_cadr" x)))
+(define (cddar x) (cdr (cdr (car x))))
+(define (cdddr x) (cdr (cdr (cdr x))))
+(define (caaaar x) (car (car (car (car x)))))
+(define (caaadr x) (car (car (##core#inline "C_i_cadr" x))))
+(define (caadar x) (car (##core#inline "C_i_cadr" (car x))))
+(define (caaddr x) (car (##core#inline "C_i_caddr" x)))
+(define (cadaar x) (##core#inline "C_i_cadr" (car (car x))))
+(define (cadadr x) (##core#inline "C_i_cadr" (##core#inline "C_i_cadr" x)))
+(define (caddar x) (##core#inline "C_i_caddr" (car x)))
+(define (cdaaar x) (cdr (car (car (car x)))))
+(define (cdaadr x) (cdr (car (##core#inline "C_i_cadr" x))))
+(define (cdadar x) (cdr (##core#inline "C_i_cadr" (car x))))
+(define (cdaddr x) (cdr (##core#inline "C_i_caddr" x)))
+(define (cddaar x) (cdr (cdr (car (car x)))))
+(define (cddadr x) (cdr (cdr (##core#inline "C_i_cadr" x))))
+(define (cdddar x) (cdr (cdr (cdr (car x)))))
+
+(define (null? x) (eq? x '()))
+(define (list . lst) lst)
+(define (length lst) (##core#inline "C_i_length" lst))
+(define (list-tail lst i) (##core#inline "C_i_list_tail" lst i))
+(define (list-ref lst i) (##core#inline "C_i_list_ref" lst i))
+
+(define append)
+
+(define (reverse lst0)
+  (let loop ((lst lst0) (rest '()))
+    (cond ((eq? lst '()) rest)
+	  ((pair? lst)
+	   (loop (##sys#slot lst 1) (cons (##sys#slot lst 0) rest)) )
+	  (else (##sys#error-not-a-proper-list lst0 'reverse)) ) ))
+
+(define (memq x lst) (##core#inline "C_i_memq" x lst))
+(define (memv x lst) (##core#inline "C_i_memv" x lst))
+(define (member x lst) (##core#inline "C_i_member" x lst))
+(define (assq x lst) (##core#inline "C_i_assq" x lst))
+(define (assv x lst) (##core#inline "C_i_assv" x lst))
+(define (assoc x lst) (##core#inline "C_i_assoc" x lst))
+
+(define (list? x) (##core#inline "C_i_listp" x))
+
+;;; Strings:
+
+(define make-string)
+
+(define (string? x) (##core#inline "C_i_stringp" x))
+(define (string-length s) (##core#inline "C_i_string_length" s))
+(define (string-ref s i) (##core#inline "C_i_string_ref" s i))
+(define (string-set! s i c) (##core#inline "C_i_string_set" s i c))
+
+(define (string=? x y)
+  (##core#inline "C_i_string_equal_p" x y))
+
+(define (string-ci=? x y) (##core#inline "C_i_string_ci_equal_p" x y))
+
+(define string->list)
+(define list->string)
+(define string-fill)
+(define string-copy)
+(define substring)
+(define string-fill!)
+
+(define string<?)
+(define string>?)
+(define string<=?)
+(define string>=?)
+
+(define string-ci<?)
+(define string-ci>?)
+(define string-ci<=?)
+(define string-ci>=?)
+
+(define string)
+(define string-append)
+
+;; Complex numbers
+(define make-rectangular)
+(define make-polar)
+(define real-part)
+(define imag-part)
+(define angle)
+(define magnitude)
+
+;; Rational numbers
+(define numerator)
+(define denominator)
+(define inexact->exact)
+(define (exact->inexact x)
+  (##core#inline_allocate ("C_a_i_exact_to_inexact" 12) x))
+
+;; Numerical operations
+(define (abs x) (##core#inline_allocate ("C_s_a_i_abs" 7) x))
+(define + (##core#primitive "C_plus"))
+(define - (##core#primitive "C_minus"))
+(define * (##core#primitive "C_times"))
+(define /)
+(define floor)
+(define ceiling)
+(define truncate)
+(define round)
+(define rationalize)
+
+(define (quotient a b) (##core#inline_allocate ("C_s_a_i_quotient" 5) a b))
+(define (remainder a b) (##core#inline_allocate ("C_s_a_i_remainder" 5) a b))
+(define (modulo a b) (##core#inline_allocate ("C_s_a_i_modulo" 5) a b))
+
+(define (even? n) (##core#inline "C_i_evenp" n))
+(define (odd? n) (##core#inline "C_i_oddp" n))
+
+(define max)
+(define min)
+(define exp)
+(define log)
+(define sin)
+(define cos)
+(define tan)
+(define asin)
+(define acos)
+(define atan)
+
+(define sqrt)
+(define expt)
+(define gcd)
+(define lcm)
+
+(define = (##core#primitive "C_nequalp"))
+(define > (##core#primitive "C_greaterp"))
+(define < (##core#primitive "C_lessp"))
+(define >= (##core#primitive "C_greater_or_equal_p"))
+(define <= (##core#primitive "C_less_or_equal_p"))
+(define (number? x) (##core#inline "C_i_numberp" x))
+(define complex? number?)
+(define (real? x) (##core#inline "C_i_realp" x))
+(define (rational? n) (##core#inline "C_i_rationalp" n))
+(define (integer? x) (##core#inline "C_i_integerp" x))
+(define (exact? x) (##core#inline "C_i_exactp" x))
+(define (inexact? x) (##core#inline "C_i_inexactp" x))
+(define (zero? n) (##core#inline "C_i_zerop" n))
+(define (positive? n) (##core#inline "C_i_positivep" n))
+(define (negative? n) (##core#inline "C_i_negativep" n))
+
+(define number->string (##core#primitive "C_number_to_string"))
+(define string->number)
+
+;;; Symbols:
+
+(define (symbol? x) (##core#inline "C_i_symbolp" x))
+(define symbol->string)
+(define string->symbol)
+
+;;; Vectors:
+
+(define (vector? x) (##core#inline "C_i_vectorp" x))
+(define (vector-length v) (##core#inline "C_i_vector_length" v))
+(define (vector-ref v i) (##core#inline "C_i_vector_ref" v i))
+(define (vector-set! v i x) (##core#inline "C_i_vector_set" v i x))
+(define make-vector)
+(define list->vector)
+(define vector->list)
+(define vector)
+(define vector-fill!)
+
+;;; Characters:
+
+(define (char? x) (##core#inline "C_charp" x))
+(define (char->integer c)
+  (##sys#check-char c 'char->integer)
+  (##core#inline "C_fix" (##core#inline "C_character_code" c)) )
+
+(define (integer->char n)
+  (##sys#check-fixnum n 'integer->char)
+  (##core#inline "C_make_character" (##core#inline "C_unfix" n)) )
+
+(define (char=? c1 c2) (##core#inline "C_i_char_equalp" c1 c2))
+(define (char>? c1 c2) (##core#inline "C_i_char_greaterp" c1 c2))
+(define (char<? c1 c2) (##core#inline "C_i_char_lessp" c1 c2))
+(define (char>=? c1 c2) (##core#inline "C_i_char_greater_or_equal_p" c1 c2))
+(define (char<=? c1 c2) (##core#inline "C_i_char_less_or_equal_p" c1 c2))
+
+(define (char-upcase c)
+  (##sys#check-char c 'char-upcase)
+  (##core#inline "C_u_i_char_upcase" c))
+
+(define (char-downcase c)
+  (##sys#check-char c 'char-downcase)
+  (##core#inline "C_u_i_char_downcase" c))
+
+(define char-ci=?)
+(define char-ci>?)
+(define char-ci<?)
+(define char-ci>=?)
+(define char-ci<=?)
+
+(define (char-upper-case? c)
+  (##sys#check-char c 'char-upper-case?)
+  (##core#inline "C_u_i_char_upper_casep" c) )
+
+(define (char-lower-case? c)
+  (##sys#check-char c 'char-lower-case?)
+  (##core#inline "C_u_i_char_lower_casep" c) )
+
+(define (char-numeric? c)
+  (##sys#check-char c 'char-numeric?)
+  (##core#inline "C_u_i_char_numericp" c) )
+
+(define (char-whitespace? c)
+  (##sys#check-char c 'char-whitespace?)
+  (##core#inline "C_u_i_char_whitespacep" c) )
+
+(define (char-alphabetic? c)
+  (##sys#check-char c 'char-alphabetic?)
+  (##core#inline "C_u_i_char_alphabeticp" c) )
+
+;;; Procedures:
+
+(define (procedure? x) (##core#inline "C_i_closurep" x))
+(define apply (##core#primitive "C_apply"))
+(define values (##core#primitive "C_values"))
+(define call-with-values (##core#primitive "C_call_with_values"))
+(define call-with-current-continuation)
+
+;;; Ports:
+
+(define (input-port? x)
+  (and (##core#inline "C_blockp" x)
+       (##core#inline "C_input_portp" x)))
+
+(define (output-port? x)
+  (and (##core#inline "C_blockp" x)
+       (##core#inline "C_output_portp" x)))
+
+(define current-input-port)
+(define current-output-port)
+(define open-input-file)
+(define open-output-file)
+(define close-input-port)
+(define close-output-port)
+(define call-with-input-file)
+(define call-with-output-file)
+(define with-input-from-file)
+(define with-output-to-file)
+
+;;; Input:
+
+(define (eof-object? x) (##core#inline "C_eofp" x))
+(define char-ready?)
+(define read-char)
+(define peek-char)
+(define read)
+
+;;; Output:
+
+(define write-char)
+(define newline)
+(define write)
+(define display)
+
+;; Other stuff:
+
+(define force)
+(define for-each)
+(define map)
+(define dynamic-wind)
+
+) ; scheme
+
+(import scheme)
+
+;; Pre-declaration of chicken.base, so it can be used later on.  Much
+;; like the "scheme" module, most declarations will be set! further
+;; down in this file, mostly to avoid a cyclic dependency on itself.
+;; The full definition (with macros) is in its own import library.
 (module chicken.base
   (;; [syntax] and-let* case-lambda cut cute declare define-constant
    ;; define-inline define-record define-record-type
@@ -305,7 +685,7 @@ EOF
 
 ) ; chicken.base
 
-(import (except chicken.base gensym add1 sub1)) ;;; see end of this file
+(import chicken.base)
 
 (define-constant namespace-max-id-len 31)
 (define-constant char-name-table-size 37)
@@ -317,7 +697,8 @@ EOF
 ;;; Fixnum arithmetic:
 
 (module chicken.fixnum *
-(import chicken scheme chicken.foreign)
+(import scheme)
+(import chicken.foreign)
 
 (define most-positive-fixnum (foreign-value "C_MOST_POSITIVE_FIXNUM" int))
 (define most-negative-fixnum (foreign-value "C_MOST_NEGATIVE_FIXNUM" int))
@@ -443,6 +824,7 @@ EOF
   (cpu-time current-milliseconds current-seconds)
 
 (import scheme)
+(import (only (chicken module) reexport))
 (reexport (only chicken time))
 
 (define (current-milliseconds)
@@ -452,13 +834,16 @@ EOF
   (##core#inline_allocate ("C_a_get_current_seconds" 7) #f))
 
 (define cpu-time
-  (let ((buf (vector #f #f)))
+  (let () ;; ((buf (vector #f #f))) Disabled for now: vector is defined below!
     (lambda ()
-      ;; should be thread-safe as no context-switch will occur after
-      ;; function entry and `buf' contents will have been extracted
-      ;; before `values' gets called.
-      (##core#inline_allocate ("C_a_i_cpu_time" 8) buf)
-      (values (##sys#slot buf 0) (##sys#slot buf 1))))))
+      (let ((buf (vector #f #f)))
+	;; should be thread-safe as no context-switch will occur after
+	;; function entry and `buf' contents will have been extracted
+	;; before `values' gets called.
+	(##core#inline_allocate ("C_a_i_cpu_time" 8) buf)
+	(values (##sys#slot buf 0) (##sys#slot buf 1)) )) ))
+
+) ; chicken.time
 
 (define (##sys#check-structure x y . loc) 
   (if (pair? loc)
@@ -565,31 +950,30 @@ EOF
       (##core#inline "C_i_check_closure_2" x (car loc))
       (##core#inline "C_i_check_closure" x) ) )
 
-(define (force obj)
-  (if (##sys#structure? obj 'promise)
-      (let lp ((promise obj)
-	       (forward #f))
-	(let ((val (##sys#slot promise 1)))
-	  (cond ((null? val) (##sys#values))
-		((pair? val) (apply ##sys#values val))
-		((procedure? val)
-		 (when forward (##sys#setslot forward 1 promise))
-		 (let ((results (##sys#call-with-values val ##sys#list)))
-		   (cond ((not (procedure? (##sys#slot promise 1)))
-			  (lp promise forward)) ; in case of reentrance
-			 ((and (not (null? results)) (null? (cdr results))
-			       (##sys#structure? (##sys#slot results 0) 'promise))
-			  (let ((result0 (##sys#slot results 0)))
-			    (##sys#setslot promise 1 (##sys#slot result0 1))
-			    (lp promise result0)))
-			 (else
-			  (##sys#setslot promise 1 results)
-			  (apply ##sys#values results)))))
-		((##sys#structure? val 'promise)
-		 (lp val forward)))))
-      obj))
-
-(define ##sys#force force)
+(set! scheme#force
+  (lambda (obj)
+    (if (##sys#structure? obj 'promise)
+	(let lp ((promise obj)
+		 (forward #f))
+	  (let ((val (##sys#slot promise 1)))
+	    (cond ((null? val) (##sys#values))
+		  ((pair? val) (apply ##sys#values val))
+		  ((procedure? val)
+		   (when forward (##sys#setslot forward 1 promise))
+		   (let ((results (##sys#call-with-values val ##sys#list)))
+		     (cond ((not (procedure? (##sys#slot promise 1)))
+			    (lp promise forward)) ; in case of reentrance
+			   ((and (not (null? results)) (null? (cdr results))
+				 (##sys#structure? (##sys#slot results 0) 'promise))
+			    (let ((result0 (##sys#slot results 0)))
+			      (##sys#setslot promise 1 (##sys#slot result0 1))
+			      (lp promise result0)))
+			   (else
+			    (##sys#setslot promise 1 results)
+			    (apply ##sys#values results)))))
+		  ((##sys#structure? val 'promise)
+		   (lp val forward)))))
+	obj)))
 
 (define (system cmd)
   (##sys#check-string cmd 'system)
@@ -604,65 +988,6 @@ EOF
 
 (define ##sys#dload (##core#primitive "C_dload"))
 (define ##sys#set-dlopen-flags! (##core#primitive "C_set_dlopen_flags"))
-
-
-;;; Operations on booleans:
-
-(define (not x) (##core#inline "C_i_not" x))
-(define (boolean? x) (##core#inline "C_booleanp" x))
-
-
-;;; Equivalence predicates:
-
-(define (eq? x y) (##core#inline "C_eqp" x y))
-(define (eqv? x y) (##core#inline "C_i_eqvp" x y))
-(define (equal? x y) (##core#inline "C_i_equalp" x y))
-
-
-;;; Pairs and lists:
-
-(define (pair? x) (##core#inline "C_i_pairp" x))
-(define (cons x y) (##core#inline_allocate ("C_a_i_cons" 3) x y))
-(define (car x) (##core#inline "C_i_car" x))
-(define (cdr x) (##core#inline "C_i_cdr" x))
-
-(define (set-car! x y) (##core#inline "C_i_set_car" x y))
-(define (set-cdr! x y) (##core#inline "C_i_set_cdr" x y))
-(define (cadr x) (##core#inline "C_i_cadr" x))
-(define (caddr x) (##core#inline "C_i_caddr" x))
-(define (cadddr x) (##core#inline "C_i_cadddr" x))
-(define (cddddr x) (##core#inline "C_i_cddddr" x))
-
-(define (caar x) (##core#inline "C_i_caar" x))
-(define (cdar x) (##core#inline "C_i_cdar" x))
-(define (cddr x) (##core#inline "C_i_cddr" x))
-(define (caaar x) (car (car (car x))))
-(define (caadr x) (car (##core#inline "C_i_cadr" x)))
-(define (cadar x) (##core#inline "C_i_cadr" (car x)))
-(define (cdaar x) (cdr (car (car x))))
-(define (cdadr x) (cdr (##core#inline "C_i_cadr" x)))
-(define (cddar x) (cdr (cdr (car x))))
-(define (cdddr x) (cdr (cdr (cdr x))))
-(define (caaaar x) (car (car (car (car x)))))
-(define (caaadr x) (car (car (##core#inline "C_i_cadr" x))))
-(define (caadar x) (car (##core#inline "C_i_cadr" (car x))))
-(define (caaddr x) (car (##core#inline "C_i_caddr" x)))
-(define (cadaar x) (##core#inline "C_i_cadr" (car (car x))))
-(define (cadadr x) (##core#inline "C_i_cadr" (##core#inline "C_i_cadr" x)))
-(define (caddar x) (##core#inline "C_i_caddr" (car x)))
-(define (cdaaar x) (cdr (car (car (car x)))))
-(define (cdaadr x) (cdr (car (##core#inline "C_i_cadr" x))))
-(define (cdadar x) (cdr (##core#inline "C_i_cadr" (car x))))
-(define (cdaddr x) (cdr (##core#inline "C_i_caddr" x)))
-(define (cddaar x) (cdr (cdr (car (car x)))))
-(define (cddadr x) (cdr (cdr (##core#inline "C_i_cadr" x))))
-(define (cdddar x) (cdr (cdr (cdr (car x)))))
-
-(define (null? x) (eq? x '()))
-(define (list . lst) lst)
-(define (length lst) (##core#inline "C_i_length" lst))
-(define (list-tail lst i) (##core#inline "C_i_list_tail" lst i))
-(define (list-ref lst i) (##core#inline "C_i_list_ref" lst i))
 
 (define (##sys#error-not-a-proper-list arg #!optional loc)
   (##sys#error-hook
@@ -696,26 +1021,20 @@ EOF
   (##sys#error-hook
    (foreign-value "C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR" int) loc arg))
 
-(define (append . lsts)
-  (if (eq? lsts '())
-      lsts
-      (let loop ((lsts lsts))
-	(if (eq? (##sys#slot lsts 1) '())
-	    (##sys#slot lsts 0)
-	    (let copy ((node (##sys#slot lsts 0)))
-	      (cond ((eq? node '()) (loop (##sys#slot lsts 1)))
-		    ((pair? node)
-		     (cons (##sys#slot node 0) (copy (##sys#slot node 1))) )
-		    (else
-		     (##sys#error-not-a-proper-list
-		      (##sys#slot lsts 0) 'append)) ) )))))
-
-(define (reverse lst0)
-  (let loop ((lst lst0) (rest '()))
-    (cond ((eq? lst '()) rest)
-	  ((pair? lst)
-	   (loop (##sys#slot lst 1) (cons (##sys#slot lst 0) rest)) )
-	  (else (##sys#error-not-a-proper-list lst0 'reverse)) ) ))
+(set! scheme#append
+  (lambda lsts
+    (if (eq? lsts '())
+	lsts
+	(let loop ((lsts lsts))
+	  (if (eq? (##sys#slot lsts 1) '())
+	      (##sys#slot lsts 0)
+	      (let copy ((node (##sys#slot lsts 0)))
+		(cond ((eq? node '()) (loop (##sys#slot lsts 1)))
+		      ((pair? node)
+		       (cons (##sys#slot node 0) (copy (##sys#slot node 1))) )
+		      (else
+		       (##sys#error-not-a-proper-list
+			(##sys#slot lsts 0) 'append)) ) )))) ) )
 
 (define (##sys#fast-reverse lst0)
   (let loop ((lst lst0) (rest '()))
@@ -723,22 +1042,8 @@ EOF
 	(loop (##sys#slot lst 1) (cons (##sys#slot lst 0) rest))
 	rest)))
 
-(define (memq x lst) (##core#inline "C_i_memq" x lst))
-(define (memv x lst) (##core#inline "C_i_memv" x lst))
-(define (member x lst) (##core#inline "C_i_member" x lst))
-(define (assq x lst) (##core#inline "C_i_assq" x lst))
-(define (assv x lst) (##core#inline "C_i_assv" x lst))
-(define (assoc x lst) (##core#inline "C_i_assoc" x lst))
-
-(define (list? x) (##core#inline "C_i_listp" x))
-
 
 ;;; Strings:
-
-(define (string? x) (##core#inline "C_i_stringp" x))
-(define (string-length s) (##core#inline "C_i_string_length" s))
-(define (string-ref s i) (##core#inline "C_i_string_ref" s i))
-(define (string-set! s i c) (##core#inline "C_i_string_set" s i c))
 
 (define-inline (%make-string size fill)
   (##sys#allocate-vector size #t fill #f) )
@@ -746,40 +1051,43 @@ EOF
 (define (##sys#make-string size #!optional (fill #\space))
   (%make-string size fill))
 
-(define (make-string size . fill)
-  (##sys#check-fixnum size 'make-string)
-  (when (fx< size 0)
-    (##sys#signal-hook #:bounds-error 'make-string "size is negative" size))
-  (%make-string
-   size
-   (if (null? fill)
-       #\space
-       (let ((c (car fill)))
-	 (##sys#check-char c 'make-string)
-	 c ) ) ) )
+(set! scheme#make-string
+  (lambda (size . fill)
+    (##sys#check-fixnum size 'make-string)
+    (when (fx< size 0)
+      (##sys#signal-hook #:bounds-error 'make-string "size is negative" size))
+    (%make-string
+     size
+     (if (null? fill)
+	 #\space
+	 (let ((c (car fill)))
+	   (##sys#check-char c 'make-string)
+	   c ) ) ) ) )
 
-(define (string->list s)
-  (##sys#check-string s 'string->list)
-  (let ((len (##sys#size s)))
-    (let loop ((i (fx- len 1)) (ls '()))
-      (if (fx< i 0)
-	  ls
-	  (loop (fx- i 1)
-		(cons (##core#inline "C_subchar" s i) ls))))))
+(set! scheme#string->list
+  (lambda (s)
+    (##sys#check-string s 'string->list)
+    (let ((len (##sys#size s)))
+      (let loop ((i (fx- len 1)) (ls '()))
+	(if (fx< i 0)
+	    ls
+	    (loop (fx- i 1)
+		  (cons (##core#inline "C_subchar" s i) ls)) ) ) )))
 
 (define ##sys#string->list string->list)
 
-(define (list->string lst0)
-  (if (not (list? lst0))
-      (##sys#error-not-a-proper-list lst0 'list->string)
-      (let* ([len (length lst0)]
-	     [s (##sys#make-string len)] )
-	(do ([i 0 (fx+ i 1)]
-	     [lst lst0 (##sys#slot lst 1)] )
-	    ((fx>= i len) s)
-	  (let ([c (##sys#slot lst 0)])
-	    (##sys#check-char c 'list->string)
-	    (##core#inline "C_setsubchar" s i c) ) ) ) ))
+(set! scheme#list->string
+  (lambda (lst0)
+    (if (not (list? lst0))
+	(##sys#error-not-a-proper-list lst0 'list->string)
+	(let* ([len (length lst0)]
+	       [s (##sys#make-string len)] )
+	  (do ([i 0 (fx+ i 1)]
+	       [lst lst0 (##sys#slot lst 1)] )
+	      ((fx>= i len) s)
+	    (let ([c (##sys#slot lst 0)])
+	      (##sys#check-char c 'list->string)
+	      (##core#inline "C_setsubchar" s i c) ) ) ) )))
 
 (define ##sys#list->string list->string)
 
@@ -798,13 +1106,14 @@ EOF
 	s )
       (##sys#error-not-a-proper-list l 'reverse-list->string) ) )
 
-(define (string-fill! s c)
-  (##sys#check-string s 'string-fill!)
-  (##sys#check-char c 'string-fill!)
-  (##core#inline "C_set_memory" s c (##sys#size s))
-  (##core#undefined) )
+(set! scheme#string-fill!
+  (lambda (s c)
+    (##sys#check-string s 'string-fill!)
+    (##sys#check-char c 'string-fill!)
+    (##core#inline "C_set_memory" s c (##sys#size s))
+    (##core#undefined) ))
 
-(define string-copy
+(set! scheme#string-copy
   (lambda (s)
     (##sys#check-string s 'string-copy)
     (let* ([len (##sys#size s)]
@@ -812,34 +1121,30 @@ EOF
       (##core#inline "C_copy_memory" s2 s len)
       s2) ) )
 
-(define (substring s start . end)
-  (##sys#check-string s 'substring)
-  (##sys#check-fixnum start 'substring)
-  (let ([end (if (pair? end) 
-		 (let ([end (car end)])
-		   (##sys#check-fixnum end 'substring)
-		   end) 
-		 (##sys#size s) ) ] )
-    (let ([len (##sys#size s)])
-      (if (and (fx<= start end)
-	       (fx>= start 0)
-	       (fx<= end len) )
-	  (##sys#substring s start end)
-	  (##sys#error-hook
-	   (foreign-value "C_OUT_OF_RANGE_ERROR" int)
-	   'substring start end) ) ) ))
+(set! scheme#substring
+  (lambda (s start . end)
+    (##sys#check-string s 'substring)
+    (##sys#check-fixnum start 'substring)
+    (let ((end (if (pair? end)
+		   (let ((end (car end)))
+		     (##sys#check-fixnum end 'substring)
+		     end)
+		   (##sys#size s) ) ) )
+      (let ((len (##sys#size s)))
+	(if (and (fx<= start end)
+		 (fx>= start 0)
+		 (fx<= end len) )
+	    (##sys#substring s start end)
+	    (##sys#error-hook
+	     (foreign-value "C_OUT_OF_RANGE_ERROR" int)
+	     'substring start end) ) ) )))
 
 (define (##sys#substring s start end)
   (let ([s2 (##sys#make-string (fx- end start))])
     (##core#inline "C_substring_copy" s s2 start end 0)
     s2 ) )
 
-(define (string=? x y)
-  (##core#inline "C_i_string_equal_p" x y))
-
-(define (string-ci=? x y) (##core#inline "C_i_string_ci_equal_p" x y))
-
-(letrec ((compare 
+(letrec ((compare
 	  (lambda (s1 s2 loc k)
 	    (##sys#check-string s1 loc)
 	    (##sys#check-string s2 loc)
@@ -852,36 +1157,36 @@ EOF
 			    (if (fx< len1 len2)
 				len1
 				len2) ) ) ) ) ) )
-  (set! string<? (lambda (s1 s2)
-		   (compare 
-		    s1 s2 'string<?
-		    (lambda (len1 len2 cmp)
-		      (or (fx< cmp 0)
-			  (and (fx< len1 len2)
-			       (eq? cmp 0) ) ) ) ) ) )
-  (set! string>? (lambda (s1 s2)
-		   (compare 
-		    s1 s2 'string>?
-		    (lambda (len1 len2 cmp)
-		      (or (fx> cmp 0)
-			  (and (fx< len2 len1)
-			       (eq? cmp 0) ) ) ) ) ) )
-  (set! string<=? (lambda (s1 s2)
-		    (compare 
-		     s1 s2 'string<=?
-		     (lambda (len1 len2 cmp)
-		       (if (eq? cmp 0)
-			   (fx<= len1 len2)
-			   (fx< cmp 0) ) ) ) ) )
-  (set! string>=? (lambda (s1 s2)
-		    (compare 
-		     s1 s2 'string>=?
-		     (lambda (len1 len2 cmp)
-		       (if (eq? cmp 0)
-			   (fx>= len1 len2)
-			   (fx> cmp 0) ) ) ) ) ) )
+  (set! scheme#string<? (lambda (s1 s2)
+			  (compare
+			   s1 s2 'string<?
+			   (lambda (len1 len2 cmp)
+			     (or (fx< cmp 0)
+				 (and (fx< len1 len2)
+				      (eq? cmp 0) ) ) ) ) ) )
+  (set! scheme#string>? (lambda (s1 s2)
+			  (compare
+			   s1 s2 'string>?
+			   (lambda (len1 len2 cmp)
+			     (or (fx> cmp 0)
+				 (and (fx< len2 len1)
+				      (eq? cmp 0) ) ) ) ) ) )
+  (set! scheme#string<=? (lambda (s1 s2)
+			   (compare
+			    s1 s2 'string<=?
+			    (lambda (len1 len2 cmp)
+			      (if (eq? cmp 0)
+				  (fx<= len1 len2)
+				  (fx< cmp 0) ) ) ) ) )
+  (set! scheme#string>=? (lambda (s1 s2)
+			   (compare
+			    s1 s2 'string>=?
+			    (lambda (len1 len2 cmp)
+			      (if (eq? cmp 0)
+				  (fx>= len1 len2)
+				  (fx> cmp 0) ) ) ) ) ) )
 
-(letrec ((compare 
+(letrec ((compare
 	  (lambda (s1 s2 loc k)
 	    (##sys#check-string s1 loc)
 	    (##sys#check-string s2 loc)
@@ -894,34 +1199,34 @@ EOF
 				(if (fx< len1 len2)
 				    len1
 				    len2) ) ) ) ) ) )
-  (set! string-ci<? (lambda (s1 s2)
-		      (compare 
-		       s1 s2 'string-ci<?
-		       (lambda (len1 len2 cmp)
-			 (or (fx< cmp 0)
-			     (and (fx< len1 len2)
-				  (eq? cmp 0) ) ) ) ) ) )
-  (set! string-ci>? (lambda (s1 s2)
-		      (compare 
-		       s1 s2 'string-ci>?
-		       (lambda (len1 len2 cmp)
-			 (or (fx> cmp 0)
-			     (and (fx< len2 len1)
-				  (eq? cmp 0) ) ) ) ) ) )
-  (set! string-ci<=? (lambda (s1 s2)
-		       (compare 
-			s1 s2 'string-ci<=?
-			(lambda (len1 len2 cmp)
-			  (if (eq? cmp 0)
-			      (fx>= len1 len2)
-			      (fx< cmp 0) ) ) ) ) )
-  (set! string-ci>=? (lambda (s1 s2)
-		       (compare 
-			s1 s2 'string-ci>=?
-			(lambda (len1 len2 cmp)
-			  (if (eq? cmp 0)
-			      (fx<= len1 len2)
-			      (fx> cmp 0) ) ) ) ) ) )
+  (set! scheme#string-ci<? (lambda (s1 s2)
+			     (compare
+			      s1 s2 'string-ci<?
+			      (lambda (len1 len2 cmp)
+				(or (fx< cmp 0)
+				    (and (fx< len1 len2)
+					 (eq? cmp 0) ) ) ) ) ) )
+  (set! scheme#string-ci>? (lambda (s1 s2)
+			     (compare
+			      s1 s2 'string-ci>?
+			      (lambda (len1 len2 cmp)
+				(or (fx> cmp 0)
+				    (and (fx< len2 len1)
+					 (eq? cmp 0) ) ) ) ) ) )
+  (set! scheme#string-ci<=? (lambda (s1 s2)
+			      (compare
+			       s1 s2 'string-ci<=?
+			       (lambda (len1 len2 cmp)
+				 (if (eq? cmp 0)
+				     (fx>= len1 len2)
+				     (fx< cmp 0) ) ) ) ) )
+  (set! scheme#string-ci>=? (lambda (s1 s2)
+			      (compare
+			       s1 s2 'string-ci>=?
+			       (lambda (len1 len2 cmp)
+				 (if (eq? cmp 0)
+				     (fx<= len1 len2)
+				     (fx> cmp 0) ) ) ) ) ) )
 
 (define (##sys#string-append x y)
   (let* ([s1 (##sys#size x)]
@@ -931,19 +1236,20 @@ EOF
     (##core#inline "C_substring_copy" y z 0 s2 s1)
     z) )
 
-(define (string-append .  all)
-  (let ([snew #f])
-    (let loop ([strs all] [n 0])
-      (if (eq? strs '())
-	  (set! snew (##sys#make-string n))
-	  (let ([s (##sys#slot strs 0)])
-	    (##sys#check-string s 'string-append)
-	    (let ([len (##sys#size s)])
-	      (loop (##sys#slot strs 1) (fx+ n len))
-	      (##core#inline "C_substring_copy" s snew 0 len n) ) ) ) )
-    snew ) )
+(set! scheme#string-append
+  (lambda all
+    (let ([snew #f])
+      (let loop ([strs all] [n 0])
+	(if (eq? strs '())
+	    (set! snew (##sys#make-string n))
+	    (let ([s (##sys#slot strs 0)])
+	      (##sys#check-string s 'string-append)
+	      (let ([len (##sys#size s)])
+		(loop (##sys#slot strs 1) (fx+ n len))
+		(##core#inline "C_substring_copy" s snew 0 len n) ) ) ) )
+      snew ) ))
 
-(define string
+(set! scheme#string
   (let ([list->string list->string])
     (lambda chars (list->string chars)) ) )
 
@@ -965,7 +1271,12 @@ EOF
 ;; [MCA]   Richard P. Brent & Paul Zimmermann, "Modern Computer Arithmetic"
 
 (module chicken.flonum *
-(import chicken scheme chicken.foreign)
+(import scheme)
+(import chicken.foreign)
+(import (only chicken.base flonum?))
+;; TODO: Importing these from chicken.base won't work due to
+;; incomplete chicken.base definition above
+(import (only chicken when unless define-inline))
 
 (define maximum-flonum (foreign-value "DBL_MAX" double))
 (define minimum-flonum (foreign-value "DBL_MIN" double))
@@ -1122,30 +1433,10 @@ EOF
 (define-inline (integer-negate x)
   (##core#inline_allocate ("C_s_a_u_i_integer_negate" 5) x))
 
-(define = (##core#primitive "C_nequalp"))
-(define > (##core#primitive "C_greaterp"))
-(define < (##core#primitive "C_lessp"))
-(define >= (##core#primitive "C_greater_or_equal_p"))
-(define <= (##core#primitive "C_less_or_equal_p"))
-
-(define + (##core#primitive "C_plus"))
-(define - (##core#primitive "C_minus"))
-(define * (##core#primitive "C_times"))
-
-(define (number? x) (##core#inline "C_i_numberp" x))
 (define ##sys#number? number?)
-(define complex? number?)
-(define (real? x) (##core#inline "C_i_realp" x))
-(define (rational? n) (##core#inline "C_i_rationalp" n))
-(define (integer? x) (##core#inline "C_i_integerp" x))
 (define ##sys#integer? integer?)
-(define (exact? x) (##core#inline "C_i_exactp" x))
-(define (inexact? x) (##core#inline "C_i_inexactp" x))
 (define ##sys#exact? exact?)
 (define ##sys#inexact? inexact?)
-(define (zero? n) (##core#inline "C_i_zerop" n))
-(define (positive? n) (##core#inline "C_i_positivep" n))
-(define (negative? n) (##core#inline "C_i_negativep" n))
 
 ;;; Complex numbers
 
@@ -1159,43 +1450,49 @@ EOF
 			      (if (inexact? i) (exact->inexact r) r)
 			      (if (inexact? r) (exact->inexact i) i)) ) )
 
-(define (make-rectangular r i)
-  (##sys#check-real r 'make-rectangular)
-  (##sys#check-real i 'make-rectangular)
-  (make-complex r i) )
+(set! scheme#make-rectangular
+  (lambda (r i)
+    (##sys#check-real r 'make-rectangular)
+    (##sys#check-real i 'make-rectangular)
+    (make-complex r i) ))
 
-(define (make-polar r phi)
-  (##sys#check-real r 'make-polar)
-  (##sys#check-real phi 'make-polar)
-  (let ((fphi (exact->inexact phi)))
-    (make-complex
-     (* r (##core#inline_allocate ("C_a_i_cos" 4) fphi))
-     (* r (##core#inline_allocate ("C_a_i_sin" 4) fphi)))))
+(set! scheme#make-polar
+  (lambda (r phi)
+    (##sys#check-real r 'make-polar)
+    (##sys#check-real phi 'make-polar)
+    (let ((fphi (exact->inexact phi)))
+      (make-complex
+       (* r (##core#inline_allocate ("C_a_i_cos" 4) fphi))
+       (* r (##core#inline_allocate ("C_a_i_sin" 4) fphi))) ) ))
 
-(define (real-part x)
-  (cond ((cplxnum? x) (%cplxnum-real x))
-        ((number? x) x)
-        (else (##sys#error-bad-number x 'real-part))))
+(set! scheme#real-part
+  (lambda (x)
+    (cond ((cplxnum? x) (%cplxnum-real x))
+	  ((number? x) x)
+	  (else (##sys#error-bad-number x 'real-part)) )))
 
-(define (imag-part x)
-  (cond ((cplxnum? x) (%cplxnum-imag x))
-        ((##core#inline "C_i_flonump" x) 0.0)
-        ((number? x) 0)
-        (else (##sys#error-bad-number x 'imag-part))))
+(set! scheme#imag-part
+  (lambda (x)
+    (cond ((cplxnum? x) (%cplxnum-imag x))
+	  ((##core#inline "C_i_flonump" x) 0.0)
+	  ((number? x) 0)
+	  (else (##sys#error-bad-number x 'imag-part)) )))
 
-(define (angle n)
-  (##sys#check-number n 'angle)
-  (##core#inline_allocate ("C_a_i_atan2" 4)
-			  (exact->inexact (imag-part n))
-			  (exact->inexact (real-part n))))
+(set! scheme#angle
+  (lambda (n)
+    (##sys#check-number n 'angle)
+    (##core#inline_allocate ("C_a_i_atan2" 4)
+			    (exact->inexact (imag-part n))
+			    (exact->inexact (real-part n))) ))
 
-(define (magnitude x)
-  (cond ((cplxnum? x)
-         (let ((r (%cplxnum-real x))
-               (i (%cplxnum-imag x)) )
-           (sqrt (+ (* r r) (* i i))) ))
-        ((number? x) (abs x))
-        (else (##sys#error-bad-number x 'magnitude))))
+(set! scheme#magnitude
+  (lambda (x)
+    (cond ((cplxnum? x)
+	   (let ((r (%cplxnum-real x))
+		 (i (%cplxnum-imag x)) )
+	     (sqrt (+ (* r r) (* i i))) ))
+	  ((number? x) (abs x))
+	  (else (##sys#error-bad-number x 'magnitude))) ))
 
 ;;; Rational numbers
 
@@ -1211,27 +1508,29 @@ EOF
     (%make-ratnum (integer-negate m) (integer-negate n)))
    (else (%make-ratnum m n))))
 
-(define (numerator n)
-  (cond ((exact-integer? n) n)
-        ((##core#inline "C_i_flonump" n)
-         (cond ((not (finite? n)) (bad-inexact 'numerator n))
-               ((##core#inline "C_u_i_fpintegerp" n) n)
-               (else (exact->inexact (numerator (inexact->exact n))))))
-        ((ratnum? n) (%ratnum-numerator n))
-        (else (##sys#signal-hook
-	       #:type-error 'numerator
-	       "bad argument type - not a rational number" n))))
+(set! scheme#numerator
+  (lambda (n)
+    (cond ((exact-integer? n) n)
+	  ((##core#inline "C_i_flonump" n)
+	   (cond ((not (finite? n)) (bad-inexact 'numerator n))
+		 ((##core#inline "C_u_i_fpintegerp" n) n)
+		 (else (exact->inexact (numerator (inexact->exact n))))))
+	  ((ratnum? n) (%ratnum-numerator n))
+	  (else (##sys#signal-hook
+		 #:type-error 'numerator
+		 "bad argument type - not a rational number" n) ) )))
 
-(define (denominator n)
-  (cond ((exact-integer? n) 1)
-        ((##core#inline "C_i_flonump" n)
-         (cond ((not (finite? n)) (bad-inexact 'denominator n))
-               ((##core#inline "C_u_i_fpintegerp" n) 1.0)
-               (else (exact->inexact (denominator (inexact->exact n))))))
-        ((ratnum? n) (%ratnum-denominator n))
-        (else (##sys#signal-hook
-	       #:type-error 'numerator
-	       "bad argument type - not a rational number" n))))
+(set! scheme#denominator
+  (lambda (n)
+    (cond ((exact-integer? n) 1)
+	  ((##core#inline "C_i_flonump" n)
+	   (cond ((not (finite? n)) (bad-inexact 'denominator n))
+		 ((##core#inline "C_u_i_fpintegerp" n) 1.0)
+		 (else (exact->inexact (denominator (inexact->exact n))))))
+	  ((ratnum? n) (%ratnum-denominator n))
+	  (else (##sys#signal-hook
+		 #:type-error 'numerator
+		 "bad argument type - not a rational number" n) ) )))
 
 (define (##sys#extended-signum x)
   (cond
@@ -1264,19 +1563,17 @@ EOF
                (##sys#integer-power 2 flonum-precision))
       (deliver x 1)))
 
-(define (inexact->exact x)
-  (cond ((exact? x) x)
-        ((##core#inline "C_i_flonump" x)
-         (cond ((##core#inline "C_u_i_fpintegerp" x) (%flo->int x))
-               ((##core#inline "C_u_i_flonum_finitep" x) (flonum->ratnum x))
-               (else (##sys#error-bad-inexact x 'inexact->exact))))
-        ((cplxnum? x)
-         (make-complex (inexact->exact (%cplxnum-real x))
-                       (inexact->exact (%cplxnum-imag x))))
-        (else (##sys#error-bad-number x 'inexact->exact))))
-
-(define (exact->inexact x)
-  (##core#inline_allocate ("C_a_i_exact_to_inexact" 12) x))
+(set! scheme#inexact->exact
+  (lambda (x)
+    (cond ((exact? x) x)
+	  ((##core#inline "C_i_flonump" x)
+	   (cond ((##core#inline "C_u_i_fpintegerp" x) (%flo->int x))
+		 ((##core#inline "C_u_i_flonum_finitep" x) (flonum->ratnum x))
+		 (else (##sys#error-bad-inexact x 'inexact->exact))))
+	  ((cplxnum? x)
+	   (make-complex (inexact->exact (%cplxnum-real x))
+			 (inexact->exact (%cplxnum-imag x))))
+	  (else (##sys#error-bad-number x 'inexact->exact)) )))
 
 (define ##sys#exact->inexact exact->inexact)
 (define ##sys#inexact->exact inexact->exact)
@@ -1297,7 +1594,9 @@ EOF
 ;; (define (bit-set? i n) (##core#inline "C_i_bit_setp" i n))
 (define (integer-length x) (##core#inline "C_i_integer_length" x))
 (define (arithmetic-shift n m)
-  (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 5) n m)))
+  (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 5) n m))
+
+) ; chicken.bitwise
 
 (import chicken.bitwise)
 
@@ -1306,17 +1605,16 @@ EOF
 (define-inline (%integer-gcd a b)
   (##core#inline_allocate ("C_s_a_u_i_integer_gcd" 5) a b))
 
-(define (abs x) (##core#inline_allocate ("C_s_a_i_abs" 7) x))
-
-(define (/ arg1 . args)
-  (if (null? args) 
-      (##sys#/-2 1 arg1)
-      (let loop ((args (##sys#slot args 1))
-		 (x (##sys#/-2 arg1 (##sys#slot args 0))))
-	(if (null? args)
-	    x
-	    (loop (##sys#slot args 1)
-		  (##sys#/-2 x (##sys#slot args 0))) ) ) ) )
+(set! scheme#/
+  (lambda (arg1 . args)
+    (if (null? args)
+	(##sys#/-2 1 arg1)
+	(let loop ((args (##sys#slot args 1))
+		   (x (##sys#/-2 arg1 (##sys#slot args 0))))
+	  (if (null? args)
+	      x
+	      (loop (##sys#slot args 1)
+		    (##sys#/-2 x (##sys#slot args 0))) ) ) ) ))
 
 (define-inline (%integer-quotient a b)
   (##core#inline_allocate ("C_s_a_u_i_integer_quotient" 5) a b))
@@ -1373,41 +1671,45 @@ EOF
         ((not (number? x)) (##sys#error-bad-number x '/))
         (else (##sys#error-bad-number y '/))) )
 
-(define (floor x)
-  (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (fpfloor x))
-        ;; (floor x) = greatest integer <= x
-        ((ratnum? x) (let* ((n (%ratnum-numerator x))
-                            (q (quotient n (%ratnum-denominator x))))
-                       (if (>= n 0) q (- q 1))))
-        (else (##sys#error-bad-real x 'floor))))
+(set! scheme#floor
+  (lambda (x)
+    (cond ((exact-integer? x) x)
+	  ((##core#inline "C_i_flonump" x) (fpfloor x))
+	  ;; (floor x) = greatest integer <= x
+	  ((ratnum? x) (let* ((n (%ratnum-numerator x))
+			      (q (quotient n (%ratnum-denominator x))))
+			 (if (>= n 0) q (- q 1))))
+	  (else (##sys#error-bad-real x 'floor)) )))
 
-(define (ceiling x)
-  (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (fpceiling x))
-        ;; (ceiling x) = smallest integer >= x
-        ((ratnum? x) (let* ((n (%ratnum-numerator x))
-                            (q (quotient n (%ratnum-denominator x))))
-                       (if (>= n 0) (+ q 1) q)))
-        (else (##sys#error-bad-real x 'ceiling))) )
+(set! scheme#ceiling
+  (lambda (x)
+    (cond ((exact-integer? x) x)
+	  ((##core#inline "C_i_flonump" x) (fpceiling x))
+	  ;; (ceiling x) = smallest integer >= x
+	  ((ratnum? x) (let* ((n (%ratnum-numerator x))
+			      (q (quotient n (%ratnum-denominator x))))
+			 (if (>= n 0) (+ q 1) q)))
+	  (else (##sys#error-bad-real x 'ceiling)) )))
 
-(define (truncate x)
-  (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x) (fptruncate x))
-        ;; (rational-truncate x) = integer of largest magnitude <= (abs x)
-        ((ratnum? x) (quotient (%ratnum-numerator x)
-			       (%ratnum-denominator x)))
-        (else (##sys#error-bad-real x 'truncate))))
+(set! scheme#truncate
+  (lambda (x)
+    (cond ((exact-integer? x) x)
+	  ((##core#inline "C_i_flonump" x) (fptruncate x))
+	  ;; (rational-truncate x) = integer of largest magnitude <= (abs x)
+	  ((ratnum? x) (quotient (%ratnum-numerator x)
+				 (%ratnum-denominator x)))
+	  (else (##sys#error-bad-real x 'truncate)) )))
 
-(define (round x)
-  (cond ((exact-integer? x) x)
-        ((##core#inline "C_i_flonump" x)
-         (##core#inline_allocate ("C_a_i_flonum_round_proper" 4) x))
-        ((ratnum? x)
-	 (let* ((x+1/2 (+ x (%make-ratnum 1 2)))
-		(r (floor x+1/2)))
-	   (if (and (= r x+1/2) (odd? r)) (- r 1) r)))
-        (else (##sys#error-bad-real x 'round))))
+(set! scheme#round
+  (lambda (x)
+    (cond ((exact-integer? x) x)
+	  ((##core#inline "C_i_flonump" x)
+	   (##core#inline_allocate ("C_a_i_flonum_round_proper" 4) x))
+	  ((ratnum? x)
+	   (let* ((x+1/2 (+ x (%make-ratnum 1 2)))
+		  (r (floor x+1/2)))
+	     (if (and (= r x+1/2) (odd? r)) (- r 1) r)))
+	  (else (##sys#error-bad-real x 'round)) )))
 
 (define (find-ratio-between x y)
   (define (sr x y)
@@ -1429,49 +1731,46 @@ EOF
 
 (define (find-ratio x e) (find-ratio-between (- x e) (+ x e)))
 
-(define (rationalize x e)
-  (let ((result (apply ##sys#/-2 (find-ratio x e))))
-    (if (or (inexact? x) (inexact? e))
-        (exact->inexact result)
-        result)))
+(set! scheme#rationalize
+  (lambda (x e)
+    (let ((result (apply ##sys#/-2 (find-ratio x e))))
+      (if (or (inexact? x) (inexact? e))
+	  (exact->inexact result)
+	  result)) ))
 
-(define (quotient a b) (##core#inline_allocate ("C_s_a_i_quotient" 5) a b))
-(define (remainder a b) (##core#inline_allocate ("C_s_a_i_remainder" 5) a b))
-(define (modulo a b) (##core#inline_allocate ("C_s_a_i_modulo" 5) a b))
+(set! scheme#max
+  (lambda (x1 . xs)
+    (let loop ((i (##core#inline "C_i_flonump" x1)) (m x1) (xs xs))
+      (##sys#check-number m 'max)
+      (if (null? xs)
+	  (if i (exact->inexact m) m)
+	  (let ((h (##sys#slot xs 0)))
+	    (loop (or i (##core#inline "C_i_flonump" h))
+		  (if (> h m) h m)
+		  (##sys#slot xs 1)) ) ) ) ))
 
-(define (even? n) (##core#inline "C_i_evenp" n))
-(define (odd? n) (##core#inline "C_i_oddp" n))
+(set! scheme#min
+  (lambda (x1 . xs)
+    (let loop ((i (##core#inline "C_i_flonump" x1)) (m x1) (xs xs))
+      (##sys#check-number m 'min)
+      (if (null? xs)
+	  (if i (exact->inexact m) m)
+	  (let ((h (##sys#slot xs 0)))
+	    (loop (or i (##core#inline "C_i_flonump" h))
+		  (if (< h m) h m)
+		  (##sys#slot xs 1)) ) ) ) ))
 
-(define (max x1 . xs)
-  (let loop ((i (##core#inline "C_i_flonump" x1)) (m x1) (xs xs))
-    (##sys#check-number m 'max)
-    (if (null? xs)
-        (if i (exact->inexact m) m)
-        (let ((h (##sys#slot xs 0)))
-          (loop (or i (##core#inline "C_i_flonump" h))
-                (if (> h m) h m)
-                (##sys#slot xs 1)) ) ) )  )
-
-(define (min x1 . xs)
-  (let loop ((i (##core#inline "C_i_flonump" x1)) (m x1) (xs xs))
-    (##sys#check-number m 'min)
-    (if (null? xs)
-        (if i (exact->inexact m) m)
-        (let ((h (##sys#slot xs 0)))
-          (loop (or i (##core#inline "C_i_flonump" h))
-                (if (< h m) h m)
-                (##sys#slot xs 1)) ) ) )  )
-
-(define (exp n)
-  (##sys#check-number n 'exp)
-  (if (cplxnum? n)
-      (* (##core#inline_allocate ("C_a_i_exp" 4)
-				 (exact->inexact (%cplxnum-real n)))
-	 (let ((p (%cplxnum-imag n)))
-	   (make-complex
-	    (##core#inline_allocate ("C_a_i_cos" 4) (exact->inexact p))
-	    (##core#inline_allocate ("C_a_i_sin" 4) (exact->inexact p)) ) ) )
-      (##core#inline_allocate ("C_a_i_flonum_exp" 4) (exact->inexact n))))
+(set! scheme#exp
+  (lambda (n)
+    (##sys#check-number n 'exp)
+    (if (cplxnum? n)
+	(* (##core#inline_allocate ("C_a_i_exp" 4)
+				   (exact->inexact (%cplxnum-real n)))
+	   (let ((p (%cplxnum-imag n)))
+	     (make-complex
+	      (##core#inline_allocate ("C_a_i_cos" 4) (exact->inexact p))
+	      (##core#inline_allocate ("C_a_i_sin" 4) (exact->inexact p)) ) ) )
+	(##core#inline_allocate ("C_a_i_flonum_exp" 4) (exact->inexact n)) ) ))
 
 (define (##sys#log-1 x)		       ; log_e(x)
   (cond
@@ -1484,46 +1783,51 @@ EOF
    (else ; Real number case (< already ensured the argument type is a number)
     (##core#inline_allocate ("C_a_i_log" 4) (exact->inexact x)))))
 
-(define (log a #!optional b)
-  (if b (##sys#/-2 (##sys#log-1 a) (##sys#log-1 b)) (##sys#log-1 a)))
+(set! scheme#log
+  (lambda (a #!optional b)
+    (if b (##sys#/-2 (##sys#log-1 a) (##sys#log-1 b)) (##sys#log-1 a))))
 
-(define (sin n)
-  (##sys#check-number n 'sin)
-  (if (cplxnum? n)
-      (let ((in (* +i n)))
-	(##sys#/-2 (- (exp in) (exp (- in))) +2i))
-      (##core#inline_allocate ("C_a_i_sin" 4) (exact->inexact n))))
+(set! scheme#sin
+  (lambda (n)
+    (##sys#check-number n 'sin)
+    (if (cplxnum? n)
+	(let ((in (* +i n)))
+	  (##sys#/-2 (- (exp in) (exp (- in))) +2i))
+	(##core#inline_allocate ("C_a_i_sin" 4) (exact->inexact n)) ) ))
 
-(define (cos n)
-  (##sys#check-number n 'cos)
-  (if (cplxnum? n)
-      (let ((in (* +i n)))
-	(##sys#/-2 (+ (exp in) (exp (- in))) 2) )
-      (##core#inline_allocate ("C_a_i_cos" 4) (exact->inexact n))))
+(set! scheme#cos
+  (lambda (n)
+    (##sys#check-number n 'cos)
+    (if (cplxnum? n)
+	(let ((in (* +i n)))
+	  (##sys#/-2 (+ (exp in) (exp (- in))) 2) )
+	(##core#inline_allocate ("C_a_i_cos" 4) (exact->inexact n)) ) ))
 
-(define (tan n)
-  (##sys#check-number n 'tan)
-  (if (cplxnum? n)
-      (##sys#/-2 (sin n) (cos n))
-      (##core#inline_allocate ("C_a_i_tan" 4) (exact->inexact n))))
+(set! scheme#tan
+  (lambda (n)
+    (##sys#check-number n 'tan)
+    (if (cplxnum? n)
+	(##sys#/-2 (sin n) (cos n))
+	(##core#inline_allocate ("C_a_i_tan" 4) (exact->inexact n)) ) ))
 
 ;; General case: sin^{-1}(z) = -i\ln(iz + \sqrt{1-z^2})
-(define (asin n)
-  (##sys#check-number n 'asin)
-  (cond ((and (##core#inline "C_i_flonump" n) (fp>= n -1.0) (fp<= n 1.0))
-         (##core#inline_allocate ("C_a_i_asin" 4) n))
-        ((and (##core#inline "C_fixnump" n) (fx>= n -1) (fx<= n 1))
-         (##core#inline_allocate ("C_a_i_asin" 4)
-                                 (##core#inline_allocate
-                                  ("C_a_i_fix_to_flo" 4) n)))
-        ;; General definition can return compnums
-        (else (* -i (##sys#log-1
-		     (+ (* +i n)
-			(##sys#sqrt/loc 'asin (- 1 (* n n)))))))))
+(set! scheme#asin
+  (lambda (n)
+    (##sys#check-number n 'asin)
+    (cond ((and (##core#inline "C_i_flonump" n) (fp>= n -1.0) (fp<= n 1.0))
+	   (##core#inline_allocate ("C_a_i_asin" 4) n))
+	  ((and (##core#inline "C_fixnump" n) (fx>= n -1) (fx<= n 1))
+	   (##core#inline_allocate ("C_a_i_asin" 4)
+				   (##core#inline_allocate
+				    ("C_a_i_fix_to_flo" 4) n)))
+	  ;; General definition can return compnums
+	  (else (* -i (##sys#log-1
+		       (+ (* +i n)
+			  (##sys#sqrt/loc 'asin (- 1 (* n n))))) )) ) ))
 
 ;; General case:
 ;; cos^{-1}(z) = 1/2\pi + i\ln(iz + \sqrt{1-z^2}) = 1/2\pi - sin^{-1}(z) = sin(1) - sin(z)
-(define acos
+(set! scheme#acos
   (let ((asin1 (##core#inline_allocate ("C_a_i_asin" 4) 1)))
     (lambda (n)
       (##sys#check-number n 'acos)
@@ -1536,20 +1840,21 @@ EOF
             ;; General definition can return compnums
             (else (- asin1 (asin n)))))))
 
-(define (atan n #!optional b)
-  (##sys#check-number n 'atan)
-  (cond ((cplxnum? n)
-	 (if b
-	     (##sys#error-bad-real n 'atan)
-	     (let ((in (* +i n)))
-	       (##sys#/-2 (- (##sys#log-1 (+ 1 in))
-			     (##sys#log-1 (- 1 in))) +2i))))
-        (b
-	 (##core#inline_allocate
-	  ("C_a_i_atan2" 4) (exact->inexact n) (exact->inexact b)))
-	(else
-	 (##core#inline_allocate
-	  ("C_a_i_atan" 4) (exact->inexact n)))))
+(set! scheme#atan
+  (lambda (n #!optional b)
+    (##sys#check-number n 'atan)
+    (cond ((cplxnum? n)
+	   (if b
+	       (##sys#error-bad-real n 'atan)
+	       (let ((in (* +i n)))
+		 (##sys#/-2 (- (##sys#log-1 (+ 1 in))
+			       (##sys#log-1 (- 1 in))) +2i))))
+	  (b
+	   (##core#inline_allocate
+	    ("C_a_i_atan2" 4) (exact->inexact n) (exact->inexact b)))
+	  (else
+	   (##core#inline_allocate
+	    ("C_a_i_atan" 4) (exact->inexact n))) ) ))
 
 ;; This is "Karatsuba Square Root" as described by Paul Zimmermann,
 ;; which is 3/2K(n) + O(n log n) for an input of 2n words, where K(n)
@@ -1612,7 +1917,7 @@ EOF
                (##sys#sqrt/loc loc (exact->inexact n)))))
         (else (##core#inline_allocate ("C_a_i_sqrt" 4) (exact->inexact n)))))
 
-(define (sqrt x) (##sys#sqrt/loc 'sqrt x))
+(set! scheme#sqrt (lambda (x) (##sys#sqrt/loc 'sqrt x)))
 
 (set! chicken.base#exact-integer-nth-root
   (lambda (k n)
@@ -1656,54 +1961,55 @@ EOF
          (else
           (lp (* res base) (- e2 1)))))))
 
-(define (expt a b)
-  (define (log-expt a b)
-    (exp (* b (##sys#log-1 a))))
-  (define (slow-expt a b)
-    (if (eq? 0 a)
-        (##sys#signal-hook
-	 #:arithmetic-error 'expt
-	 "exponent of exact 0 with complex argument is undefined" a b)
-        (exp (* b (##sys#log-1 a)))))
-  (cond ((not (number? a)) (##sys#error-bad-number a 'expt))
-        ((not (number? b)) (##sys#error-bad-number b 'expt))
-        ((and (ratnum? a) (not (inexact? b)))
-         ;; (n*d)^b = n^b * d^b = n^b * x^{-b}  | x = 1/b
-         ;; Hopefully faster than integer-power
-         (* (expt (%ratnum-numerator a) b)
-	    (expt (%ratnum-denominator a) (- b))))
-        ((ratnum? b)
-         ;; x^{a/b} = (x^{1/b})^a
-         (cond
-          ((exact-integer? a)
-           (if (negative? a)
-               (log-expt (exact->inexact a) (exact->inexact b))
-               (receive (ds^n r)
-                   (##sys#exact-integer-nth-root/loc
-		    'expt a (%ratnum-denominator b))
-                 (if (eq? r 0)
-                     (##sys#integer-power ds^n (%ratnum-numerator b))
-                     (##core#inline_allocate ("C_a_i_flonum_expt" 4)
-					     (exact->inexact a)
-					     (exact->inexact b))))))
-          ((##core#inline "C_i_flonump" a)
-           (log-expt a (exact->inexact b)))
-          (else (slow-expt a b))))
-        ((or (cplxnum? b) (and (cplxnum? a) (not (integer? b))))
-         (slow-expt a b))
-        ((and (##core#inline "C_i_flonump" b)
-              (not (##core#inline "C_u_i_fpintegerp" b)))
-         (if (negative? a)
-             (log-expt (exact->inexact a) (exact->inexact b))
-             (##core#inline_allocate
-	      ("C_a_i_flonum_expt" 4) (exact->inexact a) b)))
-        ((##core#inline "C_i_flonump" a)
-	 (##core#inline_allocate ("C_a_i_flonum_expt" 4) a (exact->inexact b)))
-        ;; this doesn't work that well, yet...
-        ;; (XXX: What does this mean? why not? I do know this is ugly... :P)
-        (else (if (or (inexact? a) (inexact? b))
-                  (exact->inexact (##sys#integer-power a (inexact->exact b)))
-                  (##sys#integer-power a b)))) )
+(set! scheme#expt
+  (lambda (a b)
+    (define (log-expt a b)
+      (exp (* b (##sys#log-1 a))))
+    (define (slow-expt a b)
+      (if (eq? 0 a)
+	  (##sys#signal-hook
+	   #:arithmetic-error 'expt
+	   "exponent of exact 0 with complex argument is undefined" a b)
+	  (exp (* b (##sys#log-1 a)))))
+    (cond ((not (number? a)) (##sys#error-bad-number a 'expt))
+	  ((not (number? b)) (##sys#error-bad-number b 'expt))
+	  ((and (ratnum? a) (not (inexact? b)))
+	   ;; (n*d)^b = n^b * d^b = n^b * x^{-b}  | x = 1/b
+	   ;; Hopefully faster than integer-power
+	   (* (expt (%ratnum-numerator a) b)
+	      (expt (%ratnum-denominator a) (- b))))
+	  ((ratnum? b)
+	   ;; x^{a/b} = (x^{1/b})^a
+	   (cond
+	    ((exact-integer? a)
+	     (if (negative? a)
+		 (log-expt (exact->inexact a) (exact->inexact b))
+		 (receive (ds^n r)
+		     (##sys#exact-integer-nth-root/loc
+		      'expt a (%ratnum-denominator b))
+		   (if (eq? r 0)
+		       (##sys#integer-power ds^n (%ratnum-numerator b))
+		       (##core#inline_allocate ("C_a_i_flonum_expt" 4)
+					       (exact->inexact a)
+					       (exact->inexact b))))))
+	    ((##core#inline "C_i_flonump" a)
+	     (log-expt a (exact->inexact b)))
+	    (else (slow-expt a b))))
+	  ((or (cplxnum? b) (and (cplxnum? a) (not (integer? b))))
+	   (slow-expt a b))
+	  ((and (##core#inline "C_i_flonump" b)
+		(not (##core#inline "C_u_i_fpintegerp" b)))
+	   (if (negative? a)
+	       (log-expt (exact->inexact a) (exact->inexact b))
+	       (##core#inline_allocate
+		("C_a_i_flonum_expt" 4) (exact->inexact a) b)))
+	  ((##core#inline "C_i_flonump" a)
+	   (##core#inline_allocate ("C_a_i_flonum_expt" 4) a (exact->inexact b)))
+	  ;; this doesn't work that well, yet...
+	  ;; (XXX: What does this mean? why not? I do know this is ugly... :P)
+	  (else (if (or (inexact? a) (inexact? b))
+		    (exact->inexact (##sys#integer-power a (inexact->exact b)))
+		    (##sys#integer-power a b)))) ))
 
 ;; Useful for sane error messages
 (define (##sys#internal-gcd loc a b)
@@ -1724,32 +2030,34 @@ EOF
 ;; For compat reasons, we define this
 (define (##sys#gcd a b) (##sys#internal-gcd 'gcd a b))
 
-(define (gcd . ns)
-  (if (eq? ns '())
-      0
-      (let loop ((head (##sys#slot ns 0))
-                 (next (##sys#slot ns 1)))
-        (if (null? next)
-            (if (integer? head) (abs head) (##sys#error-bad-integer head 'gcd))
-            (let ((n2 (##sys#slot next 0)))
-              (loop (##sys#internal-gcd 'gcd head n2)
-                    (##sys#slot next 1)) ) )  ) ) )
+(set! scheme#gcd
+  (lambda ns
+    (if (eq? ns '())
+	0
+	(let loop ((head (##sys#slot ns 0))
+		   (next (##sys#slot ns 1)))
+	  (if (null? next)
+	      (if (integer? head) (abs head) (##sys#error-bad-integer head 'gcd))
+	      (let ((n2 (##sys#slot next 0)))
+		(loop (##sys#internal-gcd 'gcd head n2)
+		      (##sys#slot next 1)) ) ) ) ) ))
 
 (define (##sys#lcm x y)
   (let ((gcd (##sys#internal-gcd 'lcm x y))) ; Ensure better error message
     (abs (quotient (* x y) gcd) ) ) )
 
-(define (lcm . ns)
-  (if (null? ns)
-      1
-      (let loop ((head (##sys#slot ns 0))
-                 (next (##sys#slot ns 1)))
-        (if (null? next)
-            (if (integer? head) (abs head) (##sys#error-bad-integer head 'lcm))
-            (let* ((n2 (##sys#slot next 0))
-		   (gcd (##sys#internal-gcd 'lcm head n2)))
-              (loop (quotient (* head n2) gcd)
-                    (##sys#slot next 1)) ) )  ) ) )
+(set! scheme#lcm
+  (lambda ns
+    (if (null? ns)
+	1
+	(let loop ((head (##sys#slot ns 0))
+		   (next (##sys#slot ns 1)))
+	  (if (null? next)
+	      (if (integer? head) (abs head) (##sys#error-bad-integer head 'lcm))
+	      (let* ((n2 (##sys#slot next 0))
+		     (gcd (##sys#internal-gcd 'lcm head n2)))
+		(loop (quotient (* head n2) gcd)
+		      (##sys#slot next 1)) ) ) ) ) ))
 
 ;; This simple enough idea is from
 ;; http://www.numberworld.org/y-cruncher/internals/radix-conversion.html
@@ -1784,7 +2092,6 @@ EOF
                         (number->string i base) "i") ))
        (else (##sys#error-bad-number n 'number->string)))  ) ) )
 
-(define number->string (##core#primitive "C_number_to_string"))
 (define ##sys#number->string number->string) ; for printer
 
 ;; We try to prevent memory exhaustion attacks by limiting the
@@ -2024,76 +2331,76 @@ EOF
                     ;; Ensure we didn't encounter +inf.0 or +nan.0 with #e
                     (and (finite? number) number)))))
 
-(define (string->number str #!optional (base 10))
-  (##sys#check-string str 'string->number)
-  (unless (and (##core#inline "C_fixnump" base)
-               (fx< 1 base) (fx< base 37)) ; We only have 0-9 and the alphabet!
-    (##sys#error-bad-base base 'string->number))
-  (let scan-prefix ((i 0)
-                    (exness #f)
-                    (radix #f)
-                    (len (##sys#size str)))
-    (if (and (fx< (fx+ i 2) len) (eq? (%subchar str i) #\#))
-        (case (%subchar str (fx+ i 1))
-          ((#\i #\I) (and (not exness) (scan-prefix (fx+ i 2) 'i radix len)))
-          ((#\e #\E) (and (not exness) (scan-prefix (fx+ i 2) 'e radix len)))
-          ((#\b #\B) (and (not radix) (scan-prefix (fx+ i 2) exness 2 len)))
-          ((#\o #\O) (and (not radix) (scan-prefix (fx+ i 2) exness 8 len)))
-          ((#\d #\D) (and (not radix) (scan-prefix (fx+ i 2) exness 10 len)))
-          ((#\x #\X) (and (not radix) (scan-prefix (fx+ i 2) exness 16 len)))
-          (else #f))
-        (##sys#string->compnum (or radix base) str i exness))))
+(set! scheme#string->number
+  (lambda (str #!optional (base 10))
+    (##sys#check-string str 'string->number)
+    (unless (and (##core#inline "C_fixnump" base)
+		 (fx< 1 base) (fx< base 37)) ; We only have 0-9 and the alphabet!
+      (##sys#error-bad-base base 'string->number))
+    (let scan-prefix ((i 0)
+		      (exness #f)
+		      (radix #f)
+		      (len (##sys#size str)))
+      (if (and (fx< (fx+ i 2) len) (eq? (%subchar str i) #\#))
+	  (case (%subchar str (fx+ i 1))
+	    ((#\i #\I) (and (not exness) (scan-prefix (fx+ i 2) 'i radix len)))
+	    ((#\e #\E) (and (not exness) (scan-prefix (fx+ i 2) 'e radix len)))
+	    ((#\b #\B) (and (not radix) (scan-prefix (fx+ i 2) exness 2 len)))
+	    ((#\o #\O) (and (not radix) (scan-prefix (fx+ i 2) exness 8 len)))
+	    ((#\d #\D) (and (not radix) (scan-prefix (fx+ i 2) exness 10 len)))
+	    ((#\x #\X) (and (not radix) (scan-prefix (fx+ i 2) exness 16 len)))
+	    (else #f))
+	  (##sys#string->compnum (or radix base) str i exness)))))
 
 (define (##sys#string->number str #!optional (radix 10) exactness)
   (##sys#string->compnum radix str 0 exactness))
 
-(define number->string (##core#primitive "C_number_to_string"))
 (define ##sys#fixnum->string (##core#primitive "C_fixnum_to_string"))
 (define ##sys#flonum->string (##core#primitive "C_flonum_to_string"))
 (define ##sys#integer->string (##core#primitive "C_integer_to_string"))
 (define ##sys#number->string number->string)
 
-(define (equal=? x y)
-  (define (compare-slots x y start)
-    (let ((l1 (##sys#size x))
-	  (l2 (##sys#size y)))
-      (and (eq? l1 l2)
-	   (or (fx<= l1 start)
-	       (let ((l1n (fx- l1 1)))
-		 (let loop ((i start))
-		   (if (fx= i l1n)
-		       (walk (##sys#slot x i) (##sys#slot y i)) ; tailcall
-		       (and (walk (##sys#slot x i) (##sys#slot y i))
-			    (loop (fx+ i 1))))))))))
-  (define (walk x y)
-    (cond ((eq? x y))
-	  ((number? x) 
-	   (if (number? y)
-	       (= x y)
-	       (eq? x y)))
-	  ((not (##core#inline "C_blockp" x)) #f)
-	  ((not (##core#inline "C_blockp" y)) #f)
-	  ((not (##core#inline "C_sametypep" x y)) #f)
-	  ((##core#inline "C_specialp" x)
-	   (and (##core#inline "C_specialp" y)
-		(if (##core#inline "C_closurep" x)
-		    (##core#inline "shallow_equal" x y)
-		    (compare-slots x y 1))))
-	  ((##core#inline "C_byteblockp" x)
-	   (and (##core#inline "C_byteblockp" y)
-		(let ((s1 (##sys#size x)))
-		  (and (eq? s1 (##sys#size y))
-		       (##core#inline "C_substring_compare" x y 0 0 s1)))))
-	  (else
-	   (let ((s1 (##sys#size x)))
-	     (and (eq? s1 (##sys#size y))
-		  (compare-slots x y 0))))))
-  (walk x y))
+(set! chicken.base#equal=?
+  (lambda (x y)
+    (define (compare-slots x y start)
+      (let ((l1 (##sys#size x))
+	    (l2 (##sys#size y)))
+	(and (eq? l1 l2)
+	     (or (fx<= l1 start)
+		 (let ((l1n (fx- l1 1)))
+		   (let loop ((i start))
+		     (if (fx= i l1n)
+			 (walk (##sys#slot x i) (##sys#slot y i)) ; tailcall
+			 (and (walk (##sys#slot x i) (##sys#slot y i))
+			      (loop (fx+ i 1))))))))))
+    (define (walk x y)
+      (cond ((eq? x y))
+	    ((number? x)
+	     (if (number? y)
+		 (= x y)
+		 (eq? x y)))
+	    ((not (##core#inline "C_blockp" x)) #f)
+	    ((not (##core#inline "C_blockp" y)) #f)
+	    ((not (##core#inline "C_sametypep" x y)) #f)
+	    ((##core#inline "C_specialp" x)
+	     (and (##core#inline "C_specialp" y)
+		  (if (##core#inline "C_closurep" x)
+		      (##core#inline "shallow_equal" x y)
+		      (compare-slots x y 1))))
+	    ((##core#inline "C_byteblockp" x)
+	     (and (##core#inline "C_byteblockp" y)
+		  (let ((s1 (##sys#size x)))
+		    (and (eq? s1 (##sys#size y))
+			 (##core#inline "C_substring_compare" x y 0 0 s1)))))
+	    (else
+	     (let ((s1 (##sys#size x)))
+	       (and (eq? s1 (##sys#size y))
+		    (compare-slots x y 0))))))
+    (walk x y) ))
 
 
 ;;; Symbols:
 
-(define (symbol? x) (##core#inline "C_i_symbolp" x))
 (define ##sys#snafu '##sys#fnord)
 (define ##sys#intern-symbol (##core#primitive "C_string_to_symbol"))
 (define (##sys#interned-symbol? x) (##core#inline "C_lookup_symbol" x))
@@ -2150,12 +2457,13 @@ EOF
 	 (##sys#string-append prefix str)
 	 str) ) ) )
 
-(define (symbol->string s)
-  (##sys#check-symbol s 'symbol->string)
-  (string-copy (##sys#symbol->string s) ) )
+(set! scheme#symbol->string
+  (lambda (s)
+    (##sys#check-symbol s 'symbol->string)
+    (string-copy (##sys#symbol->string s) ) ))
 
-(define string->symbol
-  (let ([string-copy string-copy])
+(set! scheme#string->symbol
+  (let ((string-copy string-copy))
     (lambda (str)
       (##sys#check-string str 'string->symbol)
       (##sys#intern-symbol (string-copy str)) ) ) )
@@ -2199,7 +2507,8 @@ EOF
 (module chicken.keyword
   (keyword? get-keyword keyword->string string->keyword)
 
-(import scheme chicken chicken.fixnum)
+(import scheme)
+(import chicken.fixnum)
 
 (define (keyword? x)
   (and (symbol? x) (##core#inline "C_u_i_keywordp" x)) )
@@ -2236,7 +2545,7 @@ EOF
 (module chicken.blob
   (blob->string string->blob blob? blob=? blob-size make-blob)
 
-(import scheme chicken)
+(import scheme)
 
 (define (##sys#make-blob size)
   (let ([bv (##sys#allocate-vector size #t #f #t)])
@@ -2279,56 +2588,54 @@ EOF
 ) ; chicken.blob
 
 
+
 ;;; Vectors:
-
-(define (vector? x) (##core#inline "C_i_vectorp" x))
-(define (vector-length v) (##core#inline "C_i_vector_length" v))
-(define (vector-ref v i) (##core#inline "C_i_vector_ref" v i))
-(define (vector-set! v i x) (##core#inline "C_i_vector_set" v i x))
-
-(define (make-vector size . fill)
-  (##sys#check-fixnum size 'make-vector)
-  (when (fx< size 0) (##sys#error 'make-vector "size is negative" size))
-  (##sys#allocate-vector
-   size #f
-   (if (null? fill)
-       (##core#undefined)
-       (car fill) )
-   #f) )
+(set! scheme#make-vector
+  (lambda (size . fill)
+    (##sys#check-fixnum size 'make-vector)
+    (when (fx< size 0) (##sys#error 'make-vector "size is negative" size))
+    (##sys#allocate-vector
+     size #f
+     (if (null? fill)
+	 (##core#undefined)
+	 (car fill) )
+     #f) ))
 
 (define ##sys#make-vector make-vector)
 
-(define (list->vector lst0)
-  (if (not (list? lst0))
-      (##sys#error-not-a-proper-list lst0 'list->vector)
-      (let* ([len (length lst0)]
-	     [v (##sys#make-vector len)] )
-	(let loop ([lst lst0]
-		   [i 0])
-	  (if (null? lst)
-	    v
-	    (begin
-	      (##sys#setslot v i (##sys#slot lst 0))
-	      (loop (##sys#slot lst 1) (fx+ i 1)) ) ) ) ) ))
+(set! scheme#list->vector
+  (lambda (lst0)
+    (if (not (list? lst0))
+	(##sys#error-not-a-proper-list lst0 'list->vector)
+	(let* ([len (length lst0)]
+	       [v (##sys#make-vector len)] )
+	  (let loop ([lst lst0]
+		     [i 0])
+	    (if (null? lst)
+		v
+		(begin
+		  (##sys#setslot v i (##sys#slot lst 0))
+		  (loop (##sys#slot lst 1) (fx+ i 1)) ) ) ) ) )))
 
-(define (vector->list v)
-  (##sys#check-vector v 'vector->list)
-  (let ((len (##core#inline "C_block_size" v)))
-    (let loop ((i 0))
-      (if (fx>= i len)
-	  '()
-	  (cons (##sys#slot v i)
-		(loop (fx+ i 1)) ) ) ) ) )
+(set! scheme#vector->list
+  (lambda (v)
+    (##sys#check-vector v 'vector->list)
+    (let ((len (##core#inline "C_block_size" v)))
+      (let loop ((i 0))
+	(if (fx>= i len)
+	    '()
+	    (cons (##sys#slot v i)
+		  (loop (fx+ i 1)) ) ) ) ) ))
 
-(define (vector . xs)
-  (##sys#list->vector xs) )
+(set! scheme#vector (lambda xs (list->vector xs) ))
 
-(define (vector-fill! v x)
-  (##sys#check-vector v 'vector-fill!)
-  (let ((len (##core#inline "C_block_size" v)))
-    (do ((i 0 (fx+ i 1)))
-	((fx>= i len))
-      (##sys#setslot v i x) ) ) )
+(set! scheme#vector-fill!
+  (lambda (v x)
+    (##sys#check-vector v 'vector-fill!)
+    (let ((len (##core#inline "C_block_size" v)))
+      (do ((i 0 (fx+ i 1)))
+	  ((fx>= i len))
+	(##sys#setslot v i x) ) ) ))
 
 (set! chicken.base#vector-copy!
   (lambda (from to . n)
@@ -2374,70 +2681,26 @@ EOF
 
 ;;; Characters:
 
-(define (char? x) (##core#inline "C_charp" x))
-
-(define (char->integer c)
-  (##sys#check-char c 'char->integer)
-  (##core#inline "C_fix" (##core#inline "C_character_code" c)) )
-
-(define (integer->char n)
-  (##sys#check-fixnum n 'integer->char)
-  (##core#inline "C_make_character" (##core#inline "C_unfix" n)) )
-
-(define (char=? c1 c2) (##core#inline "C_i_char_equalp" c1 c2))
-(define (char>? c1 c2) (##core#inline "C_i_char_greaterp" c1 c2))
-(define (char<? c1 c2) (##core#inline "C_i_char_lessp" c1 c2))
-(define (char>=? c1 c2) (##core#inline "C_i_char_greater_or_equal_p" c1 c2))
-(define (char<=? c1 c2) (##core#inline "C_i_char_less_or_equal_p" c1 c2))
-
-(define (char-upcase c)
-  (##sys#check-char c 'char-upcase)
-  (##core#inline "C_u_i_char_upcase" c))
-
-(define (char-downcase c)
-  (##sys#check-char c 'char-downcase)
-  (##core#inline "C_u_i_char_downcase" c))
-
-(define char-ci=?)
-(define char-ci>?)
-(define char-ci<?)
-(define char-ci>=?)
-(define char-ci<=?)
-
 (let ((char-downcase char-downcase))
-  (set! char-ci=? (lambda (x y) (eq? (char-downcase x) (char-downcase y))))
-  (set! char-ci>? (lambda (x y)
-		    (##core#inline "C_u_i_char_greaterp"
-				   (char-downcase x) (char-downcase y))))
-  (set! char-ci<? (lambda (x y)
-		    (##core#inline "C_u_i_char_lessp"
-				   (char-downcase x) (char-downcase y))))
-  (set! char-ci>=? (lambda (x y)
-		     (##core#inline "C_u_i_char_greater_or_equal_p"
-				    (char-downcase x) (char-downcase y))))
-  (set! char-ci<=? (lambda (x y)
-		     (##core#inline "C_u_i_char_less_or_equal_p"
-				    (char-downcase x) (char-downcase y)))) )
-
-(define (char-upper-case? c)
-  (##sys#check-char c 'char-upper-case?)
-  (##core#inline "C_u_i_char_upper_casep" c) )
-
-(define (char-lower-case? c)
-  (##sys#check-char c 'char-lower-case?)
-  (##core#inline "C_u_i_char_lower_casep" c) )
-
-(define (char-numeric? c)
-  (##sys#check-char c 'char-numeric?)
-  (##core#inline "C_u_i_char_numericp" c) )
-
-(define (char-whitespace? c)
-  (##sys#check-char c 'char-whitespace?)
-  (##core#inline "C_u_i_char_whitespacep" c) )
-
-(define (char-alphabetic? c)
-  (##sys#check-char c 'char-alphabetic?)
-  (##core#inline "C_u_i_char_alphabeticp" c) )
+  (set! scheme#char-ci=? (lambda (x y)
+			   (eq? (char-downcase x)
+				(char-downcase y))))
+  (set! scheme#char-ci>? (lambda (x y)
+			   (##core#inline "C_u_i_char_greaterp"
+					  (char-downcase x)
+					  (char-downcase y))))
+  (set! scheme#char-ci<? (lambda (x y)
+			   (##core#inline "C_u_i_char_lessp"
+					  (char-downcase x)
+					  (char-downcase y))))
+  (set! scheme#char-ci>=? (lambda (x y)
+			    (##core#inline "C_u_i_char_greater_or_equal_p"
+					   (char-downcase x)
+					   (char-downcase y))))
+  (set! scheme#char-ci<=? (lambda (x y)
+			    (##core#inline "C_u_i_char_less_or_equal_p"
+					   (char-downcase x)
+					   (char-downcase y)))) )
 
 (set! chicken.base#char-name
   (let ((chars-to-names (make-vector char-name-table-size '()))
@@ -2498,12 +2761,8 @@ EOF
 
 ;;; Procedures:
 
-(define (procedure? x) (##core#inline "C_i_closurep" x))
-(define apply (##core#primitive "C_apply"))
 (define ##sys#call-with-current-continuation (##core#primitive "C_call_cc"))
 (define ##sys#call-with-cthulhu (##core#primitive "C_call_with_cthulhu"))
-(define values (##core#primitive "C_values"))
-(define call-with-values (##core#primitive "C_call_with_values"))
 (define ##sys#call-with-values call-with-values)
 
 (define (##sys#for-each p lst0)
@@ -2520,9 +2779,6 @@ EOF
 	  ((pair? lst)
 	   (cons (p (##sys#slot lst 0)) (loop (##sys#slot lst 1))) )
 	  (else (##sys#error-not-a-proper-list lst0 'map)) ) ))
-
-(define for-each)
-(define map)
 
 (letrec ((mapsafe
 	  (lambda (p lsts start loc)
@@ -2543,7 +2799,7 @@ EOF
 			   (loop (##sys#slot lsts 1)) ) ) )
 		(##sys#error loc "lists are not of same length" lsts) ) ) ) )
 
-  (set! for-each
+  (set! scheme#for-each
     (lambda (fn lst1 . lsts)
       (if (null? lsts)
 	  (##sys#for-each fn lst1)
@@ -2554,7 +2810,7 @@ EOF
 		     (loop (mapsafe (lambda (x) (cdr x)) all #t 'for-each)) )
 		    (else (check all #t 'for-each)) ) ) ) ) ) )
 
-  (set! map
+  (set! scheme#map
     (lambda (fn lst1 . lsts)
       (if (null? lsts)
 	  (##sys#map fn lst1)
@@ -2581,27 +2837,29 @@ EOF
 
 (define ##sys#dynamic-winds '())
 
-(define (dynamic-wind before thunk after)
-  (before)
-  (set! ##sys#dynamic-winds (cons (cons before after) ##sys#dynamic-winds))
-  (##sys#call-with-values
-   thunk
-   (lambda results
-     (set! ##sys#dynamic-winds (##sys#slot ##sys#dynamic-winds 1))
-     (after)
-     (apply ##sys#values results) ) ) )
+(set! scheme#dynamic-wind
+  (lambda (before thunk after)
+    (before)
+    (set! ##sys#dynamic-winds (cons (cons before after) ##sys#dynamic-winds))
+    (##sys#call-with-values
+     thunk
+     (lambda results
+       (set! ##sys#dynamic-winds (##sys#slot ##sys#dynamic-winds 1))
+       (after)
+       (apply ##sys#values results) ) ) ))
 
 (define ##sys#dynamic-wind dynamic-wind)
 
-(define (call-with-current-continuation proc)
-  (let ((winds ##sys#dynamic-winds))
-    (##sys#call-with-current-continuation
-     (lambda (cont)
-       (define (continuation . results)
-	 (unless (eq? ##sys#dynamic-winds winds)
-	   (##sys#dynamic-unwind winds (fx- (length ##sys#dynamic-winds) (length winds))) )
-	 (apply cont results) )
-       (proc continuation)))))
+(set! scheme#call-with-current-continuation
+  (lambda (proc)
+    (let ((winds ##sys#dynamic-winds))
+      (##sys#call-with-current-continuation
+       (lambda (cont)
+	 (define (continuation . results)
+	   (unless (eq? ##sys#dynamic-winds winds)
+	     (##sys#dynamic-unwind winds (fx- (length ##sys#dynamic-winds) (length winds))) )
+	   (apply cont results) )
+	 (proc continuation) ))) ))
 
 (set! chicken.base#call/cc call-with-current-continuation)
 
@@ -2624,14 +2882,6 @@ EOF
   (and (##core#inline "C_blockp" x)
        (##core#inline "C_portp" x)))
 
-(define (input-port? x)
-  (and (##core#inline "C_blockp" x)
-       (##core#inline "C_input_portp" x)))
-
-(define (output-port? x)
-  (and (##core#inline "C_blockp" x)
-       (##core#inline "C_output_portp" x)))
-
 (define (input-port-open? p)
   (##sys#check-input-port p 'input-port-open?)
   (##core#inline "C_input_port_openp" p))
@@ -2642,8 +2892,7 @@ EOF
 
 (define (port-closed? p)
   (##sys#check-port p 'port-closed?)
-  (fx= (##sys#slot p 8) 0))
-
+  (eq? (##sys#slot p 8) 0))
 
 ;;; Port layout:
 ;
@@ -2817,23 +3066,25 @@ EOF
       (##core#inline "C_i_check_port_2" x 0 #t (car loc))
       (##core#inline "C_i_check_port" x 0 #t) ) )
 
-(define (current-input-port . args)
-  (if (null? args)
-      ##sys#standard-input
-      (let ((p (car args)))
-	(##sys#check-port p 'current-input-port)
-	(let-optionals (cdr args) ((convert? #t) (set? #t))
-	  (when set? (set! ##sys#standard-input p)))
-	p)))
+(set! scheme#current-input-port
+  (lambda args
+    (if (null? args)
+	##sys#standard-input
+	(let ((p (car args)))
+	  (##sys#check-port p 'current-input-port)
+	  (let-optionals (cdr args) ((convert? #t) (set? #t))
+	    (when set? (set! ##sys#standard-input p)))
+	  p) ) ))
 
-(define (current-output-port . args)
-  (if (null? args)
-      ##sys#standard-output
-      (let ((p (car args)))
-	(##sys#check-port p 'current-output-port)
-	(let-optionals (cdr args) ((convert? #t) (set? #t))
-	  (when set? (set! ##sys#standard-output p)))
-	p)))
+(set! scheme#current-output-port
+  (lambda args
+    (if (null? args)
+	##sys#standard-output
+	(let ((p (car args)))
+	  (##sys#check-port p 'current-output-port)
+	  (let-optionals (cdr args) ((convert? #t) (set? #t))
+	    (when set? (set! ##sys#standard-output p)))
+	  p) ) ))
 
 (set! chicken.base#current-error-port
   (lambda args
@@ -2851,11 +3102,6 @@ EOF
 
 (define (##sys#port-data port) (##sys#slot port 9))
 (define (##sys#set-port-data! port data) (##sys#setslot port 9 data))
-
-(define open-input-file)
-(define open-output-file)
-(define close-input-port)
-(define close-output-port)
 
 (let ()
   (define (open name inp modes loc)
@@ -2887,34 +3133,34 @@ EOF
 	(##sys#setislot port 8 (fxand (##sys#slot port 8) (fxnot direction)))
 	((##sys#slot (##sys#slot port 2) 4) port direction))))
 
-  (set! open-input-file (lambda (name . mode) (open name #t mode 'open-input-file)))
-  (set! open-output-file (lambda (name . mode) (open name #f mode 'open-output-file)))
-  (set! close-input-port (lambda (port) (close port #t 'close-input-port)))
-  (set! close-output-port (lambda (port) (close port #f 'close-output-port))))
+  (set! scheme#open-input-file (lambda (name . mode) (open name #t mode 'open-input-file)))
+  (set! scheme#open-output-file (lambda (name . mode) (open name #f mode 'open-output-file)))
+  (set! scheme#close-input-port (lambda (port) (close port #t 'close-input-port)))
+  (set! scheme#close-output-port (lambda (port) (close port #f 'close-output-port))))
 
-(define call-with-input-file
-  (let ([open-input-file open-input-file]
-	[close-input-port close-input-port] )
+(set! scheme#call-with-input-file
+  (let ((open-input-file open-input-file)
+	(close-input-port close-input-port) )
     (lambda (name p . mode)
-      (let ([f (apply open-input-file name mode)])
+      (let ((f (apply open-input-file name mode)))
 	(##sys#call-with-values
 	 (lambda () (p f))
 	 (lambda results
 	   (close-input-port f)
 	   (apply ##sys#values results) ) ) ) ) ) )
 
-(define call-with-output-file
-  (let ([open-output-file open-output-file]
-	[close-output-port close-output-port] )
+(set! scheme#call-with-output-file
+  (let ((open-output-file open-output-file)
+	(close-output-port close-output-port) )
     (lambda (name p . mode)
-      (let ([f (apply open-output-file name mode)])
+      (let ((f (apply open-output-file name mode)))
 	(##sys#call-with-values
 	 (lambda () (p f))
 	 (lambda results
 	   (close-output-port f)
 	   (apply ##sys#values results) ) ) ) ) ) )
 
-(define with-input-from-file 
+(set! scheme#with-input-from-file
   (let ((open-input-file open-input-file)
 	(close-input-port close-input-port) )
     (lambda (str thunk . mode)
@@ -2925,7 +3171,7 @@ EOF
 	      (close-input-port file)
 	      (apply ##sys#values results) ) ) ) ) ) ) )
 
-(define with-output-to-file 
+(set! scheme#with-output-to-file
   (let ((open-output-file open-output-file)
 	(close-output-port close-output-port) ) 
     (lambda (str thunk . mode)
@@ -3098,26 +3344,26 @@ EOF
 	     p))
 	  p1))))
 
-(set! car (getter-with-setter car set-car! "(car p)"))
-(set! cdr (getter-with-setter cdr set-cdr! "(cdr p)"))
-(set! caar (getter-with-setter caar (lambda (x y) (set-car! (car x) y)) "(caar p)"))
-(set! cadr (getter-with-setter cadr (lambda (x y) (set-car! (cdr x) y)) "(cadr p)"))
-(set! cdar (getter-with-setter cdar (lambda (x y) (set-cdr! (car x) y)) "(cdar p)"))
-(set! cddr (getter-with-setter cddr (lambda (x y) (set-cdr! (cdr x) y)) "(cddr p)"))
-(set! caaar (getter-with-setter caaar (lambda (x y) (set-car! (caar x) y)) "(caaar p)"))
-(set! caadr (getter-with-setter caadr (lambda (x y) (set-car! (cadr x) y)) "(caadr p)"))
-(set! cadar (getter-with-setter cadar (lambda (x y) (set-car! (cdar x) y)) "(cadar p)"))
-(set! caddr (getter-with-setter caddr (lambda (x y) (set-car! (cddr x) y)) "(caddr p)"))
-(set! cdaar (getter-with-setter cdaar (lambda (x y) (set-cdr! (caar x) y)) "(cdaar p)"))
-(set! cdadr (getter-with-setter cdadr (lambda (x y) (set-cdr! (cadr x) y)) "(cdadr p)"))
-(set! cddar (getter-with-setter cddar (lambda (x y) (set-cdr! (cdar x) y)) "(cddar p)"))
-(set! cdddr (getter-with-setter cdddr (lambda (x y) (set-cdr! (cddr x) y)) "(cdddr p)"))
-(set! string-ref (getter-with-setter string-ref string-set! "(string-ref str i)"))
-(set! vector-ref (getter-with-setter vector-ref vector-set! "(vector-ref vec i)"))
+(set! scheme#car (getter-with-setter scheme#car set-car! "(car p)"))
+(set! scheme#cdr (getter-with-setter scheme#cdr set-cdr! "(cdr p)"))
+(set! scheme#caar (getter-with-setter scheme#caar (lambda (x y) (set-car! (car x) y)) "(caar p)"))
+(set! scheme#cadr (getter-with-setter scheme#cadr (lambda (x y) (set-car! (cdr x) y)) "(cadr p)"))
+(set! scheme#cdar (getter-with-setter scheme#cdar (lambda (x y) (set-cdr! (car x) y)) "(cdar p)"))
+(set! scheme#cddr (getter-with-setter scheme#cddr (lambda (x y) (set-cdr! (cdr x) y)) "(cddr p)"))
+(set! scheme#caaar (getter-with-setter scheme#caaar (lambda (x y) (set-car! (caar x) y)) "(caaar p)"))
+(set! scheme#caadr (getter-with-setter scheme#caadr (lambda (x y) (set-car! (cadr x) y)) "(caadr p)"))
+(set! scheme#cadar (getter-with-setter scheme#cadar (lambda (x y) (set-car! (cdar x) y)) "(cadar p)"))
+(set! scheme#caddr (getter-with-setter scheme#caddr (lambda (x y) (set-car! (cddr x) y)) "(caddr p)"))
+(set! scheme#cdaar (getter-with-setter scheme#cdaar (lambda (x y) (set-cdr! (caar x) y)) "(cdaar p)"))
+(set! scheme#cdadr (getter-with-setter scheme#cdadr (lambda (x y) (set-cdr! (cadr x) y)) "(cdadr p)"))
+(set! scheme#cddar (getter-with-setter scheme#cddar (lambda (x y) (set-cdr! (cdar x) y)) "(cddar p)"))
+(set! scheme#cdddr (getter-with-setter scheme#cdddr (lambda (x y) (set-cdr! (cddr x) y)) "(cdddr p)"))
+(set! scheme#string-ref (getter-with-setter scheme#string-ref string-set! "(string-ref str i)"))
+(set! scheme#vector-ref (getter-with-setter scheme#vector-ref vector-set! "(vector-ref vec i)"))
 
-(set! list-ref 
+(set! scheme#list-ref
   (getter-with-setter 
-   list-ref
+   scheme#list-ref
    (lambda (x i y) (set-car! (list-tail x i) y))
    "(list-ref lst i)"))
 
@@ -3174,15 +3420,15 @@ EOF
 
 ;;; Input:
 
-(define (eof-object? x) (##core#inline "C_eofp" x))
+(set! scheme#char-ready?
+  (lambda (#!optional (port ##sys#standard-input))
+    (##sys#check-input-port port #t 'char-ready?)
+    ((##sys#slot (##sys#slot port 2) 6) port) )) ; char-ready?
 
-(define (char-ready? #!optional (port ##sys#standard-input))
-  (##sys#check-input-port port #t 'char-ready?)
-  ((##sys#slot (##sys#slot port 2) 6) port) ) ; char-ready?
-
-(define (read-char #!optional (port ##sys#standard-input))
-  (##sys#check-input-port port #t 'read-char)
-  (##sys#read-char-0 port))
+(set! scheme#read-char
+  (lambda (#!optional (port ##sys#standard-input))
+    (##sys#check-input-port port #t 'read-char)
+    (##sys#read-char-0 port) ))
 
 (define (##sys#read-char-0 p)
   (let ([c (if (##sys#slot p 6)
@@ -3209,13 +3455,15 @@ EOF
 	  (##sys#setislot p 6 #t) )
 	c) ) )
 
-(define (peek-char #!optional (port ##sys#standard-input))
-  (##sys#check-input-port port #t 'peek-char)
-  (##sys#peek-char-0 port) )
+(set! scheme#peek-char
+  (lambda (#!optional (port ##sys#standard-input))
+    (##sys#check-input-port port #t 'peek-char)
+    (##sys#peek-char-0 port) ))
 
-(define (read #!optional (port ##sys#standard-input))
-  (##sys#check-input-port port #t 'read)
-  (##sys#read port ##sys#default-read-info-hook) )
+(set! read
+  (lambda (#!optional (port ##sys#standard-input))
+    (##sys#check-input-port port #t 'read)
+    (##sys#read port ##sys#default-read-info-hook) ))
 
 (define ##sys#default-read-info-hook #f)
 (define ##sys#read-error-with-line-number #f)
@@ -3941,21 +4189,25 @@ EOF
   (##sys#check-char c 'write-char)
   (##sys#write-char-0 c port) )
 
-(define (write-char c #!optional (port ##sys#standard-output))
-  (##sys#check-char c 'write-char)
-  (##sys#check-output-port port #t 'write-char)
-  (##sys#write-char-0 c port) )
+(set! scheme#write-char
+  (lambda (c #!optional (port ##sys#standard-output))
+    (##sys#check-char c 'write-char)
+    (##sys#check-output-port port #t 'write-char)
+    (##sys#write-char-0 c port) ))
 
-(define (newline #!optional (port ##sys#standard-output))
-  (##sys#write-char/port #\newline port) )
+(set! scheme#newline
+  (lambda (#!optional (port ##sys#standard-output))
+    (##sys#write-char/port #\newline port) ))
 
-(define (write x #!optional (port ##sys#standard-output))
-  (##sys#check-output-port port #t 'write)
-  (##sys#print x #t port) )
+(set! scheme#write
+  (lambda (x #!optional (port ##sys#standard-output))
+    (##sys#check-output-port port #t 'write)
+    (##sys#print x #t port) ))
 
-(define (display x #!optional (port ##sys#standard-output))
-  (##sys#check-output-port port #t 'display)
-  (##sys#print x #f port) )
+(set! scheme#display
+  (lambda (x #!optional (port ##sys#standard-output))
+    (##sys#check-output-port port #t 'display)
+    (##sys#print x #f port) ))
 
 (define-inline (*print-each lst)
   (for-each (cut ##sys#print <> #f ##sys#standard-output) lst) )
@@ -3967,7 +4219,7 @@ EOF
     (##sys#write-char-0 #\newline ##sys#standard-output)
     (void)))
 
-(define print*
+(set! chicken.base#print*
   (lambda args
     (##sys#check-output-port ##sys#standard-output #t 'print)
     (*print-each args)
@@ -5441,7 +5693,9 @@ EOF
 (module chicken.gc
   (current-gc-milliseconds gc memory-statistics set-finalizer! set-gc-report!)
 
-(import scheme chicken chicken.fixnum chicken.foreign)
+(import scheme)
+(import chicken.fixnum chicken.foreign)
+(import (only chicken when unless handle-exceptions))
 
 ;;; GC info:
 
@@ -5574,7 +5828,6 @@ EOF
 (define ##sys#null? null?)
 (define ##sys#map-n map)
 
-
 ;;; We need this here so `location' works:
  
 (define (##sys#make-locative obj index weak? loc)
@@ -5651,7 +5904,9 @@ EOF
 (module chicken.plist
   (get get-properties put! remprop! symbol-plist)
 
-(import scheme chicken)
+(import scheme)
+(import (only (chicken base) getter-with-setter))
+(import (only chicken when))
 
 (define (put! sym prop val)
   (##sys#check-symbol sym 'put!)
@@ -5782,7 +6037,10 @@ EOF
      software-type software-version
      )
 
-(import scheme chicken chicken.fixnum chicken.foreign chicken.keyword)
+(import scheme)
+(import chicken.fixnum chicken.foreign chicken.keyword)
+(import (only chicken get-environment-variable make-parameter))
+(import (only chicken when unless define-constant))
 
 (define software-type
   (let ((sym (string->symbol ((##core#primitive "C_software_type")))))
@@ -5942,3 +6200,203 @@ EOF
 	     (loop (##sys#slot ids 1))))))
 
 ) ; chicken.platform
+
+
+
+;;; OBSOLETE: Remove after bootstrapping.  This ensures the unprefixed
+;;; names are still bound to the correct definitions, because "scheme"
+;;; in the bootstrapping compiler's modules.scm may still refer to
+;;; them by the unprefixed name.
+(##sys#setslot 'not 0 scheme#not)
+(##sys#setslot 'boolean? 0 scheme#boolean?)
+(##sys#setslot 'eq? 0 scheme#eq?)
+(##sys#setslot 'eqv? 0 scheme#eqv?)
+(##sys#setslot 'equal? 0 scheme#equal?)
+(##sys#setslot 'pair? 0 scheme#pair?)
+(##sys#setslot 'cons 0 scheme#cons)
+(##sys#setslot 'car 0 scheme#car)
+(##sys#setslot 'cdr 0 scheme#cdr)
+(##sys#setslot 'caar 0 scheme#caar)
+(##sys#setslot 'cadr 0 scheme#cadr)
+(##sys#setslot 'cdar 0 scheme#cdar)
+(##sys#setslot 'cddr 0 scheme#cddr)
+(##sys#setslot 'caaar 0 scheme#caaar)
+(##sys#setslot 'caadr 0 scheme#caadr)
+(##sys#setslot 'cadar 0 scheme#cadar)
+(##sys#setslot 'caddr 0 scheme#caddr)
+(##sys#setslot 'cdaar 0 scheme#cdaar)
+(##sys#setslot 'cdadr 0 scheme#cdadr)
+(##sys#setslot 'cddar 0 scheme#cddar)
+(##sys#setslot 'cdddr 0 scheme#cdddr)
+(##sys#setslot 'caaaar 0 scheme#caaaar)
+(##sys#setslot 'caaadr 0 scheme#caaadr)
+(##sys#setslot 'caadar 0 scheme#caadar)
+(##sys#setslot 'caaddr 0 scheme#caaddr)
+(##sys#setslot 'cadaar 0 scheme#cadaar)
+(##sys#setslot 'cadadr 0 scheme#cadadr)
+(##sys#setslot 'caddar 0 scheme#caddar)
+(##sys#setslot 'cadddr 0 scheme#cadddr)
+(##sys#setslot 'cdaaar 0 scheme#cdaaar)
+(##sys#setslot 'cdaadr 0 scheme#cdaadr)
+(##sys#setslot 'cdadar 0 scheme#cdadar)
+(##sys#setslot 'cdaddr 0 scheme#cdaddr)
+(##sys#setslot 'cddaar 0 scheme#cddaar)
+(##sys#setslot 'cddadr 0 scheme#cddadr)
+(##sys#setslot 'cdddar 0 scheme#cdddar)
+(##sys#setslot 'cddddr 0 scheme#cddddr)
+(##sys#setslot 'set-car! 0 scheme#set-car!)
+(##sys#setslot 'set-cdr! 0 scheme#set-cdr!)
+(##sys#setslot 'null? 0 scheme#null?)
+(##sys#setslot 'list? 0 scheme#list?)
+(##sys#setslot 'list 0 scheme#list)
+(##sys#setslot 'length 0 scheme#length)
+(##sys#setslot 'list-tail 0 scheme#list-tail)
+(##sys#setslot 'list-ref 0 scheme#list-ref)
+(##sys#setslot 'append 0 scheme#append)
+(##sys#setslot 'reverse 0 scheme#reverse)
+(##sys#setslot 'memq 0 scheme#memq)
+(##sys#setslot 'memv 0 scheme#memv)
+(##sys#setslot 'member 0 scheme#member)
+(##sys#setslot 'assq 0 scheme#assq)
+(##sys#setslot 'assv 0 scheme#assv)
+(##sys#setslot 'assoc 0 scheme#assoc)
+(##sys#setslot 'symbol? 0 scheme#symbol?)
+(##sys#setslot 'symbol->string 0 scheme#symbol->string)
+(##sys#setslot 'string->symbol 0 scheme#string->symbol)
+(##sys#setslot 'number? 0 scheme#number?)
+(##sys#setslot 'integer? 0 scheme#integer?)
+(##sys#setslot 'exact? 0 scheme#exact?)
+(##sys#setslot 'real? 0 scheme#real?)
+(##sys#setslot 'complex? 0 scheme#complex?)
+(##sys#setslot 'inexact? 0 scheme#inexact?)
+(##sys#setslot 'rational? 0 scheme#rational?)
+(##sys#setslot 'zero? 0 scheme#zero?)
+(##sys#setslot 'odd? 0 scheme#odd?)
+(##sys#setslot 'even? 0 scheme#even?)
+(##sys#setslot 'positive? 0 scheme#positive?)
+(##sys#setslot 'negative? 0 scheme#negative?)
+(##sys#setslot 'max 0 scheme#max)
+(##sys#setslot 'min 0 scheme#min)
+(##sys#setslot '+ 0 scheme#+)
+(##sys#setslot '- 0 scheme#-)
+(##sys#setslot '* 0 scheme#*)
+(##sys#setslot '/ 0 scheme#/)
+(##sys#setslot '= 0 scheme#=)
+(##sys#setslot '> 0 scheme#>)
+(##sys#setslot '< 0 scheme#<)
+(##sys#setslot '>= 0 scheme#>=)
+(##sys#setslot '<= 0 scheme#<=)
+(##sys#setslot 'quotient 0 scheme#quotient)
+(##sys#setslot 'remainder 0 scheme#remainder)
+(##sys#setslot 'modulo 0 scheme#modulo)
+(##sys#setslot 'gcd 0 scheme#gcd)
+(##sys#setslot 'lcm 0 scheme#lcm)
+(##sys#setslot 'abs 0 scheme#abs)
+(##sys#setslot 'floor 0 scheme#floor)
+(##sys#setslot 'ceiling 0 scheme#ceiling)
+(##sys#setslot 'truncate 0 scheme#truncate)
+(##sys#setslot 'round 0 scheme#round)
+(##sys#setslot 'rationalize 0 scheme#rationalize)
+(##sys#setslot 'exact->inexact 0 scheme#exact->inexact)
+(##sys#setslot 'inexact->exact 0 scheme#inexact->exact)
+(##sys#setslot 'exp 0 scheme#exp)
+(##sys#setslot 'log 0 scheme#log)
+(##sys#setslot 'expt 0 scheme#expt)
+(##sys#setslot 'sqrt 0 scheme#sqrt)
+(##sys#setslot 'sin 0 scheme#sin)
+(##sys#setslot 'cos 0 scheme#cos)
+(##sys#setslot 'tan 0 scheme#tan)
+(##sys#setslot 'asin 0 scheme#asin)
+(##sys#setslot 'acos 0 scheme#acos)
+(##sys#setslot 'atan 0 scheme#atan)
+(##sys#setslot 'number->string 0 scheme#number->string)
+(##sys#setslot 'string->number 0 scheme#string->number)
+(##sys#setslot 'char? 0 scheme#char?)
+(##sys#setslot 'char=? 0 scheme#char=?)
+(##sys#setslot 'char>? 0 scheme#char>?)
+(##sys#setslot 'char<? 0 scheme#char<?)
+(##sys#setslot 'char>=? 0 scheme#char>=?)
+(##sys#setslot 'char<=? 0 scheme#char<=?)
+(##sys#setslot 'char-ci=? 0 scheme#char-ci=?)
+(##sys#setslot 'char-ci<? 0 scheme#char-ci<?)
+(##sys#setslot 'char-ci>? 0 scheme#char-ci>?)
+(##sys#setslot 'char-ci>=? 0 scheme#char-ci>=?)
+(##sys#setslot 'char-ci<=? 0 scheme#char-ci<=?)
+(##sys#setslot 'char-alphabetic? 0 scheme#char-alphabetic?)
+(##sys#setslot 'char-whitespace? 0 scheme#char-whitespace?)
+(##sys#setslot 'char-numeric? 0 scheme#char-numeric?)
+(##sys#setslot 'char-upper-case? 0 scheme#char-upper-case?)
+(##sys#setslot 'char-lower-case? 0 scheme#char-lower-case?)
+(##sys#setslot 'char-upcase 0 scheme#char-upcase)
+(##sys#setslot 'char-downcase 0 scheme#char-downcase)
+(##sys#setslot 'char->integer 0 scheme#char->integer)
+(##sys#setslot 'integer->char 0 scheme#integer->char)
+(##sys#setslot 'string? 0 scheme#string?)
+(##sys#setslot 'string=? 0 scheme#string=?)
+(##sys#setslot 'string>? 0 scheme#string>?)
+(##sys#setslot 'string<? 0 scheme#string<?)
+(##sys#setslot 'string>=? 0 scheme#string>=?)
+(##sys#setslot 'string<=? 0 scheme#string<=?)
+(##sys#setslot 'string-ci=? 0 scheme#string-ci=?)
+(##sys#setslot 'string-ci<? 0 scheme#string-ci<?)
+(##sys#setslot 'string-ci>? 0 scheme#string-ci>?)
+(##sys#setslot 'string-ci>=? 0 scheme#string-ci>=?)
+(##sys#setslot 'string-ci<=? 0 scheme#string-ci<=?)
+(##sys#setslot 'make-string 0 scheme#make-string)
+(##sys#setslot 'string-length 0 scheme#string-length)
+(##sys#setslot 'string-ref 0 scheme#string-ref)
+(##sys#setslot 'string-set! 0 scheme#string-set!)
+(##sys#setslot 'string-append 0 scheme#string-append)
+(##sys#setslot 'string-copy 0 scheme#string-copy)
+(##sys#setslot 'string->list 0 scheme#string->list)
+(##sys#setslot 'list->string 0 scheme#list->string)
+(##sys#setslot 'substring 0 scheme#substring)
+(##sys#setslot 'string-fill! 0 scheme#string-fill!)
+(##sys#setslot 'vector? 0 scheme#vector?)
+(##sys#setslot 'make-vector 0 scheme#make-vector)
+(##sys#setslot 'vector-ref 0 scheme#vector-ref)
+(##sys#setslot 'vector-set! 0 scheme#vector-set!)
+(##sys#setslot 'string 0 scheme#string)
+(##sys#setslot 'vector 0 scheme#vector)
+(##sys#setslot 'vector-length 0 scheme#vector-length)
+(##sys#setslot 'vector->list 0 scheme#vector->list)
+(##sys#setslot 'list->vector 0 scheme#list->vector)
+(##sys#setslot 'vector-fill! 0 scheme#vector-fill!)
+(##sys#setslot 'procedure? 0 scheme#procedure?)
+(##sys#setslot 'map 0 scheme#map)
+(##sys#setslot 'for-each 0 scheme#for-each)
+(##sys#setslot 'apply 0 scheme#apply)
+(##sys#setslot 'force 0 scheme#force)
+(##sys#setslot 'call-with-current-continuation 0 scheme#call-with-current-continuation)
+(##sys#setslot 'input-port? 0 scheme#input-port?)
+(##sys#setslot 'output-port? 0 scheme#output-port?)
+(##sys#setslot 'current-input-port 0 scheme#current-input-port)
+(##sys#setslot 'current-output-port 0 scheme#current-output-port)
+(##sys#setslot 'call-with-input-file 0 scheme#call-with-input-file)
+(##sys#setslot 'call-with-output-file 0 scheme#call-with-output-file)
+(##sys#setslot 'open-input-file 0 scheme#open-input-file)
+(##sys#setslot 'open-output-file 0 scheme#open-output-file)
+(##sys#setslot 'close-input-port 0 scheme#close-input-port)
+(##sys#setslot 'close-output-port 0 scheme#close-output-port)
+(##sys#setslot 'read 0 scheme#read)
+(##sys#setslot 'read-char 0 scheme#read-char)
+(##sys#setslot 'peek-char 0 scheme#peek-char)
+(##sys#setslot 'write 0 scheme#write)
+(##sys#setslot 'display 0 scheme#display)
+(##sys#setslot 'write-char 0 scheme#write-char)
+(##sys#setslot 'newline 0 scheme#newline)
+(##sys#setslot 'eof-object? 0 scheme#eof-object?)
+(##sys#setslot 'with-input-from-file 0 scheme#with-input-from-file)
+(##sys#setslot 'with-output-to-file 0 scheme#with-output-to-file)
+(##sys#setslot 'char-ready? 0 scheme#char-ready?)
+(##sys#setslot 'imag-part 0 scheme#imag-part)
+(##sys#setslot 'real-part 0 scheme#real-part)
+(##sys#setslot 'make-rectangular 0 scheme#make-rectangular)
+(##sys#setslot 'make-polar 0 scheme#make-polar)
+(##sys#setslot 'angle 0 scheme#angle)
+(##sys#setslot 'magnitude 0 scheme#magnitude)
+(##sys#setslot 'numerator 0 scheme#numerator)
+(##sys#setslot 'denominator 0 scheme#denominator)
+(##sys#setslot 'dynamic-wind 0 scheme#dynamic-wind)
+(##sys#setslot 'values 0 scheme#values)
+(##sys#setslot 'call-with-values 0 scheme#call-with-values)

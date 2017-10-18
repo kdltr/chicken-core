@@ -119,26 +119,28 @@
 ;;; Standard and extended bindings:
 
 (set! default-standard-bindings
-  '(not boolean? apply call-with-current-continuation eq? eqv? equal? pair? cons car cdr caar cadr
-    cdar cddr caaar caadr cadar caddr cdaar cdadr cddar cdddr caaaar caaadr caadar caaddr cadaar
-    cadadr caddar cadddr cdaaar cdaadr cdadar cdaddr cddaar cddadr cdddar cddddr set-car! set-cdr!
-    null? list list? length zero? * - + / - > < >= <= = current-output-port current-input-port
-    write-char newline write display append symbol->string for-each map char? char->integer
-    integer->char eof-object? vector-length string-length string-ref string-set! vector-ref 
-    vector-set! char=? char<? char>? char>=? char<=? gcd lcm reverse symbol? string->symbol
-    number? complex? real? integer? rational? odd? even? positive? negative? exact? inexact?
-    max min quotient remainder modulo floor ceiling truncate round rationalize
-    exact->inexact inexact->exact
-    exp log sin expt sqrt cos tan asin acos atan number->string string->number char-ci=?
-    char-ci<? char-ci>? char-ci>=? char-ci<=? char-alphabetic? char-whitespace? char-numeric?
-    char-lower-case? char-upper-case? char-upcase char-downcase string? string=? string>? string<?
-    string>=? string<=? string-ci=? string-ci<? string-ci>? string-ci<=? string-ci>=?
-    string-append string->list list->string vector? vector->list list->vector string read
-    read-char substring string-fill! vector-copy! vector-fill! make-string make-vector open-input-file
-    open-output-file call-with-input-file call-with-output-file close-input-port close-output-port
-    values call-with-values vector procedure? memq memv member assq assv assoc list-tail
-    list-ref abs char-ready? peek-char list->string string->list
-    current-input-port current-output-port) )
+  (map (lambda (x) (symbol-append 'scheme# x))
+       '(not boolean? apply call-with-current-continuation eq? eqv? equal? pair? cons car cdr caar cadr
+	     cdar cddr caaar caadr cadar caddr cdaar cdadr cddar cdddr caaaar caaadr caadar caaddr cadaar
+	     cadadr caddar cadddr cdaaar cdaadr cdadar cdaddr cddaar cddadr cdddar cddddr set-car! set-cdr!
+	     null? list list? length zero? * - + / - > < >= <= = current-output-port current-input-port
+	     write-char newline write display append symbol->string for-each map char? char->integer
+	     integer->char eof-object? vector-length string-length string-ref string-set! vector-ref
+	     vector-set! char=? char<? char>? char>=? char<=? gcd lcm reverse symbol? string->symbol
+	     number? complex? real? integer? rational? odd? even? positive? negative? exact? inexact?
+	     max min quotient remainder modulo floor ceiling truncate round rationalize
+	     exact->inexact inexact->exact
+	     exp log sin expt sqrt cos tan asin acos atan number->string string->number char-ci=?
+	     char-ci<? char-ci>? char-ci>=? char-ci<=? char-alphabetic? char-whitespace? char-numeric?
+	     char-lower-case? char-upper-case? char-upcase char-downcase string? string=? string>? string<?
+	     string>=? string<=? string-ci=? string-ci<? string-ci>? string-ci<=? string-ci>=?
+	     string-append string->list list->string vector? vector->list list->vector string read
+	     read-char substring string-fill! vector-copy! vector-fill! make-string make-vector open-input-file
+	     open-output-file call-with-input-file call-with-output-file close-input-port close-output-port
+	     values call-with-values vector procedure? memq memv member assq assv assoc list-tail
+	     list-ref abs char-ready? peek-char list->string string->list
+	     current-input-port current-output-port
+	     make-polar make-rectangular real-part imag-part)) )
 
 (define-constant +flonum-bindings+
   (map (lambda (x) (symbol-append 'chicken.flonum# x))
@@ -163,19 +165,17 @@
     chicken.base#current-error-port
     chicken.base#symbol-append chicken.base#foldl chicken.base#foldr
     chicken.base#setter chicken.base#getter-with-setter
+    chicken.base#equal=? chicken.base#exact-integer? flush-output
 
     chicken.bitwise#integer-length
     chicken.bitwise#bitwise-and chicken.bitwise#bitwise-not
     chicken.bitwise#bitwise-ior chicken.bitwise#bitwise-xor
     chicken.bitwise#arithmetic-shift chicken.bitwise#bit->boolean
 
-    chicken.blob#blob-size
-    chicken.blob#blob=? equal=?
-
-    exact-integer? flush-output make-polar make-rectangular
-    real-part imag-part string->symbol current-thread
+    chicken.blob#blob-size chicken.blob#blob=?
 
     chicken.keyword#get-keyword
+
     srfi-4#u8vector-length srfi-4#s8vector-length
     srfi-4#u16vector-length srfi-4#s16vector-length
     srfi-4#u32vector-length srfi-4#u64vector-length
@@ -191,6 +191,7 @@
     srfi-4#blob->u32vector/shared srfi-4#blob->s32vector/shared
     srfi-4#blob->u64vector/shared srfi-4#blob->s64vector/shared
     srfi-4#blob->f32vector/shared srfi-4#blob->f64vector/shared
+
     chicken.memory#u8vector-ref chicken.memory#s8vector-ref
     chicken.memory#u16vector-ref chicken.memory#s16vector-ref
     chicken.memory#u32vector-ref chicken.memory#s32vector-ref
@@ -201,12 +202,15 @@
     chicken.memory#u16vector-set! chicken.memory#s16vector-set!
     chicken.memory#u32vector-set! chicken.memory#s32vector-set!
     chicken.memory#u64vector-set! chicken.memory#s64vector-set!
+
     chicken.memory.representation#number-of-slots
     chicken.memory.representation#make-record-instance
     chicken.memory.representation#block-ref
     chicken.memory.representation#block-set!
+
     chicken.locative#locative-ref chicken.locative#locative-set!
     chicken.locative#locative->object chicken.locative#locative?
+
     chicken.memory#pointer+ chicken.memory#pointer=?
     chicken.memory#address->pointer chicken.memory#pointer->address
     chicken.memory#pointer->object chicken.memory#object->pointer
@@ -218,12 +222,17 @@
     chicken.memory#pointer-u16-set! chicken.memory#pointer-s16-set!
     chicken.memory#pointer-u32-set! chicken.memory#pointer-s32-set!
     chicken.memory#pointer-f32-set! chicken.memory#pointer-f64-set!
+
     chicken.string#substring-index chicken.string#substring-index-ci
     chicken.string#substring=? chicken.string#substring-ci=?
+
     chicken.data-structures#identity chicken.data-structures#o
     chicken.data-structures#atom?
     chicken.data-structures#alist-ref chicken.data-structures#rassoc
-    chicken.io#read-string chicken.format#format
+
+    chicken.io#read-string
+
+    chicken.format#format
     chicken.format#printf chicken.format#sprintf chicken.format#fprintf))
 
 (set! default-extended-bindings
@@ -305,11 +314,11 @@
 		    (make-node
 		     '##core#call (list #t) 
 		     (list cont (make-node '##core#inline '("C_eqp") callargs)) ) ) ) ) ) )
-  (rewrite 'eqv? 8 eqv?-id)
+  (rewrite 'scheme#eqv? 8 eqv?-id)
   (rewrite '##sys#eqv? 8 eqv?-id))
 
 (rewrite
- 'equal? 8
+ 'scheme#equal? 8
  (lambda (db classargs cont callargs)
    ;; (equal? <var> <var>) -> (quote #t)
    ;; (equal? ...) -> (##core#inline "C_eqp" ...) [one argument is a constant and immediate or a symbol]
@@ -363,7 +372,7 @@
 		    '##core#call (list #t)
 		    (cons* (make-node '##core#proc '("C_apply" #t) '())
 			   cont callargs) ) ) ) ) ) )
-  (rewrite 'apply 8 rewrite-apply)
+  (rewrite 'scheme#apply 8 rewrite-apply)
   (rewrite '##sys#apply 8 rewrite-apply) )
 
 (let ()
@@ -385,19 +394,19 @@
 			 [iop1 (make-node '##core#inline (list iop1) callargs)]
 			 [else (return #f)] ) ) ) ) ) ) ) ) ) )
 
-  (rewrite-c..r 'car "C_i_car" "C_u_i_car")
+  (rewrite-c..r 'scheme#car "C_i_car" "C_u_i_car")
   (rewrite-c..r '##sys#car "C_i_car" "C_u_i_car")
   (rewrite-c..r '##sys#cdr "C_i_cdr" "C_u_i_cdr")
-  (rewrite-c..r 'cadr "C_i_cadr" "C_u_i_cadr")
-  (rewrite-c..r 'caddr "C_i_caddr" "C_u_i_caddr")
-  (rewrite-c..r 'cadddr "C_i_cadddr" "C_u_i_cadddr") )
+  (rewrite-c..r 'scheme#cadr "C_i_cadr" "C_u_i_cadr")
+  (rewrite-c..r 'scheme#caddr "C_i_caddr" "C_u_i_caddr")
+  (rewrite-c..r 'scheme#cadddr "C_i_cadddr" "C_u_i_cadddr") )
 
-(let ([rvalues
+(let ((rvalues
        (lambda (db classargs cont callargs)
 	 ;; (values <x>) -> <x>
 	 (and (= (length callargs) 1)
-	      (make-node '##core#call (list #t) (cons cont callargs) ) ) ) ] )
-  (rewrite 'values 8 rvalues)
+	      (make-node '##core#call (list #t) (cons cont callargs) ) ) ) ) )
+  (rewrite 'scheme#values 8 rvalues)
   (rewrite '##sys#values 8 rvalues) )
 
 (let ()
@@ -429,79 +438,79 @@
 				      (make-node
 				       '##core#call (list #t)
 				       (list arg1 (varnode tmp)) ) ) ) ) ) ) ) ) ) ) ) )
-  (rewrite 'call-with-values 8 rewrite-c-w-v)
+  (rewrite 'scheme#call-with-values 8 rewrite-c-w-v)
   (rewrite '##sys#call-with-values 8 rewrite-c-w-v) )
 
-(rewrite 'values 13 #f "C_values" #t)
+(rewrite 'scheme#values 13 #f "C_values" #t)
 (rewrite '##sys#values 13 #f "C_values" #t)
-(rewrite 'call-with-values 13 2 "C_u_call_with_values" #f)
-(rewrite 'call-with-values 13 2 "C_call_with_values" #t)
+(rewrite 'scheme#call-with-values 13 2 "C_u_call_with_values" #f)
+(rewrite 'scheme#call-with-values 13 2 "C_call_with_values" #t)
 (rewrite '##sys#call-with-values 13 2 "C_u_call_with_values" #f)
 (rewrite '##sys#call-with-values 13 2 "C_call_with_values" #t)
 (rewrite 'chicken.continuation#continuation-graft 13 2 "C_continuation_graft" #t)
 
-(rewrite 'caar 2 1 "C_u_i_caar" #f)
-(rewrite 'cdar 2 1 "C_u_i_cdar" #f)
-(rewrite 'cddr 2 1 "C_u_i_cddr" #f)
-(rewrite 'caaar 2 1 "C_u_i_caaar" #f)
-(rewrite 'cadar 2 1 "C_u_i_cadar" #f)
-(rewrite 'caddr 2 1 "C_u_i_caddr" #f)
-(rewrite 'cdaar 2 1 "C_u_i_cdaar" #f)
-(rewrite 'cdadr 2 1 "C_u_i_cdadr" #f)
-(rewrite 'cddar 2 1 "C_u_i_cddar" #f)
-(rewrite 'cdddr 2 1 "C_u_i_cdddr" #f)
-(rewrite 'caaaar 2 1 "C_u_i_caaaar" #f)
-(rewrite 'caadar 2 1 "C_u_i_caadar" #f)
-(rewrite 'caaddr 2 1 "C_u_i_caaddr" #f)
-(rewrite 'cadaar 2 1 "C_u_i_cadaar" #f)
-(rewrite 'cadadr 2 1 "C_u_i_cadadr" #f)
-(rewrite 'caddar 2 1 "C_u_i_caddar" #f)
-(rewrite 'cadddr 2 1 "C_u_i_cadddr" #f)
-(rewrite 'cdaaar 2 1 "C_u_i_cdaaar" #f)
-(rewrite 'cdaadr 2 1 "C_u_i_cdaadr" #f)
-(rewrite 'cdadar 2 1 "C_u_i_cdadar" #f)
-(rewrite 'cdaddr 2 1 "C_u_i_cdaddr" #f)
-(rewrite 'cddaar 2 1 "C_u_i_cddaar" #f)
-(rewrite 'cddadr 2 1 "C_u_i_cddadr" #f)
-(rewrite 'cdddar 2 1 "C_u_i_cdddar" #f)
-(rewrite 'cddddr 2 1 "C_u_i_cddddr" #f)
+(rewrite 'scheme#caar 2 1 "C_u_i_caar" #f)
+(rewrite 'scheme#cdar 2 1 "C_u_i_cdar" #f)
+(rewrite 'scheme#cddr 2 1 "C_u_i_cddr" #f)
+(rewrite 'scheme#caaar 2 1 "C_u_i_caaar" #f)
+(rewrite 'scheme#cadar 2 1 "C_u_i_cadar" #f)
+(rewrite 'scheme#caddr 2 1 "C_u_i_caddr" #f)
+(rewrite 'scheme#cdaar 2 1 "C_u_i_cdaar" #f)
+(rewrite 'scheme#cdadr 2 1 "C_u_i_cdadr" #f)
+(rewrite 'scheme#cddar 2 1 "C_u_i_cddar" #f)
+(rewrite 'scheme#cdddr 2 1 "C_u_i_cdddr" #f)
+(rewrite 'scheme#caaaar 2 1 "C_u_i_caaaar" #f)
+(rewrite 'scheme#caadar 2 1 "C_u_i_caadar" #f)
+(rewrite 'scheme#caaddr 2 1 "C_u_i_caaddr" #f)
+(rewrite 'scheme#cadaar 2 1 "C_u_i_cadaar" #f)
+(rewrite 'scheme#cadadr 2 1 "C_u_i_cadadr" #f)
+(rewrite 'scheme#caddar 2 1 "C_u_i_caddar" #f)
+(rewrite 'scheme#cadddr 2 1 "C_u_i_cadddr" #f)
+(rewrite 'scheme#cdaaar 2 1 "C_u_i_cdaaar" #f)
+(rewrite 'scheme#cdaadr 2 1 "C_u_i_cdaadr" #f)
+(rewrite 'scheme#cdadar 2 1 "C_u_i_cdadar" #f)
+(rewrite 'scheme#cdaddr 2 1 "C_u_i_cdaddr" #f)
+(rewrite 'scheme#cddaar 2 1 "C_u_i_cddaar" #f)
+(rewrite 'scheme#cddadr 2 1 "C_u_i_cddadr" #f)
+(rewrite 'scheme#cdddar 2 1 "C_u_i_cdddar" #f)
+(rewrite 'scheme#cddddr 2 1 "C_u_i_cddddr" #f)
 
-(rewrite 'caar 2 1 "C_i_caar" #t)
-(rewrite 'cdar 2 1 "C_i_cdar" #t)
-(rewrite 'cddr 2 1 "C_i_cddr" #t)
-(rewrite 'cdddr 2 1 "C_i_cdddr" #t)
-(rewrite 'cddddr 2 1 "C_i_cddddr" #t)
+(rewrite 'scheme#caar 2 1 "C_i_caar" #t)
+(rewrite 'scheme#cdar 2 1 "C_i_cdar" #t)
+(rewrite 'scheme#cddr 2 1 "C_i_cddr" #t)
+(rewrite 'scheme#cdddr 2 1 "C_i_cdddr" #t)
+(rewrite 'scheme#cddddr 2 1 "C_i_cddddr" #t)
 
-(rewrite 'cdr 7 1 "C_slot" 1 #f)
-(rewrite 'cdr 2 1 "C_i_cdr" #t)
+(rewrite 'scheme#cdr 7 1 "C_slot" 1 #f)
+(rewrite 'scheme#cdr 2 1 "C_i_cdr" #t)
 
-(rewrite 'eq? 1 2 "C_eqp")
+(rewrite 'scheme#eq? 1 2 "C_eqp")
 (rewrite '##sys#eq? 1 2 "C_eqp")
-(rewrite 'eqv? 1 2 "C_i_eqvp")
+(rewrite 'scheme#eqv? 1 2 "C_i_eqvp")
 (rewrite '##sys#eqv? 1 2 "C_i_eqvp")
 
-(rewrite 'list-ref 2 2 "C_u_i_list_ref" #f)
-(rewrite 'list-ref 2 2 "C_i_list_ref" #t)
-(rewrite 'null? 2 1 "C_i_nullp" #t)
+(rewrite 'scheme#list-ref 2 2 "C_u_i_list_ref" #f)
+(rewrite 'scheme#list-ref 2 2 "C_i_list_ref" #t)
+(rewrite 'scheme#null? 2 1 "C_i_nullp" #t)
 (rewrite '##sys#null? 2 1 "C_i_nullp" #t)
-(rewrite 'length 2 1 "C_i_length" #t)
-(rewrite 'not 2 1 "C_i_not"#t )
-(rewrite 'char? 2 1 "C_charp" #t)
-(rewrite 'string? 2 1 "C_i_stringp" #t)
+(rewrite 'scheme#length 2 1 "C_i_length" #t)
+(rewrite 'scheme#not 2 1 "C_i_not"#t )
+(rewrite 'scheme#char? 2 1 "C_charp" #t)
+(rewrite 'scheme#string? 2 1 "C_i_stringp" #t)
 (rewrite 'chicken.locative#locative? 2 1 "C_i_locativep" #t)
-(rewrite 'symbol? 2 1 "C_i_symbolp" #t)
-(rewrite 'vector? 2 1 "C_i_vectorp" #t)
+(rewrite 'scheme#symbol? 2 1 "C_i_symbolp" #t)
+(rewrite 'scheme#vector? 2 1 "C_i_vectorp" #t)
 (rewrite '##sys#vector? 2 1 "C_i_vectorp" #t)
-(rewrite 'pair? 2 1 "C_i_pairp" #t)
+(rewrite 'scheme#pair? 2 1 "C_i_pairp" #t)
 (rewrite '##sys#pair? 2 1 "C_i_pairp" #t)
-(rewrite 'procedure? 2 1 "C_i_closurep" #t)
-(rewrite 'port? 2 1 "C_i_portp" #t)
-(rewrite 'boolean? 2 1 "C_booleanp" #t)
-(rewrite 'number? 2 1 "C_i_numberp" #t)
-(rewrite 'complex? 2 1 "C_i_numberp" #t)
-(rewrite 'rational? 2 1 "C_i_rationalp" #t)
-(rewrite 'real? 2 1 "C_i_realp" #t)
-(rewrite 'integer? 2 1 "C_i_integerp" #t)
+(rewrite 'scheme#procedure? 2 1 "C_i_closurep" #t)
+(rewrite 'scheme#port? 2 1 "C_i_portp" #t)
+(rewrite 'scheme#boolean? 2 1 "C_booleanp" #t)
+(rewrite 'scheme#number? 2 1 "C_i_numberp" #t)
+(rewrite 'scheme#complex? 2 1 "C_i_numberp" #t)
+(rewrite 'scheme#rational? 2 1 "C_i_rationalp" #t)
+(rewrite 'scheme#real? 2 1 "C_i_realp" #t)
+(rewrite 'scheme#integer? 2 1 "C_i_integerp" #t)
 (rewrite 'chicken.base#exact-integer? 2 1 "C_i_exact_integerp" #t)
 (rewrite 'chicken.base#flonum? 2 1 "C_i_flonump" #t)
 (rewrite 'chicken.base#fixnum? 2 1 "C_fixnump" #t)
@@ -515,29 +524,28 @@
 (rewrite '##sys#pointer? 2 1 "C_anypointerp" #t)
 (rewrite 'pointer? 2 1 "C_i_safe_pointerp" #t)
 (rewrite '##sys#generic-structure? 2 1 "C_structurep" #t)
-(rewrite 'exact? 2 1 "C_i_exactp" #t)
-(rewrite 'exact? 2 1 "C_u_i_exactp" #f)
-(rewrite 'inexact? 2 1 "C_i_inexactp" #t)
-(rewrite 'inexact? 2 1 "C_u_i_inexactp" #f)
-(rewrite 'list? 2 1 "C_i_listp" #t)
-(rewrite 'proper-list? 2 1 "C_i_listp" #t)
-(rewrite 'eof-object? 2 1 "C_eofp" #t)
-(rewrite 'string-ref 2 2 "C_subchar" #f)
-(rewrite 'string-ref 2 2 "C_i_string_ref" #t)
-(rewrite 'string-set! 2 3 "C_setsubchar" #f)
-(rewrite 'string-set! 2 3 "C_i_string_set" #t)
-(rewrite 'vector-ref 2 2 "C_slot" #f)
-(rewrite 'vector-ref 2 2 "C_i_vector_ref" #t)
-(rewrite 'char=? 2 2 "C_u_i_char_equalp" #f)
-(rewrite 'char=? 2 2 "C_i_char_equalp" #t)
-(rewrite 'char>? 2 2 "C_u_i_char_greaterp" #f)
-(rewrite 'char>? 2 2 "C_i_char_greaterp" #t)
-(rewrite 'char<? 2 2 "C_u_i_char_lessp" #f)
-(rewrite 'char<? 2 2 "C_i_char_lessp" #t)
-(rewrite 'char>=? 2 2 "C_u_i_char_greater_or_equal_p" #f)
-(rewrite 'char>=? 2 2 "C_i_char_greater_or_equal_p" #t)
-(rewrite 'char<=? 2 2 "C_u_i_char_less_or_equal_p" #f)
-(rewrite 'char<=? 2 2 "C_i_char_less_or_equal_p" #t)
+(rewrite 'scheme#exact? 2 1 "C_i_exactp" #t)
+(rewrite 'scheme#exact? 2 1 "C_u_i_exactp" #f)
+(rewrite 'scheme#inexact? 2 1 "C_i_inexactp" #t)
+(rewrite 'scheme#inexact? 2 1 "C_u_i_inexactp" #f)
+(rewrite 'scheme#list? 2 1 "C_i_listp" #t)
+(rewrite 'scheme#eof-object? 2 1 "C_eofp" #t)
+(rewrite 'scheme#string-ref 2 2 "C_subchar" #f)
+(rewrite 'scheme#string-ref 2 2 "C_i_string_ref" #t)
+(rewrite 'scheme#string-set! 2 3 "C_setsubchar" #f)
+(rewrite 'scheme#string-set! 2 3 "C_i_string_set" #t)
+(rewrite 'scheme#vector-ref 2 2 "C_slot" #f)
+(rewrite 'scheme#vector-ref 2 2 "C_i_vector_ref" #t)
+(rewrite 'scheme#char=? 2 2 "C_u_i_char_equalp" #f)
+(rewrite 'scheme#char=? 2 2 "C_i_char_equalp" #t)
+(rewrite 'scheme#char>? 2 2 "C_u_i_char_greaterp" #f)
+(rewrite 'scheme#char>? 2 2 "C_i_char_greaterp" #t)
+(rewrite 'scheme#char<? 2 2 "C_u_i_char_lessp" #f)
+(rewrite 'scheme#char<? 2 2 "C_i_char_lessp" #t)
+(rewrite 'scheme#char>=? 2 2 "C_u_i_char_greater_or_equal_p" #f)
+(rewrite 'scheme#char>=? 2 2 "C_i_char_greater_or_equal_p" #t)
+(rewrite 'scheme#char<=? 2 2 "C_u_i_char_less_or_equal_p" #f)
+(rewrite 'scheme#char<=? 2 2 "C_i_char_less_or_equal_p" #t)
 (rewrite '##sys#slot 2 2 "C_slot" #t)		; consider as safe, the primitive is unsafe anyway.
 (rewrite '##sys#block-ref 2 2 "C_i_block_ref" #t) ;XXX must be safe for pattern matcher (anymore?)
 (rewrite '##sys#size 2 1 "C_block_size" #t)
@@ -563,34 +571,34 @@
 (rewrite 'chicken.flonum#fpmin 2 2 "C_i_flonum_min" #f)
 (rewrite 'chicken.fixnum#fxgcd 2 2 "C_i_fixnum_gcd" #t)
 (rewrite 'chicken.fixnum#fxlen 2 1 "C_i_fixnum_length" #t)
-(rewrite 'char-numeric? 2 1 "C_u_i_char_numericp" #t)
-(rewrite 'char-alphabetic? 2 1 "C_u_i_char_alphabeticp" #t)
-(rewrite 'char-whitespace? 2 1 "C_u_i_char_whitespacep" #t)
-(rewrite 'char-upper-case? 2 1 "C_u_i_char_upper_casep" #t)
-(rewrite 'char-lower-case? 2 1 "C_u_i_char_lower_casep" #t)
-(rewrite 'char-upcase 2 1 "C_u_i_char_upcase" #t)
-(rewrite 'char-downcase 2 1 "C_u_i_char_downcase" #t)
-(rewrite 'list-tail 2 2 "C_i_list_tail" #t)
+(rewrite 'scheme#char-numeric? 2 1 "C_u_i_char_numericp" #t)
+(rewrite 'scheme#char-alphabetic? 2 1 "C_u_i_char_alphabeticp" #t)
+(rewrite 'scheme#char-whitespace? 2 1 "C_u_i_char_whitespacep" #t)
+(rewrite 'scheme#char-upper-case? 2 1 "C_u_i_char_upper_casep" #t)
+(rewrite 'scheme#char-lower-case? 2 1 "C_u_i_char_lower_casep" #t)
+(rewrite 'scheme#char-upcase 2 1 "C_u_i_char_upcase" #t)
+(rewrite 'scheme#char-downcase 2 1 "C_u_i_char_downcase" #t)
+(rewrite 'scheme#list-tail 2 2 "C_i_list_tail" #t)
 (rewrite '##sys#structure? 2 2 "C_i_structurep" #t)
 (rewrite '##sys#bytevector? 2 2 "C_bytevectorp" #t)
 (rewrite 'chicken.memory.representation#block-ref 2 2 "C_slot" #f)	; ok to be unsafe, lolevel is anyway
 (rewrite 'chicken.memory.representation#number-of-slots 2 1 "C_block_size" #f)
 
-(rewrite 'assv 14 'fixnum 2 "C_i_assq" "C_u_i_assq")
-(rewrite 'assv 2 2 "C_i_assv" #t)
-(rewrite 'memv 14 'fixnum 2 "C_i_memq" "C_u_i_memq")
-(rewrite 'memv 2 2 "C_i_memv" #t)
-(rewrite 'assq 17 2 "C_i_assq" "C_u_i_assq")
-(rewrite 'memq 17 2 "C_i_memq" "C_u_i_memq")
-(rewrite 'assoc 2 2 "C_i_assoc" #t)
-(rewrite 'member 2 2 "C_i_member" #t)
+(rewrite 'scheme#assv 14 'fixnum 2 "C_i_assq" "C_u_i_assq")
+(rewrite 'scheme#assv 2 2 "C_i_assv" #t)
+(rewrite 'scheme#memv 14 'fixnum 2 "C_i_memq" "C_u_i_memq")
+(rewrite 'scheme#memv 2 2 "C_i_memv" #t)
+(rewrite 'scheme#assq 17 2 "C_i_assq" "C_u_i_assq")
+(rewrite 'scheme#memq 17 2 "C_i_memq" "C_u_i_memq")
+(rewrite 'scheme#assoc 2 2 "C_i_assoc" #t)
+(rewrite 'scheme#member 2 2 "C_i_member" #t)
 
-(rewrite 'set-car! 4 '##sys#setslot 0)
-(rewrite 'set-cdr! 4 '##sys#setslot 1)
-(rewrite 'set-car! 17 2 "C_i_set_car" "C_u_i_set_car")
-(rewrite 'set-cdr! 17 2 "C_i_set_cdr" "C_u_i_set_cdr")
+(rewrite 'scheme#set-car! 4 '##sys#setslot 0)
+(rewrite 'scheme#set-cdr! 4 '##sys#setslot 1)
+(rewrite 'scheme#set-car! 17 2 "C_i_set_car" "C_u_i_set_car")
+(rewrite 'scheme#set-cdr! 17 2 "C_i_set_cdr" "C_u_i_set_cdr")
 
-(rewrite 'abs 14 'fixnum 1 "C_fixnum_abs" "C_fixnum_abs")
+(rewrite 'scheme#abs 14 'fixnum 1 "C_fixnum_abs" "C_fixnum_abs")
 
 (rewrite 'chicken.bitwise#bitwise-and 19)
 (rewrite 'chicken.bitwise#bitwise-xor 19)
@@ -610,24 +618,24 @@
 (rewrite 'chicken.flonum#fpneg 16 1 "C_a_i_flonum_negate" #f words-per-flonum)
 (rewrite 'chicken.flonum#fpgcd 16 2 "C_a_i_flonum_gcd" #f words-per-flonum)
 
-(rewrite 'zero? 5 "C_eqp" 0 'fixnum)
-(rewrite 'zero? 2 1 "C_u_i_zerop" #f)
-(rewrite 'zero? 2 1 "C_i_zerop" #t)
-(rewrite 'positive? 5 "C_fixnum_greaterp" 0 'fixnum)
-(rewrite 'positive? 5 "C_flonum_greaterp" 0 'flonum)
-(rewrite 'positive? 2 1 "C_i_positivep" #t)
-(rewrite 'negative? 5 "C_fixnum_lessp" 0 'fixnum)
-(rewrite 'negative? 5 "C_flonum_lessp" 0 'flonum)
-(rewrite 'negative? 2 1 "C_i_negativep" #t)
+(rewrite 'scheme#zero? 5 "C_eqp" 0 'fixnum)
+(rewrite 'scheme#zero? 2 1 "C_u_i_zerop" #f)
+(rewrite 'scheme#zero? 2 1 "C_i_zerop" #t)
+(rewrite 'scheme#positive? 5 "C_fixnum_greaterp" 0 'fixnum)
+(rewrite 'scheme#positive? 5 "C_flonum_greaterp" 0 'flonum)
+(rewrite 'scheme#positive? 2 1 "C_i_positivep" #t)
+(rewrite 'scheme#negative? 5 "C_fixnum_lessp" 0 'fixnum)
+(rewrite 'scheme#negative? 5 "C_flonum_lessp" 0 'flonum)
+(rewrite 'scheme#negative? 2 1 "C_i_negativep" #t)
 
-(rewrite 'vector-length 6 "C_fix" "C_header_size" #f)
-(rewrite 'string-length 6 "C_fix" "C_header_size" #f)
-(rewrite 'char->integer 6 "C_fix" "C_character_code" #t)
-(rewrite 'integer->char 6 "C_make_character" "C_unfix" #t)
+(rewrite 'scheme#vector-length 6 "C_fix" "C_header_size" #f)
+(rewrite 'scheme#string-length 6 "C_fix" "C_header_size" #f)
+(rewrite 'scheme#char->integer 6 "C_fix" "C_character_code" #t)
+(rewrite 'scheme#integer->char 6 "C_make_character" "C_unfix" #t)
 
-(rewrite 'vector-length 2 1 "C_i_vector_length" #t)
+(rewrite 'scheme#vector-length 2 1 "C_i_vector_length" #t)
 (rewrite '##sys#vector-length 2 1 "C_i_vector_length" #t)
-(rewrite 'string-length 2 1 "C_i_string_length" #t)
+(rewrite 'scheme#string-length 2 1 "C_i_string_length" #t)
 
 (rewrite '##sys#check-exact 2 1 "C_i_check_exact" #t)
 (rewrite '##sys#check-fixnum 2 1 "C_i_check_fixnum" #t)
@@ -656,66 +664,66 @@
 (rewrite '##sys#check-structure 2 3 "C_i_check_structure_2" #t)
 (rewrite '##sys#check-char 2 2 "C_i_check_char_2" #t)
 
-(rewrite '= 9 "C_eqp" "C_i_equalp" #t #t)
-(rewrite '> 9 "C_fixnum_greaterp" "C_flonum_greaterp" #t #f)
-(rewrite '< 9 "C_fixnum_lessp" "C_flonum_lessp" #t #f)
-(rewrite '>= 9 "C_fixnum_greater_or_equal_p" "C_flonum_greater_or_equal_p" #t #f)
-(rewrite '<= 9 "C_fixnum_less_or_equal_p" "C_flonum_less_or_equal_p" #t #f)
+(rewrite 'scheme#= 9 "C_eqp" "C_i_equalp" #t #t)
+(rewrite 'scheme#> 9 "C_fixnum_greaterp" "C_flonum_greaterp" #t #f)
+(rewrite 'scheme#< 9 "C_fixnum_lessp" "C_flonum_lessp" #t #f)
+(rewrite 'scheme#>= 9 "C_fixnum_greater_or_equal_p" "C_flonum_greater_or_equal_p" #t #f)
+(rewrite 'scheme#<= 9 "C_fixnum_less_or_equal_p" "C_flonum_less_or_equal_p" #t #f)
 
 (rewrite 'setter 11 1 '##sys#setter #t)
-(rewrite 'for-each 11 2 '##sys#for-each #t)
-(rewrite 'map 11 2 '##sys#map #t)
+(rewrite 'scheme#for-each 11 2 '##sys#for-each #t)
+(rewrite 'scheme#map 11 2 '##sys#map #t)
 (rewrite 'chicken.memory.representation#block-set! 11 3 '##sys#setslot #t)
 (rewrite '##sys#block-set! 11 3 '##sys#setslot #f)
 (rewrite 'chicken.memory.representation#make-record-instance 11 #f '##sys#make-structure #f)
-(rewrite 'substring 11 3 '##sys#substring #f)
-(rewrite 'string-append 11 2 '##sys#string-append #f)
-(rewrite 'string->list 11 1 '##sys#string->list #t)
-(rewrite 'list->string 11 1 '##sys#list->string #t)
+(rewrite 'scheme#substring 11 3 '##sys#substring #f)
+(rewrite 'scheme#string-append 11 2 '##sys#string-append #f)
+(rewrite 'scheme#string->list 11 1 '##sys#string->list #t)
+(rewrite 'scheme#list->string 11 1 '##sys#list->string #t)
 
-(rewrite 'vector-set! 11 3 '##sys#setslot #f)
-(rewrite 'vector-set! 2 3 "C_i_vector_set" #t)
+(rewrite 'scheme#vector-set! 11 3 '##sys#setslot #f)
+(rewrite 'scheme#vector-set! 2 3 "C_i_vector_set" #t)
 
-(rewrite 'gcd 12 '##sys#gcd #t 2)
-(rewrite 'lcm 12 '##sys#lcm #t 2)
+(rewrite 'scheme#gcd 12 '##sys#gcd #t 2)
+(rewrite 'scheme#lcm 12 '##sys#lcm #t 2)
 (rewrite 'chicken.data-structures#identity 12 #f #t 1)
 
-(rewrite 'gcd 19)
-(rewrite 'lcm 19)
+(rewrite 'scheme#gcd 19)
+(rewrite 'scheme#lcm 19)
 
-(rewrite 'gcd 18 0)
-(rewrite 'lcm 18 1)
-(rewrite 'list 18 '())
+(rewrite 'scheme#gcd 18 0)
+(rewrite 'scheme#lcm 18 1)
+(rewrite 'scheme#list 18 '())
 
-(rewrite '+ 19)
-(rewrite '- 19)
-(rewrite '* 19)
-(rewrite '/ 19)
+(rewrite 'scheme#+ 19)
+(rewrite 'scheme#- 19)
+(rewrite 'scheme#* 19)
+(rewrite 'scheme#/ 19)
 
-(rewrite '+ 16 2 "C_s_a_i_plus" #t 29)
-(rewrite '- 16 2 "C_s_a_i_minus" #t 29)
-(rewrite '* 16 2 "C_s_a_i_times" #t 33)
-(rewrite 'quotient 16 2 "C_s_a_i_quotient" #t 5)
-(rewrite 'remainder 16 2 "C_s_a_i_remainder" #t 5)
-(rewrite 'modulo 16 2 "C_s_a_i_modulo" #t 5)
+(rewrite 'scheme#+ 16 2 "C_s_a_i_plus" #t 29)
+(rewrite 'scheme#- 16 2 "C_s_a_i_minus" #t 29)
+(rewrite 'scheme#* 16 2 "C_s_a_i_times" #t 33)
+(rewrite 'scheme#quotient 16 2 "C_s_a_i_quotient" #t 5)
+(rewrite 'scheme#remainder 16 2 "C_s_a_i_remainder" #t 5)
+(rewrite 'scheme#modulo 16 2 "C_s_a_i_modulo" #t 5)
 
-(rewrite '= 17 2 "C_i_nequalp")
-(rewrite '> 17 2 "C_i_greaterp")
-(rewrite '< 17 2 "C_i_lessp")
-(rewrite '>= 17 2 "C_i_greater_or_equalp")
-(rewrite '<= 17 2 "C_i_less_or_equalp")
+(rewrite 'scheme#= 17 2 "C_i_nequalp")
+(rewrite 'scheme#> 17 2 "C_i_greaterp")
+(rewrite 'scheme#< 17 2 "C_i_lessp")
+(rewrite 'scheme#>= 17 2 "C_i_greater_or_equalp")
+(rewrite 'scheme#<= 17 2 "C_i_less_or_equalp")
 
-(rewrite '= 13 #f "C_nequalp" #t)
-(rewrite '> 13 #f "C_greaterp" #t)
-(rewrite '< 13 #f "C_lessp" #t)
-(rewrite '>= 13 #f "C_greater_or_equal_p" #t)
-(rewrite '<= 13 #f "C_less_or_equal_p" #t)
+(rewrite 'scheme#= 13 #f "C_nequalp" #t)
+(rewrite 'scheme#> 13 #f "C_greaterp" #t)
+(rewrite 'scheme#< 13 #f "C_lessp" #t)
+(rewrite 'scheme#>= 13 #f "C_greater_or_equal_p" #t)
+(rewrite 'scheme#<= 13 #f "C_less_or_equal_p" #t)
 
-(rewrite '* 13 #f "C_times" #t)
-(rewrite '+ 13 #f "C_plus" #t)
-(rewrite '- 13 '(1 . #f) "C_minus" #t)
+(rewrite 'scheme#* 13 #f "C_times" #t)
+(rewrite 'scheme#+ 13 #f "C_plus" #t)
+(rewrite 'scheme#- 13 '(1 . #f) "C_minus" #t)
 
-(rewrite 'number->string 13 '(1 . 2) "C_number_to_string" #t)
+(rewrite 'scheme#number->string 13 '(1 . 2) "C_number_to_string" #t)
 (rewrite '##sys#call-with-current-continuation 13 1 "C_call_cc" #t)
 (rewrite '##sys#allocate-vector 13 4 "C_allocate_vector" #t)
 (rewrite '##sys#ensure-heap-reserve 13 1 "C_ensure_heap_reserve" #t)
@@ -724,19 +732,19 @@
 (rewrite '##sys#intern-symbol 13 1 "C_string_to_symbol" #t)
 (rewrite '##sys#make-symbol 13 1 "C_make_symbol" #t)
 
-(rewrite 'even? 14 'fixnum 1 "C_i_fixnumevenp" "C_i_fixnumevenp")
-(rewrite 'odd? 14 'fixnum 1 "C_i_fixnumoddp" "C_i_fixnumoddp")
-(rewrite 'remainder 14 'fixnum 2 "C_fixnum_modulo" "C_fixnum_modulo")
+(rewrite 'scheme#even? 14 'fixnum 1 "C_i_fixnumevenp" "C_i_fixnumevenp")
+(rewrite 'scheme#odd? 14 'fixnum 1 "C_i_fixnumoddp" "C_i_fixnumoddp")
+(rewrite 'scheme#remainder 14 'fixnum 2 "C_fixnum_modulo" "C_fixnum_modulo")
 
-(rewrite 'even? 17 1 "C_i_evenp")
-(rewrite 'odd? 17 1 "C_i_oddp")
+(rewrite 'scheme#even? 17 1 "C_i_evenp")
+(rewrite 'scheme#odd? 17 1 "C_i_oddp")
 
 (rewrite 'chicken.fixnum#fxodd? 2 1 "C_i_fixnumoddp" #t)
 (rewrite 'chicken.fixnum#fxeven? 2 1 "C_i_fixnumevenp" #t)
 
-(rewrite 'floor 15 'flonum 'fixnum 'chicken.flonum#fpfloor #f)
-(rewrite 'ceiling 15 'flonum 'fixnum 'chicken.flonum#fpceiling #f)
-(rewrite 'truncate 15 'flonum 'fixnum 'chicken.flonum#fptruncate #f)
+(rewrite 'scheme#floor 15 'flonum 'fixnum 'chicken.flonum#fpfloor #f)
+(rewrite 'scheme#ceiling 15 'flonum 'fixnum 'chicken.flonum#fpceiling #f)
+(rewrite 'scheme#truncate 15 'flonum 'fixnum 'chicken.flonum#fptruncate #f)
 
 (rewrite 'chicken.flonum#fpsin 16 1 "C_a_i_flonum_sin" #f words-per-flonum)
 (rewrite 'chicken.flonum#fpcos 16 1 "C_a_i_flonum_cos" #f words-per-flonum)
@@ -755,14 +763,14 @@
 (rewrite 'chicken.flonum#fpceiling 16 1 "C_a_i_flonum_ceiling" #f words-per-flonum)
 (rewrite 'chicken.flonum#fpround 16 1 "C_a_i_flonum_floor" #f words-per-flonum)
 
-(rewrite 'cons 16 2 "C_a_i_cons" #t 3)
+(rewrite 'scheme#cons 16 2 "C_a_i_cons" #t 3)
 (rewrite '##sys#cons 16 2 "C_a_i_cons" #t 3)
-(rewrite 'list 16 #f "C_a_i_list" #t '(0 3) #t)
+(rewrite 'scheme#list 16 #f "C_a_i_list" #t '(0 3) #t)
 (rewrite '##sys#list 16 #f "C_a_i_list" #t '(0 3))
-(rewrite 'vector 16 #f "C_a_i_vector" #t #t #t)
+(rewrite 'scheme#vector 16 #f "C_a_i_vector" #t #t #t)
 (rewrite '##sys#vector 16 #f "C_a_i_vector" #t #t)
 (rewrite '##sys#make-structure 16 #f "C_a_i_record" #t #t #t)
-(rewrite 'string 16 #f "C_a_i_string" #t #t) ; the last #t is actually too much, but we don't care
+(rewrite 'scheme#string 16 #f "C_a_i_string" #t #t) ; the last #t is actually too much, but we don't care
 (rewrite 'chicken.memory#address->pointer 16 1 "C_a_i_address_to_pointer" #f 2)
 (rewrite 'chicken.memory#pointer->address 16 1 "C_a_i_pointer_to_address" #f words-per-flonum)
 (rewrite 'chicken.memory#pointer+ 16 2 "C_a_u_i_pointer_inc" #f 2)
@@ -858,8 +866,8 @@
 (rewrite '##sys#setislot 17 3 "C_i_set_i_slot")
 (rewrite '##sys#poke-integer 17 3 "C_poke_integer")
 (rewrite '##sys#poke-double 17 3 "C_poke_double")
-(rewrite 'string=? 17 2 "C_i_string_equal_p" "C_u_i_string_equal_p")
-(rewrite 'string-ci=? 17 2 "C_i_string_ci_equal_p")
+(rewrite 'scheme#string=? 17 2 "C_i_string_equal_p" "C_u_i_string_equal_p")
+(rewrite 'scheme#string-ci=? 17 2 "C_i_string_ci_equal_p")
 (rewrite '##sys#permanent? 17 1 "C_permanentp")
 (rewrite '##sys#null-pointer? 17 1 "C_null_pointerp" "C_null_pointerp")
 (rewrite '##sys#immediate? 17 1 "C_immp")
@@ -947,7 +955,7 @@
 					  '##core#inline_allocate 
 					  (list "C_a_i_vector" (add1 c))
 					  (list-tabulate c (lambda (i) (varnode tmp)) ) ) ) ) ) ) ) ) ) ) ) ) ) )
-  (rewrite 'make-vector 8 rewrite-make-vector)
+  (rewrite 'scheme#make-vector 8 rewrite-make-vector)
   (rewrite '##sys#make-vector 8 rewrite-make-vector) )
 
 (let ()
@@ -970,14 +978,14 @@
 				   (make-node
 				    '##core#call (list #t)
 				    (list val cont (qnode #f)) ) ) ) ) ) ) ) ) ) ) ) )
-  (rewrite 'call-with-current-continuation 8 rewrite-call/cc)
+  (rewrite 'scheme#call-with-current-continuation 8 rewrite-call/cc)
   (rewrite 'chicken.base#call/cc 8 rewrite-call/cc))
 
 (define setter-map
-  '((car . set-car!)
-    (cdr . set-cdr!)
-    (string-ref . string-set!)
-    (vector-ref . vector-set!)
+  '((scheme#car . scheme#set-car!)
+    (scheme#cdr . scheme#set-cdr!)
+    (scheme#string-ref . scheme#string-set!)
+    (scheme#vector-ref . scheme#vector-set!)
     (srfi-4#u8vector-ref . srfi-4#u8vector-set!)
     (srfi-4#s8vector-ref . srfi-4#s8vector-set!)
     (srfi-4#u16vector-ref . srfi-4#u16vector-set!)
@@ -1013,12 +1021,11 @@
 			 '##core#call (list #t)
 			 (list cont (varnode (cdr a))) ) ) ) ) ) ) ) ) )
 			       
-(rewrite 'void 3 '##sys#undefined-value 0)
+(rewrite 'chicken.base#void 3 '##sys#undefined-value 0)
 (rewrite '##sys#void 3 '##sys#undefined-value #f)
-(rewrite 'current-thread 3 '##sys#current-thread 0)
-(rewrite 'current-input-port 3 '##sys#standard-input 0)
-(rewrite 'current-output-port 3 '##sys#standard-output 0)
-(rewrite 'current-error-port 3 '##sys#standard-error 0)
+(rewrite 'scheme#current-input-port 3 '##sys#standard-input 0)
+(rewrite 'scheme#current-output-port 3 '##sys#standard-output 0)
+(rewrite 'chicken.base#current-error-port 3 '##sys#standard-error 0)
 
 (rewrite
  'chicken.bitwise#bit->boolean 8
@@ -1044,8 +1051,8 @@
 		(list (if (eq? number-type 'fixnum) "C_i_fixnum_length" "C_i_integer_length"))
 		callargs) ) ) ) ) )
 
-(rewrite 'read-char 23 0 '##sys#read-char/port '##sys#standard-input)
-(rewrite 'write-char 23 1 '##sys#write-char/port '##sys#standard-output)
+(rewrite 'scheme#read-char 23 0 '##sys#read-char/port '##sys#standard-input)
+(rewrite 'scheme#write-char 23 1 '##sys#write-char/port '##sys#standard-output)
 (rewrite 'chicken.io#read-string 23 1 'chicken.io#read-string/port '##sys#standard-input)
 (rewrite 'chicken.string#substring=? 23 2 '##sys#substring=? 0 0 #f)
 (rewrite 'chicken.string#substring-ci=? 23 2 '##sys#substring-ci=? 0 0 #f)
