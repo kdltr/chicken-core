@@ -372,13 +372,17 @@
   (let ((name (string->symbol (if (pair? egg) (car egg) egg))))
     (cond ((assq name override) =>
            (lambda (a)
-             (cond ((and (pair? egg) (not (equal? (cadr a) (cdr egg))))
-                    (warning
-                      (sprintf 
-                        "version `~a' of extension `~a' overrides explicitly given version `~a'"
-                        (cadr a) name (cdr egg))))
-                   (else (d "overriding: ~a~%" a)))
-             (cadr a)))
+             (if (and (pair? egg)
+                      (pair? (cdr a))
+                      (not (equal? (cadr a) (cdr egg))))
+                 (warning
+                  (sprintf
+                   "version `~a' of extension `~a' overrides explicitly given version `~a'"
+                   (cadr a) name (cdr egg)))
+                 (d "overriding: ~a~%" a))
+             (if (null? (cdr a))
+                 (and (pair? egg) (cdr egg))
+                 (cadr a))))
           ((pair? egg) (cdr egg))
           (else #f))))
   
@@ -727,7 +731,8 @@
               (lambda (e)
                 (cond ((assq (string->symbol (car e)) override) =>
                        (lambda (a)
-                         (unless (equal? (cadr a) (cdr e))
+                         (when (and (pair? (cdr a))
+                                    (not (equal? (cadr a) (cdr e))))
                            (warning
                             (sprintf "version `~a' of extension `~a' overrides required version `~a'"
                                      (cadr a) (car a) (cdr e))))
@@ -1016,6 +1021,7 @@ usage: chicken-install [OPTION ...] [NAME[:VERSION] ...]
   -u   -update-db               update export database
        -repository              print path used for egg installation
        -override FILENAME       override versions for installed eggs with information from file
+       -from-list FILENAME      install eggs from list obtained by `chicken-status -list'
   -v   -verbose                 be verbose
 
 chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
@@ -1093,6 +1099,17 @@ EOF
                   ((equal? arg "-purge")
                    (set! purge-mode #t)
                    (loop (cdr args)))
+                  ((equal? arg "-from-list")
+                   (unless (pair? (cdr args)) (usage 1))
+                   (set! eggs
+                     (append eggs
+                             (map (lambda (p)
+                                    (if (null? (cdr p))
+                                        (->string (car p))
+                                        (cons (->string (car p))
+                                              (cadr p))))
+                                  (with-input-from-file (cadr args) read-all))))
+                   (loop (cddr args)))
                   ((equal? arg "-override")
                    (unless (pair? (cdr args)) (usage 1))
                    (set! override

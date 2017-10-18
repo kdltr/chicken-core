@@ -172,7 +172,8 @@
     (for-each
      (lambda (egg)
        (let ((version (get-egg-property (read-info egg) 'version)))
-	 (pp (list (string->symbol egg) (or version "???")))))
+	 (pp (cons (string->symbol egg)
+                   (if version (list version) '())))))
      (gather-eggs)))
 
   (define (usage code)
