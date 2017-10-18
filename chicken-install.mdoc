@@ -89,6 +89,13 @@ Print path used for egg installation.
 .It Fl override Ar filename
 Override versions for installed eggs with information from
 .Ar filename .
+.It Fl from-list Ar filename
+Install eggs listed in
+.Ar filename ,
+which has the same format as
+.Xr chicken-status 1 Ns 's
+.Fl list No output.
+This option may be given multiple times.
 .It Fl csi Ar filename
 Use given
 .Ar filename
