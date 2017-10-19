@@ -26,6 +26,7 @@
   - The new "-link" option to csc allows linking with objects from extensions.
   - The ambiguous "-l<libname>" option for csc has been removed (#1193).
   - Removed deprecated "-n" shorthand for "-emit-inline-file" from csc.
+  - Added new "-from-list" option to chicken-install.
 
 - Core libraries
   - Removed support for memory-mapped files (posix), queues
