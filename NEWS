@@ -26,7 +26,6 @@
   - The new "-link" option to csc allows linking with objects from extensions.
   - The ambiguous "-l<libname>" option for csc has been removed (#1193).
   - Removed deprecated "-n" shorthand for "-emit-inline-file" from csc.
-  - Added new "-from-list" option to chicken-install.
 
 - Core libraries
   - Removed support for memory-mapped files (posix), queues
@@ -91,11 +90,12 @@
     more practical for package maintainers.
   - Egg sources are cached locally to reduce download and rebuild
     times.
-  - Dropped many obscure or unimportant options and featurey from
+  - Dropped many obscure or unimportant options and features from
     `chicken-install`: (`-keep-installed`, `-reinstall`, `-proxy`,
     `-no-install`, `-username`, `-password`, `-init`, `-deploy`,
     `-keep-going`, `-scan`, `-csi`, `-show-depends`, `-show-foreign-depends`,
     `-prefix`.
+  - Added new "-from-list" option to chicken-install.
   - Eggs can now be installed and located in multiple directories,
     using the `CHICKEN_REPOSITORY_PATH` + `CHICKEN_INSTALL_REPOSITORY`
     environment variables.
