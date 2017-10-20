@@ -489,19 +489,18 @@
            (arglist link-options) " " src " -o " out " : "
            src #;(arglist dependencies))))
 
-(define ((compile-import-library name #!key dependencies source mode
+(define ((compile-import-library name #!key dependencies mode
                                  (options '()) (link-options '())
                                  custom)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom))
                   default-csc))
          (sname (prefix srcdir name))
-         (ssname (and source (prefix srcdir source)))
          (opts (if (null? options) 
                    default-import-library-compilation-options
                    options))
          (out (quotearg (target-file (conc sname ".import.so") mode)))
-         (src (quotearg (or source (conc sname ".import.scm")))))
+         (src (quotearg (conc sname ".import.scm"))))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -s"
