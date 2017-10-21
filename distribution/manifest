@@ -100,7 +100,6 @@ tcp.scm
 build-version.scm
 build-version.c
 buildid
-buildtag.h
 tests/thread-list.scm
 tests/data-structures-tests.scm
 tests/environment-tests.scm

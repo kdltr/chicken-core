@@ -27,8 +27,6 @@
 (declare
  (unit build-version))
 
-(foreign-declare "#include \"buildtag.h\"")
-
 ;; (read-version filename): Read line from FILENAME and return
 ;; as a string; return #f if non-existent file or blank line.
 (define-syntax read-version
@@ -41,7 +39,6 @@
 		  #f
 		  ver)))))))
 
-(define (##sys#build-tag)   (foreign-value "C_BUILD_TAG" c-string))
 (define ##sys#build-id      (read-version "buildid"))
 (define ##sys#build-branch  (read-version "buildbranch"))
 (define ##sys#build-version (read-version "buildversion"))

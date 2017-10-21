@@ -468,8 +468,6 @@ endif
 # build versioning
 
 ifdef WINDOWS_SHELL
-buildtag.h:
-	echo #define C_BUILD_TAG "$(BUILD_TAG)" >$@
 buildbranch:
 	echo.$(BRANCHNAME)>buildbranch
 buildid:
@@ -480,7 +478,6 @@ else
 identify-me:
 	@sh $(SRCDIR)identify.sh $(SRCDIR)
 
-buildtag.h: identify-me
 buildbranch: identify-me
 buildid: identify-me
 endif
@@ -557,7 +554,7 @@ stub.c: $(SRCDIR)stub.scm $(SRCDIR)common-declarations.scm
 debugger-client.c: $(SRCDIR)debugger-client.scm $(SRCDIR)common-declarations.scm dbg-stub.c
 	$(bootstrap-lib)
 build-version.c: $(SRCDIR)build-version.scm buildbranch buildid \
-	  $(SRCDIR)buildversion buildtag.h
+	  $(SRCDIR)buildversion
 	$(bootstrap-lib)
 
 define declare-bootstrap-import-lib
@@ -646,7 +643,7 @@ confclean:
 
 spotless: distclean testclean
 	-$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) $(DISTFILES) \
-	  buildtag.h buildid buildbranch
+	  buildid buildbranch
 
 
 distclean: clean confclean

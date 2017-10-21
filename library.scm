@@ -3733,9 +3733,7 @@ EOF
 	 (get-config)
 	 (if (zero? (##sys#size spec))
 	     ""
-	     (string-append " [" spec " ]") )
-	 "\n"
-	 (or (##sys#build-tag) "")))
+	     (string-append " [" spec " ]") )))
       ##sys#build-version) )
 
 

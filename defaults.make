@@ -201,7 +201,6 @@ SCRIPT_EXT = .bat
 COPY_COMMAND = copy /Y
 HOSTNAME ?= $(shell hostname)
 UNAME_SYS ?= Windows
-BUILD_TAG ?= compiled $(BUILD_TIME) on $(HOSTNAME) ($(UNAME_SYS))
 # This is a poor man's version of $(file ...) in GNU Make 4.0
 # We should consider replacing it when it becomes so widespread
 # that systems (Debian, OS X, Haiku, Mingw, Cygwin) are shipping it
