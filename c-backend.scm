@@ -536,19 +536,8 @@
       (expr node temps) )
   
     (define (header)
-      (define (pad0 n)
-	(if (< n 10)
-	    (string-append "0" (number->string n))
-	    n) )
-      (let* ((tm (##sys#decode-seconds (current-seconds) #f))
-	     (min (vector-ref tm 1))
-	     (hour (vector-ref tm 2))
-	     (mday (vector-ref tm 3))
-	     (mon (vector-ref tm 4))
-	     (year (vector-ref tm 5)) )
 	(gen "/* Generated from " source-file " by the CHICKEN compiler" #t
 	     "   http://www.call-cc.org" #t
-	     "   " (+ 1900 year) #\- (pad0 (add1 mon)) #\- (pad0 mday) #\space (pad0 hour) #\: (pad0 min) #t
 	     (string-intersperse
 	      (map (cut string-append "   " <> "\n") 
 		   (string-split (chicken-version #t) "\n") ) 
@@ -567,8 +556,9 @@
 	  (gen #t)
 	  (for-each (lambda (decl) (gen #t decl)) foreign-declarations) )
 	(unless external-protos-first
-	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) ) ) )
+	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) ) )
   
+
     (define (trailer)
       (gen #t #t "/*" #t 
 	   (uncommentify
