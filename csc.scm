@@ -558,9 +558,9 @@ EOF
 		    (set! translate-options (cons "-dynamic" translate-options)) )
 		  (unless target-filename
 		    (set! target-filename
-		      (if shared
-			  (pathname-replace-extension (first scheme-files) shared-library-extension)
-			  (pathname-replace-extension (first scheme-files) executable-extension) ) ) )
+		      (cond (shared (pathname-replace-extension (first scheme-files) shared-library-extension))
+			    (compile-only (pathname-replace-extension (first scheme-files) object-extension))
+			    (else (pathname-replace-extension (first scheme-files) executable-extension)) ) ) )
 		  (run-translation) ] )
 	   (unless translate-only 
 	     (run-compilation)
