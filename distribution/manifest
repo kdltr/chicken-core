@@ -113,7 +113,6 @@ user-pass.scm
 build-version.scm
 build-version.c
 buildid
-buildtag.h
 tests/clustering-tests.scm
 tests/c-id-valid.scm
 tests/data-structures-tests.scm
