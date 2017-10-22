@@ -121,7 +121,7 @@
       (libchicken)))
 
 (define (default-library)
-  (string-append (libchicken) "." library-extension))
+  (make-pathname library-dir (libchicken) library-extension))
 
 (define default-compilation-optimization-options
   (string-split (if host-mode host-cflags default-cflags)))
@@ -207,6 +207,9 @@
 (define rpath #f)
 (define ignore-repository #f)
 
+(define library-dir
+  (if host-mode host-libdir default-libdir))
+
 (define extra-libraries
   (if host-mode
       INSTALL_MORE_STATIC_LIBS
@@ -218,7 +221,7 @@
 (define (default-library-files)
   (list (string-append "-l" (if host-mode INSTALL_LIB_NAME TARGET_LIB_NAME))))
 
-(define (library-files) (default-library-files))
+(define (library-files) (list (default-library)))
 (define (shared-library-files) (default-library-files))
 
 (define translate-options '())
@@ -242,9 +245,6 @@
 (define translation-optimization-options default-translation-optimization-options)
 (define compilation-optimization-options default-compilation-optimization-options)
 (define linking-optimization-options default-linking-optimization-options)
-
-(define library-dir
-  (if host-mode host-libdir default-libdir))
 
 (define link-options '())
 
@@ -597,7 +597,6 @@ EOF
 		(set! objc-mode #t) ]
 	       [(-static)
 		(set! translate-options (cons "-static" translate-options))
-		(set! link-options (cons "-static" link-options))
 		(set! static #t)]
 	       [(-cflags)
 		(set! inquiry-only #t) 
