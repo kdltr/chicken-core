@@ -215,3 +215,5 @@
 
 (change-directory "..")
 (delete-directory "find-files-test-dir" #t)
+
+(test-exit)

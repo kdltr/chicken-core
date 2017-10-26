@@ -41,3 +41,5 @@
 
 
 (test-end "modules")
+
+(test-exit)

@@ -59,7 +59,7 @@
 	 splt)
 	(warning "invalid regex test line" line))))
 
-(test-begin)
+(test-begin "basic irregex tests")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic irregex
@@ -511,7 +511,7 @@
 
 ;;; UTF-8 tests
 
-(test-begin)
+(test-begin "utf-8 tests")
 
 (test-assert (irregex-search "(?u:<..>)" "<漢字>"))
 (test-assert (irregex-search "(?u:<.*>)" "<漢字>"))
@@ -541,3 +541,4 @@
 
 (test-end)
 
+(test-exit)

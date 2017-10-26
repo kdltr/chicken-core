@@ -1657,3 +1657,4 @@
 (test-end)
 
 ;(unless (zero? (test-failure-count)) (exit 1))
+(test-exit)

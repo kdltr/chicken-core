@@ -30,3 +30,5 @@
               (read-symbolic-link* program-path)))
 
 (test-end)
+
+(test-exit)

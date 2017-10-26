@@ -2420,20 +2420,6 @@ inline static C_word C_i_bignump(C_word x)
 }
 
 
-
-/* XXX TODO OBSOLETE (but still used by C_flonum_to_string) */
-inline static C_word C_fits_in_unsigned_int_p(C_word x)
-{
-  double n, m;
-
-  if(x & C_FIXNUM_BIT) return C_SCHEME_TRUE;
-  if(C_truep(C_i_bignump(x))) return C_mk_bool(C_bignum_size(x) == 1);
-
-  n = C_flonum_magnitude(x);
-  return C_mk_bool(C_modf(n, &m) == 0.0 && n >= 0 && n <= C_UWORD_MAX);
-}
-
-
 inline static double C_c_double(C_word x)
 {
   if(x & C_FIXNUM_BIT) return (double)C_unfix(x);

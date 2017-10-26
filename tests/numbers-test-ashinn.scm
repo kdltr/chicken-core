@@ -144,3 +144,5 @@
   (test-assert (bit->boolean #x10000000000000000 64)))
 
 (test-end)
+
+(test-exit)
