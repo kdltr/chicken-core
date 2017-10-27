@@ -21,6 +21,9 @@
   - Fixed an off by one allocation problem in generated C code for (list ...).
   - The "-scrutinize" compiler option has been removed.
   - The "-module" compiler option (aliased as "-m") now expects a module name.
+  - The generated C output of the compiler is now deterministic: it
+    will be bit-for-bit identical when compiling the same Scheme file
+    with the same version of the compiler.
 
 - Tools
   - The new "-link" option to csc allows linking with objects from extensions.
