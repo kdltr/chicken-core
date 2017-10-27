@@ -315,7 +315,7 @@
 		  ((override)
 		   (set! override
 		     (if (and (pair? (cdr x)) (string? (cadr x)))
-			 (call-with-input-file (cadr x) read-all)
+			 (call-with-input-file (cadr x) read-list)
 			 (cdr x))))
                   ((location)
                    (set! default-locations
@@ -323,7 +323,7 @@
 		  ((hack)
 		   (set! hacks (append hacks (list (eval (cadr x))))))
 		  (else (broken x))))
-	      (call-with-input-file deff read-all))))))
+	      (call-with-input-file deff read-list))))))
 
   
 ;; set variables with HTTP proxy information
@@ -1108,12 +1108,12 @@ EOF
                                         (->string (car p))
                                         (cons (->string (car p))
                                               (cadr p))))
-                                  (with-input-from-file (cadr args) read-all))))
+                                  (with-input-from-file (cadr args) read-list))))
                    (loop (cddr args)))
                   ((equal? arg "-override")
                    (unless (pair? (cdr args)) (usage 1))
                    (set! override
-                     (call-with-input-file (cadr args) read-all))
+                     (call-with-input-file (cadr args) read-list))
                    (loop (cddr args)))
 
                   ;;XXX 

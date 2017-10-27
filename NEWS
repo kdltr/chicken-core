@@ -65,6 +65,7 @@
   - file-{read,write,execute}-access will now raise an exception when
     the file doesn't exist or some other non-access related problem is
     detected (fixes #1386, thanks to Vasilij Schneidermann).
+  - `read-file` has been renamed to `read-list`.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

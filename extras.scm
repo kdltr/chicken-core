@@ -30,7 +30,7 @@
  (uses data-structures))
 
 (module chicken.io
-  (read-all read-buffered read-byte read-line
+  (read-list read-buffered read-byte read-line
    read-lines read-string read-string! read-token
    write-byte write-line write-string)
 
@@ -41,10 +41,10 @@
 
 ;;; Read expressions from file:
 
-(define read-all
+(define read-list
   (let ((read read))
     (lambda (#!optional (port ##sys#standard-input) (reader read) max)
-      (##sys#check-input-port port #t 'read-all)
+      (##sys#check-input-port port #t 'read-list)
       (do ((x (reader port) (reader port))
 	   (i 0 (fx+ i 1))
 	   (xs '() (cons x xs)))
