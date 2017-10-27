@@ -161,6 +161,13 @@
 (define (nameprop? x)
   (and (list? x) (or (symbol? (car x)) (string? (car x)))))
 
+(define (name-or-predefd? x)
+  (or (optname? x)
+      (and (pair? x)
+           (pair? (car x))
+           (eq? 'predefined (caar x))
+           (optname? (cdar x)))))
+
 ;; ENTRY = (NAME TOPLEVEL? NESTED? NAMED? [VALIDATOR])
 (define egg-info-items
   `((synopsis #t #f #f)
@@ -185,7 +192,7 @@
     (install-name #f #f #f ,nameprop?)
     (target #f #t #f)
     (host #f #t #f)
-    (types-file #f #f #f ,optname?)
+    (types-file #f #f #f ,name-or-predefd?)
     (inline-file #f #f #f ,optname?)
     (extension #f #t #t)
     (generated-source-file #f #t #t)

@@ -138,6 +138,7 @@
         (opts '())
         (mods #f)
         (tfile #f)
+        (ptfile #f)
         (ifile #f)
         (objext (object-extension platform))
         (exeext (executable-extension platform)))
@@ -159,6 +160,7 @@
                       (cbuild #f)
                       (link default-extension-linkage)
                       (tfile #f)
+                      (ptfile #f)
                       (ifile #f)
                       (lopts '())
                       (oname #f)
@@ -187,6 +189,7 @@
                 (cons (list target dependencies: deps source: src options: opts
                             link-options: lopts linkage: link custom: cbuild
                             mode: mode types-file: tfile inline-file: ifile
+                            predefined-types: ptfile
                             modules: (or mods (list rtarget))
                             output-file: rtarget)
                     exts)))))
@@ -276,7 +279,16 @@
         ((linkage) 
          (set! link (cdr info)))
         ((types-file)
-         (set! tfile (or (null? (cdr info)) (arg info 1 name?))))
+         (set! tfile
+           (cond ((null? (cdr info)) #t)
+                 ((not (pair? (cadr info)))
+                  (arg info 1 name?))
+                 (else
+                   (set! ptfile #t)
+                   (set! tfile
+                     (or (null? (cdadr info))
+                         #t
+                         (arg (cadr info) 1 name?)))))))
         ((inline-file)
          (set! ifile (or (null? (cdr info)) (arg info 1 name?))))
         ((custom-build)
@@ -426,6 +438,7 @@
 
 (define ((compile-static-extension name #!key mode dependencies
                                    source (options '())
+                                   predefined-types
                                    custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom))
@@ -435,7 +448,8 @@
          (opts (append (if (null? options)
                            default-static-compilation-options
                            options)
-                       (if types-file
+                       (if (and types-file
+                                (not predefined-types))
                            (list "-emit-type-file"
                                  (quotearg (prefix srcdir (conc types-file ".types"))))
                            '())
@@ -462,6 +476,7 @@
 
 (define ((compile-dynamic-extension name #!key mode dependencies mode
                                     source (options '()) (link-options '()) 
+                                    predefined-types
                                     custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix-custom-command custom)) 
@@ -470,7 +485,8 @@
          (opts (append (if (null? options)
                            default-dynamic-compilation-options
                            options)
-                       (if types-file
+                       (if (and types-file
+                                (not predefined-types))
                            (list "-emit-type-file"
                                  (quotearg (prefix srcdir (conc types-file ".types"))))
                            '())
