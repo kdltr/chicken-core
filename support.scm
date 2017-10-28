@@ -34,6 +34,7 @@
      debugging-chicken with-debugging-output quit-compiling
      emit-syntax-trace-info check-signature stringify symbolify
      build-lambda-list c-ify-string valid-c-identifier?
+     read-expressions
      bytes->words words->bytes
      check-and-open-input-file close-checked-input-file fold-inner
      constant? collapsable-literal? immediate? basic-literal?
@@ -293,6 +294,12 @@
 
 (define (sort-symbols lst)
   (sort lst (lambda (s1 s2) (string<? (symbol->string s1) (symbol->string s2)))))
+
+(define (read-expressions #!optional (port (current-input-port)))
+  (do ((x (read port) (read port))
+       (i 0 (add1 i))
+       (xs '() (cons x xs)))
+      ((eof-object? x) (reverse xs))))
 
 
 ;;; Predicates on expressions and literals:
@@ -1659,7 +1666,7 @@
 	 (##sys#put! 
 	  id '##core#db
 	  (append (or (##sys#get id '##core#db) '()) (list (cdr e))) )))
-     (call-with-input-file dbfile read-all))))
+     (call-with-input-file dbfile read-expressions))))
 
 
 ;;; Print version/usage information:

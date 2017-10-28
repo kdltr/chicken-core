@@ -72,11 +72,24 @@
 (define (uncommentify s) (string-translate* (->string s) '(("*/" . "*_/"))))
 (define (c-identifier s) (string->c-identifier (->string s)))
 
+;; Generate a sorted alist out of a symbol table
+(define (table->sorted-alist t)
+  (let ((alist '()))
+    (hash-table-for-each
+      (lambda (id ll)
+	(set! alist
+	  (cons (cons id ll) alist)))
+      t)
+
+    (sort! alist (lambda (p1 p2) (string<? (symbol->string (car p1))
+					   (symbol->string (car p2)))))))
+
 
 ;;; Generate target code:
 
 (define (generate-code literals lliterals lambda-table out source-file user-supplied-options dynamic db dbg-info-table)
-  (let ((non-av-proc #f))
+  (let ((lambda-table* (table->sorted-alist lambda-table)) ;; sort the symbol table to make the compiler output deterministic.
+	(non-av-proc #f))
 
   ;; Don't truncate floating-point precision!
   (flonum-print-precision (+ flonum-maximum-decimal-exponent 1))
@@ -541,40 +554,29 @@
       (expr node temps) )
  
     (define (header)
-      (define (pad0 n)
-	(if (< n 10)
-	    (string-append "0" (number->string n))
-	    n) )
-      (let* ((tm (##sys#decode-seconds (current-seconds) #f))
-	     (min (vector-ref tm 1))
-	     (hour (vector-ref tm 2))
-	     (mday (vector-ref tm 3))
-	     (mon (vector-ref tm 4))
-	     (year (vector-ref tm 5)) )
-	(gen "/* Generated from " source-file " by the CHICKEN compiler" #t
-	     "   http://www.call-cc.org" #t
-	     "   " (+ 1900 year) #\- (pad0 (add1 mon)) #\- (pad0 mday) #\space (pad0 hour) #\: (pad0 min) #t
-	     (string-intersperse
-	      (map (cut string-append "   " <> "\n") 
-		   (string-split (chicken-version #t) "\n") ) 
-	      "")
-	     "   command line: ")
-	(gen-list user-supplied-options)
-	(unless (not unit-name)
-	  (gen #t "   unit: " unit-name))
-	(unless (null? used-units)
-	  (gen #t "   uses: ")
-	  (gen-list used-units))
-        (gen #t "*/")
-	(gen #t "#include \"" target-include-file "\"")
-	(when external-protos-first
-	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) )
-	(when (pair? foreign-declarations)
-	  (gen #t)
-	  (for-each (lambda (decl) (gen #t decl)) foreign-declarations) )
-	(unless external-protos-first
-	  (generate-foreign-callback-stub-prototypes foreign-callback-stubs) ) ) )
-  
+      (gen "/* Generated from " source-file " by the CHICKEN compiler" #t
+	   "   http://www.call-cc.org" #t
+	   (string-intersperse
+	    (map (cut string-append "   " <> "\n")
+		 (string-split (chicken-version #t) "\n") )
+	    "")
+	   "   command line: ")
+      (gen-list user-supplied-options)
+      (unless (not unit-name)
+	(gen #t "   unit: " unit-name))
+      (unless (null? used-units)
+	(gen #t "   uses: ")
+	(gen-list used-units))
+      (gen #t "*/")
+      (gen #t "#include \"" target-include-file "\"")
+      (when external-protos-first
+	(generate-foreign-callback-stub-prototypes foreign-callback-stubs) )
+      (when (pair? foreign-declarations)
+	(gen #t)
+	(for-each (lambda (decl) (gen #t decl)) foreign-declarations) )
+      (unless external-protos-first
+	(generate-foreign-callback-stub-prototypes foreign-callback-stubs) ) )
+
     (define (trailer)
       (gen #t #t "/*" #t 
 	   (uncommentify
@@ -614,9 +616,11 @@
   
     (define (prototypes)
       (gen #t)
-      (hash-table-for-each
-       (lambda (id ll)
-	 (let* ((n (lambda-literal-argument-count ll))
+      (for-each
+       (lambda (p)
+	 (let* ((id (car p))
+		(ll (cdr p))
+		(n (lambda-literal-argument-count ll))
 		(customizable (lambda-literal-customizable ll))
 		(empty-closure (and customizable (zero? (lambda-literal-closure-size ll))))
 		(varlist (intersperse (make-variable-list (if empty-closure (sub1 n) n) "t") #\,))
@@ -649,7 +653,7 @@
 	   (gen #\))
 	   (unless direct (gen " C_noret"))
 	   (gen #\;) ))
-       lambda-table) )
+       lambda-table*) )
   
     (define (trampolines)
       (let ([ns '()]
@@ -662,9 +666,11 @@
 	      ((>= i n))
 	    (gen #t "C_word t" i "=av[" j "];")))
 
-	(hash-table-for-each
-	 (lambda (id ll)
-	   (let* ([argc (lambda-literal-argument-count ll)]
+	(for-each
+	 (lambda (p)
+	   (let* ([id (car p)]
+		  [ll (cdr p)]
+		  [argc (lambda-literal-argument-count ll)]
 		  [rest (lambda-literal-rest-argument ll)]
 		  [rest-mode (lambda-literal-rest-argument-mode ll)]
 		  [customizable (lambda-literal-customizable ll)]
@@ -679,7 +685,7 @@
 	       (let ([al (make-argument-list argc "t")])
 		 (apply gen (intersperse al #\,)) )
 	       (gen ");}") )))
-	 lambda-table)))
+	 lambda-table*)))
   
     (define (literal-frame)
       (do ([i 0 (add1 i)]
@@ -775,9 +781,11 @@
 	(else (bomb "invalid unboxed type" t))))
 
     (define (procedures)
-      (hash-table-for-each
-       (lambda (id ll)
-	 (let* ((n (lambda-literal-argument-count ll))
+      (for-each
+       (lambda (p)
+	 (let* ((id (car p))
+		(ll (cdr p))
+		(n (lambda-literal-argument-count ll))
 		(rname (real-name id db))
 		(demand (lambda-literal-allocated ll))
 		(max-av (apply max 0 (lambda-literal-callee-signatures ll)))
@@ -925,7 +933,7 @@
 		n)
 	    ll)
 	   (gen #\}) ) )
-       lambda-table) )
+       lambda-table*) )
 
     (debugging 'p "code generation phase...")
     (set! output out)
@@ -939,7 +947,7 @@
     (when emit-debug-info
       (emit-debug-table dbg-info-table))
     (procedures)
-    (emit-procedure-table lambda-table source-file)
+    (emit-procedure-table lambda-table* source-file)
     (trailer) ) )
 
 
@@ -961,16 +969,18 @@
 
 ;;; Emit procedure table:
 
-(define (emit-procedure-table lambda-table sf)
+(define (emit-procedure-table lambda-table* sf)
   (gen #t #t "#ifdef C_ENABLE_PTABLES"
-       #t "static C_PTABLE_ENTRY ptable[" (add1 (hash-table-size lambda-table)) "] = {")
-  (hash-table-for-each
-   (lambda (id ll)
-     (gen #t "{\"" id #\: (string->c-identifier sf) "\",(void*)")
-     (if (eq? 'toplevel id)
-         (gen "C_" (toplevel unit-name) "},")
-         (gen id "},") ) )
-   lambda-table)
+       #t "static C_PTABLE_ENTRY ptable[" (add1 (length lambda-table*)) "] = {")
+  (for-each
+   (lambda (p)
+     (let ((id (car p))
+	   (ll (cdr p)))
+       (gen #t "{\"" id #\: (string->c-identifier sf) "\",(void*)")
+       (if (eq? 'toplevel id)
+	   (gen "C_" (toplevel unit-name) "},")
+	   (gen id "},") ) ) )
+    lambda-table*)
   (gen #t "{NULL,NULL}};")
   (gen #t "#endif")
   (gen #t #t "static C_PTABLE_ENTRY *create_ptable(void)")
