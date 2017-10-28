@@ -528,6 +528,13 @@ EOF
   (define (use-private-repository)
     (set! compile-options (cons "-DC_PRIVATE_REPOSITORY" compile-options)))
 
+  (define (generate-target-filename source-filename)
+    (pathname-replace-extension
+     source-filename
+     (cond (shared shared-library-extension)
+	   (compile-only object-extension)
+	   (else executable-extension))))
+
   (let loop ((args args))
     (cond [(null? args)
 	   ;; Builtin search directory options do not override explicit options
@@ -543,25 +550,21 @@ EOF
 	   (when (pair? linked-extensions)
 	     (set! object-files ; add objects from linked extensions
 	       (append object-files (map find-object-file linked-extensions))))
-	   (cond [(null? scheme-files)
-		  (when (and (null? c-files) 
+	   (cond ((null? scheme-files)
+		  (when (and (null? c-files)
 			     (null? object-files))
 		    (stop "no source files specified") )
-		  (let ((f0 (last (if (null? c-files) object-files c-files))))
-		    (unless target-filename
-		      (set! target-filename 
-			(if shared
-			    (pathname-replace-extension f0 shared-library-extension)
-			    (pathname-replace-extension f0 executable-extension) ) ) ) ) ]
-		 [else
+		  (unless target-filename
+		    (set! target-filename
+		      (generate-target-filename
+		       (last (if (null? c-files) object-files c-files))))))
+		 (else
 		  (when (and shared (not embedded))
 		    (set! translate-options (cons "-dynamic" translate-options)) )
 		  (unless target-filename
 		    (set! target-filename
-		      (cond (shared (pathname-replace-extension (first scheme-files) shared-library-extension))
-			    (compile-only (pathname-replace-extension (first scheme-files) object-extension))
-			    (else (pathname-replace-extension (first scheme-files) executable-extension)) ) ) )
-		  (run-translation) ] )
+		      (generate-target-filename (first scheme-files))))
+		  (run-translation)))
 	   (unless translate-only 
 	     (run-compilation)
 	     (unless compile-only
