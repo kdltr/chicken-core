@@ -43,6 +43,12 @@
     ;; Requirement identifier for modules
     module-requirement
 
+    ;;; Check for multiple bindings in "let"-style constructs
+    check-for-multiple-bindings
+
+    ;;; Macro environment manipulation
+    macro-subset fixup-macro-environment
+
     ;; Low-level hash table support
     hash-table-ref hash-table-set! hash-table-update!
     hash-table-for-each hash-table-size)
@@ -110,6 +116,44 @@
 (define (module-requirement id)
   (##sys#string->symbol
    (##sys#string-append (##sys#slot id 1) "#")))
+
+
+;;; Check for multiple bindings in "let"-style constructs:
+
+(define (check-for-multiple-bindings bindings form loc)
+  ;; assumes correct syntax
+  (let loop ((bs bindings) (seen '()) (warned '()))
+    (cond ((null? bs))
+	  ((and (memq (caar bs) seen)
+                (not (memq (caar bs) warned)))
+	   (##sys#warn
+	    (string-append "variable bound multiple times in " loc " construct")
+	    (caar bs)
+	    form)
+	   (loop (cdr bs) seen (cons (caar bs) warned)))
+	  (else (loop (cdr bs) (cons (caar bs) seen) warned)))))
+
+
+;;; Macro environment manipulation:
+(define (macro-subset me0 #!optional parent-env)
+  (let ((se (let loop ((me (##sys#macro-environment)))
+	      (if (or (null? me) (eq? me me0))
+		  '()
+		  (cons (car me) (loop (cdr me)))))))
+    (fixup-macro-environment se parent-env)))
+
+(define (fixup-macro-environment se #!optional parent-env)
+  (let ((se2 (if parent-env (##sys#append se parent-env) se)))
+    (for-each				; fixup se
+     (lambda (sdef)
+       (when (pair? (cdr sdef))
+	 (set-car!
+	  (cdr sdef)
+	  (if (null? (cadr sdef))
+	      se2
+	      (##sys#append (cadr sdef) se2)))))
+     se)
+    se))
 
 
 ;;; Low-level hashtable support:

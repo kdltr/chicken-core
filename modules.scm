@@ -1027,12 +1027,7 @@
 	 (scheme-report-environment . chicken.eval#scheme-report-environment)
 	 (null-environment . chicken.eval#null-environment)
 	 (interaction-environment . chicken.eval#interaction-environment)))
-      (r4rs-syntax
-       ;;XXX better would be to move these into the "chicken"
-       ;;    module. "import[-for-syntax]" and "reexport" are in
-       ;;    ##sys#initial-macro-environment and thus always available inside 
-       ;;    modules.
-       ##sys#default-macro-environment))
+      (r4rs-syntax ##sys#scheme-macro-environment))
   (##sys#register-core-module 'r4rs 'library r4rs-values r4rs-syntax)
   (##sys#register-core-module
    'scheme 'library

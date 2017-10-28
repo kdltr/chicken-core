@@ -12,7 +12,7 @@
 ;; inline func unrecognizable for canonicalizer.
 
 (module m1 (f1)
-  (import scheme chicken)
+  (import scheme (chicken base))
   (define-inline (bar x) (cons x '(foo)))
   (define-syntax s1
     (syntax-rules ()

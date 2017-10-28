@@ -32,7 +32,6 @@
   (uses internal)
   (disable-interrupts)
   (fixnum)
-  (hide check-for-multiple-bindings)
   (not inline ##sys#syntax-error-hook ##sys#compiler-syntax-hook))
 
 (module chicken.syntax
@@ -169,6 +168,7 @@
 
 (define ##sys#macro-environment (make-parameter '()))
 
+(define ##sys#scheme-macro-environment '()) ; reassigned below
 ;; These are all re-assigned by chicken-syntax.scm:
 (define ##sys#chicken-macro-environment '()) ; used later in chicken.import.scm
 (define ##sys#chicken-ffi-macro-environment '()) ; used later in foreign.import.scm
@@ -960,9 +960,9 @@
 
 ) ; chicken.syntax module
 
-;;; Macro definitions:
-
 (import chicken chicken.blob chicken.syntax chicken.internal)
+
+;;; Macro definitions:
 
 (##sys#extend-macro-environment
  'import-syntax '()
@@ -1004,7 +1004,62 @@
     (##sys#register-meta-expression `(,(r 'import) ,@(cdr x)))
     `(##core#elaborationtimeonly (,(r 'import) ,@(cdr x))))))
 
-;; The "initial" macro environment, containing only import forms
+
+(##sys#extend-macro-environment
+ 'cond-expand
+ '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (let ((clauses (cdr form)))
+      (define (err x)
+	(##sys#error "syntax error in `cond-expand' form"
+		     x
+		     (cons 'cond-expand clauses)))
+      (define (test fx)
+	(cond ((symbol? fx) (feature? (strip-syntax fx)))
+	      ((not (pair? fx)) (err fx))
+	      (else
+	       (let ((head (car fx))
+		     (rest (cdr fx)))
+		 (case (strip-syntax head)
+		   ((and)
+		    (or (eq? rest '())
+			(if (pair? rest)
+			    (and (test (car rest))
+				 (test `(and ,@(cdr rest))))
+			    (err fx))))
+		   ((or)
+		    (and (not (eq? rest '()))
+			 (if (pair? rest)
+			     (or (test (car rest))
+				 (test `(or ,@(cdr rest))))
+			     (err fx))))
+		   ((not) (not (test (cadr fx))))
+		   (else (err fx)))))))
+      (let expand ((cls clauses))
+	(cond ((eq? cls '())
+	       (##sys#apply
+		##sys#error "no matching clause in `cond-expand' form"
+		(map (lambda (x) (car x)) clauses)))
+	      ((not (pair? cls)) (err cls))
+	      (else
+	       (let ((clause (car cls))
+		    (rclauses (cdr cls)))
+		 (if (not (pair? clause))
+		     (err clause)
+		     (let ((id (car clause)))
+		       (cond ((eq? (strip-syntax id) 'else)
+			      (let ((rest (cdr clause)))
+				(if (eq? rest '())
+				    '(##core#undefined)
+				    `(##core#begin ,@rest))))
+			     ((test id) `(##core#begin ,@(cdr clause)))
+			     (else (expand rclauses)))))))))))))
+
+;; The "initial" macro environment, containing only import forms and
+;; cond-expand.  TODO: Eventually, cond-expand should move to the
+;; (chicken base) module to match r7rs.  Keeping it in the initial env
+;; makes it a whole lot easier to write portable CHICKEN 4 & 5 code.
 (define ##sys#initial-macro-environment (##sys#macro-environment))
 
 (##sys#extend-macro-environment
@@ -1147,6 +1202,9 @@
 ;; The chicken.module syntax environment
 (define ##sys#chicken.module-macro-environment (##sys#macro-environment))
 
+(set! ##sys#scheme-macro-environment
+  (let ((me0 (##sys#macro-environment)))
+
 (##sys#extend-macro-environment
  'lambda
  '()
@@ -1162,14 +1220,6 @@
   (lambda (x r c)
     (##sys#check-syntax 'quote x '(_ _))
     `(##core#quote ,(cadr x)))))
-
-(##sys#extend-macro-environment
- 'syntax
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'syntax x '(_ _))
-    `(##core#syntax ,(cadr x)))))
 
 (##sys#extend-macro-environment
  'if
@@ -1230,19 +1280,6 @@
 	  (chicken.syntax#defjam-error form))
 	`(##core#define-syntax ,head ,body))))))
 
-(define (check-for-multiple-bindings bindings form loc)
-  ;; assumes correct syntax
-  (let loop ((bs bindings) (seen '()) (warned '()))
-    (cond ((null? bs))
-	  ((and (memq (caar bs) seen)
-                (not (memq (caar bs) warned)))
-	   (##sys#warn 
-	    (string-append "variable bound multiple times in " loc " construct")
-	    (caar bs)
-	    form)
-	   (loop (cdr bs) seen (cons (caar bs) warned)))
-	  (else (loop (cdr bs) (cons (caar bs) seen) warned)))))
-
 (##sys#extend-macro-environment
  'let
  '()
@@ -1255,15 +1292,6 @@
 	   (##sys#check-syntax 'let x '(_ #((symbol _) 0) . #(_ 1)))
            (check-for-multiple-bindings (cadr x) x "let")))
     `(##core#let ,@(cdr x)))))
-
-(##sys#extend-macro-environment
- 'letrec*
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'letrec* x '(_ #((symbol _) 0) . #(_ 1)))
-    (check-for-multiple-bindings (cadr x) x "letrec*")
-    `(##core#letrec* ,@(cdr x)))))
 
 (##sys#extend-macro-environment
  'letrec
@@ -1543,107 +1571,16 @@
       (##sys#make-promise
        (##sys#call-with-values (##core#lambda () ,(cadr form)) ##sys#list))))))
 
-(##sys#extend-macro-environment
- 'delay-force
- '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'delay-force form '(_ _))
-    `(##sys#make-promise (##core#lambda () ,(cadr form))))))
-
-(##sys#extend-macro-environment
- 'cond-expand
- '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (let ((clauses (cdr form)))
-      (define (err x) 
-	(##sys#error "syntax error in `cond-expand' form"
-		     x
-		     (cons 'cond-expand clauses)) )
-      (define (test fx)
-	(cond ((symbol? fx) (feature? (strip-syntax fx)))
-	      ((not (pair? fx)) (err fx))
-	      (else
-	       (let ((head (car fx))
-		     (rest (cdr fx)))
-		 (case (strip-syntax head)
-		   ((and)
-		    (or (eq? rest '())
-			(if (pair? rest)
-			    (and (test (car rest))
-				 (test `(and ,@(cdr rest))) )
-			    (err fx) ) ) )
-		   ((or)
-		    (and (not (eq? rest '()))
-			 (if (pair? rest)
-			     (or (test (car rest))
-				 (test `(or ,@(cdr rest))) )
-			     (err fx) ) ) )
-		   ((not) (not (test (cadr fx))))
-		   (else (err fx)) ) ) ) ) )
-      (let expand ((cls clauses))
-	(cond ((eq? cls '())
-	       (##sys#apply
-		##sys#error "no matching clause in `cond-expand' form" 
-		(map (lambda (x) (car x)) clauses) ) )
-	      ((not (pair? cls)) (err cls))
-	      (else
-	       (let ((clause (car cls))
-		    (rclauses (cdr cls)) )
-		 (if (not (pair? clause)) 
-		     (err clause)
-		     (let ((id (car clause)))
-		       (cond ((eq? (strip-syntax id) 'else)
-			      (let ((rest (cdr clause)))
-				(if (eq? rest '())
-				    '(##core#undefined)
-				    `(##core#begin ,@rest) ) ) )
-			     ((test id) `(##core#begin ,@(cdr clause)))
-			     (else (expand rclauses)) ) ) ) ) ) ) ) ) ) ) )
-
-(##sys#extend-macro-environment
- 'require-library
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    `(##core#begin
-      ,@(map (lambda (x)
-	       (let-values (((name lib _ _ _ _) (##sys#decompose-import x r c 'import)))
-		 (if (not lib)
-		     '(##core#undefined)
-		     `(##core#require ,lib ,(module-requirement name)))))
-	     (cdr x))))))
-
-
 ;;; syntax-rules
 
 (include "synrules.scm")
 
+(macro-subset me0)))
 
-;;; the base macro environment ("scheme", essentially)
-
-(define (##sys#macro-subset me0 #!optional parent-env)
-  (let ((se (let loop ((me (##sys#macro-environment)))
-	      (if (or (null? me) (eq? me me0))
-		  '()
-		  (cons (car me) (loop (cdr me)))))))
-    (##sys#fixup-macro-environment se parent-env)))
-
-(define (##sys#fixup-macro-environment se #!optional parent-env)
-  (let ((se2 (if parent-env (##sys#append se parent-env) se)))
-    (for-each				; fixup se
-     (lambda (sdef)
-       (when (pair? (cdr sdef))
-	 (set-car!
-	  (cdr sdef) 
-	  (if (null? (cadr sdef)) 
-	      se2
-	      (##sys#append (cadr sdef) se2)))))
-     se)
-    se))
+;;; the base macro environment (the old "scheme", essentially)
+;;; TODO: Remove this
 
 (define ##sys#default-macro-environment
-  (##sys#fixup-macro-environment (##sys#macro-environment)))
+  (fixup-macro-environment (##sys#macro-environment)))
 
 (define ##sys#meta-macro-environment (make-parameter (##sys#macro-environment)))

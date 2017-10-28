@@ -27,7 +27,7 @@
 
 (declare
   (unit chicken-ffi-syntax)
-  (uses data-structures extras)
+  (uses data-structures extras internal)
   (disable-interrupts)
   (fixnum))
 
@@ -41,6 +41,7 @@
 
 (import chicken.base
 	chicken.format
+	chicken.internal
 	chicken.string)
 
 (include "common-declarations.scm")
@@ -312,4 +313,4 @@
 	(##core#the fixnum #f ,tmp))))))
 
 
-(##sys#macro-subset me0)))
+(macro-subset me0)))
