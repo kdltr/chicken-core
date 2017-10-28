@@ -4702,12 +4702,13 @@ EOF
 	     (c +trace-buffer-entry-slot-count+)
 	     (vec (##sys#make-vector (fx* c tbl) #f))
 	     (r (##core#inline "C_fetch_trace" start vec))
-	     (n (if (fixnum? r) r (fx* c tbl))))
+	     (n (if (fixnum? r) r (fx* c tbl)))
+             (t-id (and thread (##sys#slot thread 14))))
 	(let loop ((i 0))
 	  (if (fx>= i n)
 	      '()
-	      (let ((t (##sys#slot vec (fx+ i 3)))) ; thread
-		(if (or (not t) (not thread) (eq? thread t))
+	      (let ((t (##sys#slot vec (fx+ i 3)))) ; thread id
+		(if (or (not t) (not thread) (eq? t-id t))
 		    (cons (vector
 			   (extract (##sys#slot vec i)) ; raw
 			   (##sys#slot vec (fx+ i 1))   ; cooked1
@@ -5449,7 +5450,8 @@ EOF
    (##core#undefined)			; #10 specific
    #f					; #11 block object (type depends on blocking type)
    '()					; #12 recipients
-   #f) )				; #13 unblocked by timeout?
+   #f					; #13 unblocked by timeout?
+   (cons #f #f)))            		; #14 ID (just needs to be unique)
 
 (define ##sys#primordial-thread
   (##sys#make-thread #f 'running 'primordial ##sys#default-thread-quantum))

@@ -194,7 +194,9 @@
 
 ;; Move to C-platform?
 (define (emit-syntax-trace-info info cntr) 
-  (##core#inline "C_emit_syntax_trace_info" info cntr ##sys#current-thread) )
+  (define (thread-id t) (##sys#slot t 14))
+  (##core#inline "C_emit_syntax_trace_info" info cntr
+                 (thread-id ##sys#current-thread)))
 
 (define (map-llist proc llist)
   (let loop ([llist llist])

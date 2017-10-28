@@ -259,6 +259,8 @@ static C_TLS int timezone;
 # define SIGBUS                      0
 #endif
 
+#define C_thread_id(x)   C_block_item((x), 14)
+
 
 /* Type definitions: */
 
@@ -4408,6 +4410,8 @@ done:
 
 C_regparm void C_fcall C_trace(C_char *name)
 {
+  C_word thread;
+
   if(show_trace) {
     C_fputs(name, C_stderr);
     C_fputc('\n', C_stderr);
@@ -4432,7 +4436,8 @@ C_regparm void C_fcall C_trace(C_char *name)
   trace_buffer_top->raw = name;
   trace_buffer_top->cooked1 = C_SCHEME_FALSE;
   trace_buffer_top->cooked2 = C_SCHEME_FALSE;
-  trace_buffer_top->thread = C_block_item(current_thread_symbol, 0);
+  thread = C_block_item(current_thread_symbol, 0);
+  trace_buffer_top->thread = C_thread_id(thread);
   ++trace_buffer_top;
 }
 

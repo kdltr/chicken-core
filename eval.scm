@@ -83,6 +83,9 @@
 (define compile-to-closure
   (let ((reverse reverse))
     (lambda (exp env se #!optional cntr evalenv static tl?)
+      (define-syntax thread-id
+        (syntax-rules ()
+          ((_ t) (##sys#slot t 14))))
 
       (define (find-id id se)		; ignores macro bindings
 	(cond ((null? se) #f)
@@ -114,7 +117,7 @@
 	   "C_emit_eval_trace_info" 
 	   info
 	   (##sys#make-structure 'frameinfo cntr e v)
-	   ##sys#current-thread) ) )
+	   (thread-id ##sys#current-thread) ) ) )
       
       (define (emit-syntax-trace-info tf info cntr) 
 	(when tf
@@ -122,7 +125,7 @@
 	   "C_emit_syntax_trace_info"
 	   info
 	   cntr
-	   ##sys#current-thread) ) )
+           (thread-id ##sys#current-thread) ) ) )
 	
       (define (decorate p ll h cntr)
 	(eval-decorator p ll h cntr))
