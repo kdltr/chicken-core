@@ -3455,7 +3455,7 @@ EOF
     (##sys#check-input-port port #t 'peek-char)
     (##sys#peek-char-0 port) ))
 
-(set! read
+(set! scheme#read
   (lambda (#!optional (port ##sys#standard-input))
     (##sys#check-input-port port #t 'read)
     (##sys#read port ##sys#default-read-info-hook) ))
