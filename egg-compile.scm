@@ -287,7 +287,6 @@
                    (set! ptfile #t)
                    (set! tfile
                      (or (null? (cdadr info))
-                         #t
                          (arg (cadr info) 1 name?)))))))
         ((inline-file)
          (set! ifile (or (null? (cdr info)) (arg info 1 name?))))
