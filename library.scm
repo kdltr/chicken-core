@@ -193,9 +193,7 @@ EOF
 ;; workaround available: we import r5rs-null which contains only the
 ;; syntactic definitions from r5rs and reexport it straight away in
 ;; this file, so that we may use at least the scheme definitions
-;; normally. For other modules, this still is a major TODO!  Also, the
-;; scheme module contains too many syntactic definitions, which is
-;; also a TODO.
+;; normally. For other modules, this still is a major TODO!
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Pre-declaration of scheme, so it can be used later on.  We only use
@@ -209,12 +207,9 @@ EOF
      ;; We are reexporting these because otherwise the module here
      ;; will be inconsistent with the built-in one, and be void of
      ;; syntax definitions, causing problems below.
-     lambda quote syntax if begin define define-syntax
-     let letrec letrec* let-syntax letrec-syntax set! and or cond
-     case let* do quasiquote delay
-     ;; TODO: Better control the set of macros exported by "scheme"
-     ;; The following are not standard macros!
-     delay-force cond-expand require-library syntax-rules
+     begin and case cond define define-syntax delay do lambda
+     if let let* let-syntax letrec letrec-syntax or
+     quasiquote quote set! syntax-rules
 
      not boolean? eq? eqv? equal? pair?
      cons car cdr caar cadr cdar cddr caaar caadr cadar caddr cdaar
@@ -567,10 +562,10 @@ EOF
 (module chicken.base
   (;; [syntax] and-let* case-lambda cut cute declare define-constant
    ;; define-inline define-record define-record-type
-   ;; define-record-printer define-values fluid-let include
-   ;; include-relative let-optionals let-values let*-values
+   ;; define-record-printer define-values delay-force fluid-let include
+   ;; include-relative let-optionals let-values let*-values letrec*
    ;; letrec-values nth-value optional parameterize rec receive
-   ;; set!-values unless when use require-library require-extension
+   ;; require-library require-extension set!-values syntax unless when
    bignum? flonum? fixnum? ratnum? cplxnum? finite? infinite? nan?
    exact-integer? exact-integer-sqrt exact-integer-nth-root
 
@@ -3460,7 +3455,7 @@ EOF
     (##sys#check-input-port port #t 'peek-char)
     (##sys#peek-char-0 port) ))
 
-(set! read
+(set! scheme#read
   (lambda (#!optional (port ##sys#standard-input))
     (##sys#check-input-port port #t 'read)
     (##sys#read port ##sys#default-read-info-hook) ))

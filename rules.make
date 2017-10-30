@@ -608,6 +608,7 @@ compiler-syntax.c: compiler-syntax.scm mini-srfi-1.scm \
 		chicken.format.import.scm
 chicken-ffi-syntax.c: chicken-ffi-syntax.scm \
 		chicken.format.import.scm \
+		chicken.internal.import.scm \
 		chicken.string.import.scm
 support.c: support.scm mini-srfi-1.scm \
 		chicken.bitwise.import.scm \
@@ -714,7 +715,8 @@ chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.posix.import.scm \
 		chicken.string.import.scm
 chicken-syntax.c: chicken-syntax.scm \
-		chicken.platform.import.scm
+		chicken.platform.import.scm \
+		chicken.internal.import.scm
 srfi-4.c: srfi-4.scm \
 		chicken.bitwise.import.scm \
 		chicken.foreign.import.scm \

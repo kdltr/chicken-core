@@ -1,5 +1,5 @@
 (module m1 ((s1 f1))
-  (import scheme chicken)
+  (import scheme (chicken base))
   (define (f1) (print "f1") 'f1)
   (define-syntax s1
     (syntax-rules ()

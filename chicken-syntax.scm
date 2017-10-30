@@ -27,7 +27,7 @@
 
 (declare
   (unit chicken-syntax)
-  (uses expand)
+  (uses expand internal)
   (disable-interrupts)
   (fixnum) )
 
@@ -39,7 +39,7 @@
   (no-bound-checks)
   (no-procedure-checks))
 
-(import chicken)
+(import chicken (chicken internal))
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")
@@ -104,7 +104,7 @@
 			       `((,%else (chicken.condition#signal ,exvar)))))))
 	,(cadr form))))))
 
-(##sys#macro-subset me0 ##sys#default-macro-environment)))
+(macro-subset me0 ##sys#default-macro-environment)))
 
 
 ;;; type-related syntax
@@ -259,7 +259,7 @@
 		 ,(chicken.compiler.scrutinizer#check-and-validate-type
 		   t0 'define-type name))))))))))
 
-(##sys#macro-subset me0 ##sys#default-macro-environment)))
+(macro-subset me0 ##sys#default-macro-environment)))
 
 ;;; Non-standard macros that provide core/"base" functionality:
 
@@ -380,6 +380,14 @@
     `(##core#declare ,@(cdr form)))))
 
 (##sys#extend-macro-environment
+ 'delay-force
+ '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'delay-force form '(_ _))
+    `(##sys#make-promise (##core#lambda () ,(cadr form))))))
+
+(##sys#extend-macro-environment
  'include '()
  (##sys#er-transformer
   (lambda (form r c)
@@ -482,6 +490,19 @@
 		      saveds temps))))))))))))
 
 (##sys#extend-macro-environment
+ 'require-library
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    `(##core#begin
+      ,@(map (lambda (x)
+	       (let-values (((name lib _ _ _ _) (##sys#decompose-import x r c 'import)))
+		 (if (not lib)
+		     '(##core#undefined)
+		     `(##core#require ,lib ,(module-requirement name)))))
+	     (cdr x))))))
+
+(##sys#extend-macro-environment
  'when '()
  (##sys#er-transformer
   (lambda (form r c)
@@ -504,6 +525,14 @@
   (lambda (form r c)
     (##sys#check-syntax 'set!-values form '(_ lambda-list _))
     (##sys#expand-multiple-values-assignment (cadr form) (caddr form)))))
+
+(##sys#extend-macro-environment
+ 'syntax
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'syntax x '(_ _))
+    `(##core#syntax ,(cadr x)))))
 
 (set! chicken.syntax#define-values-definition
   (##sys#extend-macro-environment
@@ -610,6 +639,15 @@
                        vars))
           ,@(map ##sys#expand-multiple-values-assignment vars exprs)
           ,@body))))))
+
+(##sys#extend-macro-environment
+ 'letrec*
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'letrec* x '(_ #((symbol _) 0) . #(_ 1)))
+    (check-for-multiple-bindings (cadr x) x "letrec*")
+    `(##core#letrec* ,@(cdr x)))))
 
 (##sys#extend-macro-environment
  'nth-value 
@@ -1179,7 +1217,7 @@
   (lambda (x r c)
     `(,(r 'begin-for-syntax) (,(r 'require-extension) ,@(cdr x))))))
 
-(##sys#macro-subset me0 ##sys#default-macro-environment)))
+(macro-subset me0 ##sys#default-macro-environment)))
 
 
 ;;; Remaining non-standard macros:
@@ -1343,7 +1381,7 @@
 (append ##sys#chicken.condition-macro-environment
 	##sys#chicken.type-macro-environment
 	##sys#chicken.base-macro-environment
-	(##sys#macro-subset me0 ##sys#default-macro-environment))))
+	(macro-subset me0 ##sys#default-macro-environment))))
 
 ;; register features
 

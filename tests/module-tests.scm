@@ -159,7 +159,7 @@
 	    1)
 
 (module m14 (test-extlambda)
-  (import chicken scheme)
+  (import scheme)
   (define (test-extlambda string #!optional whatever)
     string))
 
@@ -246,13 +246,13 @@
 (module
  m22
  *
- (import chicken scheme)
+ (import scheme)
  (define b 2))
 
 (module
  m23
  *
- (import chicken scheme)
+ (import (chicken module))
  (import m22)
  (export b) )
 
@@ -266,16 +266,16 @@
 ;; (contributed by "megane")
 
 (module m25 *
-  (import chicken scheme)
+  (import scheme)
   (define foo 1))
 
 (module m26 (bar)
-  (import chicken scheme)
+  (import (chicken module) scheme)
   (reexport m25)
   (define bar 2))
 
 (module m27 *
-  (import chicken scheme)
+  (import (chicken module) scheme)
   (reexport m25) ;; <- oops, bar not exported anymore
   (define bar 2))
 
@@ -294,21 +294,21 @@
 ;; somewhat related, but with syntax (#882, found by megane):
 
 (module m29 *
-  (import chicken scheme)
+  (import (chicken syntax) scheme)
   (define-syntax m29-baz
     (er-macro-transformer
      (lambda _
        ''foo))))
 
 (module m30 *
-  (import chicken scheme)
+  (import (chicken module))
   (import m29)
   (export m29-baz))
 
 (test-equal
  "star-export with explicit re-export of syntax"
  (module m31 ()
-   (import scheme chicken)
+   (import scheme)
    (import m30)
    (m29-baz))
  'foo)
@@ -333,7 +333,7 @@
 ;; Module instantion does not create multiple variable copies.
 
 (module m31 *
-  (import chicken scheme)
+  (import (chicken base) scheme)
   (define mutation-count 0)
   (define (internally-mutate!)
     (set! mutation-count (add1 mutation-count)))
@@ -341,7 +341,7 @@
     mutation-count))
 
 (module m32 *
-  (import chicken scheme m31)
+  (import (chicken base) scheme m31)
   (define (externally-mutate!)
     (set! mutation-count (add1 mutation-count))))
 

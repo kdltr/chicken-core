@@ -99,7 +99,9 @@
    (include "posixwin.scm"))))
 
 (module chicken.errno *
-(import scheme chicken)
+(import scheme
+	(only chicken errno)
+	(chicken module))
 (export errno)
 (define errno/2big _e2big)
 (define errno/acces _eacces)

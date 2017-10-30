@@ -69,6 +69,9 @@ echo "======================================== compiler tests ..."
 $compile compiler-tests.scm
 ./a.out
 
+echo "======================================== csc tests ..."
+$interpret -s csc-tests.scm
+
 echo "======================================== compiler inlining tests  ..."
 $compile inlining-tests.scm -optimize-level 3
 ./a.out
