@@ -1075,6 +1075,10 @@
 
 (define-inline (se-subset names env) (map (cut assq <> env) names))
 
+;; Hack for library.scm to use macros from modules it defines itself.
+(##sys#register-core-module
+ 'chicken.internal.syntax #f '() (##sys#macro-environment))
+
 (##sys#register-core-module
  'chicken.module #f '() ##sys#chicken.module-macro-environment)
 
