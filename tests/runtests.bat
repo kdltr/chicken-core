@@ -110,15 +110,15 @@ if errorlevel 1 exit /b 1
 del /f /q foo.types foo.import.*
 
 echo ======================================== specialization benchmark ...
-%compile% fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1
+%compile% fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1.out
 if errorlevel 1 exit /b 1
-%compile% fft.scm -O2 -local -specialize -debug x -d0 -disable-interrupts -b -o fft2 -specialize
+%compile% fft.scm -O2 -local -specialize -debug x -d0 -disable-interrupts -b -o fft2.out -specialize
 if errorlevel 1 exit /b 1
 echo normal:
-fft1 1000 7
+fft1.out 1000 7
 if errorlevel 1 exit /b 1
 echo specialized:
-fft2 1000 7
+fft2.out 1000 7
 if errorlevel 1 exit /b 1
 
 echo ======================================== callback tests ...
@@ -336,10 +336,10 @@ if errorlevel 1 exit /b 1
 
 echo ======================================== r4rstest ...
 echo (expect mult-float-print-test to fail)
-%interpret% -R data-structures -e "(set! ##sys#procedure->string (constantly \"#<procedure>\"))" -i -s r4rstest.scm >r4rstest.log
+%interpret% -R data-structures -e "(set! ##sys#procedure->string (constantly \"#<procedure>\"))" -i -s r4rstest.scm >r4rstest.out
 if errorlevel 1 exit /b 1
 
-type r4rstest.log
+type r4rstest.out
 
 echo ======================================== syntax tests (r5rs_pitfalls) ...
 echo (expect two failures)
@@ -406,7 +406,7 @@ if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 
-echo ======================================== string->number tests ...
+echo ======================================== string-^>number tests ...
 %interpret% -s numbers-string-conversion-tests.scm
 if errorlevel 1 exit /b 1
 %compile% -specialize numbers-string-conversion-tests.scm
@@ -581,23 +581,23 @@ if errorlevel 1 exit /b 1
 
 echo ======================================== linking tests ...
 %compile2% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.o
-%compile2% -link reverser linking-tests.scm
+%compile2% -link reverser linking-tests.scm -o a.out
 if errorlevel 1 exit /b 1
-linking-tests
+a.out
 if errorlevel 1 exit /b 1
-%compile2% -link reverser linking-tests.scm -static
+%compile2% -link reverser linking-tests.scm -o a.out -static
 if errorlevel 1 exit /b 1
-linking-tests
+a.out
 if errorlevel 1 exit /b 1
 move reverser.o %CHICKEN_INSTALL_REPOSITORY%
 move reverser.import.scm %CHICKEN_INSTALL_REPOSITORY%
-%compile2% -link reverser linking-tests.scm
+%compile2% -link reverser linking-tests.scm -o a.out
 if errorlevel 1 exit /b 1
-linking-tests
+a.out
 if errorlevel 1 exit /b 1
-%compile2% -link reverser linking-tests.scm -static
+%compile2% -link reverser linking-tests.scm -o a.out -static
 if errorlevel 1 exit /b 1
-linking-tests
+a.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== private repository test ...
@@ -609,7 +609,6 @@ tmp\xxx %CD%\tmp
 set PATH=%CD%\tmp;%PATH% xxx %CD%\tmp
 rem this may crash, if the PATH contains a non-matching libchicken.dll on Windows:
 set PATH=%PATH%;%CD%\tmp xxx %CD%\tmp
-del /f /q /s rev-app rev-app-2 reverser\*.import.* reverser\*.so
 
 echo ======================================== multiple return values tests ...
 %interpret% -s multiple-values.scm

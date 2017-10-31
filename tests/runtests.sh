@@ -99,10 +99,10 @@ $compile specialization-tests.scm -analyze-only -verbose -specialize 2>specializ
 
 # these are sensitive to gensym-names, so make them optional
 if test \! -f scrutiny.expected; then
-    cp scrutiny.out scrutiny.expected
+    cp scrutiny.expected scrutiny.out
 fi
 if test \! -f specialization.expected; then
-    cp specialization.out specialization.expected
+    cp specialization.expected specialization.out
 fi
 
 diff $DIFF_OPTS scrutiny.expected scrutiny.out
@@ -112,7 +112,7 @@ $compile scrutiny-tests-2.scm -A 2>scrutiny-2.out -verbose
 
 # this is sensitive to gensym-names, so make it optional
 if test \! -f scrutiny-2.expected; then
-    cp scrutiny-2.out scrutiny-2.expected
+    cp scrutiny-2.expected scrutiny-2.out
 fi
 
 diff $DIFF_OPTS scrutiny-2.expected scrutiny-2.out
@@ -133,12 +133,12 @@ $compile specialization-test-2.scm -types foo.types -types specialization-test-2
 rm -f foo.types foo.import.*
 
 echo "======================================== specialization benchmark ..."
-$compile fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1
-$compile fft.scm -O2 -local -specialize -debug x -d0 -disable-interrupts -b -o fft2 -specialize
+$compile fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1.out
+$compile fft.scm -O2 -local -specialize -debug x -d0 -disable-interrupts -b -o fft2.out -specialize
 echo "normal:"
-$time ./fft1 1000 7
+$time ./fft1.out 1000 7
 echo "specialized:"
-$time ./fft2 1000 7
+$time ./fft2.out 1000 7
 
 echo "======================================== callback tests ..."
 $compile -extend c-id-valid.scm callback-tests.scm
@@ -278,9 +278,9 @@ $interpret -s loopy-test.scm
 echo "======================================== r4rstest ..."
 echo "(expect mult-float-print-test to fail)"
 $interpret -R data-structures -e '(set! ##sys#procedure->string (constantly "#<procedure>"))' \
-  -i -s r4rstest.scm >r4rstest.log
+  -i -s r4rstest.scm >r4rstest.out
 
-diff $DIFF_OPTS r4rstest.out r4rstest.log
+diff $DIFF_OPTS r4rstest.expected r4rstest.out
 
 echo "======================================== syntax tests (r5rs_pitfalls) ..."
 echo "(expect two failures)"
@@ -454,15 +454,15 @@ $compile -e embedded3.c embedded4.scm
 
 echo "======================================== linking tests ..."
 $compile2 -unit reverser reverser/tags/1.0/reverser.scm -J -c -o reverser.o
-$compile2 -link reverser linking-tests.scm
-./linking-tests
-$compile2 -link reverser linking-tests.scm -static
-./linking-tests
+$compile2 -link reverser linking-tests.scm -o a.out
+./a.out
+$compile2 -link reverser linking-tests.scm -o a.out -static
+./a.out
 mv reverser.o reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
-$compile2 -link reverser linking-tests.scm
-./linking-tests
-$compile2 -link reverser linking-tests.scm -static
-./linking-tests
+$compile2 -link reverser linking-tests.scm -o a.out
+./a.out
+$compile2 -link reverser linking-tests.scm -o a.out -static
+./a.out
 
 echo "======================================== private repository test ..."
 mkdir -p tmp
@@ -472,7 +472,6 @@ tmp/xxx ${TEST_DIR}/tmp
 PATH=`pwd`/tmp:$PATH xxx ${TEST_DIR}/tmp
 # this may crash, if the PATH contains a non-matching libchicken.dll on Windows:
 #PATH=$PATH:${TEST_DIR}/tmp xxx ${TEST_DIR}/tmp
-rm -fr reverser/*.import.* reverser/*.so
 
 echo "======================================== multiple return values tests ..."
 $interpret -s multiple-values.scm

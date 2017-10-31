@@ -955,7 +955,7 @@ clean:
 	  $(IMPORT_LIBRARIES:=.import.so) $(LIBCHICKEN_IMPORT_LIBRARY) \
 	  $(foreach lib,$(DYNAMIC_IMPORT_LIBRARIES),chicken.$(lib).import.scm)
 ifdef USES_SONAME
-	$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX).so.$(BINARYVERSION)
+	-$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX).so.$(BINARYVERSION)
 endif
 
 confclean:
@@ -966,12 +966,23 @@ spotless: distclean testclean
 	-$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) $(DISTFILES) \
 	buildid buildbranch
 
-
 distclean: clean confclean
 
 testclean:
-	$(REMOVE_COMMAND) $(REMOVE_COMMAND_RECURSIVE_OPTIONS) $(SRCDIR)tests$(SEP)a.out $(SRCDIR)tests$(SEP)scrutiny.out \
-	  $(SRCDIR)tests$(SEP)tmp* $(SRCDIR)tests$(SEP)*.so $(SRCDIR)tests$(SEP)*.import.scm $(SRCDIR)tests$(SEP)repository $(SRCDIR)tests$(SEP)*.dll
+	-$(REMOVE_COMMAND) $(REMOVE_COMMAND_RECURSIVE_OPTIONS) \
+	  $(SRCDIR)tests$(SEP)*.dll \
+	  $(SRCDIR)tests$(SEP)*.import.scm \
+	  $(SRCDIR)tests$(SEP)*.link \
+	  $(SRCDIR)tests$(SEP)*.out \
+	  $(SRCDIR)tests$(SEP)*.profile \
+	  $(SRCDIR)tests$(SEP)*.so \
+	  $(SRCDIR)tests$(SEP)tmp* \
+	  $(SRCDIR)tests$(SEP)empty-file \
+	  $(SRCDIR)tests$(SEP)null \
+	  $(SRCDIR)tests$(SEP)null.c \
+	  $(SRCDIR)tests$(SEP)null.o \
+	  $(SRCDIR)tests$(SEP)null.exe \
+	  $(SRCDIR)tests$(SEP)test-repository
 
 # run tests
 
