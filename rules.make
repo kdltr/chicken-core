@@ -1005,7 +1005,7 @@ bench: $(CHICKEN_SHARED_EXECUTABLE) $(CSI_SHARED_EXECUTABLE) $(CSC_PROGRAM)$(EXE
 
 # build static bootstrapping chicken
 
-.PHONY: boot-chicken
+.PHONY: boot-chicken bootclean
 
 boot-chicken:
 	"$(MAKE)" PLATFORM=$(PLATFORM) PREFIX=/nowhere CONFIG= \
@@ -1016,6 +1016,13 @@ boot-chicken:
 	  CHICKEN=.$(SEP)chicken-boot-stage1$(EXE) PROGRAM_SUFFIX=-boot \
 	  STATICBUILD=1 C_COMPILER_OPTIMIZATION_OPTIONS="$(C_COMPILER_OPTIMIZATION_OPTIONS)" \
 	  touchfiles chicken-boot$(EXE) confclean
+
+bootclean:
+	-$(REMOVE_COMMAND) $(REMOVE_COMMAND_OPTIONS) \
+	  $(SRCDIR)chicken-boot$(EXE) \
+	  $(SRCDIR)chicken-boot-stage1$(EXE) \
+	  $(SRCDIR)libchicken-boot$(A) \
+	  $(SRCDIR)libchicken-boot-stage1$(A)
 
 .PHONY: touchfiles
 
