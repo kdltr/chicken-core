@@ -485,6 +485,7 @@
                        (info (validate-egg-info (load-egg-info eggfile)))
                        (rversion (get-egg-property info 'version)))
                   (if (or (not rversion)
+                          (not version)
                           (version>=? rversion version))
                       (copy-egg-sources dir dest)
                       (loop (cdr locs))))))
