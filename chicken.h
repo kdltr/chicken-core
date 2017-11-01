@@ -316,33 +316,6 @@ void *alloca ();
 
 #define C_TIMER_INTERRUPTS
 
-/* For the `bind' (and the obsolete `easyffi'): */
-
-#define ___fixnum           int
-#define ___number           double
-#define ___bool             int
-#define ___byte             char
-#define ___scheme_value     C_word
-#define ___scheme_pointer   void *
-#define ___blob             void *
-#define ___pointer_vector   void **
-#define ___symbol           char *
-#define ___safe
-#define ___declare(x, y)
-#define ___specialize
-#define ___abstract
-#define ___discard
-#define ___in
-#define ___out
-#define ___inout
-#define ___mutable
-#define ___length(var)
-#define ___pointer
-#define ___u32              C_u32
-#define ___s32              C_s32
-#define ___u64              C_u64
-#define ___s64              C_s64
-
 
 /* Constants: */
 

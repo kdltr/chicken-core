@@ -13,7 +13,7 @@
 
 #>
 static void *
-makef(int f, ___scheme_value x)
+makef(int f, C_word x)
 {
   void *r = f ? CHICKEN_new_finalizable_gc_root() : CHICKEN_new_gc_root();
 
