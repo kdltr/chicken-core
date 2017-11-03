@@ -12530,6 +12530,7 @@ C_i_pending_interrupt(C_word dummy)
 
 #ifdef __linux__
 # include <sys/syscall.h>
+# include <fcntl.h>
 #elif defined(__OpenBSD__)
 # include <sys/systm.h>
 #endif
@@ -12558,7 +12559,22 @@ C_word C_random_bytes(C_word buf, C_word size)
   if(!RtlGenRandom((PVOID)C_data_pointer(buf), (LONG)count)) 
     r = -1;
 #else 
-  return C_SCHEME_FALSE;
+  static int fd = 0;
+
+  if(fd == 0) {
+    fd = open("/dev/urandom", O_RDONLY);
+
+    if(fd == -1) {
+      fd = 0;
+      return C_fix(-1);
+    }
+  }
+
+  do {
+     r = read(fd, C_data_pointer(buf), count);
+   } while(r == -1 && errno == EINTR);
+
+  r = 0;
 #endif
   return C_fix(r);
 }

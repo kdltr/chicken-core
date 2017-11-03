@@ -685,16 +685,10 @@
                         (else (make-string (or size nstate)))))
              (r (##core#inline "C_random_bytes" dest
                                (or size (##sys#size dest)))))
-        (cond ((eq? -1 r)
-               (##sys#error 'random-bytes "error while obtaining random bytes"))
-              ((not r)   ; no syscall or API function, read from /dev/urandom...
-               (unless in
-                 (if (file-exists? "/dev/urandom")
-                     (set! in (open-input-file "/dev/urandom" #:binary))
-                     (##sys#error 'random-bytes "no entropy source available")))
-               (read-string! nstate dest in)
-               (unless (eq? buf dest)
-                 (##core#inline "C_string_to_bytevector" dest))))
-        dest))))               
+        (when (eq? -1 r)
+          (##sys#error 'random-bytes "unable to read random bytes"))
+        (unless (eq? buf dest)
+          (##core#inline "C_string_to_bytevector" dest))
+        dest))))
 
 )
