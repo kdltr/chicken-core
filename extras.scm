@@ -644,19 +644,64 @@
 ;;; Random numbers:
 
 (module chicken.random
-  (randomize random)
+  (set-pseudo-random-seed! pseudo-random-integer random-bytes)
 
-(import scheme chicken chicken.time)
+(import scheme chicken chicken.time chicken.io foreign)
 
-(define (randomize . n)
-  (let ((nn (if (null? n)
-		(quotient (current-seconds) 1000) ; wall clock time
-		(car n))))
-    (##sys#check-fixnum nn 'randomize)
-    (##core#inline "C_randomize" nn)))
+(define (set-pseudo-random-seed! buf #!optional n)
+  (if n
+      (##sys#check-fixnum n 'set-pseudo-random-seed!)
+      (set! n (##sys#size buf)))
+  (unless (##core#inline "C_byteblockp" buf)
+    (##sys#error 'set-pseudo-random-seed!
+                 "invalid buffer type" buf))
+  (##core#inline "C_set_random_seed" buf
+                 (##core#inline "C_i_fixnum_min" 
+                                n 
+                                (##sys#size buf))))
 
-(define (random n)
-  (##sys#check-fixnum n 'random)
-  (if (eq? n 0)
-      0
-      (##core#inline "C_random_fixnum" n))))
+(define (pseudo-random-integer n)
+  (define (badrange)
+    (##sys#error 'pseudo-random-integer "invalid range" n))
+  (cond ((##core#inline "C_fixnump" n)
+         (if (##core#inline "C_fixnum_lessp" n 0)
+             (badrange)
+             (##core#inline "C_random_fixnum" n)))
+        ((not (##core#inline "C_i_bignump" n))
+         (##sys#error 'pseudo-random-integer "bad argument type" n))
+        (else
+          (if (##core#inline "C_i_lessp" n 0)
+              (badrange)
+              (##core#inline_allocate ("C_s_a_u_i_random_int" 2)
+                                      n)))))
+
+(define random-bytes
+  (let ((in #f)
+        (nstate (foreign-value "C_RANDOM_STATE_SIZE" unsigned-int)))
+    (lambda (#!optional buf size)
+      (when size
+        (##sys#check-fixnum size 'random-bytes)
+        (when (or (< size 0) 
+                  (> size 256))
+          (##sys#error 'random-bytes "size out of range" size)))
+      (let* ((dest (cond (buf
+                         (unless (##core#inline "C_byteblockp" buf)
+                           (##sys#error 'random-bytes
+                                        "invalid buffer type" buf))
+                         buf)
+                        (else (make-string (or size nstate)))))
+             (r (##core#inline "C_random_bytes" dest
+                               (or size (##sys#size dest)))))
+        (cond ((eq? -1 r)
+               (##sys#error 'random-bytes "error while obtaining random bytes"))
+              ((not r)   ; no syscall or API function, read from /dev/urandom...
+               (unless in
+                 (if (file-exists? "/dev/urandom")
+                     (set! in (open-input-file "/dev/urandom" #:binary))
+                     (##sys#error 'random-bytes "no entropy source available")))
+               (read-string! nstate dest in)
+               (unless (eq? buf dest)
+                 (##core#inline "C_string_to_bytevector" dest))))
+        dest))))               
+
+)

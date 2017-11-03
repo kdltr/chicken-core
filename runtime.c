@@ -479,6 +479,8 @@ static C_TLS int
   pending_interrupts[ MAX_PENDING_INTERRUPTS ],
   pending_interrupts_count,
   handling_interrupts;
+static C_TLS C_u32 random_state[ C_RANDOM_STATE_SIZE / sizeof(C_u32) ]; 
+static C_TLS int random_state_index = 0;
 
 
 /* Prototypes: */
@@ -816,7 +818,11 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   current_module_handle = NULL;
   callback_continuation_level = 0;
   gc_ms = 0;
-  (void)C_randomize(C_fix(time(NULL)));
+  srand(C_fix(time(NULL)));
+
+  for(i = 0; i < C_RANDOM_STATE_SIZE / sizeof(C_u32); ++i)
+    random_state[ i ] = rand();
+
   initialize_symbol_table();
 
   if (profiling) {
@@ -12515,4 +12521,113 @@ C_i_pending_interrupt(C_word dummy)
     handling_interrupts = 0; /* OK, can go on */
     return C_SCHEME_FALSE;
   }
+}
+
+
+/* random numbers, mostly lifted from 
+  https://github.com/jedisct1/libsodium/blob/master/src/libsodium/randombytes/sysrandom/randombytes_sysrandom.c
+*/
+
+#ifdef __linux__
+# include <sys/syscall.h>
+#elif defined(__OpenBSD__)
+# include <sys/systm.h>
+#endif
+
+#ifdef _WIN32
+# define RtlGenRandom SystemFunction036
+# if defined(__cplusplus)
+extern "C"
+# endif
+BOOLEAN WINAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
+#endif
+
+
+C_word C_random_bytes(C_word buf, C_word size)
+{
+  int count = C_unfix(size);
+  int r = 0;
+
+#ifdef __OpenBSD__
+  arc4random_buf(C_data_pointer(buf), count);
+#elif defined(SYS_getrandom) && defined(__NR_getrandom)
+  do {
+    r = getrandom(C_data_pointer(buf), count, 0);
+  } while(r < 0 && (errno == EINTR));
+#elif defined(_WIN32)
+  if(!RtlGenRandom((PVOID)C_data_pointer(buf), (LONG)count)) 
+    r = -1;
+#else 
+  return C_SCHEME_FALSE;
+#endif
+  return C_fix(r);
+}
+
+
+/* WELL512 pseudo random number generator, see also:
+   https://en.wikipedia.org/wiki/Well_equidistributed_long-period_linear
+   http://lomont.org/Math/Papers/2008/Lomont_PRNG_2008.pdf
+*/
+
+static C_u32 random_word(void)
+{ 
+  C_u32 a, b, c, d, r; 
+  a  = random_state[random_state_index]; 
+  c  = random_state[(random_state_index+13)&15]; 
+  b  = a^c^(a<<16)^(c<<15); 
+  c  = random_state[(random_state_index+9)&15]; 
+  c ^= (c>>11); 
+  a  = random_state[random_state_index] = b^c;  
+  d  = a^((a<<5)&0xDA442D24UL);  
+  random_state_index = (random_state_index + 15)&15; 
+  a  = random_state[random_state_index]; 
+  random_state[random_state_index] = a^b^d^(a<<2)^(b<<18)^(c<<28); 
+  r = random_state[random_state_index];
+  return r;
+} 
+                                                 
+
+C_regparm C_word C_random_fixnum(C_word n)
+{ 
+  C_u32 r = random_word();
+  return C_fix(((double)r / 0xffffffffUL) * C_unfix(n));
+} 
+
+
+C_regparm C_word C_fcall
+C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
+{
+  C_uword *start, *end;
+  int len = integer_length_abs(rn);
+  C_word size = C_fix(C_BIGNUM_BITS_TO_DIGITS(len));
+  C_word result = C_allocate_scratch_bignum(ptr, size, C_SCHEME_FALSE, C_SCHEME_FALSE);
+  C_u32 *p, mask;
+
+  start = C_bignum_digits(result);
+  end = start + C_bignum_size(result);
+
+  for(p = (C_u32 *)start; p < ((C_u32*)end - 1); ++p) {
+    *p = random_word();
+    len -= sizeof(C_u32);
+  }
+
+  *end = random_word() >> len;
+  return C_bignum_simplify(result);
+}
+
+
+C_word C_set_random_seed(C_word buf, C_word n)
+{
+  int i, nsu = C_unfix(n) / sizeof(C_u32);
+  int off = 0;
+
+  for(i = 0; i < C_RANDOM_STATE_SIZE; ++i) {
+    if(off >= nsu) off = 0;
+
+    random_state[ i ] = *((C_u32 *)C_data_pointer(buf) + off);
+    ++off;
+  }
+
+  random_state_index = 0;
+  return C_SCHEME_FALSE;
 }

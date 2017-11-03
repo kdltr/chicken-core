@@ -735,6 +735,8 @@ void *alloca ();
 # define C_MAX_PATH 1024
 #endif
 
+#define C_RANDOM_STATE_SIZE               (16 * sizeof(C_u32))
+
 /* Types: */
 
 typedef struct C_block_struct
@@ -1232,8 +1234,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 						  C_unfix(end1) - C_unfix(start1) ), C_SCHEME_UNDEFINED)
 #define C_words(n)                      C_fix(C_bytestowords(C_unfix(n)))
 #define C_bytes(n)                      C_fix(C_wordstobytes(C_unfix(n)))
-#define C_random_fixnum(n)              C_fix((C_word)(((double)rand())/(RAND_MAX + 1.0) * C_unfix(n)))
-#define C_randomize(n)                  (srand(C_unfix(n)), C_SCHEME_UNDEFINED)
+#define C_rand(n)                      C_fix((C_word)(((double)rand())/(RAND_MAX + 1.0) * C_unfix(n)))
 #define C_block_size(x)                 C_fix(C_header_size(x))
 #define C_u_i_bignum_size(b)            C_fix(C_bignum_size(b))
 #define C_a_u_i_big_to_flo(p, n, b)     C_flonum(p, C_bignum_to_double(b))
@@ -2091,6 +2092,11 @@ C_fctexport C_word C_fcall C_i_foreign_unsigned_ranged_integer_argumentp(C_word 
 
 C_fctexport C_char *C_lookup_procedure_id(void *ptr);
 C_fctexport void *C_lookup_procedure_ptr(C_char *id);
+
+C_fctexport C_word C_random_fixnum(C_word n) C_regparm;
+C_fctexport C_word C_fcall C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn) C_regparm;
+C_fctexport C_word C_random_bytes(C_word buf, C_word size);
+C_fctexport C_word C_set_random_seed(C_word buf, C_word n);
 
 #ifdef C_SIXTY_FOUR
 C_fctexport C_cpsproc(C_peek_signed_integer_32);
