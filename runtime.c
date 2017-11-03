@@ -12590,6 +12590,16 @@ static C_u32 random_word(void)
 C_regparm C_word C_random_fixnum(C_word n)
 { 
   C_u32 r = random_word();
+  C_word nf;
+
+  if (!(n & C_FIXNUM_BIT))
+    barf(C_BAD_ARGUMENT_TYPE_NO_FIXNUM_ERROR, "pseudo-random-integer", n);
+
+  nf = C_unfix(n);
+
+  if(nf < 0)
+    barf(C_OUT_OF_RANGE_ERROR, "pseudo-random-integer", n, C_fix(0));
+
   return C_fix(((double)r / 0xffffffffUL) * C_unfix(n));
 } 
 
@@ -12598,6 +12608,10 @@ C_regparm C_word C_fcall
 C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
 {
   C_uword *start, *end;
+
+  if(C_bignum_negativep(rn))
+    barf(C_OUT_OF_RANGE_ERROR, "pseudo-random-integer", rn, C_fix(0));
+
   int len = integer_length_abs(rn);
   C_word size = C_fix(C_BIGNUM_BITS_TO_DIGITS(len));
   C_word result = C_allocate_scratch_bignum(ptr, size, C_SCHEME_FALSE, C_SCHEME_FALSE);

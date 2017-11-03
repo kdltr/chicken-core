@@ -649,31 +649,24 @@
 (import scheme chicken chicken.time chicken.io foreign)
 
 (define (set-pseudo-random-seed! buf #!optional n)
+  ;; doesn't enforce size of buf being at least 4 bytes
   (if n
       (##sys#check-fixnum n 'set-pseudo-random-seed!)
       (set! n (##sys#size buf)))
   (unless (##core#inline "C_byteblockp" buf)
-    (##sys#error 'set-pseudo-random-seed!
-                 "invalid buffer type" buf))
+    (##sys#error 'set-pseudo-random-seed! "invalid buffer type" buf))
   (##core#inline "C_set_random_seed" buf
                  (##core#inline "C_i_fixnum_min" 
                                 n 
                                 (##sys#size buf))))
 
 (define (pseudo-random-integer n)
-  (define (badrange)
-    (##sys#error 'pseudo-random-integer "invalid range" n))
   (cond ((##core#inline "C_fixnump" n)
-         (if (##core#inline "C_fixnum_lessp" n 0)
-             (badrange)
-             (##core#inline "C_random_fixnum" n)))
+         (##core#inline "C_random_fixnum" n))
         ((not (##core#inline "C_i_bignump" n))
          (##sys#error 'pseudo-random-integer "bad argument type" n))
         (else
-          (if (##core#inline "C_i_lessp" n 0)
-              (badrange)
-              (##core#inline_allocate ("C_s_a_u_i_random_int" 2)
-                                      n)))))
+          (##core#inline_allocate ("C_s_a_u_i_random_int" 2) n))))
 
 (define random-bytes
   (let ((in #f)
