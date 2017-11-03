@@ -12548,35 +12548,49 @@ C_word C_random_bytes(C_word buf, C_word size)
 {
   int count = C_unfix(size);
   int r = 0;
+  int off = 0;
 
 #ifdef __OpenBSD__
   arc4random_buf(C_data_pointer(buf), count);
 #elif defined(SYS_getrandom) && defined(__NR_getrandom)
-  do {
-    r = getrandom(C_data_pointer(buf), count, 0);
-  } while(r < 0 && (errno == EINTR));
+  while(count > 0) {
+    r = getrandom(C_data_pointer(buf) + off, count, GRND_NONBLOCK);
+
+    if(r == -1) {
+      if(errno != EINTR) return C_SCHEME_FALSE;
+      else r = 0;
+    }
+
+    count -= r;
+    off += r;
+  }
 #elif defined(_WIN32) && !defined(__CYGWIN__)
   if(!RtlGenRandom((PVOID)C_data_pointer(buf), (LONG)count)) 
-    r = -1;
+    return C_SCHEME_FALSE;
 #else 
-  static int fd = 0;
+  static int fd = -1;
 
-  if(fd == 0) {
+  if(fd == -1) {
     fd = open("/dev/urandom", O_RDONLY);
 
     if(fd == -1) {
-      fd = 0;
-      return C_fix(-1);
+      return C_SCHEME_FALSE;
     }
   }
 
-  do {
-     r = read(fd, C_data_pointer(buf), count);
-   } while(r == -1 && errno == EINTR);
+  while(count > 0) {
+    r = read(fd, C_data_pointer(buf) + off, count);
 
-  r = 0;
+    if(r == -1) {
+      if(errno != EINTR && errno != EAGAIN) return C_SCHEME_FALSE;
+      else r = 0;
+    }
+
+    count -= r;
+    off += r;
+   }
 #endif
-  return C_fix(r);
+  return C_SCHEME_TRUE;
 }
 
 

@@ -673,18 +673,18 @@
     (lambda (#!optional buf size)
       (when size
         (##sys#check-fixnum size 'random-bytes)
-        (when (or (< size 0) 
-                  (> size 256))
-          (##sys#error 'random-bytes "size out of range" size)))
+        (when (< size 0) 
+          (##sys#error 'random-bytes "invalid size" size)))
       (let* ((dest (cond (buf
-                         (unless (##core#inline "C_byteblockp" buf)
+                         (when (or (##core#inline "C_immediatep" buf)
+                                   (not (##core#inline "C_byteblockp" buf)))
                            (##sys#error 'random-bytes
                                         "invalid buffer type" buf))
                          buf)
                         (else (make-string (or size nstate)))))
              (r (##core#inline "C_random_bytes" dest
                                (or size (##sys#size dest)))))
-        (when (eq? -1 r)
+        (unless r
           (##sys#error 'random-bytes "unable to read random bytes"))
         (unless (eq? buf dest)
           (##core#inline "C_string_to_bytevector" dest))
