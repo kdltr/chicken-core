@@ -12535,7 +12535,7 @@ C_i_pending_interrupt(C_word dummy)
 # include <sys/systm.h>
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__CYGWIN__)
 # define RtlGenRandom SystemFunction036
 # if defined(__cplusplus)
 extern "C"
@@ -12555,7 +12555,7 @@ C_word C_random_bytes(C_word buf, C_word size)
   do {
     r = getrandom(C_data_pointer(buf), count, 0);
   } while(r < 0 && (errno == EINTR));
-#elif defined(_WIN32)
+#elif defined(_WIN32) && !defined(__CYGWIN__)
   if(!RtlGenRandom((PVOID)C_data_pointer(buf), (LONG)count)) 
     r = -1;
 #else 
