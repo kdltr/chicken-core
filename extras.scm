@@ -669,8 +669,7 @@
           (##core#inline_allocate ("C_s_a_u_i_random_int" 2) n))))
 
 (define random-bytes
-  (let ((in #f)
-        (nstate (foreign-value "C_RANDOM_STATE_SIZE" unsigned-int)))
+  (let ((nstate (foreign-value "C_RANDOM_STATE_SIZE" unsigned-int)))
     (lambda (#!optional buf size)
       (when size
         (##sys#check-fixnum size 'random-bytes)
