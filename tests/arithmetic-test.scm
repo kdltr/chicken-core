@@ -15,7 +15,7 @@
   (else))
 
 
-(import pretty-print random (chicken platform))
+(import pretty-print (chicken random) (chicken platform))
 
 (define range 2)
 (define random-range 32000)
@@ -34,8 +34,8 @@
 	(expt 2 32)))
 
 (cond-expand
-  (fully-random (randomize))
-  (else (randomize 42)))
+  (fully-random)
+  (else (set-pseudo-random-seed! "abcdefgh")))
 
 (define (push c total opname args res)
   (let ((x (list (cons c total) (cons opname args) '-> res)))
@@ -71,7 +71,8 @@
       (lambda (y)
 	(do ((i 10 (sub1 i)))
 	    ((zero? i))
-	  (let* ((args (list (+ x (random random-range)) (+ y (random random-range))))
+	  (let* ((args (list (+ x (pseudo-random-integer random-range)) 
+                      (+ y (pseudo-random-integer random-range))))
 		 (res
 		  (and (cond-expand
 			 (fx-ops
