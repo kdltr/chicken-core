@@ -162,7 +162,7 @@
   (let ((cache-s #f)
 	(cache-h #f)
 	;; NOTE: All low-level hash tables share the same randomization factor
-	(rand (##core#inline "C_random_fixnum" #x10000)))
+	(rand (##core#inline "C_rand" #x10000)))
     (lambda (s n)
       (if (eq? s cache-s)
 	  (##core#inline "C_fixnum_modulo" cache-h n)
