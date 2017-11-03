@@ -12635,7 +12635,7 @@ C_word C_set_random_seed(C_word buf, C_word n)
   int i, nsu = C_unfix(n) / sizeof(C_u32);
   int off = 0;
 
-  for(i = 0; i < C_RANDOM_STATE_SIZE; ++i) {
+  for(i = 0; i < (C_RANDOM_STATE_SIZE / sizeof(C_u32)); ++i) {
     if(off >= nsu) off = 0;
 
     random_state[ i ] = *((C_u32 *)C_data_pointer(buf) + off);
