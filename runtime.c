@@ -12554,7 +12554,8 @@ C_word C_random_bytes(C_word buf, C_word size)
   arc4random_buf(C_data_pointer(buf), count);
 #elif defined(SYS_getrandom) && defined(__NR_getrandom)
   while(count > 0) {
-    r = syscall(SYS_getrandom, C_data_pointer(buf) + off, count, GRND_NONBLOCK);
+    /* GRND_NONBLOCK = 0x0001 */
+    r = syscall(SYS_getrandom, C_data_pointer(buf) + off, count, 1);
 
     if(r == -1) {
       if(errno != EINTR) return C_SCHEME_FALSE;
