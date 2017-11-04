@@ -166,6 +166,7 @@ tests/test-finalizers.scm
 tests/test-finalizers-2.scm
 tests/test-find-files.scm
 tests/module-tests-compiled.scm
+tests/random-tests.scm
 tests/scrutinizer-tests.scm
 tests/scrutiny-tests.scm
 tests/scrutiny-tests-strict.scm
