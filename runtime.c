@@ -12662,7 +12662,7 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
   int len = integer_length_abs(rn);
   C_word size = C_fix(C_BIGNUM_BITS_TO_DIGITS(len));
   C_word result = C_allocate_scratch_bignum(ptr, size, C_SCHEME_FALSE, C_SCHEME_FALSE);
-  C_uword *p, mask;
+  C_uword *p;
 
   start = C_bignum_digits(result);
   end = start + C_bignum_size(result);
