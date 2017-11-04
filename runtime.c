@@ -479,7 +479,7 @@ static C_TLS int
   pending_interrupts[ MAX_PENDING_INTERRUPTS ],
   pending_interrupts_count,
   handling_interrupts;
-static C_TLS C_u32 random_state[ C_RANDOM_STATE_SIZE / sizeof(C_u32) ]; 
+static C_TLS C_uword random_state[ C_RANDOM_STATE_SIZE / sizeof(C_uword) ]; 
 static C_TLS int random_state_index = 0;
 
 
@@ -820,7 +820,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   gc_ms = 0;
   srand(C_fix(time(NULL)));
 
-  for(i = 0; i < C_RANDOM_STATE_SIZE / sizeof(C_u32); ++i)
+  for(i = 0; i < C_RANDOM_STATE_SIZE / sizeof(C_uword); ++i)
     random_state[ i ] = rand();
 
   initialize_symbol_table();
@@ -12716,13 +12716,13 @@ C_a_i_random_real(C_word **ptr, C_word n) {
 
 C_word C_set_random_seed(C_word buf, C_word n)
 {
-  int i, nsu = C_unfix(n) / sizeof(C_u32);
+  int i, nsu = C_unfix(n) / sizeof(C_uword);
   int off = 0;
 
-  for(i = 0; i < (C_RANDOM_STATE_SIZE / sizeof(C_u32)); ++i) {
+  for(i = 0; i < (C_RANDOM_STATE_SIZE / sizeof(C_uword)); ++i) {
     if(off >= nsu) off = 0;
 
-    random_state[ i ] = *((C_u32 *)C_data_pointer(buf) + off);
+    random_state[ i ] = *((C_uword *)C_data_pointer(buf) + off);
     ++off;
   }
 
