@@ -1613,10 +1613,7 @@ typedef struct C_DEBUG_INFO {
 #define C_DEBUG_LISTEN              6
 #define C_DEBUG_INTERRUPTED         7
 
-#define C_debugger(cell, c, av)     (C_debugger_hook != NULL ? C_debugger_hook(cell, c, av, __FILE__, __LINE__) : C_SCHEME_UNDEFINED)
-
-C_fctexport void C_register_debug_info(C_DEBUG_INFO *);
-
+#define C_debugger(cell, c, av)     (C_debugger_hook != NULL ? C_debugger_hook(cell, c, av, C_text(__FILE__), __LINE__) : C_SCHEME_UNDEFINED)
 
 /* Variables: */
 
@@ -1674,6 +1671,7 @@ C_varextern C_TLS C_word (*C_get_unbound_variable_value_hook)(C_word sym);
 
 C_BEGIN_C_DECLS
 
+C_fctexport void C_register_debug_info(C_DEBUG_INFO *);
 C_fctexport int CHICKEN_main(int argc, char *argv[], void *toplevel);
 C_fctexport int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel);
 C_fctexport C_word CHICKEN_run(void *toplevel);
@@ -2256,9 +2254,7 @@ C_inline C_ulong C_num_to_unsigned_long(C_word x)
 
 C_inline C_word C_u_i_string_equal_p(C_word x, C_word y)
 {
-  C_word n;
-
-  n = C_header_size(x);
+  C_uword n = C_header_size(x);
   return C_mk_bool(n == C_header_size(y)
          && !C_memcmp((char *)C_data_pointer(x), (char *)C_data_pointer(y), n));
 }

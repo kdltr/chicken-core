@@ -26,6 +26,8 @@
   - The scheduler no longer indirectly hangs on to the old thread
     when switching to a new one, which caused excessive memory
     consumption (#1367, thanks to "megane").
+  - C++ programs no longer fail with a symbol lookup error when
+    compiled with debugger support (-d3 or -debug-info).
 
 - Syntax expander
   - Renaming an identifier twice no longer results in an undo of the

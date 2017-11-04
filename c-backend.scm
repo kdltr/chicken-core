@@ -190,9 +190,9 @@
 	       (cond [block
 		      (if safe
 			  (gen "lf[" index "]")
-			  (gen "C_retrieve2(lf[" index "]," 
+			  (gen "C_retrieve2(lf[" index "],C_text("
 			       (c-ify-string (##sys#symbol->qualified-string
-					      (fourth params))) #\)) ) ]
+					      (fourth params))) "))"))]
 		     [safe (gen "*((C_word*)lf[" index "]+1)")]
 		     [else (gen "C_fast_retrieve(lf[" index "])")] ) ) )
 
@@ -304,8 +304,8 @@
 			       (set! carg (string-append "lf[" (number->string index) "]"))
 			       (if safe
 				   (gen "C_fast_retrieve_proc(" carg ")")
-				   (gen "C_retrieve2_symbol_proc(" carg "," 
-					(c-ify-string (##sys#symbol->qualified-string (fourth gparams))) #\)) ) )
+				   (gen "C_retrieve2_symbol_proc(" carg ",C_text("
+					(c-ify-string (##sys#symbol->qualified-string (fourth gparams))) "))")))
 			      (safe
 			       (set! carg 
 				 (string-append "*((C_word*)lf[" (number->string index) "]+1)"))
@@ -707,15 +707,15 @@
 		    [cstr (c-ify-string str)]
 		    [len (##sys#size str)] )
 	       (gen #t to "=")
-	       (gen "C_h_intern(&" to #\, len #\, cstr ");") ) )
+	       (gen "C_h_intern(&" to #\, len ", C_text(" cstr "));")))
 	    ((null? lit) 
 	     (gen #t to "=C_SCHEME_END_OF_LIST;") )
 	    ((and (not (##sys#immediate? lit)) ; nop
 		  (##core#inline "C_lambdainfop" lit)))
 	    ((or (fixnum? lit) (not (##sys#immediate? lit)))
-	     (gen #t to "=C_decode_literal(C_heaptop,")
+	     (gen #t to "=C_decode_literal(C_heaptop,C_text(")
 	     (gen-string-constant (encode-literal lit))
-	     (gen ");") )
+	     (gen "));"))
 	    (else (bad-literal lit))))
 
     (define (gen-string-constant str)
@@ -925,7 +925,7 @@
      (gen #t "{" (second info) ",0,")
      (for-each
       (lambda (x)
-	(gen "\"" (backslashify (->string x)) "\","))
+	(gen "C_text(\"" (backslashify (->string x)) "\"),"))
       (cddr info))
      (gen "},"))
    (sort dbg-info-table (lambda (i1 i2) (< (car i1) (car i2)))))
@@ -939,7 +939,7 @@
        #t "static C_PTABLE_ENTRY ptable[" (add1 (##sys#hash-table-size lambda-table)) "] = {")
   (##sys#hash-table-for-each
    (lambda (id ll)
-     (gen #t "{\"" id #\: (string->c-identifier sf) "\",(void*)")
+     (gen #t "{C_text(\"" id #\: (string->c-identifier sf) "\"),(void*)")
      (if (eq? 'toplevel id)
          (if unit-name
              (gen "C_" unit-name "_toplevel},")
