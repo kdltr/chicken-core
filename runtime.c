@@ -12682,7 +12682,11 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
  * number in [0, 1], 0.00001010011111010100...; then round it.
  * More information on https://mumble.net/~campbell/2014/04/28/uniform-random-float
  */
-#define random64() ((((C_u64) random_word()) << 32) | ((C_u64) random_word()))
+#ifdef C_SIXTYFOUR
+# define random64() random_word()
+#else
+# define random64() ((((C_u64) random_word()) << 32) | ((C_u64) random_word()))
+#endif
 #define	clz64	__builtin_clzll		/* XXX GCCism */
 C_regparm C_word C_fcall
 C_a_i_random_real(C_word **ptr, C_word n) {
