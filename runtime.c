@@ -12554,7 +12554,7 @@ C_word C_random_bytes(C_word buf, C_word size)
   arc4random_buf(C_data_pointer(buf), count);
 #elif defined(SYS_getrandom) && defined(__NR_getrandom)
   while(count > 0) {
-    r = getrandom(C_data_pointer(buf) + off, count, GRND_NONBLOCK);
+    r = syscall(SYS_getrandom, C_data_pointer(buf) + off, count, GRND_NONBLOCK);
 
     if(r == -1) {
       if(errno != EINTR) return C_SCHEME_FALSE;
@@ -12594,14 +12594,21 @@ C_word C_random_bytes(C_word buf, C_word size)
 }
 
 
+#ifdef C_SIXTYFOUR
+# define rand_uint C_u32
+#else
+# define rand_uint C_u64
+#endif
+
+
 /* WELL512 pseudo random number generator, see also:
    https://en.wikipedia.org/wiki/Well_equidistributed_long-period_linear
    http://lomont.org/Math/Papers/2008/Lomont_PRNG_2008.pdf
 */
 
-static C_u32 random_word(void)
+static rand_uint random_word(void)
 { 
-  C_u32 a, b, c, d, r; 
+  rand_uint a, b, c, d, r; 
   a  = random_state[random_state_index]; 
   c  = random_state[(random_state_index+13)&15]; 
   b  = a^c^(a<<16)^(c<<15); 
@@ -12615,11 +12622,21 @@ static C_u32 random_word(void)
   r = random_state[random_state_index];
   return r;
 } 
-                                                 
+
+
+static rand_uint random_uniform(rand_uint bound)
+{
+  rand_uint r;
+
+  do { r = random_word(); } while(r >= bound);
+
+  return r;
+}
+                 
 
 C_regparm C_word C_random_fixnum(C_word n)
 { 
-  C_u32 r = random_word();
+  rand_uint r;
   C_word nf;
 
   if (!(n & C_FIXNUM_BIT))
@@ -12630,7 +12647,7 @@ C_regparm C_word C_random_fixnum(C_word n)
   if(nf < 0)
     barf(C_OUT_OF_RANGE_ERROR, "pseudo-random-integer", n, C_fix(0));
 
-  return C_fix(((double)r / 0xffffffffUL) * C_unfix(n));
+  return C_fix(random_uniform(nf));
 } 
 
 
@@ -12655,7 +12672,7 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
     len -= sizeof(C_u32);
   }
 
-  *end = random_word() >> len;
+  *end = random_word() >> len;  /* XXX is this right? uniform? */
   return C_bignum_simplify(result);
 }
 
