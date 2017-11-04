@@ -12676,6 +12676,42 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
   return C_bignum_simplify(result);
 }
 
+/*
+ * C_a_i_random_real: Generate a stream of bits uniformly at random and
+ * interpret it as the fractional part of the binary expansion of a
+ * number in [0, 1], 0.00001010011111010100...; then round it.
+ * More information on https://mumble.net/~campbell/2014/04/28/uniform-random-float
+ */
+#ifdef C_SIXTYFOUR
+# define random64() random_word()
+#else
+# define random64() ((((C_u64) random_word()) << 32) | ((C_u64) random_word()))
+#endif
+#define	clz64	__builtin_clzll		/* XXX GCCism */
+C_regparm C_word C_fcall
+C_a_i_random_real(C_word **ptr, C_word n) {
+  int exponent = -64;
+  uint64_t significand;
+  unsigned shift;
+
+  while (C_unlikely((significand = random64()) == 0)) {
+    exponent -= 64;
+    if (C_unlikely(exponent < -1074))
+      return 0;
+  }
+
+  shift = clz64(significand);
+  if (shift != 0) {
+    exponent -= shift;
+    significand <<= shift;
+    significand |= (random64() >> (64 - shift));
+  }
+
+  significand |= 1;
+  return C_flonum(ptr, ldexp((double)significand, exponent));
+}
+#undef random64
+
 
 C_word C_set_random_seed(C_word buf, C_word n)
 {

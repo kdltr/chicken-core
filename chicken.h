@@ -2095,6 +2095,7 @@ C_fctexport void *C_lookup_procedure_ptr(C_char *id);
 
 C_fctexport C_word C_random_fixnum(C_word n) C_regparm;
 C_fctexport C_word C_fcall C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn) C_regparm;
+C_fctexport C_word C_fcall C_a_i_random_real(C_word **ptr, C_word n) C_regparm;
 C_fctexport C_word C_random_bytes(C_word buf, C_word size);
 C_fctexport C_word C_set_random_seed(C_word buf, C_word n);
 
