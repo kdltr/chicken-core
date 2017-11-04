@@ -12620,11 +12620,18 @@ static C_uword random_word(void)
 
 static C_uword random_uniform(C_uword bound)
 {
-  C_uword r;
+  C_uword r, min;
 
-  do { r = random_word(); } while(r >= bound);
+  if (bound < 2) return 0;
 
-  return r;
+  min = (1U + ~bound) % bound; /* = 2**<wordsize> mod bound */
+
+  do r = random_word(); while (r < min);
+
+  /* r is now clamped to a set whose size mod upper_bound == 0
+   * the worst case (2**<wordsize-1>+1) requires ~ 2 attempts */
+
+  return r % bound;
 }
                  
 
