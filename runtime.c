@@ -12595,21 +12595,14 @@ C_word C_random_bytes(C_word buf, C_word size)
 }
 
 
-#ifdef C_SIXTYFOUR
-# define rand_uint C_u32
-#else
-# define rand_uint C_u64
-#endif
-
-
 /* WELL512 pseudo random number generator, see also:
    https://en.wikipedia.org/wiki/Well_equidistributed_long-period_linear
    http://lomont.org/Math/Papers/2008/Lomont_PRNG_2008.pdf
 */
 
-static rand_uint random_word(void)
+static C_uword random_word(void)
 { 
-  rand_uint a, b, c, d, r; 
+  C_uword a, b, c, d, r; 
   a  = random_state[random_state_index]; 
   c  = random_state[(random_state_index+13)&15]; 
   b  = a^c^(a<<16)^(c<<15); 
@@ -12625,9 +12618,9 @@ static rand_uint random_word(void)
 } 
 
 
-static rand_uint random_uniform(rand_uint bound)
+static C_uword random_uniform(C_uword bound)
 {
-  rand_uint r;
+  C_uword r;
 
   do { r = random_word(); } while(r >= bound);
 
@@ -12637,7 +12630,6 @@ static rand_uint random_uniform(rand_uint bound)
 
 C_regparm C_word C_random_fixnum(C_word n)
 { 
-  rand_uint r;
   C_word nf;
 
   if (!(n & C_FIXNUM_BIT))
@@ -12664,6 +12656,7 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
   C_word size = C_fix(C_BIGNUM_BITS_TO_DIGITS(len));
   C_word result = C_allocate_scratch_bignum(ptr, size, C_SCHEME_FALSE, C_SCHEME_FALSE);
   C_uword *p;
+  C_uword highest_word = C_bignum_digits(rn)[C_bignum_size(rn)-1];
 
   start = C_bignum_digits(result);
   end = start + C_bignum_size(result);
@@ -12673,7 +12666,7 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
     len -= sizeof(C_uword);
   }
 
-  *p = random_word() & ((1 << len) - 1);
+  *p = random_uniform(highest_word);
   return C_bignum_simplify(result);
 }
 
