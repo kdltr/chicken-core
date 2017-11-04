@@ -649,10 +649,10 @@
 (import scheme chicken chicken.time chicken.io foreign)
 
 (define (set-pseudo-random-seed! buf #!optional n)
-  ;; doesn't enforce size of buf being at least 4 bytes
-  (if n
-      (##sys#check-fixnum n 'set-pseudo-random-seed!)
-      (set! n (##sys#size buf)))
+  (cond (n (##sys#check-fixnum n 'set-pseudo-random-seed!)
+           (when (##core#inline "C_fixnum_lessp" n 0)
+             (##sys#error 'set-pseudo-random-seed! "invalid size" n)))
+        (else (set! n (##sys#size buf))))
   (unless (##core#inline "C_byteblockp" buf)
     (##sys#error 'set-pseudo-random-seed! "invalid buffer type" buf))
   (##core#inline "C_set_random_seed" buf
