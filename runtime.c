@@ -12673,7 +12673,7 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
     len -= sizeof(C_uword);
   }
 
-  *p = random_word() & ((1 << (len % C_BIGNUM_DIGIT_LENGTH)) - 1);
+  *p = random_word() & ((1 << len) - 1);
   return C_bignum_simplify(result);
 }
 
