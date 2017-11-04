@@ -644,7 +644,7 @@
 ;;; Random numbers:
 
 (module chicken.random
-  (set-pseudo-random-seed! pseudo-random-integer random-bytes)
+  (set-pseudo-random-seed! pseudo-random-integer pseudo-random-real random-bytes)
 
 (import scheme chicken chicken.time chicken.io foreign)
 
@@ -667,6 +667,9 @@
          (##sys#error 'pseudo-random-integer "bad argument type" n))
         (else
           (##core#inline_allocate ("C_s_a_u_i_random_int" 2) n))))
+
+(define (pseudo-random-real)
+  (##core#inline_allocate ("C_a_i_random_real" 2)))
 
 (define random-bytes
   (let ((nstate (foreign-value "C_RANDOM_STATE_SIZE" unsigned-int)))
