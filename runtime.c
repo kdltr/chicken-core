@@ -12582,12 +12582,19 @@ C_word C_random_bytes(C_word buf, C_word size)
 #ifdef __OpenBSD__
   arc4random_buf(C_data_pointer(buf), count);
 #elif defined(SYS_getrandom) && defined(__NR_getrandom)
+  static int use_urandom = 0;
+
+  if(use_urandom) return random_urandom(buf, count);
+
   while(count > 0) {
     /* GRND_NONBLOCK = 0x0001 */
     r = syscall(SYS_getrandom, C_data_pointer(buf) + off, count, 1);
 
     if(r == -1) {
-      if(errno == ENOSYS) return random_urandom(buf, count);
+      if(errno == ENOSYS) {
+        use_urandom = 1;
+        return random_urandom(buf, count);
+      }
       else if(errno != EINTR) return C_SCHEME_FALSE;
       else r = 0;
     }
