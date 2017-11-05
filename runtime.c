@@ -12677,12 +12677,11 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
   if(C_bignum_negativep(rn))
     barf(C_OUT_OF_RANGE_ERROR, "pseudo-random-integer", rn, C_fix(0));
 
-  int len = integer_length_abs(rn);
+  int len = random_uniform(integer_length_abs(rn));
   C_word size = C_fix(C_BIGNUM_BITS_TO_DIGITS(len));
   C_word result = C_allocate_scratch_bignum(ptr, size, C_SCHEME_FALSE, C_SCHEME_FALSE);
   C_uword *p;
   C_uword highest_word = C_bignum_digits(rn)[C_bignum_size(rn)-1];
-
   start = C_bignum_digits(result);
   end = start + C_bignum_size(result);
 
