@@ -12544,6 +12544,35 @@ BOOLEAN WINAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
 #endif
 
 
+#if !defined(_WIN32) 
+static C_word random_urandom(C_word buf, int count)
+{
+  static int fd = -1;
+  int off = 0, r;
+
+  if(fd == -1) {
+    fd = open("/dev/urandom", O_RDONLY);
+
+    if(fd == -1) return C_SCHEME_FALSE;
+  }
+
+  while(count > 0) {
+    r = read(fd, C_data_pointer(buf) + off, count);
+
+    if(r == -1) {
+      if(errno != EINTR && errno != EAGAIN) return C_SCHEME_FALSE;
+      else r = 0;
+    }
+
+    count -= r;
+    off += r;
+   }
+
+  return C_SCHEME_TRUE;
+}
+#endif
+
+
 C_word C_random_bytes(C_word buf, C_word size)
 {
   int count = C_unfix(size);
@@ -12558,7 +12587,8 @@ C_word C_random_bytes(C_word buf, C_word size)
     r = syscall(SYS_getrandom, C_data_pointer(buf) + off, count, 1);
 
     if(r == -1) {
-      if(errno != EINTR) return C_SCHEME_FALSE;
+      if(errno == ENOSYS) return random_urandom(buf, count);
+      else if(errno != EINTR) return C_SCHEME_FALSE;
       else r = 0;
     }
 
@@ -12569,28 +12599,9 @@ C_word C_random_bytes(C_word buf, C_word size)
   if(!RtlGenRandom((PVOID)C_data_pointer(buf), (LONG)count)) 
     return C_SCHEME_FALSE;
 #else 
-  static int fd = -1;
-
-  if(fd == -1) {
-    fd = open("/dev/urandom", O_RDONLY);
-
-    if(fd == -1) {
-      return C_SCHEME_FALSE;
-    }
-  }
-
-  while(count > 0) {
-    r = read(fd, C_data_pointer(buf) + off, count);
-
-    if(r == -1) {
-      if(errno != EINTR && errno != EAGAIN) return C_SCHEME_FALSE;
-      else r = 0;
-    }
-
-    count -= r;
-    off += r;
-   }
+  return random_urandom(buf, count);
 #endif
+
   return C_SCHEME_TRUE;
 }
 

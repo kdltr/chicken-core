@@ -735,7 +735,7 @@ void *alloca ();
 # define C_MAX_PATH 1024
 #endif
 
-#define C_RANDOM_STATE_SIZE               (16 * sizeof(C_u32))
+#define C_RANDOM_STATE_SIZE               (16 * sizeof(C_uword))
 
 /* Types: */
 
