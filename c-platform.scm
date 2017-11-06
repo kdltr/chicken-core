@@ -1053,7 +1053,6 @@
 
 (rewrite 'scheme#read-char 23 0 '##sys#read-char/port '##sys#standard-input)
 (rewrite 'scheme#write-char 23 1 '##sys#write-char/port '##sys#standard-output)
-(rewrite 'chicken.io#read-string 23 1 'chicken.io#read-string/port '##sys#standard-input)
 (rewrite 'chicken.string#substring=? 23 2 '##sys#substring=? 0 0 #f)
 (rewrite 'chicken.string#substring-ci=? 23 2 '##sys#substring-ci=? 0 0 #f)
 (rewrite 'chicken.string#substring-index 23 2 '##sys#substring-index 0)
