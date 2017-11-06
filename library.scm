@@ -4764,6 +4764,8 @@ EOF
 
 ;;; Default handlers
 
+(define-foreign-variable _ex_software int "EX_SOFTWARE")
+
 (define exit-in-progress #f)
 
 (define exit-handler
@@ -4907,8 +4909,6 @@ EOF
   (##sys#current-exception-handler x) )
 
 (define ##sys#break-on-error (foreign-value "C_enable_repl" bool))
-
-(define-foreign-variable _ex_software int "EX_SOFTWARE")
 
 (define ##sys#error-handler
   (make-parameter
