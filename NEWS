@@ -42,6 +42,10 @@
   - The scrutinizer no longer uses 'fixnum as the type for fixnums
     that might not fit into a fixnum on 32-bit architectures.
 
+- Foreign function interface
+  - Correctly calculate memory requirements of Scheme objects produced
+    from foreign types with "const" qualifiers, avoiding memory
+    corruption (#1424, thanks to Vasilij Schneidermann and Lemonboy)
 
 4.12.0
 

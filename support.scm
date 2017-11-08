@@ -1198,6 +1198,7 @@
 	       (case (car t)
 		 [(ref nonnull-pointer pointer c-pointer nonnull-c-pointer function instance instance-ref nonnull-instance) 
 		  (words->bytes 3) ]
+		 [(const) (next (cadr t))]
 		 [else 0] ) ]
 	      [else 0] ) ) ) )
    (lambda () (quit "foreign type `~S' refers to itself" type)) ) )
@@ -1226,6 +1227,7 @@
 		 [(ref nonnull-pointer pointer c-pointer nonnull-c-pointer function
 		       scheme-pointer nonnull-scheme-pointer)
 		  (words->bytes 1)]
+		 [(const) (next (cadr t))]
 		 [else (err t)] ) ]
 	      [else (err t)] ) ) ) )
    (lambda () (quit "foreign type `~S' refers to itself" type)) ) )
