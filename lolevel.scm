@@ -461,15 +461,10 @@ EOF
        (and-let* ([d (%procedure-data x)])
 	 (##sys#slot d 1) ) ) )
 
-(define set-procedure-data!
-  (lambda (proc x)
-    (let ((p2 (extend-procedure proc x)))
-      (if (eq? p2 proc)
-	  proc
-	  (##sys#signal-hook
-	   #:type-error 'set-procedure-data!
-	   "bad argument type - not an extended procedure" proc) ) ) ) )
-
+(define (set-procedure-data! proc x)
+  (unless (eq? proc (extend-procedure proc x))
+    (##sys#signal-hook #:type-error 'set-procedure-data!
+     "bad argument type - not an extended procedure" proc)))
 
 ;;; Accessors for arbitrary vector-like block objects:
 

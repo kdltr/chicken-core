@@ -225,7 +225,7 @@
 
 (define unique-proc-data-2 '(23 'skidoo))
 
-(assert (eq? foo (set-procedure-data! foo unique-proc-data-2)))
+(set-procedure-data! foo unique-proc-data-2)
 
 (assert (eq? unique-proc-data-2 (procedure-data foo)))
 
