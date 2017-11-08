@@ -12599,12 +12599,12 @@ C_word C_random_bytes(C_word buf, C_word size)
   static func RtlGenRandom = NULL;
   
   if(RtlGenRandom == NULL) {
-	 HMODULE mod = LoadLibrary("advapi32.dll");
+     HMODULE mod = LoadLibrary("advapi32.dll");
 	 
-	 if(mod == NULL) return C_SCHEME_FALSE;
+     if(mod == NULL) return C_SCHEME_FALSE;
 	 
-	 if((RtlGenRandom = (func)GetProcAddress(mod, "SystemFunction036")) == NULL)
-		 return C_SCHEME_FALSE;
+     if((RtlGenRandom = (func)GetProcAddress(mod, "SystemFunction036")) == NULL)
+       return C_SCHEME_FALSE;
   }
   
   if(!RtlGenRandom((PVOID)C_data_pointer(buf), (LONG)count)) 
@@ -12681,7 +12681,7 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
   if(C_bignum_negativep(rn))
     barf(C_OUT_OF_RANGE_ERROR, "pseudo-random-integer", rn, C_fix(0));
 
-  int len = random_uniform(integer_length_abs(rn));
+  int len = integer_length_abs(rn);
   C_word size = C_fix(C_BIGNUM_BITS_TO_DIGITS(len));
   C_word result = C_allocate_scratch_bignum(ptr, size, C_SCHEME_FALSE, C_SCHEME_FALSE);
   C_uword *p;
