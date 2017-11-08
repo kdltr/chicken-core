@@ -12535,14 +12535,6 @@ C_i_pending_interrupt(C_word dummy)
 # include <sys/systm.h>
 #endif
 
-#if defined(_WIN32) && !defined(__CYGWIN__)
-# define RtlGenRandom SystemFunction036
-# if defined(__cplusplus)
-extern "C"
-# endif
-BOOLEAN WINAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
-#endif
-
 
 #if !defined(_WIN32) 
 static C_word random_urandom(C_word buf, int count)
@@ -12603,6 +12595,18 @@ C_word C_random_bytes(C_word buf, C_word size)
     off += r;
   }
 #elif defined(_WIN32) && !defined(__CYGWIN__)
+  typedef BOOLEAN (*func)(PVOID, ULONG);
+  static func RtlGenRandom = NULL;
+  
+  if(RtlGenRandom == NULL) {
+	 HMODULE mod = LoadLibrary("advapi32.dll");
+	 
+	 if(mod == NULL) return C_SCHEME_FALSE;
+	 
+	 if((RtlGenRandom = (func)GetProcAddress(mod, "SystemFunction036")) == NULL)
+		 return C_SCHEME_FALSE;
+  }
+  
   if(!RtlGenRandom((PVOID)C_data_pointer(buf), (LONG)count)) 
     return C_SCHEME_FALSE;
 #else 

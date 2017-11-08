@@ -664,7 +664,7 @@ EOF
 			   object-extension) 
 			  object-files))
 		  (set! link-options
-		    (cons* "-lkernel32" "-luser32" "-lgdi32" "-ladvapi32" "-mwindows"
+		    (cons* "-lkernel32" "-luser32" "-lgdi32" "-mwindows"
 			   link-options)))]
 	       ((-deployed)
 		(set! deployed #t))

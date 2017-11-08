@@ -595,8 +595,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 <#
 
-(import (only chicken.string string-intersperse)
-	(only chicken.random random))
+(import (only chicken.string string-intersperse))
 
 ;;; Lo-level I/O:
 
@@ -726,7 +725,8 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
       (let loop ((count 1))
 	(let suffix-loop ((index (fx- tmpl-len 1)))
 	  (when (fx>= index first-x)
-	    (string-set! tmpl index (string-ref diz (random diz-len)))
+	    (string-set! tmpl index
+  		  (string-ref diz (##core#inline "C_rand" diz-len)))
 	    (suffix-loop (fx- index 1))))
 	(let ((fd (##core#inline "C_open"
 				 (##sys#make-c-string tmpl 'file-open)
