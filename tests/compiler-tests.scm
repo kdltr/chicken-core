@@ -426,3 +426,12 @@
  (define (also-do-it arg)
    (get-value arg 3))
 )
+
+; let-location with const-wrapped type
+(let-location ((foo (const c-string) "boo"))
+  (assert (equal? foo "boo")))
+
+; #1424: a foreign lambda with const return type was wrongly rejected
+(let ((v0 ((foreign-lambda* c-string () "C_return(\"str\");")))
+      (v1 ((foreign-lambda* (const c-string) () "C_return(\"str\");"))))
+  (assert (equal? v0 v1)))

@@ -1183,6 +1183,7 @@
 	       (case (car t)
 		 ((ref nonnull-pointer pointer c-pointer nonnull-c-pointer function instance instance-ref nonnull-instance) 
 		  (words->bytes 3) )
+		 ((const) (next (cadr t)))
 		 ((enum) (words->bytes 6)) ; 1 bignum digit on 32-bit (overallocs on 64-bit)
 		 (else (err t))))
 	      (else (err t))))))
@@ -1211,6 +1212,7 @@
 		 ((ref nonnull-pointer pointer c-pointer nonnull-c-pointer function
 		       scheme-pointer nonnull-scheme-pointer enum)
 		  (words->bytes 1))
+		 ((const) (next (cadr t)))
 		 (else (err t)) ) )
 	      (else (err t)) ) ) ) )
    (lambda () (quit-compiling "foreign type `~S' refers to itself" type)) ) )
