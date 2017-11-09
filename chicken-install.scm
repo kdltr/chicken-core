@@ -55,6 +55,7 @@
 (define +status-file+ "STATUS")
 (define +egg-extension+ "egg")
 (define +version-file+ "VERSION")
+(define +internal-modules+ '(chicken.internal chicken.internal.syntax))
 
 (include "mini-srfi-1.scm")
 (include "egg-environment.scm")
@@ -936,16 +937,17 @@
       (print "generating database")
       (let ((db
              (sort
-              (append-map
-               (lambda (m)
-                 (let* ((mod (cdr m))
-                        (mname (##sys#module-name mod)))
-                   (print* " " mname)
-                   (let-values (((_ ve se) (##sys#module-exports mod)))
-                     (append
-                      (map (lambda (se) (list (car se) 'syntax mname)) se)
-                      (map (lambda (ve) (list (car ve) 'value mname)) ve)))))
-               ##sys#module-table)
+              (concatenate
+               (filter-map
+                (lambda (m)
+                  (and-let* ((mod (cdr m))
+                             (mname (##sys#module-name mod))
+                             ((not (memq mname +internal-modules+))))
+                    (print* " " mname)
+                    (let-values (((_ ve se) (##sys#module-exports mod)))
+                      (append (map (lambda (se) (list (car se) 'syntax mname)) se)
+                              (map (lambda (ve) (list (car ve) 'value mname)) ve)))))
+                ##sys#module-table))
               (lambda (e1 e2)
                 (string<? (symbol->string (car e1)) (symbol->string (car e2)))))))
         (newline)
