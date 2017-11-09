@@ -539,6 +539,8 @@
 (test-assert (not (irregex-search "(?u:<[^あ-ん語]*>)" "<ひらがな>")))
 (test-assert (not (irregex-search "(?u:<[^あ-ん語]*>)" "<語>")))
 
+(test-assert (not (irregex-search (irregex "[一二]" 'utf8 #t) "三四")))
+
 (test-end)
 
 (test-exit)

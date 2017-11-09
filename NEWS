@@ -138,6 +138,8 @@
     on s8vectors (thanks to Kristian Lein-Mathisen).
   - Large literals no longer crash with "invalid encoded numeric literal"
     on mingw-64 (#1344, thanks to Lemonboy).
+  - Unit irregex: Fix bug that prevented multibyte UTF-8 character sets
+    from being matched correctly (Thanks to Lemonboy and Chunyang Xu).
 
 - Runtime system:
   - The profiler no longer uses malloc from a signal handler which may
