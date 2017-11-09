@@ -1,8 +1,8 @@
 ;;;; reader-tests.scm
 
-(import (only io read-line read-string)
-        (only port with-input-from-string with-output-to-string)
-        (only read-syntax set-read-syntax! set-sharp-read-syntax!))
+(import (only chicken.io read-line read-string)
+        (only chicken.port with-input-from-string with-output-to-string)
+        (only chicken.read-syntax set-read-syntax! set-sharp-read-syntax!))
 
 (set-sharp-read-syntax! #\& (lambda (p) (read p) (values)))
 (set-sharp-read-syntax! #\^ (lambda (p) (read p)))

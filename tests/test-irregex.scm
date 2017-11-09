@@ -2,7 +2,7 @@
 
 
 (import (only chicken.string string-split string-intersperse)
-        format io irregex port)
+        chicken.format chicken.io chicken.irregex chicken.port)
 
 (include "test.scm")
 

@@ -1,7 +1,7 @@
 ;;;; pp-test.scm
 
-(import (only pretty-print pp)
-        (only port with-output-to-string))
+(import (only chicken.pretty-print pp)
+        (only chicken.port with-output-to-string))
 
 (define (pp->string thing)
   (with-output-to-string (cut pp thing)))

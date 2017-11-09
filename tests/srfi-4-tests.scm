@@ -1,8 +1,8 @@
 ;;;; srfi-4-tests.scm
 
 
-(import srfi-4 port)
-(import-for-syntax chicken)
+(import (srfi 4) (chicken port))
+(import-for-syntax (chicken))
 
 (define-syntax test1
   (er-macro-transformer

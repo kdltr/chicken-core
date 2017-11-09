@@ -53,7 +53,7 @@
 (module
  x
  (bar)
- (import scheme chicken foreign)
+ (import scheme chicken chicken.foreign)
 
  (define (bar n)
   (let-location ((off integer 0))
@@ -111,7 +111,7 @@
 (foreign-declare "enum intlimits {min=INT_MIN, zero=0, max=INT_MAX};")
 
 (module foo ()
-  (import chicken scheme foreign) ; "chicken" includes an export for "void"
+  (import chicken scheme chicken.foreign) ; "chicken" includes an export for "void"
   
   (let-syntax ((fl
                 (syntax-rules ()
@@ -148,7 +148,7 @@
 ;; Unused arguments in foreign callback wrappers are not optimized away (#584)
 (module bla (foo)
 
-(import chicken scheme foreign)
+(import chicken scheme chicken.foreign)
 
 (define-external
   (blabla (int a) (c-string b) (int c) (int d) (c-string e) (int f))

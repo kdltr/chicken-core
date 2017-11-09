@@ -3,7 +3,7 @@
 ; by Alex Shinn, lifted from match-test by felix
 
 (import (only chicken.string ->string))
-(import time) ; current-milliseconds
+(import (only chicken.time current-milliseconds))
 
 (define *current-group-name* "")
 (define *pass* 0)

@@ -1,6 +1,6 @@
 ;;;; finalizer-error-test.scm - by "megane"
 
-(import gc)
+(import (chicken gc))
 
 (define n 10000)
 

@@ -1,6 +1,6 @@
 (include "test.scm")
 
-(import bitwise)
+(import (chicken bitwise))
 
 (current-test-epsilon 0) ;; We want exact comparisons by default
 

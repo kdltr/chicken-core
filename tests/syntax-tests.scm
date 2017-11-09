@@ -1,7 +1,7 @@
 ;;;; syntax-tests.scm - various macro tests
 
-(import-for-syntax pretty-print)
-(import gc pretty-print)
+(import-for-syntax chicken.pretty-print)
+(import chicken.gc chicken.pretty-print)
 
 (define-syntax t
   (syntax-rules ()
@@ -565,7 +565,7 @@
   (s:define bar 99))
 
 (module m0002 ()
-  (import scheme m0001 pretty-print)
+  (import scheme m0001 chicken.pretty-print)
   (pp (foo bar)))
 
 

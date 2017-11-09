@@ -1,6 +1,6 @@
 ;;;; library-tests.scm
 
-(import chicken.blob bitwise flonum keyword port)
+(import chicken.blob chicken.bitwise chicken.flonum chicken.keyword chicken.port)
 
 (define-syntax assert-fail
   (syntax-rules ()

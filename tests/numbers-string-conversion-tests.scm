@@ -21,7 +21,7 @@
 ;; (load "~~/lib/syntax-case") and then load this file, or use gsi's -:s switch
 ;;;
 
-(import format)			 ; Chicken w/ numbers
+(import (chicken format)) ; Chicken w/ numbers
 ;(use-syntax (ice-9 syncase)) ; Guile
 
 ;; Set this to #f if the Scheme has no compnums at all, 'inexact if it only

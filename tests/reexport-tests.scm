@@ -27,9 +27,12 @@
        (import (chicken module) imp ...)
        (reexport imp ...)))))
 
-(compound-module
- big-chicken
- chicken port file pretty-print chicken.string)
+(compound-module big-chicken
+ chicken
+ chicken.file
+ chicken.port
+ chicken.pretty-print
+ chicken.string)
 
 (module m3 ()
   (import scheme big-chicken)

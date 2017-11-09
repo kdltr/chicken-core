@@ -1,7 +1,7 @@
 ;;;; test-glob.scm - test glob-pattern -> regex translation
 
 
-(import irregex)
+(import (chicken irregex))
 
 (assert (irregex-match (glob->sre "foo.bar") "foo.bar"))
 (assert (irregex-match (glob->sre "foo*") "foo.bar"))

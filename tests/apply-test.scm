@@ -1,4 +1,5 @@
-(import format (chicken platform))
+(import (chicken format)
+        (chicken platform))
 
 (define (list-tabulate n proc)
   (let loop ((i 0))

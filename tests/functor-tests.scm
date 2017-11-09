@@ -1,7 +1,7 @@
 ;;;; functor-tests.scm
 
 
-(import data-structures port pretty-print)
+(import data-structures chicken.port chicken.pretty-print)
 
 
 (include "test.scm")
@@ -33,8 +33,7 @@
 
 
 (module queue2 QUEUE
-  (import (rename scheme (not empty?)) 
-	  chicken)
+  (import (rename scheme (not empty?)) chicken)
   (define-record entry q x)
   (define empty-queue #f)
   (define enqueue make-entry)

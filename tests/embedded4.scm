@@ -1,6 +1,6 @@
 ;;; x.scm
 
-(import gc)
+(import (chicken gc))
 
 (define (bar x) (gc) (* x x))
 

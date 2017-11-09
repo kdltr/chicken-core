@@ -1,8 +1,8 @@
 ;;; Tests adapted from SRFI 45 (for "lazy" -> "delay-force").
 ;;; That SRFI Copyright (C) André van Tonder (2003).
 
-(import (only format printf)
-        (only port with-output-to-string))
+(import (only chicken.format printf)
+        (only chicken.port with-output-to-string))
 
 (define *errors* 0)
 

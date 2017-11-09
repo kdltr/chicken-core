@@ -1,7 +1,7 @@
 ;;;; sgrep.scm - grepping benchmark
 
 
-(import io irregex port)
+(import chicken.io chicken.irregex chicken.port)
 
 
 (define big-string

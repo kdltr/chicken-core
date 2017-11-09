@@ -1,8 +1,7 @@
 ;;;; test-finalizers.scm
 
 (import (chicken format))
-
-(import gc)
+(import (chicken gc))
 
 (##sys#eval-debug-level 0)		; disable keeping trace-buffer with frameinfo
 

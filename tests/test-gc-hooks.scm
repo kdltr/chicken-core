@@ -1,6 +1,6 @@
 ;;;; test-gc-hooks.scm
 
-(import gc)
+(import (chicken gc))
 
 #>
 
