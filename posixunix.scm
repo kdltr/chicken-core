@@ -1294,8 +1294,10 @@ static C_word C_i_fifo_p(C_word name)
 		 ##sys#kill-other-threads
 		 (lambda (thunk) (thunk)))
 	     (lambda ()
-	       (thunk)
-	       (exit 0)))
+	       (##sys#call-with-cthulhu
+		(lambda ()
+		  (thunk)
+		  (exit 0)))))
 	    pid)))))
 
 (define (process-execute filename #!optional (arglist '()) envlist exactf)
