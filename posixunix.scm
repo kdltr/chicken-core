@@ -1564,8 +1564,10 @@ EOF
 		 ##sys#kill-other-threads
 		 (lambda (thunk) (thunk)))
 	     (lambda ()
-	       (thunk)
-	       (exit 0)))
+	       (##sys#call-with-cthulhu
+		(lambda ()
+		  (thunk)
+		  (exit 0)))))
 	    pid)))))
 
 (define (process-execute filename #!optional (arglist '()) envlist)
