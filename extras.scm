@@ -679,7 +679,7 @@
         (when (< size 0) 
           (##sys#error 'random-bytes "invalid size" size)))
       (let* ((dest (cond (buf
-                         (when (or (##core#inline "C_immediatep" buf)
+                         (when (or (##sys#immediate? buf)
                                    (not (##core#inline "C_byteblockp" buf)))
                            (##sys#error 'random-bytes
                                         "invalid buffer type" buf))
