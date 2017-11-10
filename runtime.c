@@ -41,6 +41,10 @@
 # include <android/log.h>
 #endif
 
+#if defined(C_XXXBSD) || defined(__linux__)
+#include <fcntl.h>
+#endif
+
 #if !defined(PIC)
 # define NO_DLOAD2
 #endif
@@ -12530,9 +12534,6 @@ C_i_pending_interrupt(C_word dummy)
 
 #ifdef __linux__
 # include <sys/syscall.h>
-# include <fcntl.h>
-#elif defined(__OpenBSD__)
-# include <sys/systm.h>
 #endif
 
 
