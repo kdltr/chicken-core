@@ -1144,7 +1144,7 @@
 	(list argconv a) )
       a) )
 
-(define (final-foreign-type t0)		; Used only in compiler.scm
+(define (final-foreign-type t0)		; Used here and in compiler.scm
   (follow-without-loop
    t0
    (lambda (t next)
@@ -1256,7 +1256,7 @@
 
 ;;; Translate foreign-type into scrutinizer type:
 
-;; Used only in chicken-ffi-syntax.scm; can we move it there?
+;; Used in chicken-ffi-syntax.scm and scrutinizer.scm
 (define (foreign-type->scrutiny-type t mode) ; MODE = 'arg | 'result
   (let ((ft (final-foreign-type t)))
     (case ft

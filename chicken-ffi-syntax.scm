@@ -31,9 +31,6 @@
   (disable-interrupts)
   (fixnum))
 
-;; IMPORTANT: These macros expand directly into fully qualified names
-;; from the "chicken.compiler.c-backend" and "chicken.compiler.support" modules.
-
 #+(not debugbuild)
 (declare
   (no-bound-checks)
@@ -42,6 +39,8 @@
 (import chicken.base
 	chicken.format
 	chicken.internal
+	chicken.platform
+	chicken.syntax
 	chicken.string)
 
 (include "common-declarations.scm")
@@ -50,10 +49,21 @@
 (define ##sys#chicken-ffi-macro-environment
   (let ((me0 (##sys#macro-environment)))
 
+;; IMPORTANT: These macros directly call fully qualified names from
+;; the "chicken.compiler.c-backend" and "chicken.compiler.support"
+;; modules.  These are unbound in the interpreter, so check first:
+(define (compiler-only-er-transformer transformer)
+  (##sys#er-transformer
+   (lambda (form r c)
+     (if (feature? 'compiling)
+	 (transformer form r c)
+	 (syntax-error
+	  (car form) "The FFI is not supported in interpreted mode")))))
+
 (##sys#extend-macro-environment
  'define-external
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (let* ((form (cdr form))
 	   (quals (and (pair? form) (string? (car form))))
@@ -90,7 +100,7 @@
 (##sys#extend-macro-environment
  'location
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (x r c)
     (##sys#check-syntax 'location x '(location _))
     `(##core#location ,(cadr x)))))
@@ -98,7 +108,7 @@
 (##sys#extend-macro-environment
  'define-location
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'define-location form '(_ variable _ . #(_ 0 1)))
     (let ((var (cadr form))
@@ -115,7 +125,7 @@
 (##sys#extend-macro-environment
  'let-location
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'let-location form '(_ #((variable _ . #(_ 0 1)) 0) . _))
     (let* ((bindings (cadr form))
@@ -151,7 +161,7 @@
 (##sys#extend-macro-environment
  'foreign-code
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-code form '(_ . #(string 0)))
     (let ([tmp (gensym 'code_)])
@@ -166,7 +176,7 @@
 (##sys#extend-macro-environment
  'foreign-value
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-value form '(_ _ _))
     (let ((tmp (gensym "code_"))
@@ -192,7 +202,7 @@
 (##sys#extend-macro-environment
  'foreign-declare
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-declare form '(_ . #(string 0)))
     `(##core#declare (foreign-declare ,@(cdr form))))))
@@ -203,7 +213,7 @@
 (##sys#extend-macro-environment
  'define-foreign-type
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'define-foreign-type form '(_ symbol _ . #(_ 0 2)))
     `(##core#define-foreign-type ,@(cdr form)))))
@@ -211,7 +221,7 @@
 (##sys#extend-macro-environment
  'define-foreign-variable
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'define-foreign-variable form '(_ symbol _ . #(string 0 1)))
     `(##core#define-foreign-variable ,@(cdr form)))))
@@ -219,7 +229,7 @@
 (##sys#extend-macro-environment
  'foreign-primitive
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-primitive form '(_ _ . _))
     (let* ((hasrtype (and (pair? (cddr form)) (not (string? (caddr form)))))
@@ -238,7 +248,7 @@
 (##sys#extend-macro-environment
  'foreign-lambda
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-lambda form '(_ _ _ . _))
     `(##core#the
@@ -252,7 +262,7 @@
 (##sys#extend-macro-environment
  'foreign-lambda*
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-lambda* form '(_ _ _ _ . _))
     `(##core#the
@@ -269,7 +279,7 @@
 (##sys#extend-macro-environment
  'foreign-safe-lambda
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-safe-lambda form '(_ _ _ . _))
     `(##core#the
@@ -283,7 +293,7 @@
 (##sys#extend-macro-environment
  'foreign-safe-lambda*
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-safe-lambda* form '(_ _ _ _ . _))
     `(##core#the
@@ -298,7 +308,7 @@
 (##sys#extend-macro-environment
  'foreign-type-size
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-type-size form '(_ _))
     (let* ((t (chicken.syntax#strip-syntax (cadr form)))
