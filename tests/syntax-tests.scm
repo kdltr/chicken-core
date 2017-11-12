@@ -914,6 +914,42 @@
 (t 'foo (and-let* (((= 4 4)) (a 'foo)) a))
 (t #f (and-let* ((a #f) ((error "not reached 1"))) (error "not reached 2")))
 
+(t  (and-let* () 1) 1)
+(t  (and-let* () 1 2) 2)
+(t  (and-let* () ) #t)
+
+(t (let ((x #f)) (and-let* (x))) #f)
+(t (let ((x 1)) (and-let* (x))) 1)
+(t (and-let* ((x #f)) ) #f)
+(t (and-let* ((x 1)) ) 1)
+(f (eval '(and-let* ( #f (x 1))) ))
+(t (and-let* ( (#f) (x 1)) ) #f)
+(f (eval '(and-let* (2 (x 1))) ))
+(t (and-let* ( (2) (x 1)) ) 1)
+(t (and-let* ( (x 1) (2)) ) 2)
+(t (let ((x #f)) (and-let* (x) x)) #f)
+(t (let ((x "")) (and-let* (x) x)) "")
+(t (let ((x "")) (and-let* (x)  )) "")
+(t (let ((x 1)) (and-let* (x) (+ x 1))) 2)
+(t (let ((x #f)) (and-let* (x) (+ x 1))) #f)
+(t (let ((x 1)) (and-let* (((positive? x))) (+ x 1))) 2)
+(t (let ((x 1)) (and-let* (((positive? x))) )) #t)
+(t (let ((x 0)) (and-let* (((positive? x))) (+ x 1))) #f)
+(t (let ((x 1)) (and-let* (((positive? x)) (x (+ x 1))) (+ x 1)))  3)
+; The uniqueness of the bindings isn't enforced
+(t (let ((x 1)) (and-let* (((positive? x)) (x (+ x 1)) (x (+ x 1))) (+ x 1))) 4)
+
+(t (let ((x 1)) (and-let* (x ((positive? x))) (+ x 1))) 2)
+(t (let ((x 1)) (and-let* ( ((begin x)) ((positive? x))) (+ x 1))) 2)
+(t (let ((x 0)) (and-let* (x ((positive? x))) (+ x 1))) #f)
+(t (let ((x #f)) (and-let* (x ((positive? x))) (+ x 1))) #f)
+(t (let ((x #f)) (and-let* ( ((begin x)) ((positive? x))) (+ x 1))) #f)
+
+(t  (let ((x 1)) (and-let* (x (y (- x 1)) ((positive? y))) (/ x y))) #f)
+(t  (let ((x 0)) (and-let* (x (y (- x 1)) ((positive? y))) (/ x y))) #f)
+(t  (let ((x #f)) (and-let* (x (y (- x 1)) ((positive? y))) (/ x y))) #f)
+(t  (let ((x 3)) (and-let* (x (y (- x 1)) ((positive? y))) (/ x y))) 3/2)
+
 ;;; SRFI-26
 
 ;; Cut

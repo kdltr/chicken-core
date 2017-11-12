@@ -688,18 +688,25 @@
     (##sys#check-syntax 'and-let* form '(_ #(_ 0) . _))
     (let ((bindings (cadr form))
 	  (body (cddr form)))
-      (let fold ([bs bindings])
+      (let fold ([bs bindings] [last #t])
 	(if (null? bs)
-	    `(##core#begin ,@body)
+	    `(##core#begin ,last . ,body)
 	    (let ([b (car bs)]
 		  [bs2 (cdr bs)] )
-	      (cond [(not (pair? b)) `(##core#if ,b ,(fold bs2) #f)]
-		    [(null? (cdr b)) `(##core#if ,(car b) ,(fold bs2) #f)]
+	      (cond [(not (pair? b))
+                     (##sys#check-syntax 'and-let* b 'symbol)
+                     (let ((var (r (gensym))))
+                       `(##core#let ((,var ,b))
+                          (##core#if ,var ,(fold bs2 var) #f)))]
+		    [(null? (cdr b))
+                     (let ((var (r (gensym))))
+                       `(##core#let ((,var ,(car b)))
+                          (##core#if ,var ,(fold bs2 var) #f)))]
 		    [else
 		     (##sys#check-syntax 'and-let* b '(symbol _))
 		     (let ((var (car b)))
 		       `(##core#let ((,var ,(cadr b)))
-			 (##core#if ,var ,(fold bs2) #f) ) ) ] ) ) ) ) ) ) ) )
+			 (##core#if ,var ,(fold bs2 var) #f)))]))))))))
 
 
 
