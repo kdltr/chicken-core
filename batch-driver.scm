@@ -207,7 +207,7 @@
 	(forms '())
 	(inline-output-file #f)
 	(type-output-file #f)
-	(cleanup-forms '(((##sys#implicit-exit-handler))))
+	(cleanup-forms '(((chicken.base#implicit-exit-handler))))
 	(profile (or (memq 'profile options)
 		     (memq 'accumulate-profile options) 
 		     (memq 'profile-name options)))

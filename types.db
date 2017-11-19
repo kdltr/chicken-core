@@ -944,6 +944,14 @@
 	 ((* (or symbol char eof null undefined)) (scheme#eq? #(1) #(2)))
 	 ((number number) (scheme#= #(1) #(2))))
 
+(chicken.base#emergency-exit (procedure chicken.base#emergency-exit (#!optional fixnum) noreturn))
+(chicken.base#on-exit (#(procedure #:clean #:enforce) chicken.base#on-exit ((procedure () . *)) undefined))
+(chicken.base#implicit-exit-handler
+ (#(procedure #:clean #:enforce) chicken.base#implicit-exit-handler (#!optional (procedure () . *)) procedure))
+
+(chicken.base#exit (procedure chicken.base#exit (#!optional fixnum) noreturn))
+(chicken.base#exit-handler (#(procedure #:clean #:enforce) chicken.base#exit-handler (#!optional (procedure (fixnum) . *)) procedure))
+
 (chicken.base#gensym (#(procedure #:clean) chicken.base#gensym (#!optional (or string symbol)) symbol))
 (chicken.base#char-name (#(procedure #:clean #:enforce) chicken.base#char-name ((or char symbol) #!optional char) *)) ;XXX -> (or char symbol) ?
 
@@ -1113,14 +1121,11 @@
 (##sys#debug-mode? (procedure ##sys#debug-mode? () boolean)
 		   (() (##core#inline "C_i_debug_modep")))
 (executable-pathname (#(procedure #:pure) executable-pathname () (or string false)))
-(exit (procedure exit (#!optional fixnum) noreturn))
-(exit-handler (#(procedure #:clean #:enforce) exit-handler (#!optional (procedure (fixnum) . *)) procedure))
 (file-exists? (#(procedure #:clean #:enforce) file-exists? (string) (or false string)))
 (directory-exists? (#(procedure #:clean #:enforce) directory-exists? (string) (or false string)))
 
 (flush-output (#(procedure #:enforce) flush-output (#!optional output-port) undefined))
 
-(force-finalizers (procedure force-finalizers () undefined))
 
 ;; flonum
 
@@ -1299,6 +1304,7 @@
 (chicken.platform#machine-type (#(procedure #:pure) chicken.platform#machine-type () symbol))
 (chicken.platform#repository-path (#(procedure #:clean) chicken.platform#repository-path (#!optional *) *))
 (chicken.platform#installation-repository (#(procedure #:clean) chicken.platform#installation-repository (#!optional *) *))
+(chicken.platform#return-to-host (procedure chicken.platform#return-to-host () . *))
 
 ;; plist
 
@@ -1312,16 +1318,12 @@
 (chicken.plist#symbol-plist (#(procedure #:clean #:enforce) chicken.plist#symbol-plist (symbol) list)
 			    ((symbol) (##sys#slot #(1) '2)))
 
-(implicit-exit-handler
- (#(procedure #:clean #:enforce) implicit-exit-handler (#!optional (procedure () . *)) procedure))
-
 (keyword-style (#(procedure #:clean) keyword-style (#!optional symbol) symbol))
 
 (chicken.flonum#maximum-flonum float)
 (chicken.flonum#minimum-flonum float)
 (chicken.fixnum#most-negative-fixnum fixnum)
 (chicken.fixnum#most-positive-fixnum fixnum)
-(on-exit (#(procedure #:clean #:enforce) on-exit ((procedure () . *)) undefined))
 (open-input-string (#(procedure #:clean #:enforce) open-input-string (string #!rest) input-port))
 (open-output-string (#(procedure #:clean) open-output-string (#!rest) output-port))
 (parentheses-synonyms (#(procedure #:clean) parentheses-synonyms (#!optional *) *))
@@ -1338,11 +1340,11 @@
 
 (program-name (#(procedure #:clean #:enforce) program-name (#!optional string) string))
 
-(return-to-host (procedure return-to-host () . *))
 
 ;; gc
 
 (chicken.gc#current-gc-milliseconds (#(procedure #:clean) chicken.gc#current-gc-milliseconds () integer))
+(chicken.gc#force-finalizers (procedure chicken.gc#force-finalizers () undefined))
 (chicken.gc#gc (#(procedure #:clean) chicken.gc#gc (#!optional *) fixnum))
 (chicken.gc#memory-statistics (#(procedure #:clean) chicken.gc#memory-statistics () (vector-of fixnum)))
 (chicken.gc#set-finalizer! (#(procedure #:clean #:enforce) chicken.gc#set-finalizer! (* (procedure (*) . *)) *))
@@ -1908,7 +1910,6 @@
 
 ;; posix
 
-(chicken.posix#emergency-exit (procedure chicken.posix#emergency-exit (#!optional fixnum) noreturn))
 (chicken.posix#call-with-input-pipe (#(procedure #:enforce) chicken.posix#call-with-input-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
 (chicken.posix#call-with-output-pipe (#(procedure #:enforce) chicken.posix#call-with-output-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
 (chicken.posix#change-directory (#(procedure #:clean #:enforce) chicken.posix#change-directory (string) string))

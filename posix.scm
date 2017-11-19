@@ -47,7 +47,7 @@
    current-effective-group-id current-effective-user-id
    current-effective-user-name current-group-id current-process-id
    current-user-id current-user-name directory
-   directory? duplicate-fileno emergency-exit fcntl/dupfd fcntl/getfd
+   directory? duplicate-fileno fcntl/dupfd fcntl/getfd
    fcntl/getfl fcntl/setfd fcntl/setfl fifo? fifo? file-access-time
    file-change-time file-close file-control file-creation-mode
    file-execute-access? file-group file-link file-lock
@@ -219,7 +219,7 @@
   (change-directory change-directory* current-directory
    command-line-arguments argv get-environment-variable
    get-environment-variables set-environment-variable!
-   unset-environment-variable! emergency-exit exit on-exit
+   unset-environment-variable!
    executable-pathname program-name set-root-directory!
    current-effective-group-id current-effective-user-id
    current-group-id current-process-id current-user-id

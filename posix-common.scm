@@ -201,14 +201,6 @@ EOF
 (define ##sys#posix-error posix-error)
 
 
-;;; Exit
-
-(define emergency-exit
-  (let ((_exit (foreign-lambda void "_exit" int)))
-    (lambda (#!optional (code 0))
-      (_exit code))))
-
-
 ;;; File properties
 
 (define-foreign-variable _stat_st_ino unsigned-int "C_statbuf.st_ino")

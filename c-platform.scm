@@ -727,7 +727,7 @@
 (rewrite '##sys#call-with-current-continuation 13 1 "C_call_cc" #t)
 (rewrite '##sys#allocate-vector 13 4 "C_allocate_vector" #t)
 (rewrite '##sys#ensure-heap-reserve 13 1 "C_ensure_heap_reserve" #t)
-(rewrite 'return-to-host 13 0 "C_return_to_host" #t)
+(rewrite 'chicken.platform#return-to-host 13 0 "C_return_to_host" #t)
 (rewrite '##sys#context-switch 13 1 "C_context_switch" #t)
 (rewrite '##sys#intern-symbol 13 1 "C_string_to_symbol" #t)
 (rewrite '##sys#make-symbol 13 1 "C_make_symbol" #t)

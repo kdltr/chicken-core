@@ -34,7 +34,7 @@
 	current-print-length setter-tag
 	##sys#print-exit
 	##sys#format-here-doc-warning
-	exit-in-progress
+	exit-in-progress cleanup-before-exit chicken.base#cleanup-tasks
         maximal-string-length find-ratio-between find-ratio
 	make-complex flonum->ratnum ratnum
 	+maximum-allowed-exponent+ mantexp->dbl ldexp round-quotient
@@ -580,9 +580,11 @@ EOF
    ;; alist-ref alist-update alist-update! rassoc atom? butlast chop
    ;; compress flatten intersperse join list-of? tail? constantly
    ;; complement compose conjoin disjoin each flip identity o
+
+   on-exit exit exit-handler implicit-exit-handler emergency-exit
    )
 
-(import scheme)
+(import scheme (only chicken when unless))
 
 (define (fixnum? x) (##core#inline "C_fixnump" x))
 (define (flonum? x) (##core#inline "C_i_flonump" x))
@@ -678,6 +680,23 @@ EOF
 	z
 	(f (##sys#slot lst 0) (loop (##sys#slot lst 1))))))
 
+;;; Exit:
+
+(define implicit-exit-handler)
+(define exit-handler)
+
+(define chicken.base#cleanup-tasks '())
+
+(define (on-exit thunk)
+  (set! cleanup-tasks (cons thunk chicken.base#cleanup-tasks)))
+
+(define (exit #!optional (code 0))
+  ((exit-handler) code))
+
+(define (emergency-exit #!optional (code 0))
+  (##sys#check-fixnum code 'emergency-exit)
+  (##core#inline "C_exit_runtime" code))
+
 ) ; chicken.base
 
 (import chicken.base)
@@ -738,7 +757,6 @@ EOF
 
 ;;; System routines:
 
-(define (exit #!optional (code 0)) ((##sys#exit-handler) code))
 (define (##sys#debug-mode?) (##core#inline "C_i_debug_modep"))
 
 (define ##sys#warnings-enabled #t)
@@ -776,7 +794,6 @@ EOF
 (define (argc+argv) (##sys#values main_argc main_argv))
 (define ##sys#make-structure (##core#primitive "C_make_structure"))
 (define ##sys#ensure-heap-reserve (##core#primitive "C_ensure_heap_reserve"))
-(define return-to-host (##core#primitive "C_return_to_host"))
 (define ##sys#symbol-table-info (##core#primitive "C_get_symbol_table_info"))
 (define ##sys#memory-info (##core#primitive "C_get_memory_info"))
 (define ##sys#decode-seconds (##core#primitive "C_decode_seconds"))
@@ -4768,33 +4785,7 @@ EOF
 
 (define exit-in-progress #f)
 
-(define exit-handler
-  (make-parameter
-   (lambda (#!optional (code 0))
-     (##sys#check-fixnum code)
-     (cond (exit-in-progress
-	    (##sys#warn "\"exit\" called while processing on-exit tasks"))
-	   (else
-	    (##sys#cleanup-before-exit)
-	    (##core#inline "C_exit_runtime" code))))))
-
-(define implicit-exit-handler
-  (make-parameter
-   (lambda ()
-     (##sys#cleanup-before-exit) ) ) )
-
-(define ##sys#exit-handler exit-handler)
-(define ##sys#implicit-exit-handler implicit-exit-handler)
-(define ##sys#reset-handler ; Exposed by chicken.repl
-  (make-parameter
-   (lambda ()
-     ((##sys#exit-handler) _ex_software))))
-
-(define force-finalizers (make-parameter #t))
-
-(define ##sys#cleanup-tasks '())
-
-(define (##sys#cleanup-before-exit)
+(define (cleanup-before-exit)
   (set! exit-in-progress #t)
   (when (##core#inline "C_i_dump_heap_on_exitp")
     (##sys#print "\n" #f ##sys#standard-error)
@@ -4802,17 +4793,38 @@ EOF
   (when (##core#inline "C_i_profilingp")
     (##core#inline "C_i_dump_statistical_profile"))
   (let loop ()
-    (let ((tasks ##sys#cleanup-tasks))
-      (set! ##sys#cleanup-tasks '())
+    (let ((tasks chicken.base#cleanup-tasks))
+      (set! chicken.base#cleanup-tasks '())
       (unless (null? tasks)
 	(for-each (lambda (t) (t)) tasks)
-	(loop))))    
+	(loop))))
   (when (##sys#debug-mode?)
-    (##sys#print "[debug] forcing finalizers...\n" #f ##sys#standard-error) )
-  (when (force-finalizers) (##sys#force-finalizers)) )
+    (##sys#print "[debug] forcing finalizers...\n" #f ##sys#standard-error))
+  (when (chicken.gc#force-finalizers)
+    (##sys#force-finalizers)))
 
-(define (on-exit thunk)
-  (set! ##sys#cleanup-tasks (cons thunk ##sys#cleanup-tasks)))
+(set! chicken.base#exit-handler
+  (make-parameter
+   (lambda (#!optional (code 0))
+     (##sys#check-fixnum code)
+     (cond (exit-in-progress
+	    (##sys#warn "\"exit\" called while processing on-exit tasks"))
+	   (else
+	    (cleanup-before-exit)
+	    (##core#inline "C_exit_runtime" code))))))
+
+(set! chicken.base#implicit-exit-handler
+  (make-parameter
+   (lambda ()
+     (cleanup-before-exit))))
+
+;; OBSOLETE: remove after bootstrapping
+(define ##sys#implicit-exit-handler chicken.base#implicit-exit-handler)
+
+(define ##sys#reset-handler ; Exposed by chicken.repl
+  (make-parameter
+   (lambda ()
+     ((exit-handler) _ex_software))))
 
 
 ;;; Condition handling:
@@ -5688,10 +5700,11 @@ EOF
 
 
 (module chicken.gc
-  (current-gc-milliseconds gc memory-statistics set-finalizer! set-gc-report!)
+    (current-gc-milliseconds gc memory-statistics set-finalizer!
+     set-gc-report! force-finalizers)
 
 (import scheme)
-(import chicken.fixnum chicken.foreign)
+(import chicken.base chicken.fixnum chicken.foreign)
 (import (only chicken when unless handle-exceptions))
 
 ;;; GC info:
@@ -5783,6 +5796,8 @@ EOF
       (cond ((not state))
 	    ((procedure? state) (state))
 	    (state (##sys#context-switch state) ) ) ) ))
+
+(define force-finalizers (make-parameter #t))
 
 (define (##sys#force-finalizers)
   (let loop ()
@@ -6031,7 +6046,7 @@ EOF
      feature? features machine-byte-order machine-type
      repository-path installation-repository
      register-feature! unregister-feature!
-     software-type software-version
+     software-type software-version return-to-host
      )
 
 (import scheme)
@@ -6193,6 +6208,9 @@ EOF
     (or (null? ids)
 	(and (memq (->feature-id (##sys#slot ids 0)) ##sys#features)
 	     (loop (##sys#slot ids 1))))))
+
+(define return-to-host
+  (##core#primitive "C_return_to_host"))
 
 ) ; chicken.platform
 

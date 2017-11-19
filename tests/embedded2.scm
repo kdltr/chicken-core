@@ -1,4 +1,4 @@
-(import chicken.gc chicken.pretty-print)
+(import chicken.platform chicken.gc chicken.pretty-print)
 
 #>
 #include <assert.h>

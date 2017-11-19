@@ -1,6 +1,7 @@
 ;;; Test user compilation passes
 
-(import (chicken compiler user-pass)
+(import (chicken base)
+        (chicken compiler user-pass)
         (chicken io)
         (chicken pretty-print))
 

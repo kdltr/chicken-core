@@ -64,8 +64,8 @@
    (exact-integer-sqrt . chicken.base#exact-integer-sqrt)
    (exact-integer-nth-root . chicken.base#exact-integer-nth-root)
    executable-pathname
-   exit
-   exit-handler
+   (exit . chicken.base#exit)
+   (exit-handler . chicken.base#exit-handler)
    (expand . chicken.syntax#expand)
    (feature? . chicken.platform#feature?)
    (features . chicken.platform#features)
@@ -78,7 +78,7 @@
    flush-output
    (foldl . chicken.base#foldl)
    (foldr . chicken.base#foldr)
-   force-finalizers
+   (force-finalizers . chicken.gc#force-finalizers)
    (fx- . chicken.fixnum#fx-)
    (fx* . chicken.fixnum#fx*)
    (fx/ . chicken.fixnum#fx/)
@@ -111,7 +111,7 @@
    (get-line-number . chicken.syntax#get-line-number)
    get-output-string
    (getter-with-setter . chicken.base#getter-with-setter)
-   implicit-exit-handler
+   (implicit-exit-handler . chicken.base#implicit-exit-handler)
    (infinite? . chicken.base#infinite?)
    input-port-open?
    (installation-repository . chicken.platform#installation-repository)
@@ -131,7 +131,7 @@
    (most-positive-fixnum . chicken.fixnum#most-positive-fixnum)
    (nan? . chicken.base#nan?)
    (notice . chicken.base#notice)
-   on-exit
+   (on-exit . chicken.base#on-exit)
    open-input-string
    open-output-string
    output-port-open?
@@ -154,7 +154,7 @@
    (register-feature! . chicken.platform#register-feature!)
    (repository-path . chicken.platform#repository-path)
    (require . chicken.load#require)
-   return-to-host
+   (return-to-host . chicken.platform#return-to-host)
    set-port-name!
    (setter . chicken.base#setter)
    (signal . chicken.condition#signal)

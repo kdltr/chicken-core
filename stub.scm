@@ -30,4 +30,6 @@
   (uses library eval data-structures port extras)
   (not safe) )
 
+(import chicken.platform)
+
 (let loop () (return-to-host) (loop))

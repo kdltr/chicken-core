@@ -60,13 +60,13 @@
 	(if (string? filename)
 	    filename
 	    (string-append "PROFILE." (number->string profile-id))))
-      (let ([oldeh (##sys#exit-handler)]
-	    [oldieh (##sys#implicit-exit-handler)] )
-	(##sys#exit-handler
+      (let ((oldeh (exit-handler))
+	    (oldieh (implicit-exit-handler)))
+	(exit-handler
 	 (lambda args
 	   (##sys#finish-profile)
 	   (apply oldeh args) ) )
-	(##sys#implicit-exit-handler
+	(implicit-exit-handler
 	 (lambda ()
 	   (##sys#finish-profile)
 	   (oldieh) ) ) ) )
