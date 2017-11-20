@@ -12710,7 +12710,33 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
 #else
 # define random64() ((((C_u64) random_word()) << 32) | ((C_u64) random_word()))
 #endif
-#define	clz64	__builtin_clzll		/* XXX GCCism */
+
+#ifdef __GNUC__
+# define	clz64	__builtin_clzll		
+#else
+/* https://en.wikipedia.org/wiki/Find_first_set#CLZ */
+static const C_uchar clz_table_4bit[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+int clz32(C_u32 x)
+{
+  int n;
+  if ((x & 0xFFFF0000) == 0) {n  = 16; x <<= 16;} else {n = 0;}
+  if ((x & 0xFF000000) == 0) {n +=  8; x <<=  8;}
+  if ((x & 0xF0000000) == 0) {n +=  4; x <<=  4;}
+  n += (int)clz_table_4bit[x >> (32-4)];
+  return n;
+}
+
+int clz64(C_u64 x) 
+{
+    int y = clz32(x >> 32);
+
+    if(y == 32) return y + clz32(x);
+
+    return y;
+}
+#endif
+
 C_regparm C_word C_fcall
 C_a_i_random_real(C_word **ptr, C_word n) {
   int exponent = -64;
