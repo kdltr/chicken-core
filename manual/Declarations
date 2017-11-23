@@ -135,7 +135,7 @@ the given global procedures only, respectively.
   [declaration specifier] (inline-global IDENTIFIER ...)
   [declaration specifier] (not inline-global IDENTIFIER ...)
 
-Declare that then given toplevel procedures (or all) are subject to
+Declare that the given toplevel procedures (or all) are subject to
 cross-module inlining. Potentially inlinable procedures in the current
 compilation unit will be written to an external
 {{<source-filename>.inline}} file in the current directory. Globally
