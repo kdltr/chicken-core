@@ -48,7 +48,7 @@
 
 ;; Gauche compat
 
-(import (chicken bitwise) (chicken port) (chicken format) (chicken string))
+(import (chicken bitwise) (chicken port) (chicken format) (chicken string) (chicken fixnum))
 
 (define (greatest-fixnum) most-positive-fixnum)
 (define (least-fixnum) most-negative-fixnum)

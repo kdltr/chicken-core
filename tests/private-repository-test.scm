@@ -2,6 +2,7 @@
 
 
 (import (chicken pathname)
+	(chicken platform)
         (chicken posix))
 
 (define read-symbolic-link*

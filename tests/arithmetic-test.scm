@@ -15,9 +15,11 @@
   (else))
 
 
-(import (chicken platform)
+(import (chicken condition)
+	(chicken platform)
 	(chicken pretty-print)
-	(chicken random))
+	(chicken random)
+	(chicken fixnum))
 
 (define range 2)
 (define random-range 32000)

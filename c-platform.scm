@@ -27,13 +27,11 @@
 
 (declare
   (unit c-platform)
-  (uses data-structures
-	optimizer support compiler))
+  (uses data-structures internal optimizer support compiler))
 
 (module chicken.compiler.c-platform
     (;; Batch compilation defaults
-     default-declarations default-profiling-declarations
-     default-units default-imports default-syntax-imports
+     default-declarations default-profiling-declarations default-units
 
      ;; Compiler flags
      valid-compiler-options valid-compiler-options-with-argument
@@ -45,7 +43,8 @@
 	chicken.data-structures
 	chicken.compiler.optimizer
 	chicken.compiler.support
-	chicken.compiler.core)
+	chicken.compiler.core
+	chicken.internal)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")
@@ -76,8 +75,6 @@
        ##sys#profile-entry ##sys#profile-exit) ) ) )
 
 (define default-units '(library eval))
-(define default-imports '(scheme chicken chicken.base))
-(define default-syntax-imports '(scheme chicken chicken.base))
 
 (define words-per-flonum 4)
 

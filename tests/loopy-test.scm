@@ -1,5 +1,6 @@
 (import (only chicken.format printf)
-        (only chicken.time current-milliseconds))
+        (only chicken.time current-milliseconds)
+	chicken.load)
 
 (load-relative "loopy-loop.scm")
 (load-relative "matchable.scm")

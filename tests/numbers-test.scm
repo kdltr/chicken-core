@@ -3,6 +3,7 @@
 (include "test.scm")
 
 (import (chicken bitwise)
+	(chicken fixnum)
         (chicken flonum)
         (chicken format)
         (chicken platform)

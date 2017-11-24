@@ -527,7 +527,8 @@ c-platform.c: c-platform.scm mini-srfi-1.scm \
 		chicken.compiler.optimizer.import.scm \
 		chicken.compiler.support.import.scm \
 		chicken.compiler.core.import.scm \
-		chicken.data-structures.import.scm
+		chicken.data-structures.import.scm \
+		chicken.internal.import.scm
 c-backend.c: c-backend.scm mini-srfi-1.scm \
 		chicken.compiler.c-platform.import.scm \
 		chicken.compiler.support.import.scm \

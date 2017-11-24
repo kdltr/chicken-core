@@ -1,6 +1,6 @@
 ;;;; module-tests.scm
 
-(import (chicken eval))
+(import (chicken eval) (chicken load))
 
 (cond-expand
  (compiling

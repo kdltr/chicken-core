@@ -1,6 +1,6 @@
 ;;;; test-finalizers-2.scm - test finalizers + GC roots
 
-(import (chicken gc))
+(import (chicken gc) (chicken fixnum))
 
 (define (list-tabulate n proc)
   (let loop ((i 0))

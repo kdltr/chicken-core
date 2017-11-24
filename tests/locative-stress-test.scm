@@ -2,6 +2,8 @@
 
 (declare (usual-integrations))
 
+(import (chicken fixnum))
+
 ;(set-gc-report! #t)
 
 #>

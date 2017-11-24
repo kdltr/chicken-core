@@ -2,7 +2,7 @@
 
 
 (import (only chicken.data-structures identity)
-        chicken.blob chicken.memory chicken.locative)
+        chicken.blob chicken.condition chicken.memory chicken.locative)
 
 
 (define (make-list n x)

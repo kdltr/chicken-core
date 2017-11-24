@@ -1,6 +1,7 @@
 ;;;; library-tests.scm
 
-(import chicken.blob chicken.bitwise chicken.flonum chicken.keyword chicken.port)
+(import chicken.blob chicken.bitwise chicken.fixnum chicken.flonum
+	chicken.keyword chicken.port chicken.condition)
 
 (define-syntax assert-fail
   (syntax-rules ()

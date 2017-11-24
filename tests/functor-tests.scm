@@ -1,7 +1,7 @@
 ;;;; functor-tests.scm
 
 
-(import data-structures chicken.port chicken.pretty-print)
+(import data-structures chicken.fixnum chicken.port chicken.pretty-print)
 
 
 (include "test.scm")

@@ -51,7 +51,10 @@
 
     ;; Low-level hash table support
     hash-table-ref hash-table-set! hash-table-update!
-    hash-table-for-each hash-table-size)
+    hash-table-for-each hash-table-size
+
+    ;; Modules that are made available to code by default
+    default-imports default-syntax-imports)
 
 (import scheme chicken)
 
@@ -203,5 +206,10 @@
     (if (fx= bkt len)
 	size
 	(loop len (fx+ bkt 1) (fx+ size (##sys#length (##sys#slot ht bkt)))))))
+
+;;; Modules that are made available to code by default:
+
+(define default-imports '(scheme chicken.base chicken.syntax))
+(define default-syntax-imports '(scheme chicken.base chicken.syntax))
 
 ) ; chicken.internal

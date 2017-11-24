@@ -1,5 +1,8 @@
 (import (chicken format)
-        (chicken platform))
+        (chicken platform)
+	(chicken fixnum))
+
+(import-for-syntax (chicken fixnum))
 
 (define (list-tabulate n proc)
   (let loop ((i 0))

@@ -1,3 +1,4 @@
+(import (chicken condition))
 
 (define condition1 (make-property-condition 'exn 'message "foo" 'arguments '("bar") 'location 'test))
 (define condition2 (make-property-condition 'sam 'age 23 'partner "max"))

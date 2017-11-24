@@ -1068,8 +1068,8 @@ EOF
       ;; Load the the default modules into the evaluation environment.
       ;; This is done before setting load-verbose => #t to avoid
       ;; spurious import messages.
-      (eval '(import-for-syntax scheme chicken))
-      (eval '(import scheme chicken))
+      (eval `(import-for-syntax ,@default-syntax-imports))
+      (eval `(import ,@default-imports))
       (unless quiet
 	(load-verbose #t)
 	(print-banner))

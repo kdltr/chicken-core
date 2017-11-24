@@ -9,7 +9,7 @@
      (block)
      (not safe)))
   (else
-   (import chicken.bitwise chicken.flonum)))
+   (import chicken.bitwise chicken.fixnum chicken.flonum)))
 
 ;;; All the following redefinitions are *ignored* by the Gambit compiler
 ;;; because of the declarations above.
