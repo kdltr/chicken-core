@@ -77,6 +77,9 @@ can also be used to override include- and linker-paths. Each of these variables
 may contain one or more directory names, separated by {{:}} or {{;}} and will
 be passed using {{-I}} and {{-L}} to the C compiler.
 
+Finally, you can use the {{custom-build}} egg file property to use a
+custom script to compile your extension's code. See below for more information.
+
 === Creating eggs
 
 An egg can be created by placing its code and some special
@@ -318,6 +321,14 @@ Specifies a custom build operation that should be executed
 instead of the default build operations. This property is mandatory
 for components of type {{generated-source-file}}. {{STRING}}
 usually contains a shell command and thus may be platform sensitive.
+
+The script will be made executable on UNIX systems, if necessary,
+and will be invoked like the {{csc}} program and
+is executed with the location of the CHICKEN
+binaries in the {{PATH}}. Also, tjhe environment variables
+{{CHICKEN_CC}} and {{CHICKEN_CXX}} are set to the
+names of the C and C++ compiler that were used for building the 
+system.
 
 ====== csc-options
 

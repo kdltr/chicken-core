@@ -151,8 +151,6 @@
       files)
     (define (compile-component info)
       (case (car info)
-        ((target) (when (eq? mode 'target) (for-each compile-component (cdr info))))
-        ((host) (when (eq? mode 'host) (for-each compile-component (cdr info))))
         ((extension)
           (fluid-let ((target (check-target (cadr info) exts))
                       (deps '())
@@ -269,13 +267,10 @@
 		(cons (list target dependencies: deps source: src options: opts
 			    link-options: lopts linkage: link custom: cbuild
 			    mode: mode output-file: rtarget)
-		      prgs)))))))
+		      prgs)))))
+        (else (compile-common info compile-component))))
     (define (compile-extension/program info)
       (case (car info)
-        ((target) 
-          (when (eq? mode 'target) (for-each compile-extension/program (cdr info))))
-        ((host) 
-          (when (eq? mode 'host) (for-each compile-extension/program (cdr info))))
         ((linkage) 
          (set! link (cdr info)))
         ((types-file)
@@ -303,22 +298,29 @@
         ((modules)
          (set! mods (map ->string (cdr info))))
         ((dependencies)
-         (set! deps (append deps (map ->dep (cdr info)))))))
+         (set! deps (append deps (map ->dep (cdr info)))))
+        (else (compile-common info compile-extension/program))))
+    (define (compile-common info walk)
+      (case (car info)
+        ((target)
+         (when (eq? mode 'target)
+           (for-each walk (cdr info))))
+        ((host)
+         (when (eq? mode 'host)
+           (for-each walk (cdr info))))))
     (define (compile-data/include info)
       (case (car info)
-        ((target) (when (eq? mode 'target) (for-each compile-data/include (cdr info))))
-        ((host) (when (eq? mode 'host) (for-each compile-data/include (cdr info))))
         ((destination)
          (set! dest (->string (arg info 1 name?))))
         ((files) 
-         (set! files (append files (map ->string (cdr info)))))))
+         (set! files (append files (map ->string (cdr info)))))
+        (else (compile-common info compile-data/include))))
     (define (->dep x)
       (if (name? x) x (error "invalid dependency" x)))
     (define (compile info)
       (case (car info)
-        ((target) (when (eq? mode 'target) (for-each compile (cdr info))))
-        ((host) (when (eq? mode 'host) (for-each compile (cdr info))))
-        ((components) (for-each compile-component (cdr info)))))
+        ((components) (for-each compile-component (cdr info)))
+        (else (compile-common info compile))))
     (define (arg info n #!optional (pred (constantly #t)))
       (when (< (length info) n)
         (error "missing argument" info n))
@@ -440,7 +442,7 @@
                                    predefined-types
                                    custom types-file inline-file)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix-custom-command custom))
+  (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
@@ -461,6 +463,8 @@
                                            (object-extension platform))
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
+    (when custom
+      (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -static -I " srcdir 
@@ -478,7 +482,7 @@
                                     predefined-types
                                     custom types-file inline-file)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix-custom-command custom)) 
+  (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
          (sname (prefix srcdir name))
          (opts (append (if (null? options)
@@ -496,6 +500,8 @@
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (target-file (conc sname ".so") mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
+    (when custom
+      (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            (if (eq? mode 'host) " -host" "")
@@ -508,7 +514,7 @@
                                  (options '()) (link-options '())
                                  custom)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix-custom-command custom))
+  (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
          (sname (prefix srcdir name))
          (opts (if (null? options) 
@@ -516,6 +522,8 @@
                    options))
          (out (quotearg (target-file (conc sname ".import.so") mode)))
          (src (quotearg (conc sname ".import.scm"))))
+    (when custom
+      (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -s"
@@ -528,7 +536,7 @@
                                      (options '()) (link-options '())
                                      custom)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix-custom-command custom))
+  (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
@@ -539,6 +547,8 @@
                                            (executable-extension platform)) 
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
+    (when custom
+      (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode"
@@ -551,7 +561,7 @@
                                     (options '()) (link-options '())
                                     custom mode)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix-custom-command custom))
+  (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
@@ -562,6 +572,8 @@
                                            (executable-extension platform)) 
                                      mode)))
          (src (quotearg (or ssname (conc sname ".scm")))))
+    (when custom
+      (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform) " " out " " cmd 
            (if keep-generated-files " -k" "")
            (if (eq? mode 'host) " -host" "")
@@ -572,10 +584,12 @@
 
 (define ((compile-generated-file name #!key dependencies source custom) 
          srcdir platform)
-  (let* ((cmd (prefix-custom-command custom))
+  (let* ((cmd (prefix srcdir custom))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (or ssname sname))))
+    (when custom
+      (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform)
            " " out " " cmd " : "
            #;(arglist dependencies))))
@@ -739,14 +753,20 @@
      (printf #<<EOF
 #!/bin/sh~%
 set -e
+PATH="~a":$PATH
+CHICKEN_CC="~a"
+CHICKEN_CXX="~a"
 
 EOF
-             ))
+             default-bindir default-cc default-cxx))
     ((windows)
      (printf #<<EOF
 @echo off~%
+set PATH=~a;%PATH%
+set CHICKEN_CC=~a
+set CHICKEN_CXX=~a
 EOF
-             ))))
+             default-bindir default-cc default-cxx))))
 
 (define ((build-suffix mode name info) platform)
   (case platform
@@ -841,13 +861,6 @@ EOF
     ((unix) (string-append "${" var "}"))
     ((windows) (string-append "%" var "%"))))
   
-(define (prefix-custom-command cmd)
-  (cond ((irregex-match "^csi( .+)$" cmd) =>
-         (lambda (m) (string-append default-csi (irregex-match-substring m 1))))
-        ((irregex-match "^csc( .+)$" cmd) =>
-         (lambda (m) (string-append default-csc (irregex-match-substring m 1))))
-        ((irregex-match "^cc( .+)$" cmd) =>
-         (lambda (m) (string-append default-cc (irregex-match-substring m 1))))
-        ((irregex-match "^c\\+\\+( .+)$" cmd) =>
-         (lambda (m) (string-append default-cxx (irregex-match-substring m 1))))
-        (else cmd)))
+(define (prepare-custom-command cmd platform)
+  (unless (eq? 'windows platform)
+    (print "chmod +x " (quotearg cmd))))

@@ -201,6 +201,7 @@
     (data #f #t #t)
     (modules #f #f #f)
     (c-include #f #f #t)
+    (only #f #t #t)
     (scheme-include #f #f #t)))
 
 (define (validate-egg-info info)
@@ -886,17 +887,17 @@
   (exec (if (eq? platform 'windows)
             script
             (string-append
-              (if sudo 
-                  (string-append sudo-program " ")
-                  "")
-              (let ((dyld (and (eq? (software-version) 'macosx)
-                               (get-environment-variable "DYLD_LIBRARY_PATH"))))
-                (if dyld
-                    (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
-                                   (qs dyld)
-                                   " ")
-                    ""))
-              "sh " script))
+             (if sudo
+                 (string-append sudo-program " ")
+                 "")
+             (let ((dyld (and (eq? (software-version) 'macosx)
+                              (get-environment-variable "DYLD_LIBRARY_PATH"))))
+               (if dyld
+                   (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
+                                  (qs dyld)
+                                  " ")
+                   ""))
+             "sh " script))
         stop))
 
 (define (write-info name info mode)
