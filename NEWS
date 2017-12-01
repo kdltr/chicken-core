@@ -167,6 +167,8 @@
   - Correctly calculate memory requirements of Scheme objects produced
     from foreign types with "const" qualifiers, avoiding memory
     corruption (#1424, thanks to Vasilij Schneidermann and Lemonboy)
+  - Do not read beyond temporary stack buffer, which could lead to
+    a crash when returning from a foreign callback (#1428).
 
 4.12.0
 

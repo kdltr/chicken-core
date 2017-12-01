@@ -845,6 +845,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   C_set_block_item(k0, 0, (C_word)termination_continuation);
   C_save(k0);
   C_save(C_SCHEME_UNDEFINED);
+  C_restart_c = 2;
   return 1;
 }
 
@@ -1536,10 +1537,9 @@ C_word CHICKEN_run(void *toplevel)
     /* We must copy the argvector onto the stack, because
      * any subsequent save() will otherwise clobber it.
      */
-    int argcount = C_temporary_stack_bottom - C_temporary_stack;
-    C_word *p = C_alloc(argcount);
-
-    C_memcpy(p, C_temporary_stack, argcount * sizeof(C_word));
+    C_word *p = C_alloc(C_restart_c);
+    assert(C_restart_c == (C_temporary_stack_bottom - C_temporary_stack));
+    C_memcpy(p, C_temporary_stack, C_restart_c * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
   }
@@ -2115,6 +2115,7 @@ C_word C_fcall C_callback(C_word closure, int argc)
      * any subsequent save() will otherwise clobber it.
      */
     C_word *p = C_alloc(C_restart_c);
+    assert(C_restart_c == (C_temporary_stack_bottom - C_temporary_stack));
     C_memcpy(p, C_temporary_stack, C_restart_c * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
@@ -9421,7 +9422,7 @@ void C_ccall C_gc(C_word c, C_word *av)
   }
   else if(f) C_fromspace_top = C_fromspace_limit;
 
-  C_reclaim((void *)gc_2, c);
+  C_reclaim((void *)gc_2, 1);
 }
 
 
@@ -10740,7 +10741,7 @@ void C_ccall C_ensure_heap_reserve(C_word c, C_word *av)
   C_save(k);
 
   if(!C_demand(C_bytestowords(C_unfix(n))))
-    C_reclaim((void *)generic_trampoline, c);
+    C_reclaim((void *)generic_trampoline, 1);
 
   p = C_temporary_stack;
   C_temporary_stack = C_temporary_stack_bottom;
@@ -10764,7 +10765,7 @@ void C_ccall C_return_to_host(C_word c, C_word *av)
 
   return_to_host = 1;
   C_save(k);
-  C_reclaim((void *)generic_trampoline, c);
+  C_reclaim((void *)generic_trampoline, 1);
 }
 
 
@@ -12245,7 +12246,7 @@ void C_ccall C_dump_heap_state(C_word c, C_word *av)
   /* make sure heap is compacted */
   C_save(k);
   C_fromspace_top = C_fromspace_limit; /* force major GC */
-  C_reclaim((void *)dump_heap_state_2, c);
+  C_reclaim((void *)dump_heap_state_2, 1);
 }
 
 
@@ -12473,7 +12474,7 @@ void C_ccall C_filter_heap_objects(C_word c, C_word *av)
   C_save(userarg);
   C_save(func);
   C_fromspace_top = C_fromspace_limit; /* force major GC */
-  C_reclaim((void *)filter_heap_objects_2, c);
+  C_reclaim((void *)filter_heap_objects_2, 4);
 }
 
 C_regparm C_word C_fcall C_i_process_sleep(C_word n)
