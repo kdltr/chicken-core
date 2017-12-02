@@ -7,7 +7,7 @@
 
 (define (abs x) (make-pathname (current-directory) x))
 (define (run x . args) (system* (string-intersperse (cons (abs x) args))))
-(define (csc . args) (apply run "../csc" "-v" args))
+(define (csc . args) (apply run "../csc" "-v" "-compiler ../chicken" "-I.." args))
 
 (csc "null.scm" "-t")
 (assert (file-exists? "null.c"))
