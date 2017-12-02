@@ -201,7 +201,6 @@
     (data #f #t #t)
     (modules #f #f #f)
     (c-include #f #f #t)
-    (only #f #t #t)
     (scheme-include #f #f #t)))
 
 (define (validate-egg-info info)
