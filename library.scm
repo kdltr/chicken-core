@@ -242,10 +242,10 @@ EOF
      eof-object? with-input-from-file with-output-to-file
      char-ready? imag-part real-part make-rectangular make-polar angle
      magnitude numerator denominator values call-with-values dynamic-wind
-     ;; NOTE: {null,scheme-report,interaction}-environment and eval
-     ;; are defined in chicken.eval, load is defined in chicken.load!
-     ;; The definition of "scheme" in modules.scm includes these.
-     )
+
+     ;; The following procedures are overwritten in eval.scm:
+     eval interaction-environment null-environment
+     scheme-report-environment load)
 
 ;; We use r5rs-null to get just the syntax exports for "scheme",
 ;; because importing them from "scheme" would be importing then from
@@ -543,6 +543,26 @@ EOF
 (define newline)
 (define write)
 (define display)
+
+;;; Evaluation environments:
+
+;; All of the stuff below is overwritten with their "real"
+;; implementations by chicken.eval (see eval.scm)
+
+(define (eval x . env)
+  (##sys#error 'eval "`eval' is not defined - the `eval' unit was probably not linked with this executable"))
+
+(define (interaction-environment)
+  (##sys#error 'interaction-environment "`interaction-environment' is not defined - the `eval' unit was probably not linked with this executable"))
+
+(define (scheme-report-environment n)
+  (##sys#error 'scheme-report-environment "`scheme-report-environment' is not defined - the `eval' unit was probably not linked with this executable"))
+
+(define (null-environment)
+  (##sys#error 'null-environment "`null-environment' is not defined - the `eval' unit was probably not linked with this executable"))
+
+(define (load filename . evaluator)
+  (##sys#error 'load "`load' is not defined - the `eval' unit was probably not linked with this executable"))
 
 ;; Other stuff:
 

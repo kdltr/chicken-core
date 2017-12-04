@@ -45,13 +45,10 @@
 <#
 
 (module chicken.eval
-  (eval-handler module-environment
-
-   ;; TODO These should only be exported by the scheme module (and r4rs/r5rs):
-   eval interaction-environment null-environment scheme-report-environment)
+  (eval-handler module-environment)
 
 ;; Exclude bindings defined within this module.
-(import (except scheme eval interaction-environment null-environment scheme-report-environment)
+(import scheme
 	(except chicken eval-handler)
 	chicken.blob
 	chicken.internal
@@ -753,9 +750,9 @@
 	     (else
 	      ((compile-to-closure x '() se #f #f #f #t) '())))))))
 
-(define (eval x . env)
-  (apply (eval-handler) x env))
-
+(set! scheme#eval
+  (lambda (x . env)
+    (apply (eval-handler) x env)))
 
 ;;; User-facing `module-environment` procedure:
 
@@ -808,10 +805,7 @@
 			  (cons (##sys#slot llist 0) vars)
 			  (fx+ argc 1) ) ] ) ) ) ) )
 
-
-;;; Environments:
-
-(define interaction-environment
+(set! scheme#interaction-environment
   (let ((e (##sys#make-structure 'environment 'interaction-environment #f #f)))
     (lambda () e)))
 
@@ -819,9 +813,6 @@
   (##sys#print "#<environment " #f p)
   (##sys#print (##sys#slot e 1) #f p)
   (##sys#write-char-0 #\> p))
-
-(define scheme-report-environment)
-(define null-environment)
 
 (let* ((r4s (chicken.module#module-environment 'r4rs 'scheme-report-environment/4))
        (r5s (chicken.module#module-environment 'scheme 'scheme-report-environment/5))
@@ -854,7 +845,7 @@
   (##sys#setslot r4n 2 (strip (##sys#slot r4n 2)))
   (##sys#setslot r5s 2 (strip (##sys#slot r5s 2)))
   (##sys#setslot r5n 2 (strip (##sys#slot r5n 2)))
-  (set! scheme-report-environment
+  (set! scheme#scheme-report-environment
     (lambda (n)
       (##sys#check-fixnum n 'scheme-report-environment)
       (case n
@@ -864,7 +855,7 @@
 	 (##sys#error
 	  'scheme-report-environment
 	  "unsupported scheme report environment version" n)))))
-  (set! null-environment
+  (set! scheme#null-environment
     (lambda (n)
       (##sys#check-fixnum n 'null-environment)
       (case n
@@ -875,6 +866,11 @@
 	  'null-environment
 	  "unsupported null environment version" n))))))
 
+
+;;; OBSOLETE: Remove after bootstrapping.  Import libraries emitted by
+;;; old compilers will still refer to chicken.eval#eval.
+(define chicken.eval#eval scheme#eval)
+
 ) ; eval module
 
 
@@ -883,7 +879,7 @@
    load-library load-noisily load-relative load-verbose
    provide provided? require)
 
-(import (except scheme load)
+(import scheme
 	chicken
 	chicken.eval
 	chicken.foreign
@@ -1101,10 +1097,9 @@
 		    (close-input-port in))))))))
       (##core#undefined))))
 
-;; Exported by "scheme", so use full name to avoid exporting it here.
-;; TODO: Maybe change this later to (set! scheme#load (lambda ..))
-(define (chicken.load#load filename #!optional evaluator)
-  (load/internal filename evaluator))
+(set! scheme#load
+  (lambda (filename #!optional evaluator)
+    (load/internal filename evaluator)))
 
 (define (load-relative filename #!optional evaluator)
   (let ((fn (make-relative-pathname ##sys#current-load-filename filename)))
@@ -1379,12 +1374,17 @@
 					fname) ) )
 		  (else (loop (##sys#slot paths 1))) ) ) ) ) ) )
 
+;;; OBSOLETE: Remove after bootstrapping.  Import libraries loaded
+;;; from an old compiler's library path will still refer to
+;;; chicken.load#load in their compiled module registration code.
+(define chicken.load#load scheme#load)
+
 ) ; chicken.load
 
 
 ;;; Simple invocation API:
 
-(import chicken chicken.eval chicken.load chicken.condition)
+(import chicken scheme chicken.eval chicken.load chicken.condition)
 
 (declare
   (hide last-error run-safe store-result store-string

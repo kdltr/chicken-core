@@ -140,7 +140,9 @@
 	     values call-with-values vector procedure? memq memv member assq assv assoc list-tail
 	     list-ref abs char-ready? peek-char list->string string->list
 	     current-input-port current-output-port
-	     make-polar make-rectangular real-part imag-part)) )
+	     make-polar make-rectangular real-part imag-part
+	     load eval interaction-environment null-environment
+	     scheme-report-environment)))
 
 (define-constant +flonum-bindings+
   (map (lambda (x) (symbol-append 'chicken.flonum# x))

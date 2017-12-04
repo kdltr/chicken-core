@@ -826,18 +826,22 @@
 	     ((integer) (fixnum) (let ((#(tmp) #(1))) '1))
 	     ((ratnum) (integer) (##core#inline "C_u_i_ratnum_denom" #(1))))
 
+(scheme#load (procedure scheme#load (string #!optional (procedure (*) . *)) undefined))
+
+(scheme#eval (procedure scheme#eval (* #!optional (struct environment)) . *))
+
+(scheme#scheme-report-environment
+ (#(procedure #:clean #:enforce) scheme#scheme-report-environment (#!optional fixnum) (struct environment)))
+
+(scheme#null-environment
+ (#(procedure #:clean #:enforce) scheme#null-environment (#!optional fixnum) (struct environment)))
+
+(scheme#interaction-environment
+ (#(procedure #:clean) scheme#interaction-environment () (struct environment)))
+
+
+
 ;; eval
-
-(chicken.eval#eval (procedure chicken.eval#eval (* #!optional (struct environment)) . *))
-
-(chicken.eval#scheme-report-environment
- (#(procedure #:clean #:enforce) chicken.eval#scheme-report-environment (#!optional fixnum) (struct environment)))
-
-(chicken.eval#null-environment
- (#(procedure #:clean #:enforce) chicken.eval#null-environment (#!optional fixnum) (struct environment)))
-
-(chicken.eval#interaction-environment
- (#(procedure #:clean) chicken.eval#interaction-environment () (struct environment)))
 
 (chicken.eval#module-environment
  (#(procedure #:clean #:enforce) chicken.eval#module-environment ((or symbol (list-of (or symbol fixnum)))) (struct environment)))
@@ -1279,7 +1283,6 @@
 
 (chicken.load#dynamic-load-libraries
  (#(procedure #:clean) chicken.load#dynamic-load-libraries (#!optional (list-of string)) (list-of string)))
-(chicken.load#load (procedure chicken.load#load (string #!optional (procedure (*) . *)) undefined))
 (chicken.load#load-library (#(procedure #:enforce) chicken.load#load-library (symbol #!optional string) undefined))
 (chicken.load#load-noisily (procedure chicken.load#load-noisily (string #!rest) undefined))
 (chicken.load#load-relative (#(procedure #:enforce) chicken.load#load-relative (string #!optional (procedure (*) . *)) undefined))
