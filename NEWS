@@ -1,4 +1,4 @@
-4.12.1
+4.13.0
 
 - Security fixes
   - CVE-2017-6949: Remove unchecked malloc() call in SRFI-4 constructors
