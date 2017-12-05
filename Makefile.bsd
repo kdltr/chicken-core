@@ -101,8 +101,8 @@ endif
 ifdef SYMBOLGC
 	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
 endif
-# Of the BSDs, only FreeBSD hates composable feature macros...
-	echo "#ifndef __FreeBSD__" >> $@
+# Feature macros are unsupported on FreeBSD and DragonFly
+	echo "#if !defined(__FreeBSD__) && !defined(__DragonFly__)" >> $@
 	echo "# define C_USE_STD_FEATURE_MACROS" >> $@
 	echo "#endif" >> $@
 	cat chicken-defaults.h >>$@

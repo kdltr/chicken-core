@@ -36,3 +36,12 @@
 	(number 3))
       (compiler-typecase x
 	(string 4))))
+
+
+;;; #1399 incorrect return type after merge with noreturn procedure
+
+(let ((x (the (->) something))
+      (y (the (-> noreturn) something)))
+  (compiler-typecase (if something x y)
+    ((->) (error "#1399 regression test failure"))
+    (else 'ok)))

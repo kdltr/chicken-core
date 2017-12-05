@@ -353,3 +353,22 @@
  (compiler-typecase 1
    (number #t)
    (fixnum #f)))
+
+;; Always a fixnum
+(assert
+ (compiler-typecase #x3fffffff
+   (float #f)
+   (fixnum #t)))
+
+;; Is a fixnum on 64-bit, flonum on 32-bit.  The best we can do is to
+;; check for 'number (on 32-bits it will always be a float)
+(assert
+ (compiler-typecase #x4fffffff
+   (fixnum #f)
+   (number #t)))
+
+;; Always a flonum
+(assert
+ (compiler-typecase #x7fffffffffffffff
+   (fixnum #f)
+   (float #t)))

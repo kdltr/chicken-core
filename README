@@ -6,7 +6,7 @@
   (c) 2008-2017, The CHICKEN Team
   (c) 2000-2007, Felix L. Winkelmann
 
-  version 4.12.0rc2
+  version 4.12.1
 
 
  1. Introduction
@@ -85,35 +85,32 @@
 
         If you build CHICKEN directly from the development sources out
         of the git repository, you will need a "chicken" executable to
-        generate the compiled C files from the Scheme library
-        sources.
+        generate the compiled C files from the Scheme library sources.
 
         If you are building in a checkout where you have built other
         versions of chicken, you need to make sure that all traces of
         the previous build are removed. "make clean" is insufficient,
         and you should do the following:
 
-	    make PLATFORM=<platform> spotless
+            make PLATFORM=<platform> spotless
 
-	If you have a recent version of CHICKEN installed, then pass
-        "CHICKEN=<chicken-executable>" to the "make" invocation to
-        override this setting. "CHICKEN" defaults to "chicken".
+        You will need to have a "chicken" binary installed, ideally
+        from the development snapshot tarball that is closest to the
+        git version you are trying to build (significantly older or
+        newer ones are unlikely to work), and then use that chicken
+        to build from your git sources.  Installing this CHICKEN is
+        recommended, if necessary you can install it to a temporary
+        location in your homedir for example.
 
-        If you do not have a "chicken" binary installed, you will have
-	to build from the closest release tarball to the git version
-	you are trying to build (significantly older or newer ones are
-	unlikely to work), and then use that chicken to build from
-	your git sources. You don't need to install the release
-	tarball chicken; simply unpack and build it in its own
-	directory with "make PLATFORM=<platform>", then use it to
-	build your git chicken like so:
+        Then, to build you can run:
 
-	    LD_LIBRARY_PATH=<release dir> make PLATFORM=<platform> \
-              CHICKEN=<release dir>/chicken
+            make PLATFORM=<platform> CHICKEN=<install-dir>/bin/chicken
 
-        The LD_LIBRARY_PATH is needed on Linux to allow chicken to
-        find libchicken; it may or may not be needed on your platform,
-        but probably won't do any harm.
+        In some cases, the sources may have diverged enough to
+        become unbuildable even with the snapshot.  Then you'll need
+        to first build a bootstrapping compiler with the installed
+        CHICKEN and then use that to build the version from git.
+        See the "Bootstrapping" section below.
 
     2.3. Finishing the installation
 
@@ -621,9 +618,9 @@
  6. Bootstrapping
 
         To build a bootstrapping compiler yourself, get the most
-        recent release tarball from http://code.call-cc.org, unpack
-        it, build and install it.  Then change to the directory
-        containing the git code and run:
+        recent development snapshot tarball from
+        http://code.call-cc.org, unpack it, build and install it. Then
+        change to the directory containing the git code and run:
 
           make PLATFORM=<platform> CHICKEN=<path-to-existing-chicken> \
             boot-chicken

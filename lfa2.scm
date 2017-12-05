@@ -159,13 +159,10 @@
       ;; a simplified variant of the one in scrutinizer.scm
       (cond ((string? lit) 'string)
 	    ((symbol? lit) 'symbol)
+	    ;; Do not assume fixnum width matches target platforms!
+	    ((big-fixnum? lit) 'number)
 	    ((fixnum? lit) 'fixnum)
 	    ((flonum? lit) 'float)
-	    ((number? lit) 
-	     (case number-type 
-	       ((fixnum) 'fixnum)
-	       ((flonum) 'flonum)
-	       (else 'number)))
 	    ((boolean? lit) 'boolean)
 	    ((null? lit) 'null)
 	    ((list? lit) 'list)

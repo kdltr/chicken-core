@@ -37,6 +37,9 @@ to each other, even if they contain exactly the same key/value pairs.
 Returns a new {{HASH-TABLE}}. The {{HASH-TABLE}} is populated from the
 {{A-LIST}}. The keyword arguments are per {{make-hash-table}}.
 
+If a key occurs multiple times in {{A-LIST}}, the first occurrence
+will be used in the hash table.
+
 
 ==== hash-table?
 
@@ -237,7 +240,8 @@ Deletes all entries in {{HASH-TABLE}}.
 <procedure>(hash-table-merge HASH-TABLE-1 HASH-TABLE-2)</procedure>
 
 Returns a new {{HASH-TABLE}} with the union of {{HASH-TABLE-1}} and
-{{HASH-TABLE-2}}.
+{{HASH-TABLE-2}}. Keys that exist in both tables will be taken from
+{{HASH-TABLE-1}}.
 
 
 ==== hash-table-merge!
@@ -245,7 +249,8 @@ Returns a new {{HASH-TABLE}} with the union of {{HASH-TABLE-1}} and
 <procedure>(hash-table-merge! HASH-TABLE-1 HASH-TABLE-2)</procedure>
 
 Returns {{HASH-TABLE-1}} as the union of {{HASH-TABLE-1}} and
-{{HASH-TABLE-2}}.
+{{HASH-TABLE-2}}. Keys that exist in both tables will be taken from
+{{HASH-TABLE-1}}.
 
 
 ==== hash-table-map
