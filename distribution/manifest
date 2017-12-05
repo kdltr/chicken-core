@@ -77,9 +77,6 @@ data-structures.scm
 debugger-client.scm
 port.scm
 file.scm
-chicken-bug.mdoc
-chicken-bug.scm
-chicken-bug.c
 continuation.scm
 internal.scm
 library.scm

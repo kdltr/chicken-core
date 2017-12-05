@@ -81,7 +81,6 @@ You should now have these files on {{~/target}}:
 
  |-- bin
  |   |-- chicken
- |   |-- chicken-bug
  |   |-- chicken-install
  |   |-- chicken-profile
  |   |-- chicken-status
@@ -154,7 +153,6 @@ In {{~/cross-chicken}}, you should find the following:
 
  |-- bin
  |   |-- arm-chicken
- |   |-- arm-chicken-bug
  |   |-- arm-chicken-install
  |   |-- arm-chicken-profile
  |   |-- arm-chicken-status

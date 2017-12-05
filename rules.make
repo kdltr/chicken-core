@@ -54,13 +54,10 @@ COMPILER_STATIC_OBJECTS = $(COMPILER_OBJECTS_1:=-static$(O))
 UTILITY_PROGRAM_OBJECTS_1 = \
 	csc csi chicken-install chicken-uninstall chicken-status chicken-profile
 
-ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1 = \
-	chicken-bug
-
 ## TODO: Shouldn't these manpages match their program names (ie CSI_PROGRAM etc)?
 MANPAGES = \
 	chicken csc csi chicken-install chicken-uninstall \
-	chicken-status chicken-profile chicken-bug feathers
+	chicken-status chicken-profile feathers
 
 # Not all programs built are installed(?) This is the master list that takes
 # care of which programs should actually be installed/uninstalled
@@ -77,7 +74,6 @@ endif
 # They are not cleaned by the 'clean' target, but only by 'spotless'.
 DISTFILES = $(filter-out runtime.c,$(LIBCHICKEN_OBJECTS_1:=.c)) \
 	$(UTILITY_PROGRAM_OBJECTS_1:=.c) \
-	$(ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1:=.c) \
 	$(COMPILER_OBJECTS_1:=.c) \
 	$(IMPORT_LIBRARIES:=.import.c) \
 	$(DYNAMIC_IMPORT_LIBRARIES:=.import.scm) \
@@ -194,9 +190,6 @@ $(1)$(O): $(1).c chicken.h $$(CHICKEN_CONFIG_H)
 	  $$(INCLUDES)
 endef
 
-$(foreach obj, $(ALWAYS_STATIC_UTILITY_PROGRAM_OBJECTS_1),\
-          $(eval $(call declare-always-static-utility-program-object,$(obj))))
-
 # resource objects
 
 %.rc.o: %.rc
@@ -271,7 +264,6 @@ $(1): $(2)$(O) lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A)
 endef
 
 $(eval $(call declare-program-from-object,$(CSI_STATIC_EXECUTABLE),csi))
-$(eval $(call declare-program-from-object,$(CHICKEN_BUG_PROGRAM)$(EXE),chicken-bug))
 
 # "chicken-do"
 
@@ -663,17 +655,6 @@ csi.c: csi.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm \
 		chicken.syntax.import.scm
-chicken-bug.c: chicken-bug.scm \
-		chicken.foreign.import.scm \
-		chicken.format.import.scm \
-		chicken.io.import.scm \
-		chicken.keyword.import.scm \
-		chicken.pathname.import.scm \
-		chicken.platform.import.scm \
-		chicken.port.import.scm \
-		chicken.posix.import.scm \
-		chicken.string.import.scm \
-		chicken.time.import.scm
 chicken-profile.c: chicken-profile.scm \
 		chicken.internal.import.scm \
 		chicken.posix.import.scm \
@@ -915,8 +896,6 @@ chicken-uninstall.c: $(SRCDIR)chicken-uninstall.scm $(SRCDIR)mini-srfi-1.scm $(S
 chicken-status.c: $(SRCDIR)chicken-status.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-environment.scm $(SRCDIR)egg-information.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
 csc.c: $(SRCDIR)csc.scm $(SRCDIR)mini-srfi-1.scm $(SRCDIR)egg-environment.scm
-	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
-chicken-bug.c: $(SRCDIR)chicken-bug.scm
 	$(CHICKEN) $< $(CHICKEN_PROGRAM_OPTIONS) -output-file $@ 
 
 # distribution files

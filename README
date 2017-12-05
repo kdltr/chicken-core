@@ -263,7 +263,6 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         <PREFIX>
 	|-- bin
 	|   |-- chicken
-	|   |-- chicken-bug
 	|   |-- chicken-install
 	|   |-- chicken-profile
 	|   |-- chicken-status
@@ -347,7 +346,6 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	    |   `-- setup.defaults
 	    `-- man
 		`-- man1
-		    |-- chicken-bug.1
 		    |-- chicken-install.1
 		    |-- chicken-profile.1
 		    |-- chicken-status.1
@@ -676,8 +674,8 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 
  9. What's next?
 
-        If you find any bugs, or want to report a problem, please consider
-        using the "chicken-bug" tool to create a detailed bug report.
+        If you find any bugs, or want to report a problem, please send
+        a detailed bug report.
 
         If you have any more questions or problems (even the slightest
         problems, or the most stupid questions), then please subscribe
