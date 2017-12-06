@@ -15,9 +15,10 @@ set TYPESDB=..\types.db
 rem Increase this when tests start failing on "inexplicable" diffs
 set FCBUFSIZE=500
 
-set compile=..\csc -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -o a.out
-set compile2=..\csc -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/..
-set compile_s=..\csc -s -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/..
+set compile=..\csc -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/.. -o a.out
+set compile2=..\csc -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
+set compile_s=..\csc -s -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
+set compile_static=..\csc -static -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
 set interpret=..\csi -n -include-path %TEST_DIR%/..
 
 del /f /q /s *.exe *.so *.o *.import.* ..\foo.import.* %CHICKEN_INSTALL_REPOSITORY%
@@ -585,7 +586,7 @@ echo ======================================== linking tests ...
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile2% -link reverser linking-tests.scm -o a.out -static
+%compile_static% -link reverser linking-tests.scm -o a.out 
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
@@ -595,7 +596,7 @@ move reverser.import.scm %CHICKEN_INSTALL_REPOSITORY%
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile2% -link reverser linking-tests.scm -o a.out -static
+%compile_static% -link reverser linking-tests.scm -o a.out 
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1

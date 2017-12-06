@@ -434,6 +434,7 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
                                     code
     -dll -library                  compile multiple units into a dynamic
                                     library
+    -libdir DIRECTORY              override directory for runtime library
 
   Options to other passes:
 
@@ -643,6 +644,10 @@ EOF
 		(set! linked-extensions
 		  (append linked-extensions (string-split (car rest) ", ")))
 		(set! rest (cdr rest))]
+               ((-libdir)
+                (check s rest)
+                (set! library-dir (car rest))
+                (set! rest (cdr rest)))
 	       [(-require-extension -R)
 		(check s rest)
 		(t-options "-require-extension" (car rest))

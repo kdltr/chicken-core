@@ -43,9 +43,10 @@ export CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH
 
 TYPESDB=../types.db
 
-compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out"
-compile2="../csc -compiler ${CHICKEN} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.."
-compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS}"
+compile="../csc -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -o a.out -libdir ${TEST_DIR}/.."
+compile2="../csc -compiler ${CHICKEN} -v -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.. -libdir ${TEST_DIR}/.."
+compile_s="../csc -s -types ${TYPESDB} -ignore-repository ${COMPILE_OPTIONS} -libdir ${TEST_DIR}/.."
+compile_static="../csc -compiler ${CHICKEN} -v -static -I${TEST_DIR}/.. -include-path ${TEST_DIR}/.. -libdir ${TEST_DIR}/.."
 interpret="../csi -n -include-path ${TEST_DIR}/.."
 time=time
 
@@ -456,12 +457,12 @@ echo "======================================== linking tests ..."
 $compile2 -unit reverser reverser/tags/1.0/reverser.scm -J -c -o reverser.o
 $compile2 -link reverser linking-tests.scm -o a.out
 ./a.out
-$compile2 -link reverser linking-tests.scm -o a.out -static
+$compile_static -link reverser linking-tests.scm -o a.out
 ./a.out
 mv reverser.o reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
 $compile2 -link reverser linking-tests.scm -o a.out
 ./a.out
-$compile2 -link reverser linking-tests.scm -o a.out -static
+$compile_static -link reverser linking-tests.scm -o a.out 
 ./a.out
 
 echo "======================================== private repository test ..."

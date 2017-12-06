@@ -29,6 +29,8 @@
 
 - Tools
   - The new "-link" option to csc allows linking with objects from extensions.
+  - The new "-libdir" option to csc allows overriding the runtime library
+    directory.
   - The ambiguous "-l<libname>" option for csc has been removed (#1193).
   - Removed deprecated "-n" shorthand for "-emit-inline-file" from csc.
   - Removed "chicken-bug" tool.
