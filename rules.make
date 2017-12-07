@@ -180,16 +180,6 @@ $(foreach obj, $(UTILITY_PROGRAM_OBJECTS_1),\
           $(eval $(call declare-utility-program-object,$(obj))))
 
 
-# static program objects
-
-define declare-always-static-utility-program-object
-$(1)$(O): $(1).c chicken.h $$(CHICKEN_CONFIG_H)
-	$$(C_COMPILER) $$(C_COMPILER_OPTIONS) \
-	  $$(C_COMPILER_STATIC_OPTIONS) \
-	  $$(C_COMPILER_COMPILE_OPTION) $$(C_COMPILER_OPTIMIZATION_OPTIONS) $$< $$(C_COMPILER_OUTPUT) \
-	  $$(INCLUDES)
-endef
-
 # resource objects
 
 %.rc.o: %.rc
