@@ -167,13 +167,11 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 
         STATICBUILD=1
           Build only static versions of the runtime library, compiler
-          and interpreter. `chicken-install', `chicken-uninstall' and
-          `chicken-status' will not be generated, as it is mostly 
-          useless unless compiled code can be loaded.
+          and interpreter.
 
-	EXTRA_CHICKEN_OPTIONS=...
-	  Additional options that should be passed to `chicken' when
-	  building the system.
+        EXTRA_CHICKEN_OPTIONS=...
+          Additional options that should be passed to `chicken' when
+          building the system.
 
         C_COMPILER_OPTIMIZATION_OPTIONS=...
           Override built-in C compiler optimization options. Available

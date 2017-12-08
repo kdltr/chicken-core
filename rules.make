@@ -63,12 +63,9 @@ MANPAGES = \
 # care of which programs should actually be installed/uninstalled
 INSTALLED_PROGRAMS = \
 	$(CHICKEN_PROGRAM) $(CSI_PROGRAM) $(CHICKEN_PROFILE_PROGRAM) \
-	$(CSC_PROGRAM) $(CHICKEN_BUG_PROGRAM) $(CHICKEN_DO_PROGRAM)
-
-ifndef STATICBUILD
-INSTALLED_PROGRAMS += $(CHICKEN_STATUS_PROGRAM) \
+	$(CSC_PROGRAM) \
+	$(CHICKEN_DO_PROGRAM) $(CHICKEN_STATUS_PROGRAM) \
 	$(CHICKEN_INSTALL_PROGRAM) $(CHICKEN_UNINSTALL_PROGRAM)
-endif
 
 # These generated files make up a bootstrapped distribution build.
 # They are not cleaned by the 'clean' target, but only by 'spotless'.
@@ -333,11 +330,9 @@ install-bin:
 # Damn. What was this for, again?
 #
 # 	$(MAKE_WRITABLE_COMMAND) $(CHICKEN_PROGRAM)$(EXE) $(CSI_PROGRAM)$(EXE) $(CSC_PROGRAM)$(EXE) $(CHICKEN_PROFILE_PROGRAM)$(EXE)
-# ifndef STATICBUILD
 # 	$(MAKE_WRITABLE_COMMAND) $(CHICKEN_INSTALL_PROGRAM)$(EXE)
 # 	$(MAKE_WRITABLE_COMMAND) $(CHICKEN_UNINSTALL_PROGRAM)$(EXE)
 # 	$(MAKE_WRITABLE_COMMAND) $(CHICKEN_STATUS_PROGRAM)$(EXE)
-# endif
 else
 install-bin: $(TARGETS) install-libs install-dev
 	$(MAKEDIR_COMMAND) $(MAKEDIR_COMMAND_OPTIONS) "$(DESTDIR)$(IBINDIR)"
@@ -359,8 +354,8 @@ else
 		$(lib).import.so "$(DESTDIR)$(IEGGDIR)" $(NL))
 endif
 
-ifndef STATICBUILD
 ifneq ($(POSTINSTALL_PROGRAM),true)
+ifndef STATICBUILD
 	$(foreach prog,$(INSTALLED_PROGRAMS),\
 		$(POSTINSTALL_PROGRAM) $(POSTINSTALL_PROGRAM_FLAGS) \
 		"$(DESTDIR)$(IBINDIR)$(SEP)$(prog)" $(NL))
@@ -368,6 +363,7 @@ ifneq ($(POSTINSTALL_PROGRAM),true)
 	$(foreach import-lib,$(IMPORT_LIBRARIES),\
 		$(POSTINSTALL_PROGRAM) $(POSTINSTALL_PROGRAM_FLAGS) \
 		"$(DESTDIR)$(IEGGDIR)$(SEP)$(import-lib).import.so" $(NL))
+endif
 endif
 ifeq ($(CROSS_CHICKEN)$(DESTDIR),0)
 	-$(IBINDIR)$(SEP)$(CHICKEN_INSTALL_PROGRAM) -update-db
@@ -379,7 +375,6 @@ endif
 endif
 ifdef WINDOWS_SHELL
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) $(SRCDIR)csibatch.bat "$(DESTDIR)$(IBINDIR)"
-endif
 endif
 
 install-other-files:
@@ -913,7 +908,7 @@ clean:
 	  $(CHICKEN_INSTALL_PROGRAM)$(EXE) \
 	  $(CHICKEN_UNINSTALL_PROGRAM)$(EXE) \
 	  $(CHICKEN_STATUS_PROGRAM)$(EXE) \
-	  $(CHICKEN_BUG_PROGRAM)$(EXE) *$(O) \
+	  *$(O) \
 	  $(CHICKEN_DO_PROGRAM)$(EXE) \
 	  $(CHICKEN_DEBUGGER_PROGRAM) \
 	  $(LIBCHICKEN_SO_FILE) \

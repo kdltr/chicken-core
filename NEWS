@@ -113,6 +113,9 @@
     environment variables.
   - Static compilation of eggs is now fully supported and static
     versions of compiled eggs are available by default.
+  - In a statically built chicken, the egg-tools ("chicken-install", "-status",
+    "-uninstall") are still available, but only support static compilation
+    of eggs.
 
 - Foreign function interface
   - The foreign type specifier "ssize_t" is now accepted, and "size_t"
