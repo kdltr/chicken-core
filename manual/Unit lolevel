@@ -7,24 +7,19 @@
 This unit provides a number of handy low-level operations. '''Use
 at your own risk.'''
 
-This unit uses the {{srfi-4}} and {{extras}} units.
-
-
 
 === Foreign pointers
 
 The abstract class of ''pointer'' is divided into 2 categories: 
 
-; ''pointer object'' : is a foreign pointer object, a [[#Tagged pointers|tagged foreign pointer object]], or a SWIG-pointer.
+; ''pointer object'' : is a regular or [[#Tagged pointers|tagged]] foreign pointer object.
 
 ; ''pointer-like object'' : is a closure, port, [[#Locatives|locative]], or a pointer object.
 
-SWIG-pointers are currently an issue due to "bitrot" in the SWIG CHICKEN
-translator. While they are considered a pointer object unexpected results are
-possible.
-
 Note that Locatives, while technically pointers, are not considered a ''pointer
 object'', but a ''pointer-like object''. The distinction is artificial.
+
+Pointer operations are provided by the {{(chicken memory)}} module.
 
 
 ==== address->pointer
@@ -132,11 +127,13 @@ Use of anything other than an integer or pointer object as an argument is
 questionable.
 
 
-
 === SRFI-4 Foreign pointers
 
 These procedures actually accept a pointer-like object as the {{POINTER}} argument.
 However, as usual, use of anything other than a pointer object is questionable.
+
+SRFI-4 pointer operations are provided by the {{(chicken memory)}} module.
+
 
 ==== pointer-u8-ref
 
@@ -178,6 +175,19 @@ Returns the unsigned 32-bit integer at the address designated by {{POINTER}}.
 <procedure>(pointer-s32-ref POINTER)</procedure>
 
 Returns the signed 32-bit integer at the address designated by {{POINTER}}.
+
+==== pointer-u64-ref
+
+<procedure>(pointer-u64-ref POINTER)</procedure>
+
+Returns the unsigned 64-bit integer at the address designated by {{POINTER}}.
+
+
+==== pointer-s64-ref
+
+<procedure>(pointer-s64-ref POINTER)</procedure>
+
+Returns the signed 64-bit integer at the address designated by {{POINTER}}.
 
 
 ==== pointer-f32-ref
@@ -242,6 +252,22 @@ Stores the unsigned 32-bit integer {{N}} at the address designated by {{POINTER}
 Stores the 32-bit integer {{N}} at the address designated by {{POINTER}}.
 
 
+==== pointer-u64-set!
+
+<procedure>(pointer-u64-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-u64-ref POINTER) N)</procedure>
+
+Stores the unsigned 64-bit integer {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-s64-set!
+
+<procedure>(pointer-s64-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-s64-ref POINTER) N)</procedure>
+
+Stores the 64-bit integer {{N}} at the address designated by {{POINTER}}.
+
+
 ==== pointer-f32-set!
 
 <procedure>(pointer-f32-set! POINTER N)</procedure><br>
@@ -262,6 +288,8 @@ Stores the 64-bit floating-point number {{N}} at the address designated by {{POI
 === Tagged pointers
 
 ''Tagged'' pointers are foreign pointer objects with an extra tag object.
+
+Tagged pointer operations are provided by the {{(chicken memory)}} module.
 
 
 ==== tag-pointer
@@ -298,6 +326,9 @@ error is signalled.
 foreign pointer objects. All procedures defined below that accept
 a pointer object allow {{#f}} as an alternative representation of
 the {{NULL}}-pointer.
+
+Pointer vectors are provided by the {{(chicken memory)}} module.
+
 
 ==== make-pointer-vector 
 
@@ -354,8 +385,9 @@ on the locative. The container object can be computed by calling the
 {{locative->object}} procedure.
 
 Locatives may be passed to foreign procedures that expect pointer arguments.
-The effect of creating locatives for evicted data (see {{object-evict}}) is undefined.
 
+The following procedures are provided by the {{(chicken locative)}}
+module.
 
 ==== make-locative
 
@@ -535,100 +567,7 @@ for the source and destination arguments.
 
 Signals an error if any of the above constraints is violated.
 
-
-
-=== Data in unmanaged memory
-
-
-==== object-evict
-
-<procedure>(object-evict X [ALLOCATOR])</procedure>
-
-Copies the object {{X}} recursively into the memory pointed to by the foreign
-pointer object returned by {{ALLOCATOR}}.  The freshly copied object is
-returned.  {{ALLOCATOR}} should be a procedure of a single argument
-(the number of bytes to allocate), and defaults to {{allocate}}.
-
-This facility allows moving arbitrary objects into static memory, but care
-should be taken when mutating evicted data: setting slots in evicted
-vector-like objects to non-evicted data is not allowed. It '''is''' possible to
-set characters/bytes in evicted strings or byte-vectors, though.  It is
-advisable '''not''' to evict ports, because they might be mutated by certain
-file-operations.  {{object-evict}} is able to handle circular and shared
-structures.
-
-Evicted symbols are no longer unique: a fresh copy of the
-symbol is created, so
-
-<enscript highlight=scheme>
-(define x 'foo)
-(define y (object-evict 'foo))
-y                              ==> foo
-(eq? x y)                      ==> #f
-(define z (object-evict '(bar bar)))
-(eq? (car z) (cadr z))         ==> #t
-</enscript>
-
-This loss of uniqueness also implies that an evicted structure --
-such as one created with {{define-record}} -- cannot be operated on with
-the existing predicate or accessors, as internally a symbol is used to
-denote the type:
-
-<enscript highlight=scheme>
-(define-record point x y)
-(point? (make-point x y))                  ; => #t
-(point? (object-evict (make-point x y)))   ; => #f
-</enscript>
-
-==== object-evict-to-location
-
-<procedure>(object-evict-to-location X POINTER* [LIMIT])</procedure>
-
-As {{object-evict}} but moves the object at the address pointed to by
-the pointer-like object {{POINTER*}}. If the number of copied bytes exceeds
-the optional {{LIMIT}} then an error is signalled (specifically a composite
-condition of types {{exn}} and {{evict}}. The latter provides
-a {{limit}} property which holds the exceeded limit. Two values are
-returned: the evicted object and a new pointer pointing to the first
-free address after the evicted object.
-
-Use of anything other than a pointer object as the {{POINTER*}} argument is
-questionable.
-
-==== object-evicted?
-
-<procedure>(object-evicted? X)</procedure>
-
-Returns {{#t}} if {{X}} is a non-immediate evicted data object, or {{#f}}
-otherwise.
-
-
-==== object-release
-
-<procedure>(object-release X [RELEASER])</procedure>
-
-Frees memory occupied by the evicted object {{X}} recursively.
-{{RELEASER}} should be a procedure of a single argument (a foreign
-pointer object to the static memory to be freed) and defaults to
-{{free}}.
-
-
-==== object-unevict
-
-<procedure>(object-unevict X [FULL])</procedure>
-
-Copies the object {{X}} and nested objects back into the normal Scheme heap.
-Symbols are re-interned into the symbol table. Strings and byte-vectors are
-'''not''' copied, unless {{FULL}} is given and not {{#f}}.
-
-
-==== object-size
-
-<procedure>(object-size X)</procedure>
-
-Returns the number of bytes that would be needed to evict the data object
-{{X}}. If {{X}} is an immediate object, zero is returned.
-
+This procedure is provided by the {{(chicken memory)}} module.
 
 
 === Record instance
@@ -764,4 +703,4 @@ identical in behaviour to the result of {{OLD}}:
 ---
 Previous: [[Unit tcp]]
 
-Next: [[Interface to external functions and variables]]
+Next: [[Unit continuation]]

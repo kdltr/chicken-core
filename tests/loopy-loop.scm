@@ -207,6 +207,8 @@
 (define-in-indexed in-s16vector in-s16vector-reverse s16vector-length s16vector-ref)
 (define-in-indexed in-u32vector in-u32vector-reverse u32vector-length u32vector-ref)
 (define-in-indexed in-s32vector in-s32vector-reverse s32vector-length s32vector-ref)
+(define-in-indexed in-u64vector in-u64vector-reverse u64vector-length u64vector-ref)
+(define-in-indexed in-s64vector in-s64vector-reverse s64vector-length s64vector-ref)
 (define-in-indexed in-f32vector in-f32vector-reverse f32vector-length f32vector-ref)
 (define-in-indexed in-f64vector in-f64vector-reverse f64vector-length f64vector-ref)
 

@@ -8,14 +8,12 @@
 (define a 1)
 (define b 2))
 
-(module f = foo)
-
 (functor 
  (do-things (arg STUFF)) (do-it)
  (import scheme arg)
  (define (do-it) (list a b)))
 
-(module bar = (do-things f))
+(module bar = (do-things foo))
 
 (import bar)
 (assert (equal? '(1 2) (do-it)))

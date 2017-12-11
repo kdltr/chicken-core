@@ -1,8 +1,7 @@
 ;;;; syntax-tests.scm - various macro tests
 
-
-(use extras)
-
+(import-for-syntax chicken.pretty-print)
+(import chicken.gc chicken.pretty-print)
 
 (define-syntax t
   (syntax-rules ()
@@ -533,7 +532,7 @@
   (c:define-values (a b c) (values 1 2 3)) )
 
 (module prefixed-self-reference2 ()
-  (import scheme (prefix chicken c:))
+  (import scheme (prefix chicken c:) (prefix (chicken condition) c:))
   (c:define-values (a b c) (values 1 2 3))
   (c:print "ok")
   (c:condition-case 
@@ -541,6 +540,8 @@
    (ex () (c:print "caught"))))
 
 (module prefixed-self-reference3 (a)
+  ;; TODO: Switch this around when plain "chicken" has been removed
+  ;(import (prefix scheme s.) (prefix (chicken condition) c.))
   (import (prefix scheme s.) (prefix chicken c.))
   (s.define (a x y)
 	    (c.condition-case (s.+ x y) ((exn) "not numbers")))
@@ -564,7 +565,7 @@
   (s:define bar 99))
 
 (module m0002 ()
-  (import scheme m0001 extras)
+  (import scheme m0001 chicken.pretty-print)
   (pp (foo bar)))
 
 
@@ -784,6 +785,27 @@
 )
 |#
 
+;;; Definitions in expression contexts are rejected (#1309)
+
+(f (eval '(+ 1 2 (begin (define x 3) x) 4)))
+(f (eval '(+ 1 2 (begin (define-values (x y) (values 3 4)) x) 4)))
+(f (eval '(display (define x 1))))
+;; Some tests for nested but valid definition expressions:
+(t 2 (eval '(begin (define x 1) 2)))
+(t 2 (eval '(module _ () (import scheme) (define x 1) 2)))
+(t 1 (eval '(let ()
+	      (define-record-type foo (make-foo bar) foo? (bar foo-bar))
+	      (foo-bar (make-foo 1)))))
+
+;; Nested begins inside definitions were not treated correctly
+(t 3 (eval '(let () (begin 1 (begin 2 (define internal-def 3) internal-def)))))
+;; Macros that expand to "define" should not cause a letrec barrier
+(t 1 (eval '(let-syntax ((my-define (syntax-rules ()
+				      ((_ var val) (define var val)))))
+	      (let () (define (run-it) foo) (my-define foo 1) (run-it)))))
+;; Begin should not cause a letrec barrier
+(t 1 (eval '(let () (define (run-it) foo) (begin (define foo 1) (run-it)))))
+(f (eval '(let () internal-def)))
 
 ;;; renaming of keyword argument (#277)
 
@@ -878,16 +900,6 @@
 
 (import (prefix rfoo f:))
 (f:rbar 1)
-
-;;; Internal hash-prefixed names shouldn't work within modules
-
-(module one (always-one)
-  (import scheme)
-  (define (always-one) 1))
-
-(f (eval '(module two ()
-            (import scheme)
-            (define (always-two) (+ (one#always-one) 1)))))
 
 ;;; SRFI-2 (and-let*)
 
@@ -1073,10 +1085,16 @@
 (foo 3)
 
 
-;; #578: "use" with import-specifier has no effect for internal modules on csi's top-level
+;; #578: import with specifier has no effect for internal modules on csi's top-level
 
-(use (prefix srfi-1 list-))
-take
+(import srfi-4)
+(import (prefix srfi-4 other-))
+u8vector
+other-u8vector
+
+(import (prefix scheme other-))
+eval
+other-eval
 
 
 ;; #805: case-lambda is unhygienic (as well as ensure, see 4706afb4 and bc5cc698)

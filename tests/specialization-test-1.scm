@@ -2,7 +2,7 @@
 
 
 (module foo (foo bar)
-(import scheme chicken foreign)
+(import scheme chicken chicken.foreign)
 
 #>
 static int inlined(int i) {

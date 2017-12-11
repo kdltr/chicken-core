@@ -43,12 +43,15 @@ CHICKEN's module system has the following features:
 <macro>(module NAME (EXPORT ...) BODY ...)</macro>
 <macro>(module NAME (EXPORT ...) FILENAME)</macro>
 <macro>(module NAME * BODY ...)</macro>
-<macro>(module NAME1 = NAME2 [BODY ...])</macro>
 <macro>(module NAME = (FUNCTORNAME MODULENAME1 ...))</macro>
+<macro>(module NAME = FUNCTORNAME BODY ...)</macro>
 
-Defines a module with the name {{NAME}}, a set of exported bindings
-and a contained sequence of toplevel expressions that are evaluated in
-an empty syntactical environment. 
+Defines a module with the name {{NAME}}, a set of exported bindings and
+a contained sequence of toplevel expressions that are evaluated in an
+empty syntactical environment.
+
+{{NAME}} and {{FUNCTORNAME}} should be symbols or lists of symbols and
+integers, where {{(foo bar baz)}} is equivalent to {{foo.bar.baz}}.
 
 {{(EXPORT ...)}} should be an export-specification which holds a list
 of identifiers to be exported from the module and which should be
@@ -79,15 +82,12 @@ like {{(include FILENAME)}}.
 {{(module NAME = (FUNCTORNAME MODULENAME1 ...))}} instantiates
 a ''functor'' (see below for information about functors).
 
-The syntax {{(module NAME1 = NAME2)}} defines an alias {{NAME1}} for
-the module {{NAME2}}, so {{NAME1}} can be used in place of {{NAME2}}
-in all forms that accept module names. Module aliases defined inside a
-module are local to that module. If followed by a module body, then
-this is a special form of ''functor instantiation''.
+{{(module NAME = FUNCTORNAME BODY ...)}} is a special form of
+''functor instantiation'' where the {{BODY}} implements a module
+satisfying a single functor argument to {{FUNCTORNAME}}.
 
 Nested modules, modules not at toplevel (i.e. local modules) or
-mutually recursive modules are not supported. As an exception
-module alias definitions are allowed inside a module definition.
+mutually recursive modules are not supported.
 
 When compiled, the module information, including exported macros
 is stored in the generated binary and available when loading
@@ -129,7 +129,7 @@ Importing a module does not load or link it - this is a separate
 operation from importing its bindings.
 
 {{IMPORT}} may be a module name or an ''import specifier'', where a
-module name is either a symbol or a list of the form {{(srfi N)}}.
+module name is either a symbol or a list of symbols and integers.
 An {{IMPORT}} defines a set of bindings that are to be made visible
 in the current scope.
 
@@ -265,7 +265,7 @@ available:
  [module] r4rs
  [module] r5rs
 
-Exports the definitions given in R4RS or R5RS. {{r5rs}} is a module alias
+Exports the definitions given in R4RS or R5RS. {{r5rs}} is an alias
 for {{scheme}}.
 
  [module] chicken
@@ -278,14 +278,8 @@ Everything from the {{library}}, {{eval}} and {{expand}} library units.
  [module] lolevel
  [module] posix
  [module] regex
- [module] srfi-1
  [module] srfi-4
- [module] srfi-13
- [module] srfi-14
- [module] srfi-18
- [module] srfi-69
  [module] tcp
- [module] utils
 
 Modules exporting the bindings from the respective library units.
 
@@ -342,14 +336,6 @@ and used in an identical manner:
   Hello, world !
   #;3> (greet "you")
   Hello, you !
-
-If you are depending on external libraries inside your module, follow the general rule of {{(import chicken scheme) (use anything-else)}} like so:
-
- (module test (hello greet)
-   (import chicken scheme)
-   (use posix)
-   (use srfi-4)
-   ...)
 
 If you want to keep macro-definitions in a separate file, use import
 libraries:
@@ -419,7 +405,11 @@ We can easily instantiate the functor for other inputs:
 <enscript highlight=scheme>
 (module stars (multiply)
   (import scheme)
-  (use srfi-1)
+  (define (list-tabulate n f)
+    (let loop ((i 0))
+      (if (= i n)
+          '()
+          (cons (f i) (loop (+ i 1))))))
   (define (multiply x y) 
     (list-tabulate x (lambda _ (list-tabulate y (lambda _ '*))))))
 

@@ -1,8 +1,9 @@
 ;;;; compiler-tests.scm
 
 
-(import foreign)
-(use srfi-4)
+(import (chicken bitwise) (chicken flonum) (chicken foreign)
+	(chicken condition) (srfi 4))
+(import-for-syntax (chicken syntax) (chicken string))
 
 ;; test dropping of previous toplevel assignments
 
@@ -13,6 +14,10 @@
 
 (assert (eq? 'ok (foo)))
 
+(assert (= 1 (foreign-type-size "char")))
+(let* ((words->bytes (foreign-lambda int "C_wordstobytes" int))
+       (bytes-in-a-word (words->bytes 1)))
+  (assert (= bytes-in-a-word (foreign-type-size "C_word"))))
 
 ;; test hiding of unexported toplevel variables
 
@@ -48,7 +53,7 @@
 (module
  x
  (bar)
- (import scheme chicken foreign)
+ (import scheme chicken chicken.foreign)
 
  (define (bar n)
   (let-location ((off integer 0))
@@ -102,9 +107,11 @@
 ;; Type specifiers and variable names in foreign-lambda in macros
 ;; are incorrectly renamed in modules, too.
 (foreign-declare "void foo(void *abc) { printf(\"hi\\n\"); }")
+;; This is silly but at least it ensures we can represent enum values
+(foreign-declare "enum intlimits {min=INT_MIN, zero=0, max=INT_MAX};")
 
 (module foo ()
-  (import chicken scheme foreign) ; "chicken" includes an export for "void"
+  (import chicken scheme chicken.foreign) ; "chicken" includes an export for "void"
   
   (let-syntax ((fl
                 (syntax-rules ()
@@ -141,7 +148,7 @@
 ;; Unused arguments in foreign callback wrappers are not optimized away (#584)
 (module bla (foo)
 
-(import chicken scheme foreign)
+(import chicken scheme chicken.foreign)
 
 (define-external
   (blabla (int a) (c-string b) (int c) (int d) (c-string e) (int f))
@@ -237,6 +244,16 @@
                       (set! outer-bar inner-bar) 
                       (outer-bar '#f))))) 
 
+;; Found by Claude Marinier: Huge literals with a length which need
+;; more than 3 bytes to encode would get silently truncated.  We'll
+;; prevent constant-folding if it would lead to such large literals.
+(let* ((bignum (expt 2 70000000))
+       ;; This prevents complete evaluation at compile-time
+       (unknown-bignum ((foreign-lambda* scheme-object
+			    ((scheme-object n)) "C_return(n);") bignum)))
+  (assert (equal? 70000001 (integer-length unknown-bignum))))
+
+
 ;; Test that encode-literal/decode-literal use the proper functions
 ;; to decode number literals.
 (assert (equal? '(+inf.0 -inf.0) (list (fp/ 1.0 0.0) (fp/ -1.0 0.0))))
@@ -255,11 +272,97 @@
            (string->number "179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.0")))
 
 ;; #955: unsigned-integer64 arg returned magnitude instead of Scheme object.
-#+64bit
-(assert (= #xAB54A98CEB1F0AD2
-           ((foreign-lambda* unsigned-integer64 ((unsigned-integer64 x))
-              "C_return(x);")
-            #xAB54A98CEB1F0AD2)))
+(assert (eqv? #xAB54A98CEB1F0AD2
+	      ((foreign-lambda* unsigned-integer64 ((unsigned-integer64 x))
+		 "C_return(x);")
+	       #xAB54A98CEB1F0AD2)))
+
+
+;; Test the maximum and minimum values of the FFI's integer types
+(define-syntax test-ffi-type-limits
+  (syntax-rules (signed unsigned)
+    ((_ ?type-name unsigned ?bits)
+     (let ((limit (arithmetic-shift 1 ?bits)))
+       (print "Testing unsigned FFI type \"" '?type-name "\" (" ?bits " bits):")
+       (print "Can hold maximum value " (sub1 limit) "...")
+       (assert
+	(eqv? (sub1 limit)
+	      ((foreign-lambda* ?type-name ((?type-name x))
+		 "C_return(x);") (sub1 limit))))
+       (print "Cannot hold one more than maximum value, " limit "...")
+       (assert
+	(handle-exceptions exn #t
+	  (begin ((foreign-lambda* ?type-name ((?type-name x))
+		    "C_return(x);") limit)
+		 #f)))
+       (print "Cannot hold -1 (any fixnum negative value)")
+       (assert
+	(handle-exceptions exn #t
+	  (begin ((foreign-lambda* ?type-name ((?type-name x))
+		    "C_return(x);") -1)
+		 #f)))
+       (print "Cannot hold -2^64 (any bignum negative value < smallest int64)")
+       (assert
+	(handle-exceptions exn #t
+	  (begin ((foreign-lambda* ?type-name ((?type-name x))
+		    "C_return(x);") #x-10000000000000000)
+		 #f)))))
+    ((_ ?type-name signed ?bits)
+     (let ((limit (arithmetic-shift 1 (sub1 ?bits))))
+       (print "Testing signed FFI type \"" '?type-name "\" (" ?bits " bits):")
+       (print "Can hold maximum value " (sub1 limit) "...")
+       (assert
+	(eqv? (sub1 limit)
+	      ((foreign-lambda* ?type-name ((?type-name x))
+		 "C_return(x);") (sub1 limit))))
+       (print "Can hold minimum value " (- limit) "...")
+       (assert
+	(eqv? (- limit)
+	      ((foreign-lambda* ?type-name ((?type-name x))
+		 "C_return(x);") (- limit))))
+       (print "Cannot hold one more than maximum value " limit "...")
+       (assert
+	(handle-exceptions exn #t
+	  (begin ((foreign-lambda* ?type-name ((?type-name x))
+		    "C_return(x);") limit)
+		 #f)))
+       (print "Cannot hold one less than minimum value " (- limit) "...")
+       (assert
+	(handle-exceptions exn #t
+	  (begin ((foreign-lambda* ?type-name ((?type-name x))
+		    "C_return(x);") (sub1 (- limit)))
+		 #f)))))))
+
+(test-ffi-type-limits unsigned-integer32 unsigned 32)
+(test-ffi-type-limits integer32 signed 32)
+
+(test-ffi-type-limits unsigned-integer64 unsigned 64)
+(test-ffi-type-limits integer64 signed 64)
+
+(test-ffi-type-limits
+ unsigned-integer unsigned
+ (foreign-value "sizeof(unsigned int) * CHAR_BIT" int))
+
+(test-ffi-type-limits
+ integer signed (foreign-value "sizeof(int) * CHAR_BIT" int))
+
+(test-ffi-type-limits
+ (enum intlimits) signed
+ (foreign-value "sizeof(enum intlimits) * CHAR_BIT" int))
+
+(test-ffi-type-limits
+ unsigned-long unsigned
+ (foreign-value "sizeof(unsigned long) * CHAR_BIT" int))
+
+(test-ffi-type-limits
+ long signed (foreign-value "sizeof(long) * CHAR_BIT" int))
+
+(test-ffi-type-limits
+ ssize_t signed (foreign-value "sizeof(ssize_t) * CHAR_BIT" int))
+
+(test-ffi-type-limits
+ size_t unsigned (foreign-value "sizeof(size_t) * CHAR_BIT" int))
+
 
 ;; #1059: foreign vector types use wrong lolevel accessors, causing
 ;; paranoid DEBUGBUILD assertions to fail.
@@ -289,15 +392,19 @@
 (assert (= 10 (s4v-sum "integer" u8vector '#u8(1 2 3 4))))
 (assert (= 10 (s4v-sum "integer" u16vector '#u16(1 2 3 4))))
 (assert (= 10 (s4v-sum "integer" u32vector '#u32(1 2 3 4))))
+(assert (= 10 (s4v-sum "integer" s64vector '#s64(1 2 3 4))))
 (assert (= 10 (s4v-sum "integer" nonnull-u8vector '#u8(1 2 3 4))))
 (assert (= 10 (s4v-sum "integer" nonnull-u16vector '#u16(1 2 3 4))))
 (assert (= 10 (s4v-sum "integer" nonnull-u32vector '#u32(1 2 3 4))))
+(assert (= 10 (s4v-sum "integer" nonnull-u64vector '#u64(1 2 3 4))))
 (assert (= -10 (s4v-sum "integer" s8vector '#s8(-1 -2 -3 -4))))
 (assert (= -10 (s4v-sum "integer" s16vector '#s16(-1 -2 -3 -4))))
 (assert (= -10 (s4v-sum "integer" s32vector '#s32(-1 -2 -3 -4))))
+(assert (= -10 (s4v-sum "integer" s64vector '#s64(-1 -2 -3 -4))))
 (assert (= -10 (s4v-sum "integer" nonnull-s8vector '#s8(-1 -2 -3 -4))))
 (assert (= -10 (s4v-sum "integer" nonnull-s16vector '#s16(-1 -2 -3 -4))))
 (assert (= -10 (s4v-sum "integer" nonnull-s32vector '#s32(-1 -2 -3 -4))))
+(assert (= -10 (s4v-sum "integer" nonnull-s64vector '#s64(-1 -2 -3 -4))))
 (assert (= 12.0 (s4v-sum "float" f32vector '#f32(1.5 2.5 3.5 4.5))))
 (assert (= 12.0 (s4v-sum "float" f64vector '#f64(1.5 2.5 3.5 4.5))))
 (assert (= 12.0 (s4v-sum "float" nonnull-f32vector '#f32(1.5 2.5 3.5 4.5))))

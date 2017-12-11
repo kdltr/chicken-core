@@ -106,9 +106,6 @@ chicken-config.h: chicken-defaults.h
 ifdef GCHOOKS
 	echo "#define C_GC_HOOKS" >>$@
 endif
-ifdef SYMBOLGC
-	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
-endif
 	echo "#define C_USE_STD_FEATURE_MACROS" >>$@
 	cat chicken-defaults.h >>$@
 

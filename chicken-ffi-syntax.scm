@@ -27,25 +27,43 @@
 
 (declare
   (unit chicken-ffi-syntax)
+  (uses data-structures extras internal)
   (disable-interrupts)
-  (fixnum) )
+  (fixnum))
 
 #+(not debugbuild)
 (declare
   (no-bound-checks)
   (no-procedure-checks))
 
-(##sys#provide
- 'chicken-ffi-syntax)
+(import chicken.base
+	chicken.format
+	chicken.internal
+	chicken.platform
+	chicken.syntax
+	chicken.string)
 
+(include "common-declarations.scm")
+(include "mini-srfi-1.scm")
 
 (define ##sys#chicken-ffi-macro-environment
   (let ((me0 (##sys#macro-environment)))
 
+;; IMPORTANT: These macros directly call fully qualified names from
+;; the "chicken.compiler.c-backend" and "chicken.compiler.support"
+;; modules.  These are unbound in the interpreter, so check first:
+(define (compiler-only-er-transformer transformer)
+  (##sys#er-transformer
+   (lambda (form r c)
+     (if (feature? 'compiling)
+	 (transformer form r c)
+	 (syntax-error
+	  (car form) "The FFI is not supported in interpreted mode")))))
+
 (##sys#extend-macro-environment
  'define-external
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (let* ((form (cdr form))
 	   (quals (and (pair? form) (string? (car form))))
@@ -82,7 +100,7 @@
 (##sys#extend-macro-environment
  'location
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (x r c)
     (##sys#check-syntax 'location x '(location _))
     `(##core#location ,(cadr x)))))
@@ -90,7 +108,7 @@
 (##sys#extend-macro-environment
  'define-location
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'define-location form '(_ variable _ . #(_ 0 1)))
     (let ((var (cadr form))
@@ -107,7 +125,7 @@
 (##sys#extend-macro-environment
  'let-location
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'let-location form '(_ #((variable _ . #(_ 0 1)) 0) . _))
     (let* ((bindings (cadr form))
@@ -120,20 +138,22 @@
 		(list (cons a (cddr b)))
 		'() ) )
 	  bindings aliases)
-	,(fold-right
-	  (lambda (b a rest)
-	    (if (= 3 (length b))
-		`(##core#let-location
-		  ,(car b)
-		  ,(cadr b)
-		  ,a
-		  ,rest)
-		`(##core#let-location
-		  ,(car b)
-		  ,(cadr b)
-		  ,rest) ) )
-	  `(##core#let () ,@body)
-	  bindings aliases) ) ) ) ) )
+	,(let loop ((bindings bindings) (aliases aliases))
+	   (if (null? bindings)
+	       `(##core#let () ,@body)
+	       (let ((b (car bindings))
+		     (a (car aliases))
+		     (rest (loop (cdr bindings) (cdr aliases))))
+		 (if (= 3 (length b))
+		     `(##core#let-location
+		       ,(car b)
+		       ,(cadr b)
+		       ,a
+		       ,rest)
+		     `(##core#let-location
+		       ,(car b)
+		       ,(cadr b)
+		       ,rest) ) ))))))))
 
 
 ;;; Embedding code directly:
@@ -141,7 +161,7 @@
 (##sys#extend-macro-environment
  'foreign-code
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-code form '(_ . #(string 0)))
     (let ([tmp (gensym 'code_)])
@@ -156,7 +176,7 @@
 (##sys#extend-macro-environment
  'foreign-value
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-value form '(_ _ _))
     (let ((tmp (gensym "code_"))
@@ -171,8 +191,8 @@
 		  'foreign-value
 		  "bad argument type - not a string or symbol" 
 		  code))))
-	(##core#the ,(##compiler#foreign-type->scrutiny-type
-		      (##sys#strip-syntax (caddr form))
+	(##core#the ,(chicken.compiler.support#foreign-type->scrutiny-type
+		      (chicken.syntax#strip-syntax (caddr form))
 		      'result) 
 		    #f ,tmp) ) ) ) ) )
 
@@ -182,7 +202,7 @@
 (##sys#extend-macro-environment
  'foreign-declare
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-declare form '(_ . #(string 0)))
     `(##core#declare (foreign-declare ,@(cdr form))))))
@@ -193,7 +213,7 @@
 (##sys#extend-macro-environment
  'define-foreign-type
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'define-foreign-type form '(_ symbol _ . #(_ 0 2)))
     `(##core#define-foreign-type ,@(cdr form)))))
@@ -201,100 +221,106 @@
 (##sys#extend-macro-environment
  'define-foreign-variable
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
-    (##sys#check-syntax 'define-foreign-variable form '(_ symbol _ . #(_ 0 1)))
+    (##sys#check-syntax 'define-foreign-variable form '(_ symbol _ . #(string 0 1)))
     `(##core#define-foreign-variable ,@(cdr form)))))
 
 (##sys#extend-macro-environment
  'foreign-primitive
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-primitive form '(_ _ . _))
     (let* ((hasrtype (and (pair? (cddr form)) (not (string? (caddr form)))))
-	   (rtype (and hasrtype (##sys#strip-syntax (cadr form))))
-	   (args (##sys#strip-syntax (if hasrtype (caddr form) (cadr form))))
+	   (rtype (and hasrtype (chicken.syntax#strip-syntax (cadr form))))
+	   (args (chicken.syntax#strip-syntax (if hasrtype (caddr form) (cadr form))))
 	   (argtypes (map car args)))
       `(##core#the (procedure
-		    ,(map (cut ##compiler#foreign-type->scrutiny-type <> 'arg) argtypes)
+		    ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
+			  argtypes)
 		    ,@(if (not rtype)
 			  '* ; special case for C_values(...)
-			  (list (##compiler#foreign-type->scrutiny-type rtype 'result))))
+			  (list (chicken.compiler.support#foreign-type->scrutiny-type rtype 'result))))
 		   #f
 		   (##core#foreign-primitive ,@(cdr form)))))))
 
 (##sys#extend-macro-environment
  'foreign-lambda
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-lambda form '(_ _ _ . _))
     `(##core#the
-      (procedure ,(map (cut ##compiler#foreign-type->scrutiny-type <> 'arg)
-		       (##sys#strip-syntax (cdddr form)))
-		 ,(##compiler#foreign-type->scrutiny-type
-		   (##sys#strip-syntax (cadr form)) 'result))
+      (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
+		       (chicken.syntax#strip-syntax (cdddr form)))
+		 ,(chicken.compiler.support#foreign-type->scrutiny-type
+		   (chicken.syntax#strip-syntax (cadr form)) 'result))
       #f
       (##core#foreign-lambda ,@(cdr form))))))
 
 (##sys#extend-macro-environment
  'foreign-lambda*
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-lambda* form '(_ _ _ _ . _))
     `(##core#the
-      (procedure ,(map (lambda (a) (##compiler#foreign-type->scrutiny-type (car a) 'arg))
-			(##sys#strip-syntax (caddr form)))
-		  ,(##compiler#foreign-type->scrutiny-type
-		    (##sys#strip-syntax (cadr form)) 'result))
+      (procedure ,(map (lambda (a)
+			 (chicken.compiler.support#foreign-type->scrutiny-type
+			  (car a)
+			  'arg))
+			(chicken.syntax#strip-syntax (caddr form)))
+		  ,(chicken.compiler.support#foreign-type->scrutiny-type
+		    (chicken.syntax#strip-syntax (cadr form)) 'result))
       #f
       (##core#foreign-lambda* ,@(cdr form))))))
 
 (##sys#extend-macro-environment
  'foreign-safe-lambda
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-safe-lambda form '(_ _ _ . _))
     `(##core#the
-      (procedure ,(map (cut ##compiler#foreign-type->scrutiny-type <> 'arg)
-			(##sys#strip-syntax (cdddr form)))
-		  ,(##compiler#foreign-type->scrutiny-type
-		    (##sys#strip-syntax (cadr form)) 'result))
+      (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
+			(chicken.syntax#strip-syntax (cdddr form)))
+		  ,(chicken.compiler.support#foreign-type->scrutiny-type
+		    (chicken.syntax#strip-syntax (cadr form)) 'result))
       #f
       (##core#foreign-safe-lambda ,@(cdr form))))))
 
 (##sys#extend-macro-environment
  'foreign-safe-lambda*
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-safe-lambda* form '(_ _ _ _ . _))
     `(##core#the
-      (procedure ,(map (lambda (a) (##compiler#foreign-type->scrutiny-type (car a) 'arg))
-			(##sys#strip-syntax (caddr form)))
-		  ,(##compiler#foreign-type->scrutiny-type
-		    (##sys#strip-syntax (cadr form)) 'result))
+      (procedure ,(map (lambda (a)
+			 (chicken.compiler.support#foreign-type->scrutiny-type (car a) 'arg))
+			(chicken.syntax#strip-syntax (caddr form)))
+		  ,(chicken.compiler.support#foreign-type->scrutiny-type
+		    (chicken.syntax#strip-syntax (cadr form)) 'result))
       #f
       (##core#foreign-safe-lambda* ,@(cdr form))))))
 
 (##sys#extend-macro-environment
  'foreign-type-size
  '()
- (##sys#er-transformer
+ (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-type-size form '(_ _))
-    (let* ((t (##sys#strip-syntax (cadr form)))
+    (let* ((t (chicken.syntax#strip-syntax (cadr form)))
 	   (tmp (gensym "code_"))
 	   (decl
 	    (if (string? t)
 		t
-		(##compiler#foreign-type-declaration t ""))))
+		;; TODO: Backend should be configurable
+		(chicken.compiler.c-backend#foreign-type-declaration t ""))))
       `(##core#begin
 	(##core#define-foreign-variable ,tmp size_t ,(string-append "sizeof(" decl ")"))
 	(##core#the fixnum #f ,tmp))))))
 
 
-(##sys#macro-subset me0)))
+(macro-subset me0)))

@@ -4,7 +4,6 @@
 
 ;(set-gc-report! #t)
 
-(require-extension srfi-1)
 #>
 long *ptrs[10];
 
@@ -35,6 +34,15 @@ long fill_10(long i, long *o0, long *o1, long *o2, long *o3, long *o4,
                   (c-pointer long) (c-pointer long) (c-pointer long)
                   (c-pointer long) (c-pointer long) (c-pointer long)
                   (c-pointer long)))
+
+(define (make-list n x)
+  (list-tabulate n (lambda _ x)))
+
+(define (list-tabulate n proc)
+  (let loop ((i 0))
+    (if (fx>= i n)
+	'()
+	(cons (proc i) (loop (fx+ i 1))))))
 
 (let* ((el 1)
        (expected (make-list 10 el)))

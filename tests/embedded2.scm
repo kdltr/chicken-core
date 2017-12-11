@@ -1,4 +1,4 @@
-(use extras)
+(import chicken.platform chicken.gc chicken.pretty-print)
 
 #>
 #include <assert.h>
@@ -17,8 +17,6 @@ int main()
 }
 <#
 
-
-(##sys#fudge 36)
 (gc)
 (print "starting...")
 

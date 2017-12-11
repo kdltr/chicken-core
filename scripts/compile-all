@@ -5,14 +5,14 @@
 set -e
 set -x
 
-compiler_options="-optimize-level 2 -include-path . -include-path ./ -inline -ignore-repository -feature chicken-bootstrap -feature debugbuild -scrutinize -types ./types.db -verbose  -no-lambda-info -local -extend private-namespace.scm -specialize"
+compiler_options="-optimize-level 2 -include-path . -include-path ./ -inline -ignore-repository -feature chicken-bootstrap -feature debugbuild -types ./types.db -verbose  -no-lambda-info -local -specialize"
 
-library_options="-optimize-level 2 -include-path . -include-path ./ -inline -ignore-repository -feature chicken-bootstrap -feature debugbuild -scrutinize -types ./types.db -verbose  -explicit-use -no-trace -specialize"
+library_options="-optimize-level 2 -include-path . -include-path ./ -inline -ignore-repository -feature chicken-bootstrap -feature debugbuild -types ./types.db -verbose  -explicit-use -no-trace -specialize"
 
 compiler="$1"
 shift
 
-for x in library eval data-structures ports files extras lolevel utils tcp srfi-1 srfi-4 srfi-13 srfi-14 srfi-18 srfi-69 posixunix posixwin irregex scheduler profiler stub expand modules chicken-syntax chicken-ffi-syntax build-version; do
+for x in library eval data-structures ports files extras lolevel tcp srfi-4 posixunix posixwin irregex scheduler profiler stub expand modules chicken-syntax chicken-ffi-syntax build-version; do
     $compiler $x.scm $library_options -output-file /tmp/xxx.c "$@"
 done
 

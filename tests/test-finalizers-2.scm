@@ -1,14 +1,19 @@
 ;;;; test-finalizers-2.scm - test finalizers + GC roots
 
+(import (chicken gc))
 
-(use srfi-1)
+(define (list-tabulate n proc)
+  (let loop ((i 0))
+    (if (fx>= i n)
+	'()
+	(cons (proc i) (loop (fx+ i 1))))))
 
 (define *n* 1000)
 (define *count* 0)
 
 #>
 static void *
-makef(int f, ___scheme_value x)
+makef(int f, C_word x)
 {
   void *r = f ? CHICKEN_new_finalizable_gc_root() : CHICKEN_new_gc_root();
 
@@ -35,7 +40,7 @@ freef(void *r)
 (print "creating gc roots")
 
 (let* ((x (list-tabulate *n* list))
-       (fs (circular-list #t #f))
+       (fs (list-tabulate *n* (lambda (x) (zero? (modulo x 2)))))
        (rs (map makef fs x)))
   (for-each 
    (lambda (x f e)

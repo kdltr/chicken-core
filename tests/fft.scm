@@ -8,7 +8,8 @@
      (extended-bindings)
      (block)
      (not safe)))
-  (else))
+  (else
+   (import chicken.bitwise chicken.flonum)))
 
 ;;; All the following redefinitions are *ignored* by the Gambit compiler
 ;;; because of the declarations above.
@@ -55,7 +56,7 @@
     (defalias list->f64vector list->vector)
     (defalias f64vector-length vector-length)) )
  (chicken
-  (use srfi-4))
+  (import srfi-4))
  (else) )
 
 ;;; end of *ignored* definitions

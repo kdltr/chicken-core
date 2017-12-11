@@ -1,8 +1,18 @@
 ;;;; typematch-tests.scm
 
 
-(use srfi-1 lolevel data-structures)
+(import (only chicken.data-structures identity)
+        chicken.blob chicken.memory chicken.locative)
 
+
+(define (make-list n x)
+  (list-tabulate n (lambda _ x)))
+
+(define (list-tabulate n proc)
+  (let loop ((i 0))
+    (if (fx>= i n)
+	'()
+	(cons (proc i) (loop (fx+ i 1))))))
 
 (define-syntax check
   (syntax-rules ()
@@ -112,7 +122,7 @@
 (check #\x 1.2 char)
 (check #t #f true)
 (check #f #t false)
-(check (+ 1 2) 'a number)
+(check (+ 1 2) 'a integer)
 (check '(1) 1.2 (list fixnum))
 (check '(a) 1.2 (list symbol))
 (check (list 1) '(1 . 2) (list fixnum))
@@ -120,6 +130,7 @@
 (check + 1.2 procedure)
 (check '#(1) 1.2 vector)
 (check '() 1 null)
+(check (current-input-port) 1.2 port)
 (check (current-input-port) 1.2 input-port)
 (check (make-blob 10) 1.2 blob)
 (check (address->pointer 0) 1.2 pointer)
@@ -175,7 +186,9 @@
 (checkp condition? (##sys#make-structure 'condition) (struct condition))
 (checkp fixnum? 1 fixnum)
 (checkp flonum? 1.2 float)
+(checkp port? (current-input-port) port)
 (checkp input-port? (current-input-port) input-port)
+(checkp output-port? (current-output-port) output-port)
 (checkp pointer-vector? (make-pointer-vector 1) pointer-vector)
 (checkp pointer? (address->pointer 1) pointer)
 
@@ -187,6 +200,16 @@
 (type> list (list *))
 (type> vector (vector *))
 
+(define-type x (struct x))
+
+(type<= (refine (a) x) x)
+(type<= (refine (a b) x) (refine (a) x))
+(type<= (refine (a) false) (refine (a) boolean))
+
+(type> (refine (a) x) (refine (b) x))
+(type> (refine (a) x) (refine (a b) x))
+(type> (refine (a) boolean) (refine (a) false))
+
 (mn pair null)
 (mn pair list)
 
@@ -196,6 +219,12 @@
 
 (mx (forall (a) (procedure (#!rest a) a)) +)
 (mx (list fixnum) '(1))
+
+
+(mx port (open-input-string "foo"))
+(mx input-port (open-input-string "bar"))
+(mx port (open-output-string))
+(mx output-port (open-output-string))
 
 ;;; pairs
 
@@ -263,11 +292,11 @@
 (define x 1)
 
 (assert 
- (eq? 'number
-      (compiler-typecase (vector-ref '#(1 2 3.4) x)
-	(fixnum 'fixnum)
-	(float 'float)
-	(number 'number))))
+ (equal? 'number
+	 (compiler-typecase (vector-ref '#(1 2 3.4) x)
+	   (fixnum 'fixnum)
+	   (float 'float)
+	   (number 'number))))
 
 (assert
  (eq? 'boolean
@@ -282,9 +311,6 @@
 (mx fixnum (##sys#vector-ref '#(1 2 3.4) 0))
 (mx (vector fixnum float) (vector 1 2.3))
 (mx (list fixnum float) (list 1 2.3))
-(mx (list fixnum float) (list-copy (list 1 2.3)))
-(mx (pair fixnum float) (list-copy (cons 1 2.3)))
-(mx fixnum (list-copy 1))
 (mx fixnum (list-ref (list 1 2.3) 0))
 (mx fixnum (list-ref (cons 1 2.3) 0))
 (mx float (list-ref (list 1 2.3) 1))
@@ -293,18 +319,6 @@
 (mx (list float) (list-tail (list 1 2.3) 1))
 (mx float (list-tail (cons 1 2.3) 1))
 (mx null  (list-tail (list 1 2.3) 2))
-(mx (list fixnum float) (drop (list 1 2.3) 0))
-(mx (pair fixnum float) (drop (cons 1 2.3) 0))
-(mx (list float) (drop (list 1 2.3) 1))
-(mx float (drop (cons 1 2.3) 1))
-(mx null (drop (list 1 2.3) 2))
-(mx null (take (list 1 2.3) 0))
-(mx null (take (cons 1 2.3) 0))
-(mx (list fixnum) (take (list 1 2.3) 1))
-(mx (list fixnum) (take (cons 1 2.3) 1))
-(mx (list fixnum float) (take (list 1 2.3) 2))
-(mx (list * *) (make-list 2))
-(mx (list string string) (make-list 2 "a"))
 (mx (vector * *) (make-vector 2))
 (mx (vector string string) (make-vector 2 "a"))
 (mx null (reverse '()))
@@ -345,6 +359,15 @@
   (fixnum 'ok))
 
 (assert
+ (eq? 'ok (compiler-typecase (the port xxx)
+	    ((not port) 'no)
+	    ((not input-port) 'no)
+	    ((not output-port) 'no)
+	    (input-port 'no)
+	    (output-port 'no)
+	    (port 'ok))))
+
+(assert
  (eq? 'ok (compiler-typecase (f4 1)
 	    (fixnum 'not-ok)
 	    (else 'ok))))
@@ -357,18 +380,18 @@
 ;; Always a fixnum
 (assert
  (compiler-typecase #x3fffffff
-   (float #f)
+   (bignum #f)
    (fixnum #t)))
 
-;; Is a fixnum on 64-bit, flonum on 32-bit.  The best we can do is to
-;; check for 'number (on 32-bits it will always be a float)
+;; Is a fixnum on 64-bit, bignum on 32-bit, thus type must be 'integer
 (assert
  (compiler-typecase #x4fffffff
    (fixnum #f)
-   (number #t)))
+   (bignum #f)
+   (integer #t)))
 
-;; Always a flonum
+;; Always a bignum
 (assert
  (compiler-typecase #x7fffffffffffffff
    (fixnum #f)
-   (float #t)))
+   (bignum #t)))

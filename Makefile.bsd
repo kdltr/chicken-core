@@ -91,15 +91,12 @@ chicken-config.h: chicken-defaults.h
 	echo "#define HAVE_UNSIGNED_LONG_LONG 1" >>$@
 	echo "#define STDC_HEADERS 1" >>$@
 	echo "#define HAVE_ALLOCA 1" >>$@
-	echo "#define HAVE_GRP_H 1" >>$@
 	echo "#define HAVE_ERRNO_H 1" >>$@
 	echo "#define HAVE_SYSEXITS_H 1" >>$@
+	echo "#define SEARCH_EXE_PATH 1" >>$@
 	echo "#define C_STACK_GROWS_DOWNWARD 1" >>$@
 ifdef GCHOOKS
 	echo "#define C_GC_HOOKS" >>$@
-endif
-ifdef SYMBOLGC
-	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
 endif
 # Feature macros are unsupported on FreeBSD and DragonFly
 	echo "#if !defined(__FreeBSD__) && !defined(__DragonFly__)" >> $@

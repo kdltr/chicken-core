@@ -7,7 +7,7 @@ This unit provides services as used on many UNIX-like systems.  Note that
 the following definitions are not all available on non-UNIX systems like
 Windows. See below for Windows specific notes.
 
-This unit uses the {{regex}}, {{scheduler}}, {{extras}} and {{utils}} units.
+This unit uses the {{irregex}}, {{scheduler}}, and {{extras}} units.
 
 All errors related to failing file-operations will signal a condition
 of kind {{(exn i/o file)}}.
@@ -641,15 +641,15 @@ Get or set the process group ID of the process specified by {{PID}}.
 
 ==== process-execute
 
-<procedure>(process-execute PATHNAME [ARGUMENT-LIST [ENVIRONMENT-LIST]])</procedure>
+<procedure>(process-execute PATHNAME [ARGUMENT-LIST [ENVIRONMENT-ALIST]])</procedure>
 
 Replaces the running process with a new process image from the program
 stored at {{PATHNAME}}, using the C library function {{execvp(3)}}.
 If the optional argument {{ARGUMENT-LIST}} is given, then it should
 contain a list of strings which are passed as arguments to the subprocess.
-If the optional argument {{ENVIRONMENT-LIST}} is supplied, then the library
+If the optional argument {{ENVIRONMENT-ALIST}} is supplied, then the library
 function {{execve(2)}} is used, and the environment passed in
-{{ENVIRONMENT-LIST}} (which should be of the form {{("<NAME>=<VALUE>" ...)}}
+{{ENVIRONMENT-ALIST}} (which should be of the form {{(("<NAME>" . "<VALUE>") ...)}})
 is given to the invoked process. Note that {{execvp(3)}} respects the
 current setting of the {{PATH}} environment variable while {{execve(3)}} does not.
 
@@ -708,7 +708,7 @@ are suspended as well.
 ==== process
 
 <procedure>(process COMMANDLINE)</procedure><br>
-<procedure>(process COMMAND ARGUMENT-LIST [ENVIRONMENT-LIST])</procedure>
+<procedure>(process COMMAND ARGUMENT-LIST [ENVIRONMENT-ALIST])</procedure>
 
 Creates a subprocess and returns three values: an input port from
 which data written by the sub-process can be read, an output port from
@@ -724,7 +724,7 @@ its standard error into a separate port).
 * The single parameter version passes the string {{COMMANDLINE}} to the host-system's shell that
 is invoked as a subprocess.
 * The multiple parameter version directly invokes the {{COMMAND}} as a subprocess. The {{ARGUMENT-LIST}}
-is directly passed, as is {{ENVIRONMENT-LIST}}.
+is directly passed, as is {{ENVIRONMENT-ALIST}}.
 
 Not using the shell may be preferrable for security reasons.
 
@@ -744,9 +744,9 @@ which any data written to will be received as input in the sub-process,
 the process-id of the started sub-process, and an input port from
 which data written by the sub-process to {{stderr}} can be read.
 
-==== sleep
+==== process-sleep
 
-<procedure>(sleep SECONDS)</procedure>
+<procedure>(process-sleep SECONDS)</procedure>
 
 Puts the process to sleep for {{SECONDS}}. Returns either 0 if
 the time has completely elapsed, or the number of remaining seconds,
@@ -758,6 +758,27 @@ if a signal occurred.
 
 Creates a new session if the calling process is not a process group leader and returns
 the session ID.
+
+
+=== Shell commands
+
+==== system*
+
+<procedure>(system* STRING)</procedure>
+
+Similar to {{(system STRING)}}, but signals an error should the invoked
+program return a nonzero exit status.
+
+==== qs
+
+<procedure>(qs STRING [PLATFORM])</procedure>
+
+Escapes {{STRING}} suitably for passing to a shell command on {{PLATFORM}}.
+{{PLATFORM}} defaults to the value of {{(build-platform)}} and indicates in
+which style the argument should be quoted. On Windows systems, the string
+is simply enclosed in double-quote ({{"}}) characters, on UNIXish systems,
+characters that would have a special meaning to the shell are escaped
+using backslash ({{\}}).
 
 
 === Hard and symbolic links
@@ -837,41 +858,6 @@ Get or set the real group-id of the current process.
 
 Get or set the effective group-id of the current process.
 ID can be found, then {{#f}} is returned.
-
-==== group-information
-
-<procedure>(group-information GROUP)</procedure>
-
-If {{GROUP}} specifies a valid group-name or group-id, then this
-procedure returns a list of four values: the group-name, the encrypted group password,
-the group ID and a list of the names of all group members. If no group with the
-given name or ID exists, then {{#f}} is returned.
-
-==== get-groups
-
-<procedure>(get-groups)</procedure>
-
-Returns a list with the supplementary group IDs of the current user.
-
-
-=== Changing user & group information
-
-==== set-groups!
-
-<procedure>(set-groups! GIDLIST)</procedure>
-
-Sets the supplementrary group IDs of the current user to the IDs given in the list {{GIDLIST}}.
-
-Only the superuser may invoke this procedure.
-
-==== initialize-groups
-
-<procedure>(initialize-groups USERNAME BASEGID)</procedure>
-
-Sets the supplementrary group IDs of the current user to the IDs from the user with name {{USERNAME}}
-(a string), including {{BASEGID}}.
-
-Only the superuser may invoke this procedure.
 
 
 === Record locking
@@ -1018,105 +1004,21 @@ These variables contain signal codes for use with {{process-signal}},  {{set-sig
 Returns a association list of the environment variables and their
 current values (see also [[http://srfi.schemers.org/srfi-98/|SRFI-98]]).
 
-==== setenv
+==== set-environment-variable!
 
-<procedure>(setenv VARIABLE VALUE)</procedure>
+<procedure>(set-environment-variable! VARIABLE VALUE)</procedure>
 
 Sets the environment variable named {{VARIABLE}} to
 {{VALUE}}. Both arguments should be strings. If the variable is
 not defined in the environment, a new definition is created.
 
-==== unsetenv
+==== unset-environment-variable!
 
-<procedure>(unsetenv VARIABLE)</procedure>
+<procedure>(unset-environment-variable! VARIABLE)</procedure>
 
 Removes the definition of the environment variable {{VARIABLE}} from
 the environment of the current process. If the variable is not defined,
 nothing happens.
-
-
-=== Memory mapped I/O
-
-Memory mapped I/O takes the contents of a file descriptor and places them in memory.
-
-==== memory-mapped-file?
-
-<procedure>(memory-mapped-file? X)</procedure>
-
-Returns {{#t}}, if {{X}} is an object representing a memory
-mapped file, or {{#f}} otherwise.
-
-==== map-file-to-memory
-
-<procedure>(map-file-to-memory ADDRESS LEN PROTECTION FLAG FILENO [OFFSET])</procedure>
-
-Maps a section of a file to memory using the C function
-{{mmap()}}.  {{ADDRESS}} should be a foreign pointer object
-or {{#f}}; {{LEN}} specifies the size of the section to
-be mapped; {{PROTECTION}} should be one or more of the flags
-{{prot/read, prot/write, prot/exec}} or {{prot/none}}
-'''bitwise-ior'''ed together; {{FLAG}} should be one or more of
-the flags {{map/fixed, map/shared, map/private, map/anonymous}} or
-{{map/file}}; {{FILENO}} should be the file-descriptor of the
-mapped file. The optional argument {{OFFSET}} gives the offset of
-the section of the file to be mapped and defaults to 0. This procedure
-returns an object representing the mapped file section.  The procedure
-{{move-memory!}} can be used to access the mapped memory.
-
-==== memory-mapped-file-pointer
-
-<procedure>(memory-mapped-file-pointer MMAP)</procedure>
-
-Returns a machine pointer to the start of the memory region to which
-the file is mapped.
-
-==== unmap-file-from-memory
-
-<procedure>(unmap-file-from-memory MMAP [LEN])</procedure>
-
-Unmaps the section of a file mapped to memory using the C function
-{{munmap()}}.  {{MMAP}} should be a mapped file as returned
-by the procedure {{map-file-to-memory}}.  The optional argument
-{{LEN}} specifies the length of the section to be unmapped and
-defaults to the complete length given when the file was mapped.
-
-==== Memory Mapped I/O Example
-
-<enscript highlight=scheme>
-;; example-mmap.scm
-;;
-;; basic example of memory mapped I/O
-;;
-;; This example does no error checking or cleanup, and serves
-;; only to demonstrate how the mmap functions work together.
-;;
-(use posix)
-(use lolevel)
-
-       ; open a file using the posix module, so we have the file descriptor.
-(let* ((fd   (file-open "example-mmap.scm" (+ open/rdonly open/nonblock)))
-       ; fstat(2) the file descriptor fd to determine its size
-       (size (file-size fd))
-       ; mmap(2) the file for reading.
-       (mmap (map-file-to-memory #f
-                                 size
-                                 prot/read
-                                 (+ map/file map/shared)
-                                 fd))
-       ; return a pointer object to the beginning of the memory map.
-       (buf  (memory-mapped-file-pointer mmap))
-       ; allocate a string the same size as the file.
-       (str  (make-string size)))
-  ; copy the mapped memory into a string
-  (move-memory! buf str size)
-  (display str)
-  ; alternately, print the string byte-by-byte without copying.
-  (let loop ((p buf)
-             (i 0))
-    (unless (= i size)
-      (display (integer->char (pointer-s8-ref p)))
-      (loop (pointer+ p 1) (+ i 1)))))
-</enscript>
 
 
 === Date and time routines
@@ -1203,14 +1105,14 @@ The {{FORMAT}} string follows the rules for the C library procedure {{strptime}}
 
 === Raw exit
 
-==== _exit
+==== emergency-exit
 
-<procedure>(_exit [CODE])</procedure>
+<procedure>(emergency-exit [CODE])</procedure>
 
 Exits the current process without flushing any buffered output (using
-the C function {{_exit}}).  Note that the {{exit-handler}}
-is not called when this procedure is invoked. The optional return-code
-{{CODE}} defaults to {{0}}.
+the C function {{_exit}}).  Note that the {{exit-handler}} is not called
+when this procedure is invoked. The optional exit status code {{CODE}}
+defaults to {{0}}.
 
 
 === ERRNO values
@@ -1241,6 +1143,7 @@ is not called when this procedure is invoked. The optional return-code
 
 These variables contain error codes as returned by {{errno}}.
 
+They are provided by the {{(chicken errno)}} module.
 
 === Finding files
 
@@ -1365,7 +1268,7 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{current-user-id}} : {{getuid}}
 ; {{delete-directory}} : {{rmdir}}
 ; {{duplicate-fileno}} : {{dup/dup2}}
-; {{_exit}} : {{_exit}}
+; {{emergency-exit}} : {{_exit}}
 ; {{file-close}} : {{close}}
 ; {{file-access-time}} : {{stat}}
 ; {{file-change-time}} : {{stat}}
@@ -1385,12 +1288,9 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{file-unlock}} : {{fcntl}}
 ; {{file-write}} : {{write}}
 ; {{file-write-access?}} : {{access}}
-; {{get-groups}} : {{getgroups}}
 ; {{get-host-name}} : {{gethostname}}
-; {{initialize-groups}} : {{initgroups}}
 ; {{local-time->seconds}} : {{mktime}}
 ; {{local-timezone-abbreviation}} : {{localtime}}
-; {{map-file-to-memory}} : {{mmap}}
 ; {{open-input-file*}} : {{fdopen}}
 ; {{open-output-file*}} : {{fdopen}}
 ; {{open-input-pipe}} : {{popen}}
@@ -1400,6 +1300,7 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{process-fork}} : {{fork}}
 ; {{process-group-id}} : {{getpgid}}
 ; {{process-signal}} : {{kill}}
+; {{process-sleep}} : {{sleep}}
 ; {{process-wait}} : {{waitpid}}
 ; {{close-input-pipe}} : {{pclose}}
 ; {{close-output-pipe}} : {{pclose}}
@@ -1410,19 +1311,16 @@ not be obtained. On Windows, this procedure always returns {{0}},
 ; {{set-alarm!}} : {{alarm}}
 ; {{set-buffering-mode!}} : {{setvbuf}}
 ; {{set-file-position!}} : {{fseek/seek}}
-; {{set-groups!}} : {{setgroups}}
 ; {{set-signal-mask!}} : {{sigprocmask}}
 ; {{set-group-id!}} : {{setgid}}
 ; {{set-user-id!}} : {{setuid}}
 ; {{set-root-directory!}} : {{chroot}}
-; {{setenv}} : {{setenv/putenv}}
-; {{sleep}} : {{sleep}}
+; {{set-environment-variable!}} : {{setenv/putenv}}
 ; {{system-information}} : {{uname}}
 ; {{terminal-name}} : {{ttyname}}
 ; {{terminal-port?}} : {{isatty}}
 ; {{time->string}} : {{asctime}}
-; {{unsetenv}} : {{putenv}}
-; {{unmap-file-from-memory}} : {{munmap}}
+; {{unset-environment-variable!}} : {{unsetenv/putenv}}
 ; {{user-information}} : {{getpwnam/getpwuid}}
 ; {{utc-time->seconds}} : {{timegm}}
 
@@ -1465,7 +1363,7 @@ Microsoft tools or with MinGW):
  file-select file-control
  signal/... (except signal/term, signal/int, signal/fpe, signal/ill, signal/segv, signal/abrt, signal/break)
  set-signal-mask!  signal-mask  signal-masked?  signal-mask!  signal-unmask!
- user-information  group-information  get-groups  set-groups!  initialize-groups
+ user-information
  errno/wouldblock
  change-directory*
  change-file-owner
@@ -1522,6 +1420,6 @@ Returns:
 * -1 when failure
 
 ----
-Previous: [[Unit srfi-69]]
+Previous: [[Unit srfi-4]]
 
-Next: [[Unit utils]]
+Next: [[Unit tcp]]

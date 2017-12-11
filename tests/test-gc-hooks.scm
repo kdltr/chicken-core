@@ -1,5 +1,7 @@
 ;;;; test-gc-hooks.scm
 
+(import (chicken gc))
+
 #>
 
 static int count = 0;

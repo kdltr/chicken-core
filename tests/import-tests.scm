@@ -1,8 +1,5 @@
 ;;;; import-tests.scm
 
-
-(require-library (srfi 4))
-
 (module m1 ()
 (import scheme (only srfi-4 u8vector?)) u8vector?)
 

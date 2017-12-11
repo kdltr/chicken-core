@@ -26,10 +26,10 @@
 
 
 (declare
-  (uses ports extras)
   (usual-integrations)
   (disable-interrupts)
-  (compile-syntax)
+  (fixnum-arithmetic)
+  (always-bound ##sys#windows-platform)
   (foreign-declare #<<EOF
 #include <signal.h>
 
@@ -41,19 +41,29 @@
 EOF
 ) )
 
-(include "banner")
+(module chicken.csi
+  (editor-command toplevel-command set-describer!)
 
-(declare
-  (always-bound
-    ##sys#windows-platform)
-  (hide parse-option-string bytevector-data member* canonicalize-args
-	describer-table dirseparator? circular-list? improper-pairs?
-	show-frameinfo selected-frame select-frame copy-from-frame
-	findall command-table default-editor csi-eval print-usage
-	print-banner run hexdump chop-separator lookup-script-file report
-	describe dump tty-input? history-list history-count
-	history-add history-ref history-clear history-show) )
+(import chicken scheme
+	chicken.condition
+	(only chicken.data-structures atom?)
+	chicken.foreign
+	chicken.format
+	chicken.gc
+	chicken.internal
+	chicken.io
+	chicken.keyword
+	chicken.load
+	chicken.platform
+	chicken.port
+	chicken.pretty-print
+	chicken.repl
+	chicken.sort
+	chicken.string
+	chicken.syntax)
 
+(include "banner.scm")
+(include "mini-srfi-1.scm")
 
 ;;; Parameters:
 
@@ -78,14 +88,14 @@ EOF
 
 (define (print-usage)
   (display #<<EOF
-usage: csi [FILENAME | OPTION ...]
+usage: csi [OPTION ...] [FILENAME ...]
 
   `csi' is the CHICKEN interpreter.
   
   FILENAME is a Scheme source file name with optional extension. OPTION may be
   one of the following:
 
-    -h  -help  --help             display this text and exit
+    -h  -help                     display this text and exit
         -version                  display version and exit
         -release                  print release number and exit
     -i  -case-insensitive         enable case-insensitive reading
@@ -126,34 +136,13 @@ EOF
 ) ) ;|  <--- for emacs font-lock
 
 (define (print-banner)
-  (newline)
-  ;;UNUSED BECAUSE IT IS STUPID
-  #;(when (and (tty-input?) (##sys#fudge 11))
-    (let* ((t (string-copy +product+))
-	   (len (string-length t))
-	   (c (make-string len #\x08)))
-      (do ((i (sub1 (* 2 len)) (sub1 i)))
-	  ((zero? i))
-	(let* ((p (abs (- i len)))
-	       (o (string-ref t p)))
-	  (string-set! t p #\@)
-	  (print* t)
-	  (string-set! t p o)
-	  (let ((t0 (+ (current-milliseconds) 20)))
-	    (let loop ()		; crude, but doesn't need srfi-18
-	      (when (< (current-milliseconds) t0)
-		(loop))))
-	  (print* c) ) ) ) )
-  (print +product+)
-  (print +banner+ (chicken-version #t) "\n") )
+  (print +banner+ (chicken-version #t) "\n"))
 
 
 ;;; Reader for REPL history:
 
 (set! ##sys#user-read-hook
-  (let ([read-char read-char]
-	[read read]
-	[old-hook ##sys#user-read-hook] )
+  (let ((old-hook ##sys#user-read-hook))
     (lambda (char port)
       (cond [(or (char=? #\) char) (char-whitespace? char))
 	     `',(history-ref (fx- history-count 1)) ]
@@ -182,8 +171,6 @@ EOF
 
 ;;; Find script in PATH (only used for Windows/DOS):
 
-(define @ #f)
-
 (define lookup-script-file 
   (let* ([buf (make-string 256)]
 	 [_getcwd (foreign-lambda nonnull-c-string "_getcwd" scheme-pointer int)] )
@@ -208,7 +195,7 @@ EOF
 		   [(addext name)]
 		   [else
 		    (let ([name2 (string-append "/" name)])
-		      (let loop ([ps (string-split path ";")])
+		      (let loop ((ps (##sys#split-path path)))
 			(and (pair? ps)
 			     (let ([name2 (string-append (chop-separator (##sys#slot ps 0)) name2)])
 			       (or (addext name2)
@@ -263,7 +250,8 @@ EOF
        history-count))))
 
 (define (tty-input?)
-  (or (##sys#fudge 12) (##sys#tty-port? ##sys#standard-input)) )
+  (or (##core#inline "C_i_tty_forcedp")
+      (##sys#tty-port? ##sys#standard-input)))
 
 (set! ##sys#break-on-error #f)
 
@@ -284,19 +272,16 @@ EOF
 	 (set! command-table (cons (list name proc help) command-table))))
   (##sys#void))
 
-(set! csi-eval
+(define csi-eval
   (let ((eval eval)
 	(load-noisily load-noisily)
 	(read read)
 	(read-line read-line)
-	(length length)
 	(display display)
-	(write write)
 	(string-split string-split)
 	(printf printf)
 	(expand expand)
 	(pretty-print pretty-print)
-	(integer? integer?)
 	(values values) )
     (lambda (form)
       (cond ((eof-object? form) (exit))
@@ -312,7 +297,7 @@ EOF
 		      (case cmd
 			((x)
 			 (let ([x (read)])
-			   (pretty-print (##sys#strip-syntax (expand x)))
+			   (pretty-print (strip-syntax (expand x)))
 			   (##sys#void) ) )
 			((p)
 			 (let* ([x (read)]
@@ -334,7 +319,7 @@ EOF
 				[xn (eval n)] )
 			   (dump xe xn) ) )
 			((r) (report))
-			((q) (##sys#quit-hook #f))
+			((q) (quit))
 			((l)
 			 (let ((fns (string-split (read-line))))
 			   (for-each load fns)
@@ -425,13 +410,9 @@ EOF
  (let ((printf printf))
    (lambda ()
      (let ((name (read)))
-       (when (string? name)
-	 (set! name (##sys#string->symbol name)))
        (cond ((not name)
 	      (##sys#switch-module #f)
 	      (printf "; resetting current module to toplevel~%"))
-	     ((not (symbol? name))
-	      (printf "invalid module name `~a'~%" name))
 	     ((##sys#find-module (##sys#resolve-module-name name #f) #f) =>
 	      (lambda (m)
 		(##sys#switch-module m)
@@ -461,20 +442,20 @@ EOF
 
 (define report
   (let ((printf printf)
-	(chop chop)
 	(sort sort)
 	(with-output-to-port with-output-to-port)
 	(current-output-port current-output-port) 
 	(argv argv)
-	(prefix
-	 (or (get-environment-variable "CHICKEN_PREFIX")
-	     (foreign-value "C_INSTALL_PREFIX" c-string) ) ))
+	(prefix (foreign-value "C_INSTALL_PREFIX" c-string)))
     (lambda port
       (with-output-to-port (if (pair? port) (car port) (current-output-port))
 	(lambda ()
 	  (gc)
-	  (let ([sinfo (##sys#symbol-table-info)]
-		[minfo (memory-statistics)] )
+	  (let ((sinfo (##sys#symbol-table-info))
+		(minfo (memory-statistics))
+		(interrupts (foreign-value "C_interrupts_enabled" bool))
+		(fixed-heap (foreign-value "C_heap_size_is_fixed" bool))
+		(downward-stack (foreign-value "C_STACK_GROWS_DOWNWARD" bool)))
 	    (define (shorten n) (/ (truncate (* n 100)) 100))
 	    (printf "Features:~%~%")
 	    (let ((fs (sort (map keyword->string ##sys#features) string<?))
@@ -500,6 +481,7 @@ EOF
                    Software version:\t~A~%~
                    Build platform:  \t~A~%~
                    Installation prefix:\t~A~%~
+                   Extension installation location:\t~A~%~
                    Extension path:  \t~A~%~
                    Include path:    \t~A~%~
                    Keyword style:   \t~A~%~
@@ -510,11 +492,12 @@ EOF
                      nursery size is ~S bytes, stack grows ~A~%~
                    Command line:    \t~S~%"
 		    (machine-type)
-		    (if (##sys#fudge 3) "(64-bit)" "")
+		    (if (feature? #:64bit) "(64-bit)" "")
 		    (software-type)
 		    (software-version)
 		    (build-platform)
 		    prefix
+                    (installation-repository)
 		    (repository-path)
 		    ##sys#include-pathnames
 		    (symbol->string (keyword-style))
@@ -522,14 +505,13 @@ EOF
 		    (shorten (vector-ref sinfo 1))
 		    (vector-ref sinfo 2)
 		    (vector-ref minfo 0)
-		    (if (##sys#fudge 17) " (fixed)" "")
+		    (if fixed-heap " (fixed)" "")
 		    (vector-ref minfo 1)
 		    (vector-ref minfo 2)
-		    (if (= 1 (##sys#fudge 18)) "downward" "upward")
+		    (if downward-stack "downward" "upward")
 		    (argv))
 	    (##sys#write-char-0 #\newline ##sys#standard-output)
-	    (when (##sys#fudge 14) (display "interrupts are enabled\n"))
-	    (when (##sys#fudge 15) (display "symbol gc is enabled\n")) 
+	    (when interrupts (display "interrupts are enabled\n"))
 	    (##core#undefined) ) ) ) ) ) )
 
 
@@ -542,6 +524,8 @@ EOF
     (s16vector "vector of signed 16-bit words" s16vector-length s16vector-ref)
     (u32vector "vector of unsigned 32-bit words" u32vector-length u32vector-ref)
     (s32vector "vector of signed 32-bit words" s32vector-length s32vector-ref)
+    (u64vector "vector of unsigned 64-bit words" u64vector-length u64vector-ref)
+    (s64vector "vector of signed 64-bit words" s64vector-length s64vector-ref)
     (f32vector "vector of 32-bit floats" f32vector-length f32vector-ref)
     (f64vector "vector of 64-bit floats" f64vector-length f64vector-ref) ) )
 
@@ -597,29 +581,36 @@ EOF
 			     (else (loop2 n len)) ) ) ) ) ) ) ) )
       (when (##sys#permanent? x)
 	(fprintf out "statically allocated (0x~X) " (##sys#block-address x)) )
-      (cond [(char? x)
+      (cond ((char? x)
 	     (let ([code (char->integer x)])
-	       (fprintf out "character ~S, code: ~S, #x~X, #o~O~%" x code code code) ) ]
-	    [(eq? x #t) (fprintf out "boolean true~%")]
-	    [(eq? x #f) (fprintf out "boolean false~%")]
-	    [(null? x) (fprintf out "empty list~%")]
-	    [(eof-object? x) (fprintf out "end-of-file object~%")]
-	    [(eq? (##sys#void) x) (fprintf out "unspecified object~%")]
-	    [(fixnum? x)
-	     (fprintf out "exact integer ~S~%  #x~X~%  #o~O~%  #b~B" x x x x)
+	       (fprintf out "character ~S, code: ~S, #x~X, #o~O~%" x code code code) ) )
+	    ((eq? x #t) (fprintf out "boolean true~%"))
+	    ((eq? x #f) (fprintf out "boolean false~%"))
+	    ((null? x) (fprintf out "empty list~%"))
+	    ((eof-object? x) (fprintf out "end-of-file object~%"))
+	    ((eq? (##sys#void) x) (fprintf out "unspecified object~%"))
+	    ((fixnum? x)
+	     (fprintf out "exact immediate integer ~S~%  #x~X~%  #o~O~%  #b~B"
+	       x x x x)
 	     (let ([code (integer->char x)])
 	       (when (fx< x #x10000) (fprintf out ", character ~S" code)) )
-	     (##sys#write-char-0 #\newline ##sys#standard-output) ]
-	    [(eq? x (##sys#slot '##sys#arbitrary-unbound-symbol 0))
-	     (fprintf out "unbound value~%") ]
-	    [(flonum? x) (fprintf out "inexact number ~S~%" x)]
-	    [(number? x) (fprintf out "number ~S~%" x)]
-	    [(string? x) (descseq "string" ##sys#size string-ref 0)]
-	    [(vector? x) (descseq "vector" ##sys#size ##sys#slot 0)]
+	     (##sys#write-char-0 #\newline ##sys#standard-output) )
+	    ((bignum? x)
+	     (fprintf out "exact large integer ~S~%  #x~X~%  #o~O~%  #b~B~%"
+	       x x x x) )
+	    ((##core#inline "C_unboundvaluep" x)
+	     (fprintf out "unbound value~%"))
+	    ((flonum? x) (fprintf out "inexact rational number ~S~%" x))
+	    ((ratnum? x) (fprintf out "exact ratio ~S~%" x))
+	    ((cplxnum? x) (fprintf out "~A complex number ~S~%"
+			    (if (exact? x) "exact" "inexact") x))
+	    ((number? x) (fprintf out "number ~S~%" x))
+	    ((string? x) (descseq "string" ##sys#size string-ref 0))
+	    ((vector? x) (descseq "vector" ##sys#size ##sys#slot 0))
 	    ((keyword? x)
 	     (fprintf out "keyword symbol with name ~s~%" 
 	       (##sys#symbol->string x)))
-	    [(symbol? x)
+	    ((symbol? x)
 	     (unless (##sys#symbol-has-toplevel-binding? x)
 	       (display "unbound " out))
 	     (let ((q (##sys#qualified-symbol? x)))
@@ -639,58 +630,60 @@ EOF
 		    1000
 		    (lambda ()
 		      (write (cadr plist) out) ) )
-		   (newline out) ) ) ) ]
-	    [(or (circular-list? x) (improper-pairs? x))
+		   (newline out) ) ) ) )
+	    ((or (circular-list? x) (improper-pairs? x))
 	     (fprintf out "circular structure: ")
 	     (let loop-print ((x x)
-                              (cdr-refs (list x)))
-               (cond ((or (atom? x)
-                          (null? x)) (printf "eol~%"))
-                     ((memq (car x) cdr-refs)
-                      (fprintf out "(circle)~%" ))
+			      (cdr-refs (list x)))
+	       (cond ((or (atom? x)
+			  (null? x)) (printf "eol~%"))
+		     ((memq (car x) cdr-refs)
+		      (fprintf out "(circle)~%" ))
 		     ((not (memq (car x) cdr-refs))
 		      (fprintf out "~S -> " (car x))
-		      (loop-print (cdr x) (cons (car x)  cdr-refs) ))))]
-	    [(list? x) (descseq "list" length list-ref 0)]
-	    [(pair? x) (fprintf out "pair with car ~S~%and cdr ~S~%" (car x) (cdr x))]
-	    [(procedure? x)
+		      (loop-print (cdr x) (cons (car x)  cdr-refs) )))))
+	    ((list? x) (descseq "list" length list-ref 0))
+	    ((pair? x) (fprintf out "pair with car ~S~%and cdr ~S~%" (car x) (cdr x)))
+	    ((procedure? x)
 	     (let ([len (##sys#size x)])
 	       (descseq 
 		(sprintf "procedure with code pointer 0x~X" (##sys#peek-unsigned-integer x 0))
-		##sys#size ##sys#slot 1) ) ]
-	    [(port? x)
+		##sys#size ##sys#slot 1) ) )
+	    ((port? x)
 	     (fprintf out
-		      "~A port of type ~A with name ~S and file pointer ~X~%"
-		      (if (##sys#slot x 1) "input" "output")
-		      (##sys#slot x 7)
-		      (##sys#slot x 3)
-		      (##sys#peek-unsigned-integer x 0) ) ]
-	    [(##sys#locative? x)
+		 "~A port of type ~A with name ~S and file pointer ~X~%"
+	       (if (##sys#slot x 1) "input" "output")
+	       (##sys#slot x 7)
+	       (##sys#slot x 3)
+	       (##sys#peek-unsigned-integer x 0) ) )
+	    ((##sys#locative? x)
 	     (fprintf out "locative~%  pointer ~X~%  index ~A~%  type ~A~%"
-		      (##sys#peek-unsigned-integer x 0)
-		      (##sys#slot x 1)
-		      (case (##sys#slot x 2) 
-			[(0) "slot"]
-			[(1) "char"]
-			[(2) "u8vector"]
-			[(3) "s8vector"]
-			[(4) "u16vector"]
-			[(5) "s16vector"]
-			[(6) "u32vector"]
-			[(7) "s32vector"]
-			[(8) "f32vector"]
-			[(9) "f64vector"] ) ) ]
-	    [(##sys#pointer? x) (fprintf out "machine pointer ~X~%" (##sys#peek-unsigned-integer x 0))]
-	    [(##sys#bytevector? x)
+	       (##sys#peek-unsigned-integer x 0)
+	       (##sys#slot x 1)
+	       (case (##sys#slot x 2) 
+		 ((0) "slot")
+		 ((1) "char")
+		 ((2) "u8vector")
+		 ((3) "s8vector")
+		 ((4) "u16vector")
+		 ((5) "s16vector")
+		 ((6) "u32vector")
+		 ((7) "s32vector")
+		 ((8) "u64vector")
+		 ((9) "s64vector")
+		 ((10) "f32vector")
+		 ((11) "f64vector") ) ) )
+	    ((##sys#pointer? x) (fprintf out "machine pointer ~X~%" (##sys#peek-unsigned-integer x 0)))
+	    ((##sys#bytevector? x)
 	     (let ([len (##sys#size x)])
 	       (fprintf out "blob of size ~S:~%" len)
-	       (hexdump x len ##sys#byte out) ) ]
-	    [(##core#inline "C_lambdainfop" x)
-	     (fprintf out "lambda information: ~s~%" (##sys#lambda-info->string x)) ]
-	    [(##sys#structure? x 'hash-table)
+	       (hexdump x len ##sys#byte out) ) )
+	    ((##core#inline "C_lambdainfop" x)
+	     (fprintf out "lambda information: ~s~%" (##sys#lambda-info->string x)) )
+	    ((##sys#structure? x 'hash-table)
 	     (let ((n (##sys#slot x 2)))
 	       (fprintf out "hash-table with ~S element~a~%  comparison procedure: ~A~%"
-			n (if (fx= n 1) "" "s")  (##sys#slot x 3)) )
+		 n (if (fx= n 1) "" "s")  (##sys#slot x 3)) )
 	     (fprintf out "  hash function: ~a~%" (##sys#slot x 4))
 	     ;; this copies code out of srfi-69.scm, but we don't want to depend on it
 	     (let* ((vec (##sys#slot x 1))
@@ -701,8 +694,8 @@ EOF
 		  (lambda (bucket)
 		    (fprintf out " ~S\t-> ~S~%"
 		      (##sys#slot bucket 0) (##sys#slot bucket 1)) )
-		  (##sys#slot vec i)) ) ) ]
-	    [(##sys#structure? x 'condition)
+		  (##sys#slot vec i)) ) ) )
+	    ((##sys#structure? x 'condition)
 	     (fprintf out "condition: ~s~%" (##sys#slot x 1))
 	     (for-each
 	      (lambda (k)
@@ -716,22 +709,22 @@ EOF
 			 (fprintf out "\t~s: ~s" (cdar props) (cadr props)) ))
 		      (newline out))
 		    (loop (cddr props)) ) ) )
-	      (##sys#slot x 1) ) ]
-	    [(##sys#generic-structure? x)
+	      (##sys#slot x 1) ) )
+	    ((##sys#generic-structure? x)
 	     (let ([st (##sys#slot x 0)])
-	       (cond ((##sys#hash-table-ref describer-table st) => (cut <> x out))
+	       (cond ((hash-table-ref describer-table st) => (cut <> x out))
 		     ((assq st bytevector-data) =>
 		      (lambda (data)
 			(apply descseq (append (map eval (cdr data)) (list 0)))) )
 		     (else
 		      (fprintf out "structure of type `~S':~%" (##sys#slot x 0))
-		      (descseq #f ##sys#size ##sys#slot 1) ) ) ) ]
-	    [else (fprintf out "unknown object~%")] )
+		      (descseq #f ##sys#size ##sys#slot 1) ) ) ) )
+	    (else (fprintf out "unknown object~%")) )
       (##sys#void) ) ) )
 
 (define (set-describer! tag proc)
   (##sys#check-symbol tag 'set-describer!)
-  (##sys#hash-table-set! describer-table tag proc) )
+  (hash-table-set! describer-table tag proc))
 
 
 ;;; Display hexdump:
@@ -795,8 +788,7 @@ EOF
 ;;; Frame-info operations:
 
 (define show-frameinfo
-  (let ((write-char write-char)
-	(newline newline)
+  (let ((newline newline)
 	(display display))
     (lambda (fn)
       (define (prin1 x)
@@ -973,6 +965,7 @@ EOF
 (define-constant complex-options
   '("-D" "-feature" "-I" "-include-path" "-K" "-keyword-style" "-no-feature") )
 
+
 (define (run)
   (let* ([extraopts (parse-option-string (or (get-environment-variable "CSI_OPTIONS") ""))]
 	 [args (canonicalize-args (command-line-arguments))]
@@ -1002,9 +995,8 @@ EOF
 	   [quietflag (member* '("-q" "-quiet") args)]
 	   [quiet (or script quietflag eval?)]
 	   [ipath (map chop-separator 
-		       (string-split 
-			(or (get-environment-variable "CHICKEN_INCLUDE_PATH") "") 
-			";"))] )      
+		       (##sys#split-path
+			(or (get-environment-variable "CHICKEN_INCLUDE_PATH") "")))])
       (define (collect-options opt)
 	(let loop ([opts args])
 	  (cond [(member opt opts) 
@@ -1038,9 +1030,6 @@ EOF
       (when (member* '("-w" "-no-warnings") args)
 	(unless quiet (display "Warnings are disabled\n"))
 	(set! ##sys#warnings-enabled #f) )
-      (unless quiet
-	(load-verbose #t)
-	(print-banner) )
       (when (member* '("-i" "-case-insensitive") args)
 	(unless quiet (display "Identifiers and symbols are case insensitive\n"))
 	(register-feature! 'case-insensitive)
@@ -1049,7 +1038,7 @@ EOF
       (for-each register-feature! (collect-options "-D"))
       (for-each unregister-feature! (collect-options "-no-feature"))
       (set! ##sys#include-pathnames 
-	(##sys#nodups
+	(delete-duplicates
 	 (append (map chop-separator (collect-options "-include-path"))
 		 (map chop-separator (collect-options "-I"))
 		 ##sys#include-pathnames
@@ -1076,23 +1065,29 @@ EOF
 	(keyword-style #:none)
 	(parentheses-synonyms #f)
 	(symbol-escape #f) )
-      (unless (or (member* '("-n" "-no-init") args) script eval?) (loadinit))
-      (when batch 
+      ;; Load the the default modules into the evaluation environment.
+      ;; This is done before setting load-verbose => #t to avoid
+      ;; spurious import messages.
+      (eval '(import-for-syntax scheme chicken))
+      (eval '(import scheme chicken))
+      (unless quiet
+	(load-verbose #t)
+	(print-banner))
+      (unless (or (member* '("-n" "-no-init") args) script eval?)
+	(loadinit))
+      (when batch
 	(set! ##sys#notices-enabled #f))
       (do ([args args (cdr args)])
 	  ((null? args)
 	   (unless batch 
-	     (call/cc
-	      (lambda (k)
-		(set! ##sys#quit-hook (lambda _ (k #f)))
-		(repl csi-eval)))
+	     (repl csi-eval)
 	     (##sys#write-char-0 #\newline ##sys#standard-output) ) )
 	(let* ((arg (car args)))
 	  (cond ((member arg simple-options))
 		((member arg complex-options)
 		 (set! args (cdr args)) )
 		((or (string=? "-R" arg) (string=? "-require-extension" arg))
-		 (eval `(##core#require-extension (,(string->symbol (cadr args))) #t))
+		 (eval `(import ,(string->symbol (cadr args))))
 		 (set! args (cdr args)) )
 		((or (string=? "-e" arg) (string=? "-eval" arg))
 		 (evalstring (cadr args))
@@ -1105,8 +1100,8 @@ EOF
 		 (set! args (cdr args)) )
 		(else
 		 (let ((scr (and script (car script))))
-		   (##sys#load 
-		    arg 
+		   (load
+		    arg
 		    (and (equal? "-sx" scr)
 			 (lambda (x)
 			   (let* ((str (with-output-to-string (cut pretty-print x)))
@@ -1120,14 +1115,10 @@ EOF
 				 (when (char=? #\newline c)
 				   (display "; " ##sys#standard-error))))
 			     (newline ##sys#standard-error)
-			     (eval x))))
-		    #f)
+			     (eval x)))))
 		   (when (equal? "-ss" scr)
-		     (call-with-values (cut main (command-line-arguments))
-		       (lambda results
-			 (exit
-			  (if (and (pair? results) (fixnum? (car results)))
-			      (car results)
-			      0) ) ) ) ) ) ) ) ) ) ) ) )
+		     (receive rs ((eval 'main) (command-line-arguments))
+		       (let ((r (optional rs)))
+			 (exit (if (fixnum? r) r 0)))))))))))))
 
-(run)
+(run))

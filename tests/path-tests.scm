@@ -1,4 +1,4 @@
-(use files)
+(import (chicken pathname))
 
 (define-syntax test
   (syntax-rules ()

@@ -29,15 +29,24 @@
 
 (declare
   (unit expand)
+  (uses internal)
   (disable-interrupts)
   (fixnum)
-  (hide match-expression
-	macro-alias
-	check-for-multiple-bindings
-	d dd dm dx map-se
-	lookup check-for-redef) 
-  (not inline ##sys#syntax-error-hook ##sys#compiler-syntax-hook
-       ##sys#toplevel-definition-hook))
+  (not inline ##sys#syntax-error-hook ##sys#compiler-syntax-hook))
+
+(module chicken.syntax
+  (expand
+   get-line-number
+   strip-syntax
+   syntax-error
+   er-macro-transformer
+   ir-macro-transformer)
+
+(import scheme (except chicken expand get-line-number strip-syntax syntax-error er-macro-transformer ir-macro-transformer)
+	chicken.condition
+	chicken.internal
+	chicken.keyword
+	chicken.platform)
 
 (include "common-declarations.scm")
 
@@ -52,8 +61,7 @@
 	  ?se))))
 
 (set! ##sys#features
-  (append '(#:hygienic-macros 
-	    #:syntax-rules 
+  (append '(#:hygienic-macros #:syntax-rules
 	    #:srfi-0 #:srfi-2 #:srfi-6 #:srfi-9 #:srfi-46 #:srfi-55 #:srfi-61) 
 	  ##sys#features))
 
@@ -67,6 +75,12 @@
 (define-inline (putp sym prop val)
   (##core#inline_allocate ("C_a_i_putprop" 8) sym prop val))
 
+(define-inline (namespaced-symbol? sym)
+  (##core#inline "C_u_i_namespaced_symbolp" sym))
+
+;;; Source file tracking
+
+(define ##sys#current-source-filename #f)
 
 ;;; Syntactic environments
 
@@ -76,17 +90,19 @@
 ;;XXX should this be in eval.scm?
 (define ##sys#active-eval-environment (make-parameter ##sys#current-environment))
 
+(define (##sys#primitive-alias sym)
+  (let ((alias (##sys#string->symbol
+		(##sys#string-append "#%" (##sys#slot sym 1)))))
+    (putp alias '##core#primitive sym)
+    alias))
+
 (define (lookup id se)
   (cond ((##core#inline "C_u_i_assq" id se) => cdr)
 	((getp id '##core#macro-alias))
 	(else #f)))
 
 (define (macro-alias var se)
-  (if (or (##sys#qualified-symbol? var)
-	  (let* ((str (##sys#slot var 1))
-		 (len (##sys#size str)))
-	    (and (fx> len 0)
-		 (char=? #\# (##core#inline "C_subchar" str 0)))))
+  (if (or (##sys#qualified-symbol? var) (namespaced-symbol? var))
       var
       (let* ((alias (gensym var))
 	     (ua (or (lookup var se) var))
@@ -100,7 +116,6 @@
 	alias) ) )
 
 (define (strip-syntax exp)
- ;; if se is given, retain bound vars
  (let ((seen '()))
    (let walk ((x exp))
      (cond ((assq x seen) => cdr)
@@ -124,8 +139,6 @@
                   ((fx>= i len) vec)
                 (##sys#setslot vec i (walk (##sys#slot x i))))))
            (else x)))))
-
-(define ##sys#strip-syntax strip-syntax)
 
 (define (##sys#extend-se se vars #!optional (aliases (map gensym vars)))
   (for-each
@@ -154,8 +167,14 @@
 ;;; Macro handling
 
 (define ##sys#macro-environment (make-parameter '()))
+
+(define ##sys#scheme-macro-environment '()) ; reassigned below
+;; These are all re-assigned by chicken-syntax.scm:
 (define ##sys#chicken-macro-environment '()) ; used later in chicken.import.scm
 (define ##sys#chicken-ffi-macro-environment '()) ; used later in foreign.import.scm
+(define ##sys#chicken.condition-macro-environment '()) ; used later in chicken.condition.import.scm
+(define ##sys#chicken.type-macro-environment '()) ; used later in chicken.type.import.scm
+(define ##sys#chicken.base-macro-environment '()) ; used later in chicken.base.import.scm
 
 (define (##sys#ensure-transformer t #!optional loc)
   (cond ((procedure? t) (##sys#slot (##sys#er-transformer t) 1)) ; DEPRECATED
@@ -176,27 +195,19 @@
 	      (cons (cons name data) me))
 	     data)))))
 
-(define (##sys#copy-macro old new)
-  (let ((def (lookup old (##sys#macro-environment))))
-    (apply ##sys#extend-macro-environment new def) ) )
-
 (define (##sys#macro? sym #!optional (senv (##sys#current-environment)))
   (or (let ((l (lookup sym senv)))
 	(pair? l))
       (and-let* ((l (lookup sym (##sys#macro-environment))))
 	(pair? l))))
 
-(define (##sys#unregister-macro name)
+(define (##sys#undefine-macro! name)
   (##sys#macro-environment
     ;; this builds up stack, but isn't used often anyway...
-    (let loop ((me (##sys#macro-environment)) (me2 '()))
+    (let loop ((me (##sys#macro-environment)))
       (cond ((null? me) '())
 	    ((eq? name (caar me)) (cdr me))
 	    (else (cons (car me) (loop (cdr me))))))))
-
-(define (##sys#undefine-macro! name)
-  (##sys#unregister-macro name) )
-
 
 ;; The basic macro-expander
 
@@ -207,7 +218,7 @@
     (handle-exceptions ex
 	;; modify error message in condition object to include 
 	;; currently expanded macro-name
-	(##sys#abort
+	(abort
 	 (if (and (##sys#structure? ex 'condition)
 		  (memv 'exn (##sys#slot ex 1)) )
 	     (##sys#make-structure
@@ -234,7 +245,8 @@
       (let ((exp2
 	     (if cs
 		 ;; compiler-syntax may "fall through"
-		 (fluid-let ((##sys#syntax-rules-mismatch (lambda (input) exp))) ; a bit of a hack
+		 (fluid-let ((chicken.internal.syntax-rules#syntax-rules-mismatch
+			      (lambda (input) exp))) ; a bit of a hack
 		   (handler exp se dse))
 		 (handler exp se dse))) )
 	(when (and (not cs) (eq? exp exp2))
@@ -244,7 +256,7 @@
 	    "' returns original form, which would result in endless expansion")
 	   exp))
 	(dx `(,name ~~> ,exp2))
-	exp2)))
+	(expansion-result-hook exp exp2) ) ) )
   (define (expand head exp mdef)
     (dd `(EXPAND: 
 	  ,head 
@@ -301,7 +313,7 @@
 
 (define ##sys#compiler-syntax-hook #f)
 (define ##sys#enable-runtime-macros #f)
-
+(define expansion-result-hook (lambda (input output) output))
 
 
 ;;; User-level macroexpansion
@@ -312,8 +324,6 @@
       (if m
 	  (loop exp2)
 	  exp2) ) ) )
-
-(define ##sys#expand expand)
 
 
 ;;; Extended (DSSSL-style) lambda lists
@@ -363,7 +373,7 @@
 				,(map (lambda (k)
 					(let ([s (car k)])
 					  `(,s (##sys#get-keyword
-						(##core#quote ,(->keyword (##sys#strip-syntax s))) ,(or hasrest rvar)
+						(##core#quote ,(->keyword (strip-syntax s))) ,(or hasrest rvar)
 						,@(if (pair? (cdr k)) 
 						      `((,%lambda () ,@(cdr k)))
 						      '())))))
@@ -434,7 +444,7 @@
 ;
 ; (i.e.`"(define define ...)")
 
-(define (##sys#defjam-error form)
+(define (defjam-error form)
   (##sys#syntax-error-hook
    "redefinition of currently used defining form" ; help me find something better
    form))
@@ -464,9 +474,10 @@
 ;
 ; This code is disgustingly complex.
 
-(define ##sys#define-definition)
-(define ##sys#define-syntax-definition)
-(define ##sys#define-values-definition)
+(define define-definition)
+(define define-syntax-definition)
+(define define-values-definition)
+(define import-definition)
 
 (define ##sys#canonicalize-body
   (lambda (body #!optional (se (##sys#current-environment)) cs?)
@@ -474,27 +485,55 @@
       (let ((f (lookup id se)))
 	(or (eq? s f)
 	    (case s
-	      ((define) (if f (eq? f ##sys#define-definition) (eq? s id)))
-	      ((define-syntax) (if f (eq? f ##sys#define-syntax-definition) (eq? s id)))
-	      ((define-values) (if f (eq? f ##sys#define-values-definition) (eq? s id)))
+	      ((define) (if f (eq? f define-definition) (eq? s id)))
+	      ((define-syntax) (if f (eq? f define-syntax-definition) (eq? s id)))
+	      ((define-values) (if f (eq? f define-values-definition) (eq? s id)))
+	      ((import) (if f (eq? f import-definition) (eq? s id)))
 	      (else (eq? s id))))))
     (define (fini vars vals mvars body)
       (if (and (null? vars) (null? mvars))
-	  (let loop ([body2 body] [exps '()])
-	    (if (not (pair? body2)) 
-		(cons 
+	  ;; Macro-expand body, and restart when defines are found.
+	  (let loop ((body body) (exps '()))
+	    (if (not (pair? body))
+		(cons
 		 '##core#begin
-		 body) ; no more defines, otherwise we would have called `expand'
-		(let ((x (car body2)))
-		  (if (and (pair? x) 
-			   (let ((d (car x)))
-			     (and (symbol? d)
-				  (or (comp 'define d)
-				      (comp 'define-values d)))))
-		      (cons
-		       '##core#begin
-		       (##sys#append (reverse exps) (list (expand body2))))
-		      (loop (cdr body2) (cons x exps)) ) ) ) )
+		 (reverse exps)) ; no more defines, otherwise we would have called `expand'
+		(let loop2 ((body body))
+		  (let ((x (car body))
+			(rest (cdr body)))
+		    (if (and (pair? x)
+			     (let ((d (car x)))
+			       (and (symbol? d)
+				    (or (comp 'define d)
+					(comp 'define-values d)
+					(comp 'define-syntax d)
+					(comp '##core#begin d)
+					(comp 'import d)))))
+			;; Stupid hack to avoid expanding imports
+			(if (comp 'import (car x))
+			    (loop rest (cons x exps))
+			    (cons
+			     '##core#begin
+			     (##sys#append (reverse exps) (list (expand body)))))
+			(let ((x2 (##sys#expand-0 x se cs?)))
+			  (if (eq? x x2)
+			      ;; Modules must be registered before we
+			      ;; can continue with other forms, so
+			      ;; hand back control to the compiler
+			      (if (and (pair? x)
+				       (symbol? (car x))
+				       (comp '##core#module (car x)))
+				  `(##core#begin
+				    ,@(reverse exps)
+				    ,x
+				    ,@(if (null? rest)
+					  '()
+					  `((##core#let () ,@rest))))
+				  (loop rest (cons x exps)))
+			      (loop2 (cons x2 rest)) )) ))) ))
+	  ;; We saw defines.  Translate to letrec, and let compiler
+	  ;; call us again for the remaining body by wrapping the
+	  ;; remaining body forms in a ##core#let.
 	  (let* ((result
 		  `(##core#let
 		    ,(##sys#map
@@ -530,21 +569,14 @@
 		     (symbol? (caar body))
 		     (comp 'define-syntax (caar body)))
 		(let ((def (car body)))
-		  (loop 
-		   (cdr body) 
-		   (cons (cond ((pair? (cadr def)) ; DEPRECATED
-				`(define-syntax ; (the first element is actually ignored)
-				   ,(caadr def)
-				   (##sys#er-transformer
-				    (##core#lambda ,(cdadr def) ,@(cddr def)))))
-			       ;; insufficient, if introduced by different expansions, but
-			       ;; better than nothing:
-			       ((eq? (car def) (cadr def))
-				(##sys#defjam-error def))
-			       (else def))
-			 defs) 
-		   #f)))
+		  ;; This check is insufficient, if introduced by
+		  ;; different expansions, but better than nothing:
+		  (when (eq? (car def) (cadr def))
+		    (defjam-error def))
+		  (loop (cdr body) (cons def defs) #f)))
 	       (else (loop body defs #t))))))
+    ;; Expand a run of defines or define-syntaxes into letrec.  As
+    ;; soon as we encounter something else, finish up.
     (define (expand body)
       ;; Each #t in "mvars" indicates an MV-capable "var".  Non-MV
       ;; vars (#f in mvars) are 1-element lambda-lists for simplicity.
@@ -565,7 +597,7 @@
 			 (cond ((not (pair? head))
 				(##sys#check-syntax 'define x '(_ variable . #(_ 0)) #f se)
 				(when (eq? (car x) head) ; see above
-				  (##sys#defjam-error x))
+				  (defjam-error x))
 				(loop rest (cons (list head) vars)
 				      (cons (if (pair? (cddr x))
 						(caddr x)
@@ -576,7 +608,7 @@
 				(##sys#check-syntax
 				 'define x '(_ (_ . lambda-list) . #(_ 1)) #f se)
 				(loop2
-				 (##sys#expand-curried-define head (cddr x) se)))
+				 (chicken.syntax#expand-curried-define head (cddr x) se)))
 			       (else
 				(##sys#check-syntax
 				 'define x
@@ -595,19 +627,21 @@
 		    ((comp '##core#begin head)
 		     (loop (##sys#append (cdr x) rest) vars vals mvars))
 		    (else
+		     ;; Do not macro-expand local definitions we are
+		     ;; in the process of introducing.
 		     (if (member (list head) vars)
 			 (fini vars vals mvars body)
 			 (let ((x2 (##sys#expand-0 x se cs?)))
 			   (if (eq? x x2)
 			       (fini vars vals mvars body)
-			       (loop (cons x2 rest)
-				     vars vals mvars)))))))))))
+			       (loop (cons x2 rest) vars vals mvars)))))))))))
     (expand body) ) )
 
 
 ;;; A simple expression matcher
 
-(define match-expression
+;; Used by "quasiquote", below
+(define chicken.syntax#match-expression
   (lambda (exp pat vars)
     (let ((env '()))
       (define (mwalk x p)
@@ -626,7 +660,8 @@
 
 ;;; Expand "curried" lambda-list syntax for `define'
 
-(define (##sys#expand-curried-define head body se)
+;; Used by "define", below
+(define (chicken.syntax#expand-curried-define head body se)
   (let ((name #f))
     (define (loop head body)
       (if (symbol? (car head))
@@ -646,14 +681,14 @@
 
 (define (syntax-error . args)
   (apply ##sys#signal-hook #:syntax-error
-	 (##sys#strip-syntax args)))
+	 (strip-syntax args)))
 
 (define ##sys#syntax-error-hook syntax-error)
 
 (define ##sys#syntax-error/context
   (lambda (msg arg)
     (define (syntax-imports sym)
-      (let loop ((defs (or (##sys#get (##sys#strip-syntax sym) '##core#db) '())))
+      (let loop ((defs (or (##sys#get (strip-syntax sym) '##core#db) '())))
 	(cond ((null? defs) '())
 	      ((eq? 'syntax (caar defs))
 	       (cons (cadar defs) (loop (cdr defs))))
@@ -669,10 +704,10 @@
 		   (outstr ": ")
 		   (##sys#print arg #t out)
 		   (outstr "\ninside expression `(")
-		   (##sys#print (##sys#strip-syntax (car ##sys#syntax-context)) #t out)
+		   (##sys#print (strip-syntax (car ##sys#syntax-context)) #t out)
 		   (outstr " ...)'"))
 		  (else 
-		   (let* ((sym (##sys#strip-syntax (car cx)))
+		   (let* ((sym (strip-syntax (car cx)))
 			  (us (syntax-imports sym)))
 		     (cond ((pair? us)
 			    (outstr msg)
@@ -699,19 +734,16 @@
 			   (else (loop (cdr cx))))))))
 	  (##sys#syntax-error-hook (get-output-string out))))))
 
-(define (##sys#syntax-rules-mismatch input)
-  (##sys#syntax-error-hook "no rule matches form" input))
-
 (define (get-line-number sexp)
   (and ##sys#line-number-database
        (pair? sexp)
        (let ([head (car sexp)])
 	 (and (symbol? head)
-	      (cond [(##sys#hash-table-ref ##sys#line-number-database head)
+	      (cond ((hash-table-ref ##sys#line-number-database head)
 		     => (lambda (pl)
-			  (let ([a (assq sexp pl)])
-			    (and a (cdr a)) ) ) ]
-		    [else #f] ) ) ) ) )
+			  (let ((a (assq sexp pl)))
+			    (and a (cdr a)))))
+		    (else #f))))))
 
 (define-constant +default-argument-count-limit+ 99999)
 
@@ -883,7 +915,7 @@
 	       ((vector? sym)
 		(list->vector (mirror-rename (vector->list sym))))
 	       ((not (symbol? sym)) sym)
-	       (else		 ; Code stolen from ##sys#strip-syntax
+	       (else		 ; Code stolen from strip-syntax
 		(let ((renamed (lookup sym se) ) )
 		  (cond ((assq-reverse sym renv) =>
 			 (lambda (a)
@@ -919,29 +951,259 @@
 (define ##sys#ir-transformer ir-macro-transformer)
 
 
+;; Expose some internals for use in core.scm and chicken-syntax.scm:
+
+(define chicken.syntax#define-definition define-definition)
+(define chicken.syntax#define-syntax-definition define-syntax-definition)
+(define chicken.syntax#define-values-definition define-values-definition)
+(define chicken.syntax#expansion-result-hook expansion-result-hook)
+
+) ; chicken.syntax module
+
+(import chicken chicken.blob chicken.syntax chicken.internal)
+
 ;;; Macro definitions:
 
 (##sys#extend-macro-environment
- 'import '() 
- (##sys#er-transformer 
-  (cut ##sys#expand-import <> <> <> ##sys#current-environment ##sys#macro-environment
-       #f #f 'import) ) )
+ 'import-syntax '()
+ (##sys#er-transformer
+  (cut ##sys#expand-import <> <> <>
+       ##sys#current-environment ##sys#macro-environment
+       #f #f 'import-syntax)))
 
 (##sys#extend-macro-environment
- 'import-for-syntax '() 
- (##sys#er-transformer 
-  (cut ##sys#expand-import <> <> <> ##sys#current-meta-environment 
-       ##sys#meta-macro-environment 
-       #t #f 'import-for-syntax) ) )
+ 'import-syntax-for-syntax '()
+ (##sys#er-transformer
+  (cut ##sys#expand-import <> <> <>
+       ##sys#current-meta-environment ##sys#meta-macro-environment
+       #t #f 'import-syntax-for-syntax)))
+
+(set! chicken.syntax#import-definition
+  (##sys#extend-macro-environment
+   'import '()
+   (##sys#er-transformer
+    (lambda (x r c)
+      `(##core#begin
+	,@(map (lambda (x)
+		 (let-values (((name lib spec v s i) (##sys#decompose-import x r c 'import)))
+		   (if (not spec)
+		       (##sys#syntax-error-hook
+			'import "cannot import from undefined module" name)
+		       (##sys#import
+			spec v s i
+			##sys#current-environment ##sys#macro-environment #f #f 'import))
+		   (if (not lib)
+		       '(##core#undefined)
+		       `(##core#require ,lib ,(module-requirement name)))))
+	       (cdr x)))))))
 
 (##sys#extend-macro-environment
- 'reexport '() 
- (##sys#er-transformer 
-  (cut ##sys#expand-import <> <> <> ##sys#current-environment ##sys#macro-environment 
-       #f #t 'reexport) ) )
+ 'import-for-syntax '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#register-meta-expression `(,(r 'import) ,@(cdr x)))
+    `(##core#elaborationtimeonly (,(r 'import) ,@(cdr x))))))
 
-;; contains only "import[-for-syntax]" and "reexport"
+
+(##sys#extend-macro-environment
+ 'cond-expand
+ '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (let ((clauses (cdr form)))
+      (define (err x)
+	(##sys#error "syntax error in `cond-expand' form"
+		     x
+		     (cons 'cond-expand clauses)))
+      (define (test fx)
+	(cond ((symbol? fx) (feature? (strip-syntax fx)))
+	      ((not (pair? fx)) (err fx))
+	      (else
+	       (let ((head (car fx))
+		     (rest (cdr fx)))
+		 (case (strip-syntax head)
+		   ((and)
+		    (or (eq? rest '())
+			(if (pair? rest)
+			    (and (test (car rest))
+				 (test `(and ,@(cdr rest))))
+			    (err fx))))
+		   ((or)
+		    (and (not (eq? rest '()))
+			 (if (pair? rest)
+			     (or (test (car rest))
+				 (test `(or ,@(cdr rest))))
+			     (err fx))))
+		   ((not) (not (test (cadr fx))))
+		   (else (err fx)))))))
+      (let expand ((cls clauses))
+	(cond ((eq? cls '())
+	       (##sys#apply
+		##sys#error "no matching clause in `cond-expand' form"
+		(map (lambda (x) (car x)) clauses)))
+	      ((not (pair? cls)) (err cls))
+	      (else
+	       (let ((clause (car cls))
+		    (rclauses (cdr cls)))
+		 (if (not (pair? clause))
+		     (err clause)
+		     (let ((id (car clause)))
+		       (cond ((eq? (strip-syntax id) 'else)
+			      (let ((rest (cdr clause)))
+				(if (eq? rest '())
+				    '(##core#undefined)
+				    `(##core#begin ,@rest))))
+			     ((test id) `(##core#begin ,@(cdr clause)))
+			     (else (expand rclauses)))))))))))))
+
+;; The "initial" macro environment, containing only import forms and
+;; cond-expand.  TODO: Eventually, cond-expand should move to the
+;; (chicken base) module to match r7rs.  Keeping it in the initial env
+;; makes it a whole lot easier to write portable CHICKEN 4 & 5 code.
 (define ##sys#initial-macro-environment (##sys#macro-environment))
+
+(##sys#extend-macro-environment
+ 'module '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'module x '(_ _ _ . #(_ 0)))
+    (let ((len (length x))
+	  (name (library-id (cadr x))))
+      ;; We strip syntax here instead of doing a hygienic comparison
+      ;; to "=".  This is a tradeoff; either we do this, or we must
+      ;; include a mapping of (= . scheme#=) in our syntax env.  In
+      ;; the initial environment, = is bound to scheme#=, but when
+      ;; using -explicit-use that's not the case.  Doing an unhygienic
+      ;; comparison ensures module will work in both cases.
+      (cond ((and (fx>= len 4) (eq? '= (strip-syntax (caddr x))))
+	     (let* ((x (strip-syntax x))
+		    (app (cadddr x)))
+	       (cond ((fx> len 4)
+		      ;; feature suggested by syn:
+		      ;;
+		      ;; (module NAME = FUNCTORNAME BODY ...)
+		      ;; ~>
+		      ;; (begin
+		      ;;   (module _NAME * BODY ...)
+		      ;;   (module NAME = (FUNCTORNAME _NAME)))
+		      ;;
+		      ;; - the use of "_NAME" is a bit stupid, but it must be
+		      ;;   externally visible to generate an import library from
+		      ;;   and compiling "NAME" separately may need an import-lib
+		      ;;   for stuff in "BODY" (say, syntax needed by syntax exported
+		      ;;   from the functor, or something like this...)
+		      (let ((mtmp (string->symbol
+				   (##sys#string-append
+				    "_"
+				    (symbol->string name))))
+			    (%module (r 'module)))
+			`(##core#begin
+			  (,%module ,mtmp * ,@(cddddr x))
+			  (,%module ,name = (,app ,mtmp)))))
+		     (else
+		      (##sys#check-syntax
+		       'module x '(_ _ _ (_ . #(_ 0))))
+		      (##sys#instantiate-functor
+		       name
+		       (library-id (car app))
+		       (cdr app)))))) ; functor arguments
+	    (else
+	     ;;XXX use module name in "loc" argument?
+	     (let ((exports (##sys#validate-exports (strip-syntax (caddr x)) 'module)))
+	       `(##core#module
+		 ,name
+		 ,(if (eq? '* exports)
+		      #t
+		      exports)
+		 ,@(let ((body (cdddr x)))
+		     (if (and (pair? body)
+			      (null? (cdr body))
+			      (string? (car body)))
+			 `((##core#include ,(car body) ,##sys#current-source-filename))
+			 body))))))))))
+
+(##sys#extend-macro-environment
+ 'export '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (let ((exps (##sys#validate-exports (strip-syntax (cdr x)) 'export))
+	  (mod (##sys#current-module)))
+      (when mod
+	(##sys#add-to-export-list mod exps))
+      '(##core#undefined)))))
+
+(##sys#extend-macro-environment
+ 'reexport '()
+ (##sys#er-transformer
+  (cut ##sys#expand-import <> <> <>
+       ##sys#current-environment ##sys#macro-environment
+       #f #t 'reexport)))
+
+;;; functor definition
+
+(##sys#extend-macro-environment
+ 'functor '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'functor x '(_ (_ . #((_ _) 0)) _ . _))
+    (let* ((x (strip-syntax x))
+	   (head (cadr x))
+	   (name (car head))
+	   (args (cdr head))
+	   (exps (caddr x))
+	   (body (cdddr x))
+	   (registration
+	    `(##sys#register-functor
+	      (##core#quote ,(library-id name))
+	      (##core#quote
+	       ,(map (lambda (arg)
+		       (let ((argname (car arg))
+			     (exps (##sys#validate-exports (cadr arg) 'functor)))
+			 (unless (or (symbol? argname)
+				     (and (list? argname)
+					  (= 2 (length argname))
+					  (symbol? (car argname))
+					  (valid-library-specifier? (cadr argname))))
+			   (##sys#syntax-error-hook "invalid functor argument" name arg))
+			 (cons argname exps)))
+		     args))
+	      (##core#quote ,(##sys#validate-exports exps 'functor))
+	      (##core#quote ,body))))
+      `(##core#module ,(library-id name)
+	#t
+	(import scheme chicken)
+	(begin-for-syntax ,registration))))))
+
+;;; interface definition
+
+(##sys#extend-macro-environment
+ 'define-interface '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'define-interface x '(_ variable _))
+    (let ((name (strip-syntax (cadr x))))
+      (when (eq? '* name)
+	(syntax-error-hook
+	 'define-interface "`*' is not allowed as a name for an interface"))
+      `(##core#elaborationtimeonly
+	(##sys#put/restore!
+	 (##core#quote ,name)
+	 (##core#quote ##core#interface)
+	 (##core#quote
+	  ,(let ((exps (strip-syntax (caddr x))))
+	     (cond ((eq? '* exps) '*)
+		   ((symbol? exps) `(#:interface ,exps))
+		   ((list? exps)
+		    (##sys#validate-exports exps 'define-interface))
+		   (else
+		    (syntax-error-hook
+		     'define-interface "invalid exports" (caddr x))))))))))))
+
+;; The chicken.module syntax environment
+(define ##sys#chicken.module-macro-environment (##sys#macro-environment))
+
+(set! ##sys#scheme-macro-environment
+  (let ((me0 (##sys#macro-environment)))
 
 (##sys#extend-macro-environment
  'lambda
@@ -960,14 +1222,6 @@
     `(##core#quote ,(cadr x)))))
 
 (##sys#extend-macro-environment
- 'syntax
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'syntax x '(_ _))
-    `(##core#syntax ,(cadr x)))))
-
-(##sys#extend-macro-environment
  'if
  '()
  (##sys#er-transformer
@@ -983,7 +1237,7 @@
     (##sys#check-syntax 'begin x '(_ . #(_ 0)))
     `(##core#begin ,@(cdr x)))))
 
-(set! ##sys#define-definition
+(set! chicken.syntax#define-definition
   (##sys#extend-macro-environment
    'define
    '()
@@ -998,56 +1252,33 @@
                  (let ((name (or (getp head '##core#macro-alias) head)))
                    (##sys#register-export name (##sys#current-module)))
 		 (when (c (r 'define) head)
-		   (##sys#defjam-error x))
-		 `(##core#set! 
-		   ,head 
-		   ,(if (pair? body) (car body) '(##core#undefined))) )
+		   (chicken.syntax#defjam-error x))
+		 `(##core#begin
+		    (##core#ensure-toplevel-definition ,head)
+		    (##core#set!
+		     ,head
+		     ,(if (pair? body) (car body) '(##core#undefined)))))
 		((pair? (car head))
 		 (##sys#check-syntax 'define form '(_ (_ . lambda-list) . #(_ 1)))
-		 (loop (##sys#expand-curried-define head body '())) ) ;XXX '() should be se
+		 (loop (chicken.syntax#expand-curried-define head body '()))) ;XXX '() should be se
 		(else
 		 (##sys#check-syntax 'define form '(_ (symbol . lambda-list) . #(_ 1)))
 		 (loop (list (car x) (car head) `(##core#lambda ,(cdr head) ,@body)))))))))))
 
-(set! ##sys#define-syntax-definition
+(set! chicken.syntax#define-syntax-definition
   (##sys#extend-macro-environment
    'define-syntax
    '()
    (##sys#er-transformer
     (lambda (form r c)
+      (##sys#check-syntax 'define-syntax form '(_ symbol _))
       (let ((head (cadr form))
-	    (body (cddr form)) )
-	(cond ((not (pair? head))
-	       (##sys#check-syntax 'define-syntax head 'symbol)
-	       (##sys#check-syntax 'define-syntax body '#(_ 1))
-               (let ((name (or (getp head '##core#macro-alias) head)))
-                 (##sys#register-export name (##sys#current-module)))
-	       (when (c (r 'define-syntax) head)
-		 (##sys#defjam-error form))
-	       `(##core#define-syntax ,head ,(car body)))
-	      (else			; DEPRECATED
-	       (##sys#check-syntax 'define-syntax head '(_ . lambda-list))
-	       (##sys#check-syntax 'define-syntax body '#(_ 1))
-	       (when (eq? (car form) (car head))
-		 (##sys#syntax-error-hook
-		  "redefinition of `define-syntax' not allowed in syntax-definition"
-		  form))
-	       `(##core#define-syntax 
-		 ,(car head)
-		 (##sys#er-transformer (##core#lambda ,(cdr head) ,@body))))))))))
-
-(define (check-for-multiple-bindings bindings form loc)
-  ;; assumes correct syntax
-  (let loop ((bs bindings) (seen '()) (warned '()))
-    (cond ((null? bs))
-	  ((and (memq (caar bs) seen)
-                (not (memq (caar bs) warned)))
-	   (##sys#warn 
-	    (string-append "variable bound multiple times in " loc " construct")
-	    (caar bs)
-	    form)
-	   (loop (cdr bs) seen (cons (caar bs) warned)))
-	  (else (loop (cdr bs) (cons (caar bs) seen) warned)))))
+	    (body (caddr form)))
+	(let ((name (or (getp head '##core#macro-alias) head)))
+	  (##sys#register-export name (##sys#current-module)))
+	(when (c (r 'define-syntax) head)
+	  (chicken.syntax#defjam-error form))
+	`(##core#define-syntax ,head ,body))))))
 
 (##sys#extend-macro-environment
  'let
@@ -1061,15 +1292,6 @@
 	   (##sys#check-syntax 'let x '(_ #((symbol _) 0) . #(_ 1)))
            (check-for-multiple-bindings (cadr x) x "let")))
     `(##core#let ,@(cdr x)))))
-
-(##sys#extend-macro-environment
- 'letrec*
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'letrec* x '(_ #((symbol _) 0) . #(_ 1)))
-    (check-for-multiple-bindings (cadr x) x "letrec*")
-    `(##core#letrec* ,@(cdr x)))))
 
 (##sys#extend-macro-environment
  'letrec
@@ -1157,8 +1379,8 @@
 	      (##sys#check-syntax 'cond clause '#(_ 1))
 	      (cond (else?
 		     (##sys#warn
-		      (sprintf "clause following `~S' clause in `cond'" else?)
-		      (##sys#strip-syntax clause))
+		      (chicken.format#sprintf "clause following `~S' clause in `cond'" else?)
+		      (strip-syntax clause))
 		     (expand rclauses else?)
 		     '(##core#begin))
 		    ((or (c %else (car clause))
@@ -1205,7 +1427,7 @@
 
 (##sys#extend-macro-environment
  'case
- '()
+ '((eqv? . scheme#eqv?))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'case form '(_ _ . #(_ 0)))
@@ -1226,7 +1448,7 @@
 		    (cond (else?
 			   (##sys#warn
 			    "clause following `else' clause in `case'"
-			    (##sys#strip-syntax clause))
+			    (strip-syntax clause))
 			   (expand rclauses #t)
 			   '(##core#begin))
 			  ((c %else (car clause))
@@ -1324,16 +1546,16 @@
 		       (else
 			`(##sys#cons ,(walk head n) ,(walk tail n)) ) ) ) ) ) )
       (define (simplify x)
-	(cond ((match-expression x '(##sys#cons a (##core#quote ())) '(a))
+	(cond ((chicken.syntax#match-expression x '(##sys#cons a (##core#quote ())) '(a))
 	       => (lambda (env) (simplify `(##sys#list ,(cdr (assq 'a env))))) )
-	      ((match-expression x '(##sys#cons a (##sys#list . b)) '(a b))
+	      ((chicken.syntax#match-expression x '(##sys#cons a (##sys#list . b)) '(a b))
 	       => (lambda (env)
 		    (let ((bxs (assq 'b env)))
 		      (if (fx< (length bxs) 32)
 			  (simplify `(##sys#list ,(cdr (assq 'a env))
 						 ,@(cdr bxs) ) ) 
 			  x) ) ) )
-	      ((match-expression x '(##sys#append a (##core#quote ())) '(a))
+	      ((chicken.syntax#match-expression x '(##sys#append a (##core#quote ())) '(a))
 	       => (lambda (env) (cdr (assq 'a env))) )
 	      (else x) ) )
       (##sys#check-syntax 'quasiquote form '(_ _))
@@ -1349,204 +1571,16 @@
       (##sys#make-promise
        (##sys#call-with-values (##core#lambda () ,(cadr form)) ##sys#list))))))
 
-(##sys#extend-macro-environment
- 'delay-force
- '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'delay-force form '(_ _))
-    `(##sys#make-promise (##core#lambda () ,(cadr form))))))
-
-(##sys#extend-macro-environment
- 'cond-expand
- '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (let ((clauses (cdr form))
-	  (%or (r 'or))
-	  (%not (r 'not))
-	  (%else (r 'else))
-	  (%and (r 'and)))
-      (define (err x) 
-	(##sys#error "syntax error in `cond-expand' form"
-		     x
-		     (cons 'cond-expand clauses)) )
-      (define (test fx)
-	(cond ((symbol? fx) (##sys#feature? (##sys#strip-syntax fx)))
-	      ((not (pair? fx)) (err fx))
-	      (else
-	       (let ((head (car fx))
-		     (rest (cdr fx)))
-		 (cond ((c %and head)
-			(or (eq? rest '())
-			    (if (pair? rest)
-				(and (test (car rest))
-				     (test `(,%and ,@(cdr rest))) )
-				(err fx) ) ) )
-		       ((c %or head)
-			(and (not (eq? rest '()))
-			     (if (pair? rest)
-				 (or (test (car rest))
-				     (test `(,%or ,@(cdr rest))) )
-				 (err fx) ) ) )
-		       ((c %not head) (not (test (cadr fx))))
-		       (else (err fx)) ) ) ) ) )
-      (let expand ((cls clauses))
-	(cond ((eq? cls '())
-	       (##sys#apply
-		##sys#error "no matching clause in `cond-expand' form" 
-		(map (lambda (x) (car x)) clauses) ) )
-	      ((not (pair? cls)) (err cls))
-	      (else
-	       (let ((clause (car cls))
-		    (rclauses (cdr cls)) )
-		 (if (not (pair? clause)) 
-		     (err clause)
-		     (let ((id (car clause)))
-		       (cond ((c id %else)
-			      (let ((rest (cdr clause)))
-				(if (eq? rest '())
-				    '(##core#undefined)
-				    `(##core#begin ,@rest) ) ) )
-			     ((test id) `(##core#begin ,@(cdr clause)))
-			     (else (expand rclauses)) ) ) ) ) ) ) ) ) ) ) )
-
-(##sys#extend-macro-environment
- 'require-library
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (let ((ids (cdr x)))
-      `(##core#require-extension ,ids #f) ) ) ) )
-
-(##sys#extend-macro-environment
- 'require-extension
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (let ((ids (cdr x)))
-      `(##core#require-extension ,ids #t) ) ) ) )
-
-(##sys#extend-macro-environment
- 'require-extension-for-syntax
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    `(,(r 'begin-for-syntax) (,(r 'require-extension) ,@(cdr x))))))
-
-(##sys#extend-macro-environment
- 'module
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (let ((len (length x)))
-      (##sys#check-syntax 'module x '(_ symbol _ . #(_ 0)))
-      (cond ((and (fx>= len 4) (c (r '=) (caddr x)))
-	     (let* ((x (##sys#strip-syntax x))
-		    (name (cadr x))
-		    (app (cadddr x)))
-	       (cond ((symbol? app)
-		      (cond ((fx> len 4)
-			     ;; feature suggested by syn:
-			     ;;
-			     ;; (module NAME = FUNCTORNAME BODY ...)
-			     ;; ~>
-			     ;; (begin
-			     ;;   (module _NAME * BODY ...)
-			     ;;   (module NAME = (FUNCTORNAME _NAME)))
-			     ;;
-			     ;; - the use of "_NAME" is a bit stupid, but it must be
-			     ;;   externally visible to generate an import library from
-			     ;;   and compiling "NAME" separately may need an import-lib
-			     ;;   for stuff in "BODY" (say, syntax needed by syntax exported
-			     ;;   from the functor, or something like this...)
-			     (let ((mtmp (string->symbol 
-					  (##sys#string-append 
-					   "_"
-					   (symbol->string name))))
-				   (%module (r 'module)))
-			       `(##core#begin
-				 (,%module ,mtmp * ,@(cddddr x))
-				 (,%module ,name = (,app ,mtmp)))))
-			    (else
-			     (##sys#register-module-alias name app)
-			     '(##core#undefined))))
-		     (else
-		      (##sys#check-syntax 
-		       'module x '(_ symbol _ (symbol . #(_ 0))))
-		      (##sys#instantiate-functor
-		       name
-		       (car app)	; functor name
-		       (cdr app))))))	; functor arguments
-	    (else
-	     ;;XXX use module name in "loc" argument?
-	     (let ((exports
-		    (##sys#validate-exports
-		     (##sys#strip-syntax (caddr x)) 'module)))
-	       `(##core#module 
-		 ,(cadr x)
-		 ,(if (eq? '* exports)
-		      #t 
-		      exports)
-		 ,@(let ((body (cdddr x)))
-		     (if (and (pair? body) 
-			      (null? (cdr body))
-			      (string? (car body)))
-			 `((##core#include ,(car body)))
-			 body))))))))))
-
-(##sys#extend-macro-environment
- 'begin-for-syntax
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'begin-for-syntax x '(_ . #(_ 0)))
-    (##sys#register-meta-expression `(##core#begin ,@(cdr x)))
-    `(##core#elaborationtimeonly (##core#begin ,@(cdr x))))))
-
-(##sys#extend-macro-environment
- 'export
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (let ((exps 
-	   (##sys#validate-exports 
-	    (##sys#strip-syntax (cdr x))
-	    'export))
-	  (mod (##sys#current-module)))
-      (when mod
-	(##sys#add-to-export-list mod exps))
-      '(##core#undefined)))))
-
-
 ;;; syntax-rules
 
 (include "synrules.scm")
 
+(macro-subset me0)))
 
-;;; the base macro environment ("scheme", essentially)
-
-(define (##sys#macro-subset me0 #!optional parent-env)
-  (let ((se (let loop ((me (##sys#macro-environment)))
-	      (if (or (null? me) (eq? me me0))
-		  '()
-		  (cons (car me) (loop (cdr me)))))))
-    (##sys#fixup-macro-environment se parent-env)))
-
-(define (##sys#fixup-macro-environment se #!optional parent-env)
-  (let ((se2 (if parent-env (##sys#append se parent-env) se)))
-    (for-each				; fixup se
-     (lambda (sdef)
-       (when (pair? (cdr sdef))
-	 (set-car!
-	  (cdr sdef) 
-	  (if (null? (cadr sdef)) 
-	      se2
-	      (##sys#append (cadr sdef) se2)))))
-     se)
-    se))
+;;; the base macro environment (the old "scheme", essentially)
+;;; TODO: Remove this
 
 (define ##sys#default-macro-environment
-  (##sys#fixup-macro-environment (##sys#macro-environment)))
+  (fixup-macro-environment (##sys#macro-environment)))
 
 (define ##sys#meta-macro-environment (make-parameter (##sys#macro-environment)))

@@ -2,7 +2,7 @@
 
 
 (module oo (output-of)
-  (import scheme chicken ports)
+  (import scheme chicken.port)
   (define-syntax output-of 
     (syntax-rules ()
       ((_ exp) (with-output-to-string (lambda () exp)))))
@@ -10,7 +10,7 @@
 
 (module mscheme (lambda)
   (import (rename scheme (lambda s:lambda))
-	  chicken)
+	  (chicken module))
   (reexport (except scheme lambda))
   (define-syntax lambda
     (syntax-rules ()
@@ -66,7 +66,7 @@
 )
 
 (module mtest2 (f3 f4)
-  (import (except scheme lambda) m1 chicken oo)
+  (import (except scheme lambda) m1 (only chicken assert) oo)
 
   (define (f3)				; standard lambda
     (display 'f3)
@@ -91,7 +91,7 @@
 
 (module m3 ()
   (import (rename scheme (define s:define)))
-  (import chicken)
+  (import (only chicken assert))
   (define-syntax define
     (syntax-rules ()
       ((_) (display 'oink))))

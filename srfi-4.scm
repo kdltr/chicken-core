@@ -27,9 +27,9 @@
 
 (declare
   (unit srfi-4)
-  (uses extras)
+  (uses expand extras)
   (disable-interrupts)
-  (not inline ##sys#user-print-hook ##sys#number-hash-hook)
+  (not inline ##sys#user-print-hook)
   (foreign-declare #<<EOF
 #define C_copy_subvector(to, from, start_to, start_from, bytes)   \
   (C_memcpy((C_char *)C_data_pointer(to) + C_unfix(start_to), (C_char *)C_data_pointer(from) + C_unfix(start_from), C_unfix(bytes)), \
@@ -37,27 +37,84 @@
 EOF
 ) )
 
+(module srfi-4
+  (blob->f32vector blob->f32vector/shared
+   blob->f64vector blob->f64vector/shared
+   blob->s16vector blob->s16vector/shared
+   blob->s32vector blob->s32vector/shared
+   blob->s64vector blob->s64vector/shared
+   blob->s8vector blob->s8vector/shared
+   blob->u16vector blob->u16vector/shared
+   blob->u32vector blob->u32vector/shared
+   blob->u64vector blob->u64vector/shared
+   blob->u8vector blob->u8vector/shared
+   f32vector f32vector->blob f32vector->blob/shared f32vector->list
+   f32vector-length f32vector-ref f32vector-set! f32vector?
+   f64vector f64vector->blob f64vector->blob/shared f64vector->list
+   f64vector-length f64vector-ref f64vector-set! f64vector?
+   s8vector s8vector->blob s8vector->blob/shared s8vector->list
+   s8vector-length s8vector-ref s8vector-set! s8vector?
+   s16vector s16vector->blob s16vector->blob/shared s16vector->list
+   s16vector-length s16vector-ref s16vector-set! s16vector?
+   s32vector s32vector->blob s32vector->blob/shared s32vector->list
+   s32vector-length s32vector-ref s32vector-set! s32vector?
+   s64vector s64vector->blob s64vector->blob/shared s64vector->list
+   s64vector-length s64vector-ref s64vector-set! s64vector?
+   u8vector u8vector->blob u8vector->blob/shared u8vector->list
+   u8vector-length u8vector-ref u8vector-set! u8vector?
+   u16vector u16vector->blob u16vector->blob/shared u16vector->list
+   u16vector-length u16vector-ref u16vector-set! u16vector?
+   u32vector u32vector->blob u32vector->blob/shared u32vector->list
+   u32vector-length u32vector-ref u32vector-set! u32vector?
+   u64vector u64vector->blob u64vector->blob/shared u64vector->list
+   u64vector-length u64vector-ref u64vector-set! u64vector?
+   list->f32vector list->f64vector list->s16vector list->s32vector
+   list->s8vector list->u16vector list->u32vector list->u8vector
+   make-f32vector make-f64vector make-s16vector make-s32vector
+   make-s64vector make-s8vector make-u16vector make-u32vector
+   make-u64vector make-u8vector
+   number-vector? read-u8vector read-u8vector! release-number-vector
+   subf32vector subf64vector subs16vector subs32vector subs64vector
+   subs8vector subu16vector subu8vector subu32vector subu64vector
+   write-u8vector)
+
+(import scheme chicken)
+(import chicken.bitwise
+	chicken.fixnum
+	chicken.foreign
+	chicken.gc
+	chicken.platform
+	chicken.syntax)
+
 (include "common-declarations.scm")
 
 
 ;;; Helper routines:
 
-(declare (hide ##sys#check-exact-interval))
-
-(define ##sys#check-exact-interval
-  (lambda (n from to loc)
-    (##sys#check-exact n loc)
-    (if (or (##core#inline "C_fixnum_lessp" n from)
-	    (##core#inline "C_fixnum_greaterp" n to) )
-	(##sys#error loc "numeric value is not in expected range" n from to) ) ) )
+(define-inline (check-int/flonum x loc)
+  (unless (or (##core#inline "C_i_exact_integerp" x)
+	      (##core#inline "C_i_flonump" x))
+    (##sys#error-hook (foreign-value "C_BAD_ARGUMENT_TYPE_NO_FLONUM_ERROR" int) loc x) ) )
 
 (define-inline (check-range i from to loc)
-  (##sys#check-exact i loc)
+  (##sys#check-fixnum i loc)
   (unless (and (fx<= from i) (fx< i to))
     (##sys#error-hook
      (foreign-value "C_OUT_OF_RANGE_ERROR" int)
      loc i from to) ) )
 
+(define-inline (check-uint-length obj len loc)
+  (##sys#check-exact-uinteger obj loc)
+  (when (fx> (integer-length obj) len)
+    (##sys#error-hook
+     (foreign-value "C_OUT_OF_RANGE_ERROR" int) loc obj 0 (expt 2 len))))
+
+(define-inline (check-int-length obj len loc)
+  (##sys#check-exact-integer obj loc)
+  (when (fx> (integer-length obj) (fx- len 1))
+    (##sys#error-hook
+     (foreign-value "C_OUT_OF_RANGE_ERROR" int)
+     loc obj (- (expt 2 len)) (sub1 (expt 2 len)))))
 
 ;;; Get vector length:
 
@@ -85,6 +142,14 @@ EOF
   (##sys#check-structure x 's32vector 's32vector-length)
   (##core#inline "C_u_i_32vector_length" x))
 
+(define (u64vector-length x)
+  (##sys#check-structure x 'u64vector 'u64vector-length)
+  (##core#inline "C_u_i_64vector_length" x))
+
+(define (s64vector-length x)
+  (##sys#check-structure x 's64vector 's64vector-length)
+  (##core#inline "C_u_i_64vector_length" x))
+
 (define (f32vector-length x)
   (##sys#check-structure x 'f32vector 'f32vector-length)
   (##core#inline "C_u_i_32vector_length" x))
@@ -93,84 +158,89 @@ EOF
   (##sys#check-structure x 'f64vector 'f64vector-length)
   (##core#inline "C_u_i_64vector_length" x))
 
+;; XXX TODO: u64/s64-vectors
 
 ;;; Safe accessors:
 
 (define (u8vector-set! x i y)
   (##sys#check-structure x 'u8vector 'u8vector-set!)
   (let ((len (##core#inline "C_u_i_8vector_length" x)))
-    (##sys#check-exact y 'u8vector-set!)
-    (when (fx< y 0)
-      (##sys#error 'u8vector-set! "argument may not be negative" y))
+    (check-uint-length y 8 'u8vector-set!)
     (check-range i 0 len 'u8vector-set!)
     (##core#inline "C_u_i_u8vector_set" x i y)))
 
 (define (s8vector-set! x i y)
   (##sys#check-structure x 's8vector 's8vector-set!)
   (let ((len (##core#inline "C_u_i_8vector_length" x)))
-    (##sys#check-exact y 's8vector-set!)
+    (check-int-length y 8 's8vector-set!)
     (check-range i 0 len 's8vector-set!)
     (##core#inline "C_u_i_s8vector_set" x i y)))
 
 (define (u16vector-set! x i y)
   (##sys#check-structure x 'u16vector 'u16vector-set!)
   (let ((len (##core#inline "C_u_i_16vector_length" x)))
-    (##sys#check-exact y 'u16vector-set!)
-    (when (fx< y 0)
-      (##sys#error 'u16vector-set! "argument may not be negative" y))
+    (check-uint-length y 16 'u16vector-set!)
     (check-range i 0 len 'u16vector-set!)
     (##core#inline "C_u_i_u16vector_set" x i y)))
 
 (define (s16vector-set! x i y)
   (##sys#check-structure x 's16vector 's16vector-set!)
   (let ((len (##core#inline "C_u_i_16vector_length" x)))
-    (##sys#check-exact y 's16vector-set!)
+    (check-int-length y 16 's16vector-set!)
     (check-range i 0 len 's16vector-set!)
     (##core#inline "C_u_i_s16vector_set" x i y)))
 
 (define (u32vector-set! x i y)
   (##sys#check-structure x 'u32vector 'u32vector-set!)
   (let ((len (##core#inline "C_u_i_32vector_length" x)))
-    (##sys#check-integer y 'u32vector-set!)
-    (cond ((negative? y)
-	   (##sys#error 'u32vector-set! "argument may not be negative" y) )
-	  ((not (##sys#fits-in-unsigned-int? y))
-	   (##sys#error 'u32vector-set! "argument exceeds integer range" y) ) )
+    (check-uint-length y 32 'u32vector-set!)
     (check-range i 0 len 'u32vector-set!)
     (##core#inline "C_u_i_u32vector_set" x i y)))
 
 (define (s32vector-set! x i y)
   (##sys#check-structure x 's32vector 's32vector-set!)
   (let ((len (##core#inline "C_u_i_32vector_length" x)))
-    (##sys#check-integer y 's32vector-set!)
-    (unless (##sys#fits-in-int? y)
-      (##sys#error 's32vector-set! "argument exceeds integer range" y) )
+    (check-int-length y 32 's32vector-set!)
     (check-range i 0 len 's32vector-set!)
     (##core#inline "C_u_i_s32vector_set" x i y)))
+
+(define (u64vector-set! x i y)
+  (##sys#check-structure x 'u64vector 'u64vector-set!)
+  (let ((len (##core#inline "C_u_i_64vector_length" x)))
+    (check-uint-length y 64 'u64vector-set!)
+    (check-range i 0 len 'u64vector-set!)
+    (##core#inline "C_u_i_u64vector_set" x i y)))
+
+(define (s64vector-set! x i y)
+  (##sys#check-structure x 's64vector 's64vector-set!)
+  (let ((len (##core#inline "C_u_i_64vector_length" x)))
+    (check-int-length y 64 's64vector-set!)
+    (check-range i 0 len 's64vector-set!)
+    (##core#inline "C_u_i_s64vector_set" x i y)))
 
 (define (f32vector-set! x i y)
   (##sys#check-structure x 'f32vector 'f32vector-set!)
   (let ((len (##core#inline "C_u_i_32vector_length" x)))
-    (##sys#check-number y 'f32vector-set!)
+    (check-int/flonum y 'f32vector-set!)
     (check-range i 0 len 'f32vector-set!)
     (##core#inline
      "C_u_i_f32vector_set"
      x i 
-     (if (##core#inline "C_blockp" y)
+     (if (##core#inline "C_i_flonump" y)
 	 y
-	 (##core#inline_allocate ("C_a_i_fix_to_flo" 4) y)))))
+	 (##core#inline_allocate ("C_a_u_i_int_to_flo" 4) y)))))
 
 (define (f64vector-set! x i y)
   (##sys#check-structure x 'f64vector 'f64vector-set!)
   (let ((len (##core#inline "C_u_i_64vector_length" x)))
-    (##sys#check-number y 'f64vector-set!)
+    (check-int/flonum y 'f64vector-set!)
     (check-range i 0 len 'f64vector-set!)
     (##core#inline
      "C_u_i_f64vector_set"
      x i 
-     (if (##core#inline "C_blockp" y)
+     (if (##core#inline "C_i_flonump" y)
 	 y
-	 (##core#inline_allocate ("C_a_i_fix_to_flo" 4) y)))))
+	 (##core#inline_allocate ("C_a_u_i_int_to_flo" 4) y)))))
 
 (define u8vector-ref
   (getter-with-setter
@@ -218,7 +288,7 @@ EOF
      (##sys#check-structure x 'u32vector 'u32vector-ref)
      (let ((len (##core#inline "C_u_i_u32vector_length" x)))
        (check-range i 0 len 'u32vector-ref)
-       (##core#inline_allocate ("C_a_u_i_u32vector_ref" 4) x i)))
+       (##core#inline_allocate ("C_a_u_i_u32vector_ref" 6) x i)))
    u32vector-set!
    "(u32vector-ref v i)"))
 
@@ -228,9 +298,29 @@ EOF
      (##sys#check-structure x 's32vector 's32vector-ref)
      (let ((len (##core#inline "C_u_i_s32vector_length" x)))
        (check-range i 0 len 's32vector-ref)
-       (##core#inline_allocate ("C_a_u_i_s32vector_ref" 4) x i)))
+       (##core#inline_allocate ("C_a_u_i_s32vector_ref" 6) x i)))
    s32vector-set!
    "(s32vector-ref v i)"))
+
+(define u64vector-ref
+  (getter-with-setter
+   (lambda (x i)
+     (##sys#check-structure x 'u64vector 'u64vector-ref)
+     (let ((len (##core#inline "C_u_i_u64vector_length" x)))
+       (check-range i 0 len 'u64vector-ref)
+       (##core#inline_allocate ("C_a_u_i_u64vector_ref" 7) x i)))
+   u64vector-set!
+   "(u64vector-ref v i)"))
+
+(define s64vector-ref
+  (getter-with-setter
+   (lambda (x i)
+     (##sys#check-structure x 's64vector 's64vector-ref)
+     (let ((len (##core#inline "C_u_i_s64vector_length" x)))
+       (check-range i 0 len 's64vector-ref)
+       (##core#inline_allocate ("C_a_u_i_s64vector_ref" 7) x i)))
+   s64vector-set!
+   "(s64vector-ref v i)"))
 
 (define f32vector-ref
   (getter-with-setter
@@ -255,11 +345,22 @@ EOF
 
 ;;; Basic constructors:
 
+(define make-f32vector)
+(define make-f64vector)
+(define make-s16vector)
+(define make-s32vector)
+(define make-s64vector)
+(define make-s8vector)
+(define make-u8vector)
+(define make-u16vector)
+(define make-u32vector)
+(define make-u64vector)
+(define release-number-vector)
+
 (let* ((ext-alloc
 	(foreign-lambda* scheme-object ((size_t bytes))
-	  "C_word *buf;"
 	  "if (bytes > C_HEADER_SIZE_MASK) C_return(C_SCHEME_FALSE);"
-	  "buf = (C_word *)C_malloc(bytes + sizeof(C_header));"
+	  "C_word *buf = (C_word *)C_malloc(bytes + sizeof(C_header));"
 	  "if(buf == NULL) C_return(C_SCHEME_FALSE);"
 	  "C_block_header_init(buf, C_make_header(C_BYTEVECTOR_TYPE, bytes));"
 	  "C_return(buf);") )
@@ -267,16 +368,18 @@ EOF
 	(foreign-lambda* void ((scheme-object bv))
 	  "C_free((void *)C_block_item(bv, 1));") )
        (alloc
-	(lambda (loc len ext?)
-	  (##sys#check-exact len loc)
-	  (when (fx< len 0) (##sys#error loc "size is negative" len))
-	  (if ext?
-	      (let ((bv (ext-alloc len)))
-		(or bv
-		    (##sys#error loc "not enough memory - cannot allocate external number vector" len)) )
-	      (let ((bv (##sys#allocate-vector len #t #f #t))) ; this could be made better...
-		(##core#inline "C_string_to_bytevector" bv)
-		bv) ) ) ) )
+	(lambda (loc elem-size elems ext?)
+	  (##sys#check-fixnum elems loc)
+	  (when (fx< elems 0) (##sys#error loc "size is negative" elems))
+	  (let ((len (fx*? elems elem-size)))
+	    (unless len (##sys#error "overflow - cannot allocate the required number of elements" elems))
+	    (if ext?
+		(let ((bv (ext-alloc len)))
+		  (or bv
+		      (##sys#error loc "not enough memory - cannot allocate external number vector" len)) )
+		(let ((bv (##sys#allocate-vector len #t #f #t))) ; this could be made better...
+		  (##core#inline "C_string_to_bytevector" bv)
+		  bv) ) ) ) ))
 
   (set! release-number-vector
     (lambda (v)
@@ -286,102 +389,124 @@ EOF
 
   (set! make-u8vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (let ((v (##sys#make-structure 'u8vector (alloc 'make-u8vector len ext?))))
+      (let ((v (##sys#make-structure 'u8vector (alloc 'make-u8vector 1 len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
 	    v
 	    (begin
-	      (##sys#check-exact-interval init 0 #xff 'make-u8vector)
+	      (check-uint-length init 8 'make-u8vector)
 	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
 		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
 		(##core#inline "C_u_i_u8vector_set" v i init) ) ) ) ) ) )
 
   (set! make-s8vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (let ((v (##sys#make-structure 's8vector (alloc 'make-s8vector len ext?))))
+      (let ((v (##sys#make-structure 's8vector (alloc 'make-s8vector 1 len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
 	    v
 	    (begin
-	      (##sys#check-exact-interval init -128 127 'make-s8vector)
+	      (check-uint-length init 8 'make-s8vector)
 	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
 		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
 		(##core#inline "C_u_i_s8vector_set" v i init) ) ) ) ) ) )
 
   (set! make-u16vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (let ((v (##sys#make-structure 'u16vector (alloc 'make-u16vector (##core#inline "C_fixnum_shift_left" len 1) ext?))))
+      (let ((v (##sys#make-structure 'u16vector (alloc 'make-u16vector 2 len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
 	    v
 	    (begin
-	      (##sys#check-exact-interval init 0 #xffff 'make-u16vector)
+	      (check-uint-length init 16 'make-u16vector)
 	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
 		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
 		(##core#inline "C_u_i_u16vector_set" v i init) ) ) ) ) ) )
 
   (set! make-s16vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (let ((v (##sys#make-structure 's16vector (alloc 'make-s16vector (##core#inline "C_fixnum_shift_left" len 1) ext?))))
+      (let ((v (##sys#make-structure 's16vector (alloc 'make-s16vector 2 len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
 	    v
 	    (begin
-	      (##sys#check-exact-interval init -32768 32767 'make-s16vector)
+	      (check-int-length init 16 'make-s16vector)
 	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
 		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
 		(##core#inline "C_u_i_s16vector_set" v i init) ) ) ) ) ) )
 
   (set! make-u32vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (let ((v (##sys#make-structure 'u32vector (alloc 'make-u32vector (##core#inline "C_fixnum_shift_left" len 2) ext?))))
+      (let ((v (##sys#make-structure 'u32vector (alloc 'make-u32vector 4 len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
 	    v
 	    (begin
-	      (##sys#check-exact init 'make-u32vector)
+	      (check-uint-length init 32 'make-u32vector)
 	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
 		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
 		(##core#inline "C_u_i_u32vector_set" v i init) ) ) ) ) ) )
 
-  (set! make-s32vector
+  (set! make-u64vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (let ((v (##sys#make-structure 's32vector (alloc 'make-s32vector (##core#inline "C_fixnum_shift_left" len 2) ext?))))
+      (let ((v (##sys#make-structure 'u64vector (alloc 'make-u64vector 8 len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
 	    v
 	    (begin
-	      (##sys#check-exact init 'make-s32vector)
+	      (check-uint-length init 64 'make-u64vector)
+	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
+		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
+		(##core#inline "C_u_i_u64vector_set" v i init) ) ) ) ) ) )
+
+  (set! make-s32vector
+    (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
+      (let ((v (##sys#make-structure 's32vector (alloc 'make-s32vector 4 len ext?))))
+	(when (and ext? fin?) (set-finalizer! v ext-free))
+	(if (not init)
+	    v
+	    (begin
+	      (check-int-length init 32 'make-s32vector)
 	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
 		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
 		(##core#inline "C_u_i_s32vector_set" v i init) ) ) ) ) ) )
 
-  (set! make-f32vector
+   (set! make-s64vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (let ((v (##sys#make-structure 'f32vector (alloc 'make-f32vector (##core#inline "C_fixnum_shift_left" len 2) ext?))))
+      (let ((v (##sys#make-structure 's64vector (alloc 'make-s64vector 8 len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
 	    v
 	    (begin
-	      (##sys#check-number init 'make-f32vector)
-	      (unless (##core#inline "C_blockp" init)
-		(set! init (##core#inline_allocate ("C_a_i_fix_to_flo" 4) init)) )
+	      (check-int-length init 64 'make-s64vector)
+	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
+		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
+		(##core#inline "C_u_i_s64vector_set" v i init) ) ) ) ) ) )
+
+  (set! make-f32vector
+    (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
+      (let ((v (##sys#make-structure 'f32vector (alloc 'make-f32vector 4 len ext?))))
+	(when (and ext? fin?) (set-finalizer! v ext-free))
+	(if (not init)
+	    v
+	    (begin
+	      (check-int/flonum init 'make-f32vector)
+	      (unless (##core#inline "C_i_flonump" init)
+		(set! init (##core#inline_allocate ("C_a_u_i_int_to_flo" 4) init)))
 	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
 		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
 		(##core#inline "C_u_i_f32vector_set" v i init) ) ) ) ) ) )
 
   (set! make-f64vector
     (lambda (len #!optional (init #f)  (ext? #f) (fin? #t))
-      (let ((v (##sys#make-structure
-		'f64vector
-		(alloc 'make-f64vector (##core#inline "C_fixnum_shift_left" len 3) ext?))))
+      (let ((v (##sys#make-structure 'f64vector (alloc 'make-f64vector 8 len ext?))))
 	(when (and ext? fin?) (set-finalizer! v ext-free))
 	(if (not init)
 	    v
 	    (begin
-	      (##sys#check-number init 'make-f64vector)
-	      (unless (##core#inline "C_blockp" init)
-		(set! init (##core#inline_allocate ("C_a_i_fix_to_flo" 4) init)) )
+	      (check-int/flonum init 'make-f64vector)
+	      (unless (##core#inline "C_i_flonump" init)
+		(set! init (##core#inline_allocate ("C_a_u_i_int_to_flo" 4) init)) )
 	      (do ((i 0 (##core#inline "C_fixnum_plus" i 1)))
 		  ((##core#inline "C_fixnum_greater_or_equal_p" i len) v)
 		(##core#inline "C_u_i_f64vector_set" v i init) ) ) ) ) ) ) )
@@ -392,7 +517,7 @@ EOF
 (define-syntax list->NNNvector 
   (er-macro-transformer 
    (lambda (x r c)
-     (let* ((tag (##sys#strip-syntax (cadr x)))
+     (let* ((tag (strip-syntax (cadr x)))
 	    (tagstr (symbol->string tag))
 	    (name (string->symbol (string-append "list->" tagstr)))
 	    (make (string->symbol (string-append "make-" tagstr)))
@@ -416,6 +541,8 @@ EOF
 (list->NNNvector s16vector)
 (list->NNNvector u32vector)
 (list->NNNvector s32vector)
+(list->NNNvector u64vector)
+(list->NNNvector s64vector)
 (list->NNNvector f32vector)
 (list->NNNvector f64vector)
 
@@ -440,6 +567,12 @@ EOF
 (define s32vector
   (lambda xs (list->s32vector xs)) )
 
+(define u64vector
+  (lambda xs (list->u64vector xs)) )
+
+(define s64vector
+  (lambda xs (list->s64vector xs)) )
+
 (define f32vector
   (lambda xs (list->f32vector xs)) )
 
@@ -452,29 +585,32 @@ EOF
 (define-syntax NNNvector->list
   (er-macro-transformer
    (lambda (x r c)
-     (let* ((tag (##sys#strip-syntax (cadr x)))
-	    (alloc? (pair? (cddr x)))
-	    (name (string->symbol (string-append (symbol->string tag) "->list"))))
+     (let* ((tag (symbol->string (strip-syntax (cadr x))))
+	    (alloc (and (pair? (cddr x)) (caddr x)))
+	    (name (string->symbol (string-append tag "->list"))))
        `(define (,name v)
-	  (##sys#check-structure v ',tag ',name)
-	  (let ((len (##core#inline ,(conc "C_u_i_" tag "_length") v)))
+	  (##sys#check-structure v ',(string->symbol tag) ',name)
+	  (let ((len (##core#inline ,(string-append "C_u_i_" tag "_length") v)))
 	    (let loop ((i 0))
 	      (if (fx>= i len)
 		  '()
 		  (cons 
-		   ,(if alloc?
-			`(##core#inline_allocate (,(conc "C_a_u_i_" tag "_ref") 4) v i)
-			`(##core#inline ,(conc "C_u_i_" tag "_ref") v i))
+		   ,(if alloc
+			`(##core#inline_allocate (,(string-append "C_a_u_i_" tag "_ref") ,alloc) v i)
+			`(##core#inline ,(string-append "C_u_i_" tag "_ref") v i))
 		   (loop (fx+ i 1)) ) ) ) ) ) ) )))
 
 (NNNvector->list u8vector)
 (NNNvector->list s8vector)
 (NNNvector->list u16vector)
 (NNNvector->list s16vector)
-(NNNvector->list u32vector #t)
-(NNNvector->list s32vector #t)
-(NNNvector->list f32vector #t)
-(NNNvector->list f64vector #t)
+;; The alloc amounts here are for 32-bit words; this over-allocates on 64-bits
+(NNNvector->list u32vector 6)
+(NNNvector->list s32vector 6)
+(NNNvector->list u64vector 7)
+(NNNvector->list s64vector 7)
+(NNNvector->list f32vector 4)
+(NNNvector->list f64vector 4)
 
 
 ;;; Predicates:
@@ -485,6 +621,8 @@ EOF
 (define (s16vector? x) (##sys#structure? x 's16vector))
 (define (u32vector? x) (##sys#structure? x 'u32vector))
 (define (s32vector? x) (##sys#structure? x 's32vector))
+(define (u64vector? x) (##sys#structure? x 'u64vector))
+(define (s64vector? x) (##sys#structure? x 's64vector))
 (define (f32vector? x) (##sys#structure? x 'f32vector))
 (define (f64vector? x) (##sys#structure? x 'f64vector))
 
@@ -492,8 +630,6 @@ EOF
 (define number-vector? ##sys#srfi-4-vector?)
 
 ;;; Accessing the packed bytevector:
-
-(declare (hide pack pack-copy unpack unpack-copy))
 
 (define (pack tag loc)
   (lambda (v)
@@ -534,6 +670,8 @@ EOF
 (define s16vector->blob/shared (pack 's16vector 's16vector->blob/shared))
 (define u32vector->blob/shared (pack 'u32vector 'u32vector->blob/shared))
 (define s32vector->blob/shared (pack 's32vector 's32vector->blob/shared))
+(define u64vector->blob/shared (pack 'u64vector 'u64vector->blob/shared))
+(define s64vector->blob/shared (pack 's64vector 's64vector->blob/shared))
 (define f32vector->blob/shared (pack 'f32vector 'f32vector->blob/shared))
 (define f64vector->blob/shared (pack 'f64vector 'f64vector->blob/shared))
 
@@ -543,6 +681,8 @@ EOF
 (define s16vector->blob (pack-copy 's16vector 's16vector->blob))
 (define u32vector->blob (pack-copy 'u32vector 'u32vector->blob))
 (define s32vector->blob (pack-copy 's32vector 's32vector->blob))
+(define u64vector->blob (pack-copy 'u64vector 'u64vector->blob))
+(define s64vector->blob (pack-copy 's64vector 's64vector->blob))
 (define f32vector->blob (pack-copy 'f32vector 'f32vector->blob))
 (define f64vector->blob (pack-copy 'f64vector 'f64vector->blob))
 
@@ -552,6 +692,8 @@ EOF
 (define blob->s16vector/shared (unpack 's16vector 2 'blob->s16vector/shared))
 (define blob->u32vector/shared (unpack 'u32vector 4 'blob->u32vector/shared))
 (define blob->s32vector/shared (unpack 's32vector 4 'blob->s32vector/shared))
+(define blob->u64vector/shared (unpack 'u64vector 4 'blob->u64vector/shared))
+(define blob->s64vector/shared (unpack 's64vector 4 'blob->s64vector/shared))
 (define blob->f32vector/shared (unpack 'f32vector 4 'blob->f32vector/shared))
 (define blob->f64vector/shared (unpack 'f64vector 8 'blob->f64vector/shared))
 
@@ -561,6 +703,8 @@ EOF
 (define blob->s16vector (unpack-copy 's16vector 2 'blob->s16vector))
 (define blob->u32vector (unpack-copy 'u32vector 4 'blob->u32vector))
 (define blob->s32vector (unpack-copy 's32vector 4 'blob->s32vector))
+(define blob->u64vector (unpack-copy 'u64vector 4 'blob->u64vector))
+(define blob->s64vector (unpack-copy 's64vector 4 'blob->s64vector))
 (define blob->f32vector (unpack-copy 'f32vector 4 'blob->f32vector))
 (define blob->f64vector (unpack-copy 'f64vector 8 'blob->f64vector))
 
@@ -576,6 +720,8 @@ EOF
 		       's16 list->s16vector
 		       'u32 list->u32vector
 		       's32 list->s32vector
+		       'u64 list->u64vector
+		       's64 list->s64vector
 		       'f32 list->f32vector
 		       'f64 list->f64vector) ] )
     (lambda (char port)
@@ -600,6 +746,8 @@ EOF
 			 (s16vector s16 ,s16vector->list)
 			 (u32vector u32 ,u32vector->list)
 			 (s32vector s32 ,s32vector->list)
+			 (u64vector u64 ,u64vector->list)
+			 (s64vector s64 ,s64vector->list)
 			 (f32vector f32 ,f32vector->list)
 			 (f64vector f64 ,f64vector->list) ) ) ) )
 	(cond (tag
@@ -610,8 +758,6 @@ EOF
 
 
 ;;; Subvectors:
-
-(declare (hide subnvector))
 
 (define (subnvector v t es from to loc)
   (##sys#check-structure v t loc)
@@ -630,9 +776,11 @@ EOF
 (define (subu8vector v from to) (subnvector v 'u8vector 1 from to 'subu8vector))
 (define (subu16vector v from to) (subnvector v 'u16vector 2 from to 'subu16vector))
 (define (subu32vector v from to) (subnvector v 'u32vector 4 from to 'subu32vector))
+(define (subu64vector v from to) (subnvector v 'u64vector 8 from to 'subu64vector))
 (define (subs8vector v from to) (subnvector v 's8vector 1 from to 'subs8vector))
 (define (subs16vector v from to) (subnvector v 's16vector 2 from to 'subs16vector))
 (define (subs32vector v from to) (subnvector v 's32vector 4 from to 'subs32vector))
+(define (subs64vector v from to) (subnvector v 's64vector 8 from to 'subs64vector))
 (define (subf32vector v from to) (subnvector v 'f32vector 4 from to 'subf32vector))
 (define (subf64vector v from to) (subnvector v 'f64vector 8 from to 'subf64vector))
 
@@ -652,18 +800,22 @@ EOF
 
 (define (read-u8vector! n dest #!optional (port ##sys#standard-input) (start 0))
   (##sys#check-input-port port #t 'read-u8vector!)
-  (##sys#check-exact start 'read-u8vector!)
+  (##sys#check-fixnum start 'read-u8vector!)
   (##sys#check-structure dest 'u8vector 'read-u8vector!)
-  (when n (##sys#check-exact n 'read-u8vector!))
+  (when n (##sys#check-fixnum n 'read-u8vector!))
   (let* ((dest (##sys#slot dest 1))
 	 (size (##sys#size dest)))
     (unless (and n (fx<= (fx+ start n) size))
       (set! n (fx- size start)))
-    (##sys#read-string! n dest port start)))
+    (chicken.io#read-string!/port n dest port start)))
 
 (define (read-u8vector #!optional n (p ##sys#standard-input))
-  (let ((str (##sys#read-string/port n p)))
-    (##core#inline "C_string_to_bytevector" str)
-    (##sys#make-structure 'u8vector str)))
+  (##sys#check-input-port p #t 'read-u8vector)
+  (when n (##sys#check-fixnum n 'read-u8vector))
+  (let ((str (chicken.io#read-string/port n p)))
+    (cond ((eof-object? str) str)
+	  (else
+	   (##core#inline "C_string_to_bytevector" str)
+	   (##sys#make-structure 'u8vector str)))))
 
-(register-feature! 'srfi-4)
+(register-feature! 'srfi-4))

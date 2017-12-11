@@ -32,9 +32,7 @@
 ; file-select
 ; symbolic-link?
 ; set-signal-mask!  signal-mask	 signal-masked?	 signal-mask!  signal-unmask!
-; user-information group-information  get-groups  set-groups!  initialize-groups
-; errno/wouldblock
-; change-directory*
+; user-information
 ; change-file-owner
 ; current-user-id  current-group-id  current-effective-user-id	current-effective-group-id
 ; current-effective-user-name
@@ -62,12 +60,15 @@
 
 
 (declare
-  (unit posix)
-  (uses scheduler irregex extras files ports lolevel)
-  (disable-interrupts)
-  (hide quote-arg-string)
-  (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook)
-  (foreign-declare #<<EOF
+  (uses data-structures))
+
+(define-foreign-variable _stat_st_blksize scheme-object "C_SCHEME_UNDEFINED")
+(define-foreign-variable _stat_st_blocks scheme-object "C_SCHEME_UNDEFINED")
+
+(include "posix-common.scm")
+
+#>
+
 #ifndef WIN32_LEAN_AND_MEAN
 # define WIN32_LEAN_AND_MEAN
 #endif
@@ -78,12 +79,17 @@
 #include <io.h>
 #include <process.h>
 #include <signal.h>
+#include <stdio.h>
 #include <utime.h>
+#include <windows.h>
 #include <winsock2.h>
 
 #define PIPE_BUF	512
 
-static C_TLS struct group *C_group;
+#ifndef EWOULDBLOCK
+# define EWOULDBLOCK 0
+#endif
+
 static C_TLS int C_pipefds[ 2 ];
 static C_TLS time_t C_secs;
 
@@ -94,25 +100,15 @@ static C_TLS char C_rdbuf; /* one-char buffer for read */
 static C_TLS int C_exstatus;
 
 /* platform information; initialized for cached testing */
-static C_TLS char C_hostname[256] = "";
-static C_TLS char C_osver[16] = "";
-static C_TLS char C_osrel[16] = "";
-static C_TLS char C_processor[16] = "";
 static C_TLS char C_shlcmd[256] = "";
-
-/* Windows NT or better */
-static int C_isNT = 0;
 
 /* Current user name */
 static C_TLS TCHAR C_username[255 + 1] = "";
 
 /* Directory Operations */
 
-#define C_mkdir(str)	    C_fix(mkdir(C_c_string(str)))
 #define C_chdir(str)	    C_fix(chdir(C_c_string(str)))
-#define C_rmdir(str)	    C_fix(rmdir(C_c_string(str)))
 
-#ifndef __WATCOMC__
 /* DIRENT stuff */
 struct dirent
 {
@@ -189,12 +185,6 @@ readdir(DIR * dir)
     }
     return NULL;
 }
-#endif /* ifndef __WATCOMC__ */
-
-#ifdef __WATCOMC__
-/* there is no P_DETACH in Watcom CRTL */
-# define P_DETACH P_NOWAIT
-#endif
 
 #define open_binary_input_pipe(a, n, name)   C_mpointer(a, _popen(C_c_string(name), "r"))
 #define open_text_input_pipe(a, n, name)     open_binary_input_pipe(a, n, name)
@@ -203,14 +193,13 @@ readdir(DIR * dir)
 #define close_pipe(p)			     C_fix(_pclose(C_port_file(p)))
 
 #define C_chmod(fn, m)	    C_fix(chmod(C_data_pointer(fn), C_unfix(m)))
-#define C_setvbuf(p, m, s)  C_fix(setvbuf(C_port_file(p), NULL, C_unfix(m), C_unfix(s)))
 #define C_test_access(fn, m)	    C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_pipe(d, m)	    C_fix(_pipe(C_pipefds, PIPE_BUF, C_unfix(m)))
 #define C_close(fd)	    C_fix(close(C_unfix(fd)))
 
 #define C_getenventry(i)   environ[ i ]
 
-#define C_lstat(fn)	    C_stat(fn)
+#define C_u_i_lstat(fn)     C_u_i_stat(fn)
 
 #define C_u_i_execvp(f,a)   C_fix(execvp(C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a)))
 #define C_u_i_execve(f,a,e) C_fix(execve(C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a), (const char *const *)C_c_pointer_vector_or_null(e)))
@@ -315,6 +304,42 @@ set_last_errno()
     return 0;
 }
 
+static int fd_to_path(C_word fd, TCHAR path[])
+{
+  DWORD result;
+  HANDLE fh = (HANDLE)_get_osfhandle(C_unfix(fd));
+
+  if (fh == INVALID_HANDLE_VALUE) {
+    set_last_errno();
+    return -1;
+  }
+
+  result = GetFinalPathNameByHandle(fh, path, MAX_PATH, VOLUME_NAME_DOS);
+  if (result == 0) {
+    set_last_errno();
+    return -1;
+  } else if (result >= MAX_PATH) { /* Shouldn't happen */
+    errno = ENOMEM; /* For lack of anything better */
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
+static C_word C_fchmod(C_word fd, C_word m)
+{
+  TCHAR path[MAX_PATH];
+  if (fd_to_path(fd, path) == -1) return C_fix(-1);
+  else return C_fix(chmod(path, C_unfix(m)));
+}
+
+static C_word C_fchdir(C_word fd)
+{
+  TCHAR path[MAX_PATH];
+  if (fd_to_path(fd, path) == -1) return C_fix(-1);
+  else return C_fix(chdir(path));
+}
+
 static int C_fcall
 process_wait(C_word h, C_word t)
 {
@@ -332,106 +357,35 @@ process_wait(C_word h, C_word t)
 }
 
 #define C_process_wait(p, t) (process_wait(C_unfix(p), C_truep(t)) ? C_SCHEME_TRUE : C_SCHEME_FALSE)
-#define C_sleep(t) (Sleep(C_unfix(t) * 1000), C_fix(0))
+
+
+static C_TLS int C_isNT = 0;
+
 
 static int C_fcall
-get_hostname()
+C_windows_nt()
 {
-    /* Do we already have hostname? */
-    if (strlen(C_hostname))
-    {
-	return 1;
+  static int has_info = 0;
+
+  if(!has_info) {
+    OSVERSIONINFO ovf;
+    ZeroMemory(&ovf, sizeof(ovf));
+    ovf.dwOSVersionInfoSize = sizeof(ovf);
+    has_info = 1;
+
+    if(GetVersionEx(&ovf)) {
+      SYSTEM_INFO si;
+
+      switch (ovf.dwPlatformId) {
+      case VER_PLATFORM_WIN32_NT:
+        return C_isNT = 1;
+      }
     }
-    else
-    {
-	WSADATA wsa;
-	if (WSAStartup(MAKEWORD(1, 1), &wsa) == 0)
-	{
-	    int nok = gethostname(C_hostname, sizeof(C_hostname));
-	    WSACleanup();
-	    return !nok;
-	}
-	return 0;
-    }
+  }
+
+  return C_isNT;
 }
 
-static int C_fcall
-sysinfo()
-{
-    /* Do we need to build the sysinfo? */
-    if (!strlen(C_osrel))
-    {
-	OSVERSIONINFO ovf;
-	ZeroMemory(&ovf, sizeof(ovf));
-	ovf.dwOSVersionInfoSize = sizeof(ovf);
-	if (get_hostname() && GetVersionEx(&ovf))
-	{
-	    SYSTEM_INFO si;
-	    _snprintf(C_osver, sizeof(C_osver) - 1, "%d.%d.%d",
-			ovf.dwMajorVersion, ovf.dwMinorVersion, ovf.dwBuildNumber);
-	    strncpy(C_osrel, "Win", sizeof(C_osrel) - 1);
-	    switch (ovf.dwPlatformId)
-	    {
-	    case VER_PLATFORM_WIN32s:
-		strncpy(C_osrel, "Win32s", sizeof(C_osrel) - 1);
-		break;
-	    case VER_PLATFORM_WIN32_WINDOWS:
-		if (ovf.dwMajorVersion == 4)
-		{
-		    if (ovf.dwMinorVersion == 0)
-			strncpy(C_osrel, "Win95", sizeof(C_osrel) - 1);
-		    else if (ovf.dwMinorVersion == 10)
-			strncpy(C_osrel, "Win98", sizeof(C_osrel) - 1);
-		    else if (ovf.dwMinorVersion == 90)
-			strncpy(C_osrel, "WinMe", sizeof(C_osrel) - 1);
-		}
-		break;
-	    case VER_PLATFORM_WIN32_NT:
-		C_isNT = 1;
-		if (ovf.dwMajorVersion == 6)
-		    strncpy(C_osrel, "WinVista", sizeof(C_osrel) - 1);
-		else if (ovf.dwMajorVersion == 5)
-		{
-		    if (ovf.dwMinorVersion == 2)
-			strncpy(C_osrel, "WinServer2003", sizeof(C_osrel) - 1);
-		    else if (ovf.dwMinorVersion == 1)
-			strncpy(C_osrel, "WinXP", sizeof(C_osrel) - 1);
-		    else if ( ovf.dwMinorVersion == 0)
-			strncpy(C_osrel, "Win2000", sizeof(C_osrel) - 1);
-		}
-		else if (ovf.dwMajorVersion <= 4)
-		   strncpy(C_osrel, "WinNT", sizeof(C_osrel) - 1);
-		break;
-	    }
-	    GetSystemInfo(&si);
-	    strncpy(C_processor, "Unknown", sizeof(C_processor) - 1);
-	    switch (si.wProcessorArchitecture)
-	    {
-	    case PROCESSOR_ARCHITECTURE_INTEL:
-		strncpy(C_processor, "x86", sizeof(C_processor) - 1);
-		break;
-#	    ifdef PROCESSOR_ARCHITECTURE_IA64
-	    case PROCESSOR_ARCHITECTURE_IA64:
-		strncpy(C_processor, "IA64", sizeof(C_processor) - 1);
-		break;
-#	    endif
-#	    ifdef PROCESSOR_ARCHITECTURE_AMD64
-	    case PROCESSOR_ARCHITECTURE_AMD64:
-		strncpy(C_processor, "x64", sizeof(C_processor) - 1);
-		break;
-#	    endif
-#	    ifdef PROCESSOR_ARCHITECTURE_IA32_ON_WIN64
-	    case PROCESSOR_ARCHITECTURE_IA32_ON_WIN64:
-		strncpy(C_processor, "WOW64", sizeof(C_processor) - 1);
-		break;
-#	    endif
-	    }
-	}
-	else
-	    return set_last_errno();
-    }
-    return 1;
-}
 
 static int C_fcall
 get_shlcmd()
@@ -439,22 +393,17 @@ get_shlcmd()
     /* Do we need to build the shell command pathname? */
     if (!strlen(C_shlcmd))
     {
-	if (sysinfo()) /* for C_isNT */
-	{
-	    char *cmdnam = C_isNT ? "\\cmd.exe" : "\\command.com";
-	    UINT len = GetSystemDirectory(C_shlcmd, sizeof(C_shlcmd) - strlen(cmdnam));
-	    if (len)
-		C_strlcpy(C_shlcmd + len, cmdnam, sizeof(C_shlcmd));
-	    else
-		return set_last_errno();
-	}
-	else
-	    return 0;
+      char *cmdnam = C_windows_nt() ? "\\cmd.exe" : "\\command.com";
+      UINT len = GetSystemDirectory(C_shlcmd, sizeof(C_shlcmd) - strlen(cmdnam));
+      if (len)
+	C_strlcpy(C_shlcmd + len, cmdnam, sizeof(C_shlcmd));
+      else
+	return set_last_errno();
     }
+
     return 1;
 }
 
-#define C_get_hostname() (get_hostname() ? C_SCHEME_TRUE : C_SCHEME_FALSE)
 #define C_sysinfo() (sysinfo() ? C_SCHEME_TRUE : C_SCHEME_FALSE)
 #define C_get_shlcmd() (get_shlcmd() ? C_SCHEME_TRUE : C_SCHEME_FALSE)
 
@@ -493,9 +442,8 @@ get_user_name()
     Returns: zero return value indicates failure.
 */
 static int C_fcall
-C_process(const char * app, const char * cmdlin, const char ** env,
-	  C_word * phandle,
-	  int * pstdin_fd, int * pstdout_fd, int * pstderr_fd,
+C_process(const char *app, const char *cmdlin, const char **env,
+	  int *phandle, int *pstdin_fd, int *pstdout_fd, int *pstderr_fd,
 	  int params)
 {
     int i;
@@ -622,21 +570,33 @@ C_process(const char * app, const char * cmdlin, const char ** env,
     return success;
 }
 
-static int set_file_mtime(char *filename, C_word tm)
+static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 {
+  struct stat sb;
   struct _utimbuf tb;
 
-  tb.actime = tb.modtime = C_num_to_int(tm);
+  /* Only stat if needed */
+  if (atime == C_SCHEME_FALSE || mtime == C_SCHEME_FALSE) {
+    if (C_stat(filename, &sb) == -1) return -1;
+  }
+
+  if (atime == C_SCHEME_FALSE) {
+    tb.actime = sb.st_atime;
+  } else {
+    tb.actime = C_num_to_int64(atime);
+  }
+  if (mtime == C_SCHEME_FALSE) {
+    tb.modtime = sb.st_mtime;
+  } else {
+    tb.modtime = C_num_to_int64(mtime);
+  }
   return _utime(filename, &tb);
 }
-EOF
-) )
 
+<#
 
-;;; common code
-
-(include "posix-common.scm")
-
+(import (only chicken.string string-intersperse)
+	(only chicken.random random))
 
 ;;; Lo-level I/O:
 
@@ -699,8 +659,8 @@ EOF
     (lambda (filename flags . mode)
       (let ([mode (if (pair? mode) (car mode) defmode)])
 	(##sys#check-string filename 'file-open)
-	(##sys#check-exact flags 'file-open)
-	(##sys#check-exact mode 'file-open)
+	(##sys#check-fixnum flags 'file-open)
+	(##sys#check-fixnum mode 'file-open)
 	(let ([fd (##core#inline "C_open" (##sys#make-c-string filename 'file-open) flags mode)])
 	  (when (eq? -1 fd)
 	    (##sys#update-errno)
@@ -709,7 +669,7 @@ EOF
 
 (define file-close
   (lambda (fd)
-    (##sys#check-exact fd 'file-close)
+    (##sys#check-fixnum fd 'file-close)
     (let loop ()
       (when (fx< (##core#inline "C_close" fd) 0)
 	(select _errno
@@ -719,8 +679,8 @@ EOF
 
 (define file-read
   (lambda (fd size . buffer)
-    (##sys#check-exact fd 'file-read)
-    (##sys#check-exact size 'file-read)
+    (##sys#check-fixnum fd 'file-read)
+    (##sys#check-fixnum size 'file-read)
     (let ([buf (if (pair? buffer) (car buffer) (make-string size))])
       (unless (and (##core#inline "C_blockp" buf) (##core#inline "C_byteblockp" buf))
 	(##sys#signal-hook #:type-error 'file-read "bad argument type - not a string or blob" buf) )
@@ -732,11 +692,11 @@ EOF
 
 (define file-write
   (lambda (fd buffer . size)
-    (##sys#check-exact fd 'file-write)
+    (##sys#check-fixnum fd 'file-write)
     (unless (and (##core#inline "C_blockp" buffer) (##core#inline "C_byteblockp" buffer))
       (##sys#signal-hook #:type-error 'file-write "bad argument type - not a string or blob" buffer) )
     (let ([size (if (pair? size) (car size) (##sys#size buffer))])
-      (##sys#check-exact size 'file-write)
+      (##sys#check-fixnum size 'file-write)
       (let ([n (##core#inline "C_write" fd buffer size)])
 	(when (eq? -1 n)
 	  (##sys#update-errno)
@@ -778,20 +738,12 @@ EOF
 		  (posix-error #:file-error 'file-mkstemp "cannot create temporary file" template))
 	      (values fd tmpl)))))))
 
-;;; Directory stuff:
-
-(define change-directory
-  (lambda (name)
-    (##sys#check-string name 'change-directory)
-    (let ((sname (##sys#make-c-string name 'change-directory)))
-      (unless (fx= 0 (##core#inline "C_chdir" sname))
-	(##sys#update-errno)
-	(##sys#signal-hook
-	 #:file-error 'change-directory "cannot change current directory" name) )
-      name)))
-
-
 ;;; Pipes:
+
+(define open-input-pipe)
+(define open-output-pipe)
+(define close-input-pipe)
+(define close-output-pipe)
 
 (let ()
   (define (mode arg) (if (pair? arg) (##sys#slot arg 0) '###text))
@@ -800,7 +752,7 @@ EOF
     (##sys#update-errno)
     (if (##sys#null-pointer? r)
 	(##sys#signal-hook #:file-error "cannot open pipe" cmd)
-	(let ([port (##sys#make-port inp ##sys#stream-port-class "(pipe)" 'stream)])
+	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(pipe)" 'stream)))
 	  (##core#inline "C_set_file_ptr" port r)
 	  port) ) )
   (set! open-input-pipe
@@ -884,12 +836,11 @@ EOF
 (define-foreign-variable _pipefd0 int "C_pipefds[ 0 ]")
 (define-foreign-variable _pipefd1 int "C_pipefds[ 1 ]")
 
-(define create-pipe
-  (lambda (#!optional (mode (fxior open/binary open/noinherit)))
-    (when (fx< (##core#inline "C_pipe" #f mode) 0)
-      (##sys#update-errno)
-      (##sys#signal-hook #:file-error 'create-pipe "cannot create pipe") )
-    (values _pipefd0 _pipefd1) ) )
+(define (create-pipe #!optional (mode (fxior open/binary open/noinherit)))
+  (when (fx< (##core#inline "C_pipe" #f mode) 0)
+    (##sys#update-errno)
+    (##sys#signal-hook #:file-error 'create-pipe "cannot create pipe") )
+    (values _pipefd0 _pipefd1) )
 
 ;;; Signal processing:
 
@@ -910,6 +861,7 @@ EOF
 (define signal/abrt _sigabrt)
 (define signal/break _sigbreak)
 (define signal/alrm 0)
+(define signal/bus 0)
 (define signal/chld 0)
 (define signal/cont 0)
 (define signal/hup 0)
@@ -934,74 +886,6 @@ EOF
     signal/term signal/int signal/fpe signal/ill
     signal/segv signal/abrt signal/break))
 
-
-;;; More errno codes:
-
-
-(define errno/perm _eperm)
-(define errno/noent _enoent)
-(define errno/srch _esrch)
-(define errno/intr _eintr)
-(define errno/io _eio)
-(define errno/noexec _enoexec)
-(define errno/badf _ebadf)
-(define errno/child _echild)
-(define errno/nomem _enomem)
-(define errno/acces _eacces)
-(define errno/fault _efault)
-(define errno/busy _ebusy)
-(define errno/exist _eexist)
-(define errno/notdir _enotdir)
-(define errno/isdir _eisdir)
-(define errno/inval _einval)
-(define errno/mfile _emfile)
-(define errno/nospc _enospc)
-(define errno/spipe _espipe)
-(define errno/pipe _epipe)
-(define errno/again _eagain)
-(define errno/rofs _erofs)
-(define errno/nxio _enxio)
-(define errno/2big _e2big)
-(define errno/xdev _exdev)
-(define errno/nodev _enodev)
-(define errno/nfile _enfile)
-(define errno/notty _enotty)
-(define errno/fbig _efbig)
-(define errno/mlink _emlink)
-(define errno/dom _edom)
-(define errno/range _erange)
-(define errno/deadlk _edeadlk)
-(define errno/nametoolong _enametoolong)
-(define errno/nolck _enolck)
-(define errno/nosys _enosys)
-(define errno/notempty _enotempty)
-(define errno/ilseq _eilseq)
-
-;;; Permissions and owners:
-
-(define change-file-mode
-  (lambda (fname m)
-    (##sys#check-string fname 'change-file-mode)
-    (##sys#check-exact m 'change-file-mode)
-    (when (fx< (##core#inline "C_chmod" (##sys#make-c-string fname 'change-file-mode) m) 0)
-      (##sys#update-errno)
-      (##sys#signal-hook #:file-error 'change-file-mode "cannot change file mode" fname m) ) ) )
-
-(define-foreign-variable _r_ok int "2")
-(define-foreign-variable _w_ok int "4")
-(define-foreign-variable _x_ok int "2")
-
-(let ()
-  (define (check filename acc loc)
-    (##sys#check-string filename loc)
-    (let ([r (fx= 0 (##core#inline "C_test_access" (##sys#make-c-string filename loc) acc))])
-      (unless r (##sys#update-errno))
-      r) )
-  (set! file-read-access? (lambda (filename) (check filename _r_ok 'file-read-access?)))
-  (set! file-write-access? (lambda (filename) (check filename _w_ok 'file-write-access?)))
-  (set! file-execute-access? (lambda (filename) (check filename _x_ok 'file-execute-access?))) )
-
-(define-foreign-variable _filename_max int "FILENAME_MAX")
 
 ;;; Using file-descriptors:
 
@@ -1028,16 +912,16 @@ EOF
     (##sys#update-errno)
     (if (##sys#null-pointer? r)
 	(##sys#signal-hook #:file-error "cannot open file" fd)
-	(let ([port (##sys#make-port inp ##sys#stream-port-class "(fdport)" 'stream)])
+	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(fdport)" 'stream)))
 	  (##core#inline "C_set_file_ptr" port r)
 	  port) ) )
   (set! open-input-file*
     (lambda (fd . m)
-      (##sys#check-exact fd 'open-input-file*)
+      (##sys#check-fixnum fd 'open-input-file*)
       (check fd #t (##core#inline_allocate ("C_fdopen" 2) fd (mode #t m 'open-input-file*))) ) )
   (set! open-output-file*
     (lambda (fd . m)
-      (##sys#check-exact fd 'open-output-file*)
+      (##sys#check-fixnum fd 'open-output-file*)
       (check fd #f (##core#inline_allocate ("C_fdopen" 2) fd (mode #f m 'open-output-file*)) ) ) ) )
 
 (define port->fileno
@@ -1053,11 +937,11 @@ EOF
 
 (define duplicate-fileno
   (lambda (old . new)
-    (##sys#check-exact old duplicate-fileno)
+    (##sys#check-fixnum old duplicate-fileno)
     (let ([fd (if (null? new)
 		  (##core#inline "C_dup" old)
 		  (let ([n (car new)])
-		    (##sys#check-exact n 'duplicate-fileno)
+		    (##sys#check-fixnum n 'duplicate-fileno)
 		    (##core#inline "C_dup2" old n) ) ) ] )
       (when (fx< fd 0)
 	(##sys#update-errno)
@@ -1075,11 +959,6 @@ EOF
 
 ;;; Other things:
 
-(define _exit
-  (let ([ex0 (foreign-lambda void "_exit" int)])
-    (lambda code
-      (ex0 (if (pair? code) (car code) 0)) ) ) )
-
 (define (terminal-port? port)
   (##sys#check-open-port port 'terminal-port?)
   (let ([fp (##sys#peek-unsigned-integer port 0)])
@@ -1089,27 +968,6 @@ EOF
   (if (terminal-port? port)
       (values 0 0)
       (##sys#error 'terminal-size "port is not connected to a terminal" port)))
-
-(define-foreign-variable _iofbf int "_IOFBF")
-(define-foreign-variable _iolbf int "_IOLBF")
-(define-foreign-variable _ionbf int "_IONBF")
-(define-foreign-variable _bufsiz int "BUFSIZ")
-
-(define set-buffering-mode!
-  (lambda (port mode . size)
-    (##sys#check-open-port port 'set-buffering-mode!)
-    (let ([size (if (pair? size) (car size) _bufsiz)]
-	  [mode (case mode
-		  [(###full) _iofbf]
-		  [(###line) _iolbf]
-		  [(###none) _ionbf]
-		  [else (##sys#error 'set-buffering-mode! "invalid buffering-mode" mode port)] ) ] )
-      (##sys#check-exact size 'set-buffering-mode!)
-      (when (fx< (if (eq? 'stream (##sys#slot port 7))
-		     (##core#inline "C_setvbuf" port mode size)
-		     -1)
-		 0)
-	(##sys#error 'set-buffering-mode! "cannot set buffering mode" port mode size) ) ) ) )
 
 ;;; Process handling:
 
@@ -1156,8 +1014,7 @@ EOF
 
 (define (process-spawn mode filename #!optional (arglist '()) envlist exactf)
   (let ((argconv (if exactf (lambda (x) x) quote-arg-string)))
-    (##sys#check-exact mode 'process-spawn)
-
+    (##sys#check-fixnum mode 'process-spawn)
     (call-with-exec-args
      'process-spawn filename argconv arglist envlist
      (lambda (prg argbuf envbuf)
@@ -1254,7 +1111,7 @@ EOF
 		(set! exactf #t)
 		(set! args (##sys#shell-command-arguments cmd))
 		(set! cmd (##sys#shell-command)) ) )
-	    (when env (chkstrlst env))
+	    (when env (check-environment-list env loc))
 	    (receive [in out pid err] (##sys#process loc cmd args env #t #t err? exactf)
 	      (if err?
 		(values in out pid err)
@@ -1273,31 +1130,8 @@ EOF
     (values pid #t _exstatus)
     (values -1 #f #f) ) )
 
-(define (sleep s)
-  (##sys#check-exact s 'sleep)
-  (##core#inline "C_sleep" s))
 
-(define-foreign-variable _hostname c-string "C_hostname")
-(define-foreign-variable _osver c-string "C_osver")
-(define-foreign-variable _osrel c-string "C_osrel")
-(define-foreign-variable _processor c-string "C_processor")
-
-(define get-host-name
-  (lambda ()
-    (if (##core#inline "C_get_hostname")
-      _hostname
-      (##sys#error 'get-host-name "cannot retrieve host-name") ) ) )
-
-
-;;; Getting system-, group- and user-information:
-
-(define system-information
-  (lambda ()
-    (if (##core#inline "C_sysinfo")
-      (list "windows" _hostname _osrel _osver _processor)
-      (begin
-	(##sys#update-errno)
-	(##sys#error 'system-information "cannot retrieve system-information") ) ) ) )
+;;; Getting group- and user-information:
 
 (define-foreign-variable _username c-string "C_username")
 
@@ -1309,180 +1143,9 @@ EOF
 	(##sys#error 'current-user-name "cannot retrieve current user-name") ) ) )
 
 
-;;; memory mapped files
-
-#>
-#define PROT_NONE       0
-#define PROT_READ       1
-#define PROT_WRITE      2
-#define PROT_EXEC       4
-#define MAP_FILE        0
-#define MAP_SHARED      1
-#define MAP_PRIVATE     2
-#define MAP_FIXED       0x10
-#define MAP_ANONYMOUS   0x20
-
-// This value is available starting with Windows XP with SP2 
-// and Windows Server 2003 with SP1.
-#ifndef FILE_MAP_EXECUTE
-#define FILE_MAP_EXECUTE 0x20
-#endif//FILE_MAP_EXECUTE
-
-static int page_flags[] =
-{
-    0,
-    PAGE_READONLY,
-    PAGE_READWRITE,
-    PAGE_READWRITE,
-    PAGE_EXECUTE_READ,
-    PAGE_EXECUTE_READ,
-    PAGE_EXECUTE_READWRITE
-};
-
-static int file_flags[] =
-{
-    0,
-    FILE_MAP_READ,
-    FILE_MAP_READ|FILE_MAP_WRITE,
-    FILE_MAP_READ|FILE_MAP_WRITE,
-    FILE_MAP_READ|FILE_MAP_EXECUTE,
-    FILE_MAP_READ|FILE_MAP_EXECUTE,
-    FILE_MAP_READ|FILE_MAP_WRITE|FILE_MAP_EXECUTE
-};
-
-void* mmap(void* addr,int len,int prot,int flags,int fd,int off)
-{
-    HANDLE hMap;
-    HANDLE hFile;
-
-    void* ptr;
-
-    if ((flags & MAP_FIXED) || (flags & MAP_PRIVATE) || (flags & MAP_ANONYMOUS))
-    {
-        errno = EINVAL;
-        return (void*)-1;
-    }
-
-    /*
-     * We must cast because _get_osfhandle returns intptr_t, but it must
-     * be compared with INVALID_HANDLE_VALUE, which is a HANDLE type.
-     * Who comes up with this shit?
-     */
-    hFile = (HANDLE)_get_osfhandle(fd);
-    if (hFile == INVALID_HANDLE_VALUE)
-    {
-        return (void*)-1;
-    }
-
-    hMap = CreateFileMapping(
-            hFile,
-            NULL,
-            page_flags[prot & (PROT_READ|PROT_WRITE|PROT_EXEC)],
-            0,
-            0,
-            NULL);
-
-    if (hMap == INVALID_HANDLE_VALUE)
-    {
-        set_last_errno();
-        return (void*)-1;
-    }
-
-    ptr = MapViewOfFile(
-            hMap,
-            file_flags[prot & (PROT_READ|PROT_WRITE|PROT_EXEC)],
-            0,
-            off,
-            len);
-
-    if (ptr == NULL)
-    {
-        set_last_errno();
-        ptr = (void*)-1;
-    }
-
-    CloseHandle(hMap);
-
-    return ptr;
-}
-
-int munmap(void* addr,int len)
-{
-    if (UnmapViewOfFile(addr))
-    {
-        errno = 0;
-        return 0;
-    }
-    set_last_errno();
-    return -1;
-}
-
-int is_bad_mmap(void* p)
-{
-    void* bad_ptr;
-    bad_ptr = (void*)-1;
-    return p == bad_ptr;
-}
-<#
-
-(define-foreign-variable _prot_none int "PROT_NONE")
-(define-foreign-variable _prot_read int "PROT_READ")
-(define-foreign-variable _prot_write int "PROT_WRITE")
-(define-foreign-variable _prot_exec int "PROT_EXEC")
-(define-foreign-variable _map_file int "MAP_FILE")
-(define-foreign-variable _map_shared int "MAP_SHARED")
-(define-foreign-variable _map_fixed int "MAP_FIXED")
-(define-foreign-variable _map_private int "MAP_PRIVATE")
-(define-foreign-variable _map_anonymous int "MAP_ANONYMOUS")
-
-(define prot/none _prot_none)
-(define prot/read _prot_read)
-(define prot/write _prot_write)
-(define prot/exec _prot_exec)
-(define map/file _map_file)
-(define map/shared _map_shared)
-(define map/private _map_private)
-(define map/fixed _map_fixed)
-(define map/anonymous _map_anonymous)
-
-(define map-file-to-memory
-  (let ([mmap (foreign-lambda c-pointer "mmap" c-pointer integer int int int integer)]
-        [bad-mmap? (foreign-lambda bool "is_bad_mmap" c-pointer)] )
-    (lambda (addr len prot flag fd . off)
-      (let ([addr (if (not addr) (##sys#null-pointer) addr)]
-            [off (if (pair? off) (car off) 0)] )
-        (unless (and (##core#inline "C_blockp" addr) (##core#inline "C_specialp" addr))
-          (##sys#signal-hook #:type-error 'map-file-to-memory "bad argument type - not a foreign pointer" addr) )
-        (let ([addr2 (mmap addr len prot flag fd off)])
-          (when (bad-mmap? addr2)
-            (posix-error #:file-error 'map-file-to-memory "cannot map file to memory" addr len prot flag fd off) )
-          (##sys#make-structure 'mmap addr2 len) ) ) ) ) )
-
-(define unmap-file-from-memory
-  (let ([munmap (foreign-lambda int "munmap" c-pointer integer)] )
-    (lambda (mmap . len)
-      (##sys#check-structure mmap 'mmap 'unmap-file-from-memory)
-      (let ([len (if (pair? len) (car len) (##sys#slot mmap 2))])
-        (unless (eq? 0 (munmap (##sys#slot mmap 1) len))
-      (posix-error #:file-error 'unmap-file-from-memory "cannot unmap file from memory" mmap len) ) ) ) ) )
-
-(define (memory-mapped-file-pointer mmap)
-  (##sys#check-structure mmap 'mmap 'memory-mapped-file-pointer)
-  (##sys#slot mmap 1) )
-
-(define (memory-mapped-file? x)
-  (##sys#structure? x 'mmap) )
-
 ;;; unimplemented stuff:
 
-(define-syntax define-unimplemented
-  (syntax-rules ()
-    [(_ ?name)
-     (define (?name . _)
-       (error '?name (##core#immutable '"this function is not available on this platform")) ) ] ) )
-
-(define-unimplemented change-directory*)
-(define-unimplemented change-file-owner)
+(define-unimplemented chown) ; covers set-file-group! and set-file-owner!
 (define-unimplemented create-fifo)
 (define-unimplemented create-session)
 (define-unimplemented create-symbolic-link)
@@ -1491,6 +1154,7 @@ int is_bad_mmap(void* p)
 (define-unimplemented current-effective-user-name)
 (define-unimplemented current-group-id)
 (define-unimplemented current-user-id)
+(define-unimplemented file-control)
 (define-unimplemented file-link)
 (define-unimplemented file-lock)
 (define-unimplemented file-lock/blocking)
@@ -1498,9 +1162,6 @@ int is_bad_mmap(void* p)
 (define-unimplemented file-test-lock)
 (define-unimplemented file-truncate)
 (define-unimplemented file-unlock)
-(define-unimplemented get-groups)
-(define-unimplemented group-information)
-(define-unimplemented initialize-groups)
 (define-unimplemented parent-process-id)
 (define-unimplemented process-fork)
 (define-unimplemented process-group-id)
@@ -1508,7 +1169,6 @@ int is_bad_mmap(void* p)
 (define-unimplemented read-symbolic-link)
 (define-unimplemented set-alarm!)
 (define-unimplemented set-group-id!)
-(define-unimplemented set-groups!)
 (define-unimplemented set-process-group-id!)
 (define-unimplemented set-root-directory!)
 (define-unimplemented set-signal-mask!)
@@ -1522,10 +1182,13 @@ int is_bad_mmap(void* p)
 (define-unimplemented utc-time->seconds)
 (define-unimplemented string->time)
 
-(define errno/wouldblock 0)
-
 (define (fifo? _) #f)
 
+(define fcntl/dupfd 0)
+(define fcntl/getfd 0)
+(define fcntl/setfd 0)
+(define fcntl/getfl 0)
+(define fcntl/setfl 0)
 (define open/fsync 0)
 (define open/noctty 0)
 (define open/nonblock 0)

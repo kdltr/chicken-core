@@ -71,7 +71,7 @@ The short answer is to use the [[/egg/numbers|numbers]] egg:
 <enscript highlight=scheme>
 % chicken-install numbers
 % csi -q
-#;1> (use numbers)
+#;1> (import numbers)
 </enscript>
 
 The long answer:
@@ -109,7 +109,7 @@ release-quality implementation of native threads.
 
 The system does not directly support Unicode, but there is an extension for UTF-8 strings: [[/egg/utf8|utf8]].
 
-=== Why are `dynamic-wind' thunks not executed when a SRFI-18 thread signals an error?
+=== Why are `dynamic-wind' thunks not executed when a thread signals an error?
 
 Here is what Marc Feeley, the author of [[http://srfi.schemers.org/srfi-18|SRFI-18]] has to
 say about this subject:
@@ -326,20 +326,20 @@ the file containing the sharp-comma form, like this:
  (print #,(integer->char 33))
 </enscript>
 
-==== Why do built-in units, such as srfi-1, srfi-18, and posix fail to load?
+==== Why do built-in units, such as srfi-4 and posix fail to load?
 
-When you try to {{use}} a built-in unit such as {{srfi-18}}, you may get the following error:
+When you try to {{use}} a built-in unit such as {{posix}}, you may get the following error:
 
 <enscript highlight=scheme>
- #;1> (use srfi-18)
- ; loading library srfi-18 ...
+ #;1> (import posix)
+ ; loading library posix ...
  Error: (load-library) unable to load library
- srfi-18
+ posix
  "dlopen(libchicken.dylib, 9): image not found"                ;; on a Mac
  "libchicken.so: cannot open shared object file: No such file or directory"  ;; Linux
 </enscript>
 
-Another symptom is that {{(require 'srfi-18)}} will silently fail.
+Another symptom is that {{(require 'posix)}} will silently fail.
 
 This typically happens because the CHICKEN libraries have been installed in a non-standard location, such as your home directory.  The workaround is to explicitly tell the dynamic linker where to look for your libraries:
 
@@ -413,6 +413,7 @@ and compiler settings:
 {{>}}
 {{abs}}
 {{acos}}
+{{append}}
 {{apply}}
 {{asin}}
 {{assoc}}
@@ -452,7 +453,6 @@ and compiler settings:
 {{exp}}
 {{floor}}
 {{for-each}}
-{{for-each}}
 {{gcd}}
 {{inexact->exact}}
 {{inexact?}}
@@ -469,6 +469,8 @@ and compiler settings:
 {{member}}
 {{memq}}
 {{memv}}
+{{make-polar}}
+{{make-rectangular}}
 {{negative?}}
 {{not}}
 {{null?}}
@@ -483,6 +485,7 @@ and compiler settings:
 {{read-string}} 
 {{real?}}
 {{remainder}}
+{{reverse}}
 {{round}}
 {{set-car!}}
 {{set-cdr!}}
@@ -513,10 +516,9 @@ and compiler settings:
 The following extended bindings are handled specially: 
 
 {{add1}}
-{{alist-cons}}
-{{any?}}
 {{arithmetic-shift}}
 {{atom?}}
+{{bignum?}}
 {{bit-set?}}
 {{bitwise-and}}
 {{bitwise-ior}}
@@ -526,6 +528,8 @@ The following extended bindings are handled specially:
 {{block-ref}}
 {{block-set!}}
 {{call/cc}}
+{{call-with-input-file}}
+{{call-with-output-file}}
 {{current-error-port}}
 {{current-thread}}
 {{error}}
@@ -536,14 +540,12 @@ The following extended bindings are handled specially:
 {{f64vector-length}}
 {{f64vector-ref}}
 {{finite?}}
-{{first}}
 {{fixnum?}}
 {{flonum?}}
 {{flush-output}}
 {{foldl}}
 {{foldr}}
 {{format}}
-{{fourth}}
 {{fp*}}
 {{fp+}}
 {{fp-}}
@@ -551,10 +553,7 @@ The following extended bindings are handled specially:
 {{fp<=}}
 {{fp<}}
 {{fp=}}
-{{fp=}}
 {{fp>=}}
-{{fp>=}}
-{{fp>}}
 {{fp>}}
 {{fpabs}}
 {{fpacos}}
@@ -597,18 +596,20 @@ The following extended bindings are handled specially:
 {{fxneg}}
 {{fxnot}}
 {{fxodd?}}
+{{fxrem}}
 {{fxshl}}
 {{fxshr}}
 {{fxxor}}
-{{hash-table-ref}}
 {{identity}}
+{{infinite?}}
+{{list->string}}
+{{list->vector}}
 {{locative->object}}
 {{locative-ref}}
 {{locative-set!}}
 {{locative?}}
 {{make-record-instance}}
-{{not-pair?}}
-{{null-list?}}
+{{nan?}}
 {{number-of-slots}}
 {{o}}
 {{pointer+}}
@@ -641,21 +642,24 @@ The following extended bindings are handled specially:
 {{s32vector-length}}
 {{s32vector-ref}}
 {{s32vector-set!}}
+{{s64vector->blob/shared}}
+{{s64vector-length}}
+{{s64vector-ref}}
+{{s64vector-set!}}
 {{s8vector->blob/shared}}
 {{s8vector-length}}
 {{s8vector-ref}}
 {{s8vector-set!}}
-{{second}}
 {{signum}}
 {{sprintf}}
+{{string-append}}
+{{string->list}}
 {{sub1}}
+{{substring}}
 {{substring-ci=?}}
 {{substring-index-ci}}
 {{substring-index}}
 {{substring=?}}
-{{third}}
-{{thread-specific-set!}}
-{{thread-specific}}
 {{u16vector->blob/shared}}
 {{u16vector-length}}
 {{u16vector-ref}}
@@ -664,11 +668,15 @@ The following extended bindings are handled specially:
 {{u32vector-length}}
 {{u32vector-ref}}
 {{u32vector-set!}}
+{{u64vector->blob/shared}}
+{{u64vector-length}}
+{{u64vector-ref}}
+{{u64vector-set!}}
 {{u8vector->blob/shared}}
 {{u8vector-length}}
 {{u8vector-ref}}
 {{u8vector-set!}}
-{{xcons}}
+{{vector->list}}
 
 ==== What's the difference betweem "block" and "local" mode?
 
@@ -788,7 +796,7 @@ recommended. After installing parley, add the following to your
 {{~/.csirc}} or equivalent file:
 
 <enscript highlight=scheme>
-(use parley)
+(import parley)
 (let ((old (current-input-port)))
   (current-input-port (make-parley-port old)))
 </enscript>
@@ -822,20 +830,22 @@ See the [[Extensions]] chapter for more information.
 
 ==== How can I install CHICKEN eggs to a non-default location?
 
-You can just set the {{CHICKEN_REPOSITORY}} environment variable.
-It should contain the path where you want eggs to be installed:
+You can just set the {{CHICKEN_INSTALL_REPOSITORY}} and {{CHICKEN_REPOSITORY_PATH}}
+environment variables.
+They should contain the path where you want eggs to be installed:
 
- $ export CHICKEN_REPOSITORY=~/eggs/lib/chicken/5
+ $ export CHICKEN_INSTALL_REPOSITORY=~/eggs/lib/chicken/5
+ $ export CHICKEN_REPOSITORY_PATH=~/eggs/lib/chicken/5
  $ chicken-install -init ~/eggs/lib/chicken/5
  $ chicken-install -p ~/eggs/ extensionname
 
-In order to make programs (including csi) see these eggs, you should set this variable when you run them. See the [[Extensions#Changing repository location|Extensions/Changing repository location]] section of the manual for more information on that.
+In order to make programs (including csi) see these eggs, you should set {{CHICKEN_REPOSITORY_PATH}} when you run them. See the [[Extensions#Changing repository location|Extensions/Changing repository location]] section of the manual for more information on that.
 
 Alternatively, you can call the {{repository-path}} Scheme procedure before loading the eggs, as in:
 
 <enscript highlight=scheme>
 (repository-path "/home/azul/eggs")
-(use format-modular)
+(import format-modular)
 </enscript>
 
 Note, however, that using {{repository-path}} as above hard-codes the location of your eggs in your source files.  While this might not be an issue in your case, it might be safe to keep this configuration outside of the source code (that is, specifying it as an environment variable) to make it easier to maintain.
@@ -845,7 +855,7 @@ to {{chicken-install}}, in [[Extensions]].
 
 ==== Can I install chicken eggs as a non-root user?
 
-Yes, just install them in a directory you can write to by using {{CHICKEN_REPOSITORY}} (see above).
+Yes, just install them in a directory you can write to by using {{CHICKEN_INSTALL_REPOSITORY}} (see above).
 
 ==== Why does downloading an extension via {{chicken-install}} fail on Windows Vista?
 

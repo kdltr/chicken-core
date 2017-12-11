@@ -28,33 +28,33 @@ Jäger, Matt Jones, Dale Jordan, Valentin Kamyshenko, Daishi Kato,
 Peter Keller, Christian Kellermann, Brad Kind, Ron Kneusel, Matthias
 Köppe, Krysztof Kowalczyk, Andre Kühne, Todd R. Kueny Sr, Goran
 Krampe, David Krentzlin, Ben Kurtz, Michele La Monaca, Micky
-Latowicki, Kristian Lein-Mathisen, John Lenz, Kirill Lisovsky, Jürgen
-Lorenz, Kon Lovett, Lam Luu, Vitaly Magerya, Leonardo Valeri Manera,
-Claude Marinier, Dennis Marti, Charles Martin, Bob McIsaac, "megane",
-Alain Mellan, Eric Merrit, Perry Metzger, Scott G. Miller, Mikael,
-Karel Miklav, Bruce Mitchener, Fadi Moukayed, Chris Moline, Eric
-E. Moore, Julian Morrison, Dan Muresan, David N. Murray, Timo Myyrä,
-"nicktick", Lars Nilsson, Ian Oversby, "o.t.", Gene Pavlovsky, Levi
-Pearson, Jeronimo Pellegrini, Nicolas Pelletier, Markus Pfeiffer,
-Derrell Piper, Carlos Pita, "Pluijzer", Robin Lee Powell, Alan Post,
-"Pupeno", Davide Puricelli, "presto", Doug Quale, Imran Rafique, Eric
-Raible, Ivan Raikov, Santosh Rajan, Joel Reymont, "rivo", Chris Roberts,
-Eric Rochester, Paul Romanchenko, Andreas Rottman, David Rush, Lars
-Rustemeier, Daniel Sadilek, Otavio Salvador, Burton Samograd, "Sandro",
-"satori", Aleksej Saushev, Oskar Schirmer, Reed Sheridan, Vasilij
-Schneidermann, Ronald Schröder, Spencer Schumann, Ivan Shcheklein,
-Alexander Shendi, Alex Shinn, Ivan Shmakov, "Shmul", Tony Sidaway,
-Jeffrey B. Siegal, Andrey Sidorenko, Michele Simionato, Iruata Souza,
-Volker Stolz, Jon Strait, Dorai Sitaram, Robert Skeels, Jason Songhurst,
-Clifford Stein, David Steiner, Sunnan, Zbigniew Szadkowski, Rick Taube,
-Nathan Thern, Mike Thomas, Minh Thu, Christian Tismer, Andre van Tonder,
-John Tobey, Henrik Tramberend, Vladimir Tsichevsky, James Ursetto, Neil
-van Dyke, Sam Varner, Taylor Venable, Sander Vesik, Jaques Vidrine,
-Panagiotis Vossos, Shawn Wagner, Peter Wang, Ed Watkeys, Brad Watson,
-Thomas Weidner, Göran Weinholt, Matthew Welland, Drake Wilson, Jörg
-Wittenberger, Peter Wright, Mark Wutka, Adam Young, Richard Zidlicky,
-Houman Zolfaghari and Florian Zumbiehl for bug-fixes, tips and
-suggestions.
+Latowicki, Kristian Lein-Mathisen, "LemonBoy", John Lenz,
+Kirill Lisovsky, Jürgen Lorenz, Kon Lovett, Lam Luu, Arthur Maciel,
+Vitaly Magerya, Leonardo Valeri Manera, Claude Marinier, Dennis Marti,
+Charles Martin, Bob McIsaac, "megane", Alain Mellan, Eric Merrit,
+Perry Metzger, Scott G. Miller, Mikael, Karel Miklav, Bruce Mitchener,
+Fadi Moukayed, Chris Moline, Eric E. Moore, Julian Morrison,
+Dan Muresan, David N. Murray, Timo Myyrä, "nicktick", Lars Nilsson,
+Ian Oversby, "o.t.", Gene Pavlovsky, Levi Pearson, Jeronimo Pellegrini,
+Nicolas Pelletier, Markus Pfeiffer, Derrell Piper, Carlos Pita,
+"Pluijzer", Robin Lee Powell, Alan Post, "Pupeno", Davide Puricelli,
+"presto", Doug Quale, Imran Rafique, Eric Raible, Ivan Raikov, Santosh
+Rajan, Joel Reymont, "rivo", Chris Roberts, Eric Rochester, Paul
+Romanchenko, Andreas Rottman, David Rush, Lars Rustemeier, Daniel
+Sadilek, Otavio Salvador, Burton Samograd, "Sandro", "satori", Aleksej
+Saushev, Oskar Schirmer, Vasilij Schneidermann, Reed Sheridan, Ronald
+Schröder, Spencer Schumann, Ivan Shcheklein, Alexander Shendi, Alex
+Shinn, Ivan Shmakov, "Shmul", Tony Sidaway, Jeffrey B. Siegal, Andrey
+Sidorenko, Michele Simionato, Iruata Souza, Volker Stolz, Jon Strait,
+Dorai Sitaram, Robert Skeels, Jason Songhurst, Clifford Stein, David
+Steiner, Sunnan, Zbigniew Szadkowski, Rick Taube, Nathan Thern, Mike
+Thomas, Minh Thu, Christian Tismer, Andre van Tonder, John Tobey, Henrik
+Tramberend, Vladimir Tsichevsky, James Ursetto, Neil van Dyke, Sam
+Varner, Taylor Venable, Sander Vesik, Jaques Vidrine, Panagiotis Vossos,
+Shawn Wagner, Peter Wang, Ed Watkeys, Brad Watson, Thomas Weidner, Göran
+Weinholt, Matthew Welland, Drake Wilson, Jörg Wittenberger, Peter
+Wright, Mark Wutka, Adam Young, Richard Zidlicky, Houman Zolfaghari and
+Florian Zumbiehl for bug-fixes, tips and suggestions.
 
 Special thanks to Brandon van Every for contributing the (now defunct)
 [[http://www.cmake.org|CMake]] support and for helping with Windows
@@ -77,7 +77,6 @@ CHICKEN contains code from several people:
 ; Richard O'Keefe : sorting routines.
 ; Alex Shinn : the [[http://synthcode.com/scheme/irregex/|irregex]] regular expression package.
 ; Olin Shivers : implementation of {{let-optionals[*]}} and reference implementations of SRFI-1, SRFI-13 and SRFI-14.
-; Andrew Wilcox : queues.
 
 The documentation and examples for explicit renaming macros was taken from
 the following paper:

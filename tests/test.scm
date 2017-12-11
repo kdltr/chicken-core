@@ -2,10 +2,16 @@
 ;
 ; by Alex Shinn, lifted from match-test by felix
 
+(import (only chicken.string ->string))
+(import (only chicken.time current-milliseconds))
 
+(define *current-group-name* "")
 (define *pass* 0)
 (define *fail* 0)
 (define *start* 0)
+(define *total-pass* 0)
+(define *total-fail* 0)
+(define *total-start* 0)
 (define *fail-token* (gensym))
 
 (define (run-test name thunk expect eq pass-msg fail-msg)
@@ -28,9 +34,15 @@
       (else (display (car ls)) (lp (cdr ls))))))
 
 (define (test-begin . o)
+  (set! *current-group-name* (if (null? o) "<unnamed>" (car o)))
+  (print "== " *current-group-name* " ==")
+  (set! *total-pass* (+ *total-pass* *pass*))
+  (set! *total-fail* (+ *total-fail* *fail*))
   (set! *pass* 0)
   (set! *fail* 0)
-  (set! *start* (current-milliseconds)))
+  (set! *start* (current-milliseconds))
+  (when (= 0 *total-start*)
+    (set! *total-start* (current-milliseconds))))
 
 (define (format-float n prec)
   (let* ((str (number->string n))
@@ -66,19 +78,53 @@
 	   "%) tests passed")
     (print "  " *fail* " ("
 	   (format-percent *fail* total)
+	   "%) tests failed"))
+    (print "-- " *current-group-name* " --\n\n"))
+
+(define (test-exit . o)
+  (print " TOTALS: ")
+  (set! *total-pass* (+ *total-pass* *pass*)) ; should be 0
+  (set! *total-fail* (+ *total-fail* *fail*)) ; should be 0
+  (let ((end (current-milliseconds))
+        (total (+ *total-pass* *total-fail*)))
+    (print "  " total " tests completed in "
+	   (format-float (exact->inexact (/ (- end *total-start*) 1000)) 3)
+	   " seconds")
+    (print "  " *total-pass* " ("
+	   (format-percent *total-pass* total)
+	   "%) tests passed")
+    (print "  " *total-fail* " ("
+	   (format-percent *total-fail* total)
 	   "%) tests failed")
-    (exit (if (zero? *fail*) 0 1))))
+    (exit (if (zero? *total-fail*) 0 1))))
 
 (define (run-equal name thunk expect eq)
   (run-test name thunk expect eq
             '("(PASS)" name)
             '("(FAIL)" name ": expected " expect " but got " result)))
 
+(define current-test-epsilon (make-parameter 1e-5))
+
+(define (approx-equal? a b epsilon)
+  (cond
+   ((> (abs a) (abs b)) (approx-equal? b a epsilon))
+   ((zero? a) (< (abs b) epsilon))
+   (else (< (abs (/ (- a b) b)) epsilon))))
+
+(define (test-equal? expect res)
+  (or (equal? expect res)
+      (and (number? expect)
+           (inexact? expect)
+           (inexact? res)
+           (approx-equal? expect res (current-test-epsilon)))))
+
+(define current-test-comparator (make-parameter test-equal?))
+
 (define-syntax test-equal
   (syntax-rules ()
     ((_ name expr value eq) (run-equal name (lambda () expr) value eq))
-    ((_ name expr value) (run-equal name (lambda () expr) value equal?))
-    ((_ expr value) (run-equal (->string 'expr) (lambda () expr) value equal?))))
+    ((_ name expr value) (run-equal name (lambda () expr) value (current-test-comparator)))
+    ((_ expr value) (run-equal (->string 'expr) (lambda () expr) value (current-test-comparator)))))
 
 (define-syntax test-error
   (syntax-rules ()

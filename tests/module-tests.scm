@@ -1,5 +1,6 @@
 ;;;; module-tests.scm
 
+(import (chicken eval))
 
 (cond-expand
  (compiling
@@ -8,6 +9,18 @@
   (load-relative "test.scm")))
 
 (test-begin "modules")
+
+(test-assert
+ "r4rs"
+ (module test-r4rs ()
+   (import r4rs)
+   (equal? 1 1)))
+
+(test-assert
+ "r4rs-null"
+ (module test-r4rs-null ()
+   (import r4rs-null)
+   (begin #t)))
 
 (test-equal "internal/variable"
 (module foo (abc def)
@@ -146,7 +159,7 @@
 	    1)
 
 (module m14 (test-extlambda)
-  (import chicken scheme)
+  (import scheme)
   (define (test-extlambda string #!optional whatever)
     string))
 
@@ -160,8 +173,8 @@
 
 (module m15 ()
   (import scheme chicken)
-  (use (prefix (rename srfi-1 (filter f)) 99:))
-  (print 99:f))
+  (import (prefix (rename srfi-4 (u8vector u)) 99:))
+  (print 99:u))
 
 
 ;;; expansion of macros into modules:
@@ -197,7 +210,8 @@
  'abc (abc))
 
 (module m17 (a) (import scheme) (define a 1))
-(module m18 = m17)
+(begin-for-syntax ; XXX workaround for missing module alias functionality
+  (##sys#register-module-alias 'm18 'm17))
 (module m19 (a) (import scheme) (define a 2))
 
 (test-equal
@@ -211,8 +225,9 @@
 (test-equal
  "local module alias scope"
  (module m21 ()
-   (import scheme)
-   (module m18 = m19)
+   (import scheme chicken)
+   (begin-for-syntax ; XXX s.a.
+     (##sys#register-module-alias 'm18 'm19))
    (import m18)
    a)
  2)
@@ -231,13 +246,13 @@
 (module
  m22
  *
- (import chicken scheme)
+ (import scheme)
  (define b 2))
 
 (module
  m23
  *
- (import chicken scheme)
+ (import (chicken module))
  (import m22)
  (export b) )
 
@@ -251,16 +266,16 @@
 ;; (contributed by "megane")
 
 (module m25 *
-  (import chicken scheme)
+  (import scheme)
   (define foo 1))
 
 (module m26 (bar)
-  (import chicken scheme)
+  (import (chicken module) scheme)
   (reexport m25)
   (define bar 2))
 
 (module m27 *
-  (import chicken scheme)
+  (import (chicken module) scheme)
   (reexport m25) ;; <- oops, bar not exported anymore
   (define bar 2))
 
@@ -279,25 +294,84 @@
 ;; somewhat related, but with syntax (#882, found by megane):
 
 (module m29 *
-  (import chicken scheme)
+  (import (chicken syntax) scheme)
   (define-syntax m29-baz
     (er-macro-transformer
      (lambda _
        ''foo))))
 
 (module m30 *
-  (import chicken scheme)
+  (import (chicken module))
   (import m29)
   (export m29-baz))
 
 (test-equal
  "star-export with explicit re-export of syntax"
  (module m31 ()
-   (import scheme chicken)
+   (import scheme)
    (import m30)
    (m29-baz))
  'foo)
 
+;; list-style library names
+
+(test-assert
+ (module (m33 a) *
+   (import (scheme))
+   (define (foo) 'ok)))
+
+(test-assert
+ (module (m33 b) ()
+   (import (scheme) (m33 a))
+   (eq? (foo) 'ok)))
+
+(test-assert (import (prefix (m33 a) m33/a/)))
+(test-assert (eq? (m33/a/foo) 'ok))
+(test-assert (module-environment '(m33 a)))
+
+;; Ensure that the modules system is simply an aliasing mechanism:
+;; Module instantion does not create multiple variable copies.
+
+(module m31 *
+  (import (chicken base) scheme)
+  (define mutation-count 0)
+  (define (internally-mutate!)
+    (set! mutation-count (add1 mutation-count)))
+  (define (get-count)
+    mutation-count))
+
+(module m32 *
+  (import (chicken base) scheme m31)
+  (define (externally-mutate!)
+    (set! mutation-count (add1 mutation-count))))
+
+(import m31 m32)
+(test-equal
+ "initial state"
+ 0 mutation-count)
+
+(internally-mutate!)
+
+(test-equal
+ "After mutating inside defining module"
+ 1 mutation-count)
+
+(set! mutation-count 2)
+
+(test-equal
+ "After mutating outside module"
+ 2 mutation-count)
+
+(externally-mutate!)
+
+(test-equal
+ "After mutation by another module"
+ 3 mutation-count)
+
+(test-equal
+ "Internal getter returns same thing"
+ 3 (get-count))
 
 (test-end "modules")
 
+(test-exit)

@@ -23,219 +23,157 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
+;; OBSOLETE: This can be removed after bootstrapping (needed for
+;; macros and constant evaluation in compiler)
+(if (not (##sys#symbol-has-toplevel-binding? 'chicken.base#add1))
+    (begin
+      (set! chicken.base#add1 add1)
+      (set! chicken.base#sub1 sub1)
+      (set! chicken.base#symbol-append symbol-append)))
 
 (##sys#register-primitive-module
  'chicken
- '(abort
-   add1
+ '((abort . chicken.condition#abort)
+   (add1 . chicken.base#add1)
    argc+argv
    argv
-   arithmetic-shift
-   bit-set?
-   bitwise-and
-   bitwise-ior
-   bitwise-not
-   bitwise-xor
-   blob->string
-   blob-size
-   blob?
-   blob=?
-   build-platform
-   call/cc
+   (bignum? . chicken.base#bignum?)
+   (build-platform . chicken.platform#build-platform)
+   (call/cc . chicken.base#call/cc)
    case-sensitive
-   char-name
-   chicken-home
-   chicken-version
+   (char-name . chicken.base#char-name)
+   (chicken-home . chicken.platform#chicken-home)
+   (chicken-version . chicken.platform#chicken-version)
    command-line-arguments
-   condition-predicate
-   condition-property-accessor
-   condition?
-   condition->list
-   continuation-capture
-   continuation-graft
-   continuation-return
-   continuation?
-   copy-read-table
-   cpu-time
-   current-error-port
-   current-exception-handler
-   current-gc-milliseconds
-   current-milliseconds
-   current-read-table
-   current-seconds
-   define-reader-ctor
-   delete-file
+   (condition-predicate . chicken.condition#condition-predicate)
+   (condition-property-accessor . chicken.condition#condition-property-accessor)
+   (condition? . chicken.condition#condition?)
+   (condition->list . chicken.condition#condition->list)
+   (cplxnum? . chicken.base#cplxnum?)
+   (current-error-port . chicken.base#current-error-port)
+   (current-exception-handler . chicken.condition#current-exception-handler)
    directory-exists?
-   enable-warnings
-   equal=?
-   er-macro-transformer
+   (dynamic-load-libraries . chicken.load#dynamic-load-libraries)
+   (enable-warnings . chicken.base#enable-warnings)
+   (equal=? . chicken.base#equal=?)
+   (er-macro-transformer . chicken.syntax#er-macro-transformer)
    errno
-   error
-   exit
-   exit-handler
-   expand
-   extension-information
-   feature?
-   features
+   (error . chicken.base#error)
+   (eval-handler . chicken.eval#eval-handler)
+   (exact-integer? . chicken.base#exact-integer?)
+   (exact-integer-sqrt . chicken.base#exact-integer-sqrt)
+   (exact-integer-nth-root . chicken.base#exact-integer-nth-root)
+   executable-pathname
+   (exit . chicken.base#exit)
+   (exit-handler . chicken.base#exit-handler)
+   (expand . chicken.syntax#expand)
+   (feature? . chicken.platform#feature?)
+   (features . chicken.platform#features)
    file-exists?
-   finite?
-   fixnum-bits
-   fixnum-precision
-   fixnum?
-   flonum-decimal-precision
-   flonum-epsilon
-   flonum-maximum-decimal-exponent
-   flonum-maximum-exponent
-   flonum-minimum-decimal-exponent
-   flonum-minimum-exponent
-   flonum-precision
-   flonum-print-precision
-   flonum-radix
-   flonum?
+   (finite? . chicken.base#finite?)
+   (fixnum-bits . chicken.fixnum#fixnum-bits)
+   (fixnum-precision . chicken.fixnum#fixnum-precision)
+   (fixnum? . chicken.base#fixnum?)
+   (flonum? . chicken.base#flonum?)
    flush-output
-   foldl
-   foldr
-   force-finalizers
-   fp-
-   fp*
-   fp/
-   fp+
-   fp<
-   fp<=
-   fp=
-   fp>
-   fp>=
-   fpabs
-   fpacos
-   fpasin
-   fpatan
-   fpatan2
-   fpexp
-   fpexpt
-   fpfloor
-   fpceiling
-   fpcos
-   fpinteger?
-   fplog
-   fpmax
-   fpmin
-   fpneg
-   fpround
-   fpsin
-   fpsqrt
-   fptan
-   fptruncate
-   fx-
-   fx*
-   fx/
-   fx+
-   fx<
-   fx<=
-   fx=
-   fx>
-   fx>=
-   fxand
-   fxeven?
-   fxior
-   fxmax
-   fxmin
-   fxmod
-   fxneg
-   fxnot
-   fxodd?
-   fxshl
-   fxshr
-   fxxor
-   gc
-   gensym
-   get
-   get-call-chain
-   get-condition-property
+   (foldl . chicken.base#foldl)
+   (foldr . chicken.base#foldr)
+   (force-finalizers . chicken.gc#force-finalizers)
+   (fx- . chicken.fixnum#fx-)
+   (fx* . chicken.fixnum#fx*)
+   (fx/ . chicken.fixnum#fx/)
+   (fx+ . chicken.fixnum#fx+)
+   (fx< . chicken.fixnum#fx<)
+   (fx<= . chicken.fixnum#fx<=)
+   (fx= . chicken.fixnum#fx=)
+   (fx> . chicken.fixnum#fx>)
+   (fx>= . chicken.fixnum#fx>=)
+   (fxand . chicken.fixnum#fxand)
+   (fxeven? . chicken.fixnum#fxeven?)
+   (fxgcd . chicken.fixnum#fxgcd)
+   (fxior . chicken.fixnum#fxior)
+   (fxlen . chicken.fixnum#fxlen)
+   (fxmax . chicken.fixnum#fxmax)
+   (fxmin . chicken.fixnum#fxmin)
+   (fxmod . chicken.fixnum#fxmod)
+   (fxneg . chicken.fixnum#fxneg)
+   (fxnot . chicken.fixnum#fxnot)
+   (fxodd? . chicken.fixnum#fxodd?)
+   (fxrem . chicken.fixnum#fxrem)
+   (fxshl . chicken.fixnum#fxshl)
+   (fxshr . chicken.fixnum#fxshr)
+   (fxxor . chicken.fixnum#fxxor)
+   (fxlen . chicken.fixnum#fxlen)
+   (gensym . chicken.base#gensym)
+   (get-call-chain . chicken.base#get-call-chain)
+   (get-condition-property . chicken.condition#get-condition-property)
    get-environment-variable
-   get-keyword
+   (get-line-number . chicken.syntax#get-line-number)
    get-output-string
-   get-properties
-   getter-with-setter
-   implicit-exit-handler
-   ir-macro-transformer
-   keyword->string
+   (getter-with-setter . chicken.base#getter-with-setter)
+   (implicit-exit-handler . chicken.base#implicit-exit-handler)
+   (infinite? . chicken.base#infinite?)
+   input-port-open?
+   (installation-repository . chicken.platform#installation-repository)
+   (ir-macro-transformer . chicken.syntax#ir-macro-transformer)
    keyword-style
-   keyword?
-   load-library
-   load-relative
-   load-verbose
-   machine-byte-order
-   machine-type
-   make-blob
-   make-composite-condition
-   make-parameter
-   make-promise
-   make-property-condition
-   maximum-flonum
-   memory-statistics
-   minimum-flonum
-   module-environment
-   most-negative-fixnum
-   most-positive-fixnum
-   on-exit
+   (load-library . chicken.load#load-library)
+   (load-noisily . chicken.load#load-noisily)
+   (load-relative . chicken.load#load-relative)
+   (load-verbose . chicken.load#load-verbose)
+   (machine-byte-order . chicken.platform#machine-byte-order)
+   (machine-type . chicken.platform#machine-type)
+   (make-composite-condition . chicken.condition#make-composite-condition)
+   (make-parameter . chicken.base#make-parameter)
+   (make-promise . chicken.base#make-promise)
+   (make-property-condition . chicken.condition#make-property-condition)
+   (most-negative-fixnum . chicken.fixnum#most-negative-fixnum)
+   (most-positive-fixnum . chicken.fixnum#most-positive-fixnum)
+   (nan? . chicken.base#nan?)
+   (notice . chicken.base#notice)
+   (on-exit . chicken.base#on-exit)
    open-input-string
    open-output-string
+   output-port-open?
    parentheses-synonyms
    port-closed?
    port-name
    port-position
    port?
-   print
-   print-call-chain
-   print-error-message
-   print*
-   procedure-information
+   (provide . chicken.load#provide)
+   (provided? . chicken.load#provided?)
+   (print . chicken.base#print)
+   (print-call-chain . chicken.base#print-call-chain)
+   (print* . chicken.base#print*)
+   (procedure-information . chicken.base#procedure-information)
    program-name
-   promise?
-   put!
-   quit
-   register-feature!
-   remprop!
-   rename-file
-   repl
-   repl-prompt
-   repository-path
-   require
-   reset
-   reset-handler
-   return-to-host
-   reverse-list->string
-   set-finalizer!
-   set-gc-report!
-   set-parameterized-read-syntax!
+   (promise? . chicken.base#promise?)
+   (quotient&modulo . chicken.base#quotient&modulo)
+   (quotient&remainder . chicken.base#quotient&remainder)
+   (ratnum? . chicken.base#ratnum?)
+   (register-feature! . chicken.platform#register-feature!)
+   (repository-path . chicken.platform#repository-path)
+   (require . chicken.load#require)
+   (return-to-host . chicken.platform#return-to-host)
    set-port-name!
-   set-read-syntax!
-   set-sharp-read-syntax!
-   setter
-   signal
-   signum
-   singlestep
-   software-type
-   software-version
-   string->blob
-   string->keyword
-   string->uninterned-symbol
-   strip-syntax
-   sub1
-   subvector
-   symbol-append
+   (setter . chicken.base#setter)
+   (signal . chicken.condition#signal)
+   (signum . chicken.base#signum)
+   sleep
+   (software-type . chicken.platform#software-type)
+   (software-version . chicken.platform#software-version)
+   (string->uninterned-symbol . chicken.base#string->uninterned-symbol)
+   (strip-syntax . chicken.syntax#strip-syntax)
+   (sub1 . chicken.base#sub1)
+   (subvector . chicken.base#subvector)
+   (symbol-append . chicken.base#symbol-append)
    symbol-escape
-   symbol-plist
-   syntax-error
+   (syntax-error . chicken.syntax#syntax-error)
    system
-   unregister-feature!
-   vector-resize
-   vector-copy!
-   void
-   warning
-   eval-handler
-   er-macro-transformer
-   ir-macro-transformer
-   dynamic-load-libraries
-   with-exception-handler)
+   (unregister-feature! . chicken.platform#unregister-feature!)
+   (vector-copy! . chicken.base#vector-copy!)
+   (vector-resize . chicken.base#vector-resize)
+   (void . chicken.base#void)
+   (warning . chicken.base#warning)
+   (with-exception-handler . chicken.condition#with-exception-handler))
  ##sys#chicken-macro-environment)       ;XXX incorrect - won't work in compiled executable that does expansion

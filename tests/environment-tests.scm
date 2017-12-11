@@ -33,6 +33,8 @@
 (test-equal 1 (eval '(if #t 1 2) (null-environment 5)))
 (test-equal (eval '((lambda (x) x) 123) (null-environment 5)) 123)
 
+(import (chicken eval))
+
 (define baz 100)
 
 (module foo (bar)
@@ -40,13 +42,16 @@
   (define (bar) 99))
 
 (define foo-env (module-environment 'foo))
-(define srfi-1-env (module-environment 'srfi-1))
-
-(require-library srfi-1)
+(define csi-env (module-environment '(chicken csi)))
+(define format-env (module-environment 'chicken.format))
 
 (test-equal (eval '(bar) foo-env) 99)
 (test-error (eval 'baz foo-env))
-(test-equal (eval '(xcons 1 2) srfi-1-env) '(2 . 1))
-(test-error (eval 'baz srf-1-env))
+(test-equal (eval '(editor-command) csi-env) #f)
+(test-error (eval 'baz csi-env))
+(test-equal (eval '(format "~a" 1) format-env) "1")
+(test-error (eval 'baz format-env))
 
 (test-end)
+
+(test-exit)

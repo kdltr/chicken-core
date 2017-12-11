@@ -1,6 +1,7 @@
 ;;;; Unit lolevel testing
 
-(require-extension lolevel srfi-4 extras)
+(import chicken.format chicken.locative chicken.platform
+        chicken.memory chicken.memory.representation srfi-4)
 
 (define-syntax assert-error
   (syntax-rules ()
@@ -88,6 +89,10 @@
 
 ; pointer-s32-set!
 
+; pointer-u64-set!
+
+; pointer-s64-set!
+
 ; pointer-f32-set!
 
 ; pointer-f64-set!
@@ -111,6 +116,10 @@
 ; pointer-u32-ref
 
 ; pointer-s32-ref
+
+; pointer-u64-ref
+
+; pointer-s64-ref
 
 ; pointer-f32-ref
 
@@ -179,6 +188,11 @@
 (check-type-locative s32vector
 		     #x-80000000 #x-7fffffff -2 -1
 		     0 1 2 #x7ffffffe #x7fffffff)
+(check-type-locative u64vector
+		     0 1 2 #xfffffffffffffffe #xffffffffffffffff)
+(check-type-locative s64vector
+		     #x-8000000000000000 #x-7fffffffffffffff -2 -1
+		     0 1 2 #x7ffffffffffffffe #x7fffffffffffffff)
 ;; TODO: better/more extreme values?
 (check-type-locative f32vector -1e100 -2.0 -1.0 0.0 1.0 2.0 1e100)
 (check-type-locative f64vector -1e200 -2.0 -1.0 0.0 1.0 2.0 1e200)
@@ -211,7 +225,7 @@
 
 (define unique-proc-data-2 '(23 'skidoo))
 
-(assert (eq? foo (set-procedure-data! foo unique-proc-data-2)))
+(set-procedure-data! foo unique-proc-data-2)
 
 (assert (eq? unique-proc-data-2 (procedure-data foo)))
 
@@ -233,7 +247,7 @@
 
 (assert (= 4 (number-of-bytes "abcd")))
 
-(assert (= (if (##sys#fudge 3) 8 4) (number-of-bytes '#(1))))
+(assert (= (if (feature? #:64bit) 8 4) (number-of-bytes '#(1))))
 
 ; make-record-instance
 
@@ -268,26 +282,6 @@
 ; record->vector
 
 (assert (equal? '#(test a b) (record->vector some-record)))
-
-; object-evict
-; object-evicted?
-; object-size
-; object-release
-
-(define tstvec (vector #f))
-(let ((sz (object-size tstvec)))
-  (assert (and (integer? sz) (positive? sz))) )
-(define ev-tstvec (object-evict tstvec))
-(assert (not (eq? tstvec ev-tstvec)))
-(assert (object-evicted? ev-tstvec))
-(set! ev-tstvec
-  (let ((old ev-tstvec))
-    (object-release old)
-    #f))
-
-; object-evict-to-location
-
-; object-unevict
 
 ; object-become!
 

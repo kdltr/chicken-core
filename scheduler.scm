@@ -27,15 +27,16 @@
 
 (declare
   (unit scheduler)
+  (uses extras) ; for sprintf
   (disable-interrupts)
   (hide ready-queue-head ready-queue-tail ##sys#timeout-list
 	##sys#update-thread-state-buffer ##sys#restore-thread-state-buffer
-	remove-from-ready-queue ##sys#unblock-threads-for-i/o
+	##sys#unblock-threads-for-i/o
 	;; This isn't hidden ATM to allow set!ing it as a hook/workaround
 	; ##sys#force-primordial
-	fdset-set fdset-test create-fdset stderr
+	remove-from-ready-queue fdset-test create-fdset stderr delq
 	##sys#clear-i/o-state-for-thread! ##sys#abandon-mutexes) 
-  (not inline ##sys#interrupt-hook ##sys#force-primordial)
+  (not inline ##sys#interrupt-hook ##sys#sleep-hook ##sys#force-primordial)
   (unsafe)
   (foreign-declare #<<EOF
 #ifdef HAVE_ERRNO_H
@@ -49,18 +50,20 @@
 /* TODO: Winsock select() only works for sockets */
 # include <winsock2.h>
 /* Beware: winsock2.h must come BEFORE windows.h */
-# define C_msleep(n)     (Sleep(C_unfix(n)), C_SCHEME_TRUE)
+# define C_msleep(n)   (Sleep((DWORD)C_num_to_uint64(n)), C_SCHEME_TRUE)
 #else
 # include <sys/time.h>
 static C_word C_msleep(C_word ms);
 C_word C_msleep(C_word ms) {
 #ifdef __CYGWIN__
-  if(usleep(C_unfix(ms) * 1000) == -1) return C_SCHEME_FALSE;
+  if(usleep((useconds_t)C_num_to_uint64(ms) * 1000) == -1) return C_SCHEME_FALSE;
 #else
   struct timespec ts;
-  unsigned long mss = C_unfix(ms);
-  ts.tv_sec = mss / 1000;
-  ts.tv_nsec = (mss % 1000) * 1000000;
+  C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab,
+         sec = C_s_a_u_i_integer_quotient(&a, 2, ms, C_fix(1000)),
+         msec = C_s_a_u_i_integer_remainder(&a, 2, ms, C_fix(1000));
+  ts.tv_sec = (time_t)C_num_to_uint64(sec);
+  ts.tv_nsec = (long)C_unfix(msec) * 1000000;
   
   if(nanosleep(&ts, NULL) == -1) return C_SCHEME_FALSE;
 #endif
@@ -76,7 +79,7 @@ static fd_set C_fdset_input, C_fdset_output;
 #define C_fd_input_ready(fd,pos)  C_mk_bool(FD_ISSET(C_unfix(fd), &C_fdset_input))
 #define C_fd_output_ready(fd,pos)  C_mk_bool(FD_ISSET(C_unfix(fd), &C_fdset_output))
 
-C_inline int C_ready_fds_timeout(int to, double tm) {
+inline static int C_ready_fds_timeout(int to, unsigned int tm) {
   struct timeval timeout;
   timeout.tv_sec = tm / 1000;
   timeout.tv_usec = fmod(tm, 1000) * 1000;
@@ -84,12 +87,12 @@ C_inline int C_ready_fds_timeout(int to, double tm) {
   return select(FD_SETSIZE, &C_fdset_input, &C_fdset_output, NULL, to ? &timeout : NULL);
 }
 
-C_inline void C_prepare_fdset(int length) {
+inline static void C_prepare_fdset(int length) {
   FD_ZERO(&C_fdset_input);
   FD_ZERO(&C_fdset_output);
 }
 
-C_inline void C_fdset_add(int fd, int input, int output) {
+inline static void C_fdset_add(int fd, int input, int output) {
   if (input) FD_SET(fd, &C_fdset_input);
   if (output) FD_SET(fd, &C_fdset_output);
 }
@@ -101,7 +104,7 @@ C_inline void C_fdset_add(int fd, int input, int output) {
 static int C_fdset_nfds;
 static struct pollfd *C_fdset_set = NULL;
 
-C_inline int C_fd_ready(int fd, int pos, int what) {
+inline static int C_fd_ready(int fd, int pos, int what) {
   assert(fd == C_fdset_set[pos].fd); /* Must match position in ##sys#fd-list! */
   return(C_fdset_set[pos].revents & what);
 }
@@ -109,11 +112,11 @@ C_inline int C_fd_ready(int fd, int pos, int what) {
 #define C_fd_input_ready(fd,pos)  C_mk_bool(C_fd_ready(C_unfix(fd), C_unfix(pos),POLLIN|POLLERR|POLLHUP|POLLNVAL))
 #define C_fd_output_ready(fd,pos)  C_mk_bool(C_fd_ready(C_unfix(fd), C_unfix(pos),POLLOUT|POLLERR|POLLHUP|POLLNVAL))
 
-C_inline int C_ready_fds_timeout(int to, double tm) {
-  return poll(C_fdset_set, C_fdset_nfds, to ? (int)tm : -1);
+inline static int C_ready_fds_timeout(int to, unsigned int tm) {
+  return poll(C_fdset_set, C_fdset_nfds, to ? tm : -1);
 }
 
-C_inline void C_prepare_fdset(int length) {
+inline static void C_prepare_fdset(int length) {
   /* TODO: Only realloc when needed? */
   C_fdset_set = realloc(C_fdset_set, sizeof(struct pollfd) * length);
   if (C_fdset_set == NULL)
@@ -122,13 +125,15 @@ C_inline void C_prepare_fdset(int length) {
 }
 
 /* This *must* be called in order, so position will match ##sys#fd-list */
-C_inline void C_fdset_add(int fd, int input, int output) {
+inline static void C_fdset_add(int fd, int input, int output) {
   C_fdset_set[C_fdset_nfds].events = ((input ? POLLIN : 0) | (output ? POLLOUT : 0));
   C_fdset_set[C_fdset_nfds++].fd = fd;
 }
 #endif
 EOF
 ) )
+
+(import chicken chicken.format)
 
 (include "common-declarations.scm")
 
@@ -149,6 +154,13 @@ EOF
 (define-syntax panic
   (syntax-rules ()
     ((_ msg) (##core#inline "C_halt" msg))))
+
+(define (delq x lst)
+  (let loop ([lst lst])
+    (cond ((null? lst) lst)
+	  ((eq? x (##sys#slot lst 0)) (##sys#slot lst 1))
+	  (else (cons (##sys#slot lst 0) (loop (##sys#slot lst 1)))) ) ) )
+
 
 (define (##sys#schedule)
   (define (switch thread)
@@ -173,7 +185,7 @@ EOF
     (let loop1 ()
       ;; Unblock threads waiting for timeout:
       (unless (null? ##sys#timeout-list)
-	(let ((now (##core#inline_allocate ("C_a_i_current_milliseconds" 4) #f)))
+	(let ((now (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)))
 	  (let loop ((lst ##sys#timeout-list))
 	    (if (null? lst)
 		(set! ##sys#timeout-list '())
@@ -182,7 +194,7 @@ EOF
 		       [tmo2 (##sys#slot tto 4)] ) ; timeout value stored in thread
 		  (dbg "timeout: " tto " -> " tmo2 " (now: " now ")")
 		  (if (equal? tmo1 tmo2)  ;XXX why do we check this?
-		      (if (fp>= now tmo1) ; timeout reached?
+		      (if (>= now tmo1) ; timeout reached?
 			  (begin
 			    (##sys#setislot tto 13 #t) ; mark as being unblocked by timeout
 			    (##sys#clear-i/o-state-for-thread! tto)
@@ -196,13 +208,12 @@ EOF
 			    (when (and (null? ready-queue-head)
 				       (null? ##sys#fd-list) 
 				       (pair? ##sys#timeout-list))
-			      (let ((tmo1 (caar ##sys#timeout-list)))
+			      (let* ((tmo1 (caar ##sys#timeout-list))
+				     (tmo1 (inexact->exact (round tmo1))))
 				(set! eintr
 				  (and (not (##core#inline 
 					     "C_msleep" 
-					     (fxmax 
-					      0
-					      (##core#inline "C_quickflonumtruncate" (fp- tmo1 now)))))
+					     (max 0 (- tmo1 now))))
 				       (foreign-value
 					"C_signal_interrupted_p" bool) ) ) ) ) ) )
 		      (loop (cdr lst)) ) ) ) ) ) )
@@ -290,13 +301,10 @@ EOF
 
 (define (##sys#thread-block-for-timeout! t tm)
   (dbg t " blocks for timeout " tm)
-  (unless (flonum? tm)	  ; to catch old code that uses fixnum timeouts
-    (panic
-     (sprintf "##sys#thread-block-for-timeout!: invalid timeout: ~S" tm)))
-  (when (fp> tm 0.0)
+  (when (> tm 0)
     ;; This should really use a balanced tree:
     (let loop ([tl ##sys#timeout-list] [prev #f])
-      (if (or (null? tl) (fp< tm (caar tl)))
+      (if (or (null? tl) (< tm (caar tl)))
 	  (if prev
 	      (set-cdr! prev (cons (cons tm t) tl))
 	      (set! ##sys#timeout-list (cons (cons tm t) tl)) )
@@ -338,9 +346,9 @@ EOF
   (let ((blocked (##sys#slot t 11)))
     (cond
      ((##sys#structure? blocked 'condition-variable)
-      (##sys#setslot blocked 2 (##sys#delq t (##sys#slot blocked 2))))
+      (##sys#setslot blocked 2 (delq t (##sys#slot blocked 2))))
      ((##sys#structure? blocked 'thread)
-      (##sys#setslot blocked 12 (##sys#delq t (##sys#slot blocked 12))))) )
+      (##sys#setslot blocked 12 (delq t (##sys#slot blocked 12))))) )
   (##sys#remove-from-timeout-list t)
   (##sys#clear-i/o-state-for-thread! t)
   (##sys#setslot t 3 s)
@@ -373,7 +381,7 @@ EOF
 	     (##sys#setslot 
 	      pt 1 
 	      (lambda ()
-		(##sys#signal arg)
+		(signal arg)
 		(ptx) ) )
 	     (##sys#thread-unblock! pt) ) )
 	  (else
@@ -449,11 +457,11 @@ EOF
 	 (rq? (pair? ready-queue-head))
 	 (tmo (if (and to? (not rq?)) ; no thread was unblocked by timeout, so wait
 		  (let* ((tmo1 (caar ##sys#timeout-list))
-			 (now (##core#inline_allocate ("C_a_i_current_milliseconds" 4) #f)))
-		    (fpmax 0.0 (fp- tmo1 now)) )
-		  0.0) ) )		; otherwise immediate timeout.
+			 (now (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)))
+		    (max 0 (- tmo1 now)) )
+		  0))) ; otherwise immediate timeout.
     (dbg "waiting for I/O with timeout " tmo)
-    (let ((n ((foreign-lambda int "C_ready_fds_timeout" bool double)
+    (let ((n ((foreign-lambda int "C_ready_fds_timeout" bool unsigned-integer)
 	      (or rq? to?) tmo)))
       (dbg n " fds ready")
       (cond [(eq? -1 n)
@@ -514,7 +522,7 @@ EOF
 	      (let* ((a (car lst))
 		     (fd2 (car a)) )
 		(if (eq? fd fd2)
-		    (let ((ts (##sys#delq t (cdr a)))) ; remove from fd-list entry
+		    (let ((ts (delq t (cdr a)))) ; remove from fd-list entry
 		      (cond ((null? ts) (cdr lst))
 			    (else
 			     (##sys#setslot a 1 ts) ; fd-list entry is list with t removed
@@ -574,6 +582,26 @@ EOF
     (##sys#remove-from-timeout-list t)
     (##sys#clear-i/o-state-for-thread! t)
     (##sys#thread-basic-unblock! t) ) )
+
+
+;;; Put a thread to sleep:
+
+(define (##sys#thread-sleep! tm)
+  (##sys#call-with-current-continuation
+   (lambda (return)
+     (let ((ct ##sys#current-thread))
+       (##sys#setslot ct 1 (lambda () (return (##core#undefined))))
+       (##sys#thread-block-for-timeout! ct tm)
+       (##sys#schedule)))))
+
+
+;;; Override `sleep` in library.scm to operate on the current thread:
+
+(set! ##sys#sleep-hook
+  (lambda (n)
+    (##sys#thread-sleep!
+     (+ (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)
+	(* 1000.0 n)))))
 
 
 ;;; Kill all threads in fd-, io- and timeout-lists and assign one thread as the

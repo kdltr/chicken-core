@@ -152,8 +152,7 @@ Returns a textual description of the most recent error that occurred in executin
 
 If threads have been spawned during earlier invocations of embedded Scheme code, then this function
 will run the next scheduled thread for one complete time-slice. This is useful, for example, inside
-an ''idle'' handler in a GUI application with background Scheme threads. Note that the 
-{{srfi-18}} library unit has to be linked in for this.
+an ''idle'' handler in a GUI application with background Scheme threads.
 
 
 

@@ -27,14 +27,6 @@
 
 (declare
   (unit lolevel)
-  (uses srfi-69)
-  (hide ipc-hook-0 *set-invalid-procedure-call-handler! xproc-tag
-   ##sys#check-block
-   ##sys#check-become-alist
-   ##sys#check-generic-structure
-   ##sys#check-generic-vector
-   pv-buf-ref pv-buf-set!)
-  (not inline ipc-hook-0 ##sys#invalid-procedure-call-hook)
   (foreign-declare #<<EOF
 #ifndef C_NONUNIX
 # include <sys/mman.h>
@@ -46,7 +38,21 @@ EOF
 
 (include "common-declarations.scm")
 
-(register-feature! 'lolevel)
+(module chicken.memory
+  (address->pointer align-to-word allocate free make-pointer-vector
+   move-memory! object->pointer pointer+ pointer->address
+   pointer->object pointer-f32-ref pointer-f32-set! pointer-f64-ref
+   pointer-f64-set! pointer-like? pointer-s16-ref pointer-s16-set!
+   pointer-s32-ref pointer-s32-set! pointer-s64-ref pointer-s64-set!
+   pointer-s8-ref pointer-s8-set! pointer-tag pointer-u16-ref
+   pointer-u16-set! pointer-u32-ref pointer-u32-set! pointer-u64-ref
+   pointer-u64-set! pointer-u8-ref pointer-u8-set! pointer-vector
+   pointer-vector-fill! pointer-vector-length pointer-vector-ref
+   pointer-vector-set! pointer-vector? pointer=? pointer? tag-pointer
+   tagged-pointer?)
+
+(import scheme chicken)
+(import chicken.foreign)
 
 
 ;;; Helpers:
@@ -120,17 +126,18 @@ EOF
 ;;; Move arbitrary blocks of memory around:
 
 (define move-memory!
-  (let ([memmove1 (foreign-lambda void "C_memmove_o" c-pointer c-pointer int int int)]
-	[memmove2 (foreign-lambda void "C_memmove_o" c-pointer scheme-pointer int int int)]
-	[memmove3 (foreign-lambda void "C_memmove_o" scheme-pointer c-pointer int int int)]
-	[memmove4 (foreign-lambda void "C_memmove_o" scheme-pointer scheme-pointer int int int)]
-	[typerr (lambda (x)
+  (let ((memmove1 (foreign-lambda void "C_memmove_o" c-pointer c-pointer int int int))
+	(memmove2 (foreign-lambda void "C_memmove_o" c-pointer scheme-pointer int int int))
+	(memmove3 (foreign-lambda void "C_memmove_o" scheme-pointer c-pointer int int int))
+	(memmove4 (foreign-lambda void "C_memmove_o" scheme-pointer scheme-pointer int int int))
+	(typerr (lambda (x)
 		  (##sys#error-hook
 		   (foreign-value "C_BAD_ARGUMENT_TYPE_ERROR" int)
-		   'move-memory! x))]
-	[slot1structs '(mmap
-			u8vector u16vector u32vector s8vector s16vector s32vector
-			f32vector f64vector)] )
+		   'move-memory! x)))
+	(slot1structs '(mmap
+			u8vector u16vector u32vector u64vector
+			s8vector s16vector s32vector s64vector
+			f32vector f64vector)) )
     (lambda (from to #!optional n (foffset 0) (toffset 0))
       ;
       (define (nosizerr)
@@ -182,23 +189,6 @@ EOF
 			(typerr to)] ) ) ]
 	      [else
 	       (typerr from)] ) ) ) ) )
-
-
-;;; Copy arbitrary object:
-
-(define (object-copy x)
-  (let copy ([x x])
-    (cond [(not (##core#inline "C_blockp" x)) x]
-	  [(symbol? x) (##sys#intern-symbol (##sys#slot x 1))]
-	  [else
-	    (let* ([n (##sys#size x)]
-		   [words (if (##core#inline "C_byteblockp" x) (##core#inline "C_words" n) n)]
-		   [y (##core#inline "C_copy_block" x (##sys#make-vector words))] )
-	      (unless (or (##core#inline "C_byteblockp" x) (symbol? x))
-		(do ([i (if (##core#inline "C_specialp" x) 1 0) (fx+ i 1)])
-		    [(fx>= i n)]
-		  (##sys#setslot y i (copy (##sys#slot y i))) ) )
-	      y) ] ) ) )
 
 
 ;;; Pointer operations:
@@ -269,42 +259,6 @@ EOF
       (##sys#error-hook (foreign-value "C_BAD_ARGUMENT_TYPE_NO_POINTER_ERROR" int) 'pointer-tag x) ) )
 
 
-;;; locatives:
-
-;; Locative layout:
-;
-; 0	Object-address + Byte-offset (address)
-; 1	Byte-offset (fixnum)
-; 2	Type (fixnum)
-;	0	vector or pair		(C_SLOT_LOCATIVE)
-;	1	string			(C_CHAR_LOCATIVE)
-;	2	u8vector or blob        (C_U8_LOCATIVE)
-;	3	s8vector	        (C_S8_LOCATIVE)
-;	4	u16vector		(C_U16_LOCATIVE)
-;	5	s16vector		(C_S16_LOCATIVE)
-;	6	u32vector		(C_U32_LOCATIVE)
-;	7	s32vector		(C_S32_LOCATIVE)
-;	8	f32vector		(C_F32_LOCATIVE)
-;	9	f64vector		(C_F64_LOCATIVE)
-; 3	Object or #f, if weak (C_word)
-
-(define (make-locative obj . index)
-  (##sys#make-locative obj (optional index 0) #f 'make-locative) )
-
-(define (make-weak-locative obj . index)
-  (##sys#make-locative obj (optional index 0) #t 'make-weak-locative) )
-
-(define (locative-set! x y) (##core#inline "C_i_locative_set" x y))
-
-(define locative-ref
-  (getter-with-setter 
-   (lambda (loc)
-     (##core#inline_allocate ("C_a_i_locative_ref" 4) loc))
-   locative-set!
-   "(locative-ref loc)"))
-
-(define (locative->object x) (##core#inline "C_i_locative_to_object" x))
-(define (locative? x) (and (##core#inline "C_blockp" x) (##core#inline "C_locativep" x)))
 
 
 ;;; SRFI-4 number-vector:
@@ -315,6 +269,8 @@ EOF
 (define (pointer-s16-set! p n) (##core#inline "C_u_i_pointer_s16_set" p n))
 (define (pointer-u32-set! p n) (##core#inline "C_u_i_pointer_u32_set" p n))
 (define (pointer-s32-set! p n) (##core#inline "C_u_i_pointer_s32_set" p n))
+(define (pointer-u64-set! p n) (##core#inline "C_u_i_pointer_u64_set" p n))
+(define (pointer-s64-set! p n) (##core#inline "C_u_i_pointer_s64_set" p n))
 (define (pointer-f32-set! p n) (##core#inline "C_u_i_pointer_f32_set" p n))
 (define (pointer-f64-set! p n) (##core#inline "C_u_i_pointer_f64_set" p n))
 
@@ -344,15 +300,27 @@ EOF
 
 (define pointer-u32-ref
   (getter-with-setter
-   (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_u32_ref" 4) p)) ;XXX hardcoded size
+   (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_u32_ref" 6) p)) ;XXX hardcoded size
    pointer-u32-set!
    "(pointer-u32-ref p)"))
 
 (define pointer-s32-ref
   (getter-with-setter
-   (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_s32_ref" 4) p)) ;XXX hardcoded size
+   (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_s32_ref" 6) p)) ;XXX hardcoded size
    pointer-s32-set!
    "(pointer-s32-ref p)"))
+
+(define pointer-u64-ref
+  (getter-with-setter
+   (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_u64_ref" 7) p)) ;XXX hardcoded size
+   pointer-u64-set!
+   "(pointer-u64-ref p)"))
+
+(define pointer-s64-ref
+  (getter-with-setter
+   (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_s64_ref" 7) p)) ;XXX hardcoded size
+   pointer-s64-set!
+   "(pointer-s64-ref p)"))
 
 (define pointer-f32-ref
   (getter-with-setter
@@ -365,6 +333,107 @@ EOF
    (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_f64_ref" 4) p)) ;XXX hardcoded size
    pointer-f64-set!
    "(pointer-f64-ref p)"))
+
+
+;;; pointer vectors
+
+(define make-pointer-vector
+  (let ((unset (list 'unset)))
+    (lambda (n #!optional (init unset))
+      (##sys#check-exact n 'make-pointer-vector)
+      (let* ((words->bytes (foreign-lambda int "C_wordstobytes" int))
+	     (size (words->bytes n))
+	     (buf (##sys#make-blob size)))
+	(unless (eq? init unset)
+	  (when init
+	    (##sys#check-pointer init 'make-pointer-vector))
+	  (do ((i 0 (fx+ i 1)))
+	      ((fx>= i n))
+	    (pv-buf-set! buf i init)))
+	(##sys#make-structure 'pointer-vector n buf)))))
+
+(define (pointer-vector? x)
+  (##sys#structure? x 'pointer-vector))
+
+(define (pointer-vector . ptrs)
+  (let* ((n (length ptrs))
+	 (pv (make-pointer-vector n))
+	 (buf (##sys#slot pv 2)))	; buf
+    (do ((ptrs ptrs (cdr ptrs))
+	 (i 0 (fx+ i 1)))
+	((null? ptrs) pv)
+      (let ((ptr (car ptrs)))
+	(##sys#check-pointer ptr 'pointer-vector)
+	(pv-buf-set! buf i ptr)))))
+
+(define (pointer-vector-fill! pv ptr)
+  (##sys#check-structure pv 'pointer-vector 'pointer-vector-fill!)
+  (when ptr (##sys#check-pointer ptr 'pointer-vector-fill!))
+  (let ((buf (##sys#slot pv 2))		; buf
+	(n (##sys#slot pv 1)))		; n
+    (do ((i 0 (fx+ i 1)))
+	((fx>= i n))
+      (pv-buf-set! buf i ptr))))
+
+(define pv-buf-ref
+  (foreign-lambda* c-pointer ((scheme-object buf) (unsigned-int i))
+    "C_return(*((void **)C_data_pointer(buf) + i));"))
+
+(define pv-buf-set!
+  (foreign-lambda* void ((scheme-object buf) (unsigned-int i) (c-pointer ptr))
+    "*((void **)C_data_pointer(buf) + i) = ptr;"))
+
+(define (pointer-vector-set! pv i ptr)
+  (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
+  (##sys#check-exact i 'pointer-vector-ref)
+  (##sys#check-range i 0 (##sys#slot pv 1)) ; len
+  (when ptr (##sys#check-pointer ptr 'pointer-vector-set!))
+  (pv-buf-set! (##sys#slot pv 2) i ptr))
+
+(define pointer-vector-ref
+  (getter-with-setter
+   (lambda (pv i)
+     (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
+     (##sys#check-exact i 'pointer-vector-ref)
+     (##sys#check-range i 0 (##sys#slot pv 1)) ; len
+     (pv-buf-ref (##sys#slot pv 2) i))	; buf
+   pointer-vector-set!
+   "(pointer-vector-ref pv i)"))
+
+(define (pointer-vector-length pv)
+  (##sys#check-structure pv 'pointer-vector 'pointer-vector-length)
+  (##sys#slot pv 1))
+
+) ; chicken.memory
+
+
+(module chicken.memory.representation
+  (block-ref block-set! extend-procedure extended-procedure?
+   make-record-instance mutate-procedure! number-of-bytes
+   number-of-slots object-become! object-copy procedure-data
+   record->vector record-instance-length record-instance-slot
+   record-instance-slot-set! record-instance-type record-instance?
+   set-procedure-data! vector-like?)
+
+(import scheme chicken)
+(import chicken.foreign)
+
+
+;;; Copy arbitrary object:
+
+(define (object-copy x)
+  (let copy ((x x))
+    (cond ((not (##core#inline "C_blockp" x)) x)
+	  ((symbol? x) (##sys#intern-symbol (##sys#slot x 1)))
+	  (else
+	   (let* ((n (##sys#size x))
+		  (words (if (##core#inline "C_byteblockp" x) (##core#inline "C_words" n) n))
+		  (y (##core#inline "C_copy_block" x (##sys#make-vector words))))
+	     (unless (or (##core#inline "C_byteblockp" x) (symbol? x))
+	       (do ((i (if (##core#inline "C_specialp" x) 1 0) (fx+ i 1)))
+		   ((fx>= i n))
+		 (##sys#setslot y i (copy (##sys#slot y i)))))
+	     y)))))
 
 
 ;;; Procedures extended with data:
@@ -392,15 +461,10 @@ EOF
        (and-let* ([d (%procedure-data x)])
 	 (##sys#slot d 1) ) ) )
 
-(define set-procedure-data!
-  (lambda (proc x)
-    (let ((p2 (extend-procedure proc x)))
-      (if (eq? p2 proc)
-	  proc
-	  (##sys#signal-hook
-	   #:type-error 'set-procedure-data!
-	   "bad argument type - not an extended procedure" proc) ) ) ) )
-
+(define (set-procedure-data! proc x)
+  (unless (eq? proc (extend-procedure proc x))
+    (##sys#signal-hook #:type-error 'set-procedure-data!
+     "bad argument type - not an extended procedure" proc)))
 
 ;;; Accessors for arbitrary vector-like block objects:
 
@@ -474,133 +538,6 @@ EOF
       (##sys#setslot v i (##sys#slot x i)) ) ) )
 
 
-
-;;; Evict objects into static memory:
-
-(define (object-evicted? x) (##core#inline "C_permanentp" x))
-
-(define (object-evict x . allocator)
-  (let ([allocator 
-	 (if (pair? allocator) (car allocator) (foreign-lambda c-pointer "C_malloc" int) ) ] 
-	[tab (make-hash-table eq?)] )
-    (##sys#check-closure allocator 'object-evict)
-    (let evict ([x x])
-      (cond [(not (##core#inline "C_blockp" x)) x ]
-	    [(hash-table-ref/default tab x #f) ]
-	    [else
-	     (let* ([n (##sys#size x)]
-		    [bytes (if (##core#inline "C_byteblockp" x) (align-to-word n) (##core#inline "C_bytes" n))]
-		    [y (##core#inline "C_evict_block" x (allocator (fx+ bytes (##core#inline "C_bytes" 1))))] )
-	       (when (symbol? x) (##sys#setislot y 0 (void)))
-	       (hash-table-set! tab x y)
-	       (unless (##core#inline "C_byteblockp" x)
-		 (do ([i (if (or (##core#inline "C_specialp" x) (symbol? x)) 1 0) (fx+ i 1)])
-		     [(fx>= i n)]
-		   ;; Note the use of `##sys#setislot' to avoid an entry in the mutations-table:
-		   (##sys#setislot y i (evict (##sys#slot x i))) ) )
-	       y ) ] ) ) ) )
-
-(define (object-evict-to-location x ptr . limit)
-  (##sys#check-special ptr 'object-evict-to-location)
-  (let* ([limit (and (pair? limit)
-		     (let ([limit (car limit)])
-		       (##sys#check-exact limit 'object-evict-to-location)
-		       limit)) ]
-	 [ptr2 (##sys#address->pointer (##sys#pointer->address ptr))]
-	 [tab (make-hash-table eq?)]
-	 [x2
-	  (let evict ([x x])
-	    (cond [(not (##core#inline "C_blockp" x)) x ]
-		  [(hash-table-ref/default tab x #f) ]
-		  [else
-		   (let* ([n (##sys#size x)]
-			  [bytes 
-			   (fx+ (if (##core#inline "C_byteblockp" x) (align-to-word n) (##core#inline "C_bytes" n))
-				(##core#inline "C_bytes" 1) ) ] )
-		     (when limit
-		       (set! limit (fx- limit bytes))
-		       (when (fx< limit 0) 
-			 (signal
-			  (make-composite-condition
-			   (make-property-condition
-			    'exn 'location 'object-evict-to-location
-			    'message "cannot evict object - limit exceeded" 
-			    'arguments (list x limit))
-			   (make-property-condition 'evict 'limit limit) ) ) ) )
-		   (let ([y (##core#inline "C_evict_block" x ptr2)])
-		     (when (symbol? x) (##sys#setislot y 0 (void)))
-		     (##sys#set-pointer-address! ptr2 (+ (##sys#pointer->address ptr2) bytes))
-		     (hash-table-set! tab x y)
-		     (unless (##core#inline "C_byteblockp" x)
-		       (do ([i (if (or (##core#inline "C_specialp" x) (symbol? x)) 1 0) (fx+ i 1)] )
-			   [(fx>= i n)]
-			 (##sys#setislot y i (evict (##sys#slot x i))) ) ) ; see above
-		     y) ) ] ) ) ] )
-    (values x2 ptr2) ) )
-
-(define (object-release x . releaser)
-  (let ([free (if (pair? releaser) 
-		  (car releaser) 
-		  (foreign-lambda void "C_free" c-pointer) ) ]
-	[released '() ] )
-    (let release ([x x])
-      (cond [(not (##core#inline "C_blockp" x)) x ]
-	    [(not (##core#inline "C_permanentp" x)) x ]
-	    [(memq x released) x ]
-	    [else
-	     (let ([n (##sys#size x)])
-	       (set! released (cons x released))
-	       (unless (##core#inline "C_byteblockp" x)
-		 (do ([i (if (##core#inline "C_specialp" x) 1 0) (fx+ i 1)])
-		     [(fx>= i n)]
-		   (release (##sys#slot x i))) )
-	       (free 
-		(##sys#address->pointer
-		 (##core#inline_allocate ("C_block_address" 4) x))) ) ] ) ) ) )
-
-(define (object-size x)
-  (let ([tab (make-hash-table eq?)])
-    (let evict ([x x])
-      (cond [(not (##core#inline "C_blockp" x)) 0 ]
-	    [(hash-table-ref/default tab x #f) 0 ]
-	    [else
-	     (let* ([n (##sys#size x)]
-		    [bytes
-		     (fx+ (if (##core#inline "C_byteblockp" x) (align-to-word n) (##core#inline "C_bytes" n))
-			  (##core#inline "C_bytes" 1) ) ] )
-	       (hash-table-set! tab x #t)
-	       (unless (##core#inline "C_byteblockp" x)
-		 (do ([i (if (or (##core#inline "C_specialp" x) (symbol? x)) 1 0) (fx+ i 1)])
-		     [(fx>= i n)]
-		   (set! bytes (fx+ (evict (##sys#slot x i)) bytes)) ) )
-	       bytes) ] ) ) ) )
-
-(define (object-unevict x #!optional full)
-  (let ([tab (make-hash-table eq?)])
-    (let copy ([x x])
-    (cond [(not (##core#inline "C_blockp" x)) x ]
-	  [(not (##core#inline "C_permanentp" x)) x ]
-	  [(hash-table-ref/default tab x #f) ]
-	  [(##core#inline "C_byteblockp" x) 
-	   (if full
-	       (let ([y (##core#inline "C_copy_block" x (##sys#make-string (##sys#size x)))])
-		 (hash-table-set! tab x y)
-		 y) 
-	       x) ]
-	  [(symbol? x) 
-	   (let ([y (##sys#intern-symbol (##sys#slot x 1))])
-	     (hash-table-set! tab x y)
-	     y) ]
-	  [else
-	   (let* ([words (##sys#size x)]
-		  [y (##core#inline "C_copy_block" x (##sys#make-vector words))] )
-	     (hash-table-set! tab x y)
-	     (do ([i (if (##core#inline "C_specialp" x) 1 0) (fx+ i 1)])
-		 ((fx>= i words))
-	       (##sys#setslot y i (copy (##sys#slot y i))) )
-	     y) ] ) ) ) )
-
-
 ;;; `become':
 
 (define (object-become! alst)
@@ -616,72 +553,53 @@ EOF
     (##sys#become! (list (cons old (proc new))))
     new ) )
 
+) ; chicken.memory.representation
 
-;;; pointer vectors
 
-(define make-pointer-vector
-  (let ((unset (list 'unset)))
-    (lambda (n #!optional (init unset))
-      (##sys#check-exact n 'make-pointer-vector)
-      (let* ((mul (##sys#fudge 7))	; wordsize
-	     (size (fx* n mul))
-	     (buf (##sys#make-blob size)))
-	(unless (eq? init unset)
-	  (when init
-	    (##sys#check-pointer init 'make-pointer-vector))
-	  (do ((i 0 (fx+ i 1)))
-	      ((fx>= i n))
-	    (pv-buf-set! buf i init)))
-	(##sys#make-structure 'pointer-vector n buf)))))
+(module chicken.locative
+  (locative? make-locative make-weak-locative
+   locative-ref locative-set! locative->object)
 
-(define (pointer-vector? x) 
-  (##sys#structure? x 'pointer-vector))
+(import scheme chicken)
 
-(define (pointer-vector . ptrs)
-  (let* ((n (length ptrs))
-	 (pv (make-pointer-vector n))
-	 (buf (##sys#slot pv 2)))	; buf
-    (do ((ptrs ptrs (cdr ptrs))
-	 (i 0 (fx+ i 1)))
-	((null? ptrs) pv)
-      (let ((ptr (car ptrs)))
-	(##sys#check-pointer ptr 'pointer-vector)
-	(pv-buf-set! buf i ptr)))))
+;;; locatives:
 
-(define (pointer-vector-fill! pv ptr)
-  (##sys#check-structure pv 'pointer-vector 'pointer-vector-fill!)
-  (when ptr (##sys#check-pointer ptr 'pointer-vector-fill!))
-  (let ((buf (##sys#slot pv 2))		; buf
-	(n (##sys#slot pv 1)))		; n
-    (do ((i 0 (fx+ i 1)))
-	((fx>= i n))
-      (pv-buf-set! buf i ptr))))
+;; Locative layout:
+;
+; 0	Object-address + Byte-offset (address)
+; 1	Byte-offset (fixnum)
+; 2	Type (fixnum)
+;	0	vector or pair		(C_SLOT_LOCATIVE)
+;	1	string			(C_CHAR_LOCATIVE)
+;	2	u8vector or blob        (C_U8_LOCATIVE)
+;	3	s8vector	        (C_S8_LOCATIVE)
+;	4	u16vector		(C_U16_LOCATIVE)
+;	5	s16vector		(C_S16_LOCATIVE)
+;	6	u32vector		(C_U32_LOCATIVE)
+;	7	s32vector		(C_S32_LOCATIVE)
+;	8	u64vector		(C_U32_LOCATIVE)
+;	9	s64vector		(C_S32_LOCATIVE)
+;	10	f32vector		(C_F32_LOCATIVE)
+;	11	f64vector		(C_F64_LOCATIVE)
+; 3	Object or #f, if weak (C_word)
 
-(define pv-buf-ref
-  (foreign-lambda* c-pointer ((scheme-object buf) (unsigned-int i))
-    "C_return(*((void **)C_data_pointer(buf) + i));"))
+(define (make-locative obj . index)
+  (##sys#make-locative obj (optional index 0) #f 'make-locative))
 
-(define pv-buf-set!
-  (foreign-lambda* void ((scheme-object buf) (unsigned-int i) (c-pointer ptr))
-    "*((void **)C_data_pointer(buf) + i) = ptr;"))
+(define (make-weak-locative obj . index)
+  (##sys#make-locative obj (optional index 0) #t 'make-weak-locative))
 
-(define (pointer-vector-set! pv i ptr)
-  (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
-  (##sys#check-exact i 'pointer-vector-ref)
-  (##sys#check-range i 0 (##sys#slot pv 1)) ; len
-  (when ptr (##sys#check-pointer ptr 'pointer-vector-set!))
-  (pv-buf-set! (##sys#slot pv 2) i ptr))
+(define (locative-set! x y) (##core#inline "C_i_locative_set" x y))
 
-(define pointer-vector-ref
+(define locative-ref
   (getter-with-setter
-   (lambda (pv i)
-     (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
-     (##sys#check-exact i 'pointer-vector-ref)
-     (##sys#check-range i 0 (##sys#slot pv 1)) ; len
-     (pv-buf-ref (##sys#slot pv 2) i))	; buf
-   pointer-vector-set!
-   "(pointer-vector-ref pv i)"))
+   (lambda (loc)
+     (##core#inline_allocate ("C_a_i_locative_ref" 6) loc))
+   locative-set!
+   "(locative-ref loc)"))
 
-(define (pointer-vector-length pv)
-  (##sys#check-structure pv 'pointer-vector 'pointer-vector-length)
-  (##sys#slot pv 1))
+(define (locative->object x)
+  (##core#inline "C_i_locative_to_object" x))
+
+(define (locative? x)
+  (and (##core#inline "C_blockp" x) (##core#inline "C_locativep" x))))

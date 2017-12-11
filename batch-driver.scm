@@ -26,34 +26,157 @@
 
 
 (declare
-  (unit driver))
+  (unit batch-driver)
+  (uses extras data-structures pathname
+	support compiler-syntax compiler optimizer internal
+	;; TODO: Backend should be configurable
+	scrutinizer lfa2 c-platform c-backend user-pass))
 
-(include "compiler-namespace")
+(module chicken.compiler.batch-driver
+    (compile-source-file)
+
+(import chicken scheme
+	chicken.format
+	chicken.gc
+	chicken.internal
+	chicken.load
+	chicken.pathname
+	chicken.platform
+	chicken.pretty-print
+	chicken.string
+	chicken.time
+	chicken.compiler.support
+	chicken.compiler.compiler-syntax
+	chicken.compiler.core
+	chicken.compiler.optimizer
+	chicken.compiler.scrutinizer
+	chicken.compiler.lfa2
+	chicken.compiler.c-platform
+	chicken.compiler.c-backend
+	chicken.compiler.user-pass)
+
 (include "tweaks")
+(include "mini-srfi-1.scm")
 
 (define-constant funny-message-timeout 60000)
 
-(define user-options-pass (make-parameter #f))
-(define user-read-pass (make-parameter #f))
-(define user-preprocessor-pass (make-parameter #f))
-(define user-pass (make-parameter #f))
-(define user-post-analysis-pass (make-parameter #f))
+;;; Emit collected information from various statistics about the program
 
+(define (print-program-statistics db)
+  (receive
+   (size osize kvars kprocs globs sites entries) (compute-database-statistics db)
+   (when (debugging 's "program statistics:")
+     (printf ";   program size: \t~s \toriginal program size: \t~s\n" size osize)
+     (printf ";   variables with known values: \t~s\n" kvars)
+     (printf ";   known procedures: \t~s\n" kprocs)
+     (printf ";   global variables: \t~s\n" globs)
+     (printf ";   known call sites: \t~s\n" sites) 
+     (printf ";   database entries: \t~s\n" entries) ) ) )
+
+;;; Initialize analysis database:
+;;
+;; - Simply marks the symbols directly in the plist.
+;; - Does nothing after the first invocation, but we leave it this way to
+;;    have the option to add default entries for each new db.
+
+(define initialize-analysis-database
+  (let ((initial #t))
+    (lambda ()
+      (when initial
+	(for-each
+	 (lambda (s)
+	   (mark-variable s '##compiler#intrinsic 'standard))
+	 standard-bindings)
+	(for-each
+	 (lambda (s)
+	   (mark-variable s '##compiler#intrinsic 'extended))
+	 extended-bindings)
+	(for-each
+	 (lambda (s)
+	   (mark-variable s '##compiler#intrinsic 'internal))
+	 internal-bindings))
+      (set! initial #f))))
+
+;;; Display analysis database:
+
+(define display-analysis-database
+  (let ((names '((captured . cpt) (assigned . set) (boxed . box) (global . glo)
+		 (assigned-locally . stl)
+		 (contractable . con) (standard-binding . stb) (simple . sim)
+		 (inlinable . inl)
+		 (collapsable . col) (removable . rem) (constant . con)
+		 (inline-target . ilt) (inline-transient . itr)
+		 (undefined . und) (replacing . rpg) (unused . uud) (extended-binding . xtb)
+		 (inline-export . ilx) (hidden-refs . hrf)
+		 (value-ref . vvf)
+		 (customizable . cst) (has-unused-parameters . hup) (boxed-rest . bxr) ) ) 
+	(omit #f))
+    (lambda (db)
+      (unless omit
+	(set! omit 
+	  (append default-standard-bindings
+		  default-extended-bindings
+		  internal-bindings) ) )
+      (hash-table-for-each
+       (lambda (sym plist)
+	 (let ([val #f]
+	       (lval #f)
+	       [pval #f]
+	       [csites '()]
+	       [refs '()] )
+	   (unless (memq sym omit)
+	     (write sym)
+	     (let loop ((es plist))
+	       (if (pair? es)
+		   (begin
+		     (case (caar es)
+		       ((captured assigned boxed global contractable standard-binding assigned-locally
+				  collapsable removable undefined replacing unused simple inlinable inline-export
+				  has-unused-parameters extended-binding customizable constant boxed-rest hidden-refs)
+			(printf "\t~a" (cdr (assq (caar es) names))) )
+		       ((unknown)
+			(set! val 'unknown) )
+		       ((value)
+			(unless (eq? val 'unknown) (set! val (cdar es))) )
+		       ((local-value)
+			(unless (eq? val 'unknown) (set! lval (cdar es))) )
+		       ((potential-value)
+			(set! pval (cdar es)) )
+		       ((replacable home contains contained-in use-expr closure-size rest-parameter
+				    captured-variables explicit-rest)
+			(printf "\t~a=~s" (caar es) (cdar es)) )
+		       ((references)
+			(set! refs (cdar es)) )
+		       ((call-sites)
+			(set! csites (cdar es)) )
+		       (else (bomb "Illegal property" (car es))) )
+		     (loop (cdr es)) ) ) )
+	     (cond [(and val (not (eq? val 'unknown)))
+		    (printf "\tval=~s" (cons (node-class val) (node-parameters val))) ]
+		   [(and lval (not (eq? val 'unknown)))
+		    (printf "\tlval=~s" (cons (node-class lval) (node-parameters lval))) ]
+		   [(and pval (not (eq? val 'unknown)))
+		    (printf "\tpval=~s" (cons (node-class pval) (node-parameters pval)))] )
+	     (when (pair? refs) (printf "\trefs=~s" (length refs)))
+	     (when (pair? csites) (printf "\tcss=~s" (length csites)))
+	     (newline) ) ) )
+       db) ) ) )
 
 ;;; Compile a complete source file:
 
-(define (compile-source-file filename . options)
+(define (compile-source-file filename user-supplied-options . options)
   (define (option-arg p)
     (if (null? (cdr p))
-	(quit "missing argument to `-~A' option" (car p))
+	(quit-compiling "missing argument to `-~A' option" (car p))
 	(let ([arg (cadr p)])
 	  (if (symbol? arg)
-	      (quit "invalid argument to `~A' option" arg)
+	      (quit-compiling "invalid argument to `~A' option" arg)
 	      arg) ) ) )
   (initialize-compiler)
   (set! explicit-use-flag (memq 'explicit-use options))
   (set! emit-debug-info (memq 'debug-info options))
-  (let ((initforms `((##core#declare
+  (let ((initforms `((import-for-syntax ,@default-syntax-imports)
+		     (##core#declare
 		      ,@(append 
 			 default-declarations
 			 (if emit-debug-info
@@ -61,7 +184,10 @@
 			     '())
 			 (if explicit-use-flag
 			     '()
-			     `((uses ,@units-used-by-default)) ) ) ) ) )
+			     `((uses ,@default-units)))))
+		     ,@(if explicit-use-flag
+			   '()
+			   `((import ,@default-imports)))))
         (verbose (memq 'verbose options))
 	(outfile (cond ((memq 'output-file options) 
 			=> (lambda (node)
@@ -72,16 +198,16 @@
 		       ((memq 'to-stdout options) #f)
 		       (else (make-pathname #f (if filename (pathname-file filename) "out") "c")) ) )
 	(ipath (map chop-separator
-		    (string-split 
-		     (or (get-environment-variable "CHICKEN_INCLUDE_PATH") "") 
-		     ";")))
-	(opasses default-optimization-passes)
+		    (##sys#split-path
+		     (or (get-environment-variable "CHICKEN_INCLUDE_PATH") "")))) 
+
+	(opasses (default-optimization-passes))
 	(time0 #f)
 	(time-breakdown #f)
 	(forms '())
 	(inline-output-file #f)
 	(type-output-file #f)
-	(cleanup-forms '(((##sys#implicit-exit-handler))))
+	(cleanup-forms '(((chicken.base#implicit-exit-handler))))
 	(profile (or (memq 'profile options)
 		     (memq 'accumulate-profile options) 
 		     (memq 'profile-name options)))
@@ -89,9 +215,8 @@
 	 (and-let* ((pn (memq 'profile-name options))) (cadr pn)))
 	(hsize (memq 'heap-size options))
 	(kwstyle (memq 'keyword-style options))
-        (loop/dispatch (memq 'clustering options))
-	(uses-units '())
-	(uunit (memq 'unit options))
+	(loop/dispatch (memq 'clustering options))
+	(unit (memq 'unit options))
 	(a-only (memq 'analyze-only options))
 	(dynamic (memq 'dynamic options))
 	(do-scrutinize #t)
@@ -99,8 +224,10 @@
 	(dumpnodes #f)
 	(start-time #f)
 	(upap #f)
-	(wrap-module (memq 'module options))
-	(ssize (or (memq 'nursery options) (memq 'stack-size options))) )
+	(ssize (or (memq 'nursery options) (memq 'stack-size options)))
+	(module-name
+	 (and-let* ((m (memq 'module options)))
+	   (option-arg m))))
 
     (define (cputime) (current-milliseconds))
 
@@ -142,7 +269,7 @@
 		  ((#\m #\M) (* (string->number (substring str 0 len1)) (* 1024 1024)))
 		  ((#\k #\K) (* (string->number (substring str 0 len1)) 1024))
 		  (else (string->number str)) ) )
-	    (quit "invalid numeric argument ~S" str) ) ) )
+	    (quit-compiling "invalid numeric argument ~S" str) ) ) )
 
     (define (collect-options opt)
       (let loop ([opts options])
@@ -163,13 +290,13 @@
         (let ((db (analyze-expression node)))
 	  (when upap
 	    (upap pass db node
-		  (cut get db <> <>)
-		  (cut put! db <> <> <>)
+		  (cut db-get db <> <>)
+		  (cut db-put! db <> <> <>)
 		  no contf) )
 	  db) ) )
 
-    (when uunit
-      (set! unit-name (string->c-identifier (stringify (option-arg uunit)))) )
+    (when unit
+      (set! unit-name (string->symbol (option-arg unit))))
     (when (or unit-name dynamic)
       (set! standalone-executable #f))
     (when (memq 'ignore-repository options)
@@ -199,16 +326,13 @@
       (set! do-scrutinize #t))
     (when (memq 't debugging-chicken) (##sys#start-timer))
     (when (memq 'b debugging-chicken) (set! time-breakdown #t))
-    (when (memq 'emit-exports options)	; OBSOLETE
-      (warning "obsolete compiler option: -emit-exports") )
-    (when (memq 'lambda-lift options)	; OBSOLETE
-      (warning "obsolete compiler option: -lambda-lift") )
-    (when (memq 'unboxing options)	; OBSOLETE
-      (warning "obsolete compiler option: -unboxing") )
     (when (memq 'raw options)
       (set! explicit-use-flag #t)
       (set! cleanup-forms '())
       (set! initforms '()) )
+    (when (memq 'static options)
+      (set! static-extensions #t)
+      (register-feature! 'chicken-compile-static))
     (when (memq 'no-lambda-info options)
       (set! emit-closure-info #f) )
     (when (memq 'no-compiler-syntax options)
@@ -238,6 +362,8 @@
     (when (memq 'emit-external-prototypes-first options)
       (set! external-protos-first #t))
     (when (memq 'inline options) (set! inline-locally #t))
+    (and-let* ((elf (memq 'emit-link-file options)))
+      (set! emit-link-file (option-arg elf)))
     (and-let* ((ifile (memq 'emit-inline-file options)))
       (set! inline-locally #t)		; otherwise this option makes no sense
       (set! local-definitions #t)
@@ -248,7 +374,8 @@
       (set! inline-max-size 
 	(let ([arg (option-arg inlimit)])
 	  (or (string->number arg)
-	      (quit "invalid argument to `-inline-limit' option: `~A'" arg) ) ) ) )
+	      (quit-compiling
+	       "invalid argument to `-inline-limit' option: `~A'" arg) ) ) ) )
     (when (memq 'case-insensitive options) 
       (dribble "Identifiers and symbols are case insensitive")
       (register-feature! 'case-insensitive)
@@ -258,10 +385,11 @@
 	(cond [(string=? "prefix" val) (keyword-style #:prefix)]
 	      [(string=? "none" val) (keyword-style #:none)]
 	      [(string=? "suffix" val) (keyword-style #:suffix)]
-	      [else (quit "invalid argument to `-keyword-style' option")] ) ) )
-    (when (memq 'no-parenthesis-synonyms options)
-      (dribble "Disabled support for parenthesis synonyms")
-      (parenthesis-synonyms #f) )
+	      [else (quit-compiling
+		     "invalid argument to `-keyword-style' option")] ) ) )
+    (when (memq 'no-parentheses-synonyms options)
+      (dribble "Disabled support for parentheses synonyms")
+      (parentheses-synonyms #f) )
     (when (memq 'no-symbol-escape options) 
       (dribble "Disabled support for escaped symbols")
       (symbol-escape #f) )
@@ -278,11 +406,7 @@
 	      ##sys#include-pathnames
 	      ipath) )
     (when (and outfile filename (string=? outfile filename))
-      (quit "source- and output-filename are the same") )
-    (set! uses-units
-      (append-map
-       (lambda (u) (map string->symbol (string-split u ", ")))
-       (collect-options 'uses)))
+      (quit-compiling "source- and output-filename are the same") )
     (when (memq 'keep-shadowed-macros options)
       (set! undefine-shadowed-macros #f) )
     (when (memq 'no-argc-checks options)
@@ -319,21 +443,29 @@
     (let ([extends (collect-options 'extend)])
       (dribble "Loading compiler extensions...")
       (for-each
-       (lambda (f) (load (##sys#resolve-include-filename f #f #t))) 
+       (lambda (e)
+	 (let ((f (##sys#resolve-include-filename e #f #t #f)))
+	   (when (not f) (quit-compiling "cannot load extension: ~a" e))
+	   (load f)))
        extends) )
     (set! ##sys#features (delete #:compiler-extension ##sys#features eq?))
     (set! ##sys#features (cons '#:compiling ##sys#features))
     (set! upap (user-post-analysis-pass))
 
-    ;; Insert postponed initforms:
-    (set! initforms (append initforms postponed-initforms))
+    ;; Handle units added with the "-uses" flag.
+    (let ((uses (append-map
+		 (lambda (u) (map string->symbol (string-split u ", ")))
+		 (collect-options 'uses))))
+      (unless (null? uses)
+	(set! forms
+	  (cons `(##core#declare (uses . ,uses)) forms))))
 
     ;; Append required extensions to initforms:
     (set! initforms
-          (append 
-           initforms 
-           (map (lambda (r) `(##core#require-extension (,(string->symbol r)) #t))
-                (collect-options 'require-extension))))
+      (append
+       initforms
+       (map (lambda (r) `(import ,(string->symbol r)))
+	    (collect-options 'require-extension))))
 
     (when (memq 'compile-syntax options)
       (set! ##sys#enable-runtime-macros #t) )
@@ -359,7 +491,7 @@
     (when profile
       (let ((acc (eq? 'accumulate-profile (car profile))))
 	(when (and acc (not profile-name))
-	  (quit
+	  (quit-compiling
 	   "you need to specify -profile-name if using accumulated profiling runs"))
 	(set! emit-profile #t)
 	(set! profiled-procedures 'all)
@@ -392,7 +524,6 @@
 
 	   ;; Display header:
 	   (dribble "compiling `~a' ..." filename)
-	   (set! source-filename filename)
 	   (debugging 'r "options" options)
 	   (debugging 'r "debugging options" debugging-chicken)
 	   (debugging 'r "target heap size" target-heap-size)
@@ -438,48 +569,48 @@
 
 	   (print-expr "source" '|1| forms)
 	   (begin-time)
-	   (unless (null? uses-units)
-	     (set! ##sys#explicit-library-modules
-	       (append ##sys#explicit-library-modules uses-units))
-	     (set! forms (cons `(declare (uses ,@uses-units)) forms)) )
 	   ;; Canonicalize s-expressions
-	   (let* ((exps0 (map canonicalize-expression
+	   (let* ((exps0 (map (lambda (x)
+				(fluid-let ((##sys#current-source-filename filename))
+				  (canonicalize-expression x)))
 			      (let ((forms (append initforms forms)))
-				(if wrap-module
-				    `((##core#module main () 
-						     (import scheme chicken)
-						     ,@forms))
-				    forms))))
-		  [pvec (gensym)]
-		  [plen (length profile-lambda-list)]
-		  [exps (append
+				(if (not module-name)
+				    forms
+				    `((##core#module
+				       ,(string->symbol module-name) ()
+				       ,@forms))))))
+		  (exps (append
 			 (map (lambda (ic) `(set! ,(cdr ic) ',(car ic))) immutable-constants)
-			 (map (lambda (n) `(##core#callunit ,n)) used-units)
+			 (map (lambda (uu) `(##core#callunit ,uu)) used-units)
+			 (if unit-name `((##core#provide ,unit-name)) '())
 			 (if emit-profile
-			     `((set! ,profile-info-vector-name 
-				 (##sys#register-profile-info
-				  ',plen
-				  ',(and (not unit-name)
-					 (or profile-name #t)))))
+			     (profiling-prelude-exps (and (not unit-name)
+							  (or profile-name #t)))
 			     '() )
-			 (map (lambda (pl)
-				`(##sys#set-profile-info-vector!
-				  ,profile-info-vector-name
-				  ',(car pl)
-				  ',(cdr pl) ) )
-			      profile-lambda-list)
 			 exps0
-			 (if (and (not unit-name) (not dynamic))
+			 (if standalone-executable
 			     cleanup-forms
-			     '() )
-			 '((##core#undefined))) ] )
+			     '((##core#undefined))))))
 
 	     (unless (null? import-libraries)
-	       (quit "No module definition found for import libraries to emit: ~A"
-		     ;; ~S would be confusing: separate with a comma
-		     (string-intersperse
-		      (map (lambda (il) (->string (car il)))
-			   import-libraries) ", ")))
+	       (quit-compiling
+		"No module definition found for import libraries to emit: ~A"
+		;; ~S would be confusing: separate with a comma
+		(string-intersperse
+		 (map (lambda (il) (->string (car il)))
+		      import-libraries) ", ")))
+
+	     (and-let* ((reqs (hash-table-ref file-requirements 'dynamic))
+			(missing (remove (cut chicken.load#find-dynamic-extension <> #f) reqs)))
+	       (when (null? (lset-intersection/eq? '(eval repl) used-units))
+		 (notice ; XXX only issued when "-verbose" is used
+		  (sprintf "~A has dynamic requirements but doesn't load (chicken eval): ~A"
+			   (cond (unit-name "unit") (dynamic "library") (else "program"))
+			   (string-intersperse (map ->string reqs) ", "))))
+	       (when (pair? missing)
+		 (warning
+		  (sprintf "the following extensions are not currently installed: ~A"
+			   (string-intersperse (map ->string missing) ", ")))))
 
 	     (when (pair? compiler-syntax-statistics)
 	       (with-debugging-output
@@ -493,10 +624,6 @@
 	       (display-real-name-table) )
 	     (when (debugging 'n "line number database:")
 	       (display-line-number-database) )
-
-	     (when (and unit-name dynamic)
-	       (##sys#notice 
-		(sprintf "library unit `~a' compiled in dynamic mode" unit-name) ) )
 
 	     (set! ##sys#line-number-database line-number-database-2)
 	     (set! line-number-database-2 #f)
@@ -515,10 +642,9 @@
 		 (end-time "user pass") ) )
 
 	     ;; Convert s-expressions to node tree
-	     (let ((node0 (make-node
-			   'lambda '(())
-			   (list (build-node-graph
-				  (canonicalize-begin-body exps) ) ) ) ) 
+	     (let ((node0 (build-toplevel-procedure
+			   (build-node-graph
+			    (canonicalize-begin-body exps))))
 		   (db #f))
 	       (print-node "initial node tree" '|T| node0)
 	       (initialize-analysis-database)
@@ -531,10 +657,8 @@
 		 (when enable-inline-files
 		   (for-each
 		    (lambda (id)
-		      (and-let* ((ifile (##sys#resolve-include-filename 
-					 (make-pathname #f (symbol->string id) "inline")
-					 #f #t))
-				 ((file-exists? ifile)))
+		      (and-let* ((ifile (##sys#resolve-include-filename
+					 (symbol->string id) '(".inline") #t #f)))
 			(dribble "Loading inline file ~a ..." ifile)
 			(load-inline-file ifile)))
 		    mreq))
@@ -550,16 +674,20 @@
 		 (when (or do-scrutinize enable-specialization)
 		   ;;XXX hardcoded database file name
 		   (unless (memq 'ignore-repository options)
-		     (unless (load-type-database "types.db")
-		       (quit "default type-database `types.db' not found")))
+		     (unless (load-type-database "types.db"
+						 enable-specialization)
+		       (quit-compiling
+			"default type-database `types.db' not found")))
 		   (for-each 
 		    (lambda (fn)
-		      (or (load-type-database fn #f)
-			  (quit "type-database `~a' not found" fn)))
-		    (collect-options 'types))
+		      (or (load-type-database fn enable-specialization #f)
+			  (quit-compiling "type-database `~a' not found" fn)))
+		    (collect-options 'consult-type-file))
 		   (for-each
 		    (lambda (id)
-		      (load-type-database (make-pathname #f (symbol->string id) "types")))
+		      (load-type-database
+		       (make-pathname #f (symbol->string id) "types")
+		       enable-specialization))
 		    mreq)
 		   (begin-time)
 		   (set! first-analysis #f)
@@ -568,12 +696,15 @@
 		   (end-time "pre-analysis (scrutiny)")
 		   (begin-time)
 		   (debugging 'p "performing scrutiny")
-		   (scrutinize node0 db do-scrutinize enable-specialization)
+		   (scrutinize node0 db
+			       do-scrutinize enable-specialization
+			       strict-variable-types block-compilation)
 		   (end-time "scrutiny")
 		   (when enable-specialization
 		     (print-node "specialization" '|P| node0))
 		   (set! first-analysis #t) ) )
 
+	       ;; TODO: Move this so that we don't need to export these
 	       (set! ##sys#line-number-database #f)
 	       (set! constant-table #f)
 	       (set! inline-table #f)
@@ -606,7 +737,7 @@
 		       ;; do this here, because we must make sure we have a db
 		       (when type-output-file
 			 (dribble "generating type file `~a' ..." type-output-file)
-			 (emit-type-file type-output-file db)))
+			 (emit-type-file filename type-output-file db block-compilation)))
 		     (set! first-analysis #f)
 		     (end-time "analysis")
 		     (print-db "analysis" '|4| db i)
@@ -621,7 +752,10 @@
 			    (receive (node2 progress-flag)
 				(if l/d
 				    (determine-loop-and-dispatch node2 db)
-				    (perform-high-level-optimizations node2 db))
+				    (perform-high-level-optimizations
+				     node2 db block-compilation
+				     inline-locally inline-max-size
+				     inline-substitutions-enabled))
 			      (end-time "optimization")
 			      (print-node "optimized-iteration" '|5| node2)
 			      (cond (progress-flag
@@ -662,7 +796,9 @@
 			    (when (and inline-output-file insert-timer-checks)
 			      (let ((f inline-output-file))
 				(dribble "generating global inline file `~a' ..." f)
-				(emit-global-inline-file f db) ) )
+				(emit-global-inline-file
+				 filename f db block-compilation
+				 inline-max-size) ) )
 			    (begin-time)
 			    ;; Closure conversion
 			    (set! node2 (perform-closure-conversion node2 db))
@@ -679,11 +815,19 @@
 				(prepare-for-code-generation node2 db)
 			      (end-time "preparation")
 			      (begin-time)
-			      ;; Code generation
+
+                              ;; generate link file
+                              (when emit-link-file
+                                (dribble "generating link file `~a' ..." emit-link-file)
+                                (with-output-to-file
+                                  emit-link-file
+                                  (cut pp linked-static-extensions)))
+                                
+                               ;; Code generation
 			      (let ((out (if outfile (open-output-file outfile) (current-output-port))) )
 				(dribble "generating `~A' ..." outfile)
 				(generate-code literals lliterals lambda-table out filename
-					       dynamic db dbg-info)
+					       user-supplied-options dynamic db dbg-info)
 				(when outfile
 				  (close-output-port out)))
 			      (end-time "code generation")
@@ -691,3 +835,4 @@
 				(##sys#display-times (##sys#stop-timer)))
 			      (compiler-cleanup-hook)
 			      (dribble "compilation finished.") ) ) ) ) ) ) ) ) ) ) ) )
+)

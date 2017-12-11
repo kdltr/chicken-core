@@ -34,18 +34,23 @@
 
 (declare
   (unit lfa2)
-  (hide d-depth lfa2-debug d dd +type-check-map+ +predicate-map+))
+  (uses extras support))
 
+(module chicken.compiler.lfa2
+    (perform-secondary-flow-analysis)
 
-(include "compiler-namespace")
+(import chicken scheme
+	chicken.compiler.support
+	chicken.format)
+
 (include "tweaks")
-
+(include "mini-srfi-1.scm")
 
 (define d-depth 0)
 (define lfa2-debug #t)
 
 (define (d fstr . args)
-  (when (and scrutiny-debug (##sys#fudge 13))
+  (when (and lfa2-debug (##sys#debug-mode?))
     (printf "[debug|~a] ~a~?~%" d-depth (make-string d-depth #\space) fstr args)) )
 
 (define dd d)
@@ -58,9 +63,9 @@
 
 (define +type-check-map+
   '(("C_i_check_closure" procedure)
-    ("C_i_check_exact" fixnum)
-    ("C_i_check_inexact" flonum)
-    ("C_i_check_number" fixnum flonum number)
+    ("C_i_check_exact" fixnum bignum integer ratnum)
+    ("C_i_check_inexact" flonum)	; Or an inexact cplxnum...
+    ("C_i_check_number" fixnum integer bignum ratnum flonum cplxnum number)
     ("C_i_check_string" string)
     ("C_i_check_bytevector" blob)
     ("C_i_check_symbol" symbol)
@@ -72,9 +77,9 @@
     ("C_i_check_structure" *struct*)	; special case
     ("C_i_check_char" char)
     ("C_i_check_closure_2" procedure)
-    ("C_i_check_exact_2" fixnum)
-    ("C_i_check_inexact_2" flonum)
-    ("C_i_check_number_2" fixnum flonum number)
+    ("C_i_check_exact_2" fixnum bignum integer ratnum)
+    ("C_i_check_inexact_2" flonum)	; Or an inexact cplxnum...
+    ("C_i_check_number_2" fixnum integer bignum ratnum flonum cplxnum number)
     ("C_i_check_string_2" string)
     ("C_i_check_bytevector_2" blob)
     ("C_i_check_symbol_2" symbol)
@@ -92,8 +97,12 @@
 (define +predicate-map+
   '(("C_i_closurep" procedure)
     ("C_fixnump" fixnum)
+    ("C_bignump" bignum)
+    ("C_i_exact_integerp" integer fixnum bignum)
     ("C_i_flonump" flonum)
-    ("C_i_numberp" number)
+    ("C_i_numberp" number fixnum integer bignum ratnum flonum cplxnum)
+    ("C_i_ratnump" ratnum)
+    ("C_i_cplxnump" cplxnum)
     ("C_stringp" string)
     ("C_bytevectorp" blob)
     ("C_i_symbolp" symbol)
@@ -108,6 +117,15 @@
     ("C_i_portp" port)
     ("C_i_nullp" null)))
 
+;; Maps foreign type checks to types
+
+(define +ffi-type-check-map+
+  '(("C_i_foreign_fixnum_argumentp" fixnum)
+    ("C_i_foreign_integer_argumentp" integer fixnum bignum)
+    ("C_i_foreign_char_argumentp" char)
+    ("C_i_foreign_flonum_argumentp" flonum)
+    ("C_i_foreign_string_argumentp" string)
+    ("C_i_foreign_symbol_argumentp" symbol)))
 
 ;; Maps constructors to types
 
@@ -146,6 +164,11 @@
     ("C_a_i_cons" pair)
     ("C_a_i_flonum" flonum)
     ("C_a_i_fix_to_flo" flonum)
+    ("C_a_i_big_to_flo" flonum)
+    ("C_a_i_fix_to_big" bignum)
+    ("C_a_i_bignum0" bignum)
+    ("C_a_i_bignum1" bignum)
+    ("C_a_i_bignum2" bignum)
     ;;XXX there are endless more - is it worth it?
     ))
 
@@ -160,9 +183,12 @@
       (cond ((string? lit) 'string)
 	    ((symbol? lit) 'symbol)
 	    ;; Do not assume fixnum width matches target platforms!
-	    ((big-fixnum? lit) 'number)
+	    ((or (big-fixnum? lit) (small-bignum? lit)) 'integer)
 	    ((fixnum? lit) 'fixnum)
+	    ((bignum? lit) 'bignum)
 	    ((flonum? lit) 'float)
+	    ((ratnum? lit) 'ratnum)
+	    ((cplxnum? lit) 'cplxnum)
 	    ((boolean? lit) 'boolean)
 	    ((null? lit) 'null)
 	    ((list? lit) 'list)
@@ -180,14 +206,14 @@
 	    (else (set! stats (alist-cons elim 1 stats)))))
  
     (define (assigned? var)
-      (get db var 'assigned))
+      (db-get db var 'assigned))
 
     (define (droppable? n)
       (or (memq (node-class n) 
 		'(quote ##core#undefined ##core#primitive ##core#lambda))
 	  (and (eq? '##core#variable (node-class n))
 	       (let ((var (first (node-parameters n))))
-		 (or (not (get db var 'global))
+		 (or (not (db-get db var 'global))
 		     (variable-mark var '##compiler#always-bound))))))
 
     (define (drop! n)
@@ -296,6 +322,17 @@
 			    ((member r1 (cdr a))
 			     (extinguish! n "C_i_noop")))
 		      '*)))
+		 ((assoc (first params) +ffi-type-check-map+) =>
+		  (lambda (a)
+		    (let ((arg (first subs))
+			  (r1 (walk (first subs) te ae)))
+		      (when (member r1 (cdr a))
+			(node-class-set! n (node-class arg))
+			(node-parameters-set! n (node-parameters arg))
+			(node-subexpressions-set! n (node-subexpressions arg)))
+		      ;; the ffi checks are enforcing so we always end up with
+		      ;; the correct type
+		      r1)))
 		 ((assoc (first params) +predicate-map+) =>
 		  (lambda (a)
 		    (let ((arg (first subs)))
@@ -356,3 +393,4 @@
 	 (for-each 
 	  (lambda (ss) (printf "  ~a:\t~a~%" (car ss) (cdr ss)))
 	  stats))))))
+)

@@ -27,23 +27,28 @@
 
 (declare
   (uses chicken-syntax chicken-ffi-syntax 
-	srfi-1 srfi-4 utils files extras data-structures srfi-69
+	srfi-4 extras data-structures
 	lolevel ; unused, but loaded to make foldable bindings available
 	support compiler optimizer lfa2 compiler-syntax scrutinizer
-	driver platform backend))
+	batch-driver c-platform c-backend user-pass))
 
+(module chicken.compiler.chicken ()
 
-(include "compiler-namespace")
+(import scheme chicken
+	chicken.compiler.batch-driver
+	chicken.compiler.c-platform
+	chicken.compiler.support
+	chicken.compiler.user-pass
+	chicken.string)
+
 (include "tweaks")
-
+(include "mini-srfi-1.scm")
 
 ;;; Prefix argument list with default options:
 
 (define compiler-arguments
   (append
-   (remove 
-    (lambda (x) (string=? x ""))
-    (string-split (or (get-environment-variable "CHICKEN_OPTIONS") "")))
+   (string-split (or (get-environment-variable "CHICKEN_OPTIONS") ""))
    (cdr (argv))))
 
 
@@ -72,6 +77,7 @@
 ;;; Run compiler with command-line options:
 
 (receive (filename options) ((or (user-options-pass) process-command-line) compiler-arguments)
+  ;; TODO: Perhaps option parsing should be moved to batch-driver?
   (let loop ((os options))
     (unless (null? os)
       (let ((o (car os))
@@ -133,22 +139,22 @@
 			       options) ) ) ) )
 		 (loop (cdr rest)) ) )
 	      ((eq? 'debug-level o)
-	       (let ((level (string->number (car rest))))
-		 (case level
-		   ((0) (set! options (cons* 'no-lambda-info 'no-trace options)))
-		   ((1) (set! options (cons 'no-trace options)))
-		   ((2) (set! options (cons 'scrutinize options)))
-		   (else (set! options (cons* 'scrutinize 'debug-info options))))
-		 (loop (cdr rest)) ) )
+	       (case (string->number (car rest))
+		 ((0) (set! options (cons* 'no-lambda-info 'no-trace options)))
+		 ((1) (set! options (cons 'no-trace options)))
+		 ((2)) ; default behaviour
+		 ((3) (set! options (cons 'debug-info options)))
+		 (else (quit-compiling "invalid debug level: ~a" (car rest))))
+	       (loop (cdr rest)))
 	      ((memq o valid-compiler-options) (loop rest))
 	      ((memq o valid-compiler-options-with-argument)
 	       (if (pair? rest)
 		   (loop (cdr rest))
-		   (quit "missing argument to `-~s' option" o) ) )
+		   (quit-compiling "missing argument to `-~s' option" o) ) )
 	      (else
 	       (warning 
 		"invalid compiler option (ignored)" 
 		(if (string? o) o (conc "-" o)) )
 	       (loop rest) ) ) ) ) )
-  (apply compile-source-file filename options)
-  (exit) )
+  (apply compile-source-file filename compiler-arguments options)
+  (exit)))

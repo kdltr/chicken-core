@@ -20,9 +20,6 @@
 # Build static runtime library only:
 #STATICBUILD=1
 
-# Enable GC of symbols:
-#SYMBOLGC=1
-
 # Use alternative C compiler
 #C_COMPILER=
 

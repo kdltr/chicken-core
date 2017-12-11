@@ -27,7 +27,9 @@
 
 (declare
   (unit default_stub)
-  (uses library eval data-structures ports extras)
+  (uses library eval data-structures port extras)
   (not safe) )
+
+(import chicken.platform)
 
 (let loop () (return-to-host) (loop))

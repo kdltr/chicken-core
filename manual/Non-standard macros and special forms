@@ -543,11 +543,11 @@ Expands by selecting feature clauses. This form is allowed to appear in non-topl
 
 Predefined feature-identifiers are "situation" specific:
 
-; compile : {{chicken}}, {{compiling}}, {{library}}, {{eval}}, {{extras}}, {{utils}}, {{regex}}, {{srfi-0}}, {{srfi-1}}, {{srfi-2}}, {{srfi-4}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-11}}, {{srfi-12}}, {{srfi-15}}, {{srfi-16}}, {{srfi-17}}, {{srfi-23}}, {{srfi-26}}, {{srfi-28}}, {{srfi-30}}, {{srfi-31}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}, {{srfi-69}}
+; compile : {{chicken}}, {{compiling}}, {{library}}, {{eval}}, {{extras}}, {{regex}}, {{srfi-0}}, {{srfi-2}}, {{srfi-4}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-11}}, {{srfi-12}}, {{srfi-15}}, {{srfi-16}}, {{srfi-17}}, {{srfi-23}}, {{srfi-26}}, {{srfi-28}}, {{srfi-30}}, {{srfi-31}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}
 
-; load : {{chicken}}, {{extras}}, {{srfi-0}}, {{srfi-2}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-12}}, {{srfi-17}}, {{srfi-23}}, {{srfi-28}}, {{srfi-30}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}, {{srfi-69}}. {{library}} is implicit.
+; load : {{chicken}}, {{extras}}, {{srfi-0}}, {{srfi-2}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-12}}, {{srfi-17}}, {{srfi-23}}, {{srfi-28}}, {{srfi-30}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}. {{library}} is implicit.
 
-; eval : {{csi}}, {{chicken}}, {{extras}}, {{srfi-0}}, {{srfi-2}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-11}}, {{srfi-12}}, {{srfi-15}}, {{srfi-16}}, {{srfi-17}}, {{srfi-23}}, {{srfi-26}}, {{srfi-28}}, {{srfi-30}}, {{srfi-31}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}, {{srfi-69}}. {{library}} is implicit.
+; eval : {{csi}}, {{chicken}}, {{extras}}, {{srfi-0}}, {{srfi-2}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-11}}, {{srfi-12}}, {{srfi-15}}, {{srfi-16}}, {{srfi-17}}, {{srfi-23}}, {{srfi-26}}, {{srfi-28}}, {{srfi-30}}, {{srfi-31}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}. {{library}} is implicit.
 
 The following feature-identifier classes are available in all situations:
 {{(machine-byte-order)}}, {{(machine-type)}}, {{(software-type)}},
@@ -612,9 +612,16 @@ The following table should make this clearer:
 
 Include toplevel-expressions from the given source file in the currently
 compiled/interpreted program.  If the included file has the extension
-{{.scm}}, then it may be omitted.  The file is searched in the
-current directory and, if not found, in all directories specified in the
-{{-include-path}} option.
+{{.scm}}, then it may be omitted. The file is searched for in the
+current directory and all directories specified by the {{-include-path}}
+option.
+
+==== include-relative
+
+<macro>(include-relative STRING)</macro>
+
+Works like {{include}}, but the filename is searched for relative to the
+including file rather than the current directory.
 
 ==== nth-value
 

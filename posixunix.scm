@@ -25,32 +25,19 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-(declare
-  (unit posix)
-  (uses scheduler irregex extras files ports lolevel)
-  (disable-interrupts)
-  (hide group-member _get-groups _ensure-groups posix-error ##sys#terminal-check)
-  (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
-
-
 ;; these are not available on Windows
 
 (define-foreign-variable _stat_st_blksize unsigned-int "C_statbuf.st_blksize")
 (define-foreign-variable _stat_st_blocks unsigned-int "C_statbuf.st_blocks")
 
-
-;;; common code
-
 (include "posix-common.scm")
 
+#>
 
-(declare
-  (foreign-declare #<<EOF
 static C_TLS int C_wait_status;
 
 #include <sys/time.h>
 #include <sys/wait.h>
-#include <sys/utsname.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -62,12 +49,8 @@ static C_TLS int C_wait_status;
 # include <termios.h>
 #endif
 
-#ifdef HAVE_GRP_H
-#include <grp.h>
-#endif
-
 #include <sys/mman.h>
-#include <sys/poll.h>
+#include <poll.h>
 
 #ifndef O_FSYNC
 # define O_FSYNC O_SYNC
@@ -110,19 +93,9 @@ extern char **environ;
 # define FILENAME_MAX          1024
 #endif
 
-static C_TLS struct utsname C_utsname;
 static C_TLS struct flock C_flock;
 static C_TLS DIR *temphandle;
 static C_TLS struct passwd *C_user;
-#ifdef HAVE_GRP_H
-static C_TLS struct group *C_group;
-#else
-static C_TLS struct {
-  char *gr_name, gr_passwd;
-  int gr_gid;
-  char *gr_mem[ 1 ];
-} C_group = { "", "", 0, { "" } };
-#endif
 
 /* Android doesn't provide pw_gecos in the passwd struct */
 #ifdef __ANDROID__
@@ -134,13 +107,10 @@ static C_TLS struct {
 static C_TLS int C_pipefds[ 2 ];
 static C_TLS time_t C_secs;
 static C_TLS struct timeval C_timeval;
-static C_TLS char C_hostbuf[ 256 ];
 static C_TLS struct stat C_statbuf;
 
-#define C_mkdir(str)        C_fix(mkdir(C_c_string(str), S_IRWXU | S_IRWXG | S_IRWXO))
 #define C_fchdir(fd)        C_fix(fchdir(C_unfix(fd)))
 #define C_chdir(str)        C_fix(chdir(C_c_string(str)))
-#define C_rmdir(str)        C_fix(rmdir(C_c_string(str)))
 
 #define open_binary_input_pipe(a, n, name)   C_mpointer(a, popen(C_c_string(name), "r"))
 #define open_text_input_pipe(a, n, name)     open_binary_input_pipe(a, n, name)
@@ -157,7 +127,9 @@ static C_TLS struct stat C_statbuf;
 #define C_geteuid           geteuid
 #define C_getegid           getegid
 #define C_chown(fn, u, g)   C_fix(chown(C_data_pointer(fn), C_unfix(u), C_unfix(g)))
+#define C_fchown(fd, u, g)  C_fix(fchown(C_unfix(fd), C_unfix(u), C_unfix(g)))
 #define C_chmod(fn, m)      C_fix(chmod(C_data_pointer(fn), C_unfix(m)))
+#define C_fchmod(fd, m)     C_fix(fchmod(C_unfix(fd), C_unfix(m)))
 #define C_setuid(id)        C_fix(setuid(C_unfix(id)))
 #define C_setgid(id)        C_fix(setgid(C_unfix(id)))
 #define C_seteuid(id)       C_fix(seteuid(C_unfix(id)))
@@ -169,25 +141,15 @@ static C_TLS struct stat C_statbuf;
 #define C_do_readlink(f, b)    C_fix(readlink(C_data_pointer(f), C_data_pointer(b), FILENAME_MAX))
 #define C_getpwnam(n)       C_mk_bool((C_user = getpwnam((char *)C_data_pointer(n))) != NULL)
 #define C_getpwuid(u)       C_mk_bool((C_user = getpwuid(C_unfix(u))) != NULL)
-#if !defined(__ANDROID__) && defined(HAVE_GRP_H)
-#define C_getgrnam(n)       C_mk_bool((C_group = getgrnam((char *)C_data_pointer(n))) != NULL)
-#define C_getgrgid(u)       C_mk_bool((C_group = getgrgid(C_unfix(u))) != NULL)
-#else
-#define C_getgrnam(n)       C_SCHEME_FALSE
-#define C_getgrgid(n)       C_SCHEME_FALSE
-#endif
 #define C_pipe(d)           C_fix(pipe(C_pipefds))
 #define C_truncate(f, n)    C_fix(truncate((char *)C_data_pointer(f), C_num_to_int(n)))
 #define C_ftruncate(f, n)   C_fix(ftruncate(C_unfix(f), C_num_to_int(n)))
-#define C_uname             C_fix(uname(&C_utsname))
 #define C_alarm             alarm
-#define C_setvbuf(p, m, s)  C_fix(setvbuf(C_port_file(p), NULL, C_unfix(m), C_unfix(s)))
 #define C_test_access(fn, m)     C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_close(fd)         C_fix(close(C_unfix(fd)))
-#define C_sleep             sleep
 #define C_umask(m)          C_fix(umask(C_unfix(m)))
 
-#define C_lstat(fn)         C_fix(lstat((char *)C_data_pointer(fn), &C_statbuf))
+#define C_u_i_lstat(fn)     C_fix(lstat((char *)C_data_pointer(fn), &C_statbuf))
 
 #define C_u_i_execvp(f,a)   C_fix(execvp(C_data_pointer(f), (char *const *)C_c_pointer_vector_or_null(a)))
 #define C_u_i_execve(f,a,e) C_fix(execve(C_data_pointer(f), (char *const *)C_c_pointer_vector_or_null(a), (char *const *)C_c_pointer_vector_or_null(e)))
@@ -271,7 +233,7 @@ static time_t C_timegm(struct tm *t)
 #define C_timegm timegm
 #endif
 
-#define C_a_timegm(ptr, c, v, tm)  C_flonum(ptr, C_timegm(C_tm_set((v), C_data_pointer(tm))))
+#define C_a_timegm(ptr, c, v, tm)  C_int64_to_num(ptr, C_timegm(C_tm_set((v), C_data_pointer(tm))))
 
 #ifdef __linux__
 extern char *strptime(const char *s, const char *format, struct tm *tm);
@@ -309,12 +271,6 @@ C_tm_get( C_word v, void *tm )
 #define C_strptime(s, f, v, stm) \
         (strptime(C_c_string(s), C_c_string(f), ((struct tm *)(stm))) ? C_tm_get((v), (stm)) : C_SCHEME_FALSE)
 
-static gid_t *C_groups = NULL;
-
-#define C_get_gid(n)      C_fix(C_groups[ C_unfix(n) ])
-#define C_set_gid(n, id)  (C_groups[ C_unfix(n) ] = C_unfix(id), C_SCHEME_UNDEFINED)
-#define C_set_groups(n)   C_fix(setgroups(C_unfix(n), C_groups))
-
 #if !defined(__ANDROID__) && defined(TIOCGWINSZ)
 static int get_tty_size(int p, int *rows, int *cols)
 {
@@ -338,11 +294,26 @@ static int get_tty_size(int p, int *rows, int *cols)
 }
 #endif
 
-static int set_file_mtime(char *filename, C_word tm)
+static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 {
+  struct stat sb;
   struct utimbuf tb;
 
-  tb.actime = tb.modtime = C_num_to_int(tm);
+  /* Only lstat if needed */
+  if (atime == C_SCHEME_FALSE || mtime == C_SCHEME_FALSE) {
+    if (lstat(filename, &sb) == -1) return -1;
+  }
+
+  if (atime == C_SCHEME_FALSE) {
+    tb.actime = sb.st_atime;
+  } else {
+    tb.actime = C_num_to_int64(atime);
+  }
+  if (mtime == C_SCHEME_FALSE) {
+    tb.modtime = sb.st_mtime;
+  } else {
+    tb.modtime = C_num_to_int64(mtime);
+  }
   return utime(filename, &tb);
 }
 
@@ -366,8 +337,7 @@ static C_word C_i_fifo_p(C_word name)
   else return C_SCHEME_FALSE;
 }
 
-EOF
-) )
+<#
 
 ;; Faster versions of common operations
 
@@ -426,6 +396,14 @@ EOF
 (define open/binary _o_binary)
 (define open/text _o_text)
 
+;; Windows-only definitions
+(define open/noinherit 0)
+(define spawn/overlay 0)
+(define spawn/wait 0)
+(define spawn/nowait 0)
+(define spawn/nowaito 0)
+(define spawn/detach 0)
+
 (define-foreign-variable _s_irusr int "S_IRUSR")
 (define-foreign-variable _s_iwusr int "S_IWUSR")
 (define-foreign-variable _s_ixusr int "S_IXUSR")
@@ -461,8 +439,8 @@ EOF
 (define file-control
   (let ([fcntl (foreign-lambda int fcntl int int long)])
     (lambda (fd cmd #!optional (arg 0))
-      (##sys#check-exact fd 'file-control)
-      (##sys#check-exact cmd 'file-control)
+      (##sys#check-fixnum fd 'file-control)
+      (##sys#check-fixnum cmd 'file-control)
       (let ([res (fcntl fd cmd arg)])
         (if (fx= res -1)
             (posix-error #:file-error 'file-control "cannot control file" fd cmd)
@@ -473,8 +451,8 @@ EOF
     (lambda (filename flags . mode)
       (let ([mode (if (pair? mode) (car mode) defmode)])
         (##sys#check-string filename 'file-open)
-        (##sys#check-exact flags 'file-open)
-        (##sys#check-exact mode 'file-open)
+        (##sys#check-fixnum flags 'file-open)
+        (##sys#check-fixnum mode 'file-open)
         (let ([fd (##core#inline "C_open" (##sys#make-c-string filename 'file-open) flags mode)])
           (when (eq? -1 fd)
             (posix-error #:file-error 'file-open "cannot open file" filename flags mode) )
@@ -482,7 +460,7 @@ EOF
 
 (define file-close
   (lambda (fd)
-    (##sys#check-exact fd 'file-close)
+    (##sys#check-fixnum fd 'file-close)
     (let loop ()
       (when (fx< (##core#inline "C_close" fd) 0)
 	(select _errno
@@ -492,8 +470,8 @@ EOF
 
 (define file-read
   (lambda (fd size . buffer)
-    (##sys#check-exact fd 'file-read)
-    (##sys#check-exact size 'file-read)
+    (##sys#check-fixnum fd 'file-read)
+    (##sys#check-fixnum size 'file-read)
     (let ([buf (if (pair? buffer) (car buffer) (make-string size))])
       (unless (and (##core#inline "C_blockp" buf) (##core#inline "C_byteblockp" buf))
 	(##sys#signal-hook #:type-error 'file-read "bad argument type - not a string or blob" buf) )
@@ -504,11 +482,11 @@ EOF
 
 (define file-write
   (lambda (fd buffer . size)
-    (##sys#check-exact fd 'file-write)
+    (##sys#check-fixnum fd 'file-write)
     (unless (and (##core#inline "C_blockp" buffer) (##core#inline "C_byteblockp" buffer))
       (##sys#signal-hook #:type-error 'file-write "bad argument type - not a string or blob" buffer) )
     (let ([size (if (pair? size) (car size) (##sys#size buffer))])
-      (##sys#check-exact size 'file-write)
+      (##sys#check-fixnum size 'file-write)
       (let ([n (##core#inline "C_write" fd buffer size)])
         (when (eq? -1 n)
           (posix-error #:file-error 'file-write "cannot write to file" fd size) )
@@ -542,7 +520,7 @@ EOF
 	 (nfds (fx+ nfdsr nfdsw))
 	 (fds-blob (##sys#make-blob
 		    (fx* nfds (foreign-value "sizeof(struct pollfd)" int)))))
-    (when tm (##sys#check-number tm))
+    (when tm (##sys#check-exact-integer tm))
     (do ((i 0 (fx+ i 1))
 	 (fdsrl fdsrl (cdr fdsrl)))
 	((null? fdsrl))
@@ -556,7 +534,7 @@ EOF
 	 "struct pollfd *fds = p;"
 	 "fds[i].fd = fd; fds[i].events = POLLOUT;") i (car fdswl) fds-blob))
     (let ((n ((foreign-lambda int "poll" scheme-pointer int int)
-	      fds-blob nfds (if tm (inexact->exact (* (max 0 tm) 1000)) -1))))
+	      fds-blob nfds (if tm (* (max 0 tm) 1000) -1))))
       (cond ((fx< n 0)
 	     (posix-error #:file-error 'file-select "failed" fdsr fdsw) )
 	    ((fx= n 0) (values (if (pair? fdsr) '() #f) (if (pair? fdsw) '() #f)))
@@ -582,24 +560,12 @@ EOF
 		(and fdsw (if (fixnum? fdsw) (and (memq fdsw wl) fdsw) wl)))))))))
 
 
-;;; Directory stuff:
-
-(define change-directory
-  (lambda (name)
-    (##sys#check-string name 'change-directory)
-    (let ((sname (##sys#make-c-string name 'change-directory)))
-      (unless (fx= 0 (##core#inline "C_chdir" sname))
-	(posix-error #:file-error 'change-directory "cannot change current directory" name) )
-      name)))
-
-(define (change-directory* fd)
-  (##sys#check-exact fd 'change-directory*) 
-  (unless (fx= 0 (##core#inline "C_fchdir" fd)) 
-    (posix-error #:file-error 'change-directory* "cannot change current directory" fd) )
-  fd)
-
-
 ;;; Pipes:
+
+(define open-input-pipe)
+(define open-output-pipe)
+(define close-input-pipe)
+(define close-output-pipe)
 
 (let ()
   (define (mode arg) (if (pair? arg) (##sys#slot arg 0) '###text))
@@ -607,7 +573,7 @@ EOF
   (define (check loc cmd inp r)
     (if (##sys#null-pointer? r)
 	(posix-error #:file-error loc "cannot open pipe" cmd)
-	(let ([port (##sys#make-port inp ##sys#stream-port-class "(pipe)" 'stream)])
+	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(pipe)" 'stream)))
 	  (##core#inline "C_set_file_ptr" port r)
 	  port) ) )
   (set! open-input-pipe
@@ -685,11 +651,10 @@ EOF
 (define-foreign-variable _pipefd0 int "C_pipefds[ 0 ]")
 (define-foreign-variable _pipefd1 int "C_pipefds[ 1 ]")
 
-(define create-pipe
-  (lambda ()
-    (when (fx< (##core#inline "C_pipe" #f) 0)
-      (posix-error #:file-error 'create-pipe "cannot create pipe") )
-    (values _pipefd0 _pipefd1) ) )
+(define (create-pipe #!optional mode)
+  (when (fx< (##core#inline "C_pipe" #f) 0)
+    (posix-error #:file-error 'create-pipe "cannot create pipe") )
+  (values _pipefd0 _pipefd1)  )
 
 
 ;;; Signal processing:
@@ -764,7 +729,7 @@ EOF
     (##core#inline "C_sigemptyset" 0)
     (for-each
       (lambda (s)
-        (##sys#check-exact s 'set-signal-mask!)
+        (##sys#check-fixnum s 'set-signal-mask!)
         (##core#inline "C_sigaddset" s) )
       sigs)
     (when (fx< (##core#inline "C_sigprocmask_set" 0) 0)
@@ -783,44 +748,26 @@ EOF
    set-signal-mask!))
 
 (define (signal-masked? sig)
-  (##sys#check-exact sig 'signal-masked?)
+  (##sys#check-fixnum sig 'signal-masked?)
   (##core#inline "C_sigprocmask_get" 0)
   (##core#inline "C_sigismember" sig) )
 
 (define (signal-mask! sig)
-  (##sys#check-exact sig 'signal-mask!)
+  (##sys#check-fixnum sig 'signal-mask!)
   (##core#inline "C_sigemptyset" 0)
   (##core#inline "C_sigaddset" sig)
   (when (fx< (##core#inline "C_sigprocmask_block" 0) 0)
     (posix-error #:process-error 'signal-mask! "cannot block signal") ))
 
 (define (signal-unmask! sig)
-  (##sys#check-exact sig 'signal-unmask!)
+  (##sys#check-fixnum sig 'signal-unmask!)
   (##core#inline "C_sigemptyset" 0)
   (##core#inline "C_sigaddset" sig)
   (when (fx< (##core#inline "C_sigprocmask_unblock" 0) 0)
     (posix-error #:process-error 'signal-unmask! "cannot unblock signal") ) )
 
 
-;;; Getting system-, group- and user-information:
-
-(define-foreign-variable _uname int "C_uname")
-(define-foreign-variable _uname-sysname nonnull-c-string "C_utsname.sysname")
-(define-foreign-variable _uname-nodename nonnull-c-string "C_utsname.nodename")
-(define-foreign-variable _uname-release nonnull-c-string "C_utsname.release")
-(define-foreign-variable _uname-version nonnull-c-string "C_utsname.version")
-(define-foreign-variable _uname-machine nonnull-c-string "C_utsname.machine")
-
-(define system-information
-  (lambda ()
-    (when (fx< _uname 0)
-      (##sys#update-errno)
-      (##sys#error 'system-information "cannot retrieve system information") )
-    (list _uname-sysname
-          _uname-nodename
-          _uname-release
-          _uname-version
-          _uname-machine) ) )
+;;; Getting group- and user-information:
 
 (define current-user-id
   (getter-with-setter
@@ -839,7 +786,7 @@ EOF
       (##sys#update-errno)
       (##sys#error 
 	 'effective-user-id!-setter "cannot set effective user ID" id) ) )
-   "(current-effective-used-id)"))
+   "(current-effective-user-id)"))
 
 (define current-group-id
   (getter-with-setter
@@ -890,153 +837,23 @@ EOF
 (define (current-effective-user-name)
   (car (user-information (current-effective-user-id))) )
 
-(define-foreign-variable _group-name nonnull-c-string "C_group->gr_name")
-(define-foreign-variable _group-passwd nonnull-c-string "C_group->gr_passwd")
-(define-foreign-variable _group-gid int "C_group->gr_gid")
-
-(define group-member
-  (foreign-lambda* c-string ([int i])
-    "C_return(C_group->gr_mem[ i ]);") )
-
-(define (group-information group #!optional as-vector)
-  (let ([r (if (fixnum? group)
-               (##core#inline "C_getgrgid" group)
-               (begin
-                 (##sys#check-string group 'group-information)
-                 (##core#inline "C_getgrnam" (##sys#make-c-string group 'group-information)) ) ) ] )
-    (and r
-         ((if as-vector vector list)
-          _group-name
-          _group-passwd
-          _group-gid
-          (let loop ([i 0])
-            (let ([n (group-member i)])
-              (if n
-                  (cons n (loop (fx+ i 1)))
-                  '() ) ) ) ) ) ) )
-
-(define _get-groups
-  (foreign-lambda* int ([int n])
-    "C_return(getgroups(n, C_groups));") )
-
-(define _ensure-groups
-  (foreign-lambda* bool ([int n])
-    "if(C_groups != NULL) C_free(C_groups);"
-    "C_groups = (gid_t *)C_malloc(sizeof(gid_t) * n);"
-    "if(C_groups == NULL) C_return(0);"
-    "else C_return(1);") )
-
-(define (get-groups)
-  (let ([n (foreign-value "getgroups(0, C_groups)" int)])
-    (when (fx< n 0)
-      (##sys#update-errno)
-      (##sys#error 'get-groups "cannot retrieve supplementary group ids") )
-    (unless (_ensure-groups n)
-      (##sys#error 'get-groups "out of memory") )
-    (when (fx< (_get-groups n) 0)
-      (##sys#update-errno)
-      (##sys#error 'get-groups "cannot retrieve supplementary group ids") )
-    (let loop ([i 0])
-      (if (fx>= i n)
-          '()
-          (cons (##core#inline "C_get_gid" i) (loop (fx+ i 1))) ) ) ) )
-
-(define (set-groups! lst0)
-  (unless (_ensure-groups (length lst0))
-    (##sys#error 'set-groups! "out of memory") )
-  (do ([lst lst0 (##sys#slot lst 1)]
-       [i 0 (fx+ i 1)] )
-      ((null? lst)
-       (when (fx< (##core#inline "C_set_groups" i) 0)
-       (##sys#update-errno)
-       (##sys#error 'set-groups! "cannot set supplementary group ids" lst0) ) )
-    (let ([n (##sys#slot lst 0)])
-      (##sys#check-exact n 'set-groups!)
-      (##core#inline "C_set_gid" i n) ) ) )
-
-(define initialize-groups
-  (let ([init (foreign-lambda int "initgroups" c-string int)])
-    (lambda (user id)
-      (##sys#check-string user 'initialize-groups)
-      (##sys#check-exact id 'initialize-groups)
-      (when (fx< (init user id) 0)
-      (##sys#update-errno)
-      (##sys#error 'initialize-groups "cannot initialize supplementary group ids" user id) ) ) ) )
-
-
-;;; More errno codes:
-
-(define errno/perm _eperm)
-(define errno/noent _enoent)
-(define errno/srch _esrch)
-(define errno/intr _eintr)
-(define errno/io _eio)
-(define errno/noexec _enoexec)
-(define errno/badf _ebadf)
-(define errno/child _echild)
-(define errno/nomem _enomem)
-(define errno/acces _eacces)
-(define errno/fault _efault)
-(define errno/busy _ebusy)
-(define errno/notdir _enotdir)
-(define errno/isdir _eisdir)
-(define errno/inval _einval)
-(define errno/mfile _emfile)
-(define errno/nospc _enospc)
-(define errno/spipe _espipe)
-(define errno/pipe _epipe)
-(define errno/again _eagain)
-(define errno/rofs _erofs)
-(define errno/exist _eexist)
-(define errno/wouldblock _ewouldblock)
-
-(define errno/2big 0)
-(define errno/deadlk 0)
-(define errno/dom 0)
-(define errno/fbig 0)
-(define errno/ilseq 0)
-(define errno/mlink 0)
-(define errno/nametoolong 0)
-(define errno/nfile 0)
-(define errno/nodev 0)
-(define errno/nolck 0)
-(define errno/nosys 0)
-(define errno/notempty 0)
-(define errno/notty 0)
-(define errno/nxio 0)
-(define errno/range 0)
-(define errno/xdev 0)
-
-;;; Permissions and owners:
-
-(define change-file-mode
-  (lambda (fname m)
-    (##sys#check-string fname 'change-file-mode)
-    (##sys#check-exact m 'change-file-mode)
-    (when (fx< (##core#inline "C_chmod" (##sys#make-c-string fname 'change-file-mode) m) 0)
-      (posix-error #:file-error 'change-file-mode "cannot change file mode" fname m) ) ) )
-
-(define change-file-owner
-  (lambda (fn uid gid)
-    (##sys#check-string fn 'change-file-owner)
-    (##sys#check-exact uid 'change-file-owner)
-    (##sys#check-exact gid 'change-file-owner)
-    (when (fx< (##core#inline "C_chown" (##sys#make-c-string fn 'change-file-owner) uid gid) 0)
-      (posix-error #:file-error 'change-file-owner "cannot change file owner" fn uid gid) ) ) )
-
-(define-foreign-variable _r_ok int "R_OK")
-(define-foreign-variable _w_ok int "W_OK")
-(define-foreign-variable _x_ok int "X_OK")
-
-(let ()
-  (define (check filename acc loc)
-    (##sys#check-string filename loc)
-    (let ([r (fx= 0 (##core#inline "C_test_access" (##sys#make-c-string filename loc) acc))])
-      (unless r (##sys#update-errno))
-      r) )
-  (set! file-read-access? (lambda (filename) (check filename _r_ok 'file-read-access?)))
-  (set! file-write-access? (lambda (filename) (check filename _w_ok 'file-write-access?)))
-  (set! file-execute-access? (lambda (filename) (check filename _x_ok 'file-execute-access?))) )
+(define chown
+  (lambda (loc f uid gid)
+    (##sys#check-fixnum uid loc)
+    (##sys#check-fixnum gid loc)
+    (let ((r (cond
+	      ((port? f)
+	       (##core#inline "C_fchown" (port->fileno f) uid gid))
+	      ((fixnum? f)
+	       (##core#inline "C_fchown" f uid gid))
+	      ((string? f)
+	       (##core#inline "C_chown"
+			      (##sys#make-c-string f loc) uid gid))
+	      (else (##sys#signal-hook
+		     #:type-error loc
+		     "bad argument type - not a fixnum, port or string" f)))))
+      (when (fx< r 0)
+	(posix-error #:file-error loc "cannot change file owner" f uid gid) )) ) )
 
 (define (create-session)
   (let ([a (##core#inline "C_setsid" #f)])
@@ -1048,15 +865,15 @@ EOF
 (define process-group-id
   (getter-with-setter
    (lambda (pid)
-     (##sys#check-exact pid 'process-group-id)
+     (##sys#check-fixnum pid 'process-group-id)
      (let ([a (##core#inline "C_getpgid" pid)])
        (when (fx< a 0)
          (##sys#update-errno)
          (##sys#error 'process-group-id "cannot retrieve process group ID" pid) )
        a))
    (lambda (pid pgid)
-     (##sys#check-exact pid 'set-process-group-id!)
-     (##sys#check-exact pgid 'set-process-group-id!)
+     (##sys#check-fixnum pid 'set-process-group-id!)
+     (##sys#check-fixnum pgid 'set-process-group-id!)
      (when (fx< (##core#inline "C_setpgid" pid pgid) 0)
        (##sys#update-errno)
        (##sys#error 'set-process-group-id! "cannot set process group ID" pid pgid) ) )
@@ -1180,12 +997,10 @@ EOF
 		   (lambda ()		; char-ready?
 		     (or (fx< bufpos buflen)
 			 (ready?)) )
-		   (lambda ()	      ; close
-					; Do nothing when closed already
-		     (unless (##sys#slot this-port 8)
-		       (when (fx< (##core#inline "C_close" fd) 0)
-			 (posix-error #:file-error loc "cannot close" fd nam) )
-		       (on-close) ) )
+		   (lambda ()		; close
+		     (when (fx< (##core#inline "C_close" fd) 0)
+		       (posix-error #:file-error loc "cannot close" fd nam))
+		     (on-close))
 		   (lambda ()		; peek-char
 		     (when (fx>= bufpos buflen)
 		       (fetch))
@@ -1209,7 +1024,7 @@ EOF
 		       (fetch))
 		     (if (fx>= bufpos buflen)
 			 #!eof
-			 (let ((limit (or limit (fx- (##sys#fudge 21) bufpos))))
+			 (let ((limit (or limit (fx- most-positive-fixnum bufpos))))
 			   (receive (next line full-line?)
 			       (##sys#scan-buffer-line
 				buf
@@ -1291,11 +1106,10 @@ EOF
 		(make-output-port
 		 (lambda (str)		; write-string
 		   (store str) )
-		 (lambda ()	      ; close - do nothing when closed already
-		   (unless (##sys#slot this-port 8)
-		     (when (fx< (##core#inline "C_close" fd) 0)
-		       (posix-error #:file-error loc "cannot close" fd nam) )
-		     (on-close) ) )
+		 (lambda ()		; close
+		   (when (fx< (##core#inline "C_close" fd) 0)
+		     (posix-error #:file-error loc "cannot close" fd nam))
+		   (on-close))
 		 (lambda ()		; flush
 		   (store #f) ) )] )
 	(set-port-name! this-port nam)
@@ -1306,7 +1120,7 @@ EOF
 
 (define file-truncate
   (lambda (fname off)
-    (##sys#check-number off 'file-truncate)
+    (##sys#check-exact-integer off 'file-truncate)
     (when (fx< (cond [(string? fname) (##core#inline "C_truncate" (##sys#make-c-string fname 'file-truncate) off)]
 		     [(fixnum? fname) (##core#inline "C_ftruncate" fname off)]
 		     [else (##sys#error 'file-truncate "invalid file" fname)] )
@@ -1320,15 +1134,19 @@ EOF
 (define-foreign-variable _f_rdlck int "F_RDLCK")
 (define-foreign-variable _f_unlck int "F_UNLCK")
 
+(define file-lock)
+(define file-lock/blocking)
+(define file-test-lock)
+
 (let ()
   (define (setup port args loc)
     (let-optionals* args ([start 0]
                           [len #t] )
       (##sys#check-open-port port loc)
-      (##sys#check-number start loc)
+      (##sys#check-exact-integer start loc)
       (if (eq? #t len)
           (set! len 0)
-          (##sys#check-number len loc) )
+          (##sys#check-exact-integer len loc) )
       (##core#inline "C_flock_setup" (if (##sys#slot port 1) _f_rdlck _f_wrlck) start len)
       (##sys#make-structure 'lock port start len) ) )
   (define (err msg lock loc)
@@ -1373,7 +1191,7 @@ EOF
   (lambda (fname . mode)
     (##sys#check-string fname 'create-fifo)
     (let ([mode (if (pair? mode) (car mode) (fxior _s_irwxu (fxior _s_irwxg _s_irwxo)))])
-      (##sys#check-exact mode 'create-fifo)
+      (##sys#check-fixnum mode 'create-fifo)
       (when (fx< (##core#inline "C_mkfifo" (##sys#make-c-string fname 'create-fifo) mode) 0)
       (posix-error #:file-error 'create-fifo "cannot create FIFO" fname mode) ) ) ) )
 
@@ -1392,57 +1210,6 @@ EOF
 	"system error while trying to access file" filename) ) ) ) )
 
 
-;;; Memory mapped I/O:
-
-(define-foreign-variable _prot_read int "PROT_READ")
-(define-foreign-variable _prot_write int "PROT_WRITE")
-(define-foreign-variable _prot_exec int "PROT_EXEC")
-(define-foreign-variable _prot_none int "PROT_NONE")
-
-(define prot/read _prot_read)
-(define prot/write _prot_write)
-(define prot/exec _prot_exec)
-(define prot/none _prot_none)
-
-(define-foreign-variable _map_fixed int "MAP_FIXED")
-(define-foreign-variable _map_shared int "MAP_SHARED")
-(define-foreign-variable _map_private int "MAP_PRIVATE")
-(define-foreign-variable _map_anonymous int "MAP_ANON")
-(define-foreign-variable _map_file int "MAP_FILE")
-
-(define map/fixed _map_fixed)
-(define map/shared _map_shared)
-(define map/private _map_private)
-(define map/anonymous _map_anonymous)
-(define map/file _map_file)
-
-(define map-file-to-memory
-  (let ([mmap (foreign-lambda c-pointer "mmap" c-pointer integer int int int integer)] )
-    (lambda (addr len prot flag fd . off)
-      (let ([addr (if (not addr) (##sys#null-pointer) addr)]
-            [off (if (pair? off) (car off) 0)] )
-        (unless (and (##core#inline "C_blockp" addr) (##core#inline "C_specialp" addr))
-	  (##sys#signal-hook #:type-error 'map-file-to-memory "bad argument type - not a foreign pointer" addr) )
-        (let ([addr2 (mmap addr len prot flag fd off)])
-          (when (eq? -1 (##sys#pointer->address addr2))
-	    (posix-error #:file-error 'map-file-to-memory "cannot map file to memory" addr len prot flag fd off) )
-          (##sys#make-structure 'mmap addr2 len) ) ) ) ) )
-
-(define unmap-file-from-memory
-  (let ([munmap (foreign-lambda int "munmap" c-pointer integer)] )
-    (lambda (mmap . len)
-      (##sys#check-structure mmap 'mmap 'unmap-file-from-memory)
-      (let ([len (if (pair? len) (car len) (##sys#slot mmap 2))])
-        (unless (eq? 0 (munmap (##sys#slot mmap 1) len))
-	  (posix-error #:file-error 'unmap-file-from-memory "cannot unmap file from memory" mmap len) ) ) ) ) )
-
-(define (memory-mapped-file-pointer mmap)
-  (##sys#check-structure mmap 'mmap 'memory-mapped-file-pointer)
-  (##sys#slot mmap 1) )
-
-(define (memory-mapped-file? x)
-  (##sys#structure? x 'mmap) )
-
 ;;; Time related things:
 
 (define string->time
@@ -1457,8 +1224,8 @@ EOF
   (let ((tm-size (foreign-value "sizeof(struct tm)" int)))
     (lambda (tm)
       (check-time-vector 'utc-time->seconds tm)
-      (let ((t (##core#inline_allocate ("C_a_timegm" 4) tm (##sys#make-string tm-size #\nul))))
-        (if (fp= -1.0 t)
+      (let ((t (##core#inline_allocate ("C_a_timegm" 7) tm (##sys#make-string tm-size #\nul))))
+        (if (= -1 t)
             (##sys#error 'utc-time->seconds "cannot convert time vector to seconds" tm)
             t)))))
 
@@ -1476,33 +1243,7 @@ EOF
 
 ;;; Other things:
 
-(define _exit
-  (let ([ex0 (foreign-lambda void "_exit" int)])
-    (lambda code
-      (ex0 (if (pair? code) (car code) 0)) ) ) )
-
 (define set-alarm! (foreign-lambda int "C_alarm" int))
-
-(define-foreign-variable _iofbf int "_IOFBF")
-(define-foreign-variable _iolbf int "_IOLBF")
-(define-foreign-variable _ionbf int "_IONBF")
-(define-foreign-variable _bufsiz int "BUFSIZ")
-
-(define set-buffering-mode!
-  (lambda (port mode . size)
-    (##sys#check-port port 'set-buffering-mode!)
-    (let ([size (if (pair? size) (car size) _bufsiz)]
-	  [mode (case mode
-		  [(#:full) _iofbf]
-		  [(#:line) _iolbf]
-		  [(#:none) _ionbf]
-		  [else (##sys#error 'set-buffering-mode! "invalid buffering-mode" mode port)] ) ] )
-      (##sys#check-exact size 'set-buffering-mode!)
-      (when (fx< (if (eq? 'stream (##sys#slot port 7))
-		     (##core#inline "C_setvbuf" port mode size)
-		     -1)
-		 0)
-	(##sys#error 'set-buffering-mode! "cannot set buffering mode" port mode size) ) ) ) )
 
 (define (terminal-port? port)
   (##sys#check-open-port port 'terminal-port?)
@@ -1537,17 +1278,6 @@ EOF
 	    (posix-error #:error 'terminal-size
 			 "Unable to get size of terminal" port))))))
   
-(define get-host-name
-  (let ([getit
-	 (foreign-lambda* c-string ()
-	   "if(gethostname(C_hostbuf, 256) == -1) C_return(NULL);"
-	   "else C_return(C_hostbuf);") ] )
-    (lambda ()
-      (let ([host (getit)])
-        (unless host
-          (posix-error #:error 'get-host-name "cannot retrieve host-name") )
-        host) ) ) )
-
 
 ;;; Process handling:
 
@@ -1570,7 +1300,7 @@ EOF
 		  (exit 0)))))
 	    pid)))))
 
-(define (process-execute filename #!optional (arglist '()) envlist)
+(define (process-execute filename #!optional (arglist '()) envlist exactf)
   (call-with-exec-args
    'process-execute filename (lambda (x) x) arglist envlist
    (lambda (prg argbuf envbuf)
@@ -1599,13 +1329,11 @@ EOF
 
 (define parent-process-id (foreign-lambda int "C_getppid"))
 
-(define sleep (foreign-lambda int "C_sleep" int))
-
 (define process-signal
   (lambda (id . sig)
     (let ([sig (if (pair? sig) (car sig) _sigterm)])
-      (##sys#check-exact id 'process-signal)
-      (##sys#check-exact sig 'process-signal)
+      (##sys#check-fixnum id 'process-signal)
+      (##sys#check-fixnum sig 'process-signal)
       (let ([r (##core#inline "C_kill" id sig)])
       (when (fx= r -1) (posix-error #:process-error 'process-signal "could not send signal to process" id sig) ) ) ) ) )
 
@@ -1735,17 +1463,17 @@ EOF
                 (begin
                   (set! args (##sys#shell-command-arguments cmd))
                   (set! cmd (##sys#shell-command)) ) )
-            (when env (chkstrlst env))
-            (##sys#call-with-values 
+	    (when env (check-environment-list env loc))
+	    (##sys#call-with-values
 	     (lambda () (##sys#process loc cmd args env #t #t err?))
 	     k)))))
   (set! process
-    (lambda (cmd #!optional args env)
+    (lambda (cmd #!optional args env exactf)
       (%process 
        'process #f cmd args env
        (lambda (i o p e) (values i o p)))))
   (set! process*
-    (lambda (cmd #!optional args env)
+    (lambda (cmd #!optional args env exactf)
       (%process
        'process* #t cmd args env
        values))))
@@ -1759,3 +1487,7 @@ EOF
       (##sys#check-string dir 'set-root-directory!)
       (when (fx< (chroot dir) 0)
         (posix-error #:file-error 'set-root-directory! "unable to change root directory" dir) ) ) ) )
+
+;;; unimplemented stuff:
+
+(define-unimplemented process-spawn)

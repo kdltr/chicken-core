@@ -157,15 +157,6 @@ The name of the currently executing program. This is equivalent to
 {{-script}} option in interpreted scripts.
 
 
-=== repl-prompt
-
-<parameter>(repl-prompt)</parameter>
-
-A procedure that should evaluate to a string that will be printed before reading
-interactive input from the user in a read-eval-print loop. Defaults to
-{{(lambda () "#;N> ")}}.
-
-
 === reset-handler
 
 <parameter>(reset-handler)</parameter>

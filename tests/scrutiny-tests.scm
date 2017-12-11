@@ -18,9 +18,9 @@
 (let ((bar +))
   (bar 3 'a))				; expected number, got symbol
 
-(pp)					; expected 1 argument, got 0
+(string?)				; expected 1 argument, got 0
 
-(print (cpu-time))			; expected 1 result, got 2
+(print (values 1 2))			; expected 1 result, got 2
 (print (values))			; expected 1 result, got 0
 
 (let ((x 100))
@@ -182,7 +182,7 @@
 (let ((x _))
   (if (char-or-string? x)
       (symbol? x)   ; should report with x = (or char string)
-      (string? x))) ; should not report
+      (string? x))) ; should report with x = (not (or char string))
 
 (let ((x (the fixnum _)))
   (if (char-or-string? x)

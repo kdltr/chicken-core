@@ -116,3 +116,4 @@
 
 (test-end "match")
 
+(test-exit)

@@ -66,6 +66,7 @@ include $(SRCDIR)/defaults.make
 
 chicken-config.h: chicken-defaults.h
 	echo "/* GENERATED */" >$@
+	echo "#define STATICBUILD 1" >>$@
 	echo "#define HAVE_DIRENT_H 1" >>$@
 	echo "#define HAVE_INTTYPES_H 1" >>$@
 	echo "#define HAVE_LIMITS_H 1" >>$@
@@ -89,15 +90,13 @@ chicken-config.h: chicken-defaults.h
 	echo "#define STDC_HEADERS 1" >>$@
 	echo "#define HAVE_ALLOCA 1" >>$@
 	echo "#define HAVE_ALLOCA_H 1" >>$@
-	echo "#define HAVE_GRP_H 1" >>$@
 	echo "#define HAVE_ERRNO_H 1" >>$@
 	echo "#define HAVE_SYSEXITS_H 1" >>$@
+# TODO: Use MacOS exe path mechanism?
+	echo "#define SEARCH_EXE_PATH 1" >>$@
 	echo "#define C_STACK_GROWS_DOWNWARD 1" >>$@
 ifdef GCHOOKS
 	echo "#define C_GC_HOOKS" >>$@
-endif
-ifdef SYMBOLGC
-	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
 endif
 	cat chicken-defaults.h >>$@
 

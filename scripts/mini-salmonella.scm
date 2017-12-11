@@ -4,7 +4,7 @@
 (module mini-salmonella ()
 
 (import scheme chicken)
-(use posix files extras data-structures srfi-1 setup-api srfi-13 utils)
+(import posix file extras data-structures setup-api (chicken process))
 
 (define (usage code)
   (print "usage: mini-salmonella [-h] [-test] [-debug] [-download] [-trunk] EGGDIR [PREFIX]")
@@ -16,8 +16,7 @@
 (define *download* #f)
 (define *trunk* #f)
 
-(define *prefix* 
-  (pathname-directory (pathname-directory (pathname-directory (repository-path)))))
+(define *prefix* (get-environment-variable "CHICKEN_PREFIX"))
 
 (let loop ((args (command-line-arguments)))
   (when (pair? args)
@@ -33,7 +32,7 @@
 
 (unless *eggdir* (usage 1))
 
-(define *binary-version* (##sys#fudge 42))
+(define-foreign-variable *binary-version* int "C_BINARY_VERSION")
 (define *repository* (make-pathname *prefix* (conc "lib/chicken/" *binary-version*)))
 (define *snapshot* (directory *repository*))
 
@@ -41,10 +40,12 @@
   (for-each 
    (lambda (f)
      (let ((f2 (make-pathname *repository* f)))
-       (if (directory? f2)
-	   (remove-directory f2)
-	   (delete-file f2))))
-   (lset-difference string=? (directory *repository*) *snapshot*)))
+       (cond ((member f2 *snapshot*))
+             ((directory? f2)
+              (remove-directory f2))
+             (else
+              (delete-file f2)))))
+   (directory *repository*)))
 
 (define *chicken-install*
   (normalize-pathname (make-pathname *prefix* "bin/chicken-install")))
@@ -60,7 +61,7 @@
 	   (let ((tags (sort (directory tagsdir) version>=?)))
 	     (if (null? tags)
 		 (or trunkdir ed)
-		 (make-pathname ed (string-append "tags/" (first tags))))))
+		 (make-pathname ed (string-append "tags/" (car tags))))))
 	  (else (or trunkdir ed)))))
 
 (define (report egg msg . args)
@@ -74,7 +75,7 @@
 (on-exit (lambda () (delete-file* *tmplogfile*)))
 
 (define (copy-log egg file)
-  (let ((log (read-all file)))
+  (let ((log (with-input-from-file file read-string)))
     (with-output-to-file *errlogfile*
       (lambda ()
 	(print #\newline egg #\:)

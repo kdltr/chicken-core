@@ -15,9 +15,9 @@
   (else))
 
 
-(use extras)
-
-#+use-numbers (use numbers)
+(import (chicken platform)
+	(chicken pretty-print)
+	(chicken random))
 
 (define range 2)
 (define random-range 32000)
@@ -103,9 +103,7 @@
 
 (define (same? x y)
   (cond ((and (number? x) (number? y)) 
-	 (or (= x y)
-	     (and (flonum? x) (flonum? y)
-		  (string=? (number->string x) (number->string y)))))
+	 (= x y))
 	((pair? x)
 	 (and (pair? y)
 	      (same? (car x) (car y))
@@ -116,13 +114,14 @@
 	(else (equal? x y))))
 
 (set! result (reverse result))
+(define errors? #f)
 
 #+check
 (load 
  (cond-expand
    (check-numbers "arithmetic-test.numbers.expected")
    (else
-    (if (##sys#fudge 3)
+    (if (feature? #:64bit)
 	"arithmetic-test.64.expected"
 	"arithmetic-test.32.expected")))
  (lambda (x)
@@ -133,7 +132,10 @@
 	 (assert (equal? c/total1 c/total2) "output differs in the number of cases"
 		 c/total1 c/total2)
 	 (unless (same? res1 res2)
+	   (set! errors? #t)
 	   (print "FAIL: " c/total1 " " exp1 " -> expected: " res1 ", but got: " res2)))
        (car result))
       (set! result (cdr result)))
     x)))
+
+(exit (if errors? 1 0))

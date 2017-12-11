@@ -27,7 +27,7 @@
 
 # basic parameters
 
-BINARYVERSION = 8
+BINARYVERSION = 9
 STACKDIRECTION ?= 1
 CROSS_CHICKEN ?= 0
 
@@ -83,7 +83,7 @@ LINKER ?= $(C_COMPILER)
 ASSEMBLER ?= $(C_COMPILER)
 ifdef WINDOWS_SHELL
 REMOVE_COMMAND ?= del
-INSTALL_PROGRAM ?= xcopy
+INSTALL_PROGRAM ?= copy
 MAKEDIR_COMMAND ?= -mkdir
 else
 REMOVE_COMMAND ?= rm
@@ -201,7 +201,6 @@ SCRIPT_EXT = .bat
 COPY_COMMAND = copy /Y
 HOSTNAME ?= $(shell hostname)
 UNAME_SYS ?= Windows
-BUILD_TAG ?= compiled $(BUILD_TIME) on $(HOSTNAME) ($(UNAME_SYS))
 # This is a poor man's version of $(file ...) in GNU Make 4.0
 # We should consider replacing it when it becomes so widespread
 # that systems (Debian, OS X, Haiku, Mingw, Cygwin) are shipping it
@@ -223,6 +222,7 @@ A ?= .a
 # EXE ?=
 SO ?= .so
 ASM ?= .S
+MAN ?= .mdoc
 
 # special files
 
@@ -241,26 +241,38 @@ CSI ?= csi$(EXE)
 
 CHICKEN_OPTIONS = -optimize-level 2 -include-path . -include-path $(SRCDIR) -inline -ignore-repository -feature chicken-bootstrap
 ifdef DEBUGBUILD
-CHICKEN_OPTIONS += -feature debugbuild -verbose -debug-info
+CHICKEN_OPTIONS += -feature debugbuild -verbose
 else
 CHICKEN_OPTIONS += -no-warnings
 endif
 ifndef BUILDING_CHICKEN_BOOT
-CHICKEN_OPTIONS += -specialize -types $(SRCDIR)types.db 
+CHICKEN_OPTIONS += -specialize -consult-type-file $(SRCDIR)types.db
 endif
 CHICKEN_OPTIONS += $(EXTRA_CHICKEN_OPTIONS)
 CHICKEN_LIBRARY_OPTIONS = $(CHICKEN_OPTIONS) -explicit-use -no-trace
-CHICKEN_PROGRAM_OPTIONS = $(CHICKEN_OPTIONS) -no-lambda-info -local
-CHICKEN_COMPILER_OPTIONS = $(CHICKEN_OPTIONS) -no-lambda-info -extend private-namespace.scm
+CHICKEN_PROGRAM_OPTIONS = $(CHICKEN_OPTIONS) -no-lambda-info
 CHICKEN_DYNAMIC_OPTIONS = $(CHICKEN_OPTIONS) -feature chicken-compile-shared -dynamic
 CHICKEN_IMPORT_LIBRARY_OPTIONS = $(CHICKEN_DYNAMIC_OPTIONS) -no-trace
 
 ifndef DEBUGBUILD
 CHICKEN_PROGRAM_OPTIONS += -no-trace
-CHICKEN_COMPILER_OPTIONS += -no-trace
 endif
 
 CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
+
+# import libraries
+
+PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.base chicken.condition \
+	chicken.csi chicken.foreign
+DYNAMIC_IMPORT_LIBRARIES = srfi-4
+DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise blob errno file.posix	\
+	fixnum flonum format gc io keyword load locative memory		\
+	memory.representation platform plist posix pretty-print		\
+	process process.signal process-context random syntax		\
+	sort string time time.posix
+DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
+DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
+	eval file internal irregex pathname port read-syntax repl tcp
 
 # targets
 
@@ -271,10 +283,13 @@ CHICKEN_PROFILE_PROGRAM = $(PROGRAM_PREFIX)chicken-profile$(PROGRAM_SUFFIX)
 CHICKEN_INSTALL_PROGRAM = $(PROGRAM_PREFIX)chicken-install$(PROGRAM_SUFFIX)
 CHICKEN_UNINSTALL_PROGRAM = $(PROGRAM_PREFIX)chicken-uninstall$(PROGRAM_SUFFIX)
 CHICKEN_STATUS_PROGRAM = $(PROGRAM_PREFIX)chicken-status$(PROGRAM_SUFFIX)
-CHICKEN_BUG_PROGRAM = $(PROGRAM_PREFIX)chicken-bug$(PROGRAM_SUFFIX)
+CHICKEN_DO_PROGRAM = $(PROGRAM_PREFIX)chicken-do$(PROGRAM_SUFFIX)
 CHICKEN_DEBUGGER_PROGRAM ?= $(PROGRAM_PREFIX)feathers$(PROGRAM_SUFFIX)$(SCRIPT_EXT)
-IMPORT_LIBRARIES = chicken lolevel srfi-1 srfi-4 data-structures ports files posix srfi-13 srfi-69 extras srfi-14 tcp foreign srfi-18 utils csi irregex
-IMPORT_LIBRARIES += setup-api setup-download
+IMPORT_LIBRARIES = $(DYNAMIC_IMPORT_LIBRARIES) \
+		   $(PRIMITIVE_IMPORT_LIBRARIES) \
+		   $(foreach lib,$(DYNAMIC_CHICKEN_IMPORT_LIBRARIES),chicken.$(lib)) \
+		   $(foreach lib,$(DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES),chicken.$(lib)) \
+		   $(foreach lib,$(DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES),chicken.compiler.$(lib))
 
 ifdef STATICBUILD
 CHICKEN_STATIC_EXECUTABLE = $(CHICKEN_PROGRAM)$(EXE)
@@ -283,9 +298,7 @@ CHICKEN_SHARED_EXECUTABLE = $(CHICKEN_PROGRAM)-shared$(EXE)
 CSI_SHARED_EXECUTABLE = $(CSI_PROGRAM)-shared$(EXE)
 TARGETLIBS ?= lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A)
 TARGETS += $(TARGETLIBS) $(CHICKEN_STATIC_EXECUTABLE) \
-	$(CSI_STATIC_EXECUTABLE) $(CHICKEN_PROFILE_PROGRAM)$(EXE) \
-	$(CSC_PROGRAM)$(EXE) \
-	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM)
+	$(CSI_STATIC_EXECUTABLE)
 else
 CHICKEN_STATIC_EXECUTABLE = $(CHICKEN_PROGRAM)-static$(EXE)
 CSI_STATIC_EXECUTABLE = $(CSI_PROGRAM)-static$(EXE)
@@ -293,12 +306,18 @@ CHICKEN_SHARED_EXECUTABLE = $(CHICKEN_PROGRAM)$(EXE)
 CSI_SHARED_EXECUTABLE = $(CSI_PROGRAM)$(EXE)
 TARGETLIBS ?= lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A) $(LIBCHICKEN_SO_FILE)
 TARGETS += $(TARGETLIBS) $(CHICKEN_SHARED_EXECUTABLE) \
-	$(CSI_SHARED_EXECUTABLE) $(CHICKEN_PROFILE_PROGRAM)$(EXE) \
-	$(CSC_PROGRAM)$(EXE) $(CHICKEN_INSTALL_PROGRAM)$(EXE) $(CHICKEN_UNINSTALL_PROGRAM)$(EXE) \
-	$(CHICKEN_STATUS_PROGRAM)$(EXE) setup-download.so setup-api.so \
-	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DEBUGGER_PROGRAM) \
+	$(CSI_SHARED_EXECUTABLE) \
 	$(IMPORT_LIBRARIES:%=%.import.so)
 endif
+
+TARGETS += $(CHICKEN_INSTALL_PROGRAM)$(EXE) \
+	$(CHICKEN_UNINSTALL_PROGRAM)$(EXE) \
+	$(CHICKEN_STATUS_PROGRAM)$(EXE) \
+	$(CHICKEN_PROFILE_PROGRAM)$(EXE) \
+	$(CSC_PROGRAM)$(EXE) \
+	$(CHICKEN_DO_PROGRAM)$(EXE) \
+	$(CHICKEN_DEBUGGER_PROGRAM)
+
 ifdef WINDOWS
 TARGETS += chicken.rc$(O)
 endif
@@ -318,6 +337,9 @@ ifdef OPTIMIZE_FOR_SPEED
 endif
 ifdef DEBUGBUILD
 	$(call echo, >>, $@,#define DEBUGBUILD 1)
+endif
+ifdef STATICBUILD
+	$(call echo, >>, $@,#define STATICBUILD 1)
 endif
 	$(call echo, >>, $@,#define C_CHICKEN_PROGRAM "$(CHICKEN_PROGRAM)$(EXE)")
 	$(call echo, >>, $@,#ifndef C_INSTALL_CC)
@@ -367,9 +389,6 @@ endif
 	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_INSTALL_MORE_STATIC_LIBS)
 	$(call echo, >>, $@,# define C_INSTALL_MORE_STATIC_LIBS "$(LIBRARIES)")
-	$(call echo, >>, $@,#endif)
-	$(call echo, >>, $@,#ifndef C_DEFAULT_TARGET_HEAP_SIZE)
-	$(call echo, >>, $@,# define C_DEFAULT_TARGET_HEAP_SIZE 0)
 	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_STACK_GROWS_DOWNWARD)
 	$(call echo, >>, $@,# define C_STACK_GROWS_DOWNWARD $(STACKDIRECTION))
@@ -440,6 +459,9 @@ endif
 	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_CHICKEN_BUG_PROGRAM)
 	$(call echo, >>, $@,# define C_CHICKEN_BUG_PROGRAM "$(CHICKEN_BUG_PROGRAM)")
+	$(call echo, >>, $@,#endif)
+	$(call echo, >>, $@,#ifndef C_CHICKEN_DO_PROGRAM)
+	$(call echo, >>, $@,# define C_CHICKEN_DO_PROGRAM "$(CHICKEN_DO_PROGRAM)")
 	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_CHICKEN_INSTALL_PROGRAM)
 	$(call echo, >>, $@,# define C_CHICKEN_INSTALL_PROGRAM "$(CHICKEN_INSTALL_PROGRAM)")

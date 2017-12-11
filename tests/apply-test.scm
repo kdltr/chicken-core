@@ -1,4 +1,23 @@
-(require-extension srfi-1)
+(import (chicken format)
+        (chicken platform))
+
+(define (list-tabulate n proc)
+  (let loop ((i 0))
+    (if (fx>= i n)
+	'()
+	(cons (proc i) (loop (fx+ i 1))))))
+
+(define-for-syntax (list-tabulate n proc)
+  (let loop ((i 0))
+    (if (fx>= i n)
+	'()
+	(cons (proc i) (loop (fx+ i 1))))))
+
+(define (last lst)
+  (let loop ((lst lst))
+    (if (null? (cdr lst))
+	(car lst)
+	(loop (cdr lst)))))
 
 ;; Non-manyarg CHICKENs are no longer made
 (assert (feature? 'manyargs))
@@ -10,7 +29,7 @@
 (printf "testing 'apply' with 0..~A...\n" 2000)
 (do ((i 0 (add1 i)))
     ((>= i 2000))
-  (apply foo (iota i 1)))
+  (apply foo (list-tabulate i add1)))
 
 (print "testing 'apply' with 10000...")
 (apply foo (list-tabulate 10000 add1))

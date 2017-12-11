@@ -1,7 +1,9 @@
+(import (only chicken.format printf)
+        (only chicken.time current-milliseconds))
+
 (load-relative "loopy-loop.scm")
 (load-relative "matchable.scm")
 
-(require-extension srfi-69)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; SRFI-64 subset + test-approx=
@@ -189,13 +191,6 @@
  "in-combinations"
  (loop ((p <- in-combinations '(a b c) 2) (res <- collecting p)) => res)
  '((a b) (a c) (b c)))
-
-(test-equal
- "in-hash-table"
- (loop ((k v <- in-hash-table (alist->hash-table '((a . 1))))
-        (res <- collecting (cons k v)))
-   => res)
- '((a . 1)))
 
 (test-end "loop")
 

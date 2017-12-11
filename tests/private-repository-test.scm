@@ -1,7 +1,8 @@
 ;;;; private-repository-test.scm
 
 
-(use files posix)
+(import (chicken pathname)
+        (chicken posix))
 
 (define read-symbolic-link*
   (cond-expand

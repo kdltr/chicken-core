@@ -120,7 +120,7 @@ Some of the features supported by CHICKEN:
 * Compiled C files can be easily distributed
 * Allows the creation of fully self-contained statically linked executables
 * On systems that support it, compiled code can be loaded dynamically
-* Built-in support for cross-compilation and deployment
+* Built-in support for cross-compilation
 
 CHICKEN has been used in many environments ranging from embedded
 systems through desktop machines to large-scale server deployments.  
@@ -345,8 +345,8 @@ following little program:
 
 <enscript highlight=scheme>
 
-(use irregex) ; irregex, the regular expression library, is one of the
-     	      ; libraries included with CHICKEN.
+(import irregex) ; irregex, the regular expression library, is one of the
+                 ; libraries included with CHICKEN.
 
 (define (process-line line re rplc) 
   (irregex-replace/all re line rplc))
@@ -529,7 +529,7 @@ local CHICKEN repository.
 
 Now we can use our new egg. 
 
- #;1> (use uri-common)
+ #;1> (import uri-common)
  ; loading /usr/lib/chicken/5/uri-common.import.so ...
  ; [... other loaded files omitted for clarity ...]
  

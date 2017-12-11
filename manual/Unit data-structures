@@ -35,8 +35,7 @@ and defaults to {{eqv?}}. {{alist-update!}} is the destructive version of {{alis
 
 <procedure>(atom? X)</procedure>
 
-Returns {{#t}} if {{X}} is not a pair. This is identical to {{not-pair?}} from [[Unit srfi-1]] but
-kept for historical reasons.
+Returns {{#t}} if {{X}} is not a pair.
 
 
 ==== rassoc
@@ -122,103 +121,6 @@ between each sublist. {{LIST}} defaults to the empty list.
 <procedure>(tail? X LIST)</procedure>
 
 Returns true if {{X}} is one of the tails (cdr's) of {{LIST}}.
-
-=== Queues
-
-
-==== list->queue
-
-<procedure>(list->queue LIST)</procedure>
-
-Returns {{LIST}} converted into a queue, where the first element
-of the list is the same as the first element of the queue. The resulting
-queue may share memory with the list and the list should not be modified
-after this operation.
-
-
-==== make-queue
-
-<procedure>(make-queue)</procedure>
-
-Returns a newly created queue.
-
-
-==== queue?
-
-<procedure>(queue? X)</procedure>
-
-Returns {{#t}} if {{X}} is a queue, or {{#f}} otherwise.
-
-
-==== queue-length
-
-<procedure>(queue-length QUEUE)</procedure>
-
-Returns the current number of items stored in {{QUEUE}}.
-
-
-==== queue->list
-
-<procedure>(queue->list QUEUE)</procedure>
-
-Returns {{QUEUE}} converted into a list, where the first element
-of the list is the same as the first element of the queue. The resulting
-list is freshly allocated and does not share memory with the queue object.
-
-
-==== queue-add!
-
-<procedure>(queue-add! QUEUE X)</procedure>
-
-Adds {{X}} to the rear of {{QUEUE}}.
-
-
-==== queue-empty?
-
-<procedure>(queue-empty? QUEUE)</procedure>
-
-Returns {{#t}} if {{QUEUE}} is empty, or {{#f}} otherwise.
-
-
-==== queue-first
-
-<procedure>(queue-first QUEUE)</procedure>
-
-Returns the first element of {{QUEUE}}. If {{QUEUE}} is empty
-an error is signaled
-
-
-==== queue-last
-
-<procedure>(queue-last QUEUE)</procedure>
-
-Returns the last element of {{QUEUE}}. If {{QUEUE}} is empty
-an error is signaled
-
-
-==== queue-remove!
-
-<procedure>(queue-remove! QUEUE)</procedure>
-
-Removes and returns the first element of {{QUEUE}}. If {{QUEUE}}
-is empty an error is signaled
-
-
-==== queue-push-back!
-
-<procedure>(queue-push-back! QUEUE ITEM)</procedure>
-
-Pushes an item into the first position of a queue, i.e. the next
-{{queue-remove!}} will return {{ITEM}}.
-
-
-==== queue-push-back-list!
-
-<procedure>(queue-push-back-list! QUEUE LIST)</procedure>
-
-Pushes the items in item-list back onto the queue,
-so that {{(car LIST)}} becomes the next removable item.
-
 
 
 === Sorting
@@ -572,20 +474,6 @@ applied to a list of elements that all satisfy the predicate procedure
 A single value version of {{compose}} (slightly faster). {{(o)}} is equivalent
 to {{identity}}.
 
-
-=== Binary searching
-
-
-==== binary-search
-
-<procedure>(binary-search SEQUENCE PROC)</procedure>
-
-Performs a binary search in {{SEQUENCE}}, which should be a sorted
-list or vector.  {{PROC}} is called to compare items in the sequence,
-should accept a single argument and return an exact integer: zero if the
-searched value is equal to the current item, negative if the searched
-value is ''less'' than the current item, and positive otherwise.
-Returns the index of the found value or {{#f}} otherwise.
 
 ---
 Previous: [[Unit expand]]

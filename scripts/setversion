@@ -3,9 +3,10 @@
 exec csi -s "$0" "$@"
 |#
 
-(use srfi-1 utils posix irregex)
+(import (chicken file) (chicken format) (chicken io)
+        (chicken irregex) (chicken process) (chicken string))
 
-(define buildversion (->string (car (read-file "buildversion"))))
+(define buildversion (with-input-from-file "buildversion" read-line))
 
 (define files '("README" "manual/The User's Manual"))
 
@@ -28,7 +29,7 @@ exec csi -s "$0" "$@"
 	(else
 	 (let ((tmp (create-temporary-file)))
 	   (patch (list which tmp) rx subst)
-	   (system* "mv ~S ~S" tmp which) ) ) ) )
+	   (system* (format "mv ~S ~S" tmp which))))))
 
 (define (parse-version v)
   (let ((m (irregex-match "(\\d+)\\.(\\d+)\\.(\\d+)(.*)" v)))
@@ -39,8 +40,9 @@ exec csi -s "$0" "$@"
 	  (irregex-match-substring m 4))))
 
 (define (main args)
-  (let ((major (##sys#fudge 41))
-	(minor (##sys#fudge 43)))
+  (let* ((version (parse-version (chicken-version)))
+	 (major (cadr version))
+	 (minor (caddr version)))
     (cond ((member "-set" args) =>
 	   (lambda (a)
 	     (set! buildversion (cadr a))
@@ -57,7 +59,7 @@ exec csi -s "$0" "$@"
 	     (set! minor min)
 	     (set! buildversion
 	       (conc maj "." min "." (add1 (string->number pl)) huh)) ) ) )
-    (with-output-to-file "buildversion" (cut display buildversion) binary:)
+    (with-output-to-file "buildversion" (cut print buildversion) binary:)
     (system* "cat buildversion")
     (let ([vstr (sprintf "version ~A" buildversion)])
       (for-each (cut patch <> (irregex "version [0-9][-.0-9a-zA-Z]+") vstr) files) )

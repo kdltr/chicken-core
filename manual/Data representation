@@ -58,7 +58,7 @@ collection or internal data type dispatching.
 
 ; C_BYTEBLOCK_BIT : Flag that specifies whether this data object contains raw bytes (a string or blob) or pointers to other data objects.
 
-; C_SPECIALBLOCK_BIT : Flag that specifies whether this object contains a ''special'' non-object pointer value in its first slot. An example for this kind of objects are closures, which are a vector-type object with the code-pointer as the first item.
+; C_SPECIALBLOCK_BIT : Flag that specifies whether this object contains a ''special'' non-object pointer value in its first slot. An example for this kind of objects are closures, which are a vector-type object with the code-pointer as the first item.  This is also used to turn a pair's car into a weak reference in the symbol table, to allow its symbol to be collected.
 
 ; C_8ALIGN_BIT : Flag that specifies whether the data area of this block should be aligned on an 8-byte boundary (floating-point numbers, for example).
 
@@ -66,9 +66,14 @@ After these four bits comes a 4-bit type code representing one of the following 
 
 '''vectors''': vector objects with type bits {{C_VECTOR_TYPE}}, currently 0000.
 
-'''symbols''': vector objects with type bits {{C_SYMBOL_TYPE}}, currently 0001. The three slots
-contain the toplevel variable value, the print-name (a string), and the property list
-of the symbol.
+'''symbols''': vector objects with type bits {{C_SYMBOL_TYPE}},
+currently 0001. The three slots contain the toplevel variable value,
+the print-name (a string), and the property list of the symbol.  When
+manipulating these slots, the symbol table's container needs to be
+manipulated as well, to control garbage collection of the symbol: if
+the symbol is undefined and has no property list, the symbol table's
+container should be a weak reference ({{C_WEAK_PAIR_TYPE}}), otherwise
+it should be a strong reference ({{C_PAIR_TYPE}}).
 
 '''strings''': byte-vector objects with type bits {{C_STRING_TYPE}}, currently 0010.
 
@@ -85,6 +90,15 @@ a flat closure representation is used).
 {{C_FLONUM_BITS}}, currently 0101. Slots one and two (or a single slot on
 64 bit architectures) contain a 64-bit floating-point number, in the
 representation used by the host system's C compiler.
+
+'''bignums''': special vector objects with type bits
+{{C_BIGNUM_TYPE}}, currently 0110.  This contains only one slot, which
+points to a bytevector that contains the number's limbs in a special
+format: The first word contains a 1 if the number is negative, 0 if it
+is positive.  The remaining words form the bignum's limbs.  A
+bytevector is used because the limbs are stored in the raw machine
+format, which would be invalid Scheme objects when viewed as slots in
+a vector.
 
 '''ports''': special vector objects with type bits
 {{C_PORT_TYPE}}, currently 0111. The first slot contains a pointer to a file-
@@ -120,10 +134,18 @@ but the object contains an additional
 slot with a tag (an arbitrary data object) that identifies the type
 of the pointer.
 
+'''ratnums''': vector-like objects with type-bits {{C_RATNUM_TYPE}},
+currently 1100.  The first slot contains the numerator (which can be
+positive or negative), the second slot contains the denominator, which
+is always positive.  These numbers are always simplified, so their gcd
+will always be 1.
+
 '''lambda infos''': byte-vector objects with type-bits {{C_LAMBDA_INFO_TYPE}}, currently 1101.
 
-'''buckets''': vector objects with type-bits {{C_BUCKET_TYPE}}, currently 1111. These are
-only used internally for the implementation of symbol tables.
+'''cplxnums''': vector-like objects with type-bits {{C_CPLXNUM_TYPE}},
+currently 1110. The first slot contains the real part, the second slot
+contains the imaginary part of the complex number.  These two numbers
+are of matching exactness: Either both are flonums or none are.
 
 The actual data follows immediately after the header. Note that
 block addresses are always aligned to the native machine-word
@@ -135,7 +157,6 @@ be taken not to mutate these objects with heap-data (i.e. non-immediate
 objects), because this will confuse the garbage collector.
 
 For more information see the header file {{chicken.h}}.
-
 
 
 ---

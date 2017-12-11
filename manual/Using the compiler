@@ -40,7 +40,8 @@ the source text should be read from standard input.
 
      -debug-level 0             is equivalent to -no-trace -no-lambda-info
      -debug-level 1             is equivalent to -no-trace
-     -debug-level 2             is equivalent to -scrutinize
+     -debug-level 2             is the default behaviour
+     -debug-level 3             is equivalent to -debug-info
 
 ; -disable-interrupts : Equivalent to the {{(disable-interrupts)}} declaration. No interrupt-checks are generated for compiled programs.
 
@@ -58,7 +59,9 @@ the source text should be read from standard input.
 
 ; -emit-inline-file FILENAME : Write procedures that can be globally inlined in internal form to {{FILENAME}}, if global inlining is enabled. Implies {{-inline -local}}. If the inline-file would be empty (because no procedure would be inlinable) no file is generated and any existing inline-file with that name is deleted.
 
-; -emit-type-file FILENAME : Write type-information for declarations of user-defined and globally visible variables to a file of the given name. The generated file is suitable for use with the {{-types}} option.
+; -emit-link-file FILENAME : write a list of statically linked extensions to {{FILENAME}}, used for identifying the static objects that need to be linked to an executable.
+
+; -emit-type-file FILENAME : Write type-information for declarations of user-defined and globally visible variables to a file of the given name. The generated file is suitable for use with the {{-consult-type-file}} option.
 
 ; -explicit-use : Disables automatic use of the units {{library, eval}} and {{expand}}. Use this option if compiling a library unit instead of an application unit.
 
@@ -74,7 +77,7 @@ the source text should be read from standard input.
 
 ; -ignore-repository : Do not load any extensions from the repository (treat repository as empty). Also do not consult compiled (only interpreted) import libraries in {{import}} forms.
 
-; -include-path PATHNAME : Specifies an additional search path for files included via the {{include}} special form. This option may be given multiple times. If the environment variable {{CHICKEN_INCLUDE_PATH}} is set, it should contain a list of alternative include pathnames separated by {{;}}.
+; -include-path PATHNAME : Specifies an additional search path for files included via the {{include}} special form. This option may be given multiple times. If the environment variable {{CHICKEN_INCLUDE_PATH}} is set, it should contain a list of alternative include pathnames separated by {{:}} (unix) or {{;}} (windows).
 
 ; -inline : Enable procedure inlining for known procedures of a size below the threshold (which can be set through the {{-inline-limit}} option).
 
@@ -86,11 +89,13 @@ the source text should be read from standard input.
 
 ; -keep-shadowed-macros : Do not remove macro definitions with the same name as assigned toplevel variables (the default is to remove the macro definition).
 
+; -link NAME : Links the extension {{NAME}} with the compiled program and uses it as a unit. Multiple names may be given and should be separated by commas.
+
 ; -local : Assume toplevel variables defined in the current compilation unit are not externally modified. This gives the compiler more opportunities for inlining. Note that this may result in counter-intuitive and non-standard behaviour: an asssignment to an exported toplevel variable executed in a different compilation unit or in evaluated code will possibly not be seen by code executing in the current compilation unit.
 
 ; -lfa2 : Does an additional lightweight flow-analysis pass on the fully optimized program to remove more type checks.
 
-; -module : wraps the compiled code in an implicit module named {{main}}, importing the {{scheme}} and {{chicken}} modules.
+; -module NAME : wraps the compiled code in an implicit module of the given {{NAME}}, importing the {{scheme}} and {{chicken}} modules.
 
 ; -no-argc-checks : disable argument count checks
 
@@ -153,9 +158,11 @@ the source text should be read from standard input.
 
 ; -specialize : Enable simple flow-analysis for doing some type-directed optimizations.
 
+; -static : Link extensions statically, if possible.
+
 ; -strict-types : Assume that the type of variables is not changed by assignments. This gives more type-information during specialization, but violating this assumption will result in unsafe and incorrectly behaving code.
 
-; -types FILENAME : load additional type database from {{FILENAME}}. Type-definitions in {{FILENAME}} will override previous type-definitions.
+; -consult-type-file FILENAME : load additional type database from {{FILENAME}}. Type-definitions in {{FILENAME}} will override previous type-definitions.
 
 ; -compile-syntax : Makes macros also available at run-time. By default macros are not available at run-time.
 
@@ -363,11 +370,14 @@ purpose.
 The compiler supplies a couple of hooks to add user-level passes to the
 compilation process. Before compilation commences any Scheme source files
 or compiled code specified using the {{-extend}} option are loaded
-and evaluated.  The parameters {{user-options-pass, user-read-pass,
-user-preprocessor-pass, user-pass}} and {{user-post-analysis-pass}} can be set
-to procedures that are called to perform certain compilation passes
-instead of the usual processing (for more information about parameters
-see: [[Supported language]].
+and evaluated. The parameters {{user-options-pass}}, {{user-read-pass}},
+{{user-preprocessor-pass}}, {{user-pass}} and {{user-post-analysis-pass}}
+can be set to procedures that are called to perform certain compilation
+passes instead of the usual processing (for more information about
+parameters see [[Supported language]]).
+
+These parameters are provided by the {{(chicken compiler user-pass)}}
+module.
 
 <parameter>user-options-pass</parameter>
 
@@ -389,27 +399,23 @@ Holds a procedure of one argument. This procedure is applied to each toplevel ex
 
 Holds a procedure that will be called after every performed program analysis pass. The procedure (when defined) will be called with seven arguments: a symbol indicating the analysis pass, the program database, the current node graph, a getter and a setter-procedure which can be used to access and manipulate the program database, which holds various information about the compiled program, a pass iteration count, and an analysis continuation flag. The getter procedure should be called with two arguments: a symbol representing the binding for which information should be retrieved, and a symbol that specifies the database-entry. The current value of the database entry will be returned or {{#f}}, if no such entry is available. The setter procedure is called with three arguments: the symbol and key and the new value. The pass iteration count currently is meaningful only for the 'opt pass. The analysis continuation flag will be {{#f}} for the last 'opt pass. For information about the contents of the program database contact the author.
 
-Loaded code (via the {{-extend}} option) has access to the library
-units {{extras, srfi-1, srfi-4, utils, regex}} and the pattern matching macros. 
-Multithreading is not available.
-
 Note that the macroexpansion/canonicalization phase of the compiler adds
-certain forms to the source program.  These extra expressions are not
-seen by {{user-preprocessor-pass}} but by {{user-pass}}.
+certain forms to the source program. These extra expressions are not
+seen by {{user-preprocessor-pass}}, but are seen by {{user-pass}}.
 
 === Distributing compiled C files
 
 It is relatively easy to create distributions of Scheme projects that
 have been compiled to C.  The runtime system of CHICKEN consists of only
-three handcoded C files ({{runtime.c}} and {{chicken.h}}), plus
-the file {{chicken-config.h}}, which is generated by the build process. All
-other modules of the runtime system and the extension libraries are just
-compiled Scheme code.The following example shows a minimal application, which
-should run without changes on the most frequent operating systems, like Windows,
-Linux or FreeBSD (Static binaries are NOT supported on Mac OS X):
+two handcoded C files ({{runtime.c}} and {{chicken.h}}), plus the files
+{{chicken-config.h}} and {{buildtag.h}}, which are generated by the
+build process. All other modules of the runtime system and the extension
+libraries are just compiled Scheme code. The following example shows a
+minimal application, which should run without changes on most operating
+systems, like Windows, Linux or FreeBSD (note however that static
+binaries are not supported on Mac OS X).
 
-
-Let's take a simple example.
+Take the following "Hello World" program:
 
 <enscript highlight=scheme>
 ; hello.scm
@@ -420,34 +426,35 @@ Let's take a simple example.
   % csc -t hello.scm -optimize-level 3 -output-file hello.c
 
 Compiled to C, we get {{hello.c}}. We need the files {{chicken.h}},
-{{chicken-config.h}}, {{build-version.c}}, {{buildtag.h}} and
-{{runtime.c}}, which contain the basic runtime system, plus the five
-basic library files {{library.c}}, {{eval.c}}, {{expand.c}},
-{{modules.c}} and {{build-version.c}} which contain the same
-functionality as the library linked into a plain CHICKEN-compiled
-application, or which is available by default in the interpreter,
-{{csi}}:
-
+{{chicken-config.h}}, {{buildtag.h}} and {{runtime.c}}, which contain
+the basic runtime system, plus the library files {{build-version.c}},
+{{chicken-syntax.c}}, {{eval.c}}, {{expand.c}}, {{internal.c}},
+{{library.c}} and {{modules.c}}, which contain the same functionality as
+the library that is linked into plain CHICKEN-compiled applications:
 
   % cd /tmp
   % echo '(print "Hello World.")' > hello.scm
-  % cp $CHICKEN_BUILD/runtime.c  .
-  % cp $CHICKEN_BUILD/library.c  .
-  % cp $CHICKEN_BUILD/eval.c     .
-  % cp $CHICKEN_BUILD/extras.c   .
-  % cp $CHICKEN_BUILD/expand.c   .
-  % cp $CHICKEN_BUILD/modules.c  .
-  % cp $CHICKEN_BUILD/build-version.c  .
-  % cp $CHICKEN_BUILD/chicken.h  .
-  % cp $CHICKEN_BUILD/chicken-config.h  .
-  % cp $CHICKEN_BUILD/buildtag.h  .
-  % gcc -static -Os -fomit-frame-pointer -DHAVE_CHICKEN_CONFIG_H runtime.c build-version.c \
-     library.c eval.c expand.c modules.c hello.c -o hello -lm
+  % csc -t hello.scm
+  % cp $CHICKEN_BUILD/build-version.c .
+  % cp $CHICKEN_BUILD/chicken-syntax.c .
+  % cp $CHICKEN_BUILD/eval.c .
+  % cp $CHICKEN_BUILD/expand.c .
+  % cp $CHICKEN_BUILD/internal.c .
+  % cp $CHICKEN_BUILD/library.c .
+  % cp $CHICKEN_BUILD/modules.c .
+  % cp $CHICKEN_BUILD/runtime.c .
+  % cp $CHICKEN_BUILD/chicken.h .
+  % cp $CHICKEN_BUILD/chicken-config.h .
+  % cp $CHICKEN_BUILD/buildtag.h .
+  % gcc -static -Os -fomit-frame-pointer -DHAVE_CHICKEN_CONFIG_H hello.c \
+    build-version.c eval.c expand.c internal.c library.c modules.c runtime.c \
+    -o hello -lm
 
-Now we have all files together, and can create an tarball containing all the files:
+Once we have all the files together, we can create a tarball:
 
- % tar cf hello.tar hello.c runtime.c build-version.c library.c eval.c extras.c \
-   expand.c modules.c chicken.h chicken-config.h
+ % tar cf hello.tar hello.c build-version.c chicken-syntax.c eval.c \
+   expand.c internal.c library.c modules.c runtime.c chicken.h \
+   chicken-config.h buildtag.h
  % gzip hello.tar
 
 This is naturally rather simplistic. Things like enabling dynamic
@@ -456,12 +463,14 @@ more configuration- and build-time support. All this can be addressed
 using more elaborate build-scripts, makefiles or by using
 autoconf/automake.
 
-The {{chicken-config.h}} file may contain wrong settings for your
-deployment target. Especially when the architecture is different.
-In that case you will have to adjust the values as needed.
+The {{chicken-config.h}} file may contain incorrect settings for your
+deployment target. Especially when the architecture is different. In
+that case you will have to adjust the values as needed.
 
-Note also that the size of the application can still be reduced by removing
-{{eval}} and compiling {{hello.scm}} with the {{-explicit-use}} option.
+Note that the size of the application can still be reduced by removing
+any of the C files besides {{build-version.c}}, {{library.c}}, and
+{{runtime.c}}, and compiling {{hello.scm}} with the {{-explicit-use}}
+option.
 
 For more information, study the CHICKEN source code and/or ask on the CHICKEN
 mailing list.

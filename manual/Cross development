@@ -81,7 +81,6 @@ You should now have these files on {{~/target}}:
 
  |-- bin
  |   |-- chicken
- |   |-- chicken-bug
  |   |-- chicken-install
  |   |-- chicken-profile
  |   |-- chicken-status
@@ -93,12 +92,12 @@ You should now have these files on {{~/target}}:
  |   `-- chicken.h
  |-- lib
  |   |-- chicken
- |   |   `-- 8
+ |   |   `-- 9
  |   |       :
  |   |
  |   |-- libchicken.a
- |   |-- libchicken.so -> libchicken.so.8
- |   `-- libchicken.so.8
+ |   |-- libchicken.so -> libchicken.so.9
+ |   `-- libchicken.so.9
  `-- share
      |-- chicken
      |   |-- doc
@@ -154,7 +153,6 @@ In {{~/cross-chicken}}, you should find the following:
 
  |-- bin
  |   |-- arm-chicken
- |   |-- arm-chicken-bug
  |   |-- arm-chicken-install
  |   |-- arm-chicken-profile
  |   |-- arm-chicken-status
@@ -166,12 +164,12 @@ In {{~/cross-chicken}}, you should find the following:
  |   `-- chicken.h
  |-- lib
  |   |-- chicken
- |   |   `-- 8
+ |   |   `-- 9
  |   |       :
  |   |
  |   |-- libchicken.a
- |   |-- libchicken.so -> libchicken.so.8
- |   `-- libchicken.so.8
+ |   |-- libchicken.so -> libchicken.so.9
+ |   `-- libchicken.so.9
  `-- share
      |-- chicken
      |   |-- doc
@@ -243,5 +241,5 @@ extensions.
 
 
 ----
-Previous: [[Deployment]]
+Previous: [[Extensions]]
 Next: [[Data representation]]

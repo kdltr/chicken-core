@@ -25,62 +25,44 @@
 
 
 
-(declare (unit irregex))
-
 (declare
+  (unit irregex)
   (no-procedure-checks)
-  (fixnum)
-  (export
-   ##sys#glob->regexp
-   irregex
-   irregex-apply-match
-   irregex-dfa
-   irregex-dfa/extract
-   irregex-dfa/search
-   irregex-extract
-   irregex-flags
-   irregex-fold
-   irregex-fold/chunked
-   irregex-lengths
-   irregex-match
-   irregex-match?
-   irregex-match-data?
-   irregex-match-end-chunk
-   irregex-match-end-index
-   irregex-match-names
-   irregex-match-num-submatches
-   irregex-match-start-chunk
-   irregex-match-start-index
-   irregex-match-subchunk
-   irregex-match-substring
-   irregex-match-valid-index?
-   irregex-match/chunked
-   irregex-names
-   irregex-new-matches
-   irregex-nfa
-   irregex-num-submatches
-   irregex-opt
-   irregex-quote
-   irregex-replace
-   irregex-replace/all
-   irregex-reset-matches!
-   irregex-search
-   irregex-search/chunked
-   irregex-search/matches
-   irregex-split
-   irregex? 
-   make-irregex-chunker
-   maybe-string->sre
-   irregex-search/chunked
-   sre->irregex
-   sre->string
-   string->irregex
-   string->sre
-   ))
+  (fixnum))
+
+(module chicken.irregex
+    (;; Constructors, accessors and predicates
+     irregex irregex? string->sre maybe-string->sre sre->irregex
+     irregex-names irregex-num-submatches string->irregex
+
+     ;; Chunking constructor
+     make-irregex-chunker
+
+     ;; Main API
+     irregex-extract irregex-fold irregex-match irregex-match?
+     irregex-search irregex-split irregex-replace irregex-replace/all
+
+     ;; Chunked main API
+     irregex-fold/chunked irregex-match/chunked irregex-search/chunked
+
+     ;; Match extraction API
+     irregex-match-data? irregex-match-names
+     irregex-match-start-index irregex-match-end-index
+     irregex-match-num-submatches irregex-match-substring
+     irregex-match-valid-index?
+
+     ;; Chunked match API
+     irregex-match-start-chunk irregex-match-end-chunk
+     irregex-match-subchunk
+
+     ;; Utilities
+     glob->sre sre->string irregex-opt irregex-quote)
+
+(import scheme
+	chicken
+	chicken.syntax)
 
 (include "common-declarations.scm")
-
-(register-feature! 'irregex)
 
 ;; These should probably be taken out of irregex upstream
 (declare (unused filter integer-log cset-size remove))
@@ -126,8 +108,7 @@
 			       (##sys#setslot ,%cache ,%index ,%arg)
 			       (##sys#setslot ,%cache (,%fx+ ,%index 1) ,%tmp)
 			       (##sys#setislot 
-				,%cache ,n2
-				(##core#inline "C_u_fixnum_modulo" (,%fx+ ,%index 2) ,n2))
+				,%cache ,n2 (,%fxmod (,%fx+ ,%index 2) ,n2))
 			       ,%tmp)
 		       `(,%if (,%equal? (##sys#slot ,%cache ,(* i 2)) ,%arg)
 			      (##sys#slot ,%cache ,(add1 (* i 2)))
@@ -239,47 +220,47 @@
 (include "irregex-core.scm")
 (include "irregex-utils.scm")
 
-(define ##sys#glob->regexp
+(define glob->sre
   (let ((list->string list->string)
         (string->list string->list))
-    (lambda (s #!optional sre?)
-      (##sys#check-string s 'glob->regexp)
-      (let ((sre
-	     (cons 
-	      ':
-	      (let loop ((cs (string->list s)) (dir #t))
-		(if (null? cs)
-		    '()
-		    (let ((c (car cs))
-			  (rest (cdr cs)) )
-		      (cond ((char=? c #\*) 
-			     (if dir
-				 `((or (: (~ ("./\\"))
-					  (* (~ ("/\\"))))
-				       (* (~ ("./\\"))))
-				   ,@(loop rest #f))
-				 `((* (~ ("/\\"))) ,@(loop rest #f))))
-			    ((char=? c #\?)  (cons 'any (loop rest #f)))
-			    ((char=? c #\[)
-			     (let loop2 ((rest rest) (s '()))
-			       (cond ((not (pair? rest))
-				      (error 'glob->regexp
-					     "unexpected end of character class" s))
-				     ((char=? #\] (car rest))
-				      `(,(if (> (length s) 1)
-					     `(or ,@s) 
-					     (car s))
-					,@(loop (cdr rest) #f)))
-				     ((and (pair? (cdr rest))
-					   (pair? (cddr rest))
-					   (char=? #\- (cadr rest)) )
-				      (loop2 (cdddr rest)
-					     (cons `(/ ,(car rest) ,(caddr rest)) s)))
-				     ((and (pair? (cdr rest))
-					   (char=? #\- (car rest)))
-				      (loop2 (cddr rest)
-					     (cons `(~ ,(cadr rest)) s)))
-				     (else
-				      (loop2 (cdr rest) (cons (car rest) s))))))
-			    (else (cons c (loop rest (memq c '(#\\ #\/))))))))))))
-	(if sre? sre (irregex sre))))))
+    (lambda (s)
+      (##sys#check-string s 'glob->sre)
+      (cons
+       ':
+       (let loop ((cs (string->list s)) (dir #t))
+	 (if (null? cs)
+	     '()
+	     (let ((c (car cs))
+		   (rest (cdr cs)) )
+	       (cond ((char=? c #\*)
+		      (if dir
+			  `((or (: (~ ("./\\"))
+				   (* (~ ("/\\"))))
+				(* (~ ("./\\"))))
+			    ,@(loop rest #f))
+			  `((* (~ ("/\\"))) ,@(loop rest #f))))
+		     ((char=? c #\?)  (cons 'any (loop rest #f)))
+		     ((char=? c #\[)
+		      (let loop2 ((rest rest) (s '()))
+			(cond ((not (pair? rest))
+			       (error 'glob->sre
+				      "unexpected end of character class" s))
+			      ((char=? #\] (car rest))
+			       `(,(if (> (length s) 1)
+				      `(or ,@s)
+				      (car s))
+				 ,@(loop (cdr rest) #f)))
+			      ((and (pair? (cdr rest))
+				    (pair? (cddr rest))
+				    (char=? #\- (cadr rest)) )
+			       (loop2 (cdddr rest)
+				      (cons `(/ ,(car rest) ,(caddr rest)) s)))
+			      ((and (pair? (cdr rest))
+				    (char=? #\- (car rest)))
+			       (loop2 (cddr rest)
+				      (cons `(~ ,(cadr rest)) s)))
+			      (else
+			       (loop2 (cdr rest) (cons (car rest) s))))))
+		     (else (cons c (loop rest (memq c '(#\\ #\/)))))))))))))
+
+)

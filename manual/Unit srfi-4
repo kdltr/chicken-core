@@ -11,7 +11,6 @@ Homogeneous numeric vector datatypes.  Also see the [[http://srfi.schemers.org/s
 * Procedures for blob conversion, subvectors and vector I/O are provided.
 * SRFI-17 setters for {{XXXvector-ref}} are defined.
 * Constructors allow allocating the storage in non garbage collected memory.
-* 64-bit integer vectors ({{u64vector}} and {{s64vector}}) are not supported.
 
 === Blob conversions
 
@@ -21,6 +20,8 @@ Homogeneous numeric vector datatypes.  Also see the [[http://srfi.schemers.org/s
 <procedure>(s16vector->blob S16VECTOR)</procedure><br>
 <procedure>(u32vector->blob U32VECTOR)</procedure><br>
 <procedure>(s32vector->blob S32VECTOR)</procedure><br>
+<procedure>(u64vector->blob U64VECTOR)</procedure><br>
+<procedure>(s64vector->blob S64VECTOR)</procedure><br>
 <procedure>(f32vector->blob F32VECTOR)</procedure><br>
 <procedure>(f64vector->blob F64VECTOR)</procedure><br>
 <procedure>(u8vector->blob/shared U8VECTOR)</procedure><br>
@@ -29,6 +30,8 @@ Homogeneous numeric vector datatypes.  Also see the [[http://srfi.schemers.org/s
 <procedure>(s16vector->blob/shared S16VECTOR)</procedure><br>
 <procedure>(u32vector->blob/shared U32VECTOR)</procedure><br>
 <procedure>(s32vector->blob/shared S32VECTOR)</procedure><br>
+<procedure>(u64vector->blob/shared U64VECTOR)</procedure><br>
+<procedure>(s64vector->blob/shared S64VECTOR)</procedure><br>
 <procedure>(f32vector->blob/shared F32VECTOR)</procedure><br>
 <procedure>(f64vector->blob/shared F64VECTOR)</procedure><br>
 
@@ -43,6 +46,8 @@ variants return a blob that shares memory with the contents of the vector.
 <procedure>(blob->s16vector BLOB)</procedure><br>
 <procedure>(blob->u32vector BLOB)</procedure><br>
 <procedure>(blob->s32vector BLOB)</procedure><br>
+<procedure>(blob->u64vector BLOB)</procedure><br>
+<procedure>(blob->s64vector BLOB)</procedure><br>
 <procedure>(blob->f32vector BLOB)</procedure><br>
 <procedure>(blob->f64vector BLOB)</procedure><br>
 <procedure>(blob->u8vector/shared BLOB)</procedure><br>
@@ -51,6 +56,8 @@ variants return a blob that shares memory with the contents of the vector.
 <procedure>(blob->s16vector/shared BLOB)</procedure><br>
 <procedure>(blob->u32vector/shared BLOB)</procedure><br>
 <procedure>(blob->s32vector/shared BLOB)</procedure><br>
+<procedure>(blob->u64vector/shared BLOB)</procedure><br>
+<procedure>(blob->s64vector/shared BLOB)</procedure><br>
 <procedure>(blob->f32vector/shared BLOB)</procedure><br>
 <procedure>(blob->f64vector/shared BLOB)</procedure><br>
 
@@ -64,9 +71,11 @@ shares memory with the contents of the blob.
 <procedure>(subu8vector U8VECTOR FROM TO)</procedure><br>
 <procedure>(subu16vector U16VECTOR FROM TO)</procedure><br>
 <procedure>(subu32vector U32VECTOR FROM TO)</procedure><br>
+<procedure>(subu64vector U32VECTOR FROM TO)</procedure><br>
 <procedure>(subs8vector S8VECTOR FROM TO)</procedure><br>
 <procedure>(subs16vector S16VECTOR FROM TO)</procedure><br>
 <procedure>(subs32vector S32VECTOR FROM TO)</procedure><br>
+<procedure>(subs64vector S32VECTOR FROM TO)</procedure><br>
 <procedure>(subf32vector F32VECTOR FROM TO)</procedure><br>
 <procedure>(subf64vector F64VECTOR FROM TO)</procedure><br>
 
@@ -78,10 +87,12 @@ not including {{TO}}.
 <procedure>(read-u8vector [LENGTH [PORT]])</procedure>
 
 Reads {{LENGTH}} bytes from the {{PORT}} and returns a fresh
-{{u8vector}} or less if end-of-file is encountered. {{PORT}} defaults to the
-value of {{(current-input-port)}}.
+{{u8vector}}, or as many as are available before end-of-file is
+encountered. {{PORT}} defaults to the value of {{(current-input-port)}}.
+If no bytes are available before the end-of-file, {{#!eof}} is returned.
 
-If {{LENGTH}} is {{#f}}, the vector will be filled completely until end-of-file is reached.
+If {{LENGTH}} is {{#f}}, the vector will be filled completely until
+end-of-file is reached.
 
 <procedure>(read-u8vector! LENGTH U8VECTOR [PORT [START]])</procedure>
 
@@ -121,6 +132,8 @@ called integer vectors):
 <tr><td>{{u16vector}}</td><td>unsigned exact integer in the range 0 to (2^16)-1</td></tr>
 <tr><td>{{s32vector}}</td><td>signed exact integer in the range -(2^31) to (2^31)-1</td></tr>
 <tr><td>{{u32vector}}</td><td>unsigned exact integer in the range 0 to (2^32)-1</td></tr>
+<tr><td>{{s64vector}}</td><td>signed exact integer in the range -(2^31) to (2^31)-1</td></tr>
+<tr><td>{{u64vector}}</td><td>unsigned exact integer in the range 0 to (2^64)-1</td></tr>
 <tr><td>{{s64vector}}</td><td>signed exact integer in the range -(2^63) to (2^63)-1</td></tr>
 <tr><td>{{u64vector}}</td><td>unsigned exact integer in the range 0 to (2^64)-1</td></tr></table>
 
@@ -176,6 +189,8 @@ will set {{x}} to the object {{#u8(1 2 3)}}. Since CHICKEN 4.9.0, literal homoge
 <procedure>(s16vector? OBJ)</procedure><br>
 <procedure>(u32vector? OBJ)</procedure><br>
 <procedure>(s32vector? OBJ)</procedure><br>
+<procedure>(u64vector? OBJ)</procedure><br>
+<procedure>(s64vector? OBJ)</procedure><br>
 <procedure>(f32vector? OBJ)</procedure><br>
 <procedure>(f64vector? OBJ)</procedure><br>
 
@@ -183,7 +198,7 @@ Return {{#t}} if {{obj}} is an object of the specified type or {{#f}} if not.
 
 <procedure>(number-vector? OBJ)</procedure>
 
-Return {{#t}} if {{obj}} is a number vector, {{#f}} if not.  A "number vector" is any of the homogeneous number vector types defined by SRFI-4, ie it's one of {{u8vector}}, {{s8vector}}, {{u16vector}}, {{s16vector}}, {{u32vector}}, {{s32vector}}, {{f32vector}} or {{f64vector}}).
+Return {{#t}} if {{obj}} is a number vector, {{#f}} if not.  A "number vector" is any of the homogeneous number vector types defined by SRFI-4, ie it's one of {{u8vector}}, {{s8vector}}, {{u16vector}}, {{s16vector}}, {{u32vector}}, {{s32vector}}, {{u64vector}}, {{s64vector}}, {{f32vector}} or {{f64vector}}).
 
 
 === Constructors
@@ -194,6 +209,8 @@ Return {{#t}} if {{obj}} is a number vector, {{#f}} if not.  A "number vector" i
 <procedure>(make-s16vector N [S16VALUE NONGC FINALIZE])</procedure><br>
 <procedure>(make-u32vector N [U32VALUE NONGC FINALIZE])</procedure><br>
 <procedure>(make-s32vector N [S32VALUE NONGC FINALIZE])</procedure><br>
+<procedure>(make-u64vector N [U64VALUE NONGC FINALIZE])</procedure><br>
+<procedure>(make-s64vector N [S64VALUE NONGC FINALIZE])</procedure><br>
 <procedure>(make-f32vector N [F32VALUE NONGC FINALIZE])</procedure><br>
 <procedure>(make-f64vector N [F64VALUE NONGC FINALIZE])</procedure><br>
 
@@ -226,6 +243,8 @@ to {{#t}}. Note that the {{FINALIZE}} argument is only used when
 <procedure>(s16vector S16VALUE ...)</procedure><br>
 <procedure>(u32vector U32VALUE ...)</procedure><br>
 <procedure>(s32vector S32VALUE ...)</procedure><br>
+<procedure>(u64vector U64VALUE ...)</procedure><br>
+<procedure>(s64vector S64VALUE ...)</procedure><br>
 <procedure>(f32vector F32VALUE ...)</procedure><br>
 <procedure>(f64vector F64VALUE ...)</procedure><br>
 
@@ -240,6 +259,8 @@ type, composed of the arguments.
 <procedure>(s16vector-length S16VECTOR)</procedure><br>
 <procedure>(u32vector-length U32VECTOR)</procedure><br>
 <procedure>(s32vector-length S32VECTOR)</procedure><br>
+<procedure>(u64vector-length U64VECTOR)</procedure><br>
+<procedure>(s64vector-length S64VECTOR)</procedure><br>
 <procedure>(f32vector-length F32VECTOR)</procedure><br>
 <procedure>(f64vector-length F64VECTOR)</procedure><br>
 
@@ -253,6 +274,8 @@ Returns the length of the SRFI-4 homogeneous number VECTOR.
 <procedure>(s16vector-ref S16VECTOR I)</procedure><br>
 <procedure>(u32vector-ref U32VECTOR I)</procedure><br>
 <procedure>(s32vector-ref S32VECTOR I)</procedure><br>
+<procedure>(u64vector-ref U64VECTOR I)</procedure><br>
+<procedure>(s64vector-ref S64VECTOR I)</procedure><br>
 <procedure>(f32vector-ref F32VECTOR I)</procedure><br>
 <procedure>(f64vector-ref F64VECTOR I)</procedure><br>
 
@@ -268,6 +291,8 @@ than the length of the vector.
 <procedure>(s16vector-set! S16VECTOR I S16VALUE)</procedure><br>
 <procedure>(u32vector-set! U32VECTOR I U32VALUE)</procedure><br>
 <procedure>(s32vector-set! S32VECTOR I S32VALUE)</procedure><br>
+<procedure>(u64vector-set! U64VECTOR I U64VALUE)</procedure><br>
+<procedure>(s64vector-set! S64VECTOR I S64VALUE)</procedure><br>
 <procedure>(f32vector-set! F32VECTOR I F32VALUE)</procedure><br>
 <procedure>(f64vector-set! F64VECTOR I F64VALUE)</procedure><br>
 
@@ -290,6 +315,8 @@ procedures.  For example, to set the {{i}}th element of SRFI-4
 <procedure>(s16vector->list S16VECTOR)</procedure><br>
 <procedure>(u32vector->list U32VECTOR)</procedure><br>
 <procedure>(s32vector->list S32VECTOR)</procedure><br>
+<procedure>(u64vector->list U64VECTOR)</procedure><br>
+<procedure>(s64vector->list S64VECTOR)</procedure><br>
 <procedure>(f32vector->list F32VECTOR)</procedure><br>
 <procedure>(f64vector->list F64VECTOR)</procedure><br>
 
@@ -302,6 +329,8 @@ VECTOR.
 <procedure>(list->s16vector S16LIST)</procedure><br>
 <procedure>(list->u32vector U32LIST)</procedure><br>
 <procedure>(list->s32vector S32LIST)</procedure><br>
+<procedure>(list->u64vector U64LIST)</procedure><br>
+<procedure>(list->s64vector S64LIST)</procedure><br>
 <procedure>(list->f32vector F32LIST)</procedure><br>
 <procedure>(list->f64vector F64LIST)</procedure><br>
 
@@ -321,6 +350,6 @@ garbage collected memory is undefined.
 
 
 ---
-Previous: [[Unit srfi-1]]
+Previous: [[Unit extras]]
 
-Next: [[Unit srfi-13]]
+Next: [[Unit posix]]

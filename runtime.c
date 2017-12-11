@@ -28,7 +28,6 @@
 
 #include "chicken.h"
 #include <assert.h>
-#include <errno.h>
 #include <float.h>
 #include <signal.h>
 #include <sys/stat.h>
@@ -118,6 +117,16 @@ static C_TLS int timezone;
 # include <windows.h>
 #endif
 
+/* For image_info retrieval */
+#if defined(__HAIKU__)
+# include <kernel/image.h>
+#endif
+
+/* For _NSGetExecutablePath */
+#if defined(C_MACOSX)
+# include <mach-o/dyld.h>
+#endif
+
 #ifdef HAVE_CONFIG_H
 # ifdef PACKAGE
 #  undef PACKAGE
@@ -145,6 +154,7 @@ static C_TLS int timezone;
 #define DEFAULT_SYMBOL_TABLE_SIZE      2999
 #define DEFAULT_HEAP_SIZE              DEFAULT_STACK_SIZE
 #define MINIMAL_HEAP_SIZE              DEFAULT_STACK_SIZE
+#define DEFAULT_SCRATCH_SPACE_SIZE     256
 #define DEFAULT_MAXIMAL_HEAP_SIZE      0x7ffffff0
 #define DEFAULT_HEAP_GROWTH            200
 #define DEFAULT_HEAP_SHRINKAGE         50
@@ -156,12 +166,6 @@ static C_TLS int timezone;
 #define MIN_TRACE_BUFFER_SIZE          3
 
 #define MAX_HASH_PREFIX                64
-
-#define WEAK_TABLE_SIZE                997
-#define WEAK_HASH_ITERATIONS           4
-#define WEAK_HASH_DISPLACEMENT         7
-#define WEAK_COUNTER_MASK              3
-#define WEAK_COUNTER_MAX               2
 
 #define DEFAULT_TEMPORARY_STACK_SIZE   256
 #define STRING_BUFFER_SIZE             4096
@@ -188,13 +192,17 @@ static C_TLS int timezone;
 /* Constants: */
 
 #ifdef C_SIXTY_FOUR
-# define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffffffffffeL)
-# define FORWARDING_BIT_SHIFT          63
-# define UWORD_FORMAT_STRING           "0x%016lx"
-# define UWORD_COUNT_FORMAT_STRING     "%lu"
+# ifdef C_LLP
+#  define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffffffffffeLL)
+#  define UWORD_FORMAT_STRING           "0x%016llx"
+#  define UWORD_COUNT_FORMAT_STRING     "%llu"
+# else
+#  define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffffffffffeL)
+#  define UWORD_FORMAT_STRING           "0x%016lx"
+#  define UWORD_COUNT_FORMAT_STRING     "%lu"
+# endif
 #else
 # define ALIGNMENT_HOLE_MARKER         ((C_word)0xfffffffe)
-# define FORWARDING_BIT_SHIFT          31
 # define UWORD_FORMAT_STRING           "0x%08x"
 # define UWORD_COUNT_FORMAT_STRING     "%u"
 #endif
@@ -216,56 +224,34 @@ static C_TLS int timezone;
 #define nmin(x, y)                   ((x) < (y) ? (x) : (y))
 #define percentage(n, p)             ((C_long)(((double)(n) * (double)p) / 100))
 
-#define is_fptr(x)                   (((x) & C_GC_FORWARDING_BIT) != 0)
-#define ptr_to_fptr(x)               ((((x) >> FORWARDING_BIT_SHIFT) & 1) | C_GC_FORWARDING_BIT | ((x) & ~1))
-#define fptr_to_ptr(x)               (((C_uword)(x) << FORWARDING_BIT_SHIFT) | ((x) & ~(C_GC_FORWARDING_BIT | 1)))
+#define clear_buffer_object(buf, obj) C_migrate_buffer_object(NULL, (C_word *)(buf), C_buf_end(buf), (obj))
+#define move_buffer_object(ptr, buf, obj) C_migrate_buffer_object(ptr, (C_word *)(buf), C_buf_end(buf), (obj))
 
-#define C_check_flonum(x, w)        if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) \
-                                       barf(C_BAD_ARGUMENT_TYPE_NO_FLONUM_ERROR, w, x);
+/* The bignum digit representation is fullword- little endian, so on
+ * LE machines the halfdigits are numbered in the same order.  On BE
+ * machines, we must swap the odd and even positions.
+ */
+#ifdef C_BIG_ENDIAN
+#define C_uhword_ref(x, p)           ((C_uhword *)(x))[(p)^1]
+#else
+#define C_uhword_ref(x, p)           ((C_uhword *)(x))[(p)]
+#endif
+#define C_uhword_set(x, p, d)        (C_uhword_ref(x,p) = (d))
+
+#define free_tmp_bignum(b)           C_free((void *)(b))
+
+/* Forwarding pointers abuse the fact that objects must be
+ * word-aligned, so we can just drop the lowest bit.
+ */
+#define is_fptr(x)                   (((x) & C_GC_FORWARDING_BIT) != 0)
+#define ptr_to_fptr(x)               (((C_uword)(x) >> 1) | C_GC_FORWARDING_BIT)
+#define fptr_to_ptr(x)               ((C_uword)(x) << 1)
+
 #define C_check_real(x, w, v)       if(((x) & C_FIXNUM_BIT) != 0) v = C_unfix(x); \
                                      else if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) \
                                        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, w, x); \
                                      else v = C_flonum_magnitude(x);
 
-
-/* these could be shorter in unsafe mode: */
-#define C_check_int(x, f, n, w)     if(((x) & C_FIXNUM_BIT) != 0) n = C_unfix(x); \
-                                     else if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) \
-                                       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, w, x); \
-                                     else { double _m; \
-                                       f = C_flonum_magnitude(x); \
-                                       if(modf(f, &_m) != 0.0 || f < C_WORD_MIN || f > C_WORD_MAX) \
-                                         barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, w, x); \
-                                       else n = (C_word)f; \
-                                     }
-
-#ifdef BITWISE_UINT_ONLY
-#define C_check_uint(x, f, n, w)    if(((x) & C_FIXNUM_BIT) != 0) n = C_unfix(x); \
-                                     else if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) \
-                                       barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, w, x); \
-                                     else { double _m; \
-                                       f = C_flonum_magnitude(x); \
-                                       if(modf(f, &_m) != 0.0 || f < 0 || f > C_UWORD_MAX) \
-                                         barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, w, x); \
-                                       else n = (C_uword)f; \
-                                     }
-#else
-#define C_check_uint(x, f, n, w)    if(((x) & C_FIXNUM_BIT) != 0) n = C_unfix(x); \
-                                      else if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) \
-                                        barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, w, x); \
-                                      else { double _m; \
-                                        f = C_flonum_magnitude(x); \
-                                        if(modf(f, &_m) != 0.0 || f > C_UWORD_MAX) \
-                                          barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, w, x); \
-                                        else n = (C_uword)f; \
-                                      }
-#endif
-
-#ifdef C_SIXTY_FOUR
-#define C_limit_fixnum(n)            ((n) & C_MOST_POSITIVE_FIXNUM)
-#else
-#define C_limit_fixnum(n)            (n)
-#endif
 
 #define C_pte(name)                  pt[ i ].id = #name; pt[ i++ ].ptr = (void *)name;
 
@@ -273,8 +259,12 @@ static C_TLS int timezone;
 # define SIGBUS                      0
 #endif
 
+#define C_thread_id(x)   C_block_item((x), 14)
+
 
 /* Type definitions: */
+
+typedef C_regparm C_word C_fcall (*integer_plusmin_op) (C_word **ptr, C_word n, C_word x, C_word y);
 
 typedef struct lf_list_struct
 {
@@ -285,12 +275,6 @@ typedef struct lf_list_struct
   void *module_handle;
   char *module_name;
 } LF_LIST;
-
-typedef struct weak_table_entry_struct
-{
-  C_word item,			/* item weakly held (symbol) */
-         container;		/* object holding reference to symbol, lowest 3 bits are */
-} WEAK_TABLE_ENTRY;		/*   also used as a counter, saturated at 2 or more */
 
 typedef struct finalizer_node_struct
 {
@@ -331,7 +315,11 @@ C_TLS C_word
   *C_temporary_stack_bottom,
   *C_temporary_stack_limit,
   *C_stack_limit,         /* "Soft" limit, may be reset to force GC */
-  *C_stack_hard_limit;    /* Actual stack limit */
+  *C_stack_hard_limit,    /* Actual stack limit */
+  *C_scratchspace_start,
+  *C_scratchspace_top,
+  *C_scratchspace_limit,
+   C_scratch_usage;
 C_TLS C_long
   C_timer_interrupt_counter,
   C_initial_timer_interrupt_period;
@@ -359,11 +347,6 @@ C_TLS int
   C_enable_repl,
   C_interrupts_enabled,
   C_disable_overflow_check,
-#ifdef C_COLLECT_ALL_SYMBOLS
-  C_enable_gcweak = 1,
-#else
-  C_enable_gcweak = 0,
-#endif
   C_heap_size_is_fixed,
   C_trace_buffer_size = DEFAULT_TRACE_BUFFER_SIZE,
   C_max_pending_finalizers = C_DEFAULT_MAX_PENDING_FINALIZERS,
@@ -378,6 +361,9 @@ C_TLS time_t
   profile_frequency = 10000;
 C_TLS char 
   **C_main_argv,
+#ifdef SEARCH_EXE_PATH
+  *C_main_exe = NULL,
+#endif
   *C_dlerror;
 
 static C_TLS TRACE_INFO
@@ -400,6 +386,7 @@ static C_TLS C_uword
   heapspace1_size,
   heapspace2_size,
   heap_size,
+  scratchspace_size,
   temporary_stack_size,
   fixed_temporary_stack_size = 0,
   maximum_heap_usage;
@@ -426,6 +413,7 @@ static C_TLS C_word
   error_hook_symbol,
   pending_finalizers_symbol,
   callback_continuation_stack_symbol,
+  core_provided_symbol,
   *forwarding_table;
 static C_TLS int 
   trace_buffer_full,
@@ -442,7 +430,6 @@ static C_TLS int
   gc_count_1,
   gc_count_1_total,
   gc_count_2,
-  weak_table_randomization,
   stack_size_changed,
   dlopen_flags,
   heap_size_changed,
@@ -479,7 +466,6 @@ static C_TLS int
   allocated_finalizer_count,
   pending_finalizer_count,
   callback_returned_flag;
-static C_TLS WEAK_TABLE_ENTRY *weak_item_table;
 static C_TLS C_GC_ROOT *gc_root_list = NULL;
 static C_TLS FINALIZER_NODE 
   *finalizer_list,
@@ -504,30 +490,57 @@ static void initialize_symbol_table(void);
 static void global_signal_handler(int signum);
 static C_word arg_val(C_char *arg);
 static void barf(int code, char *loc, ...) C_noret;
+static void try_extended_number(char *ext_proc_name, C_word c, C_word k, ...) C_noret;
 static void panic(C_char *msg) C_noret;
 static void usual_panic(C_char *msg) C_noret;
 static void horror(C_char *msg) C_noret;
 static void C_fcall really_mark(C_word *x) C_regparm;
-static WEAK_TABLE_ENTRY *C_fcall lookup_weak_table_entry(C_word item, C_word container) C_regparm;
 static C_cpsproc(values_continuation) C_noret;
 static C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stable);
 static C_regparm int C_fcall C_in_new_heapp(C_word x);
+static C_regparm C_word bignum_times_bignum_unsigned(C_word **ptr, C_word x, C_word y, C_word negp);
+static C_regparm C_word bignum_extract_digits(C_word **ptr, C_word n, C_word x, C_word start, C_word end);
+
+static C_regparm C_word bignum_times_bignum_karatsuba(C_word **ptr, C_word x, C_word y, C_word negp);
+static C_word bignum_plus_unsigned(C_word **ptr, C_word x, C_word y, C_word negp);
+static C_word rat_plusmin_integer(C_word **ptr, C_word rat, C_word i, integer_plusmin_op plusmin_op);
+static C_word integer_minus_rat(C_word **ptr, C_word i, C_word rat);
+static C_word rat_plusmin_rat(C_word **ptr, C_word x, C_word y, integer_plusmin_op plusmin_op);
+static C_word rat_times_integer(C_word **ptr, C_word x, C_word y);
+static C_word rat_times_rat(C_word **ptr, C_word x, C_word y);
+static C_word cplx_times(C_word **ptr, C_word rx, C_word ix, C_word ry, C_word iy);
+static C_word bignum_minus_unsigned(C_word **ptr, C_word x, C_word y);
+static C_regparm void integer_divrem(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r);
+static C_regparm C_word bignum_remainder_unsigned_halfdigit(C_word x, C_word y);
+static C_regparm void bignum_divrem(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r);
+static C_regparm C_word bignum_divide_burnikel_ziegler(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r);
+static C_regparm void burnikel_ziegler_3n_div_2n(C_word **ptr, C_word a12, C_word a3, C_word b, C_word b1, C_word b2, C_word n, C_word *q, C_word *r);
+static C_regparm void burnikel_ziegler_2n_div_1n(C_word **ptr, C_word a, C_word b, C_word b1, C_word b2, C_word n, C_word *q, C_word *r);
+static C_word rat_cmp(C_word x, C_word y);
+static void fabs_frexp_to_digits(C_uword exp, double sign, C_uword *start, C_uword *scan);
+static C_word int_flo_cmp(C_word intnum, C_word flonum);
+static C_word flo_int_cmp(C_word flonum, C_word intnum);
+static C_word rat_flo_cmp(C_word ratnum, C_word flonum);
+static C_word flo_rat_cmp(C_word flonum, C_word ratnum);
+static C_word basic_cmp(C_word x, C_word y, char *loc, int eqp);
+static int bignum_cmp_unsigned(C_word x, C_word y);
 static C_word C_fcall hash_string(int len, C_char *str, C_word m, C_word r, int ci) C_regparm;
 static C_word C_fcall lookup(C_word key, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
+static C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable) C_regparm;
 static double compute_symbol_table_load(double *avg_bucket_len, int *total);
-static C_word C_fcall convert_string_to_number(C_char *str, int radix, C_word *fix, double *flo) C_regparm;
-static C_word C_fcall maybe_inexact_to_exact(C_word n) C_regparm;
+static double C_fcall decode_flonum_literal(C_char *str) C_regparm;
+static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
 static void C_fcall mark_system_globals(void) C_regparm;
 static void C_fcall remark_system_globals(void) C_regparm;
 static void C_fcall really_remark(C_word *x) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
 static void C_fcall update_locative_table(int mode) C_regparm;
+static void C_fcall update_symbol_tables(int mode) C_regparm;
 static LF_LIST *find_module_handle(C_char *name);
 static void set_profile_timer(C_uword freq);
 static void take_profile_sample();
 
 static C_cpsproc(call_cc_wrapper) C_noret;
-static C_cpsproc(call_cc_values_wrapper) C_noret;
 static C_cpsproc(gc_2) C_noret;
 static C_cpsproc(allocate_vector_2) C_noret;
 static C_cpsproc(generic_trampoline) C_noret;
@@ -541,13 +554,26 @@ static C_cpsproc(sigsegv_trampoline) C_noret;
 static C_cpsproc(sigill_trampoline) C_noret;
 static C_cpsproc(sigfpe_trampoline) C_noret;
 static C_cpsproc(sigbus_trampoline) C_noret;
+static C_cpsproc(bignum_to_str_2) C_noret;
+
+static C_word allocate_tmp_bignum(C_word size, C_word negp, C_word initp);
+static C_word allocate_scratch_bignum(C_word **ptr, C_word size, C_word negp, C_word initp);
+static void bignum_digits_destructive_negate(C_word bignum);
+static C_uword bignum_digits_destructive_scale_up_with_carry(C_uword *start, C_uword *end, C_uword factor, C_uword carry);
+static C_uword bignum_digits_destructive_scale_down(C_uword *start, C_uword *end, C_uword denominator);
+static C_uword bignum_digits_destructive_shift_right(C_uword *start, C_uword *end, int shift_right, int negp);
+static C_uword bignum_digits_destructive_shift_left(C_uword *start, C_uword *end, int shift_left);
+static C_regparm void bignum_digits_multiply(C_word x, C_word y, C_word result);
+static void bignum_divide_unsigned(C_word **ptr, C_word num, C_word denom, C_word *q, C_word q_negp, C_word *r, C_word r_negp);
+static C_regparm void bignum_destructive_divide_unsigned_small(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r);
+static C_regparm void bignum_destructive_divide_full(C_word numerator, C_word denominator, C_word quotient, C_word remainder, C_word return_remainder);
+static C_regparm void bignum_destructive_divide_normalized(C_word big_u, C_word big_v, C_word big_q);
 
 static C_PTABLE_ENTRY *create_initial_ptable();
 
 #if !defined(NO_DLOAD2) && (defined(HAVE_DLFCN_H) || defined(HAVE_DL_H) || (defined(HAVE_LOADLIBRARY) && defined(HAVE_GETPROCADDRESS)))
 static void C_ccall dload_2(C_word, C_word *) C_noret;
 #endif
-
 
 static void
 C_dbg(C_char *prefix, C_char *fstr, ...)
@@ -695,14 +721,6 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   C_gc_mutation_hook = NULL;
   C_gc_trace_hook = NULL;
 
-  /* Allocate weak item table: */
-  if(C_enable_gcweak) {
-    weak_item_table = (WEAK_TABLE_ENTRY *)C_calloc(WEAK_TABLE_SIZE, sizeof(WEAK_TABLE_ENTRY));
-
-    if(weak_item_table == NULL)
-      return 0;
-  }
-
   /* Initialize finalizer lists: */
   finalizer_list = NULL;
   finalizer_free_list = NULL;
@@ -789,6 +807,11 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   error_location = C_SCHEME_FALSE;
   C_pre_gc_hook = NULL;
   C_post_gc_hook = NULL;
+  C_scratchspace_start = NULL;
+  C_scratchspace_top = NULL;
+  C_scratchspace_limit = NULL;
+  C_scratch_usage = 0;
+  scratchspace_size = 0;
   live_finalizer_count = 0;
   allocated_finalizer_count = 0;
   current_module_name = NULL;
@@ -832,12 +855,12 @@ void *C_get_statistics(void) {
 
   stats[ 0 ] = fromspace_start;
   stats[ 1 ] = C_fromspace_limit;
-  stats[ 2 ] = NULL;
-  stats[ 3 ] = NULL;
+  stats[ 2 ] = C_scratchspace_start;
+  stats[ 3 ] = C_scratchspace_limit;
   stats[ 4 ] = C_stack_limit;
   stats[ 5 ] = stack_bottom;
   stats[ 6 ] = C_fromspace_top;
-  stats[ 7 ] = NULL;
+  stats[ 7 ] = C_scratchspace_top;
   return stats;
 }
 
@@ -846,7 +869,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
 {
   /* IMPORTANT: hardcoded table size -
      this must match the number of C_pte calls + 1 (NULL terminator)! */
-  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 56);
+  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 62);
   int i = 0;
 
   if(pt == NULL)
@@ -855,7 +878,6 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(termination_continuation);
   C_pte(callback_return_continuation);
   C_pte(values_continuation);
-  C_pte(call_cc_values_wrapper);
   C_pte(call_cc_wrapper);
   C_pte(C_gc);
   C_pte(C_allocate_vector);
@@ -873,17 +895,12 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(C_times);
   C_pte(C_minus);
   C_pte(C_plus);
-  C_pte(C_divide);
   C_pte(C_nequalp);
   C_pte(C_greaterp);
   /* IMPORTANT: have you read the comments at the start and the end of this function? */
   C_pte(C_lessp);
   C_pte(C_greater_or_equal_p);
   C_pte(C_less_or_equal_p);
-  C_pte(C_quotient);
-  C_pte(C_flonum_fraction);
-  C_pte(C_flonum_rat);
-  C_pte(C_expt);
   C_pte(C_number_to_string);
   C_pte(C_make_symbol);
   C_pte(C_string_to_symbol);
@@ -899,15 +916,26 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(C_software_version);
   C_pte(C_build_platform);
   C_pte(C_make_pointer);
+  /* IMPORTANT: have you read the comments at the start and the end of this function? */
   C_pte(C_make_tagged_pointer);
   C_pte(C_peek_signed_integer);
   C_pte(C_peek_unsigned_integer);
+  C_pte(C_peek_int64);
+  C_pte(C_peek_uint64);
   C_pte(C_context_switch);
   C_pte(C_register_finalizer);
-  C_pte(C_locative_ref); /* OBSOLETE */
   C_pte(C_copy_closure);
   C_pte(C_dump_heap_state);
   C_pte(C_filter_heap_objects);
+  C_pte(C_fixnum_to_string);
+  C_pte(C_integer_to_string);
+  C_pte(C_flonum_to_string);
+  C_pte(C_signum);
+  C_pte(C_quotient_and_remainder);
+  C_pte(C_u_integer_quotient_and_remainder);
+  C_pte(C_bitwise_and);
+  C_pte(C_bitwise_ior);
+  C_pte(C_bitwise_xor);
 
   /* IMPORTANT: did you remember the hardcoded pte table size? */
   pt[ i ].id = NULL;
@@ -1071,6 +1099,7 @@ void initialize_symbol_table(void)
   for(i = 0; i < symbol_table->size; symbol_table->table[ i++ ] = C_SCHEME_END_OF_LIST);
 
   /* Obtain reference to hooks for later: */
+  core_provided_symbol = C_intern2(C_heaptop, C_text("\004coreprovided"));
   interrupt_hook_symbol = C_intern2(C_heaptop, C_text("\003sysinterrupt-hook"));
   error_hook_symbol = C_intern2(C_heaptop, C_text("\003syserror-hook"));
   callback_continuation_stack_symbol = C_intern3(C_heaptop, C_text("\003syscallback-continuation-stack"), C_SCHEME_END_OF_LIST);
@@ -1284,6 +1313,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 
   C_main_argc = argc;
   C_main_argv = argv;
+
   *heap = DEFAULT_HEAP_SIZE;
   *stack = DEFAULT_STACK_SIZE;
   *symbols = DEFAULT_SYMBOL_TABLE_SIZE;
@@ -1401,10 +1431,6 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 
 	case 'g':
 	  gc_report_flag = 2;
-	  break;
-
-	case 'w':
-	  C_enable_gcweak = 1;
 	  break;
 
 	case 'P':
@@ -1611,9 +1637,6 @@ void barf(int code, char *loc, ...)
   C_temporary_stack = C_temporary_stack_bottom;
   err = C_block_item(err, 0);
 
-  if(C_immediatep(err))
-    panic(C_text("`##sys#error-hook' is not defined - the `library' unit was probably not linked with this executable"));
-
   switch(code) {
   case C_BAD_ARGUMENT_COUNT_ERROR:
     msg = C_text("bad argument count");
@@ -1805,12 +1828,17 @@ void barf(int code, char *loc, ...)
     c = 1;
     break;
 
-  case C_BAD_ARGUMENT_TYPE_NO_INPUT_PORT_ERROR:
+  case C_BAD_ARGUMENT_TYPE_PORT_DIRECTION_ERROR:
+    msg = C_text("bad argument type - not a port of the correct type");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_PORT_NO_INPUT_ERROR:
     msg = C_text("bad argument type - not an input-port");
     c = 1;
     break;
 
-  case C_BAD_ARGUMENT_TYPE_NO_OUTPUT_PORT_ERROR:
+  case C_BAD_ARGUMENT_TYPE_PORT_NO_OUTPUT_ERROR:
     msg = C_text("bad argument type - not an output-port");
     c = 1;
     break;
@@ -1845,12 +1873,49 @@ void barf(int code, char *loc, ...)
     c = 0;
     break;
 
+  case C_BAD_ARGUMENT_TYPE_NO_EXACT_ERROR:
+    msg = C_text("bad argument type - not an exact number");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_NO_INEXACT_ERROR:
+    msg = C_text("bad argument type - not an inexact number");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_NO_REAL_ERROR:
+    msg = C_text("bad argument type - not an real");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR:
+    msg = C_text("bad argument type - complex number has no ordering");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR:
+    msg = C_text("bad argument type - not an exact integer");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION:
+    msg = C_text("number does not fit in foreign type");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_COMPLEX_ABS:
+    msg = C_text("cannot compute absolute value of complex number");
+    c = 1;
+    break;
+
   default: panic(C_text("illegal internal error code"));
   }
 
-  av = C_alloc(c + 4);
-  
-  if(!C_immediatep(err)) {
+  if(C_immediatep(err)) {
+    C_dbg(C_text("error"), C_text("%s\n"), msg);
+    panic(C_text("`##sys#error-hook' is not defined - the `library' unit was probably not linked with this executable"));
+  } else {
+    av = C_alloc(c + 4);
     va_start(v, loc);
     av[ 0 ] = err;
     /* No continuation is passed: '##sys#error-hook' may not return: */
@@ -1870,7 +1935,40 @@ void barf(int code, char *loc, ...)
     va_end(v);
     C_do_apply(c + 4, av);
   }
-  else panic(msg);
+}
+
+
+/* Never use extended number hook procedure names longer than this! */
+/* Current longest name: ##sys#integer->string/recursive */
+#define MAX_EXTNUM_HOOK_NAME 32
+
+/* This exists so that we don't have to create any extra closures */
+static void try_extended_number(char *ext_proc_name, C_word c, C_word k, ...)
+{
+  static C_word ab[C_SIZEOF_STRING(MAX_EXTNUM_HOOK_NAME)];
+  int i;
+  va_list v;
+  C_word ext_proc_sym, ext_proc = C_SCHEME_FALSE, *a = ab;
+
+  ext_proc_sym = C_lookup_symbol(C_intern2(&a, ext_proc_name));
+
+  if(!C_immediatep(ext_proc_sym))
+    ext_proc = C_block_item(ext_proc_sym, 0);
+
+  if (!C_immediatep(ext_proc) && C_closurep(ext_proc)) {
+    C_word *av = C_alloc(c + 1);
+    av[ 0 ] = ext_proc;
+    av[ 1 ] = k;
+    va_start(v, k);
+
+    for(i = 0; i < c - 1; ++i)
+      av[ i + 2 ] = va_arg(v, C_word);
+
+    va_end(v);
+    C_do_apply(c + 1, av);
+  } else {
+    barf(C_UNBOUND_VARIABLE_ERROR, NULL, ext_proc_sym);
+  }
 }
 
 
@@ -1884,16 +1982,16 @@ C_word C_dbg_hook(C_word dummy)
 
 /* Timing routines: */
 
-C_regparm double C_fcall C_milliseconds(void)
+C_regparm C_u64 C_fcall C_milliseconds(void)
 {
 #ifdef C_NONUNIX
     if(CLOCKS_PER_SEC == 1000) return clock();
-    else return C_floor(((double)clock() / (double)CLOCKS_PER_SEC) * 1000);
+    else return (C_u64)clock() / (C_u64)CLOCKS_PER_SEC * 1000;
 #else
     struct timeval tv;
 
     if(C_gettimeofday(&tv, NULL) == -1) return 0;
-    else return C_floor(((double)tv.tv_sec - C_startup_time_seconds) * 1000.0 + tv.tv_usec / 1000);
+    else return (tv.tv_sec - C_startup_time_seconds) * 1000 + tv.tv_usec / 1000;
 #endif
 }
 
@@ -1921,18 +2019,17 @@ C_regparm time_t C_fcall C_seconds(C_long *ms)
 }
 
 
-C_regparm double C_fcall C_cpu_milliseconds(void)
+C_regparm C_u64 C_fcall C_cpu_milliseconds(void)
 {
 #if defined(C_NONUNIX) || defined(__CYGWIN__)
     if(CLOCKS_PER_SEC == 1000) return clock();
-    else return C_floor(((double)clock() / (double)CLOCKS_PER_SEC) * 1000);
+    else return ((C_u64)clock() / CLOCKS_PER_SEC) * 1000;
 #else
     struct rusage ru;
 
     if(C_getrusage(RUSAGE_SELF, &ru) == -1) return 0;
-    else return 
-	   C_floor(((double)ru.ru_utime.tv_sec + ru.ru_stime.tv_sec) * 1000
-		   + ((double)ru.ru_utime.tv_usec + ru.ru_stime.tv_usec) / 1000);
+    else return (((C_u64)ru.ru_utime.tv_sec + ru.ru_stime.tv_sec) * 1000
+                 + ((C_u64)ru.ru_utime.tv_usec + ru.ru_stime.tv_usec) / 1000);
 #endif
 }
 
@@ -1957,7 +2054,7 @@ C_word C_fcall C_restore_callback_continuation(void)
   assert(!C_immediatep(p) && C_block_header(p) == C_PAIR_TAG);
   k = C_u_i_car(p);
 
-  C_mutate2(&C_block_item(callback_continuation_stack_symbol, 0), C_u_i_cdr(p));
+  C_mutate(&C_block_item(callback_continuation_stack_symbol, 0), C_u_i_cdr(p));
   --callback_continuation_level;
   return k;
 }
@@ -1973,7 +2070,7 @@ C_word C_fcall C_restore_callback_continuation2(int level)
 
   k = C_u_i_car(p);
 
-  C_mutate2(&C_block_item(callback_continuation_stack_symbol, 0), C_u_i_cdr(p));
+  C_mutate(&C_block_item(callback_continuation_stack_symbol, 0), C_u_i_cdr(p));
   --callback_continuation_level;
   return k;
 }
@@ -2062,7 +2159,7 @@ void C_fcall C_callback_adjust_stack(C_word *a, int size)
 C_word C_fcall C_callback_wrapper(void *proc, int argc)
 {
   C_word
-    *a = C_alloc(2),
+    *a = C_alloc(C_SIZEOF_CLOSURE(1)),
     closure = C_closure(&a, 1, (C_word)proc),
     result;
 
@@ -2185,8 +2282,11 @@ C_regparm C_word C_fcall C_intern_in(C_word **ptr, int len, C_char *str, C_SYMBO
 
 C_regparm C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYMBOL_TABLE *stable)
 {
-  /* Intern as usual, but remember slot, if looked up symbol is in nursery.
-     also: allocate in static memory. */
+  /* Intern as usual, but remember slot, and allocate in static
+   * memory.  If symbol already exists, replace its string by a fresh
+   * statically allocated string to ensure it never gets collected, as
+   * lf[] entries are not tracked by the GC.
+   */
   int key;
   C_word s;
 
@@ -2197,6 +2297,11 @@ C_regparm C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYM
   if(C_truep(s = lookup(key, len, str, stable))) {
     if(C_in_stackp(s)) C_mutate_slot(slot, s);
     
+    if(!C_truep(C_permanentp(C_symbol_name(s)))) {
+      /* Replace by statically allocated string, and persist it */
+      C_set_block_item(s, 1, C_static_string(C_heaptop, len, str));
+      C_i_persist_symbol(s);
+    }
     return s;
   }
 
@@ -2238,7 +2343,8 @@ C_regparm C_word C_fcall C_intern3(C_word **ptr, C_char *str, C_word value)
 {
   C_word s = C_intern_in(ptr, C_strlen(str), str, symbol_table);
   
-  C_mutate2(&C_block_item(s,0), value);
+  C_mutate(&C_block_item(s,0), value);
+  C_i_persist_symbol(s); /* Symbol has a value now; persist it */
   return s;
 }
 
@@ -2270,6 +2376,63 @@ C_regparm C_word C_fcall lookup(C_word key, int len, C_char *str, C_SYMBOL_TABLE
       return sym;
   }
 
+  return C_SCHEME_FALSE;
+}
+
+/* Mark a symbol as "persistent", to prevent it from being GC'ed */
+C_regparm C_word C_fcall C_i_persist_symbol(C_word sym)
+{
+  C_word bucket;
+
+  C_i_check_symbol(sym);
+
+  bucket = lookup_bucket(sym, NULL);
+  if (C_truep(bucket)) {  /* It could be an uninterned symbol(?) */
+    /* Change weak to strong ref to ensure long-term survival */
+    C_block_header(bucket) = C_block_header(bucket) & ~C_SPECIALBLOCK_BIT;
+    /* Ensure survival on next minor GC */
+    if (C_in_stackp(sym)) C_mutate_slot(&C_block_item(bucket, 0), sym);
+  }
+  return C_SCHEME_UNDEFINED;
+}
+
+/* Possibly remove "persistence" of symbol, to allowed it to be GC'ed.
+ * This is only done if the symbol is unbound, has an empty plist and
+ * is allocated in managed memory.
+ */
+C_regparm C_word C_fcall C_i_unpersist_symbol(C_word sym)
+{
+  C_word bucket;
+
+  C_i_check_symbol(sym);
+
+  if (C_persistable_symbol(sym) ||
+      C_truep(C_permanentp(C_symbol_name(sym)))) {
+    return C_SCHEME_FALSE;
+  }
+
+  bucket = lookup_bucket(sym, NULL);
+  if (C_truep(bucket)) { /* It could be an uninterned symbol(?) */
+    /* Turn it into a weak ref */
+    C_block_header(bucket) = C_block_header(bucket) | C_SPECIALBLOCK_BIT;
+    return C_SCHEME_TRUE;
+  }
+  return C_SCHEME_FALSE;
+}
+
+C_regparm C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable)
+{
+  C_word bucket, str = C_block_item(sym, 1);
+  int key, len = C_header_size(str);
+
+  if (stable == NULL) stable = symbol_table;
+
+  key = hash_string(len, C_c_string(str), stable->size, stable->rand, 0);
+
+  for(bucket = stable->table[ key ]; bucket != C_SCHEME_END_OF_LIST;
+      bucket = C_block_item(bucket,1)) {
+    if (C_block_item(bucket,0) == sym) return bucket;
+  }
   return C_SCHEME_FALSE;
 }
 
@@ -2317,7 +2480,13 @@ C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stabl
   C_set_block_item(sym, 2, C_SCHEME_END_OF_LIST);
   *ptr = p;
   b2 = stable->table[ key ];	/* previous bucket */
-  bucket = C_a_bucket(ptr, sym, b2); /* create new bucket */
+
+  /* Create new weak or strong bucket depending on persistability */
+  if (C_persistable_symbol(sym) || C_truep(C_permanentp(string))) {
+    bucket = C_a_pair(ptr, sym, b2);
+  } else {
+    bucket = C_a_weak_pair(ptr, sym, b2);
+  }
 
   if(ptr != C_heaptop) C_mutate_slot(&stable->table[ key ], bucket);
   else {
@@ -2325,7 +2494,7 @@ C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stabl
        heap-top (say, in a toplevel literal frame allocation) then we have
        to inform the memory manager that a 2nd gen. block points to a 
        1st gen. block, hence the mutation: */
-    C_mutate2(&C_block_item(bucket,1), b2);
+    C_mutate(&C_block_item(bucket,1), b2);
     stable->table[ key ] = bucket;
   }
 
@@ -2365,6 +2534,11 @@ C_regparm int C_fcall C_in_fromspacep(C_word x)
   return (ptr >= fromspace_start && ptr < C_fromspace_limit);
 }
 
+C_regparm int C_fcall C_in_scratchspacep(C_word x)
+{
+  C_word *ptr = (C_word *)(C_uword)x;
+  return (ptr >= C_scratchspace_start && ptr < C_scratchspace_limit);
+}
 
 /* Cons the rest-aguments together: */
 
@@ -2431,16 +2605,11 @@ void C_bad_min_argc_2(int c, int n, C_word closure)
 }
 
 
-void C_stack_overflow(void)
-{
-  barf(C_STACK_OVERFLOW_ERROR, NULL);
-}
-
-
-void C_stack_overflow_with_loc(C_char *loc)
+void C_stack_overflow(C_char *loc)
 {
   barf(C_STACK_OVERFLOW_ERROR, loc);
 }
+
 
 void C_unbound_error(C_word sym)
 {
@@ -2459,6 +2628,15 @@ void C_div_by_zero_error(char *loc)
   barf(C_DIVISION_BY_ZERO_ERROR, loc);
 }
 
+void C_not_an_integer_error(char *loc, C_word x)
+{
+  barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, loc, x);
+}
+
+void C_not_an_uinteger_error(char *loc, C_word x)
+{
+  barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, loc, x);
+}
 
 /* Allocate and initialize record: */
 
@@ -2487,6 +2665,31 @@ C_regparm C_word C_fcall C_static_string(C_word **ptr, int len, C_char *str)
   return strblock;
 }
 
+C_regparm C_word C_fcall C_static_bignum(C_word **ptr, int len, C_char *str)
+{
+  C_word *dptr, bignum, bigvec, retval, size, negp = 0;
+
+  if (*str == '+' || *str == '-') {
+    negp = ((*str++) == '-') ? 1 : 0;
+    --len;
+  }
+  size = C_BIGNUM_BITS_TO_DIGITS((unsigned int)len << 2);
+
+  dptr = (C_word *)C_malloc(C_wordstobytes(C_SIZEOF_INTERNAL_BIGNUM_VECTOR(size)));
+  if(dptr == NULL)
+    panic(C_text("out of memory - cannot allocate static bignum"));
+
+  bigvec = (C_word)dptr;
+  C_block_header_init(bigvec, C_STRING_TYPE | C_wordstobytes(size + 1));
+  C_set_block_item(bigvec, 0, negp);
+  /* This needs to be allocated at ptr, not dptr, because GC moves type tag */
+  bignum = C_a_i_bignum_wrapper(ptr, bigvec);
+
+  retval = str_to_bignum(bignum, str, str + len, 16);
+  if (retval & C_FIXNUM_BIT)
+    C_free(dptr); /* Might have been simplified */
+  return retval;
+}
 
 C_regparm C_word C_fcall C_static_lambda_info(C_word **ptr, int len, C_char *str)
 {
@@ -2704,20 +2907,6 @@ C_regparm C_word C_fcall C_taggedmpointer_or_false(C_word **ptr, C_word tag, voi
 }
 
 
-C_regparm C_word C_fcall C_swigmpointer(C_word **ptr, void *mp, void *sdata)
-{
-  C_word 
-    *p = *ptr,
-    *p0 = p;
-
-  *(p++) = C_SWIG_POINTER_TAG;
-  *((void **)p) = mp;
-  *((void **)p + 1) = sdata;
-  *ptr = p + 2;
-  return (C_word)p0;
-}
-
-
 C_word C_vector(C_word **ptr, int n, ...)
 {
   va_list v;
@@ -2796,13 +2985,233 @@ C_mutate_slot(C_word *slot, C_word val)
   return *slot = val;
 }
 
+/* Allocate memory in scratch space, "size" is in words, like C_alloc.
+ * The memory in the scratch space is laid out as follows: First,
+ * there's a count that indicates how big the object originally was,
+ * followed by a pointer to the slot in the object which points to the
+ * object in scratch space, finally followed by the object itself.
+ * The reason we store the slot pointer is so that we can figure out
+ * whether the object is still "live" when reallocating; that's
+ * because we don't have a saved continuation from where we can trace
+ * the live data.  The reason we store the total length of the object
+ * is because we may be mutating in-place the lengths of the stored
+ * objects, and we need to know how much to skip over while scanning.
+ *
+ * If the allocating function returns, it *must* first mark all the
+ * values in scratch space as reclaimable.  This is needed because
+ * there is no way to distinguish between a stale pointer into scratch
+ * space that's still somewhere on the stack in "uninitialized" memory
+ * versus a word that's been recycled by the next called function,
+ * which now holds a value that happens to have the same bit pattern
+ * but represents another thing entirely.
+ */
+C_regparm C_word C_fcall C_scratch_alloc(C_uword size)
+{
+  C_word result;
+  
+  if (C_scratchspace_top + size + 2 >= C_scratchspace_limit) {
+    C_word *new_scratch_start, *new_scratch_top, *new_scratch_limit;
+    C_uword needed = C_scratch_usage + size + 2,
+            new_size = nmax(scratchspace_size << 1, 2UL << C_ilen(needed));
+
+    /* Shrink if the needed size is much smaller, but not below minimum */
+    if (needed < (new_size >> 4)) new_size >>= 1;
+    new_size = nmax(new_size, DEFAULT_SCRATCH_SPACE_SIZE);
+    
+    /* TODO: Maybe we should work with two semispaces to reduce mallocs? */
+    new_scratch_start = (C_word *)C_malloc(C_wordstobytes(new_size));
+    if (new_scratch_start == NULL)
+      panic(C_text("out of memory - cannot (re-)allocate scratch space"));
+    new_scratch_top = new_scratch_start;
+    new_scratch_limit = new_scratch_start + new_size;
+
+    if(debug_mode) {
+      C_dbg(C_text("debug"), C_text("resizing scratchspace dynamically from "
+				    UWORD_COUNT_FORMAT_STRING "k to "
+				    UWORD_COUNT_FORMAT_STRING "k ...\n"),
+	    C_wordstobytes(scratchspace_size) / 1024,
+            C_wordstobytes(new_size) / 1024);
+    }
+
+    if(gc_report_flag) {
+      C_dbg(C_text("GC"), C_text("(old) scratchspace: \tstart=" UWORD_FORMAT_STRING 
+				 ", \tlimit=" UWORD_FORMAT_STRING "\n"),
+            (C_word)C_scratchspace_start, (C_word)C_scratchspace_limit);
+      C_dbg(C_text("GC"), C_text("(new) scratchspace:   \tstart=" UWORD_FORMAT_STRING
+                                 ", \tlimit=" UWORD_FORMAT_STRING "\n"),
+            (C_word)new_scratch_start, (C_word)new_scratch_limit);
+    }
+    
+    /* Move scratch data into new space and mutate slots pointing there.
+     * This is basically a much-simplified version of really_mark.
+     */
+    if (C_scratchspace_start != NULL) {
+      C_word val, *sscan, *slot;
+      C_uword n, words;
+      C_header h;
+      C_SCHEME_BLOCK *p, *p2;
+
+      sscan = C_scratchspace_start;
+
+      while (sscan < C_scratchspace_top) {
+        words = *sscan;
+        slot = (C_word *)*(sscan+1);
+
+        if (*(sscan+2) == ALIGNMENT_HOLE_MARKER) val = (C_word)(sscan+3);
+        else val = (C_word)(sscan+2);
+
+        sscan += words + 2;
+        
+        p = (C_SCHEME_BLOCK *)val;
+        h = p->header;
+        if (is_fptr(h)) /* TODO: Support scratch->scratch pointers? */
+          panic(C_text("Unexpected forwarding pointer in scratch space"));
+
+        p2 = (C_SCHEME_BLOCK *)(new_scratch_top+2);
+
+#ifndef C_SIXTY_FOUR
+        if ((h & C_8ALIGN_BIT) && C_aligned8(p2) &&
+            (C_word *)p2 < new_scratch_limit) {
+          *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
+          p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
+        }
+#endif
+
+        /* If orig slot still points here, copy data and update it */
+        if (slot != NULL) {
+          assert(C_in_stackp((C_word)slot) && *slot == val);
+          n = C_header_size(p);
+          n = (h & C_BYTEBLOCK_BIT) ? C_bytestowords(n) : n;
+          
+          *slot = (C_word)p2;
+          /* size = header plus block size plus optional alignment hole */
+          *new_scratch_top = ((C_word *)p2-(C_word *)new_scratch_top-2) + n + 1;
+          *(new_scratch_top+1) = (C_word)slot;
+          
+          new_scratch_top = (C_word *)p2 + n + 1;
+          if(new_scratch_top > new_scratch_limit)
+            panic(C_text("out of memory - scratch space full while resizing"));
+
+          p2->header = h;
+          p->header = ptr_to_fptr((C_uword)p2);
+          C_memcpy(p2->data, p->data, C_wordstobytes(n));
+        }
+      }
+      free(C_scratchspace_start);
+    }
+    C_scratchspace_start = new_scratch_start;
+    C_scratchspace_top = new_scratch_top;
+    C_scratchspace_limit = new_scratch_limit;
+    /* Scratch space is now tightly packed */
+    C_scratch_usage = (new_scratch_top - new_scratch_start);
+    scratchspace_size = new_size;
+  }
+  assert(C_scratchspace_top + size + 2 <= C_scratchspace_limit);
+
+  *C_scratchspace_top = size;
+  *(C_scratchspace_top+1) = (C_word)NULL; /* Nothing points here 'til mutated */
+  result = (C_word)(C_scratchspace_top+2);
+  C_scratchspace_top += size + 2;
+  /* This will only be marked as "used" when it's claimed by a pointer */
+  /* C_scratch_usage += size + 2; */
+  return result;
+}
+
+/* Given a root object, scan its slots recursively (the objects
+ * themselves should be shallow and non-recursive), and migrate every
+ * object stored between the memory boundaries to the supplied
+ * pointer.  Scratch data pointed to by objects between the memory
+ * boundaries is updated to point to the new memory region.  If the
+ * supplied pointer is NULL, the scratch memory is marked reclaimable.
+ */
+C_regparm C_word C_fcall
+C_migrate_buffer_object(C_word **ptr, C_word *start, C_word *end, C_word obj)
+{
+  C_word size, header, *data, *p = NULL, obj_in_buffer;
+
+  if (C_immediatep(obj)) return obj;
+
+  size = C_header_size(obj);
+  header = C_block_header(obj);
+  data = C_data_pointer(obj);
+  obj_in_buffer = (obj >= (C_word)start && obj < (C_word)end);
+
+  /* Only copy object if we have a target pointer and it's in the buffer */
+  if (ptr != NULL && obj_in_buffer) {
+    p = *ptr;
+    obj = (C_word)p; /* Return the object's new location at the end */
+  }
+
+  if (p != NULL) *p++ = header;
+  
+  if (header & C_BYTEBLOCK_BIT) {
+    if (p != NULL) {
+      *ptr = (C_word *)((C_byte *)(*ptr) + sizeof(C_header) + C_align(size));
+      C_memcpy(p, data, size);
+    }
+  } else {
+    if (p != NULL) *ptr += size + 1;
+    
+    if(header & C_SPECIALBLOCK_BIT) {
+      if (p != NULL) *(p++) = *data;
+      size--;
+      data++;
+    }
+
+    /* TODO: See if we can somehow make this use Cheney's algorithm */
+    while(size--) {
+      C_word slot = *data;
+
+      if(!C_immediatep(slot)) {
+        if (C_in_scratchspacep(slot)) {
+          if (obj_in_buffer) { /* Otherwise, don't touch scratch backpointer */
+            /* TODO: Support recursing into objects in scratch space? */
+            C_word *sp = (C_word *)slot;
+
+            if (*(sp-1) == ALIGNMENT_HOLE_MARKER) --sp;
+            if (*(sp-1) != (C_word)NULL && p == NULL)
+              C_scratch_usage -= *(sp-2) + 2;
+            *(sp-1) = (C_word)p; /* This is why we traverse even if p = NULL */
+
+            *data = C_SCHEME_UNBOUND; /* Ensure old reference is killed dead */
+          }
+        } else { /* Slot is not a scratchspace object: check sub-objects */
+          slot = C_migrate_buffer_object(ptr, start, end, slot);
+        }
+      }
+      if (p != NULL) *(p++) = slot;
+      else *data = slot; /* Sub-object may have moved! */
+      data++;
+    }
+  }
+  return obj; /* Should be NULL if ptr was NULL */
+}
+
+/* Register an object's slot as holding data to scratch space.  Only
+ * one slot can point to a scratch space object; the object in scratch
+ * space is preceded by a pointer that points to this slot (or NULL).
+ */
+C_regparm C_word C_fcall C_mutate_scratch_slot(C_word *slot, C_word val)
+{
+  C_word *ptr = (C_word *)val;
+  assert(C_in_scratchspacep(val));
+  assert(slot == NULL || C_in_stackp((C_word)slot));
+  if (*(ptr-1) == ALIGNMENT_HOLE_MARKER) --ptr;
+  if (*(ptr-1) == (C_word)NULL && slot != NULL)
+    C_scratch_usage += *(ptr-2) + 2;
+  if (*(ptr-1) != (C_word)NULL && slot == NULL)
+    C_scratch_usage -= *(ptr-2) + 2;
+  *(ptr-1) = (C_word)slot; /* Remember the slot pointing here, for realloc */
+  if (slot != NULL) *slot = val;
+  return val; 
+}
 
 /* Initiate garbage collection: */
 
 
 void C_save_and_reclaim(void *trampoline, int n, C_word *av)
 {
-  C_word new_size = nmax(1UL << (int)ceil(log2(n)), DEFAULT_TEMPORARY_STACK_SIZE);
+  C_word new_size = nmax((C_word)1 << C_ilen(n), DEFAULT_TEMPORARY_STACK_SIZE);
 
   assert(av > C_temporary_stack_bottom || av < C_temporary_stack_limit);
   assert(C_temporary_stack == C_temporary_stack_bottom);
@@ -2815,7 +3224,6 @@ void C_save_and_reclaim(void *trampoline, int n, C_word *av)
 
     if(fixed_temporary_stack_size)
       panic(C_text("fixed temporary stack overflow (\"apply\" called with too many arguments?)"));
-
 
     if(gc_report_flag) {
       C_dbg(C_text("GC"), C_text("resizing temporary stack dynamically from " UWORD_COUNT_FORMAT_STRING "k to " UWORD_COUNT_FORMAT_STRING "k ...\n"),
@@ -2870,18 +3278,16 @@ static void mark(C_word *x) { \
   C_cblockend
 #endif
 
-
 C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 {
-  int i, j, n, fcount, weakn = 0;
+  int i, j, n, fcount;
   C_uword count, bytes;
-  C_word *p, **msp, bucket, last, item, container;
+  C_word *p, **msp, bucket, last;
   C_header h;
   C_byte *tmp, *start;
   LF_LIST *lfn;
   C_SCHEME_BLOCK *bp;
   C_GC_ROOT *gcrp;
-  WEAK_TABLE_ENTRY *wep;
   double tgc = 0;
   C_SYMBOL_TABLE *stp;
   volatile int finalizers_checked;
@@ -2906,14 +3312,11 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
   if(C_pre_gc_hook != NULL) C_pre_gc_hook(GC_MINOR);
 
   finalizers_checked = 0;
-  C_restart_trampoline = (C_proc)trampoline;
+  C_restart_trampoline = trampoline;
   C_restart_c = c;
   heap_scan_top = (C_byte *)C_align((C_uword)C_fromspace_top);
   gc_mode = GC_MINOR;
   start = C_fromspace_top;
-
-  if(C_enable_gcweak) 
-    weak_table_randomization = rand();
 
   /* Entry point for second-level GC (on explicit request or because of full fromspace): */
 #ifdef HAVE_SIGSETJMP
@@ -3007,8 +3410,11 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
     if(n > 0 && (h & C_BYTEBLOCK_BIT) == 0) {
       if(h & C_SPECIALBLOCK_BIT) {
-	--n;
-	++p;
+        /* Minor GC needs to be fast; always mark weakly held symbols */
+        if (gc_mode != GC_MINOR || h != C_WEAK_PAIR_TAG) {
+	  --n;
+	  ++p;
+        }
       }
 
       while(n--) mark(p++);
@@ -3130,48 +3536,11 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
   i_like_spaghetti:
     ++gc_count_2;
-
-    if(C_enable_gcweak) {
-      /* Check entries in weak item table and recover items ref'd only
-         once, which are unbound symbols and have empty property-lists: */
-      weakn = 0;
-      wep = weak_item_table;
-
-      for(i = 0; i < WEAK_TABLE_SIZE; ++i, ++wep)
-	if(wep->item != 0) { 
-	  if((wep->container & WEAK_COUNTER_MAX) == 0 && /* counter saturated? (more than 1) */
-	     is_fptr((item = C_block_header(wep->item)))) { /* and forwarded/collected */
-	    item = fptr_to_ptr(item);			    /* recover obj from forwarding ptr */
-	    container = wep->container & ~WEAK_COUNTER_MASK;
-
-	    if(C_header_bits(item) == C_SYMBOL_TYPE && 
-	       C_block_item(item, 0) == C_SCHEME_UNBOUND &&
-	       C_block_item(item, 2) == C_SCHEME_END_OF_LIST) {
-	      ++weakn;
-	      C_set_block_item(container, 0, C_SCHEME_UNDEFINED); /* clear reference to item */
-	    }
-	  }
-
-	  wep->item = wep->container = 0;
-	}
-
-      /* Remove empty buckets in symbol table: */
-      for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
-	for(i = 0; i < stp->size; ++i) {
-	  last = 0;
-	  
-	  for(bucket = stp->table[ i ]; bucket != C_SCHEME_END_OF_LIST; bucket = C_block_item(bucket,1))
-	    if(C_block_item(bucket,0) == C_SCHEME_UNDEFINED) {
-	      if(last) C_set_block_item(last, 1, C_block_item(bucket,1));
-	      else stp->table[ i ] = C_block_item(bucket,1);
-	    }
-	    else last = bucket;
-	}
-      }
-    }
   }
 
   if(gc_mode == GC_MAJOR) {
+    update_symbol_tables(gc_mode);
+
     tgc = C_cpu_milliseconds() - tgc;
     gc_ms += tgc;
     timer_accumulated_gc_ms += tgc;
@@ -3207,10 +3576,17 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 	  (C_uword)tospace_start, (C_uword)tospace_top, 
 	  (C_uword)tospace_limit);
 
-    if(gc_mode == GC_MAJOR && C_enable_gcweak && weakn)
-      C_dbg("GC", C_text("%d recoverable weakly held items found\n"), weakn);
-    
     C_dbg("GC", C_text("%d locatives (from %d)\n"), locative_table_count, locative_table_size);
+  }
+
+  /* GC will have copied any live objects out of scratch space: clear it */
+  if (C_scratchspace_start != NULL) {
+    C_free(C_scratchspace_start);
+    C_scratchspace_start = NULL;
+    C_scratchspace_top = NULL;
+    C_scratchspace_limit = NULL;
+    C_scratch_usage = 0;
+    scratchspace_size = 0;
   }
 
   if(gc_mode == GC_MAJOR) {
@@ -3231,6 +3607,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
 C_regparm void C_fcall mark_system_globals(void)
 {
+  mark(&core_provided_symbol);
   mark(&interrupt_hook_symbol);
   mark(&error_hook_symbol);
   mark(&callback_continuation_stack_symbol);
@@ -3241,15 +3618,14 @@ C_regparm void C_fcall mark_system_globals(void)
 
 C_regparm void C_fcall really_mark(C_word *x)
 {
-  C_word val, item;
+  C_word val;
   C_uword n, bytes;
   C_header h;
   C_SCHEME_BLOCK *p, *p2;
-  WEAK_TABLE_ENTRY *wep;
 
   val = *x;
 
-  if (!C_in_stackp(val) && !C_in_heapp(val)) {
+  if (!C_in_stackp(val) && !C_in_heapp(val) && !C_in_scratchspacep(val)) {
 #ifdef C_GC_HOOKS
       if(C_gc_trace_hook != NULL) 
 	C_gc_trace_hook(x, gc_mode);
@@ -3268,7 +3644,8 @@ C_regparm void C_fcall really_mark(C_word *x)
       return;
     }
 
-    if((C_uword)val >= (C_uword)fromspace_start && (C_uword)val < (C_uword)C_fromspace_top) return;
+    if((C_uword)val >= (C_uword)fromspace_start && (C_uword)val < (C_uword)C_fromspace_top)
+      return;
 
     p2 = (C_SCHEME_BLOCK *)C_align((C_uword)C_fromspace_top);
 
@@ -3298,24 +3675,8 @@ C_regparm void C_fcall really_mark(C_word *x)
     C_memcpy(p2->data, p->data, bytes);
   }
   else { /* (major GC) */
-    /* Increase counter (saturated at 2) if weakly held item (someone pointed to this object): */
-    if(C_enable_gcweak &&
-       (h & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
-       (wep = lookup_weak_table_entry(val, 0)) != NULL) {
-      if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
-    }
-
     if(is_fptr(h)) {
       val = fptr_to_ptr(h);
-
-      /* When we marked the bucket, it may have already referred to
-       * the moved symbol instead of its original location. Re-check:
-       */
-      if(C_enable_gcweak &&
-         (C_block_header(val) & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
-         (wep = lookup_weak_table_entry(*x, 0)) != NULL) {
-        if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
-      }
 
       if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
 	*x = val;
@@ -3330,15 +3691,6 @@ C_regparm void C_fcall really_mark(C_word *x)
 	/* Link points into fromspace and into a link which points into from- or tospace: */
 	val = fptr_to_ptr(h);
 	
-        /* See above: might happen twice */
-        if(C_enable_gcweak &&
-           (C_block_header(val) & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE &&
-           /* Check both the original and intermediate location: */
-           ((wep = lookup_weak_table_entry((C_word)p, 0)) != NULL ||
-            (wep = lookup_weak_table_entry(*x, 0)) != NULL)) {
-          if((wep->container & WEAK_COUNTER_MAX) == 0) ++wep->container;
-        }
-
 	if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
 	  *x = val;
 	  return;
@@ -3357,16 +3709,6 @@ C_regparm void C_fcall really_mark(C_word *x)
       p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
     }
 #endif
-
-    if(C_enable_gcweak && (h & C_HEADER_TYPE_BITS) == C_BUCKET_TYPE) {
-      item = C_block_item(val,0);
-
-      /* Lookup item in weak item table or add entry: */
-      if((wep = lookup_weak_table_entry(item, (C_word)p2)) != NULL) {
-	/* If item is already forwarded, then set count to 2: */
-	if(is_fptr(C_block_header(item))) wep->container |= 2;
-      }
-    }
 
     n = C_header_size(p);
     bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
@@ -3407,19 +3749,17 @@ static void remark(C_word *x) { \
   C_cblockend
 #endif
 
-
 /* Do a major GC into a freshly allocated heap: */
 
 C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 {
   int i, j;
   C_uword count, n, bytes;
-  C_word *p, **msp, item, last;
+  C_word *p, **msp, bucket, last;
   C_header h;
   C_byte *tmp, *start;
   LF_LIST *lfn;
   C_SCHEME_BLOCK *bp;
-  WEAK_TABLE_ENTRY *wep;
   C_GC_ROOT *gcrp;
   C_SYMBOL_TABLE *stp;
   FINALIZER_NODE *flist;
@@ -3539,14 +3879,6 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
     remark(&flist->finalizer);
   }
 
-  /* Clear weakly held items: */
-  if(C_enable_gcweak) {
-    wep = weak_item_table; 
-
-    for(i = 0; i < WEAK_TABLE_SIZE; ++i, ++wep)
-      wep->item = wep->container = 0;
-  }
-
   /* Mark trace-buffer: */
   for(tinfo = trace_buffer; tinfo < trace_buffer_limit; ++tinfo) {
     remark(&tinfo->cooked1);
@@ -3581,6 +3913,8 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
     heap_scan_top = (C_byte *)bp + C_align(bytes) + sizeof(C_word);
   }
 
+  update_symbol_tables(GC_REALLOC);
+
   heap_free (heapspace1, heapspace1_size);
   heap_free (heapspace2, heapspace2_size);
   
@@ -3612,6 +3946,7 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 
 C_regparm void C_fcall remark_system_globals(void)
 {
+  remark(&core_provided_symbol);
   remark(&interrupt_hook_symbol);
   remark(&error_hook_symbol);
   remark(&callback_continuation_stack_symbol);
@@ -3626,11 +3961,11 @@ C_regparm void C_fcall really_remark(C_word *x)
   C_uword n, bytes;
   C_header h;
   C_SCHEME_BLOCK *p, *p2;
-  WEAK_TABLE_ENTRY *wep;
 
   val = *x;
 
-  if (!C_in_stackp(val) && !C_in_heapp(val) && !C_in_new_heapp(val)) {
+  if (!C_in_stackp(val) && !C_in_heapp(val) &&
+      !C_in_new_heapp(val) && !C_in_scratchspacep(val)) {
 #ifdef C_GC_HOOKS
       if(C_gc_trace_hook != NULL) 
 	C_gc_trace_hook(x, gc_mode);
@@ -3800,34 +4135,97 @@ C_regparm void C_fcall update_locative_table(int mode)
   if(mode != GC_REALLOC) locative_table_count = hi;
 }
 
-
-C_regparm WEAK_TABLE_ENTRY *C_fcall lookup_weak_table_entry(C_word item, C_word container)
+static C_regparm void fixup_symbol_forwards(C_word sym)
 {
-  C_uword
-    key = (C_uword)item >> 2,
-    disp = 0,
-    n;
-  WEAK_TABLE_ENTRY *wep;
+  C_word val, h;
+  int i, s = C_header_size(sym); /* 3 */
 
-  for(n = 0; n < WEAK_HASH_ITERATIONS; ++n) {
-    key = (key + disp + weak_table_randomization) % WEAK_TABLE_SIZE;
-    wep = &weak_item_table[ key ];
+  for (i = 0; i < s; i++) {
+    val = C_block_item(sym, i);
+    if (!C_immediatep(val)) {
+      h = C_block_header(val);
 
-    if(wep->item == 0) {
-      if(container != 0) {
-	/* Add fresh entry: */
-	wep->item = item;
-	wep->container = container;
-	return wep;
+      while(is_fptr(h)) {
+        val = fptr_to_ptr(h);
+        h = C_block_header(val);
       }
-
-      return NULL;
+      C_set_block_item(sym, i, val);
     }
-    else if(wep->item == item) return wep;
-    else disp += WEAK_HASH_DISPLACEMENT;
   }
+}
 
-  return NULL;
+C_regparm void C_fcall update_symbol_tables(int mode)
+{
+  int weakn = 0, i;
+  C_word bucket, last, sym, h;
+  C_SYMBOL_TABLE *stp;
+
+  assert(mode != GC_MINOR); /* Call only in major or realloc mode */
+  /* Update symbol locations through fptrs or drop if unreferenced */
+  for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
+    for(i = 0; i < stp->size; ++i) {
+      last = 0;
+
+      for(bucket = stp->table[ i ]; bucket != C_SCHEME_END_OF_LIST; bucket = C_block_item(bucket,1)) {
+
+	sym = C_block_item(bucket, 0);
+	h = C_block_header(sym);
+
+	/* Resolve any forwarding pointers */
+	while(is_fptr(h)) {
+	  sym = fptr_to_ptr(h);
+	  h = C_block_header(sym);
+	}
+
+	assert((h & C_HEADER_TYPE_BITS) == C_SYMBOL_TYPE);
+
+#ifdef DEBUGBUILD
+        /* Detect inconsistencies before dropping / keeping the symbol */
+        fixup_symbol_forwards(sym);
+	{
+	  C_word str = C_symbol_name(sym);
+          int str_perm;
+
+          str_perm = !C_in_stackp(str) && !C_in_heapp(str) &&
+                  !C_in_scratchspacep(str) &&
+                  (mode == GC_REALLOC ? !C_in_new_heapp(str) : 1);
+
+	  if ((C_persistable_symbol(sym) || str_perm) &&
+              (C_block_header(bucket) == C_WEAK_PAIR_TAG)) {
+	    C_dbg(C_text("GC"), C_text("Offending symbol: `%.*s'\n"),
+		  (int)C_header_size(str), C_c_string(str));
+	    panic(C_text("Persistable symbol found in weak pair"));
+	  } else if (!C_persistable_symbol(sym) && !str_perm &&
+		     (C_block_header(bucket) == C_PAIR_TAG)) {
+	    C_dbg(C_text("GC"), C_text("Offending symbol: `%.*s'...\n"),
+		  (int)C_header_size(str), C_c_string(str));
+	    panic(C_text("Unpersistable symbol found in strong pair"));
+	  }
+	}
+#endif
+
+	/* If the symbol is unreferenced, drop it: */
+	if(mode == GC_REALLOC ?
+           !C_in_new_heapp(sym) :
+           !C_in_fromspacep(sym)) {
+
+	  if(last) C_set_block_item(last, 1, C_block_item(bucket,1));
+	  else stp->table[ i ] = C_block_item(bucket,1);
+
+#ifndef NDEBUG
+          fixup_symbol_forwards(sym);
+	  assert(!C_persistable_symbol(sym));
+#endif
+	  ++weakn;
+	} else {
+	  C_set_block_item(bucket,0,sym); /* Might have moved */
+	  last = bucket;
+	}
+      }
+    }
+  }
+  if(gc_report_flag && weakn)
+    C_dbg("GC", C_text("%d recoverable weakly held items found\n"), weakn);
 }
 
 
@@ -3839,8 +4237,7 @@ void handle_interrupt(void *trampoline)
 
   /* Build vector with context information: */
   n = C_temporary_stack_bottom - C_temporary_stack;
-  /* 18 <=> 2 headers + trampoline + 1 extra slot + 9 for interning + 5 for string */
-  p = C_alloc(18 + n);
+  p = C_alloc(C_SIZEOF_VECTOR(2) + C_SIZEOF_VECTOR(n));
   proc = (C_word)p;
   *(p++) = C_VECTOR_TYPE | C_BYTEBLOCK_BIT | sizeof(C_word);
   *(p++) = (C_word)trampoline;
@@ -4014,6 +4411,13 @@ done:
 
 C_regparm void C_fcall C_trace(C_char *name)
 {
+  C_word thread;
+
+  if(show_trace) {
+    C_fputs(name, C_stderr);
+    C_fputc('\n', C_stderr);
+  }
+
   /*
    * When profiling, pre-allocate profile bucket if necessary.  This
    * is used in the signal handler, because it may not malloc.
@@ -4025,11 +4429,6 @@ C_regparm void C_fcall C_trace(C_char *name)
     }
   }
 
-  if(show_trace) {
-    C_fputs(name, C_stderr);
-    C_fputc('\n', C_stderr);
-  }
-
   if(trace_buffer_top >= trace_buffer_limit) {
     trace_buffer_top = trace_buffer;
     trace_buffer_full = 1;
@@ -4038,7 +4437,8 @@ C_regparm void C_fcall C_trace(C_char *name)
   trace_buffer_top->raw = name;
   trace_buffer_top->cooked1 = C_SCHEME_FALSE;
   trace_buffer_top->cooked2 = C_SCHEME_FALSE;
-  trace_buffer_top->thread = C_block_item(current_thread_symbol, 0);
+  thread = C_block_item(current_thread_symbol, 0);
+  trace_buffer_top->thread = C_thread_id(thread);
   ++trace_buffer_top;
 }
 
@@ -4172,12 +4572,12 @@ C_word C_fetch_trace(C_word starti, C_word buffer)
       if(ptr >= trace_buffer_limit) ptr = trace_buffer;
 
       /* outside-pointer, will be ignored by GC */
-      C_mutate2(&C_block_item(buffer, p++), (C_word)ptr->raw);
+      C_mutate(&C_block_item(buffer, p++), (C_word)ptr->raw);
 
       /* subject to GC */
-      C_mutate2(&C_block_item(buffer, p++), ptr->cooked1);
-      C_mutate2(&C_block_item(buffer, p++), ptr->cooked2);
-      C_mutate2(&C_block_item(buffer, p++), ptr->thread);
+      C_mutate(&C_block_item(buffer, p++), ptr->cooked1);
+      C_mutate(&C_block_item(buffer, p++), ptr->cooked2);
+      C_mutate(&C_block_item(buffer, p++), ptr->thread);
     }
   }
 
@@ -4201,9 +4601,23 @@ C_regparm C_word C_fcall C_u_i_string_ci_hash(C_word str, C_word rnd)
 C_regparm void C_fcall C_toplevel_entry(C_char *name)
 {
   if(debug_mode)
-    C_dbg(C_text("debug"), C_text("entering toplevel %s...\n"), name);
+    C_dbg(C_text("debug"), C_text("entering %s...\n"), name);
 }
 
+C_regparm C_word C_fcall C_a_i_provide(C_word **a, int c, C_word id)
+{
+  if (debug_mode == 2) {
+    C_word str = C_block_item(id, 1);
+    C_snprintf(buffer, C_header_size(str) + 1, C_text("%s"), (C_char *) C_data_pointer(str));
+    C_dbg(C_text("debug"), C_text("providing %s...\n"), buffer);
+  }
+  return C_a_i_putprop(a, 3, core_provided_symbol, id, C_SCHEME_TRUE);
+}
+
+C_regparm C_word C_fcall C_i_providedp(C_word id)
+{
+  return C_i_getprop(core_provided_symbol, id, C_SCHEME_FALSE);
+}
 
 C_word C_halt(C_word msg)
 {
@@ -4250,7 +4664,7 @@ C_word C_message(C_word msg)
    * Strictly speaking this isn't necessary for the non-gui-mode,
    * but let's try and keep this consistent across modes.
    */
-  if (memchr(C_c_string(msg), '\0', n) != NULL)
+  if (C_memchr(C_c_string(msg), '\0', n) != NULL)
     barf(C_ASCIIZ_REPRESENTATION_ERROR, "##sys#message", msg);
 
   if(C_gui_mode) {
@@ -4325,6 +4739,14 @@ C_regparm C_word C_fcall C_set_gc_report(C_word flag)
   return C_SCHEME_UNDEFINED;
 }
 
+C_regparm C_word C_fcall C_i_accumulated_gc_time(void)
+{
+  double tgc;
+
+  tgc = timer_accumulated_gc_ms;
+  timer_accumulated_gc_ms = 0;
+  return C_fix(tgc);
+}
 
 C_regparm C_word C_fcall C_start_timer(void)
 {
@@ -4346,7 +4768,7 @@ void C_ccall C_stop_timer(C_word c, C_word *av)
     k = av[ 1 ];
   double t0 = C_cpu_milliseconds() - timer_start_ms;
   C_word 
-    ab[ WORDS_PER_FLONUM * 3 + 8 ], /* 3 flonums, 1 vector of 7 elements */
+    ab[ WORDS_PER_FLONUM * 2 + C_SIZEOF_BIGNUM(1) + C_SIZEOF_VECTOR(7) ],
     *a = ab,
     elapsed = C_flonum(&a, t0 / 1000.0),
     gc_time = C_flonum(&a, gc_ms / 1000.0),
@@ -4486,196 +4908,35 @@ C_regparm C_word C_fcall C_char_ready_p(C_word port)
 #endif
 }
 
-
-C_regparm C_word C_fcall C_fudge(C_word fudge_factor)
+C_regparm C_word C_fcall C_i_tty_forcedp(void)
 {
-  int i, j;
-  double tgc;
-
-  switch(fudge_factor) {
-  case C_fix(1): return C_SCHEME_END_OF_FILE; /* eof object */
-  case C_fix(2):			      /* get time */
-    panic(C_text("(##sys#fudge 2) [get time] not implemented"));
-
-  case C_fix(3):		/* 64-bit system? */
-#ifdef C_SIXTY_FOUR
-    return C_SCHEME_TRUE;
-#else
-    return C_SCHEME_FALSE;
-#endif
-
-  case C_fix(4):		/* is this a console application? */
-    return C_mk_bool(!C_gui_mode);
-
-  case C_fix(5):		/* is this a GUI/console or Windows-GUI application? (silly) */
-    if(C_gui_mode) {
-#ifdef _WIN32
-      return C_fix(1);
-#else
-      return C_SCHEME_FALSE;
-#endif
-    }
-
-    return C_fix(0);
-
-  case C_fix(6): 		/* milliseconds CPU */
-    panic(C_text("(##sys#fudge 6) [current CPU milliseconds] not implemented"));
-
-  case C_fix(7):		/* wordsize */
-    return C_fix(sizeof(C_word));
-
-  case C_fix(8):		/* words needed for double */
-    return C_fix(C_wordsperdouble(1));
-
-  case C_fix(9):		/* latency */
-    return C_fix(last_interrupt_latency);
-
-  case C_fix(10):		/* clocks per sec */
-    return C_fix(CLOCKS_PER_SEC);
-
-  case C_fix(11):		/* not a unix system? */
-#if defined(C_NONUNIX) || defined(__CYGWIN__)
-    return C_SCHEME_FALSE;
-#else
-    return C_SCHEME_TRUE;
-#endif
-
-  case C_fix(12):		/* tty forced? */
-    return C_mk_bool(fake_tty_flag);
-
-  case C_fix(13):		/* debug mode */
-    return C_mk_bool(debug_mode);
-
-  case C_fix(14):		/* interrupts enabled? */
-    return C_mk_bool(C_interrupts_enabled);
-
-  case C_fix(15):		/* symbol-gc enabled? */
-    return C_mk_bool(C_enable_gcweak);
-
-  case C_fix(16):		/* milliseconds (wall clock) */
-    panic(C_text("(##sys#fudge 16) [current wall clock milliseconds] not implemented"));
-
-  case C_fix(17):		/* fixed heap? */
-    return(C_mk_bool(C_heap_size_is_fixed));
-
-  case C_fix(18):		/* stack direction */
-    return(C_fix(C_STACK_GROWS_DOWNWARD));
-
-  case C_fix(19):		/* number of locatives */
-    for(i = j = 0; i < locative_table_count; ++i)
-      if(locative_table[ i ] != C_SCHEME_UNDEFINED) ++j;
-    return C_fix(j);
-
-  case C_fix(20):		/* unused */
-    return C_SCHEME_FALSE;
-
-  case C_fix(21):		/* largest fixnum */
-    return C_fix(C_MOST_POSITIVE_FIXNUM);
-
-  case C_fix(22):		/* does this process use a private egg-repository? */
-    return C_mk_bool(private_repository != NULL);
-
-  case C_fix(23):		/* seconds since process startup */
-    return C_fix(C_startup_time_seconds);
-
-  case C_fix(24):		/* dynamic loading available? */
-#ifdef NO_DLOAD2
-    return C_SCHEME_FALSE;
-#else
-    return C_SCHEME_TRUE;
-#endif
-
-  case C_fix(25):		/* REPL on error? XXX Is this used anywhere? */
-    return C_mk_bool(C_enable_repl);
-
-  case C_fix(26):		/* number of untriggered finalizers */
-    return C_fix(live_finalizer_count);
-
-  case C_fix(27):		/* total number of finalizers used and unused */
-    return C_fix(allocated_finalizer_count);
-
-  case C_fix(28):		/* are procedure-tabled enabled? */
-#ifdef C_ENABLE_PTABLES
-    return C_SCHEME_TRUE;
-#else
-    return C_SCHEME_FALSE;
-#endif
-
-  case C_fix(29):		/* size of ring-buffer used to hold trace entries */
-    return C_fix(C_trace_buffer_size);
-
-  case C_fix(30):		/* unused */
-    return C_SCHEME_FALSE;
-
-  case C_fix(31):		/* GC time since last invocation */
-    tgc = timer_accumulated_gc_ms;
-    timer_accumulated_gc_ms = 0;
-    return C_fix(tgc);
-
-  case C_fix(32):		/* are GC-hooks enabled? */
-#ifdef C_GC_HOOKS
-    return C_SCHEME_TRUE;
-#else
-    return C_SCHEME_FALSE;
-#endif
-
-  case C_fix(33):		/* return process-ID */
-    return C_fix(C_getpid());
-
-  case C_fix(34):		/* effective maximum for procedure arguments */
-    return C_fix(stack_size / 2); /* An educated guess :) */
-
-  case C_fix(35):		/* unused */
-    /* used to be apply-hook indicator */
-    return C_SCHEME_FALSE;
-    
-  case C_fix(36):		/* toggle debug mode */
-    debug_mode = !debug_mode;
-    return C_mk_bool(debug_mode);
-
-  case C_fix(37):		/* heap-dump enabled? */
-    return C_mk_bool(dump_heap_on_exit);
-
-  case C_fix(38):		/* SVN revision of built sources */
-#ifdef C_SVN_REVISION
-    return C_fix(C_SVN_REVISION);
-#else
-    return C_fix(0);
-#endif
-
-  case C_fix(39):		/* is this a cross-chicken? */
-#if defined(C_CROSS_CHICKEN) && C_CROSS_CHICKEN
-    return C_SCHEME_TRUE;
-#else
-    return C_SCHEME_FALSE;
-#endif
-
-  case C_fix(40):		/* many arguments supported? */
-    return C_SCHEME_TRUE;
-
-  case C_fix(41):		/* major CHICKEN version */
-    return C_fix(C_MAJOR_VERSION);
-
-  case C_fix(42):		/* binary version number */
-#ifdef C_BINARY_VERSION
-    return C_fix(C_BINARY_VERSION);
-#else
-    return C_fix(0);
-#endif
-
-  case C_fix(43):		/* minor CHICKEN version */
-    return C_fix(C_MINOR_VERSION);
-
-  case C_fix(44):  /* whether debugger is active */
-    return C_mk_bool(C_debugging);
-
-  case C_fix(45):  /* Whether we're currently profiling */
-    return C_mk_bool(profiling);
-
-  default: return C_SCHEME_UNDEFINED;
-  }
+  return C_mk_bool(fake_tty_flag);
 }
 
+C_regparm C_word C_fcall C_i_debug_modep(void)
+{
+  return C_mk_bool(debug_mode);
+}
+
+C_regparm C_word C_fcall C_i_dump_heap_on_exitp(void)
+{
+  return C_mk_bool(dump_heap_on_exit);
+}
+
+C_regparm C_word C_fcall C_i_profilingp(void)
+{
+  return C_mk_bool(profiling);
+}
+
+C_regparm C_word C_fcall C_i_live_finalizer_count(void)
+{
+  return C_fix(live_finalizer_count);
+}
+
+C_regparm C_word C_fcall C_i_allocated_finalizer_count(void)
+{
+  return C_fix(allocated_finalizer_count);
+}
 
 C_regparm void C_fcall C_paranoid_check_for_interrupt(void)
 {
@@ -4976,136 +5237,235 @@ C_word C_fcall C_a_i_smart_mpointer(C_word **ptr, int c, C_word x)
   return (C_word)p0;
 }
 
+C_regparm C_word C_fcall C_i_nanp(C_word x)
+{
+  if (x & C_FIXNUM_BIT) {
+    return C_SCHEME_FALSE;
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "nan?", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    return C_u_i_flonum_nanp(x);
+  } else if (C_truep(C_bignump(x))) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_mk_bool(C_truep(C_i_nanp(C_u_i_cplxnum_real(x))) ||
+		     C_truep(C_i_nanp(C_u_i_cplxnum_imag(x))));
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "nan?", x);
+  }
+}
+
+C_regparm C_word C_fcall C_i_finitep(C_word x)
+{
+  if (x & C_FIXNUM_BIT) {
+    return C_SCHEME_TRUE;
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "finite?", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    return C_u_i_flonum_finitep(x);
+  } else if (C_truep(C_bignump(x))) {
+    return C_SCHEME_TRUE;
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_TRUE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_and(C_i_finitep(C_u_i_cplxnum_real(x)),
+		 C_i_finitep(C_u_i_cplxnum_imag(x)));
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "finite?", x);
+  }
+}
+
+C_regparm C_word C_fcall C_i_infinitep(C_word x)
+{
+  if (x & C_FIXNUM_BIT) {
+    return C_SCHEME_FALSE;
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "infinite?", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    return C_u_i_flonum_infinitep(x);
+  } else if (C_truep(C_bignump(x))) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_mk_bool(C_truep(C_i_infinitep(C_u_i_cplxnum_real(x))) ||
+                     C_truep(C_i_infinitep(C_u_i_cplxnum_imag(x))));
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "infinite?", x);
+  }
+}
 
 C_regparm C_word C_fcall C_i_exactp(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_SCHEME_TRUE;
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "exact?", x);
-
-  return C_SCHEME_FALSE;
+  if (x & C_FIXNUM_BIT) {
+    return C_SCHEME_TRUE;
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "exact?", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    return C_SCHEME_FALSE;
+  } else if (C_truep(C_bignump(x))) {
+    return C_SCHEME_TRUE;
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_TRUE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_i_exactp(C_u_i_cplxnum_real(x)); /* Exactness of i and r matches */
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "exact?", x);
+  }
 }
 
 
 C_regparm C_word C_fcall C_i_inexactp(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_SCHEME_FALSE;
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "inexact?", x);
-
-  return C_SCHEME_TRUE;
+  if (x & C_FIXNUM_BIT) {
+    return C_SCHEME_FALSE;
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "inexact?", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    return C_SCHEME_TRUE;
+  } else if (C_truep(C_bignump(x))) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_SCHEME_FALSE;
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_i_inexactp(C_u_i_cplxnum_real(x)); /* Exactness of i and r matches */
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "inexact?", x);
+  }
 }
 
 
 C_regparm C_word C_fcall C_i_zerop(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_mk_bool(x == C_fix(0));
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "zero?", x);
-
-  return C_mk_bool(C_flonum_magnitude(x) == 0.0);
+  if (x & C_FIXNUM_BIT) {
+    return C_mk_bool(x == C_fix(0));
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "zero?", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    return C_mk_bool(C_flonum_magnitude(x) == 0.0);
+  } else if (C_block_header(x) == C_BIGNUM_TAG ||
+             C_block_header(x) == C_RATNUM_TAG ||
+             C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_SCHEME_FALSE;
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "zero?", x);
+  }
 }
-
 
 /* I */
 C_regparm C_word C_fcall C_u_i_zerop(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_mk_bool(x == C_fix(0));
-
-  return C_mk_bool(C_flonum_magnitude(x) == 0.0);
+  return C_mk_bool(x == C_fix(0) ||
+                   (!C_immediatep(x) &&
+                    C_block_header(x) == C_FLONUM_TAG &&
+                    C_flonum_magnitude(x) == 0.0));
 }
 
 
 C_regparm C_word C_fcall C_i_positivep(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_mk_bool(C_unfix(x) > 0);
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "positive?", x);
-
-  return C_mk_bool(C_flonum_magnitude(x) > 0.0);
+  if (x & C_FIXNUM_BIT)
+    return C_i_fixnum_positivep(x);
+  else if (C_immediatep(x))
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "positive?", x);
+  else if (C_block_header(x) == C_FLONUM_TAG)
+    return C_mk_bool(C_flonum_magnitude(x) > 0.0);
+  else if (C_truep(C_bignump(x)))
+    return C_mk_nbool(C_bignum_negativep(x));
+  else if (C_block_header(x) == C_RATNUM_TAG)
+    return C_i_integer_positivep(C_u_i_ratnum_num(x));
+  else if (C_block_header(x) == C_CPLXNUM_TAG)
+    barf(C_BAD_ARGUMENT_TYPE_NO_REAL_ERROR, "positive?", x);
+  else
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "positive?", x);
 }
 
-
-/* I */
-C_regparm C_word C_fcall C_u_i_positivep(C_word x)
+C_regparm C_word C_fcall C_i_integer_positivep(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_mk_bool(C_unfix(x) > 0);
-
-  return C_mk_bool(C_flonum_magnitude(x) > 0.0);
+  if (x & C_FIXNUM_BIT) return C_i_fixnum_positivep(x);
+  else return C_mk_nbool(C_bignum_negativep(x));
 }
-
 
 C_regparm C_word C_fcall C_i_negativep(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_mk_bool(C_unfix(x) < 0);
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "negative?", x);
-
-  return C_mk_bool(C_flonum_magnitude(x) < 0.0);
+  if (x & C_FIXNUM_BIT)
+    return C_i_fixnum_negativep(x);
+  else if (C_immediatep(x))
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "negative?", x);
+  else if (C_block_header(x) == C_FLONUM_TAG)
+    return C_mk_bool(C_flonum_magnitude(x) < 0.0);
+  else if (C_truep(C_bignump(x)))
+    return C_mk_bool(C_bignum_negativep(x));
+  else if (C_block_header(x) == C_RATNUM_TAG)
+    return C_i_integer_negativep(C_u_i_ratnum_num(x));
+  else if (C_block_header(x) == C_CPLXNUM_TAG)
+    barf(C_BAD_ARGUMENT_TYPE_NO_REAL_ERROR, "negative?", x);
+  else
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "negative?", x);
 }
 
 
-/* I */
-C_regparm C_word C_fcall C_u_i_negativep(C_word x)
+C_regparm C_word C_fcall C_i_integer_negativep(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_mk_bool(C_unfix(x) < 0);
-
-  return C_mk_bool(C_flonum_magnitude(x) < 0.0);
+  if (x & C_FIXNUM_BIT) return C_i_fixnum_negativep(x);
+  else return C_mk_bool(C_bignum_negativep(x));
 }
 
 
 C_regparm C_word C_fcall C_i_evenp(C_word x)
 {
-  double val, dummy;
-  if(x & C_FIXNUM_BIT) return C_mk_nbool(x & 0x02);
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "even?", x);
-
-  val = C_flonum_magnitude(x);
-  if(C_isnan(val) || C_isinf(val) || C_modf(val, &dummy) != 0.0)
+  if(x & C_FIXNUM_BIT) {
+    return C_i_fixnumevenp(x);
+  } else if(C_immediatep(x)) {
     barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "even?", x);
-
-  return C_mk_bool(fmod(val, 2.0) == 0.0);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    double val, dummy;
+    val = C_flonum_magnitude(x);
+    if(C_isnan(val) || C_isinf(val) || C_modf(val, &dummy) != 0.0)
+      barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "even?", x);
+    else
+      return C_mk_bool(fmod(val, 2.0) == 0.0);
+  } else if (C_truep(C_bignump(x))) {
+    return C_mk_nbool(C_bignum_digits(x)[0] & 1);
+  } else { /* No need to try extended number */
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "even?", x);
+  }
 }
 
-
-/* I */
-C_regparm C_word C_fcall C_u_i_evenp(C_word x)
+C_regparm C_word C_fcall C_i_integer_evenp(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_mk_nbool(x & 0x02);
-
-  return C_mk_bool(fmod(C_flonum_magnitude(x), 2.0) == 0.0);
+  if (x & C_FIXNUM_BIT) return C_i_fixnumevenp(x);
+  return C_mk_nbool(C_bignum_digits(x)[0] & 1);
 }
 
 
 C_regparm C_word C_fcall C_i_oddp(C_word x)
 {
-  double val, dummy;
-  if(x & C_FIXNUM_BIT) return C_mk_bool(x & 0x02);
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "odd?", x);
-
-  val = C_flonum_magnitude(x);
-  if(C_isnan(val) || C_isinf(val) || C_modf(val, &dummy) != 0.0)
+  if(x & C_FIXNUM_BIT) {
+    return C_i_fixnumoddp(x);
+  } else if(C_immediatep(x)) {
     barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "odd?", x);
-
-  return C_mk_bool(fmod(val, 2.0) != 0.0);
+  } else if(C_block_header(x) == C_FLONUM_TAG) {
+    double val, dummy;
+    val = C_flonum_magnitude(x);
+    if(C_isnan(val) || C_isinf(val) || C_modf(val, &dummy) != 0.0)
+      barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "odd?", x);
+    else
+      return C_mk_bool(fmod(val, 2.0) != 0.0);
+  } else if (C_truep(C_bignump(x))) {
+    return C_mk_bool(C_bignum_digits(x)[0] & 1);
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "odd?", x);
+  }
 }
 
 
-/* I */
-C_regparm C_word C_fcall C_u_i_oddp(C_word x)
+C_regparm C_word C_fcall C_i_integer_oddp(C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_mk_bool(x & 0x02);
-
-  return C_mk_bool(fmod(C_flonum_magnitude(x), 2.0) != 0.0);
+  if (x & C_FIXNUM_BIT) return C_i_fixnumoddp(x);
+  return C_mk_bool(C_bignum_digits(x)[0] & 1);
 }
 
 
@@ -5423,42 +5783,12 @@ C_regparm C_word C_fcall C_u_i_length(C_word lst)
   return C_fix(n);
 }
 
-C_regparm C_word maybe_inexact_to_exact(C_word n)
-{
-  double m;
-  C_word r;
-  
-  if(modf(C_flonum_magnitude(n), &m) == 0.0) {
-    r = (C_word)m;
-    
-    if(r == m && C_fitsinfixnump(r))
-      return C_fix(r);
-  }
-  return C_SCHEME_FALSE;
-}
-
-C_regparm C_word C_fcall C_i_inexact_to_exact(C_word n)
-{
-  C_word r;
-  
-  if(n & C_FIXNUM_BIT) return n;
-  else if(C_immediatep(n) || C_block_header(n) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "inexact->exact", n);
-
-  r = maybe_inexact_to_exact(n);
-  if (r != C_SCHEME_FALSE) return r;
-
-  barf(C_CANT_REPRESENT_INEXACT_ERROR, "inexact->exact", n);
-  return 0;
-}
-
-
 C_regparm C_word C_fcall C_i_set_car(C_word x, C_word val)
 {
   if(C_immediatep(x) || C_block_header(x) != C_PAIR_TAG)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "set-car!", x);
 
-  C_mutate2(&C_u_i_car(x), val);
+  C_mutate(&C_u_i_car(x), val);
   return C_SCHEME_UNDEFINED;
 }
 
@@ -5468,7 +5798,7 @@ C_regparm C_word C_fcall C_i_set_cdr(C_word x, C_word val)
   if(C_immediatep(x) || C_block_header(x) != C_PAIR_TAG)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "set-cdr!", x);
 
-  C_mutate2(&C_u_i_cdr(x), val);
+  C_mutate(&C_u_i_cdr(x), val);
   return C_SCHEME_UNDEFINED;
 }
 
@@ -5485,154 +5815,574 @@ C_regparm C_word C_fcall C_i_vector_set(C_word v, C_word i, C_word x)
 
     if(j < 0 || j >= C_header_size(v)) barf(C_OUT_OF_RANGE_ERROR, "vector-set!", v, i);
 
-    C_mutate2(&C_block_item(v, j), x);
+    C_mutate(&C_block_item(v, j), x);
   }
   else barf(C_BAD_ARGUMENT_TYPE_ERROR, "vector-set!", i);
 
   return C_SCHEME_UNDEFINED;
 }
 
-
-C_regparm C_word C_fcall C_a_i_abs(C_word **a, int c, C_word x)
+/* This needs at most C_SIZEOF_FIX_BIGNUM + max(C_SIZEOF_RATNUM, C_SIZEOF_CPLXNUM) so 7 words */
+C_regparm C_word C_fcall
+C_s_a_i_abs(C_word **ptr, C_word n, C_word x)
 {
-  if(x & C_FIXNUM_BIT) return C_fix(labs(C_unfix(x)));
-
-  if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "abs", x);
-
-  return C_flonum(a, fabs(C_flonum_magnitude(x)));
-}
-
-
-C_regparm C_word C_fcall C_a_i_bitwise_and(C_word **a, int c, C_word n1, C_word n2)
-{
-  double f1, f2;
-  C_uword nn1, nn2;
-
-  C_check_uint(n1, f1, nn1, "bitwise-and");
-  C_check_uint(n2, f2, nn2, "bitwise-and");
-  nn1 = C_limit_fixnum(nn1 & nn2);
-
-  if(C_ufitsinfixnump(nn1)) return C_fix(nn1);
-  else return C_flonum(a, nn1);
-}
-
-
-C_regparm C_word C_fcall C_a_i_bitwise_ior(C_word **a, int c, C_word n1, C_word n2)
-{
-  double f1, f2;
-  C_uword nn1, nn2;
-
-  C_check_uint(n1, f1, nn1, "bitwise-ior");
-  C_check_uint(n2, f2, nn2, "bitwise-ior");
-  nn1 = C_limit_fixnum(nn1 | nn2);
-
-  if(C_ufitsinfixnump(nn1)) return C_fix(nn1);
-  else return C_flonum(a, nn1);
-}
-
-
-C_regparm C_word C_fcall C_a_i_bitwise_xor(C_word **a, int c, C_word n1, C_word n2)
-{
-  double f1, f2;
-  C_uword nn1, nn2;
-
-  C_check_uint(n1, f1, nn1, "bitwise-xor");
-  C_check_uint(n2, f2, nn2, "bitwise-xor");
-  nn1 = C_limit_fixnum(nn1 ^ nn2);
-
-  if(C_ufitsinfixnump(nn1)) return C_fix(nn1);
-  else return C_flonum(a, nn1);
-}
-
-
-C_regparm C_word C_fcall C_i_bit_setp(C_word n, C_word i)
-{
-  double f1;
-  C_uword nn1;
-  int index;
-
-  if((i & C_FIXNUM_BIT) == 0) 
-    barf(C_BAD_ARGUMENT_TYPE_NO_FIXNUM_ERROR, "bit-set?", i);
-
-  index = C_unfix(i);
-
-  if(index < 0 || index >= C_WORD_SIZE)
-    barf(C_OUT_OF_RANGE_ERROR, "bit-set?", n, i);
-
-  C_check_uint(n, f1, nn1, "bit-set?");
-  return C_mk_bool((nn1 & (1 << index)) != 0);
-}
-
-
-C_regparm C_word C_fcall C_a_i_bitwise_not(C_word **a, int c, C_word n)
-{
-  double f;
-  C_uword nn;
-
-  C_check_uint(n, f, nn, "bitwise-not");
-  nn = C_limit_fixnum(~nn);
-
-  if(C_ufitsinfixnump(nn)) return C_fix(nn);
-  else return C_flonum(a, nn);
-}
-
-
-C_regparm C_word C_fcall C_a_i_arithmetic_shift(C_word **a, int c, C_word n1, C_word n2)
-{
-  C_word nn;
-  C_uword unn;
-  C_word s;
-  int sgn = 1;
-
-  if((n1 & C_FIXNUM_BIT) != 0) {
-    nn = C_unfix(n1);
-
-    if((sgn = nn < 0 ? -1 : 1) >= 0) unn = nn;
+  if (x & C_FIXNUM_BIT) {
+    return C_a_i_fixnum_abs(ptr, 1, x);
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "abs", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    return C_a_i_flonum_abs(ptr, 1, x);
+  } else if (C_truep(C_bignump(x))) {
+    return C_s_a_u_i_integer_abs(ptr, 1, x);
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_ratnum(ptr, C_s_a_u_i_integer_abs(ptr, 1, C_u_i_ratnum_num(x)),
+                    C_u_i_ratnum_denom(x));
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    barf(C_BAD_ARGUMENT_TYPE_COMPLEX_ABS, "abs", x);
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "abs", x);
   }
-  else if(C_immediatep(n1) || C_block_header(n1) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "arithmetic-shift", n1);
-  else { 
-    double m, f;
+}
 
-    f = C_flonum_magnitude(n1);
+void C_ccall C_signum(C_word c, C_word *av)
+{
+  C_word k = av[ 1 ], x, y;
+
+  if (c != 3) C_bad_argc_2(c, 3, av[ 0 ]);
+
+  x = av[ 2 ];
+  y = av[ 3 ];
+
+  if (x & C_FIXNUM_BIT) {
+    C_kontinue(k, C_i_fixnum_signum(x));
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "signum", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    C_word *a = C_alloc(C_SIZEOF_FLONUM);
+    C_kontinue(k, C_a_u_i_flonum_signum(&a, 1, x));
+  } else if (C_truep(C_bignump(x))) {
+    C_kontinue(k, C_bignum_negativep(x) ? C_fix(-1) : C_fix(1));
+  } else {
+    try_extended_number("\003sysextended-signum", 2, k, x);
+  }
+}
+
+
+/* The maximum this can allocate is a cplxnum which consists of two
+ * ratnums that consist of 2 fix bignums each.  So that's
+ * C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM * 2 + C_SIZEOF_FIX_BIGNUM * 4 = 29 words!
+ */
+C_regparm C_word C_fcall
+C_s_a_i_negate(C_word **ptr, C_word n, C_word x)
+{
+  if (x & C_FIXNUM_BIT) {
+    return C_a_i_fixnum_negate(ptr, 1, x);
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    return C_a_i_flonum_negate(ptr, 1, x);
+  } else if (C_truep(C_bignump(x))) {
+    return C_s_a_u_i_integer_negate(ptr, 1, x);
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    return C_ratnum(ptr, C_s_a_u_i_integer_negate(ptr, 1, C_u_i_ratnum_num(x)),
+                    C_u_i_ratnum_denom(x));
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    return C_cplxnum(ptr, C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_real(x)),
+                     C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(x)));
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", x);
+  }
+}
+
+/* Copy all the digits from source to target, obliterating what was
+ * there.  If target is larger than source, the most significant
+ * digits will remain untouched.
+ */
+inline static void bignum_digits_destructive_copy(C_word target, C_word source)
+{
+  C_memcpy(C_bignum_digits(target), C_bignum_digits(source),
+           C_wordstobytes(C_bignum_size(source)));
+}
+
+C_regparm C_word C_fcall
+C_s_a_u_i_integer_negate(C_word **ptr, C_word n, C_word x)
+{
+  if (x & C_FIXNUM_BIT) {
+    return C_a_i_fixnum_negate(ptr, 1, x);
+  } else {
+    if (C_bignum_negated_fitsinfixnump(x)) {
+      return C_fix(C_MOST_NEGATIVE_FIXNUM);
+    } else {
+      C_word res, negp = C_mk_nbool(C_bignum_negativep(x)),
+             size = C_fix(C_bignum_size(x));
+      res = C_allocate_scratch_bignum(ptr, size, negp, C_SCHEME_FALSE);
+      bignum_digits_destructive_copy(res, x);
+      return C_bignum_simplify(res);
+    }
+  }
+}
+
+
+/* Faster version that ignores sign */
+inline static int integer_length_abs(C_word x)
+{
+  if (x & C_FIXNUM_BIT) {
+    return C_ilen(C_wabs(C_unfix(x)));
+  } else {
+    C_uword result = (C_bignum_size(x) - 1) * C_BIGNUM_DIGIT_LENGTH,
+            *last_digit = C_bignum_digits(x) + C_bignum_size(x) - 1,
+            last_digit_length = C_ilen(*last_digit);
+    return result + last_digit_length;
+  }
+}
+
+C_regparm C_word C_fcall C_i_integer_length(C_word x)
+{
+  if (x & C_FIXNUM_BIT) {
+    return C_i_fixnum_length(x);
+  } else if (C_truep(C_i_bignump(x))) {
+    C_uword result = (C_bignum_size(x) - 1) * C_BIGNUM_DIGIT_LENGTH,
+            *last_digit = C_bignum_digits(x) + C_bignum_size(x) - 1,
+            last_digit_length = C_ilen(*last_digit);
+
+    /* If *only* the highest bit is set, negating will give one less bit */
+    if (C_bignum_negativep(x) &&
+        *last_digit == ((C_uword)1 << (last_digit_length-1))) {
+      C_uword *startx = C_bignum_digits(x);
+      while (startx < last_digit && *startx == 0) ++startx;
+      if (startx == last_digit) result--;
+    }
+    return C_fix(result + last_digit_length);
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "integer-length", x);
+  }
+}
+
+/* This is currently only used by Karatsuba multiplication and
+ * Burnikel-Ziegler division. */
+static C_regparm C_word
+bignum_extract_digits(C_word **ptr, C_word n, C_word x, C_word start, C_word end)
+{
+  if (x & C_FIXNUM_BIT) { /* Needed? */
+    if (C_unfix(start) == 0 && (end == C_SCHEME_FALSE || C_unfix(end) > 0))
+      return x;
+    else
+      return C_fix(0);
+  } else {
+    C_word negp, size;
+
+    negp = C_mk_bool(C_bignum_negativep(x)); /* Always false */
+
+    start = C_unfix(start);
+    /* We might get passed larger values than actually fits; pad w/ zeroes */
+    if (end == C_SCHEME_FALSE) end = C_bignum_size(x);
+    else end = nmin(C_unfix(end), C_bignum_size(x));
+    assert(start >= 0);
+
+    size = end - start;
+
+    if (size == 0 || start >= C_bignum_size(x)) {
+      return C_fix(0);
+    } else {
+      C_uword res, *res_digits, *x_digits;
+      res = C_allocate_scratch_bignum(ptr, C_fix(size), negp, C_SCHEME_FALSE);
+      res_digits = C_bignum_digits(res);
+      x_digits = C_bignum_digits(x);
+      /* Can't use bignum_digits_destructive_copy because that assumes
+       * target is at least as big as source.
+       */
+      C_memcpy(res_digits, x_digits + start, C_wordstobytes(end - start));
+      return C_bignum_simplify(res);
+    }
+  }
+}
+
+/* This returns a tmp bignum negated copy of X (must be freed!) when
+ * the number is negative, or #f if it doesn't need to be negated.
+ * The size can be larger or smaller than X (it may be 1-padded).
+ */
+inline static C_word maybe_negate_bignum_for_bitwise_op(C_word x, C_word size)
+{
+  C_word nx = C_SCHEME_FALSE, xsize;
+  if (C_bignum_negativep(x)) {
+    nx = allocate_tmp_bignum(C_fix(size), C_SCHEME_FALSE, C_SCHEME_FALSE);
+    xsize = C_bignum_size(x);
+    /* Copy up until requested size, and init any remaining upper digits */
+    C_memcpy(C_bignum_digits(nx), C_bignum_digits(x),
+             C_wordstobytes(nmin(size, xsize)));
+    if (size > xsize)
+      C_memset(C_bignum_digits(nx)+xsize, 0, C_wordstobytes(size-xsize));
+    bignum_digits_destructive_negate(nx);
+  }
+  return nx;
+}
+
+/* DEPRECATED */
+C_regparm C_word C_fcall C_i_bit_to_bool(C_word n, C_word i)
+{
+  if (!C_truep(C_i_exact_integerp(n))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bit->boolean", n);
+  } else if (!(i & C_FIXNUM_BIT)) {
+    if (!C_immediatep(i) && C_truep(C_bignump(i)) && !C_bignum_negativep(i)) {
+      return C_i_integer_negativep(n); /* A bit silly, but strictly correct */
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, "bit->boolean", i);
+    }
+  } else if (i & C_INT_SIGN_BIT) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, "bit->boolean", i);
+  } else {
+    i = C_unfix(i);
+    if (n & C_FIXNUM_BIT) {
+      if (i >= C_WORD_SIZE) return C_mk_bool(n & C_INT_SIGN_BIT);
+      else return C_mk_bool((C_unfix(n) & ((C_word)1 << i)) != 0);
+    } else {
+      C_word nn, d;
+      d = i / C_BIGNUM_DIGIT_LENGTH;
+      if (d >= C_bignum_size(n)) return C_mk_bool(C_bignum_negativep(n));
+
+      /* TODO: this isn't necessary, is it? */
+      if (C_truep(nn = maybe_negate_bignum_for_bitwise_op(n, d))) n = nn;
+
+      i %= C_BIGNUM_DIGIT_LENGTH;
+      d = C_mk_bool((C_bignum_digits(n)[d] & (C_uword)1 << i) != 0);
+      if (C_truep(nn)) free_tmp_bignum(nn);
+      return d;
+    }
+  }
+}
+
+C_regparm C_word C_fcall
+C_s_a_i_bitwise_and(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if ((x & y) & C_FIXNUM_BIT) {
+    return C_u_fixnum_and(x, y);
+  } else if (!C_truep(C_i_exact_integerp(x))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-and", x);
+  } else if (!C_truep(C_i_exact_integerp(y))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-and", y);
+  } else {
+    C_word ab[C_SIZEOF_FIX_BIGNUM*2], *a = ab, negp, size, res, nx, ny;
+    C_uword *scanr, *endr, *scans1, *ends1, *scans2;
+
+    if (x & C_FIXNUM_BIT) x = C_a_u_i_fix_to_big(&a, x);
+    if (y & C_FIXNUM_BIT) y = C_a_u_i_fix_to_big(&a, y);
+
+    negp = C_mk_bool(C_bignum_negativep(x) && C_bignum_negativep(y));
+    /* Allow negative 1-bits to propagate */
+    if (C_bignum_negativep(x) || C_bignum_negativep(y))
+      size = nmax(C_bignum_size(x), C_bignum_size(y)) + 1;
+    else
+      size = nmin(C_bignum_size(x), C_bignum_size(y));
+
+    res = C_allocate_scratch_bignum(ptr, C_fix(size), negp, C_SCHEME_FALSE);
+    scanr = C_bignum_digits(res);
+    endr = scanr + C_bignum_size(res);
     
-    if(C_isnan(f) || C_isinf(f) || C_modf(f, &m) != 0.0)
-      barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "arithmetic-shift", n1);
+    if (C_truep(nx = maybe_negate_bignum_for_bitwise_op(x, size))) x = nx;
+    if (C_truep(ny = maybe_negate_bignum_for_bitwise_op(y, size))) y = ny;
 
-    if(f < C_WORD_MIN || f > C_UWORD_MAX)
-      barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "arithmetic-shift", n1);
-    else if(f < 0) {
-      if(f > C_WORD_MAX)
-	barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "arithmetic-shift", n1);
-      else {
-	sgn = -1;
-	nn = (C_word)f;
-      }
+    if (C_bignum_size(x) < C_bignum_size(y)) {
+      scans1 = C_bignum_digits(x); ends1 = scans1 + C_bignum_size(x);
+      scans2 = C_bignum_digits(y);
+    } else {
+      scans1 = C_bignum_digits(y); ends1 = scans1 + C_bignum_size(y);
+      scans2 = C_bignum_digits(x);
     }
-    else if(f > C_WORD_MAX) unn = (C_uword)f;
-    else {
-      nn = (C_word)f;
-      sgn = -1;
-    }
+
+    while (scans1 < ends1) *scanr++ = *scans1++ & *scans2++;
+    C_memset(scanr, 0, C_wordstobytes(endr - scanr));
+
+    if (C_truep(nx)) free_tmp_bignum(nx);
+    if (C_truep(ny)) free_tmp_bignum(ny);
+    if (C_bignum_negativep(res)) bignum_digits_destructive_negate(res);
+    
+    return C_bignum_simplify(res);
+  }
+}
+
+void C_ccall C_bitwise_and(C_word c, C_word *av)
+{
+  /* C_word closure = av[ 0 ]; */
+  C_word k = av[ 1 ];
+  C_word next_val, result, prev_result;
+  C_word ab[2][C_SIZEOF_BIGNUM_WRAPPER], *a;
+
+  c -= 2; 
+  av += 2;
+
+  if (c == 0) C_kontinue(k, C_fix(-1));
+
+  prev_result = result = *(av++);
+
+  if (c-- == 1 && !C_truep(C_i_exact_integerp(result)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-and", result);
+
+  while (c--) {
+    next_val = *(av++);
+    a = ab[c&1]; /* One may hold last iteration result, the other is unused */
+    result = C_s_a_i_bitwise_and(&a, 2, result, next_val);
+    result = move_buffer_object(&a, ab[(c+1)&1], result);
+    clear_buffer_object(ab[(c+1)&1], prev_result);
+    prev_result = result;
   }
 
-  if((n2 & C_FIXNUM_BIT) != 0) s = C_unfix(n2);
-  else barf(C_BAD_ARGUMENT_TYPE_NO_FIXNUM_ERROR, "arithmetic-shift", n2);
+  C_kontinue(k, result);
+}
 
-  if(sgn < 0) {
-    if(s < 0) nn >>= -s;
-    else nn = (C_word)((C_uword)nn << s);
+C_regparm C_word C_fcall
+C_s_a_i_bitwise_ior(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if ((x & y) & C_FIXNUM_BIT) {
+    return C_u_fixnum_or(x, y);
+  } else if (!C_truep(C_i_exact_integerp(x))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-ior", x);
+  } else if (!C_truep(C_i_exact_integerp(y))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-ior", y);
+  } else {
+    C_word ab[C_SIZEOF_FIX_BIGNUM*2], *a = ab, negp, size, res, nx, ny;
+    C_uword *scanr, *endr, *scans1, *ends1, *scans2, *ends2;
 
-    if(C_fitsinfixnump(nn)) return C_fix(nn);
-    else return C_flonum(a, nn);
-  } 
-  else {
-    if(s < 0) unn >>= -s;
-    else unn <<= s;
+    if (x & C_FIXNUM_BIT) x = C_a_u_i_fix_to_big(&a, x);
+    if (y & C_FIXNUM_BIT) y = C_a_u_i_fix_to_big(&a, y);
+
+    negp = C_mk_bool(C_bignum_negativep(x) || C_bignum_negativep(y));
+    size = nmax(C_bignum_size(x), C_bignum_size(y)) + 1;
+    res = C_allocate_scratch_bignum(ptr, C_fix(size), negp, C_SCHEME_FALSE);
+    scanr = C_bignum_digits(res);
+    endr = scanr + C_bignum_size(res);
+    
+    if (C_truep(nx = maybe_negate_bignum_for_bitwise_op(x, size))) x = nx;
+    if (C_truep(ny = maybe_negate_bignum_for_bitwise_op(y, size))) y = ny;
+
+    if (C_bignum_size(x) < C_bignum_size(y)) {
+      scans1 = C_bignum_digits(x); ends1 = scans1 + C_bignum_size(x);
+      scans2 = C_bignum_digits(y); ends2 = scans2 + C_bignum_size(y);
+    } else {
+      scans1 = C_bignum_digits(y); ends1 = scans1 + C_bignum_size(y);
+      scans2 = C_bignum_digits(x); ends2 = scans2 + C_bignum_size(x);
+    }
+
+    while (scans1 < ends1) *scanr++ = *scans1++ | *scans2++;
+    while (scans2 < ends2) *scanr++ = *scans2++;
+    if (scanr < endr) *scanr++ = 0; /* Only done when result is positive */
+    assert(scanr == endr);
+
+    if (C_truep(nx)) free_tmp_bignum(nx);
+    if (C_truep(ny)) free_tmp_bignum(ny);
+    if (C_bignum_negativep(res)) bignum_digits_destructive_negate(res);
+
+    return C_bignum_simplify(res);
+  }
+}
+
+void C_ccall C_bitwise_ior(C_word c, C_word *av)
+{
+  /* C_word closure = av[ 0 ]; */
+  C_word k = av[ 1 ];
+  C_word next_val, result, prev_result;
+  C_word ab[2][C_SIZEOF_BIGNUM_WRAPPER], *a;
+
+  c -= 2; 
+  av += 2;
+
+  if (c == 0) C_kontinue(k, C_fix(0));
+
+  prev_result = result = *(av++);
+
+  if (c-- == 1 && !C_truep(C_i_exact_integerp(result)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-ior", result);
+
+  while (c--) {
+    next_val = *(av++);
+    a = ab[c&1]; /* One may hold prev iteration result, the other is unused */
+    result = C_s_a_i_bitwise_ior(&a, 2, result, next_val);
+    result = move_buffer_object(&a, ab[(c+1)&1], result);
+    clear_buffer_object(ab[(c+1)&1], prev_result);
+    prev_result = result;
+  }
+
+  C_kontinue(k, result);
+}
+
+C_regparm C_word C_fcall
+C_s_a_i_bitwise_xor(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if ((x & y) & C_FIXNUM_BIT) {
+    return C_fixnum_xor(x, y);
+  } else if (!C_truep(C_i_exact_integerp(x))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-xor", x);
+  } else if (!C_truep(C_i_exact_integerp(y))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-xor", y);
+  } else {
+    C_word ab[C_SIZEOF_FIX_BIGNUM*2], *a = ab, negp, size, res, nx, ny;
+    C_uword *scanr, *endr, *scans1, *ends1, *scans2, *ends2;
+
+    if (x & C_FIXNUM_BIT) x = C_a_u_i_fix_to_big(&a, x);
+    if (y & C_FIXNUM_BIT) y = C_a_u_i_fix_to_big(&a, y);
+
+    size = nmax(C_bignum_size(x), C_bignum_size(y)) + 1;
+    negp = C_mk_bool(C_bignum_negativep(x) != C_bignum_negativep(y));
+    res = C_allocate_scratch_bignum(ptr, C_fix(size), negp, C_SCHEME_FALSE);
+    scanr = C_bignum_digits(res);
+    endr = scanr + C_bignum_size(res);
+
+    if (C_truep(nx = maybe_negate_bignum_for_bitwise_op(x, size))) x = nx;
+    if (C_truep(ny = maybe_negate_bignum_for_bitwise_op(y, size))) y = ny;
+
+    if (C_bignum_size(x) < C_bignum_size(y)) {
+      scans1 = C_bignum_digits(x); ends1 = scans1 + C_bignum_size(x);
+      scans2 = C_bignum_digits(y); ends2 = scans2 + C_bignum_size(y);
+    } else {
+      scans1 = C_bignum_digits(y); ends1 = scans1 + C_bignum_size(y);
+      scans2 = C_bignum_digits(x); ends2 = scans2 + C_bignum_size(x);
+    }
+
+    while (scans1 < ends1) *scanr++ = *scans1++ ^ *scans2++;
+    while (scans2 < ends2) *scanr++ = *scans2++;
+    if (scanr < endr) *scanr++ = 0; /* Only done when result is positive */
+    assert(scanr == endr);
+
+    if (C_truep(nx)) free_tmp_bignum(nx);
+    if (C_truep(ny)) free_tmp_bignum(ny);
+    if (C_bignum_negativep(res)) bignum_digits_destructive_negate(res);
+
+    return C_bignum_simplify(res);
+  }
+}
+
+void C_ccall C_bitwise_xor(C_word c, C_word *av)
+{
+  /* C_word closure = av[ 0 ]; */
+  C_word k = av[ 1 ];
+  C_word next_val, result, prev_result;
+  C_word ab[2][C_SIZEOF_BIGNUM_WRAPPER], *a;
+
+  c -= 2; 
+  av += 2;
+
+  if (c == 0) C_kontinue(k, C_fix(0));
+
+  prev_result = result = *(av++);
+
+  if (c-- == 1 && !C_truep(C_i_exact_integerp(result)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-xor", result);
+
+  while (c--) {
+    next_val = *(av++);
+    a = ab[c&1]; /* One may hold prev iteration result, the other is unused */
+    result = C_s_a_i_bitwise_xor(&a, 2, result, next_val);
+    result = move_buffer_object(&a, ab[(c+1)&1], result);
+    clear_buffer_object(ab[(c+1)&1], prev_result);
+    prev_result = result;
+  }
+
+  C_kontinue(k, result);
+}
+
+C_regparm C_word C_fcall
+C_s_a_i_bitwise_not(C_word **ptr, C_word n, C_word x)
+{
+  if (!C_truep(C_i_exact_integerp(x))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "bitwise-not", x);
+  } else {
+    return C_s_a_u_i_integer_minus(ptr, 2, C_fix(-1), x);
+  }
+}
+
+C_regparm C_word C_fcall
+C_s_a_i_arithmetic_shift(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab, size, negp, res,
+         digit_offset, bit_offset;
+
+  if (!(y & C_FIXNUM_BIT))
+    barf(C_BAD_ARGUMENT_TYPE_NO_FIXNUM_ERROR, "arithmetic-shift", y);
+
+  y = C_unfix(y);
+  if (y == 0 || x == C_fix(0)) { /* Done (no shift) */
+    return x;
+  } else if (x & C_FIXNUM_BIT) {
+    if (y < 0) {
+      /* Don't shift more than a word's length (that's undefined in C!) */
+      if (-y < C_WORD_SIZE) {
+        return C_fix(C_unfix(x) >> -y);
+      } else {
+        return (x < 0) ? C_fix(-1) : C_fix(0);
+      }
+    } else if (y > 0 && y < C_WORD_SIZE-2 &&
+               /* After shifting, the length still fits a fixnum */
+               (C_ilen(C_unfix(x)) + y) < C_WORD_SIZE-2) {
+      return C_fix((C_uword)C_unfix(x) << y);
+    } else {
+      x = C_a_u_i_fix_to_big(&a, x);
+    }
+  } else if (!C_truep(C_i_bignump(x))) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR, "arithmetic-shift", x);
+  }
+
+  negp = C_mk_bool(C_bignum_negativep(x));
   
-    if(C_ufitsinfixnump(unn)) return C_fix(unn);
-    else return C_flonum(a, unn);
+  if (y > 0) {                  /* Shift left */
+    C_uword *startr, *startx, *endx, *endr;
+
+    digit_offset = y / C_BIGNUM_DIGIT_LENGTH;
+    bit_offset =   y % C_BIGNUM_DIGIT_LENGTH;
+
+    size = C_fix(C_bignum_size(x) + digit_offset + 1);
+    res = C_allocate_scratch_bignum(ptr, size, negp, C_SCHEME_FALSE);
+
+    startr = C_bignum_digits(res);
+    endr = startr + C_bignum_size(res);
+
+    startx = C_bignum_digits(x);
+    endx = startx + C_bignum_size(x);
+
+    /* Initialize only the lower digits we're skipping and the MSD */
+    C_memset(startr, 0, C_wordstobytes(digit_offset));
+    *(endr-1) = 0;
+    startr += digit_offset;
+    /* Can't use bignum_digits_destructive_copy because it assumes
+     * we want to copy from the start.
+     */
+    C_memcpy(startr, startx, C_wordstobytes(endx-startx));
+    if(bit_offset > 0)
+      bignum_digits_destructive_shift_left(startr, endr, bit_offset);
+
+    return C_bignum_simplify(res);
+  } else if (-y >= C_bignum_size(x) * (C_word)C_BIGNUM_DIGIT_LENGTH) {
+    /* All bits are shifted out, just return 0 or -1 */
+    return C_truep(negp) ? C_fix(-1) : C_fix(0);
+  } else {                      /* Shift right */
+    C_uword *startr, *startx, *endr;
+    C_word nx;
+
+    digit_offset = -y / C_BIGNUM_DIGIT_LENGTH;
+    bit_offset =   -y % C_BIGNUM_DIGIT_LENGTH;
+
+    size = C_fix(C_bignum_size(x) - digit_offset);
+    res = C_allocate_scratch_bignum(ptr, size, negp, C_SCHEME_FALSE);
+
+    startr = C_bignum_digits(res);
+    endr = startr + C_bignum_size(res);
+
+    size = C_bignum_size(x) + 1;
+    if (C_truep(nx = maybe_negate_bignum_for_bitwise_op(x, size))) {
+      startx = C_bignum_digits(nx) + digit_offset;
+    } else {
+      startx = C_bignum_digits(x) + digit_offset;
+    }
+    /* Can't use bignum_digits_destructive_copy because that assumes
+     * target is at least as big as source.
+     */
+    C_memcpy(startr, startx, C_wordstobytes(endr-startr));
+    if(bit_offset > 0)
+      bignum_digits_destructive_shift_right(startr,endr,bit_offset,C_truep(nx));
+
+    if (C_truep(nx)) {
+      free_tmp_bignum(nx);
+      bignum_digits_destructive_negate(res);
+    }
+    return C_bignum_simplify(res);
   }
 }
 
@@ -5869,12 +6619,21 @@ C_regparm C_word C_fcall C_i_check_closure_2(C_word x, C_word loc)
   return C_SCHEME_UNDEFINED;
 }
 
+C_regparm C_word C_fcall C_i_check_fixnum_2(C_word x, C_word loc)
+{
+  if(!(x & C_FIXNUM_BIT)) {
+    error_location = loc;
+    barf(C_BAD_ARGUMENT_TYPE_NO_FIXNUM_ERROR, NULL, x);
+  }
+
+  return C_SCHEME_UNDEFINED;
+}
 
 C_regparm C_word C_fcall C_i_check_exact_2(C_word x, C_word loc)
 {
-  if((x & C_FIXNUM_BIT) == 0) {
+  if(C_u_i_exactp(x) == C_SCHEME_FALSE) {
     error_location = loc;
-    barf(C_BAD_ARGUMENT_TYPE_NO_FIXNUM_ERROR, NULL, x);
+    barf(C_BAD_ARGUMENT_TYPE_NO_EXACT_ERROR, NULL, x);
   }
 
   return C_SCHEME_UNDEFINED;
@@ -5885,7 +6644,7 @@ C_regparm C_word C_fcall C_i_check_inexact_2(C_word x, C_word loc)
 {
   if(C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG) {
     error_location = loc;
-    barf(C_BAD_ARGUMENT_TYPE_NO_FLONUM_ERROR, NULL, x);
+    barf(C_BAD_ARGUMENT_TYPE_NO_INEXACT_ERROR, NULL, x);
   }
 
   return C_SCHEME_UNDEFINED;
@@ -5905,7 +6664,7 @@ C_regparm C_word C_fcall C_i_check_char_2(C_word x, C_word loc)
 
 C_regparm C_word C_fcall C_i_check_number_2(C_word x, C_word loc)
 {
-  if((x & C_FIXNUM_BIT) == 0 && (C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG)) {
+  if (C_i_numberp(x) == C_SCHEME_FALSE) {
     error_location = loc;
     barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, NULL, x);
   }
@@ -6013,39 +6772,28 @@ C_regparm C_word C_fcall C_i_check_list_2(C_word x, C_word loc)
 }
 
 
-C_regparm C_word C_fcall C_i_check_port_2(C_word x, C_word input, C_word open, C_word loc)
+C_regparm C_word C_fcall C_i_check_port_2(C_word x, C_word dir, C_word open, C_word loc)
 {
-  int inp;
 
   if(C_immediatep(x) || C_header_bits(x) != C_PORT_TYPE) {
     error_location = loc;
     barf(C_BAD_ARGUMENT_TYPE_NO_PORT_ERROR, NULL, x);
   }
 
-  inp = C_block_item(x, 1) == C_SCHEME_TRUE;	/* slot #1: I/O flag */
-
-  switch(input) {
-  case C_SCHEME_TRUE:
-    if(!inp) {
-      error_location = loc;
-      barf(C_BAD_ARGUMENT_TYPE_NO_INPUT_PORT_ERROR, NULL, x);
+  if((C_block_item(x, 1) & dir) != dir) {	/* slot #1: I/O direction mask */
+    error_location = loc;
+    switch (dir) {
+    case C_fix(1):
+      barf(C_BAD_ARGUMENT_TYPE_PORT_NO_INPUT_ERROR, NULL, x);
+    case C_fix(2):
+      barf(C_BAD_ARGUMENT_TYPE_PORT_NO_OUTPUT_ERROR, NULL, x);
+    default:
+      barf(C_BAD_ARGUMENT_TYPE_PORT_DIRECTION_ERROR, NULL, x);
     }
-
-    break;
-
-  case C_SCHEME_FALSE:
-    if(inp) {
-      error_location = loc;
-      barf(C_BAD_ARGUMENT_TYPE_NO_OUTPUT_PORT_ERROR, NULL, x);
-    }
-
-    break;
-
-    /* any other value: omit direction check */
   }
 
   if(open == C_SCHEME_TRUE) {
-    if(C_block_item(x, 8) != C_SCHEME_FALSE) {	/* slot #8: closed flag */
+    if(C_block_item(x, 8) == C_FIXNUM_BIT) {	/* slot #8: closed mask */
       error_location = loc;
       barf(C_PORT_CLOSED_ERROR, NULL, x);
     }
@@ -6123,20 +6871,17 @@ C_regparm C_word C_fcall C_i_foreign_symbol_argumentp(C_word x)
 
 C_regparm C_word C_fcall C_i_foreign_pointer_argumentp(C_word x)
 {
-  if(C_immediatep(x) || 
-     (C_header_bits(x) != C_SWIG_POINTER_TYPE &&
-      (C_header_bits(x) & C_SPECIALBLOCK_BIT) == 0) )
+  if(C_immediatep(x) || (C_header_bits(x) & C_SPECIALBLOCK_BIT) == 0)
     barf(C_BAD_ARGUMENT_TYPE_NO_POINTER_ERROR, NULL, x);
 
   return x;
 }
 
 
+/* TODO: Is this used? */
 C_regparm C_word C_fcall C_i_foreign_scheme_or_c_pointer_argumentp(C_word x)
 {
-  if(C_immediatep(x) || 
-     (C_header_bits(x) != C_SWIG_POINTER_TYPE &&
-      (C_header_bits(x) & C_SPECIALBLOCK_BIT) == 0) )
+  if(C_immediatep(x) || (C_header_bits(x) & C_SPECIALBLOCK_BIT) == 0)
     barf(C_BAD_ARGUMENT_TYPE_NO_POINTER_ERROR, NULL, x);
 
   return x;
@@ -6152,74 +6897,33 @@ C_regparm C_word C_fcall C_i_foreign_tagged_pointer_argumentp(C_word x, C_word t
   return x;
 }
 
-
-C_regparm C_word C_fcall C_i_foreign_integer_argumentp(C_word x)
+C_regparm C_word C_fcall C_i_foreign_ranged_integer_argumentp(C_word x, C_word bits)
 {
-  double m;
-
-  if((x & C_FIXNUM_BIT) != 0) return x;
-
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    m = C_flonum_magnitude(x);
-
-    if(m >= C_WORD_MIN && m <= C_WORD_MAX) return x;
+  if((x & C_FIXNUM_BIT) != 0) {
+    if (C_truep(C_fixnum_lessp(C_i_fixnum_length(x), bits))) return x;
+    else barf(C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION, NULL, x);
+  } else if (C_truep(C_i_bignump(x))) {
+    if (C_truep(C_fixnum_lessp(C_i_integer_length(x), bits))) return x;
+    else barf(C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION, NULL, x);
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, NULL, x);
   }
-
-  barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, NULL, x);
-  return C_SCHEME_UNDEFINED;
 }
 
-
-C_regparm C_word C_fcall C_i_foreign_integer64_argumentp(C_word x)
+C_regparm C_word C_fcall C_i_foreign_unsigned_ranged_integer_argumentp(C_word x, C_word bits)
 {
-  double m, r;
-
-  if((x & C_FIXNUM_BIT) != 0) return x;
-  
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    m = C_flonum_magnitude(x);
-
-    if(m >= C_S64_MIN && m <= C_S64_MAX && C_modf(m, &r) == 0.0) return x;
+  if((x & C_FIXNUM_BIT) != 0) {
+    if(x & C_INT_SIGN_BIT) barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
+    else if(C_ilen(C_unfix(x)) <= C_unfix(bits)) return x;
+    else barf(C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION, NULL, x);
+  } else if(C_truep(C_i_bignump(x))) {
+    if(C_bignum_negativep(x)) barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
+    else if(integer_length_abs(x) <= C_unfix(bits)) return x;
+    else barf(C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION, NULL, x);
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
   }
-
-  barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, NULL, x);
-  return C_SCHEME_UNDEFINED;
 }
-
-
-C_regparm C_word C_fcall C_i_foreign_unsigned_integer_argumentp(C_word x)
-{
-  double m ,r;
-
-  if((x & C_FIXNUM_BIT) != 0) return x;
-
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    m = C_flonum_magnitude(x);
-
-    if(m >= 0 && m <= C_UWORD_MAX && C_modf(m, &r) == 0.0) return x;
-  }
-
-  barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
-  return C_SCHEME_UNDEFINED;
-}
-
-
-C_regparm C_word C_fcall C_i_foreign_unsigned_integer64_argumentp(C_word x)
-{
-  double m, r;
-
-  if((x & C_FIXNUM_BIT) != 0) return x;
-
-  if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    m = C_flonum_magnitude(x);
-
-    if(m >= 0 && m <= C_U64_MAX && C_modf(m, &r) == 0.0) return x;
-  }
-
-  barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, NULL, x);
-  return C_SCHEME_UNDEFINED;
-}
-
 
 /* I */
 C_regparm C_word C_fcall C_i_not_pair_p_2(C_word x)
@@ -6322,7 +7026,7 @@ void C_ccall C_apply(C_word c, C_word *av)
   if(C_demand(av2_size))
     stack_check_demand = 0;
   else if(stack_check_demand)
-    C_stack_overflow_with_loc("apply");
+    C_stack_overflow("apply");
   else {
     stack_check_demand = av2_size;
     C_save_and_reclaim((void *)C_apply, c, av);
@@ -6354,7 +7058,7 @@ void C_ccall C_call_cc(C_word c, C_word *av)
     /* closure = av[ 0 ] */
     k = av[ 1 ],
     cont = av[ 2 ],
-    *a = C_alloc(3),
+    *a = C_alloc(C_SIZEOF_CLOSURE(2)),
     wrapper;
   void *pr = (void *)C_block_item(cont,0);
   C_word av2[ 3 ];
@@ -6362,10 +7066,7 @@ void C_ccall C_call_cc(C_word c, C_word *av)
   if(C_immediatep(cont) || C_header_bits(cont) != C_CLOSURE_TYPE)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "call-with-current-continuation", cont);
   
-  /* Check for values-continuation: */
-  if(C_block_item(k, 0) == (C_word)values_continuation)
-    wrapper = C_closure(&a, 2, (C_word)call_cc_values_wrapper, k);
-  else wrapper = C_closure(&a, 2, (C_word)call_cc_wrapper, k);
+  wrapper = C_closure(&a, 2, (C_word)call_cc_wrapper, k);
   
   av2[ 0 ] = cont;
   av2[ 1 ] = k;
@@ -6379,28 +7080,11 @@ void C_ccall call_cc_wrapper(C_word c, C_word *av)
   C_word
     closure = av[ 0 ],
     /* av[ 1 ] is current k and ignored */
-    result,
     k = C_block_item(closure, 1);
-
-  if(c != 3) C_bad_argc(c, 3);
-
-  result = av[ 2 ];
-  C_kontinue(k, result);
-}
-
-
-void C_ccall call_cc_values_wrapper(C_word c, C_word *av)
-{
-  C_word
-    closure = av[ 0 ],
-    /* av[ 1 ] is current k and ignored */
-    k = C_block_item(closure, 1),
-    x1,
-    n = c;
   
   av[ 0 ] = k;               /* reuse av */
-  C_memmove(av + 1, av + 2, (n - 1) * sizeof(C_word));
-  C_do_apply(n - 1, av);
+  C_memmove(av + 1, av + 2, (c - 1) * sizeof(C_word));
+  C_do_apply(c - 1, av);
 }
 
 
@@ -6473,7 +7157,7 @@ void C_ccall C_apply_values(C_word c, C_word *av)
     if(C_demand(n))
       stack_check_demand = 0;
     else if(stack_check_demand)
-      C_stack_overflow_with_loc("apply");
+      C_stack_overflow("apply");
     else {
       stack_check_demand = n;
       C_save_and_reclaim((void *)C_apply_values, c, av);
@@ -6521,7 +7205,7 @@ void C_ccall C_call_with_values(C_word c, C_word *av)
     k = av[ 1 ],
     thunk,
     kont,
-    *a = C_alloc(4),
+    *a = C_alloc(C_SIZEOF_CLOSURE(3)),
     kk;
 
   if(c != 4) C_bad_argc(c, 4);
@@ -6549,7 +7233,7 @@ void C_ccall C_u_call_with_values(C_word c, C_word *av)
     k = av[ 1 ],
     thunk = av[ 2 ],
     kont = av[ 3 ],
-    *a = C_alloc(4),
+    *a = C_alloc(C_SIZEOF_CLOSURE(3)),
     kk;
 
   kk = C_closure(&a, 3, (C_word)values_continuation, kont, k);
@@ -6573,847 +7257,2136 @@ void C_ccall values_continuation(C_word c, C_word *av)
   C_do_apply(c + 1, av2);
 }
 
+static C_word rat_times_integer(C_word **ptr, C_word rat, C_word i)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM * 2], *a = ab, num, denom, gcd, a_div_g;
+
+  switch (i) {
+  case C_fix(0): return C_fix(0);
+  case C_fix(1): return rat;
+  case C_fix(-1):
+    num = C_s_a_u_i_integer_negate(ptr, 1, C_u_i_ratnum_num(rat));
+    return C_ratnum(ptr, num , C_u_i_ratnum_denom(rat));
+  /* default: CONTINUE BELOW */
+  }
+
+  num = C_u_i_ratnum_num(rat);
+  denom = C_u_i_ratnum_denom(rat);
+
+  /* a/b * c/d = a*c / b*d  [with b = 1] */
+  /*  =  ((a / g) * c) / (d / g) */
+  /* With   g = gcd(a, d)   and  a = x   [Knuth, 4.5.1] */
+  gcd = C_s_a_u_i_integer_gcd(&a, 2, i, denom);
+
+  /* Calculate a/g  (= i/gcd), which will later be multiplied by y */
+  a_div_g = C_s_a_u_i_integer_quotient(&a, 2, i, gcd);
+  if (a_div_g == C_fix(0)) {
+    clear_buffer_object(ab, gcd);
+    return C_fix(0); /* Save some work */
+  }
+
+  /* Final numerator = a/g * c  (= a_div_g * num) */
+  num = C_s_a_u_i_integer_times(ptr, 2, a_div_g, num);
+
+  /* Final denominator = d/g  (= denom/gcd) */
+  denom = C_s_a_u_i_integer_quotient(ptr, 2, denom, gcd);
+
+  num = move_buffer_object(ptr, ab, num);
+  denom = move_buffer_object(ptr, ab, denom);
+  
+  clear_buffer_object(ab, gcd);
+  clear_buffer_object(ab, a_div_g);
+
+  if (denom == C_fix(1)) return num;
+  else return C_ratnum(ptr, num, denom);
+}
+
+static C_word rat_times_rat(C_word **ptr, C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM * 6], *a = ab,
+         num, denom, xnum, xdenom, ynum, ydenom,
+         g1, g2, a_div_g1, b_div_g2, c_div_g2, d_div_g1;
+
+  xnum = C_u_i_ratnum_num(x);
+  xdenom = C_u_i_ratnum_denom(x);
+  ynum = C_u_i_ratnum_num(y);
+  ydenom = C_u_i_ratnum_denom(y);
+
+  /* a/b * c/d = a*c / b*d  [generic] */
+  /*   = ((a / g1) * (c / g2)) / ((b / g2) * (d / g1)) */
+  /* With  g1 = gcd(a, d)  and   g2 = gcd(b, c) [Knuth, 4.5.1] */
+  g1 = C_s_a_u_i_integer_gcd(&a, 2, xnum, ydenom);
+  g2 = C_s_a_u_i_integer_gcd(&a, 2, ynum, xdenom);
+
+  /* Calculate a/g1  (= xnum/g1), which will later be multiplied by c/g2 */
+  a_div_g1 = C_s_a_u_i_integer_quotient(&a, 2, xnum, g1);
+
+  /* Calculate c/g2  (= ynum/g2), which will later be multiplied by a/g1 */
+  c_div_g2 = C_s_a_u_i_integer_quotient(&a, 2, ynum, g2);
+
+  /* Final numerator = a/g1 * c/g2 */
+  num = C_s_a_u_i_integer_times(ptr, 2, a_div_g1, c_div_g2);
+
+  /* Now, do the same for the denominator.... */
+
+  /* Calculate b/g2  (= xdenom/g2), which will later be multiplied by d/g1 */
+  b_div_g2 = C_s_a_u_i_integer_quotient(&a, 2, xdenom, g2);
+
+  /* Calculate d/g1  (= ydenom/g1), which will later be multiplied by b/g2 */
+  d_div_g1 = C_s_a_u_i_integer_quotient(&a, 2, ydenom, g1);
+
+  /* Final denominator = b/g2 * d/g1 */
+  denom = C_s_a_u_i_integer_times(ptr, 2, b_div_g2, d_div_g1);
+
+  num = move_buffer_object(ptr, ab, num);
+  denom = move_buffer_object(ptr, ab, denom);
+
+  clear_buffer_object(ab, g1);
+  clear_buffer_object(ab, g2);
+  clear_buffer_object(ab, a_div_g1);
+  clear_buffer_object(ab, b_div_g2);
+  clear_buffer_object(ab, c_div_g2);
+  clear_buffer_object(ab, d_div_g1);
+
+  if (denom == C_fix(1)) return num;
+  else return C_ratnum(ptr, num, denom);
+}
+
+static C_word
+cplx_times(C_word **ptr, C_word rx, C_word ix, C_word ry, C_word iy)
+{
+  /* Allocation here is kind of tricky: Each intermediate result can
+   * be at most a ratnum consisting of two bignums (2 digits), so
+   * C_SIZEOF_RATNUM + C_SIZEOF_BIGNUM(2) = 9 words
+   */
+  C_word ab[(C_SIZEOF_RATNUM + C_SIZEOF_BIGNUM(2))*6], *a = ab,
+         r1, r2, i1, i2, r, i;
+
+  /* a+bi * c+di = (a*c - b*d) + (a*d + b*c)i */
+  /* We call these:  r1 = a*c, r2 = b*d, i1 = a*d, i2 = b*c */
+  r1 = C_s_a_i_times(&a, 2, rx, ry);
+  r2 = C_s_a_i_times(&a, 2, ix, iy);
+  i1 = C_s_a_i_times(&a, 2, rx, iy);
+  i2 = C_s_a_i_times(&a, 2, ix, ry);
+  
+  r = C_s_a_i_minus(ptr, 2, r1, r2);
+  i = C_s_a_i_plus(ptr, 2, i1, i2);
+
+  r = move_buffer_object(ptr, ab, r);
+  i = move_buffer_object(ptr, ab, i);
+
+  clear_buffer_object(ab, r1);
+  clear_buffer_object(ab, r2);
+  clear_buffer_object(ab, i1);
+  clear_buffer_object(ab, i2);
+
+  if (C_truep(C_u_i_zerop(i))) return r;
+  else return C_cplxnum(ptr, r, i);
+}
+
+/* The maximum size this needs is that required to store a complex
+ * number result, where both real and imag parts consist of ratnums.
+ * The maximum size of those ratnums is if they consist of two bignums
+ * from a fixnum multiplication (2 digits each), so we're looking at
+ * C_SIZEOF_RATNUM * 3 + C_SIZEOF_BIGNUM(2) * 4 = 33 words!
+ */
+C_regparm C_word C_fcall
+C_s_a_i_times(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_a_i_fixnum_times(ptr, 2, x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_flonum(ptr, (double)C_unfix(x) * C_flonum_magnitude(y));
+    } else if (C_truep(C_bignump(y))) {
+      return C_s_a_u_i_integer_times(ptr, 2, x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_times_integer(ptr, y, x);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      return cplx_times(ptr, x, C_fix(0),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    }
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return C_flonum(ptr, C_flonum_magnitude(x) * (double)C_unfix(y));
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_a_i_flonum_times(ptr, 2, x, y);
+    } else if (C_truep(C_bignump(y))) {
+      return C_flonum(ptr, C_flonum_magnitude(x) * C_bignum_to_double(y));
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return C_s_a_i_times(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word ab[C_SIZEOF_FLONUM], *a = ab;
+      return cplx_times(ptr, x, C_flonum(&a, 0.0),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    }
+  } else if (C_truep(C_bignump(x))) {
+    if (y & C_FIXNUM_BIT) {
+      return C_s_a_u_i_integer_times(ptr, 2, x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", x);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_flonum(ptr, C_bignum_to_double(x) * C_flonum_magnitude(y));
+    } else if (C_truep(C_bignump(y))) {
+      return C_s_a_u_i_integer_times(ptr, 2, x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_times_integer(ptr, y, x);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      return cplx_times(ptr, x, C_fix(0),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    }
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return rat_times_integer(ptr, x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_s_a_i_times(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
+    } else if (C_truep(C_bignump(y))) {
+      return rat_times_integer(ptr, x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+        return rat_times_rat(ptr, x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      return cplx_times(ptr, x, C_fix(0),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", y);
+    }
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    if (!C_immediatep(y) && C_block_header(y) == C_CPLXNUM_TAG) {
+      return cplx_times(ptr, C_u_i_cplxnum_real(x), C_u_i_cplxnum_imag(x),
+                        C_u_i_cplxnum_real(y), C_u_i_cplxnum_imag(y));
+    } else {
+      C_word ab[C_SIZEOF_FLONUM], *a = ab, yi;
+      yi = C_truep(C_i_flonump(y)) ? C_flonum(&a,0) : C_fix(0);
+      return cplx_times(ptr, C_u_i_ratnum_num(x), C_u_i_ratnum_denom(x), y, yi);
+    }
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "*", x);
+  }
+}
+
+
+C_regparm C_word C_fcall
+C_s_a_u_i_integer_times(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_a_i_fixnum_times(ptr, 2, x, y);
+    } else {
+      C_word tmp = x; /* swap to ensure x is a bignum and y a fixnum */
+      x = y;
+      y = tmp;
+    }
+  }
+  /* Here, we know for sure that X is a bignum */
+  if (y == C_fix(0)) {
+    return C_fix(0);
+  } else if (y == C_fix(1)) {
+    return x;
+  } else if (y == C_fix(-1)) {
+    return C_s_a_u_i_integer_negate(ptr, 1, x);
+  } else if (y & C_FIXNUM_BIT) { /* Any other fixnum */
+    C_word absy = (y & C_INT_SIGN_BIT) ? -C_unfix(y) : C_unfix(y),
+           negp = C_mk_bool((y & C_INT_SIGN_BIT) ?
+                            !C_bignum_negativep(x) :
+                            C_bignum_negativep(x));
+  
+    if (C_fitsinbignumhalfdigitp(absy) ||
+        (((C_uword)1 << (C_ilen(absy)-1)) == absy && C_fitsinfixnump(absy))) {
+      C_word size, res;
+      C_uword *startr, *endr;
+      int shift;
+      size = C_bignum_size(x) + 1; /* Needs _at most_ one more digit */
+      res = C_allocate_scratch_bignum(ptr, C_fix(size), negp, C_SCHEME_FALSE);
+
+      bignum_digits_destructive_copy(res, x);
+
+      startr = C_bignum_digits(res);
+      endr = startr + size - 1;
+      /* Scale up, and sanitise the result. */
+      shift = C_ilen(absy) - 1;
+      if (((C_uword)1 << shift) == absy) { /* Power of two? */
+        *endr = bignum_digits_destructive_shift_left(startr, endr, shift);
+      } else {
+        *endr = bignum_digits_destructive_scale_up_with_carry(startr, endr,
+                                                              absy, 0);
+      }
+      return C_bignum_simplify(res);
+    } else {
+      C_word *a = C_alloc(C_SIZEOF_FIX_BIGNUM);
+      y = C_a_u_i_fix_to_big(&a, y);
+      return bignum_times_bignum_unsigned(ptr, x, y, negp);
+    }
+  } else {
+    C_word negp = C_bignum_negativep(x) ?
+                  !C_bignum_negativep(y) :
+                  C_bignum_negativep(y);
+    return bignum_times_bignum_unsigned(ptr, x, y, C_mk_bool(negp));
+  }
+}
+
+static C_regparm C_word
+bignum_times_bignum_unsigned(C_word **ptr, C_word x, C_word y, C_word negp)
+{
+  C_word size, res = C_SCHEME_FALSE;
+  if (C_bignum_size(y) < C_bignum_size(x)) { /* Ensure size(x) <= size(y) */
+    C_word z = x;
+    x = y;
+    y = z;
+  }
+
+  if (C_bignum_size(x) >= C_KARATSUBA_THRESHOLD)
+    res = bignum_times_bignum_karatsuba(ptr, x, y, negp);
+
+  if (!C_truep(res)) {
+    size = C_bignum_size(x) + C_bignum_size(y);
+    res = C_allocate_scratch_bignum(ptr, C_fix(size), negp, C_SCHEME_TRUE);
+    bignum_digits_multiply(x, y, res);
+    res = C_bignum_simplify(res);
+  }
+  return res;
+}
+
+/* Karatsuba multiplication: invoked when the two numbers are large
+ * enough to make it worthwhile, and we still have enough stack left.
+ * Complexity is O(n^log2(3)), where n is max(len(x), len(y)).  The
+ * description in [Knuth, 4.3.3] leaves a lot to be desired.  [MCA,
+ * 1.3.2] and [MpNT, 3.2] are a bit easier to understand.  We assume
+ * that length(x) <= length(y).
+ */
+static C_regparm C_word
+bignum_times_bignum_karatsuba(C_word **ptr, C_word x, C_word y, C_word negp)
+{
+   C_word kab[C_SIZEOF_FIX_BIGNUM*15+C_SIZEOF_BIGNUM(2)*3], *ka = kab, o[18],
+          xhi, xlo, xmid, yhi, ylo, ymid, a, b, c, n, bits;
+   int i = 0;
+
+   /* Ran out of stack?  Fall back to non-recursive multiplication */
+   C_stack_check1(return C_SCHEME_FALSE);
+   
+   /* Split |x| in half: <xhi,xlo> and |y|: <yhi,ylo> with len(ylo)=len(xlo) */
+   x = o[i++] = C_s_a_u_i_integer_abs(&ka, 1, x);
+   y = o[i++] = C_s_a_u_i_integer_abs(&ka, 1, y);
+   n = C_fix(C_bignum_size(y) >> 1);
+   xhi = o[i++] = bignum_extract_digits(&ka, 3, x, n, C_SCHEME_FALSE);
+   xlo = o[i++] = bignum_extract_digits(&ka, 3, x, C_fix(0), n);
+   yhi = o[i++] = bignum_extract_digits(&ka, 3, y, n, C_SCHEME_FALSE);
+   ylo = o[i++] = bignum_extract_digits(&ka, 3, y, C_fix(0), n);
+
+   /* a = xhi * yhi, b = xlo * ylo, c = (xhi - xlo) * (yhi - ylo) */
+   a = o[i++] = C_s_a_u_i_integer_times(&ka, 2, xhi, yhi);
+   b = o[i++] = C_s_a_u_i_integer_times(&ka, 2, xlo, ylo);
+   xmid = o[i++] = C_s_a_u_i_integer_minus(&ka, 2, xhi, xlo);
+   ymid = o[i++] = C_s_a_u_i_integer_minus(&ka, 2, yhi, ylo);
+   c = o[i++] = C_s_a_u_i_integer_times(&ka, 2, xmid, ymid);
+
+   /* top(x) = a << (bits - 1)  and  bottom(y) = ((b + (a - c)) << bits) + b */
+   bits = C_unfix(n) * C_BIGNUM_DIGIT_LENGTH;
+   x = o[i++] = C_s_a_i_arithmetic_shift(&ka, 2, a, C_fix((C_uword)bits << 1));
+   c = o[i++] = C_s_a_u_i_integer_minus(&ka, 2, a, c);
+   c = o[i++] = C_s_a_u_i_integer_plus(&ka, 2, b, c);
+   c = o[i++] = C_s_a_i_arithmetic_shift(&ka, 2, c, C_fix(bits));
+   y = o[i++] = C_s_a_u_i_integer_plus(&ka, 2, c, b);
+   /* Finally, return top + bottom, and correct for negative */
+   n = o[i++] = C_s_a_u_i_integer_plus(&ka, 2, x, y);
+   if (C_truep(negp)) n = o[i++] = C_s_a_u_i_integer_negate(&ka, 1, n);
+
+   n = move_buffer_object(ptr, kab, n);
+   while(i--) clear_buffer_object(kab, o[i]);
+   return n;
+}
 
 void C_ccall C_times(C_word c, C_word *av)
 {
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    x, y,
-    iresult = C_fix(1);
-  double fresult;
-  C_alloc_flonum;
+  /* C_word closure = av[ 0 ]; */
+  C_word k = av[ 1 ];
+  C_word next_val,
+    result = C_fix(1),
+    prev_result = result;
+  C_word ab[2][C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM*2 + C_SIZEOF_BIGNUM(2) * 4], *a;
 
-  c -= 2;
+  c -= 2; 
   av += 2;
 
-  while(c--) {
-    x = *(av++);
-    
-    if(x & C_FIXNUM_BIT) {
-      y = C_i_o_fixnum_times(iresult, x);
-
-      if(y == C_SCHEME_FALSE) {
-	fresult = (double)C_unfix(iresult) * (double)C_unfix(x);
-	goto flonum_result;
-      }
-      else iresult = y;
-    }
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-      fresult = (double)C_unfix(iresult) * C_flonum_magnitude(x);
-      goto flonum_result;
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "*", x);
+  while (c--) {
+    next_val = *(av++);
+    a = ab[c&1]; /* One may hold prev iteration result, the other is unused */
+    result = C_s_a_i_times(&a, 2, result, next_val);
+    result = move_buffer_object(&a, ab[(c+1)&1], result);
+    clear_buffer_object(ab[(c+1)&1], prev_result);
+    prev_result = result;
   }
 
-  C_kontinue(k, iresult);
-
- flonum_result:
-  while(c--) {
-    x = *(av++);
-
-    if(x & C_FIXNUM_BIT)
-      fresult *= (double)C_unfix(x);
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG)
-      fresult *= C_flonum_magnitude(x);
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "*", x);
-  }
-
-  C_kontinue_flonum(k, fresult);
+  C_kontinue(k, result);
 }
 
 
-C_regparm C_word C_fcall C_2_times(C_word **ptr, C_word x, C_word y)
+static C_word bignum_plus_unsigned(C_word **ptr, C_word x, C_word y, C_word negp)
 {
-  C_word iresult;
+  C_word size, result;
+  C_uword sum, digit, *scan_y, *end_y, *scan_r, *end_r;
+  int carry = 0;
 
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) {
-      iresult = C_i_o_fixnum_times(x, y);
+  if (C_bignum_size(y) > C_bignum_size(x)) {  /* Ensure size(y) <= size(x) */
+    C_word z = x;
+    x = y;
+    y = z;
+  }
 
-      if(iresult == C_SCHEME_FALSE)
-	return C_flonum(ptr, (double)C_unfix(x) * (double)C_unfix(y));
-      else return iresult;
+  size = C_fix(C_bignum_size(x) + 1); /* One more digit, for possible carry. */
+  result = C_allocate_scratch_bignum(ptr, size, negp, C_SCHEME_FALSE);
+
+  scan_y = C_bignum_digits(y);
+  end_y = scan_y + C_bignum_size(y);
+  scan_r = C_bignum_digits(result);
+  end_r = scan_r + C_bignum_size(result);
+
+  /* Copy x into r so we can operate on two pointers, which is faster
+   * than three, and we can stop earlier after adding y.  It's slower
+   * if x and y have equal length.  On average it's slightly faster.
+   */
+  bignum_digits_destructive_copy(result, x);
+  *(end_r-1) = 0; /* Ensure most significant digit is initialised */
+
+  /* Move over x and y simultaneously, destructively adding digits w/ carry. */
+  while (scan_y < end_y) {
+    digit = *scan_r;
+    if (carry) {
+      sum = digit + *scan_y++ + 1;
+      carry = sum <= digit;
+    } else {
+      sum = digit + *scan_y++;
+      carry = sum < digit;
     }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, (double)C_unfix(x) * C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "*", y);
+    (*scan_r++) = sum;
   }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) 
-      return C_flonum(ptr, C_flonum_magnitude(x) * (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, C_flonum_magnitude(x) * C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "*", y);
+  
+  /* The end of y, the smaller number.  Propagate carry into the rest of x. */
+  while (carry) {
+    sum = (*scan_r) + 1;
+    carry = (sum == 0);
+    (*scan_r++) = sum;
   }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "*", x);
-  /* shutup compiler */
-  return C_flonum(ptr, 0.0/0.0);
+  assert(scan_r <= end_r);
+
+  return C_bignum_simplify(result);
 }
 
+static C_word rat_plusmin_integer(C_word **ptr, C_word rat, C_word i, integer_plusmin_op plusmin_op)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM+C_SIZEOF_BIGNUM(2)], *a = ab,
+         num, denom, tmp, res;
+
+  if (i == C_fix(0)) return rat;
+
+  num = C_u_i_ratnum_num(rat);
+  denom = C_u_i_ratnum_denom(rat);
+
+  /* a/b [+-] c/d = (a*d [+-] b*c)/(b*d) | d = 1: (num + denom * i) / denom */
+  tmp = C_s_a_u_i_integer_times(&a, 2, denom, i);
+  res = plusmin_op(&a, 2, num, tmp);
+  res = move_buffer_object(ptr, ab, res);
+  clear_buffer_object(ab, tmp);
+  return C_ratnum(ptr, res, denom);
+}
+
+/* This is needed only for minus: plus is commutative but minus isn't. */
+static C_word integer_minus_rat(C_word **ptr, C_word i, C_word rat)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM+C_SIZEOF_BIGNUM(2)], *a = ab,
+         num, denom, tmp, res;
+
+  num = C_u_i_ratnum_num(rat);
+  denom = C_u_i_ratnum_denom(rat);
+
+  if (i == C_fix(0))
+    return C_ratnum(ptr, C_s_a_u_i_integer_negate(ptr, 1, num), denom);
+
+  /* a/b - c/d = (a*d - b*c)/(b*d) | b = 1: (denom * i - num) / denom */
+  tmp = C_s_a_u_i_integer_times(&a, 2, denom, i);
+  res = C_s_a_u_i_integer_minus(&a, 2, tmp, num);
+  res = move_buffer_object(ptr, ab, res);
+  clear_buffer_object(ab, tmp);
+  return C_ratnum(ptr, res, denom);
+}
+
+/* This is pretty braindead and ugly */
+static C_word rat_plusmin_rat(C_word **ptr, C_word x, C_word y, integer_plusmin_op plusmin_op)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM*6 + C_SIZEOF_BIGNUM(2)*2], *a = ab,
+         xnum = C_u_i_ratnum_num(x), ynum = C_u_i_ratnum_num(y),
+         xdenom = C_u_i_ratnum_denom(x), ydenom = C_u_i_ratnum_denom(y),
+         xnorm, ynorm, tmp_r, g1, ydenom_g1, xdenom_g1, norm_sum, g2, len,
+         res_num, res_denom;
+
+  /* Knuth, 4.5.1.  Start with g1 = gcd(xdenom, ydenom) */
+  g1 = C_s_a_u_i_integer_gcd(&a, 2, xdenom, ydenom);
+
+  /* xnorm = xnum * (ydenom/g1) */
+  ydenom_g1 = C_s_a_u_i_integer_quotient(&a, 2, ydenom, g1);
+  xnorm = C_s_a_u_i_integer_times(&a, 2, xnum, ydenom_g1);
+
+  /* ynorm = ynum * (xdenom/g1) */
+  xdenom_g1 = C_s_a_u_i_integer_quotient(&a, 2, xdenom, g1);
+  ynorm = C_s_a_u_i_integer_times(&a, 2, ynum, xdenom_g1);
+
+  /* norm_sum = xnorm [+-] ynorm */
+  norm_sum = plusmin_op(&a, 2, xnorm, ynorm);
+
+  /* g2 = gcd(norm_sum, g1) */
+  g2 = C_s_a_u_i_integer_gcd(&a, 2, norm_sum, g1);
+
+  /* res_num = norm_sum / g2 */
+  res_num = C_s_a_u_i_integer_quotient(ptr, 2, norm_sum, g2);
+  if (res_num == C_fix(0)) {
+    res_denom = C_fix(0); /* No need to calculate denom: we'll return 0 */
+  } else {
+    /* res_denom = xdenom_g1 * (ydenom / g2) */
+    C_word res_tmp_denom = C_s_a_u_i_integer_quotient(&a, 2, ydenom, g2);
+    res_denom = C_s_a_u_i_integer_times(ptr, 2, xdenom_g1, res_tmp_denom);
+
+    /* Ensure they're allocated in the correct place */
+    res_num = move_buffer_object(ptr, ab, res_num);
+    res_denom = move_buffer_object(ptr, ab, res_denom);
+    clear_buffer_object(ab, res_tmp_denom);
+  }
+
+  clear_buffer_object(ab, xdenom_g1);
+  clear_buffer_object(ab, ydenom_g1);
+  clear_buffer_object(ab, xnorm);
+  clear_buffer_object(ab, ynorm);
+  clear_buffer_object(ab, norm_sum);
+  clear_buffer_object(ab, g1);
+  clear_buffer_object(ab, g2);
+
+  switch (res_denom) {
+  case C_fix(0): return C_fix(0);
+  case C_fix(1): return res_num;
+  default: return C_ratnum(ptr, res_num, res_denom);
+  }
+}
+
+/* The maximum size this needs is that required to store a complex
+ * number result, where both real and imag parts consist of ratnums.
+ * The maximum size of those ratnums is if they consist of two "fix
+ * bignums", so we're looking at C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM *
+ * 2 + C_SIZEOF_FIX_BIGNUM * 4 = 29 words!
+ */
+C_regparm C_word C_fcall
+C_s_a_i_plus(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_a_i_fixnum_plus(ptr, 2, x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_flonum(ptr, (double)C_unfix(x) + C_flonum_magnitude(y));
+    } else if (C_truep(C_bignump(y))) {
+      return C_s_a_u_i_integer_plus(ptr, 2, x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_plusmin_integer(ptr, y, x, C_s_a_u_i_integer_plus);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_u_i_cplxnum_imag(y);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    }
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return C_flonum(ptr, C_flonum_magnitude(x) + (double)C_unfix(y));
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_a_i_flonum_plus(ptr, 2, x, y);
+    } else if (C_truep(C_bignump(y))) {
+      return C_flonum(ptr, C_flonum_magnitude(x)+C_bignum_to_double(y));
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return C_s_a_i_plus(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_u_i_cplxnum_imag(y);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    }
+  } else if (C_truep(C_bignump(x))) {
+    if (y & C_FIXNUM_BIT) {
+      return C_s_a_u_i_integer_plus(ptr, 2, x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_flonum(ptr, C_bignum_to_double(x)+C_flonum_magnitude(y));
+    } else if (C_truep(C_bignump(y))) {
+      return C_s_a_u_i_integer_plus(ptr, 2, x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_plusmin_integer(ptr, y, x, C_s_a_u_i_integer_plus);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_u_i_cplxnum_imag(y);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    }
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_plus);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_s_a_i_plus(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
+    } else if (C_truep(C_bignump(y))) {
+      return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_plus);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_plusmin_rat(ptr, x, y, C_s_a_u_i_integer_plus);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_u_i_cplxnum_imag(y);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", y);
+    }
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    if (!C_immediatep(y) && C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_sum, imag_sum;
+      real_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_real(x), C_u_i_cplxnum_real(y));
+      imag_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_imag(x), C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_zerop(imag_sum))) return real_sum;
+      else return C_cplxnum(ptr, real_sum, imag_sum);
+    } else {
+      C_word real_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_real(x), y),
+             imag = C_u_i_cplxnum_imag(x);
+      if (C_truep(C_u_i_inexactp(real_sum)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_sum, imag);
+    }
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "+", x);
+  }
+}
+
+C_regparm C_word C_fcall
+C_s_a_u_i_integer_plus(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if ((x & y) & C_FIXNUM_BIT) {
+    return C_a_i_fixnum_plus(ptr, 2, x, y);
+  } else {
+    C_word ab[C_SIZEOF_FIX_BIGNUM * 2 + C_SIZEOF_BIGNUM_WRAPPER], *a = ab;
+    if (x & C_FIXNUM_BIT) x = C_a_u_i_fix_to_big(&a, x);
+    if (y & C_FIXNUM_BIT) y = C_a_u_i_fix_to_big(&a, y);
+
+    if (C_bignum_negativep(x)) {
+      if (C_bignum_negativep(y)) {
+        return bignum_plus_unsigned(ptr, x, y, C_SCHEME_TRUE);
+      } else {
+        return bignum_minus_unsigned(ptr, y, x);
+      }
+    } else {
+      if (C_bignum_negativep(y)) {
+        return bignum_minus_unsigned(ptr, x, y);
+      } else {
+        return bignum_plus_unsigned(ptr, x, y, C_SCHEME_FALSE);
+      }
+    }
+  }
+}
 
 void C_ccall C_plus(C_word c, C_word *av)
 {
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    x, y,
-    iresult = C_fix(0);
-  double fresult;
-  C_alloc_flonum;
+  /* C_word closure = av[ 0 ]; */
+  C_word k = av[ 1 ];
+  C_word next_val,
+    result = C_fix(0),
+    prev_result = result;
+  C_word ab[2][C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM*2 + C_SIZEOF_FIX_BIGNUM * 4], *a;
 
-  c -= 2;
+  c -= 2; 
   av += 2;
 
-  while(c--) {
-    x = *(av++);
-    
-    if(x & C_FIXNUM_BIT) {
-      y = C_i_o_fixnum_plus(iresult, x);
-
-      if(y == C_SCHEME_FALSE) {
-	fresult = (double)C_unfix(iresult) + (double)C_unfix(x);
-	goto flonum_result;
-      }
-      else iresult = y;
-    }
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-      fresult = (double)C_unfix(iresult) + C_flonum_magnitude(x);
-      goto flonum_result;
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "+", x);
+  while (c--) {
+    next_val = *(av++);
+    a = ab[c&1]; /* One may hold last iteration result, the other is unused */
+    result = C_s_a_i_plus(&a, 2, result, next_val);
+    result = move_buffer_object(&a, ab[(c+1)&1], result);
+    clear_buffer_object(ab[(c+1)&1], prev_result);
+    prev_result = result;
   }
 
-  C_kontinue(k, iresult);
-
- flonum_result:
-  while(c--) {
-    x = *(av++);
-
-    if(x & C_FIXNUM_BIT)
-      fresult += (double)C_unfix(x);
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG)
-      fresult += C_flonum_magnitude(x);
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "+", x);
-  }
-
-  C_kontinue_flonum(k, fresult);
+  C_kontinue(k, result);
 }
 
-
-C_regparm C_word C_fcall C_2_plus(C_word **ptr, C_word x, C_word y)
+static C_word bignum_minus_unsigned(C_word **ptr, C_word x, C_word y)
 {
-  C_word iresult;
+  C_word res, size;
+  C_uword *scan_r, *end_r, *scan_y, *end_y, difference, digit;
+  int borrow = 0;
 
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) {
-      iresult = C_i_o_fixnum_plus(x, y);
+  switch(bignum_cmp_unsigned(x, y)) {
+  case 0:	      /* x = y, return 0 */
+    return C_fix(0);
+  case -1:	      /* abs(x) < abs(y), return -(abs(y) - abs(x)) */
+    size = C_fix(C_bignum_size(y)); /* Maximum size of result is length of y. */
+    res = C_allocate_scratch_bignum(ptr, size, C_SCHEME_TRUE, C_SCHEME_FALSE);
+    size = y;
+    y = x;
+    x = size;
+    break;
+  case 1:	      /* abs(x) > abs(y), return abs(x) - abs(y) */
+  default:
+    size = C_fix(C_bignum_size(x)); /* Maximum size of result is length of x. */
+    res = C_allocate_scratch_bignum(ptr, size, C_SCHEME_FALSE, C_SCHEME_FALSE);
+    break;
+  }
 
-      if(iresult == C_SCHEME_FALSE)
-	return C_flonum(ptr, (double)C_unfix(x) + (double)C_unfix(y));
-      else return iresult;
+  scan_r = C_bignum_digits(res);
+  end_r = scan_r + C_bignum_size(res);
+  scan_y = C_bignum_digits(y);
+  end_y = scan_y + C_bignum_size(y);
+
+  bignum_digits_destructive_copy(res, x); /* See bignum_plus_unsigned */
+
+  /* Destructively subtract y's digits w/ borrow from and back into r. */
+  while (scan_y < end_y) {
+    digit = *scan_r;
+    if (borrow) {
+      difference = digit - *scan_y++ - 1;
+      borrow = difference >= digit;
+    } else {
+      difference = digit - *scan_y++;
+      borrow = difference > digit;
     }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, (double)C_unfix(x) + C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "+", y);
+    (*scan_r++) = difference;
   }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) 
-      return C_flonum(ptr, C_flonum_magnitude(x) + (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, C_flonum_magnitude(x) + C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "+", y);
+
+  /* The end of y, the smaller number.  Propagate borrow into the rest of x. */
+  while (borrow) {
+    digit = *scan_r;
+    difference = digit - borrow;
+    borrow = difference >= digit;
+    (*scan_r++) = difference;
   }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "+", x);
-  /* shutup compiler */
-  return C_flonum(ptr, 0.0/0.0);
+
+  assert(scan_r <= end_r);
+
+  return C_bignum_simplify(res);
 }
 
+/* Like C_s_a_i_plus, this needs at most 29 words */
+C_regparm C_word C_fcall
+C_s_a_i_minus(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_a_i_fixnum_difference(ptr, 2, x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_flonum(ptr, (double)C_unfix(x) - C_flonum_magnitude(y));
+    } else if (C_truep(C_bignump(y))) {
+      return C_s_a_u_i_integer_minus(ptr, 2, x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return integer_minus_rat(ptr, x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    }
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return C_flonum(ptr, C_flonum_magnitude(x) - (double)C_unfix(y));
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_a_i_flonum_difference(ptr, 2, x, y);
+    } else if (C_truep(C_bignump(y))) {
+      return C_flonum(ptr, C_flonum_magnitude(x)-C_bignum_to_double(y));
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return C_s_a_i_minus(ptr, 2, x, C_a_i_exact_to_inexact(ptr, 1, y));
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    }
+  } else if (C_truep(C_bignump(x))) {
+    if (y & C_FIXNUM_BIT) {
+      return C_s_a_u_i_integer_minus(ptr, 2, x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_flonum(ptr, C_bignum_to_double(x)-C_flonum_magnitude(y));
+    } else if (C_truep(C_bignump(y))) {
+      return C_s_a_u_i_integer_minus(ptr, 2, x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return integer_minus_rat(ptr, x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    }
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_minus);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return C_s_a_i_minus(ptr, 2, C_a_i_exact_to_inexact(ptr, 1, x), y);
+    } else if (C_truep(C_bignump(y))) {
+      return rat_plusmin_integer(ptr, x, y, C_s_a_u_i_integer_minus);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return rat_plusmin_rat(ptr, x, y, C_s_a_u_i_integer_minus);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, x, C_u_i_cplxnum_real(y)),
+             imag = C_s_a_i_negate(ptr, 1, C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", y);
+    }
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    if (!C_immediatep(y) && C_block_header(y) == C_CPLXNUM_TAG) {
+      C_word real_diff, imag_diff;
+      real_diff = C_s_a_i_minus(ptr,2,C_u_i_cplxnum_real(x),C_u_i_cplxnum_real(y));
+      imag_diff = C_s_a_i_minus(ptr,2,C_u_i_cplxnum_imag(x),C_u_i_cplxnum_imag(y));
+      if (C_truep(C_u_i_zerop(imag_diff))) return real_diff;
+      else return C_cplxnum(ptr, real_diff, imag_diff);
+    } else {
+      C_word real_diff = C_s_a_i_minus(ptr, 2, C_u_i_cplxnum_real(x), y),
+             imag = C_u_i_cplxnum_imag(x);
+      if (C_truep(C_u_i_inexactp(real_diff)))
+        imag = C_a_i_exact_to_inexact(ptr, 1, imag);
+      return C_cplxnum(ptr, real_diff, imag);
+    }
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "-", x);
+  }
+}
+
+C_regparm C_word C_fcall
+C_s_a_u_i_integer_minus(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  if ((x & y) & C_FIXNUM_BIT) {
+    return C_a_i_fixnum_difference(ptr, 2, x, y);
+  } else {
+    C_word ab[C_SIZEOF_FIX_BIGNUM * 2 + C_SIZEOF_BIGNUM_WRAPPER], *a = ab;
+    if (x & C_FIXNUM_BIT) x = C_a_u_i_fix_to_big(&a, x);
+    if (y & C_FIXNUM_BIT) y = C_a_u_i_fix_to_big(&a, y);
+
+    if (C_bignum_negativep(x)) {
+      if (C_bignum_negativep(y)) {
+        return bignum_minus_unsigned(ptr, y, x);
+      } else {
+        return bignum_plus_unsigned(ptr, x, y, C_SCHEME_TRUE);
+      }
+    } else {
+      if (C_bignum_negativep(y)) {
+        return bignum_plus_unsigned(ptr, x, y, C_SCHEME_FALSE);
+      } else {
+        return bignum_minus_unsigned(ptr, x, y);
+      }
+    }
+  }
+}
 
 void C_ccall C_minus(C_word c, C_word *av)
 {
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    x, y, n1,
-    iresult;
-  double fresult;
-  int ff = 0;
-  C_alloc_flonum;
+  /* C_word closure = av[ 0 ]; */
+  C_word k = av[ 1 ];
+  C_word next_val, result, prev_result;
+  C_word ab[2][C_SIZEOF_CPLXNUM + C_SIZEOF_RATNUM*2 + C_SIZEOF_FIX_BIGNUM * 4], *a;
 
-  if(c < 3) C_bad_min_argc(c, 3);
+  if (c < 3) {
+    C_bad_min_argc(c, 3);
+  } else if (c == 3) {
+    a = ab[0];
+    C_kontinue(k, C_s_a_i_negate(&a, 1, av[ 2 ]));
+  } else {
+    prev_result = result = av[ 2 ];
+    c -= 3;
+    av += 3;
 
-  n1 = av[ 2 ];
-
-  if(n1 & C_FIXNUM_BIT) iresult = n1;
-  else if(!C_immediatep(n1) && C_block_header(n1) == C_FLONUM_TAG) {
-    fresult = C_flonum_magnitude(n1);
-    ff = 1;
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", n1);
-
-  if(c == 3) {
-    if(!ff) {
-      C_kontinue(k, C_fix(-C_unfix(n1)));
+    while (c--) {
+      next_val = *(av++);
+      a = ab[c&1]; /* One may hold last iteration result, the other is unused */
+      result = C_s_a_i_minus(&a, 2, result, next_val);
+      result = move_buffer_object(&a, ab[(c+1)&1], result);
+      clear_buffer_object(ab[(c+1)&1], prev_result);
+      prev_result = result;
     }
-    else {
-      C_kontinue_flonum(k, -fresult);
-    }
+
+    C_kontinue(k, result);
   }
-
-  c -= 3;
-  av += 3;
-
-  if(ff) goto flonum_result;
-
-  while(c--) {
-    x = *(av++);
-    
-    if(x & C_FIXNUM_BIT) {
-      y = C_i_o_fixnum_difference(iresult, x);
-
-      if(y == C_SCHEME_FALSE) {
-	fresult = (double)C_unfix(iresult) - (double)C_unfix(x);
-	goto flonum_result;
-      }
-      else iresult = y;
-    }
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-      fresult = (double)C_unfix(iresult) - C_flonum_magnitude(x);
-      goto flonum_result;
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", x);
-  }
-
-  C_kontinue(k, iresult);
-
- flonum_result:
-  while(c--) {
-    x = *(av++);
-
-    if(x & C_FIXNUM_BIT)
-      fresult -= (double)C_unfix(x);
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG)
-      fresult -= C_flonum_magnitude(x);
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", x);
-  }
-
-  C_kontinue_flonum(k, fresult);
 }
 
 
-C_regparm C_word C_fcall C_2_minus(C_word **ptr, C_word x, C_word y)
+static C_regparm void
+integer_divrem(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r)
 {
-  C_word iresult;
-
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) {
-      iresult = C_i_o_fixnum_difference(x, y);
-
-      if(iresult == C_SCHEME_FALSE)
-	return C_flonum(ptr, (double)C_unfix(x) - (double)C_unfix(y));
-      else return iresult;
+  if (!(y & C_FIXNUM_BIT)) { /* y is bignum. */
+    if (x & C_FIXNUM_BIT) {
+      /* abs(x) < abs(y), so it will always be [0, x] except for this case: */
+      if (x == C_fix(C_MOST_NEGATIVE_FIXNUM) &&
+          C_bignum_negated_fitsinfixnump(y)) {
+        if (q != NULL) *q = C_fix(-1);
+        if (r != NULL) *r = C_fix(0);
+      } else {
+        if (q != NULL) *q = C_fix(0);
+        if (r != NULL) *r = x;
+      }
+    } else {
+      bignum_divrem(ptr, x, y, q, r);
     }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, (double)C_unfix(x) - C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", y);
+  } else if (x & C_FIXNUM_BIT) { /* both x and y are fixnum. */
+    if (q != NULL) *q = C_a_i_fixnum_quotient_checked(ptr, 2, x, y);
+    if (r != NULL) *r = C_i_fixnum_remainder_checked(x, y);
+  } else { /* x is bignum, y is fixnum. */
+    C_word absy = (y & C_INT_SIGN_BIT) ? -C_unfix(y) : C_unfix(y);
+
+    if (y == C_fix(1)) {
+      if (q != NULL) *q = x;
+      if (r != NULL) *r = C_fix(0);
+    } else if (y == C_fix(-1)) {
+      if (q != NULL) *q = C_s_a_u_i_integer_negate(ptr, 1, x);
+      if (r != NULL) *r = C_fix(0);
+    } else if (C_fitsinbignumhalfdigitp(absy) ||
+               ((((C_uword)1 << (C_ilen(absy)-1)) == absy) &&
+                C_fitsinfixnump(absy))) {
+      assert(y != C_fix(0)); /* _must_ be checked by caller */
+      if (q != NULL) {
+        bignum_destructive_divide_unsigned_small(ptr, x, y, q, r);
+      } else { /* We assume r isn't NULL here (that makes no sense) */
+        C_word rem;
+	C_uword next_power = (C_uword)1 << (C_ilen(absy)-1);
+
+	if (next_power == absy) { /* Is absy a power of two? */
+          rem = *(C_bignum_digits(x)) & (next_power - 1);
+        } else { /* Too bad, we have to do some real work */
+          rem = bignum_remainder_unsigned_halfdigit(x, absy);
+	}
+        *r = C_bignum_negativep(x) ? C_fix(-rem) : C_fix(rem);
+      }
+    } else {			/* Just divide it as two bignums */
+      C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab;
+      bignum_divrem(ptr, x, C_a_u_i_fix_to_big(&a, y), q, r);
+      if (q != NULL) *q = move_buffer_object(ptr, ab, *q);
+      if (r != NULL) *r = move_buffer_object(ptr, ab, *r);
+    }
   }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) 
-      return C_flonum(ptr, C_flonum_magnitude(x) - (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum(ptr, C_flonum_magnitude(x) - C_flonum_magnitude(y));
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "-", x);
-  /* shutup compiler */
-  return C_flonum(ptr, 0.0/0.0);
 }
 
-
-
-void C_ccall C_divide(C_word c, C_word *av)
+/* This _always_ needs two bignum wrappers in ptr! */
+static C_regparm void
+bignum_divrem(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r)
 {
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    n1, n2,
-    iresult, n3;
-  int fflag;
-  double fresult, f2;
-  C_alloc_flonum;
+  C_word q_negp = C_mk_bool(C_bignum_negativep(y) != C_bignum_negativep(x)),
+         r_negp = C_mk_bool(C_bignum_negativep(x)), res, size;
 
-  if(c < 3) C_bad_min_argc(c, 3);
-
-  n1 = av[ 2 ];
-
-  if(n1 & C_FIXNUM_BIT) {
-    iresult = C_unfix(n1);
-    fflag = 0;
-  }
-  else if(!C_immediatep(n1) && C_block_header(n1) == C_FLONUM_TAG) {
-    fresult = C_flonum_magnitude(n1);
-    fflag = 1;
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", n1);
-
-  if(c == 3) {
-    if(fflag) {
-      if(fresult == 0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-      fresult = 1.0 / fresult;
-    }
-    else {
-      if(iresult == 0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
-      else if(iresult == 1) C_kontinue(k, C_fix(1));
-
-      fresult = 1.0 / (double)iresult;
-      fflag = 1;
+  switch(bignum_cmp_unsigned(x, y)) {
+  case 0:
+    if (q != NULL) *q = C_truep(q_negp) ? C_fix(-1) : C_fix(1);
+    if (r != NULL) *r = C_fix(0);
+    break;
+  case -1:
+    if (q != NULL) *q = C_fix(0);
+    if (r != NULL) *r = x;
+    break;
+  case 1:
+  default:
+    res = C_SCHEME_FALSE;
+    size = C_bignum_size(x) - C_bignum_size(y);
+    if (C_bignum_size(y) > C_BURNIKEL_ZIEGLER_THRESHOLD &&
+        size > C_BURNIKEL_ZIEGLER_THRESHOLD) {
+      res = bignum_divide_burnikel_ziegler(ptr, x, y, q, r);
     }
 
-    goto cont;
-  }
-
-  c -= 3;
-  av += 3;
-
-  while(c--) {
-    n1 = *(av++);
-    
-    if(n1 & C_FIXNUM_BIT) {
-      if(fflag) {
-	if((n1 = C_unfix(n1)) == 0) 
-	  barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-	fresult /= n1;
-      }
-      else {
-	if((n2 = C_unfix(n1)) == 0)
-	  barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-	n3 = iresult / n2;
-
-	if((fresult = (double)iresult / (double)n2) != n3)
-	  fflag = 1;
-	else iresult = n3;
-      }
+    if (!C_truep(res)) {
+      bignum_divide_unsigned(ptr, x, y, q, q_negp, r, r_negp);
+      if (q != NULL) *q = C_bignum_simplify(*q);
+      if (r != NULL) *r = C_bignum_simplify(*r);
     }
-    else if(!C_immediatep(n1) && C_block_header(n1) == C_FLONUM_TAG) {
-      if(fflag) {
-	if((f2 = C_flonum_magnitude(n1)) == 0)
-	  barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-	fresult /= f2;
-      }
-      else {
-	fflag = 1;
-
-	if((f2 = C_flonum_magnitude(n1)) == 0)
-	  barf(C_DIVISION_BY_ZERO_ERROR, "/");
-
-	fresult = (double)iresult / f2;
-      }
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", n1);
+    break;
   }
-
- cont:
-  if(fflag) {
-    C_kontinue_flonum(k, fresult);
-  }
-  else n1 = C_fix(iresult);
-
-  C_kontinue(k, n1);
 }
 
-
-C_regparm C_word C_fcall C_2_divide(C_word **ptr, C_word x, C_word y)
+/* Burnikel-Ziegler recursive division: Split high number (x) in three
+ * or four parts and divide by the lowest number (y), split in two
+ * parts.  There are descriptions in [MpNT, 4.2], [MCA, 1.4.3] and the
+ * paper "Fast Recursive Division" by Christoph Burnikel & Joachim
+ * Ziegler is freely available.  There is also a description in Karl
+ * Hasselstrom's thesis "Fast Division of Integers".
+ *
+ * The complexity of this is supposedly O(r*s^{log(3)-1} + r*log(s)),
+ * where s is the length of x, and r is the length of y (in digits).
+ *
+ * TODO: See if it's worthwhile to implement "division without remainder"
+ * from the Burnikel-Ziegler paper.
+ */
+static C_regparm C_word
+bignum_divide_burnikel_ziegler(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r)
 {
-  C_word iresult;
-  double fresult;
-  int fflag = 0;
+  C_word ab[C_SIZEOF_FIX_BIGNUM*9], *a = ab,
+         lab[2][C_SIZEOF_FIX_BIGNUM*10], *la,
+         q_negp = (C_bignum_negativep(y) ? C_mk_nbool(C_bignum_negativep(x)) :
+                   C_mk_bool(C_bignum_negativep(x))),
+         r_negp = C_mk_bool(C_bignum_negativep(x)), s, m, n, i, j, l, shift,
+         yhi, ylo, zi, zi_orig, newx, newy, quot, qi, ri;
 
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) {
-      if((iresult = C_unfix(y)) == 0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
+  /* Ran out of stack?  Fall back to non-recursive division */
+  C_stack_check1(return C_SCHEME_FALSE);
 
-      fresult = (double)C_unfix(x) / (double)iresult;
-      iresult = C_unfix(x) / iresult;
-    }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG) {
-      if((fresult = C_flonum_magnitude(y)) == 0.0)
-	barf(C_DIVISION_BY_ZERO_ERROR, "/");
+  x = C_s_a_u_i_integer_abs(&a, 1, x);
+  y = C_s_a_u_i_integer_abs(&a, 1, y);
 
-      fresult = (double)C_unfix(x) / fresult;
-      fflag = 1;
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", y);
+  /* Define m as min{2^k|(2^k)*BURNIKEL_ZIEGLER_DIFF_THRESHOLD > s}
+   * This ensures we shift as little as possible (less pressure
+   * on the GC) while maintaining a power of two until we drop
+   * below the threshold, so we can always split N in half.
+   */
+  s = C_bignum_size(y);
+  m = 1 << C_ilen(s / C_BURNIKEL_ZIEGLER_THRESHOLD);
+  j = (s+m-1) / m;              /* j = s/m, rounded up */
+  n = j * m;
+
+  shift = (C_BIGNUM_DIGIT_LENGTH * n) - integer_length_abs(y);
+  newx = C_s_a_i_arithmetic_shift(&a, 2, x, C_fix(shift));
+  newy = C_s_a_i_arithmetic_shift(&a, 2, y, C_fix(shift));
+  if (shift != 0) {
+    clear_buffer_object(ab, x);
+    clear_buffer_object(ab, y);
   }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    fflag = 1;
+  x = newx;
+  y = newy;
 
-    if(y & C_FIXNUM_BIT) {
-      fresult = C_flonum_magnitude(x);
+  /* l needs to be the smallest value so that a < base^{l*n}/2 */
+  l = (C_bignum_size(x) + n) / n;
+  if ((C_BIGNUM_DIGIT_LENGTH * l) == integer_length_abs(x)) l++;
+  l = nmax(l, 2);
 
-      if((iresult = C_unfix(y)) == 0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
+  yhi = bignum_extract_digits(&a, 3, y, C_fix(n >> 1), C_SCHEME_FALSE);
+  ylo = bignum_extract_digits(&a, 3, y, C_fix(0), C_fix(n >> 1));
 
-      fresult = fresult / (double)iresult;
+  s = (l - 2) * n * C_BIGNUM_DIGIT_LENGTH;
+  zi_orig = zi = C_s_a_i_arithmetic_shift(&a, 2, x, C_fix(-s));
+  quot = C_fix(0);
+
+  for(i = l - 2; i >= 0; --i) {
+    la = lab[i&1];
+
+    burnikel_ziegler_2n_div_1n(&la, zi, y, yhi, ylo, C_fix(n), &qi, &ri);
+
+    newx = C_s_a_i_arithmetic_shift(&la, 2, quot, C_fix(n*C_BIGNUM_DIGIT_LENGTH));
+    clear_buffer_object(lab, quot);
+    quot = C_s_a_u_i_integer_plus(&la, 2, newx, qi);
+    move_buffer_object(&la, lab[(i+1)&1], quot);
+    clear_buffer_object(lab, newx);
+    clear_buffer_object(lab, qi);
+
+    if (i > 0) {  /* Set z_{i-1} = [r{i}, x{i-1}] */
+      newx = bignum_extract_digits(&la, 3, x, C_fix(n * (i-1)), C_fix(n * i));
+      newy = C_s_a_i_arithmetic_shift(&la, 2, ri, C_fix(n*C_BIGNUM_DIGIT_LENGTH));
+      clear_buffer_object(lab, zi);
+      zi = C_s_a_u_i_integer_plus(&la, 2, newx, newy);
+      move_buffer_object(&la, lab[(i+1)&1], zi);
+      move_buffer_object(&la, lab[(i+1)&1], quot);
+      clear_buffer_object(lab, newx);
+      clear_buffer_object(lab, newy);
+      clear_buffer_object(lab, ri);
     }
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG) {
-      if((fresult = C_flonum_magnitude(y)) == 0.0) barf(C_DIVISION_BY_ZERO_ERROR, "/");
-      
-      fresult = C_flonum_magnitude(x) / fresult;
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", y);
   }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "/", x);
+  clear_buffer_object(ab, x);
+  clear_buffer_object(ab, y);
+  clear_buffer_object(ab, yhi);
+  clear_buffer_object(ab, ylo);
+  clear_buffer_object(ab, zi_orig);
+  clear_buffer_object(lab, zi);
 
-  if(fflag || (double)iresult != fresult) return C_flonum(ptr, fresult);
-  else return C_fix(iresult);
+  if (q != NULL) {
+    if (C_truep(q_negp)) {
+      newx = C_s_a_u_i_integer_negate(&la, 1, quot);
+      clear_buffer_object(lab, quot);
+      quot = newx;
+    }
+    *q = move_buffer_object(ptr, lab, quot);
+  }
+  clear_buffer_object(lab, quot);
+
+  if (r != NULL) {
+    newx = C_s_a_i_arithmetic_shift(&la, 2, ri, C_fix(-shift));
+    if (C_truep(r_negp)) {
+      newy = C_s_a_u_i_integer_negate(ptr, 1, newx);
+      clear_buffer_object(lab, newx);
+      newx = newy;
+    }
+    *r = move_buffer_object(ptr, lab, newx);
+  }
+  clear_buffer_object(lab, ri);
+
+  return C_SCHEME_TRUE;
 }
 
+static C_regparm void
+burnikel_ziegler_3n_div_2n(C_word **ptr, C_word a12, C_word a3, C_word b, C_word b1, C_word b2, C_word n, C_word *q, C_word *r)
+{
+  C_word kab[C_SIZEOF_FIX_BIGNUM*6 + C_SIZEOF_BIGNUM(2)], *ka = kab,
+         lab[2][C_SIZEOF_FIX_BIGNUM*4], *la,
+         size, tmp, less, qhat, rhat, r1, r1a3, i = 0;
+
+  size = C_unfix(n) * C_BIGNUM_DIGIT_LENGTH;
+  tmp = C_s_a_i_arithmetic_shift(&ka, 2, a12, C_fix(-size));
+  less = C_i_integer_lessp(tmp, b1); /* a1 < b1 ? */
+  clear_buffer_object(kab, tmp);
+
+  if (C_truep(less)) {
+    C_word atmpb[C_SIZEOF_FIX_BIGNUM*2], *atmp = atmpb, b11, b12, halfn;
+
+    halfn = C_fix(C_unfix(n) >> 1);
+    b11 = bignum_extract_digits(&atmp, 3, b1, halfn, C_SCHEME_FALSE);
+    b12 = bignum_extract_digits(&atmp, 3, b1, C_fix(0), halfn);
+
+    burnikel_ziegler_2n_div_1n(&ka, a12, b1, b11, b12, n, &qhat, &r1);
+    qhat = move_buffer_object(&ka, atmpb, qhat);
+    r1 = move_buffer_object(&ka, atmpb, r1);
+
+    clear_buffer_object(atmpb, b11);
+    clear_buffer_object(atmpb, b12);
+  } else {
+    C_word atmpb[C_SIZEOF_FIX_BIGNUM*5], *atmp = atmpb, tmp2;
+
+    tmp = C_s_a_i_arithmetic_shift(&atmp, 2, C_fix(1), C_fix(size));
+    qhat = C_s_a_u_i_integer_minus(&ka, 2, tmp, C_fix(1));  /* B^n - 1 */
+    qhat = move_buffer_object(&ka, atmpb, qhat);
+    clear_buffer_object(atmpb, tmp);
+
+    /* r1 = (a12 - b1*B^n) + b1 */
+    tmp = C_s_a_i_arithmetic_shift(&atmp, 2, b1, C_fix(size));
+    tmp2 = C_s_a_u_i_integer_minus(&atmp, 2, a12, tmp);
+    r1 = C_s_a_u_i_integer_plus(&ka, 2, tmp2, b1);
+    r1 = move_buffer_object(&ka, atmpb, r1);
+    clear_buffer_object(atmpb, tmp);
+    clear_buffer_object(atmpb, tmp2);
+  }
+
+  tmp = C_s_a_i_arithmetic_shift(&ka, 2, r1, C_fix(size));
+  clear_buffer_object(kab, r1);
+  r1a3 = C_s_a_u_i_integer_plus(&ka, 2, tmp, a3);
+  b2 = C_s_a_u_i_integer_times(&ka, 2, qhat, b2);
+
+  la = lab[0];
+  rhat = C_s_a_u_i_integer_minus(&la, 2, r1a3, b2);
+  rhat = move_buffer_object(&la, kab, rhat);
+  qhat = move_buffer_object(&la, kab, qhat);
+
+  clear_buffer_object(kab, tmp);
+  clear_buffer_object(kab, r1a3);
+  clear_buffer_object(kab, b2);
+
+  while(C_truep(C_i_negativep(rhat))) {
+    la = lab[(++i)&1];
+    /* rhat += b */
+    r1 = C_s_a_u_i_integer_plus(&la, 2, rhat, b);
+    tmp = move_buffer_object(&la, lab[(i-1)&1], r1);
+    clear_buffer_object(lab[(i-1)&1], r1);
+    clear_buffer_object(lab[(i-1)&1], rhat);
+    clear_buffer_object(kab, rhat);
+    rhat = tmp;
+
+    /* qhat -= 1 */
+    r1 = C_s_a_u_i_integer_minus(&la, 2, qhat, C_fix(1));
+    tmp = move_buffer_object(&la, lab[(i-1)&1], r1);
+    clear_buffer_object(lab[(i-1)&1], r1);
+    clear_buffer_object(lab[(i-1)&1], qhat);
+    clear_buffer_object(kab, qhat);
+    qhat = tmp;
+  }
+
+  if (q != NULL) *q = move_buffer_object(ptr, lab, qhat);
+  if (r != NULL) *r = move_buffer_object(ptr, lab, rhat);
+  clear_buffer_object(lab, qhat);
+  clear_buffer_object(lab, rhat);
+}
+
+static C_regparm void
+burnikel_ziegler_2n_div_1n(C_word **ptr, C_word a, C_word b, C_word b1, C_word b2, C_word n, C_word *q, C_word *r)
+{
+  C_word kab[2][C_SIZEOF_FIX_BIGNUM*7], *ka, a12, a3, a4,
+         q1 = C_fix(0), r1, q2 = C_fix(0), r2, *qp;
+  int stack_full = 0;
+
+  C_stack_check1(stack_full = 1);
+
+  n = C_unfix(n);
+  if (stack_full || (n & 1) || (n < C_BURNIKEL_ZIEGLER_THRESHOLD)) {
+    integer_divrem(ptr, a, b, q, r);
+  } else {
+    ka = kab[0];
+    a12 = bignum_extract_digits(&ka, 3, a, C_fix(n), C_SCHEME_FALSE);
+    a3 = bignum_extract_digits(&ka, 3, a, C_fix(n >> 1), C_fix(n));
+
+    qp = (q == NULL) ? NULL : &q1;
+    ka = kab[1];
+    burnikel_ziegler_3n_div_2n(&ka, a12, a3, b, b1, b2, C_fix(n >> 1), qp, &r1);
+    q1 = move_buffer_object(&ka, kab[0], q1);
+    r1 = move_buffer_object(&ka, kab[0], r1);
+    clear_buffer_object(kab[0], a12);
+    clear_buffer_object(kab[0], a3);
+
+    a4 = bignum_extract_digits(&ka, 3, a, C_fix(0), C_fix(n >> 1));
+
+    qp = (q == NULL) ? NULL : &q2;
+    ka = kab[0];
+    burnikel_ziegler_3n_div_2n(&ka, r1, a4, b, b1, b2, C_fix(n >> 1), qp, r);
+    if (r != NULL) *r = move_buffer_object(ptr, kab[0], *r);
+    clear_buffer_object(kab[1], r1);
+
+    if (q != NULL) {
+      C_word halfn_bits = (n >> 1) * C_BIGNUM_DIGIT_LENGTH;
+      r1 = C_s_a_i_arithmetic_shift(&ka, 2, q1, C_fix(halfn_bits));
+      *q = C_s_a_i_plus(ptr, 2, r1, q2); /* q = [q1, q2] */
+      *q = move_buffer_object(ptr, kab[0], *q);
+      clear_buffer_object(kab[0], r1);
+      clear_buffer_object(kab[1], q1);
+      clear_buffer_object(kab[0], q2);
+    }
+    clear_buffer_object(kab[1], a4);
+  }
+}
+
+
+static C_regparm C_word bignum_remainder_unsigned_halfdigit(C_word x, C_word y)
+{
+  C_uword *start = C_bignum_digits(x),
+          *scan = start + C_bignum_size(x),
+          rem = 0, two_digits;
+
+  assert((y > 1) && (C_fitsinbignumhalfdigitp(y)));
+  while (start < scan) {
+    two_digits = (*--scan);
+    rem = C_BIGNUM_DIGIT_COMBINE(rem, C_BIGNUM_DIGIT_HI_HALF(two_digits)) % y;
+    rem = C_BIGNUM_DIGIT_COMBINE(rem, C_BIGNUM_DIGIT_LO_HALF(two_digits)) % y;
+  }
+  return rem;
+}
+
+/* There doesn't seem to be a way to return two values from inline functions */
+void C_ccall C_quotient_and_remainder(C_word c, C_word *av)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM*4+C_SIZEOF_FLONUM*2], *a = ab,
+    nx = C_SCHEME_FALSE, ny = C_SCHEME_FALSE,
+    q, r, k, x, y;
+
+  if (c != 4) C_bad_argc_2(c, 4, av[ 0 ]);
+
+  k = av[ 1 ];
+  x = av[ 2 ];
+  y = av[ 3 ];
+
+  if (!C_truep(C_i_integerp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient&remainder", x);
+  if (!C_truep(C_i_integerp(y)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient&remainder", y);
+  if (C_truep(C_i_zerop(y))) C_div_by_zero_error("quotient&remainder");
+
+  if (C_truep(C_i_flonump(x))) {
+    if C_truep(C_i_flonump(y)) {
+      double dx = C_flonum_magnitude(x), dy = C_flonum_magnitude(y), tmp;
+
+      C_modf(dx / dy, &tmp);
+      q = C_flonum(&a, tmp);
+      r = C_flonum(&a, dx - tmp * dy);
+      /* reuse av */
+      av[ 0 ] = C_SCHEME_UNDEFINED;
+      /* av[ 1 ] = k; */ /* stays the same */
+      av[ 2 ] = q;
+      av[ 3 ] = r;
+      C_values(4, av);
+    }
+    x = nx = C_s_a_u_i_flo_to_int(&a, 1, x);
+  }
+  if (C_truep(C_i_flonump(y))) {
+    y = ny = C_s_a_u_i_flo_to_int(&a, 1, y);
+  }
+
+  integer_divrem(&a, x, y, &q, &r);
+
+  if (C_truep(nx) || C_truep(ny)) {
+    C_word newq, newr;
+    newq = C_a_i_exact_to_inexact(&a, 1, q);
+    newr = C_a_i_exact_to_inexact(&a, 1, r);
+    clear_buffer_object(ab, q);
+    clear_buffer_object(ab, r);
+    q = newq;
+    r = newr;
+
+    clear_buffer_object(ab, nx);
+    clear_buffer_object(ab, ny);
+  }
+  /* reuse av */
+  av[ 0 ] = C_SCHEME_UNDEFINED;
+  /* av[ 1 ] = k; */ /* stays the same */
+  av[ 2 ] = q;
+  av[ 3 ] = r;
+  C_values(4, av);
+}
+
+void C_ccall C_u_integer_quotient_and_remainder(C_word c, C_word *av)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM*2], *a = ab, q, r;
+
+  if (av[ 3 ] == C_fix(0)) C_div_by_zero_error("quotient&remainder");
+
+  integer_divrem(&a, av[ 2 ], av[ 3 ], &q, &r);
+
+  /* reuse av */
+  av[ 0 ] = C_SCHEME_UNDEFINED;
+  /* av[ 1 ] = k; */ /* stays the same */
+  av[ 2 ] = q;
+  av[ 3 ] = r;
+  C_values(4, av);
+}
+
+C_regparm C_word C_fcall
+C_s_a_i_remainder(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM*4+C_SIZEOF_FLONUM*2], *a = ab, r,
+         nx = C_SCHEME_FALSE, ny = C_SCHEME_FALSE;
+
+  if (!C_truep(C_i_integerp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "remainder", x);
+  if (!C_truep(C_i_integerp(y)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "remainder", y);
+  if (C_truep(C_i_zerop(y))) C_div_by_zero_error("remainder");
+
+  if (C_truep(C_i_flonump(x))) {
+    if C_truep(C_i_flonump(y)) {
+      double dx = C_flonum_magnitude(x), dy = C_flonum_magnitude(y), tmp;
+
+      C_modf(dx / dy, &tmp);
+      return C_flonum(ptr, dx - tmp * dy);
+    }
+    x = nx = C_s_a_u_i_flo_to_int(&a, 1, x);
+  }
+  if (C_truep(C_i_flonump(y))) {
+    y = ny = C_s_a_u_i_flo_to_int(&a, 1, y);
+  }
+
+  integer_divrem(&a, x, y, NULL, &r);
+
+  if (C_truep(nx) || C_truep(ny)) {
+    C_word newr = C_a_i_exact_to_inexact(ptr, 1, r);
+    clear_buffer_object(ab, r);
+    r = newr;
+
+    clear_buffer_object(ab, nx);
+    clear_buffer_object(ab, ny);
+  }
+  return move_buffer_object(ptr, ab, r);
+}
+
+C_regparm C_word C_fcall
+C_s_a_u_i_integer_remainder(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM*2], *a = ab, r;
+  if (y == C_fix(0)) C_div_by_zero_error("remainder");
+  integer_divrem(&a, x, y, NULL, &r);
+  return move_buffer_object(ptr, ab, r);
+}
+
+/* Modulo's sign follows y (whereas remainder's sign follows x) */
+C_regparm C_word C_fcall
+C_s_a_i_modulo(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab, r;
+
+  if (!C_truep(C_i_integerp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "modulo", x);
+  if (!C_truep(C_i_integerp(y)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "modulo", y);
+  if (C_truep(C_i_zerop(y))) C_div_by_zero_error("modulo");
+
+  r = C_s_a_i_remainder(&a, 2, x, y);
+  if (C_i_positivep(y) != C_i_positivep(r) && !C_truep(C_i_zerop(r))) {
+    C_word m = C_s_a_i_plus(ptr, 2, r, y);
+    m = move_buffer_object(ptr, ab, m);
+    clear_buffer_object(ab, r);
+    r = m;
+  }
+  return move_buffer_object(ptr, ab, r);
+}
+
+C_regparm C_word C_fcall
+C_s_a_u_i_integer_modulo(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab, r;
+  if (y == C_fix(0)) C_div_by_zero_error("modulo");
+
+  r = C_s_a_i_remainder(&a, 2, x, y);
+  if (C_i_positivep(y) != C_i_positivep(r) && r != C_fix(0)) {
+    C_word m = C_s_a_u_i_integer_plus(ptr, 2, r, y);
+    m = move_buffer_object(ptr, ab, m);
+    clear_buffer_object(ab, r);
+    r = m;
+  }
+  return move_buffer_object(ptr, ab, r);
+}
+
+C_regparm C_word C_fcall
+C_s_a_i_quotient(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM*4+C_SIZEOF_FLONUM*2], *a = ab, q,
+         nx = C_SCHEME_FALSE, ny = C_SCHEME_FALSE;
+
+  if (!C_truep(C_i_integerp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient", x);
+  if (!C_truep(C_i_integerp(y)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient", y);
+  if (C_truep(C_i_zerop(y))) C_div_by_zero_error("quotient");
+
+  if (C_truep(C_i_flonump(x))) {
+    if C_truep(C_i_flonump(y)) {
+      double dx = C_flonum_magnitude(x), dy = C_flonum_magnitude(y), tmp;
+
+      C_modf(dx / dy, &tmp);
+      return C_flonum(ptr, tmp);
+    }
+    x = nx = C_s_a_u_i_flo_to_int(&a, 1, x);
+  }
+  if (C_truep(C_i_flonump(y))) {
+    y = ny = C_s_a_u_i_flo_to_int(&a, 1, y);
+  }
+
+  integer_divrem(&a, x, y, &q, NULL);
+
+  if (C_truep(nx) || C_truep(ny)) {
+    C_word newq = C_a_i_exact_to_inexact(ptr, 1, q);
+    clear_buffer_object(ab, q);
+    q = newq;
+
+    clear_buffer_object(ab, nx);
+    clear_buffer_object(ab, ny);
+  }
+  return move_buffer_object(ptr, ab, q);
+}
+
+C_regparm C_word C_fcall
+C_s_a_u_i_integer_quotient(C_word **ptr, C_word n, C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM*2], *a = ab, q;
+  if (y == C_fix(0)) C_div_by_zero_error("quotient");
+  integer_divrem(&a, x, y, &q, NULL);
+  return move_buffer_object(ptr, ab, q);
+}
+
+
+/* For help understanding this algorithm, see:
+   Knuth, Donald E., "The Art of Computer Programming",
+   volume 2, "Seminumerical Algorithms"
+   section 4.3.1, "Multiple-Precision Arithmetic".
+
+   [Yeah, that's a nice book but that particular section is not
+   helpful at all, which is also pointed out by P. Brinch Hansen's
+   "Multiple-Length Division Revisited: A Tour Of The Minefield".
+   That's a more down-to-earth step-by-step explanation of the
+   algorithm.  Add to this the C implementation in Hacker's Delight
+   (section 9-2, p141--142) and you may be able to grok this...
+   ...barely, if you're as math-challenged as I am -- sjamaan]
+
+   This assumes that numerator >= denominator!
+*/
+static void
+bignum_divide_unsigned(C_word **ptr, C_word num, C_word denom, C_word *q, C_word q_negp, C_word *r, C_word r_negp)
+{
+  C_word quotient = C_SCHEME_UNDEFINED, remainder = C_SCHEME_UNDEFINED,
+         return_rem = C_mk_nbool(r == NULL), size;
+
+  if (q != NULL) {
+    size = C_fix(C_bignum_size(num) + 1 - C_bignum_size(denom));
+    quotient = C_allocate_scratch_bignum(ptr, size, q_negp, C_SCHEME_FALSE);
+  }
+
+  /* An object is always required to receive the remainder */
+  size = C_fix(C_bignum_size(num) + 1);
+  remainder = C_allocate_scratch_bignum(ptr, size, r_negp, C_SCHEME_FALSE);
+  bignum_destructive_divide_full(num, denom, quotient, remainder, return_rem);
+
+  /* Simplification must be done by the caller, for consistency */
+  if (q != NULL) *q = quotient;
+  if (r == NULL) {
+    C_mutate_scratch_slot(NULL, C_internal_bignum_vector(remainder));
+  } else {
+    *r = remainder;
+  }
+}
+
+/* Compare two numbers as ratnums.  Either may be rat-, fix- or bignums */
+static C_word rat_cmp(C_word x, C_word y)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM*4], *a = ab, x1, x2, y1, y2,
+         s, t, ssize, tsize, result, negp;
+  C_uword *scan;
+
+  /* Check for 1 or 0; if x or y is this, the other must be the ratnum */
+  if (x == C_fix(0)) {	      /* Only the sign of y1 matters */
+    return basic_cmp(x, C_u_i_ratnum_num(y), "ratcmp", 0);
+  } else if (x == C_fix(1)) { /* x1*y1 <> x2*y2 --> y2 <> y1 | x1/x2 = 1/1 */
+    return basic_cmp(C_u_i_ratnum_denom(y), C_u_i_ratnum_num(y), "ratcmp", 0);
+  } else if (y == C_fix(0)) { /* Only the sign of x1 matters */
+    return basic_cmp(C_u_i_ratnum_num(x), y, "ratcmp", 0);
+  } else if (y == C_fix(1)) { /* x1*y1 <> x2*y2 --> x1 <> x2 | y1/y2 = 1/1 */
+    return basic_cmp(C_u_i_ratnum_num(x), C_u_i_ratnum_denom(x), "ratcmp", 0);
+  }
+
+  /* Extract components x=x1/x2 and y=y1/y2 */
+  if (x & C_FIXNUM_BIT || C_truep(C_bignump(x))) {
+    x1 = x;
+    x2 = C_fix(1);
+  } else {
+    x1 = C_u_i_ratnum_num(x);
+    x2 = C_u_i_ratnum_denom(x);
+  }
+
+  if (y & C_FIXNUM_BIT || C_truep(C_bignump(y))) {
+    y1 = y;
+    y2 = C_fix(1);
+  } else {
+    y1 = C_u_i_ratnum_num(y);
+    y2 = C_u_i_ratnum_denom(y);
+  }
+
+  /* We only want to deal with bignums (this is tricky enough) */
+  if (x1 & C_FIXNUM_BIT) x1 = C_a_u_i_fix_to_big(&a, x1);
+  if (x2 & C_FIXNUM_BIT) x2 = C_a_u_i_fix_to_big(&a, x2);
+  if (y1 & C_FIXNUM_BIT) y1 = C_a_u_i_fix_to_big(&a, y1);
+  if (y2 & C_FIXNUM_BIT) y2 = C_a_u_i_fix_to_big(&a, y2);
+
+  /* We multiply using schoolbook method, so this will be very slow in
+   * extreme cases.  This is a tradeoff we make so that comparisons
+   * are inlineable, which makes a big difference for the common case.
+   */
+  ssize = C_bignum_size(x1) + C_bignum_size(y2);
+  negp = C_mk_bool(C_bignum_negativep(x1));
+  s = allocate_tmp_bignum(C_fix(ssize), negp, C_SCHEME_TRUE);
+  bignum_digits_multiply(x1, y2, s); /* Swap args if x1 < y2? */
+
+  tsize = C_bignum_size(y1) + C_bignum_size(x2);
+  negp = C_mk_bool(C_bignum_negativep(y1));
+  t = allocate_tmp_bignum(C_fix(tsize), negp, C_SCHEME_TRUE);
+  bignum_digits_multiply(y1, x2, t); /* Swap args if y1 < x2? */
+
+  /* Shorten the numbers if needed */
+  for (scan = C_bignum_digits(s)+ssize-1; *scan == 0; scan--) ssize--;
+  C_bignum_mutate_size(s, ssize);
+  for (scan = C_bignum_digits(t)+tsize-1; *scan == 0; scan--) tsize--;
+  C_bignum_mutate_size(t, tsize);
+
+  result = C_i_bignum_cmp(s, t);
+
+  free_tmp_bignum(t);
+  free_tmp_bignum(s);
+  return result;
+}
+
+C_regparm double C_fcall C_bignum_to_double(C_word bignum)
+{
+  double accumulator = 0;
+  C_uword *start = C_bignum_digits(bignum),
+          *scan = start + C_bignum_size(bignum);
+  while (start < scan) {
+    accumulator *= (C_uword)1 << C_BIGNUM_HALF_DIGIT_LENGTH;
+    accumulator *= (C_uword)1 << C_BIGNUM_HALF_DIGIT_LENGTH;
+    accumulator += (*--scan);
+  }
+  return(C_bignum_negativep(bignum) ? -accumulator : accumulator);
+}
+
+C_regparm C_word C_fcall
+C_s_a_u_i_flo_to_int(C_word **ptr, C_word n, C_word x)
+{
+  int exponent;
+  double significand = frexp(C_flonum_magnitude(x), &exponent);
+
+  assert(C_truep(C_u_i_fpintegerp(x)));
+
+  if (exponent <= 0) {
+    return C_fix(0);
+  } else if (exponent == 1) { /* TODO: check significand * 2^exp fits fixnum? */
+    return significand < 0.0 ? C_fix(-1) : C_fix(1);
+  } else {
+    C_word size, negp = C_mk_bool(C_flonum_magnitude(x) < 0.0), result;
+    C_uword *start, *end;
+
+    size = C_fix(C_BIGNUM_BITS_TO_DIGITS(exponent));
+    result = C_allocate_scratch_bignum(ptr, size, negp, C_SCHEME_FALSE);
+
+    start = C_bignum_digits(result);
+    end = start + C_bignum_size(result);
+
+    fabs_frexp_to_digits(exponent, fabs(significand), start, end);
+    return C_bignum_simplify(result);
+  }
+}
+
+static void
+fabs_frexp_to_digits(C_uword exp, double sign, C_uword *start, C_uword *scan)
+{
+  C_uword digit, odd_bits = exp % C_BIGNUM_DIGIT_LENGTH;
+
+  assert(C_isfinite(sign));
+  assert(0.5 <= sign && sign < 1); /* Guaranteed by frexp() and fabs() */
+  assert((scan - start) == C_BIGNUM_BITS_TO_DIGITS(exp));
+  
+  if (odd_bits > 0) { /* Handle most significant digit first */
+    sign *= (C_uword)1 << odd_bits;
+    digit = (C_uword)sign;
+    (*--scan) = digit;
+    sign -= (double)digit;
+  }
+
+  while (start < scan && sign > 0) {
+    sign *= pow(2.0, C_BIGNUM_DIGIT_LENGTH);
+    digit = (C_uword)sign;
+    (*--scan) = digit;
+    sign -= (double)digit;
+  }
+
+  /* Finish up by clearing any remaining, lower, digits */
+  while (start < scan)
+    (*--scan) = 0;
+}
+
+/* This is a bit weird: We have to compare flonums as bignums due to
+ * precision loss on 64-bit platforms.  For simplicity, we convert
+ * fixnums to bignums here.
+ */
+static C_word int_flo_cmp(C_word intnum, C_word flonum)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM + C_SIZEOF_FLONUM], *a = ab, flo_int, res;
+  double i, f;
+
+  f = C_flonum_magnitude(flonum);
+
+  if (C_isnan(f)) {
+    return C_SCHEME_FALSE; /* "mu" */
+  } else if (C_isinf(f)) {
+    return C_fix((f > 0.0) ? -1 : 1); /* x is smaller if f is +inf.0 */
+  } else {
+    f = modf(f, &i);
+
+    flo_int = C_s_a_u_i_flo_to_int(&a, 1, C_flonum(&a, i));
+
+    res = basic_cmp(intnum, flo_int, "int_flo_cmp", 0);
+    clear_buffer_object(ab, flo_int);
+
+    if (res == C_fix(0)) /* Use fraction to break tie. If f > 0, x is smaller */
+      return C_fix((f > 0.0) ? -1 : ((f < 0.0) ? 1 : 0));
+    else
+      return res;
+  }
+}
+
+/* For convenience (ie, to reduce the degree of mindfuck) */
+static C_word flo_int_cmp(C_word flonum, C_word intnum)
+{
+  C_word res = int_flo_cmp(intnum, flonum);
+  switch(res) {
+  case C_fix(1): return C_fix(-1);
+  case C_fix(-1): return C_fix(1);
+  default: return res; /* Can be either C_fix(0) or C_SCHEME_FALSE(!) */
+  }
+}
+
+/* This code is a bit tedious, but it makes inline comparisons possible! */
+static C_word rat_flo_cmp(C_word ratnum, C_word flonum)
+{
+  C_word ab[C_SIZEOF_FIX_BIGNUM * 4 + C_SIZEOF_FLONUM], *a = ab,
+         num, denom, i_int, res, nscaled, iscaled, negp, shift_amount;
+  C_uword *scan;
+  double i, f;
+
+  f = C_flonum_magnitude(flonum);
+
+  if (C_isnan(f)) {
+    return C_SCHEME_FALSE; /* "mu" */
+  } else if (C_isinf(f)) {
+    return C_fix((f > 0.0) ? -1 : 1); /* x is smaller if f is +inf.0 */
+  } else {
+    /* Scale up the floating-point number to become a whole integer,
+     * and remember power of two (# of bits) to shift the numerator.
+     */
+    shift_amount = 0;
+
+    /* TODO: This doesn't work for denormalized flonums! */
+    while (modf(f, &i) != 0.0) {
+      f = ldexp(f, 1);
+      shift_amount++;
+    }
+
+    i = f; /* TODO: split i and f so it'll work for denormalized flonums */
+
+    num = C_u_i_ratnum_num(ratnum);
+    negp = C_i_negativep(num);
+
+    if (C_truep(negp) && i >= 0.0) { /* Save some time if signs differ */
+      return C_fix(-1);
+    } else if (!C_truep(negp) && i <= 0.0) { /* num is never 0 */
+      return C_fix(1);
+    } else {
+      denom = C_u_i_ratnum_denom(ratnum);
+      i_int = C_s_a_u_i_flo_to_int(&a, 1, C_flonum(&a, i));
+
+      /* Multiply the scaled flonum integer by the denominator, and
+       * shift the numerator so that they may be directly compared. */
+      iscaled = C_s_a_u_i_integer_times(&a, 2, i_int, denom);
+      nscaled = C_s_a_i_arithmetic_shift(&a, 2, num, C_fix(shift_amount));
+
+      /* Finally, we're ready to compare them! */
+      res = basic_cmp(nscaled, iscaled, "rat_flo_cmp", 0);
+      clear_buffer_object(ab, nscaled);
+      clear_buffer_object(ab, iscaled);
+      clear_buffer_object(ab, i_int);
+
+      return res;
+    }
+  }
+}
+
+static C_word flo_rat_cmp(C_word flonum, C_word ratnum)
+{
+  C_word res = rat_flo_cmp(ratnum, flonum);
+  switch(res) {
+  case C_fix(1): return C_fix(-1);
+  case C_fix(-1): return C_fix(1);
+  default: return res; /* Can be either C_fix(0) or C_SCHEME_FALSE(!) */
+  }
+}
+
+/* The primitive comparison operator.  eqp should be 1 if we're only
+ * interested in equality testing (can speed things up and in case of
+ * compnums, equality checking is the only available operation).  This
+ * may return #f, in case there is no answer (for NaNs) or as a quick
+ * and dirty non-zero answer when eqp is true.  Ugly but effective :)
+ */
+static C_word basic_cmp(C_word x, C_word y, char *loc, int eqp)
+{
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_fix((x < y) ? -1 : ((x > y) ? 1 : 0));
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return int_flo_cmp(x, y);
+    } else if (C_truep(C_bignump(y))) {
+      C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab;
+      return C_i_bignum_cmp(C_a_u_i_fix_to_big(&a, x), y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else return rat_cmp(x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    }
+  } else if (C_immediatep(x)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, x);
+  } else if (C_block_header(x) == C_FLONUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      return flo_int_cmp(x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      double a = C_flonum_magnitude(x), b = C_flonum_magnitude(y);
+      if (C_isnan(a) || C_isnan(b)) return C_SCHEME_FALSE; /* "mu" */
+      else return C_fix((a < b) ? -1 : ((a > b) ? 1 : 0));
+    } else if (C_truep(C_bignump(y))) {
+      return flo_int_cmp(x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      return flo_rat_cmp(x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    }
+  } else if (C_truep(C_bignump(x))) {
+    if (y & C_FIXNUM_BIT) {
+      C_word ab[C_SIZEOF_FIX_BIGNUM], *a = ab;
+      return C_i_bignum_cmp(x, C_a_u_i_fix_to_big(&a, y));
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return int_flo_cmp(x, y);
+    } else if (C_truep(C_bignump(y))) {
+      return C_i_bignum_cmp(x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else return rat_cmp(x, y);
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    }
+  } else if (C_block_header(x) == C_RATNUM_TAG) {
+    if (y & C_FIXNUM_BIT) {
+      if (eqp) return C_SCHEME_FALSE;
+      else return rat_cmp(x, y);
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    } else if (C_block_header(y) == C_FLONUM_TAG) {
+      return rat_flo_cmp(x, y);
+    } else if (C_truep(C_bignump(y))) {
+      if (eqp) return C_SCHEME_FALSE;
+      else return rat_cmp(x, y);
+    } else if (C_block_header(y) == C_RATNUM_TAG) {
+      if (eqp) {
+        return C_and(C_and(C_i_integer_equalp(C_u_i_ratnum_num(x),
+                                              C_u_i_ratnum_num(y)),
+                           C_i_integer_equalp(C_u_i_ratnum_denom(x),
+                                              C_u_i_ratnum_denom(y))),
+                     C_fix(0));
+      } else {
+        return rat_cmp(x, y);
+      }
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      if (eqp) return C_SCHEME_FALSE;
+      else barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, y);
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    }
+  } else if (C_block_header(x) == C_CPLXNUM_TAG) {
+    if (!eqp) {
+      barf(C_BAD_ARGUMENT_TYPE_COMPLEX_NO_ORDERING_ERROR, loc, x);
+    } else if (y & C_FIXNUM_BIT) {
+      return C_SCHEME_FALSE;
+    } else if (C_immediatep(y)) {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    } else if (C_block_header(y) == C_FLONUM_TAG ||
+               C_truep(C_bignump(x)) ||
+               C_block_header(y) == C_RATNUM_TAG) {
+      return C_SCHEME_FALSE;
+    } else if (C_block_header(y) == C_CPLXNUM_TAG) {
+      return C_and(C_and(C_i_nequalp(C_u_i_cplxnum_real(x), C_u_i_cplxnum_real(y)),
+                         C_i_nequalp(C_u_i_cplxnum_imag(x), C_u_i_cplxnum_imag(y))),
+                   C_fix(0));
+    } else {
+      barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, y);
+    }
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, loc, x);
+  }
+}
+
+static int bignum_cmp_unsigned(C_word x, C_word y)
+{
+  C_word xlen = C_bignum_size(x), ylen = C_bignum_size(y);
+
+  if (xlen < ylen) {
+    return -1;
+  } else if (xlen > ylen) {
+    return 1;
+  } else if (x == y) {
+    return 0;
+  } else {
+    C_uword *startx = C_bignum_digits(x),
+            *scanx = startx + xlen,
+            *scany = C_bignum_digits(y) + ylen;
+
+    while (startx < scanx) {
+      C_uword xdigit = (*--scanx), ydigit = (*--scany);
+      if (xdigit < ydigit)
+        return -1;
+      if (xdigit > ydigit)
+        return 1;
+    }
+    return 0;
+  }
+}
+
+C_regparm C_word C_fcall C_i_bignum_cmp(C_word x, C_word y)
+{
+  if (C_bignum_negativep(x)) {
+    if (C_bignum_negativep(y)) { /* Largest negative number is smallest */
+      return C_fix(bignum_cmp_unsigned(y, x));
+    } else {
+      return C_fix(-1);
+    }
+  } else {
+    if (C_bignum_negativep(y)) {
+      return C_fix(1);
+    } else {
+      return C_fix(bignum_cmp_unsigned(x, y));
+    }
+  }
+}
 
 void C_ccall C_nequalp(C_word c, C_word *av)
 {
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    x, i2, f, fflag, ilast;
-  double flast, f2;
+  /* C_word closure = av[ 0 ]; */
+  C_word k = av[ 1 ];
+  C_word x, y, result = C_SCHEME_TRUE;
 
-  c -= 2; 
-  f = 1;
+  c -= 2;
   av += 2;
-
-  if(c == 0) goto cont;
-  
+  if (c == 0) C_kontinue(k, result);
   x = *(av++);
 
-  if(x & C_FIXNUM_BIT) {
-    fflag = 0;
-    ilast = C_unfix(x);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    fflag = 1;
-    flast = C_flonum_magnitude(x);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "=", x);
+  if (c == 1 && !C_truep(C_i_numberp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "=", x);
 
   while(--c) {
-    x = *(av++);
-    
-    if(x & C_FIXNUM_BIT) {
-      if(fflag) {
-	f = flast == (f2 = (double)C_unfix(x));
-        flast = f2;
-      }
-      else {
-	f = ilast == (i2 = C_unfix(x));
-	ilast = i2;
-      }
-    }
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-      if(fflag) {
-	f = flast == (f2 = C_flonum_magnitude(x));
-	flast = f2;
-      }
-      else {
-	f = (double)ilast == (f2 = C_flonum_magnitude(x));
-	flast = f2;
-	fflag = 1;
-      }
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "=", x);
-
-    if(!f) break;
+    y = *(av++);
+    result = C_i_nequalp(x, y);
+    if (result == C_SCHEME_FALSE) break;
   }
 
- cont:
-  C_kontinue(k, C_mk_bool(f));
+  C_kontinue(k, result);
 }
-
 
 C_regparm C_word C_fcall C_i_nequalp(C_word x, C_word y)
 {
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(x == y);
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool((double)C_unfix(x) == C_flonum_magnitude(y));
+   return C_mk_bool(basic_cmp(x, y, "=", 1) == C_fix(0));
+}
 
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "=", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(C_flonum_magnitude(x) == (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool(C_flonum_magnitude(x) == C_flonum_magnitude(y));
-    
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "=", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "=", x);
-
-  return C_SCHEME_FALSE;
+C_regparm C_word C_fcall C_i_integer_equalp(C_word x, C_word y)
+{
+  if (x & C_FIXNUM_BIT)
+    return C_mk_bool(x == y);
+  else if (y & C_FIXNUM_BIT)
+    return C_SCHEME_FALSE;
+  else
+    return C_mk_bool(C_i_bignum_cmp(x, y) == C_fix(0));
 }
 
 
 void C_ccall C_greaterp(C_word c, C_word *av)
 {
-  C_word 
+  C_word x, y,
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    x, i2, f, fflag, ilast;
-  double flast, f2;
+    result = C_SCHEME_TRUE;
 
   c -= 2; 
-  f = 1;
   av += 2;
+  if (c == 0) C_kontinue(k, result);
 
-  if(c == 0) goto cont;
-  
   x = *(av++);
 
-  if(x & C_FIXNUM_BIT) {
-    fflag = 0;
-    ilast = C_unfix(x);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    fflag = 1;
-    flast = C_flonum_magnitude(x);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, ">", x);
+  if (c == 1 && !C_truep(C_i_numberp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, ">", x);
 
   while(--c) {
-    x = *(av++);
-    
-    if(x & C_FIXNUM_BIT) {
-      if(fflag) {
-	f = flast > (f2 = (double)C_unfix(x));
-        flast = f2;
-      }
-      else {
-	f = ilast > (i2 = C_unfix(x));
-	ilast = i2;
-      }
-    }
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-      if(fflag) {
-	f = flast > (f2 = C_flonum_magnitude(x));
-	flast = f2;
-      }
-      else {
-	f = (double)ilast > (f2 = C_flonum_magnitude(x));
-	flast = f2;
-	fflag = 1;
-      }
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, ">", x);
-
-    if(!f) break;
+    y = *(av++);
+    result = C_i_greaterp(x, y);
+    if (result == C_SCHEME_FALSE) break;
+    x = y;
   }
 
- cont:
-  C_kontinue(k, C_mk_bool(f));
+  C_kontinue(k, result);
 }
 
 
 C_regparm C_word C_fcall C_i_greaterp(C_word x, C_word y)
 {
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(x > y);
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool((double)C_unfix(x) > C_flonum_magnitude(y));
-
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, ">", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(C_flonum_magnitude(x) > (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool(C_flonum_magnitude(x) > C_flonum_magnitude(y));
-    
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, ">", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, ">", x);
-
-  return C_SCHEME_FALSE;
+   return C_mk_bool(basic_cmp(x, y, ">", 0) == C_fix(1));
 }
 
+C_regparm C_word C_fcall C_i_integer_greaterp(C_word x, C_word y)
+{
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_mk_bool(C_unfix(x) > C_unfix(y));
+    } else {
+      return C_mk_bool(C_bignum_negativep(y));
+    }
+  } else if (y & C_FIXNUM_BIT) {
+    return C_mk_nbool(C_bignum_negativep(x));
+  } else {
+    return C_mk_bool(C_i_bignum_cmp(x, y) == C_fix(1));
+  }
+}
 
 void C_ccall C_lessp(C_word c, C_word *av)
 {
-  C_word 
+  C_word x, y,
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    x, i2, f, fflag, ilast;
-  double flast, f2;
+    result = C_SCHEME_TRUE;
 
   c -= 2; 
-  f = 1;
   av += 2;
+  if (c == 0) C_kontinue(k, result);
 
-  if(c == 0) goto cont;
-  
   x = *(av++);
 
-  if(x &C_FIXNUM_BIT) {
-    fflag = 0;
-    ilast = C_unfix(x);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    fflag = 1;
-    flast = C_flonum_magnitude(x);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "<", x);
+  if (c == 1 && !C_truep(C_i_numberp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "<", x);
 
   while(--c) {
-    x = *(av++);
-    
-    if(x &C_FIXNUM_BIT) {
-      if(fflag) {
-	f = flast < (f2 = (double)C_unfix(x));
-        flast = f2;
-      }
-      else {
-	f = ilast < (i2 = C_unfix(x));
-	ilast = i2;
-      }
-    }
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-      if(fflag) {
-	f = flast < (f2 = C_flonum_magnitude(x));
-	flast = f2;
-      }
-      else {
-	f = (double)ilast < (f2 = C_flonum_magnitude(x));
-	flast = f2;
-	fflag = 1;
-      }
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "<", x);
-
-    if(!f) break;
+    y = *(av++);
+    result = C_i_lessp(x, y);
+    if (result == C_SCHEME_FALSE) break;
+    x = y;
   }
 
- cont:
-  C_kontinue(k, C_mk_bool(f));
+  C_kontinue(k, result);
 }
 
 
 C_regparm C_word C_fcall C_i_lessp(C_word x, C_word y)
 {
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(x < y);
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool((double)C_unfix(x) < C_flonum_magnitude(y));
-
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "<", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(C_flonum_magnitude(x) < (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool(C_flonum_magnitude(x) < C_flonum_magnitude(y));
-    
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "<", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "<", x);
-
-  return C_SCHEME_FALSE;
+   return C_mk_bool(basic_cmp(x, y, "<", 0) == C_fix(-1));
 }
 
+C_regparm C_word C_fcall C_i_integer_lessp(C_word x, C_word y)
+{
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_mk_bool(C_unfix(x) < C_unfix(y));
+    } else {
+      return C_mk_nbool(C_bignum_negativep(y));
+    }
+  } else if (y & C_FIXNUM_BIT) {
+    return C_mk_bool(C_bignum_negativep(x));
+  } else {
+    return C_mk_bool(C_i_bignum_cmp(x, y) == C_fix(-1));
+  }
+}
 
 void C_ccall C_greater_or_equal_p(C_word c, C_word *av)
 {
-  C_word 
+  C_word x, y,
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    x, i2, f, fflag, ilast;
-  double flast, f2;
+    result = C_SCHEME_TRUE;
 
   c -= 2; 
-  f = 1;
   av += 2;
+  if (c == 0) C_kontinue(k, result);
 
-  if(c == 0) goto cont;
-  
   x = *(av++);
 
-  if(x &C_FIXNUM_BIT) {
-    fflag = 0;
-    ilast = C_unfix(x);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    fflag = 1;
-    flast = C_flonum_magnitude(x);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, ">=", x);
+  if (c == 1 && !C_truep(C_i_numberp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, ">=", x);
 
   while(--c) {
-    x = *(av++);
-    
-    if(x &C_FIXNUM_BIT) {
-      if(fflag) {
-	f = flast >= (f2 = (double)C_unfix(x));
-        flast = f2;
-      }
-      else {
-	f = ilast >= (i2 = C_unfix(x));
-	ilast = i2;
-      }
-    }
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-      if(fflag) {
-	f = flast >= (f2 = C_flonum_magnitude(x));
-	flast = f2;
-      }
-      else {
-	f = (double)ilast >= (f2 = C_flonum_magnitude(x));
-	flast = f2;
-	fflag = 1;
-      }
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, ">=", x);
-
-    if(!f) break;
+    y = *(av++);
+    result = C_i_greater_or_equalp(x, y);
+    if (result == C_SCHEME_FALSE) break;
+    x = y;
   }
 
- cont:
-  C_kontinue(k, C_mk_bool(f));
+  C_kontinue(k, result);
 }
 
 
 C_regparm C_word C_fcall C_i_greater_or_equalp(C_word x, C_word y)
 {
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(x >= y);
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool((double)C_unfix(x) >= C_flonum_magnitude(y));
-
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, ">=", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(C_flonum_magnitude(x) >= (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool(C_flonum_magnitude(x) >= C_flonum_magnitude(y));
-    
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, ">=", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, ">=", x);
-
-  return C_SCHEME_FALSE;
+   C_word res = basic_cmp(x, y, ">=", 0);
+   return C_mk_bool(res == C_fix(0) || res == C_fix(1));
 }
 
+C_regparm C_word C_fcall C_i_integer_greater_or_equalp(C_word x, C_word y)
+{
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_mk_bool(C_unfix(x) >= C_unfix(y));
+    } else {
+      return C_mk_bool(C_bignum_negativep(y));
+    }
+  } else if (y & C_FIXNUM_BIT) {
+    return C_mk_nbool(C_bignum_negativep(x));
+  } else {
+    C_word res = C_i_bignum_cmp(x, y);
+    return C_mk_bool(res == C_fix(0) || res == C_fix(1));
+  }
+}
 
 void C_ccall C_less_or_equal_p(C_word c, C_word *av)
 {
-  C_word 
+  C_word x, y,
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    x, i2, f, fflag, ilast;
-  double flast, f2;
+    result = C_SCHEME_TRUE;
 
   c -= 2; 
-  f = 1;
   av += 2;
+  if (c == 0) C_kontinue(k, result);
 
-  if(c == 0) goto cont;
-  
   x = *(av++);
 
-  if(x &C_FIXNUM_BIT) {
-    fflag = 0;
-    ilast = C_unfix(x);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    fflag = 1;
-    flast = C_flonum_magnitude(x);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "<=", x);
+  if (c == 1 && !C_truep(C_i_numberp(x)))
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "<=", x);
 
   while(--c) {
-    x = *(av++);
-    
-    if(x &C_FIXNUM_BIT) {
-      if(fflag) {
-	f = flast <= (f2 = (double)C_unfix(x));
-        flast = f2;
-      }
-      else {
-	f = ilast <= (i2 = C_unfix(x));
-	ilast = i2;
-      }
-    }
-    else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-      if(fflag) {
-	f = flast <= (f2 = C_flonum_magnitude(x));
-	flast = f2;
-      }
-      else {
-	f = (double)ilast <= (f2 = C_flonum_magnitude(x));
-	flast = f2;
-	fflag = 1;
-      }
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "<=", x);
-
-    if(!f) break;
+    y = *(av++);
+    result = C_i_less_or_equalp(x, y);
+    if (result == C_SCHEME_FALSE) break;
+    x = y;
   }
 
- cont:
-  C_kontinue(k, C_mk_bool(f));
+  C_kontinue(k, result);
 }
 
 
 C_regparm C_word C_fcall C_i_less_or_equalp(C_word x, C_word y)
 {
-  if(x & C_FIXNUM_BIT) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(x <= y);
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool((double)C_unfix(x) <= C_flonum_magnitude(y));
-
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "<=", y);
-  }
-  else if(!C_immediatep(x) && C_block_header(x) == C_FLONUM_TAG) {
-    if(y & C_FIXNUM_BIT) return C_mk_bool(C_flonum_magnitude(x) <= (double)C_unfix(y));
-    else if(!C_immediatep(y) && C_block_header(y) == C_FLONUM_TAG)
-      return C_mk_bool(C_flonum_magnitude(x) <= C_flonum_magnitude(y));
-    
-    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "<=", y);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "<=", x);
-
-  return C_SCHEME_FALSE;
+   C_word res = basic_cmp(x, y, "<=", 0);
+   return C_mk_bool(res == C_fix(0) || res == C_fix(-1));
 }
 
 
-void C_ccall C_expt(C_word c, C_word *av)
+C_regparm C_word C_fcall C_i_integer_less_or_equalp(C_word x, C_word y)
 {
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ], 
-    n1, n2, r;
-  double m1, m2;
-  C_alloc_flonum;
-
-  if(c != 4) C_bad_argc(c, 4);
-
-  n1 = av[ 2 ];
-  n2 = av[ 3 ];
-
-  if(n1 & C_FIXNUM_BIT) m1 = C_unfix(n1);
-  else if(!C_immediatep(n1) && C_block_header(n1) == C_FLONUM_TAG)
-    m1 = C_flonum_magnitude(n1);
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "expt", n1);
-
-  if(n2 & C_FIXNUM_BIT) m2 = C_unfix(n2);
-  else if(!C_immediatep(n2) && C_block_header(n2) == C_FLONUM_TAG)
-    m2 = C_flonum_magnitude(n2);
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "expt", n2);
-
-  m1 = pow(m1, m2);
-  r = (C_word)m1;
-
-  if(r == m1 && (n1 & C_FIXNUM_BIT) && (n2 & C_FIXNUM_BIT) && modf(m1, &m2) == 0.0 && C_fitsinfixnump(r))
-    C_kontinue(k, C_fix(r));
-
-  C_kontinue_flonum(k, m1);
+  if (x & C_FIXNUM_BIT) {
+    if (y & C_FIXNUM_BIT) {
+      return C_mk_bool(C_unfix(x) <= C_unfix(y));
+    } else {
+      return C_mk_nbool(C_bignum_negativep(y));
+    }
+  } else if (y & C_FIXNUM_BIT) {
+    return C_mk_bool(C_bignum_negativep(x));
+  } else {
+    C_word res = C_i_bignum_cmp(x, y);
+    return C_mk_bool(res == C_fix(0) || res == C_fix(-1));
+  }
 }
 
 
@@ -7456,7 +9429,6 @@ void C_ccall C_gc(C_word c, C_word *av)
 void C_ccall gc_2(C_word c, C_word *av)
 {
   C_word k = av[ 0 ];
-  
   C_kontinue(k, C_fix((C_uword)C_fromspace_limit - (C_uword)C_fromspace_top));
 }
 
@@ -7608,6 +9580,351 @@ void C_ccall allocate_vector_2(C_word c, C_word *av)
   C_kontinue(k, v);
 }
 
+static C_word allocate_tmp_bignum(C_word size, C_word negp, C_word initp)
+{
+  C_word *mem = C_malloc(C_wordstobytes(C_SIZEOF_BIGNUM(C_unfix(size)))),
+          bigvec = (C_word)(mem + C_SIZEOF_BIGNUM_WRAPPER);
+  if (mem == NULL) abort();     /* TODO: panic */
+  
+  C_block_header_init(bigvec, C_STRING_TYPE | C_wordstobytes(C_unfix(size)+1));
+  C_set_block_item(bigvec, 0, C_truep(negp));
+
+  if (C_truep(initp)) {
+    C_memset(((C_uword *)C_data_pointer(bigvec))+1,
+             0, C_wordstobytes(C_unfix(size)));
+  }
+
+  return C_a_i_bignum_wrapper(&mem, bigvec);
+}
+
+C_regparm C_word C_fcall
+C_allocate_scratch_bignum(C_word **ptr, C_word size, C_word negp, C_word initp)
+{
+  C_word big, bigvec = C_scratch_alloc(C_SIZEOF_INTERNAL_BIGNUM_VECTOR(C_unfix(size)));
+  
+  C_block_header_init(bigvec, C_STRING_TYPE | C_wordstobytes(C_unfix(size)+1));
+  C_set_block_item(bigvec, 0, C_truep(negp));
+
+  if (C_truep(initp)) {
+    C_memset(((C_uword *)C_data_pointer(bigvec))+1,
+             0, C_wordstobytes(C_unfix(size)));
+  }
+
+  big = C_a_i_bignum_wrapper(ptr, bigvec);
+  C_mutate_scratch_slot(&C_internal_bignum_vector(big), bigvec);
+  return big;
+}
+
+/* Simplification: scan trailing zeroes, then return a fixnum if the
+ * value fits, or trim the bignum's length.  If the bignum was stored
+ * in scratch space, we mark it as reclaimable.  This means any
+ * references to the original bignum are invalid after simplification!
+ */
+C_regparm C_word C_fcall C_bignum_simplify(C_word big)
+{
+  C_uword *start = C_bignum_digits(big),
+          *last_digit = start + C_bignum_size(big) - 1,
+          *scan = last_digit, tmp;
+  int length;
+
+  while (scan >= start && *scan == 0)
+    scan--;
+  length = scan - start + 1;
+
+  switch(length) {
+  case 0:
+    if (C_in_scratchspacep(C_internal_bignum_vector(big)))
+      C_mutate_scratch_slot(NULL, C_internal_bignum_vector(big));
+    return C_fix(0);
+  case 1:
+    tmp = *start;
+    if (C_bignum_negativep(big) ?
+        !(tmp & C_INT_SIGN_BIT) && C_fitsinfixnump(-(C_word)tmp) :
+        C_ufitsinfixnump(tmp)) {
+      if (C_in_scratchspacep(C_internal_bignum_vector(big)))
+        C_mutate_scratch_slot(NULL, C_internal_bignum_vector(big));
+      return C_bignum_negativep(big) ? C_fix(-(C_word)tmp) : C_fix(tmp);
+    }
+    /* FALLTHROUGH */
+  default:
+    if (scan < last_digit) C_bignum_mutate_size(big, length);
+    return big;
+  }
+}
+
+static void bignum_digits_destructive_negate(C_word result)
+{
+  C_uword *scan, *end, digit, sum;
+
+  scan = C_bignum_digits(result);
+  end = scan + C_bignum_size(result);
+
+  do {
+    digit = ~*scan;
+    sum = digit + 1;
+    *scan++ = sum;
+  } while (sum == 0 && scan < end);
+
+  for (; scan < end; scan++) {
+    *scan = ~*scan;
+  }
+}
+
+static C_uword
+bignum_digits_destructive_scale_up_with_carry(C_uword *start, C_uword *end, C_uword factor, C_uword carry)
+{
+  C_uword digit, p;
+
+  assert(C_fitsinbignumhalfdigitp(carry));
+  assert(C_fitsinbignumhalfdigitp(factor));
+
+  /* See fixnum_times.  Substitute xlo = factor, xhi = 0, y = digit
+   * and simplify the result to reduce variable usage.
+   */
+  while (start < end) {
+    digit = (*start);
+
+    p = factor * C_BIGNUM_DIGIT_LO_HALF(digit) + carry;
+    carry = C_BIGNUM_DIGIT_LO_HALF(p);
+
+    p = factor * C_BIGNUM_DIGIT_HI_HALF(digit) + C_BIGNUM_DIGIT_HI_HALF(p);
+    (*start++) = C_BIGNUM_DIGIT_COMBINE(C_BIGNUM_DIGIT_LO_HALF(p), carry);
+    carry = C_BIGNUM_DIGIT_HI_HALF(p);
+  }
+  return carry;
+}
+
+static C_uword
+bignum_digits_destructive_scale_down(C_uword *start, C_uword *end, C_uword denominator)
+{
+  C_uword digit, k = 0;
+  C_uhword q_j_hi, q_j_lo;
+
+  /* Single digit divisor case from Hacker's Delight, Figure 9-1,
+   * adapted to modify u[] in-place instead of writing to q[].
+   */
+  while (start < end) {
+    digit = (*--end);
+
+    k = C_BIGNUM_DIGIT_COMBINE(k, C_BIGNUM_DIGIT_HI_HALF(digit)); /* j */
+    q_j_hi = k / denominator;
+    k -= q_j_hi * denominator;
+
+    k = C_BIGNUM_DIGIT_COMBINE(k, C_BIGNUM_DIGIT_LO_HALF(digit)); /* j-1 */
+    q_j_lo = k / denominator;
+    k -= q_j_lo * denominator;
+    
+    *end = C_BIGNUM_DIGIT_COMBINE(q_j_hi, q_j_lo);
+  }
+  return k;
+}
+
+static C_uword
+bignum_digits_destructive_shift_right(C_uword *start, C_uword *end, int shift_right, int negp)
+{
+  int shift_left = C_BIGNUM_DIGIT_LENGTH - shift_right;
+  C_uword digit, carry = negp ? ((~(C_uword)0) << shift_left) : 0;
+
+  assert(shift_right < C_BIGNUM_DIGIT_LENGTH);
+
+  while (start < end) {
+    digit = *(--end);
+    *end = (digit >> shift_right) | carry;
+    carry = digit << shift_left;
+  }
+  return carry >> shift_left; /* The bits that were shifted out to the right */
+}
+
+static C_uword
+bignum_digits_destructive_shift_left(C_uword *start, C_uword *end, int shift_left)
+{
+  C_uword carry = 0, digit;
+  int shift_right = C_BIGNUM_DIGIT_LENGTH - shift_left;
+
+  assert(shift_left < C_BIGNUM_DIGIT_LENGTH);
+
+  while (start < end) {
+    digit = *start;
+    (*start++) = (digit << shift_left) | carry;
+    carry = digit >> shift_right;
+  }
+  return carry;	 /* This would end up as most significant digit if it fit */
+}
+
+static C_regparm void
+bignum_digits_multiply(C_word x, C_word y, C_word result)
+{
+  C_uword product,
+          *xd = C_bignum_digits(x),
+          *yd = C_bignum_digits(y),
+          *rd = C_bignum_digits(result);
+  C_uhword carry, yj;
+  /* Lengths in halfwords */
+  int i, j, length_x = C_bignum_size(x) * 2, length_y = C_bignum_size(y) * 2;
+
+  /* From Hacker's Delight, Figure 8-1 (top part) */
+  for (j = 0; j < length_y; ++j) {
+    yj = C_uhword_ref(yd, j);
+    if (yj == 0) continue;
+    carry = 0;
+    for (i = 0; i < length_x; ++i) {
+      product = (C_uword)C_uhword_ref(xd, i) * yj +
+                (C_uword)C_uhword_ref(rd, i + j) + carry;
+      C_uhword_set(rd, i + j, product);
+      carry = C_BIGNUM_DIGIT_HI_HALF(product);
+    }
+    C_uhword_set(rd, j + length_x, carry);
+  }
+}
+
+
+/* "small" is either a number that fits a halfdigit, or a power of two */
+static C_regparm void
+bignum_destructive_divide_unsigned_small(C_word **ptr, C_word x, C_word y, C_word *q, C_word *r)
+{
+  C_word size, quotient, q_negp = C_mk_bool((y & C_INT_SIGN_BIT) ?
+                                            !(C_bignum_negativep(x)) :
+                                            C_bignum_negativep(x)),
+         r_negp = C_mk_bool(C_bignum_negativep(x));
+  C_uword *start, *end, remainder;
+  int shift_amount;
+
+  size = C_fix(C_bignum_size(x));
+  quotient = C_allocate_scratch_bignum(ptr, size, q_negp, C_SCHEME_FALSE);
+  bignum_digits_destructive_copy(quotient, x);
+
+  start = C_bignum_digits(quotient);
+  end = start + C_bignum_size(quotient);
+  
+  y = (y & C_INT_SIGN_BIT) ? -C_unfix(y) : C_unfix(y);
+
+  shift_amount = C_ilen(y) - 1;
+  if (((C_uword)1 << shift_amount) == y) { /* Power of two?  Shift! */
+    remainder = bignum_digits_destructive_shift_right(start,end,shift_amount,0);
+    assert(C_ufitsinfixnump(remainder));
+  } else {
+    remainder = bignum_digits_destructive_scale_down(start, end, y);
+    assert(C_fitsinbignumhalfdigitp(remainder));
+  }
+
+  if (r != NULL) *r = C_truep(r_negp) ? C_fix(-remainder) : C_fix(remainder);
+  /* Calling this function only makes sense if quotient is needed */
+  *q = C_bignum_simplify(quotient);
+}
+
+static C_regparm void
+bignum_destructive_divide_full(C_word numerator, C_word denominator, C_word quotient, C_word remainder, C_word return_remainder)
+{
+  C_word length = C_bignum_size(denominator);
+  C_uword d1 = *(C_bignum_digits(denominator) + length - 1),
+          *startr = C_bignum_digits(remainder),
+          *endr = startr + C_bignum_size(remainder);
+  int shift;
+
+  shift = C_BIGNUM_DIGIT_LENGTH - C_ilen(d1); /* nlz */
+
+  /* We have to work on halfdigits, so we shift out only the necessary
+   * amount in order fill out that halfdigit (base is halved).
+   * This trick is shamelessly stolen from Gauche :)
+   * See below for part 2 of the trick.
+   */
+  if (shift >= C_BIGNUM_HALF_DIGIT_LENGTH)
+    shift -= C_BIGNUM_HALF_DIGIT_LENGTH;
+
+  /* Code below won't always set high halfdigit of quotient, so do it here. */
+  if (quotient != C_SCHEME_UNDEFINED)
+    C_bignum_digits(quotient)[C_bignum_size(quotient)-1] = 0;
+
+  bignum_digits_destructive_copy(remainder, numerator);
+  *(endr-1) = 0;    /* Ensure most significant digit is initialised */
+  if (shift == 0) { /* Already normalized */
+    bignum_destructive_divide_normalized(remainder, denominator, quotient);
+  } else { /* Requires normalisation; allocate scratch denominator for this */
+    C_uword *startnd;
+    C_word ndenom;
+
+    bignum_digits_destructive_shift_left(startr, endr, shift);
+
+    ndenom = allocate_tmp_bignum(C_fix(length), C_SCHEME_FALSE, C_SCHEME_FALSE);
+    startnd = C_bignum_digits(ndenom);
+    bignum_digits_destructive_copy(ndenom, denominator);
+    bignum_digits_destructive_shift_left(startnd, startnd+length, shift);
+
+    bignum_destructive_divide_normalized(remainder, ndenom, quotient);
+    if (C_truep(return_remainder)) /* Otherwise, don't bother shifting back */
+      bignum_digits_destructive_shift_right(startr, endr, shift, 0);
+
+    free_tmp_bignum(ndenom);
+  }
+}
+
+static C_regparm void
+bignum_destructive_divide_normalized(C_word big_u, C_word big_v, C_word big_q)
+{
+  C_uword *v = C_bignum_digits(big_v),
+          *u = C_bignum_digits(big_u),
+          *q = big_q == C_SCHEME_UNDEFINED ? NULL : C_bignum_digits(big_q),
+           p,               /* product of estimated quotient & "denominator" */
+           hat, qhat, rhat, /* estimated quotient and remainder digit */
+           vn_1, vn_2;      /* "cached" values v[n-1], v[n-2] */
+  C_word t, k;              /* Two helpers: temp/final remainder and "borrow" */
+  /* We use plain ints here, which theoretically may not be enough on
+   * 64-bit for an insanely huge number, but it is a _lot_ faster.
+   */
+  int n = C_bignum_size(big_v) * 2,       /* in halfwords */
+      m = (C_bignum_size(big_u) * 2) - 2; /* Correct for extra digit */
+  int i, j;		   /* loop  vars */
+
+  /* Part 2 of Gauche's aforementioned trick: */
+  if (C_uhword_ref(v, n-1) == 0) n--;
+
+  /* These won't change during the loop, but are used in every step. */
+  vn_1 = C_uhword_ref(v, n-1);
+  vn_2 = C_uhword_ref(v, n-2);
+
+  /* See also Hacker's Delight, Figure 9-1.  This is almost exactly that. */
+  for (j = m - n; j >= 0; j--) {
+    hat = C_BIGNUM_DIGIT_COMBINE(C_uhword_ref(u, j+n), C_uhword_ref(u, j+n-1));
+    if (hat == 0) {
+      if (q != NULL) C_uhword_set(q, j, 0);
+      continue;
+    }
+    qhat = hat / vn_1;
+    rhat = hat % vn_1;
+
+    /* Two whiles is faster than one big check with an OR.  Thanks, Gauche! */
+    while(qhat >= ((C_uword)1 << C_BIGNUM_HALF_DIGIT_LENGTH)) { qhat--; rhat += vn_1; }
+    while(qhat * vn_2 > C_BIGNUM_DIGIT_COMBINE(rhat, C_uhword_ref(u, j+n-2))
+	  && rhat < ((C_uword)1 << C_BIGNUM_HALF_DIGIT_LENGTH)) {
+      qhat--;
+      rhat += vn_1;
+    }
+
+    /* Multiply and subtract */
+    k = 0;
+    for (i = 0; i < n; i++) {
+      p = qhat * C_uhword_ref(v, i);
+      t = C_uhword_ref(u, i+j) - k - C_BIGNUM_DIGIT_LO_HALF(p);
+      C_uhword_set(u, i+j, t);
+      k = C_BIGNUM_DIGIT_HI_HALF(p) - (t >> C_BIGNUM_HALF_DIGIT_LENGTH);
+    }
+    t = C_uhword_ref(u,j+n) - k;
+    C_uhword_set(u, j+n, t);
+
+    if (t < 0) {		/* Subtracted too much? */
+      qhat--;
+      k = 0;
+      for (i = 0; i < n; i++) {
+        t = (C_uword)C_uhword_ref(u, i+j) + C_uhword_ref(v, i) + k;
+        C_uhword_set(u, i+j, t);
+	k = t >> C_BIGNUM_HALF_DIGIT_LENGTH;
+      }
+      C_uhword_set(u, j+n, (C_uhword_ref(u, j+n) + k));
+    }
+    if (q != NULL) C_uhword_set(q, j, qhat);
+  } /* end j */
+}
+
 
 void C_ccall C_string_to_symbol(C_word c, C_word *av) 
 { 
@@ -7616,7 +9933,7 @@ void C_ccall C_string_to_symbol(C_word c, C_word *av)
     k = av[ 1 ],
     string;
   int len, key;
-  C_word s, *a = C_alloc(C_SIZEOF_SYMBOL + C_SIZEOF_BUCKET);
+  C_word s, *a = C_alloc(C_SIZEOF_SYMBOL + C_SIZEOF_PAIR);
   C_char *name;
 
   if(c != 3) C_bad_argc(c, 3);
@@ -7636,66 +9953,99 @@ void C_ccall C_string_to_symbol(C_word c, C_word *av)
   C_kontinue(k, s);
 }
 
-
-void C_ccall C_flonum_fraction(C_word c, C_word *av) 
-{
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    n = av[ 2 ];
-  double i, fn = C_flonum_magnitude(n);
-  C_alloc_flonum;
-
-  C_kontinue_flonum(k, modf(fn, &i));
-}
-
-
-void C_ccall C_flonum_rat(C_word c, C_word *av)
-{
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    n = av[ 2 ];
-  double frac, tmp, numer, denom, fn = C_flonum_magnitude(n);
-  double ga, gb;
-  C_word ab[WORDS_PER_FLONUM * 2], *ap = ab;
-  int i = 0;
-  C_word av2[ 4 ];
-
-  if (isnormal(fn)) {
-    /* Calculate bit-length of the fractional part (ie, after decimal point) */
-    frac = fn;
-    while(!C_isnan(frac) && !C_isinf(frac) && C_modf(frac, &tmp) != 0.0) {
-      frac *= 2;
-      if (i++ > 3000) /* should this be flonum-maximum-exponent? */
-        barf(C_CANT_REPRESENT_INEXACT_ERROR, "fprat", n);
-    }
-    
-    /* Now we can compute the rational number r = 2^i/X*2^i = numer/denom. */
-    denom = pow(2, i);
-    numer = fn*denom;
-  } else { /* denormalised/subnormal number: [+-]1.0/+inf.0 */
-    numer = fn > 0.0 ? 1.0 : -1.0;
-    denom = 1.0/0.0; /* +inf */
-  }
-
-  av2[ 0 ] = C_SCHEME_UNDEFINED;
-  av2[ 1 ] = k;
-  av2[ 2 ] = C_flonum(&ap, numer);
-  av2[ 3 ] = C_flonum(&ap, denom);
-  C_values(4, av2);
-}
-
-
+/* This will usually return a flonum, but it may also return a cplxnum
+ * consisting of two flonums, making for a total of 11 words.
+ */
 C_regparm C_word C_fcall 
-C_a_i_exact_to_inexact(C_word **a, int c, C_word n)
+C_a_i_exact_to_inexact(C_word **ptr, int c, C_word n)
 {
-  if(n & C_FIXNUM_BIT) 
-    return C_flonum(a, (double)C_unfix(n));
-  else if(C_immediatep(n) || C_block_header(n) != C_FLONUM_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "exact->inexact", n);
+  if (n & C_FIXNUM_BIT) {
+    return C_flonum(ptr, (double)C_unfix(n));
+  } else if (C_immediatep(n)) {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "exact->inexact", n);
+  } else if (C_block_header(n) == C_FLONUM_TAG) {
+    return n;
+  } else if (C_truep(C_bignump(n))) {
+    return C_a_u_i_big_to_flo(ptr, c, n);
+  } else if (C_block_header(n) == C_CPLXNUM_TAG) {
+    return C_cplxnum(ptr, C_a_i_exact_to_inexact(ptr, 1, C_u_i_cplxnum_real(n)),
+                     C_a_i_exact_to_inexact(ptr, 1, C_u_i_cplxnum_imag(n)));
+  /* The horribly painful case: ratnums */
+  } else if (C_block_header(n) == C_RATNUM_TAG) {
+    /* This tries to keep the numbers within representable ranges and
+     * tries to drop as few significant digits as possible by bringing
+     * the two numbers to within the same powers of two.  See
+     * algorithms M & N in Knuth, 4.2.1.
+     */
+     C_word num = C_u_i_ratnum_num(n), denom = C_u_i_ratnum_denom(n),
+             /* e = approx. distance between the numbers in powers of 2.
+              * ie, 2^e-1 < n/d < 2^e+1 (e is the *un*biased value of
+              * e_w in M2.  TODO: What if b!=2 (ie, flonum-radix isn't 2)?
+              */
+             e = integer_length_abs(num) - integer_length_abs(denom),
+             ab[C_SIZEOF_FIX_BIGNUM*5+C_SIZEOF_FLONUM], *a = ab, tmp, q, r, len,
+             shift_amount, negp = C_i_integer_negativep(num);
+     C_uword *d;
+     double res, fraction;
 
-  return n;
+     /* Align by shifting the smaller to the size of the larger */
+     if (e < 0)      num = C_s_a_i_arithmetic_shift(&a, 2, num, C_fix(-e));
+     else if (e > 0) denom = C_s_a_i_arithmetic_shift(&a, 2, denom, C_fix(e));
+
+     /* Here, 1/2 <= n/d < 2 [N3] */
+     if (C_truep(C_i_integer_lessp(num, denom))) { /* n/d < 1? */
+       tmp = C_s_a_i_arithmetic_shift(&a, 2, num, C_fix(1));
+       clear_buffer_object(ab, num); /* "knows" shift creates fresh numbers */
+       num = tmp;
+       e--;
+     }
+
+     /* Here, 1 <= n/d < 2 (normalized) [N5] */
+     shift_amount = nmin(DBL_MANT_DIG-1, e - (DBL_MIN_EXP - DBL_MANT_DIG));
+
+     tmp = C_s_a_i_arithmetic_shift(&a, 2, num, C_fix(shift_amount));
+     clear_buffer_object(ab, num); /* "knows" shift creates fresh numbers */
+     num = tmp;
+
+     /* Now, calculate round(num/denom).  We start with a quotient&remainder */
+     integer_divrem(&a, num, denom, &q, &r);
+
+     /* We multiply the remainder by two to simulate adding 1/2 for
+      * round.  However, we don't do it if num = denom (q=1,r=0) */
+     if (!((q == C_fix(1) || q == C_fix(-1)) && r == C_fix(0))) {
+       tmp = C_s_a_i_arithmetic_shift(&a, 2, r, C_fix(1));
+       clear_buffer_object(ab, r); /* "knows" shift creates fresh numbers */
+       r = tmp;
+     }
+
+     /* Now q is the quotient, but to "round" result we need to
+      * adjust.  This follows the semantics of the "round" procedure:
+      * Round away from zero on positive numbers (ignoring sign).  In
+      * case of exactly halfway, we round up if odd.
+      */
+     tmp = C_a_i_exact_to_inexact(&a, 1, q);
+     fraction = fabs(C_flonum_magnitude(tmp));
+     switch (basic_cmp(r, denom, "", 0)) {
+     case C_fix(0):
+       if (C_truep(C_i_oddp(q))) fraction += 1.0;
+       break;
+     case C_fix(1):
+       fraction += 1.0;
+       break;
+     default: /* if r <= denom, we're done */ break;
+     }
+
+     clear_buffer_object(ab, num);
+     clear_buffer_object(ab, denom);
+     clear_buffer_object(ab, q);
+     clear_buffer_object(ab, r);
+
+     shift_amount = nmin(DBL_MANT_DIG-1, e - (DBL_MIN_EXP - DBL_MANT_DIG));
+     res = ldexp(fraction, e - shift_amount);
+     return C_flonum(ptr, C_truep(negp) ? -res : res);
+  } else {
+    barf(C_BAD_ARGUMENT_TYPE_NO_NUMBER_ERROR, "exact->inexact", n);
+  }
 }
 
 
@@ -7725,420 +10075,417 @@ C_regparm C_word C_fcall C_a_i_flonum_round_proper(C_word **ptr, int c, C_word n
   return C_flonum(ptr, r);
 }
 
-
-void C_ccall C_quotient(C_word c, C_word *av)
+C_regparm C_word C_fcall
+C_a_i_flonum_gcd(C_word **p, C_word n, C_word x, C_word y)
 {
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    n1, n2;
-  double f1, f2, r;
-  C_word result;
-  C_alloc_flonum;
+   double xub, yub, r;
 
-  if(c != 4) C_bad_argc(c, 4);
+   if (!C_truep(C_u_i_fpintegerp(x)))
+     barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "gcd", x);
+   if (!C_truep(C_u_i_fpintegerp(y)))
+     barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "gcd", y);
 
-  n1 = av[ 2 ];
-  n2 = av[ 3 ];
+   xub = C_flonum_magnitude(x);
+   yub = C_flonum_magnitude(y);
 
-  if(n1 &C_FIXNUM_BIT) {
-    if(n2 &C_FIXNUM_BIT) {
-      if((n2 = C_unfix(n2)) == 0)
-	barf(C_DIVISION_BY_ZERO_ERROR, "quotient");
-      
-      result = C_fix(C_unfix(n1) / n2);
-      C_kontinue(k, result);
+   if (xub < 0.0) xub = -xub;
+   if (yub < 0.0) yub = -yub;
+   
+   while(yub != 0.0) {
+     r = fmod(xub, yub);
+     xub = yub;
+     yub = r;
+   }
+   return C_flonum(p, xub);
+}
+
+/* This is Lehmer's GCD algorithm with Jebelean's quotient test, as
+ * it is presented in the paper "An Analysis of Lehmer’s Euclidean
+ * GCD Algorithm", by J. Sorenson.  Fuck the ACM and their goddamn
+ * paywall; you can currently find the paper here:
+ * http://www.csie.nuk.edu.tw/~cychen/gcd/An%20analysis%20of%20Lehmer%27s%20Euclidean%20GCD%20algorithm.pdf
+ * If that URI fails, it's also explained in [MpNT, 5.2]
+ *
+ * The basic idea is to avoid divisions which yield only small
+ * quotients, in which the remainder won't reduce the numbers by
+ * much.  This can be detected by dividing only the leading k bits.
+ * In our case, k = C_WORD_SIZE - 2.
+ */
+inline static void lehmer_gcd(C_word **ptr, C_word u, C_word v, C_word *x, C_word *y)
+{
+  int i_even = 1, done = 0;
+  C_word shift_amount = integer_length_abs(u) - (C_WORD_SIZE - 2),
+         ab[C_SIZEOF_BIGNUM(2)*2+C_SIZEOF_FIX_BIGNUM*2], *a = ab,
+         uhat, vhat, qhat, xnext, ynext,
+         xprev = 1, yprev = 0, xcurr = 0, ycurr = 1;
+
+  uhat = C_s_a_i_arithmetic_shift(&a, 2, u, C_fix(-shift_amount));
+  vhat = C_s_a_i_arithmetic_shift(&a, 2, v, C_fix(-shift_amount));
+  assert(uhat & C_FIXNUM_BIT); uhat = C_unfix(uhat);
+  assert(vhat & C_FIXNUM_BIT); vhat = C_unfix(vhat);
+
+  do {
+    qhat = uhat / vhat;         /* Estimated quotient for this step */
+    xnext = xprev - qhat * xcurr;
+    ynext = yprev - qhat * ycurr;
+
+    /* Euclidean GCD swap on uhat and vhat (shift_amount is not needed): */
+    shift_amount = vhat;
+    vhat = uhat - qhat * vhat;
+    uhat = shift_amount;
+
+    i_even = !i_even;
+    if (i_even)
+      done = (vhat < -xnext) || ((uhat - vhat) < (ynext - ycurr));
+    else
+      done = (vhat < -ynext) || ((uhat - vhat) < (xnext - xcurr));
+
+    if (!done) {
+      xprev = xcurr; yprev = ycurr;
+      xcurr = xnext; ycurr = ynext;
     }
-    else if(!C_immediatep(n2) && C_block_header(n2) == C_FLONUM_TAG) {
-      f1 = (double)C_unfix(n1);
-      f2 = C_flonum_magnitude(n2);
-      if(C_isnan(f2) || C_isinf(f2) || C_modf(f2, &r) != 0.0)
-        barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient", n2);
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "quotient", n2);
-  }
-  else if(!C_immediatep(n1) && C_block_header(n1) == C_FLONUM_TAG) {
-    f1 = C_flonum_magnitude(n1);
-    if(C_isnan(f1) || C_isinf(f1) || C_modf(f1, &r) != 0.0)
-      barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient", n1);
+  } while (!done);
 
-    if(n2 &C_FIXNUM_BIT)
-      f2 = (double)C_unfix(n2);
-    else if(!C_immediatep(n2) && C_block_header(n2) == C_FLONUM_TAG) {
-      f2 = C_flonum_magnitude(n2);
-      if(C_isnan(f2) || C_isinf(f2) || C_modf(f2, &r) != 0.0)
-        barf(C_BAD_ARGUMENT_TYPE_NO_INTEGER_ERROR, "quotient", n2);
-    }
-    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "quotient", n2);
-  }
-  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "quotient", n1);
+  /* x = xprev * u + yprev * v */
+  uhat = C_s_a_u_i_integer_times(&a, 2, C_fix(xprev), u);
+  vhat = C_s_a_u_i_integer_times(&a, 2, C_fix(yprev), v);
+  *x = C_s_a_u_i_integer_plus(ptr, 2, uhat, vhat);
+  *x = move_buffer_object(ptr, ab, *x);
+  clear_buffer_object(ab, uhat);
+  clear_buffer_object(ab, vhat);
 
-  if(f2 == 0)
-    barf(C_DIVISION_BY_ZERO_ERROR, "quotient");
+  /* y = xcurr * u + ycurr * v */
+  uhat = C_s_a_u_i_integer_times(&a, 2, C_fix(xcurr), u);
+  vhat = C_s_a_u_i_integer_times(&a, 2, C_fix(ycurr), v);
+  *y = C_s_a_u_i_integer_plus(ptr, 2, uhat, vhat);
+  *y = move_buffer_object(ptr, ab, *y);
+  clear_buffer_object(ab, uhat);
+  clear_buffer_object(ab, vhat);
+}
 
-  modf(f1 / f2, &r);
-  C_kontinue_flonum(k, r);
+/* Because this must be inlineable (due to + and - using this for
+ * ratnums), we can't use burnikel-ziegler division here, until we
+ * have a C implementation that doesn't consume stack.  However,
+ * we *can* use Lehmer's GCD.
+ */
+C_regparm C_word C_fcall
+C_s_a_u_i_integer_gcd(C_word **ptr, C_word n, C_word x, C_word y)
+{
+   C_word ab[2][C_SIZEOF_BIGNUM(2) * 2], *a, newx, newy, size, i = 0;
+
+   if (x & C_FIXNUM_BIT && y & C_FIXNUM_BIT) return C_i_fixnum_gcd(x, y);
+
+   a = ab[i++];
+   x = C_s_a_u_i_integer_abs(&a, 1, x);
+   y = C_s_a_u_i_integer_abs(&a, 1, y);
+
+   if (!C_truep(C_i_integer_greaterp(x, y))) {
+     newx = y; y = x; x = newx; /* Ensure loop invariant: abs(x) >= abs(y) */
+   }
+
+   while(y != C_fix(0)) {
+     assert(integer_length_abs(x) >= integer_length_abs(y));
+     /* x and y are stored in the same buffer, as well as a result */
+     a = ab[i++];
+     if (i == 2) i = 0;
+
+     if (x & C_FIXNUM_BIT) return C_i_fixnum_gcd(x, y);
+
+     /* First, see if we should run a Lehmer step */
+     if ((integer_length_abs(x) - integer_length_abs(y)) < C_HALF_WORD_SIZE) {
+       lehmer_gcd(&a, x, y, &newx, &newy);
+       newx = move_buffer_object(&a, ab[i], newx);
+       newy = move_buffer_object(&a, ab[i], newy);
+       clear_buffer_object(ab[i], x);
+       clear_buffer_object(ab[i], y);
+       x = newx;
+       y = newy;
+       a = ab[i++]; /* Ensure x and y get cleared correctly below */
+       if (i == 2) i = 0;
+     }
+
+     newy = C_s_a_u_i_integer_remainder(&a, 2, x, y);
+     newy = move_buffer_object(&a, ab[i], newy);
+     newx = move_buffer_object(&a, ab[i], y);
+     clear_buffer_object(ab[i], x);
+     clear_buffer_object(ab[i], y);
+     x = newx;
+     y = newy;
+   }
+
+   newx = C_s_a_u_i_integer_abs(ptr, 1, x);
+   newx = move_buffer_object(ptr, ab, newx);
+   clear_buffer_object(ab, x);
+   clear_buffer_object(ab, y);
+   return newx;
 }
 
 
 C_regparm C_word C_fcall
-C_a_i_string_to_number(C_word **a, int c, C_word str, C_word radix0)
+C_s_a_i_digits_to_integer(C_word **ptr, C_word n, C_word str, C_word start, C_word end, C_word radix, C_word negp)
 {
-  int radix, radixpf = 0, sharpf = 0, ratf = 0, exactf = 0, exactpf = 0, periodf = 0, expf = 0;
-  C_word n1, n;
-  C_char *sptr, *eptr, *rptr;
-  double fn1, fn;
+  if (start == end) {
+    return C_SCHEME_FALSE;
+  } else {
+    size_t nbits;
+    char *s = C_c_string(str);
+    C_word result, size;
+    end = C_unfix(end);
+    start = C_unfix(start);
+    radix = C_unfix(radix);
 
-  if(radix0 & C_FIXNUM_BIT) radix = C_unfix(radix0);
-  else barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "string->number", radix0);
+    assert((radix > 1) && C_fitsinbignumhalfdigitp(radix));
 
-  if (radix < 2 || radix > 36) /* Makes no sense and isn't supported */
-    barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "string->number", radix0);
-
-  if(C_immediatep(str) || C_header_bits(str) != C_STRING_TYPE)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "string->number", str);
-
-  if((n = C_header_size(str)) == 0) {
-  fail:
-    n = C_SCHEME_FALSE;
-    goto fini;
-  }
-
-  if(n >= STRING_BUFFER_SIZE - 1) goto fail;
-
-  C_memcpy(sptr = buffer, C_c_string(str), n > (STRING_BUFFER_SIZE - 1) ? STRING_BUFFER_SIZE : n);
-  buffer[ n ] = '\0';
-  if (n != strlen(buffer)) /* Don't barf; this is simply invalid number syntax */
-    goto fail;
-  
-  while(*sptr == '#') {
-    switch(C_tolower((int)*(++sptr))) {
-    case 'b': if(radixpf) goto fail; else { radix = 2; radixpf = 1; } break;
-    case 'o': if(radixpf) goto fail; else { radix = 8; radixpf = 1; } break;
-    case 'd': if(radixpf) goto fail; else { radix = 10; radixpf = 1; } break;
-    case 'x': if(radixpf) goto fail; else { radix = 16; radixpf = 1; } break;
-    case 'e': if(exactpf) goto fail; else { exactf = 1; exactpf = 1; } break;
-    case 'i': if(exactpf) goto fail; else { exactf = 0; exactpf = 1; } break;
-    default: goto fail;  /* Unknown prefix type */
+    nbits = (end - start) * C_ilen(radix - 1);
+    size = C_BIGNUM_BITS_TO_DIGITS(nbits);
+    if (size == 1) {
+      result = C_bignum1(ptr, C_truep(negp), 0);
+    } else if (size == 2) {
+      result = C_bignum2(ptr, C_truep(negp), 0, 0);
+    } else {
+      size = C_fix(size);
+      result = C_allocate_scratch_bignum(ptr, size, negp, C_SCHEME_FALSE);
     }
 
-    ++sptr;
+    return str_to_bignum(result, s + start, s + end, radix);
   }
-  
-  /* Scan for embedded special characters and do basic sanity checking: */
-  for(eptr = sptr, rptr = sptr; *eptr != '\0'; ++eptr) {
-    switch(C_tolower((int)*eptr)) {
-    case '.': 
-      if(periodf || ratf || expf) goto fail;
-      
-      periodf = 1;
-      break;
+}
 
-    case '#':
-      if (expf || (eptr == rptr) ||
-	  (!sharpf && (eptr == rptr+1) && (C_strchr("+-.", *rptr) != NULL)))
-        goto fail;
-      
-      sharpf = 1;
-      *eptr = '0';
-      
-      break;
-    case '/':
-      if(periodf || ratf || expf || eptr == sptr) goto fail;
-      
-      sharpf = 0; /* Allow sharp signs in the denominator */
-      ratf = 1;
-      rptr = eptr+1;
-      break;
-    case 'e':
-    case 'd':
-    case 'f':
-    case 'l':
-    case 's':
-      /* Don't set exp flag if we see the "f" in "inf.0" (preceded by 'n') */
-      /* Other failure modes are handled elsewhere. */
-      if(radix == 10 && eptr > sptr && C_tolower((int)*(eptr-1)) != 'n') {
-        if (ratf) goto fail;
-	
-        expf = 1;
-	sharpf = 0;
-	*eptr = 'e'; /* strtod() normally only understands 'e', not dfls */
+inline static int hex_char_to_digit(int ch)
+{
+  if (ch == (int)'#') return 0; /* Hash characters in numbers are mapped to 0 */
+  else if (ch >= (int)'a') return ch - (int)'a' + 10; /* lower hex */
+  else if (ch >= (int)'A') return ch - (int)'A' + 10; /* upper hex */
+  else return ch - (int)'0'; /* decimal (OR INVALID; handled elsewhere) */
+}
+
+/* Write from digit character stream to bignum.  Bignum does not need
+ * to be initialised.  Returns the bignum, or a fixnum.  Assumes the
+ * string contains only digits that fit within radix (checked by
+ * string->number).
+ */
+static C_regparm C_word
+str_to_bignum(C_word bignum, char *str, char *str_end, int radix)
+{
+  int radix_shift, str_digit;
+  C_uword *digits = C_bignum_digits(bignum),
+          *end_digits = digits + C_bignum_size(bignum), big_digit = 0;
+
+  /* Below, we try to save up as much as possible in big_digit, and
+   * only when it exceeds what we would be able to multiply easily, we
+   * scale up the bignum and add what we saved up.
+   */
+  radix_shift = C_ilen(radix) - 1;
+  if (((C_uword)1 << radix_shift) == radix) { /* Power of two? */
+    int n = 0; /* Number of bits read so far into current big digit */
+
+    /* Read from least to most significant digit to avoid shifting or scaling */
+    while (str_end > str) {
+      str_digit = hex_char_to_digit((int)*--str_end);
+
+      big_digit |= (C_uword)str_digit << n;
+      n += radix_shift;
+
+      if (n >= C_BIGNUM_DIGIT_LENGTH) {
+	n -= C_BIGNUM_DIGIT_LENGTH;
+	*digits++ = big_digit;
+	big_digit = str_digit >> (radix_shift - n);
       }
-      break;
-    default:
-      if(sharpf) goto fail;
-      break;
     }
-  }
-  if (eptr == rptr) goto fail; /* Disallow "empty" numbers like "#x" and "1/" */
-  
-  /* check for rational representation: */
-  if(rptr != sptr) {
-    if (*(rptr) == '-' || *(rptr) == '+') {
-      n = C_SCHEME_FALSE;
-      goto fini;
-    }
-    *(rptr-1) = '\0';
+    assert(n < C_BIGNUM_DIGIT_LENGTH);
+    /* If radix isn't an exact divisor of digit length, write final digit */
+    if (n > 0) *digits++ = big_digit;
+    assert(digits == end_digits);
+  } else {			  /* Not a power of two */
+    C_uword *last_digit = digits, factor;  /* bignum starts as zero */
 
-    switch(convert_string_to_number(sptr, radix, &n1, &fn1)) {
-    case 0:
-      n = C_SCHEME_FALSE;
-      goto fini;
+    do {
+      factor = radix;
+      while (str < str_end && C_fitsinbignumhalfdigitp(factor)) {
+        str_digit = hex_char_to_digit((int)*str++);
+	factor *= radix;
+	big_digit = radix * big_digit + str_digit;
+      }
 
-    case 1:
-      fn1 = (double)n1;
-      break;
+      big_digit = bignum_digits_destructive_scale_up_with_carry(
+                   digits, last_digit, factor / radix, big_digit);
 
-      /* case 2: nop */
-    }
+      if (big_digit) {
+	(*last_digit++) = big_digit; /* Move end */
+        big_digit = 0;
+      }
+    } while (str < str_end);
 
-    sptr = rptr;
-  }    
-  
-  /* convert number and return result: */
-  switch(convert_string_to_number(sptr, radix, &n, &fn)) {
-  case 0: 			/* failed */
-    n = C_SCHEME_FALSE;
-    break;
-
-  case 1:			/* fixnum */
-    if(sharpf || ratf || (exactpf && !exactf)) {
-      n = C_flonum(a, ratf ? fn1 / (double)n : (double)n);
-
-      if(exactpf && exactf) n = maybe_inexact_to_exact(n);
-    }
-    else n = C_fix(n);
-
-    break;
-
-  case 2:			/* flonum */
-    n = C_flonum(a, ratf ? fn1 / fn : fn);
-
-    if(exactpf && exactf) n = maybe_inexact_to_exact(n);
-
-    break;
+    /* Set remaining digits to zero so bignum_simplify can do its work */
+    assert(last_digit <= end_digits);
+    while (last_digit < end_digits) *last_digit++ = 0;
   }
 
- fini:
-  return n;
+  return C_bignum_simplify(bignum);
 }
 
 
-static int from_n_nary(C_char *str, int base, double *r)
+static C_regparm double C_fcall decode_flonum_literal(C_char *str)
 {
-  double n = 0;
-  C_char *ptr = str;
-
-  while(*ptr != '\0') {
-    int c = C_tolower((int)(*(ptr++)));
-
-    if(c < '0') return 0;
-    else if(c >= '0' + base) {
-      if(base < 10) return 0;
-      else if(c < 'a') return 0;
-      else if(c >= 'a' + base - 10) return 0;
-      else n = n * base + c - 'a' + 10;
-    }
-    else n = n * base + c - '0';
-  }
-
-  *r = n;
-  return 1;
-}
-
-
-C_regparm C_word C_fcall convert_string_to_number(C_char *str, int radix, C_word *fix, double *flo)
-{
-  C_ulong ln;
-  C_word n;
-  C_char *eptr, *eptr2;
-  double fn;
+  C_char *eptr;
+  double flo;
   int len = C_strlen(str);
 
-  if(radix == 10) {
-    if (len == 6) {
-      if((*str == '+' || *str == '-') &&
-         C_strchr("inIN", *(str+1)) != NULL &&
-         C_strchr("naNA", *(str+2)) != NULL &&
-         C_strchr("fnFN", *(str+3)) != NULL &&
-         *(str+4) == '.' && *(str+5) == '0') {
-        if (*(str+1) == 'i' || *(str+1) == 'I')   /* Inf */
-          *flo = 1.0/0.0;
-        else                                      /* NaN */
-          *flo = 0.0/0.0;
-        if (*str == '-')
-          *flo *= -1.0;
-        return 2;
-      }
-    }
-    /* Prevent C parser from accepting things like "-inf" on its own... */
-    for(n = 0; n < len; ++n) {
-      if (C_strchr("+-0123456789e.", *(str+n)) == NULL)
-        return 0;
-    }
+  /* We only need to be able to parse what C_flonum_to_string() emits,
+   * so we avoid too much error checking.
+   */
+  if (len == 6) { /* Only perform comparisons when necessary */
+    if (!C_strcmp(str, "-inf.0")) return -1.0 / 0.0;
+    if (!C_strcmp(str, "+inf.0")) return 1.0 / 0.0;
+    if (!C_strcmp(str, "+nan.0")) return 0.0 / 0.0;
   }
-
-  if(C_strpbrk(str, "xX\0") != NULL) return 0;
 
   errno = 0;
-  n = C_strtow(str, &eptr, radix);
-  
-  if(((n == C_LONG_MAX || n == C_LONG_MIN) && errno != 0) || *eptr != '\0') {
-    if(radix != 10)
-      return from_n_nary(str, radix, flo) ? 2 : 0;
+  flo = C_strtod(str, &eptr);
 
-    errno = 0;
-    fn = C_strtod(str, &eptr2);
+  if((flo == HUGE_VAL && errno != 0) ||
+     (flo == -HUGE_VAL && errno != 0) ||
+     (*eptr != '\0' && C_strcmp(eptr, ".0") != 0)) {
+    panic(C_text("could not decode flonum literal"));
+  }
 
-    if((fn == HUGE_VAL && errno != 0) || fn == -HUGE_VAL) return 0;
-    else if(eptr2 == str) return 0;
-    else if(*eptr2 == '\0' || (eptr != eptr2 && !C_strncmp(eptr2, ".0", C_strlen(eptr2)))) {
-      *flo = fn;
-      return 2;
-    }
-
-    return 0;
-  }
-  else if((n & C_INT_SIGN_BIT) != (((C_uword)n << 1) & C_INT_SIGN_BIT)) { /* doesn't fit into fixnum? */
-    if(*eptr == '\0' || !C_strncmp(eptr, ".0", C_strlen(eptr))) {
-      *flo = (double)n;
-      return 2;
-    }
-    else return 0;
-  }
-  else {
-    *fix = n;
-    return 1;
-  }
+  return flo;
 }
 
 
-static char *to_n_nary(C_uword num, C_uword base)
+static char *to_n_nary(C_uword num, C_uword base, int negp, int as_flonum)
 {
+  static char *digits = "0123456789abcdef";
   char *p;
-  static char digits[] ={ '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F' };
-  buffer [ 66 ] = '\0';
+  C_uword shift = C_ilen(base) - 1;
+  int mask = (1 << shift) - 1;
+  if (as_flonum) {
+    buffer[68] = '\0';
+    buffer[67] = '0';
+    buffer[66] = '.';
+  } else {
+    buffer[66] = '\0';
+  }
   p = buffer + 66;
-
-  do {
-    *(--p) = digits [ num % base ];
-    num /= base;
-  } while (num);
-
+  if (mask == base - 1) {
+    do {
+      *(--p) = digits [ num & mask ];
+      num >>= shift;
+    } while (num);
+  } else {
+    do {
+      *(--p) = digits [ num % base ];
+      num /= base;
+    } while (num);
+  }
+  if (negp) *(--p) = '-';
   return p;
 }
 
 
 void C_ccall C_number_to_string(C_word c, C_word *av)
 {
-  C_word
-    /* closure * av[ 0 ] */
-    k = av[ 1 ],
-    num,
-    radix, *a;
-  C_char *p;
-  double f;
-  int neg = 0;
+  C_word radix, num;
 
-  if(c == 3) radix = 10;
-  else if(c == 4) {
+  if(c == 3) {
+    radix = C_fix(10);
+  } else if(c == 4) {
     radix = av[ 3 ];
-    
-    if(radix & C_FIXNUM_BIT) radix = C_unfix(radix);
-    else barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "number->string", radix);
+    if(!(radix & C_FIXNUM_BIT))
+      barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "number->string", radix);
+  } else {
+    C_bad_argc(c, 3);
   }
-  else C_bad_argc(c, 3);
 
   num = av[ 2 ];
 
   if(num & C_FIXNUM_BIT) {
-    num = C_unfix(num);
-
-    if(num < 0) {
-      neg = 1;
-      num = -num;
-    }
-
-    if((radix < 2) || (radix > 16)){
-      barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "number->string", C_fix(radix));
-    }
-
-    switch(radix) {
-#ifdef C_SIXTY_FOUR
-    case 8: C_snprintf(p = buffer + 1, sizeof(buffer) -1 , C_text("%llo"), (long long)num); break;
-    case 10: C_snprintf(p = buffer + 1, sizeof(buffer) - 1, C_text("%lld"), (long long)num); break;
-    case 16: C_snprintf(p = buffer + 1, sizeof(buffer) - 1, C_text("%llx"), (long long)num); break;
-#else
-    case 8: C_snprintf(p = buffer + 1, sizeof(buffer) - 1, C_text("%o"), num); break;
-    case 10: C_snprintf(p = buffer + 1, sizeof(buffer) - 1, C_text("%d"), num); break;
-    case 16: C_snprintf(p = buffer + 1, sizeof(buffer) - 1, C_text("%x"), num); break;
-#endif
-    default: 
-      p = to_n_nary(num, radix);
-    }
+    C_fixnum_to_string(c, av); /* reuse av */
+  } else if (C_immediatep(num)) {
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "number->string", num);
+  } else if(C_block_header(num) == C_FLONUM_TAG) {
+    C_flonum_to_string(c, av); /* reuse av */
+  } else if (C_truep(C_bignump(num))) {
+    C_integer_to_string(c, av); /* reuse av */
+  } else {
+    C_word k = av[ 1 ];
+    try_extended_number("\003sysextended-number->string", 3, k, num, radix);
   }
-  else if(!C_immediatep(num) && C_block_header(num) == C_FLONUM_TAG) {
-    f = C_flonum_magnitude(num);
+}
 
-    if(C_fits_in_unsigned_int_p(num) == C_SCHEME_TRUE) {
-      if(f < 0) {
-	neg = 1;
-	f = -f;
-      }
+void C_ccall C_fixnum_to_string(C_word c, C_word *av)
+{
+  C_char *p;
+  C_word *a,
+    /* self = av[ 0 ] */
+    k = av[ 1 ],
+    num = av[ 2 ],
+    radix = ((c == 3) ? 10 : C_unfix(av[ 3 ])),
+    neg = ((num & C_INT_SIGN_BIT) ? 1 : 0);
 
-      if((radix < 2) || (radix > 16)){
-	barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "number->string", C_fix(radix));
-      }
+  if (radix < 2 || radix > 16) {
+    barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "number->string", C_fix(radix));
+  }
 
-      switch(radix) {
-      case 8:
-	C_snprintf(p = buffer, sizeof(buffer), "%o", (unsigned int)f);
-	goto fini;
+  num = neg ? -C_unfix(num) : C_unfix(num);
+  p = to_n_nary(num, radix, neg, 0);
 
-      case 16:
-	C_snprintf(p = buffer, sizeof(buffer), "%x", (unsigned int)f);
-	goto fini;
+  num = C_strlen(p);
+  a = C_alloc((C_bytestowords(num) + 1));
+  C_kontinue(k, C_string(&a, num, p));
+}
 
-      case 10: break;		/* force output of decimal point to retain
-				   read/write invariance (the little we support) */
+void C_ccall C_flonum_to_string(C_word c, C_word *av)
+{
+  C_char *p;
+  double f, fa, m;
+  C_word *a,
+    /* self = av[ 0 ] */
+    k = av[ 1 ],
+    num = av[ 2 ],
+    radix = ((c == 3) ? 10 : C_unfix(av[ 3 ]));
 
-      default:
-	p = to_n_nary((unsigned int)f, radix);
-	goto fini;
+  f = C_flonum_magnitude(num);
+  fa = fabs(f);
 
-      }
-    } 
+  /* XXX TODO: Should inexacts be printable in other bases than 10?
+   * Perhaps output a string starting with #i?
+   * Right now something like (number->string 1e40 16) results in
+   * a string that can't be read back using string->number.
+   */
+  if((radix < 2) || (radix > 16)){
+    barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "number->string", C_fix(radix));
+  }
 
-    if(C_isnan(f)) {
-      C_strlcpy(buffer, C_text("+nan.0"), sizeof(buffer));
-      p = buffer;
-      goto fini;
+  if(f == 0.0 || (C_modf(f, &m) == 0.0 && log2(fa) < C_WORD_SIZE)) { /* Use fast int code */
+    if(f < 0) {
+      p = to_n_nary((C_uword)-f, radix, 1, 1);
+    } else {
+      p = to_n_nary((C_uword)f, radix, 0, 1);
     }
-    else if(C_isinf(f)) {
-      C_snprintf(buffer, sizeof(buffer), "%cinf.0", f > 0 ? '+' : '-');
-      p = buffer;
-      goto fini;
-    }
-
+  } else if(C_isnan(f)) {
+    p = "+nan.0";
+  } else if(C_isinf(f)) {
+    p = f > 0 ? "+inf.0" : "-inf.0";
+  } else { /* Doesn't fit an unsigned int and not "special"; use system libc */
     C_snprintf(buffer, STRING_BUFFER_SIZE, C_text("%.*g"),
-	       flonum_print_precision, f);
+               /* XXX: flonum_print_precision */
+               (int)C_unfix(C_get_print_precision()), f);
     buffer[STRING_BUFFER_SIZE-1] = '\0';
 
     if((p = C_strpbrk(buffer, C_text(".eE"))) == NULL) {
-      if(*buffer == 'i' || *buffer == 'n') { /* inf or nan */
-	C_memmove(buffer + 1, buffer, C_strlen(buffer) + 1);
-	*buffer = '+';
-      }
-      else if(buffer[ 1 ] != 'i') C_strlcat(buffer, C_text(".0"), sizeof(buffer)); /* negative infinity? */
+      /* Already checked for these, so shouldn't happen */
+      assert(*buffer != 'i'); /* "inf" */
+      assert(*buffer != 'n'); /* "nan" */
+      /* Ensure integral flonums w/o expt are always terminated by .0 */
+#if defined(HAVE_STRLCAT) || !defined(C_strcat)
+      C_strlcat(buffer, C_text(".0"), sizeof(buffer));
+#else
+      C_strcat(buffer, C_text(".0"));
+#endif
     }
-
     p = buffer;
   }
-  else
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "number->string", num);
-
- fini:
-  if(neg) *(--p) = '-';
 
   radix = C_strlen(p);
   a = C_alloc((C_bytestowords(radix) + 1));
@@ -8146,27 +10493,168 @@ void C_ccall C_number_to_string(C_word c, C_word *av)
   C_kontinue(k, radix);
 }
 
-
-/* special case for fixnum arg and decimal radix */
-void C_ccall C_fixnum_to_string(C_word c, C_word *av)
+void C_ccall C_integer_to_string(C_word c, C_word *av)
 {
   C_word
-    /* closure = av[ 0 ] */
+    /* self = av[ 0 ] */
     k = av[ 1 ],
     num = av[ 2 ],
-    *a, s;
-  int n;
+    radix = ((c == 3) ? 10 : C_unfix(av[ 3 ]));
 
-  /*XXX is this necessary? */
-#ifdef C_SIXTY_FOUR
-  C_snprintf(buffer, sizeof(buffer), C_text(LONG_FORMAT_STRING), C_unfix(num));
-#else
-  C_snprintf(buffer, sizeof(buffer), C_text("%d"), C_unfix(num));
-#endif
-  n = C_strlen(buffer);
-  a = C_alloc(C_bytestowords(n) + 1);
-  s = C_string2(&a, buffer);
-  C_kontinue(k, s);
+  if (num & C_FIXNUM_BIT) {
+    C_fixnum_to_string(4, av); /* reuse av */
+  } else {
+    int len, radix_shift;
+    size_t nbits;
+
+    if ((radix < 2) || (radix > 16)) {
+      barf(C_BAD_ARGUMENT_TYPE_BAD_BASE_ERROR, "number->string", C_fix(radix));
+    }
+
+    /* Approximation of the number of radix digits we'll need.  We try
+     * to be as precise as possible to avoid memmove overhead at the end
+     * of the non-powers of two part of the conversion procedure, which
+     * we may need to do because we write strings back-to-front, and
+     * pointers must be aligned (even for byte blocks).
+     */
+    len = C_bignum_size(num)-1;
+
+    nbits  = (size_t)len * C_BIGNUM_DIGIT_LENGTH;
+    nbits += C_ilen(C_bignum_digits(num)[len]);
+
+    len = C_ilen(radix)-1;
+    len = (nbits + len - 1) / len;
+    len += C_bignum_negativep(num) ? 1 : 0; /* Add space for negative sign */
+    
+    radix_shift = C_ilen(radix) - 1;
+    if (len > C_RECURSIVE_TO_STRING_THRESHOLD &&
+        /* The power of two fast path is much faster than recursion */
+        ((C_uword)1 << radix_shift) != radix) {
+      try_extended_number("\003sysinteger->string/recursive",
+                          4, k, num, C_fix(radix), C_fix(len));
+    } else {
+      C_word kab[C_SIZEOF_CLOSURE(4)], *ka = kab, kav[6];
+
+      kav[ 0 ] = (C_word)NULL;   /* No "self" closure */
+      kav[ 1 ] = C_closure(&ka, 4, (C_word)bignum_to_str_2,
+                           k, num, C_fix(radix));
+      kav[ 2 ] = C_fix(len);
+      kav[ 3 ] = C_SCHEME_TRUE; /* Byte vector */
+      kav[ 4 ] = C_SCHEME_FALSE; /* No initialization */
+      kav[ 5 ] = C_SCHEME_FALSE; /* Don't align at 8 bytes */
+      C_allocate_vector(6, kav);
+    }
+  }
+}
+
+static void bignum_to_str_2(C_word c, C_word *av)
+{
+  static char *characters = "0123456789abcdef";
+  C_word
+    self = av[ 0 ],
+    string = av[ 1 ],
+    k = C_block_item(self, 1),
+    bignum = C_block_item(self, 2),
+    radix = C_unfix(C_block_item(self, 3));
+  char
+    *buf = C_c_string(string),
+    *index = buf + C_header_size(string) - 1;
+  int radix_shift,
+    negp = (C_bignum_negativep(bignum) ? 1 : 0);
+
+  radix_shift = C_ilen(radix) - 1;
+  if (((C_uword)1 << radix_shift) == radix) { /* Power of two? */
+    int radix_mask = radix - 1, big_digit_len = 0, radix_digit;
+    C_uword *scan, *end, big_digit = 0;
+
+    scan = C_bignum_digits(bignum);
+    end = scan + C_bignum_size(bignum);
+
+    while (scan < end) {
+      /* If radix isn't an exact divisor of digit length, handle overlap */
+      if (big_digit_len == 0) {
+        big_digit = *scan++;
+        big_digit_len = C_BIGNUM_DIGIT_LENGTH;
+      } else {
+        assert(index >= buf);
+	radix_digit = big_digit;
+        big_digit = *scan++;
+	radix_digit |= ((unsigned int)big_digit << big_digit_len) & radix_mask;
+        *index-- = characters[radix_digit];
+	big_digit >>= (radix_shift - big_digit_len);
+        big_digit_len = C_BIGNUM_DIGIT_LENGTH - (radix_shift - big_digit_len);
+      }
+
+      while(big_digit_len >= radix_shift && index >= buf) {
+	radix_digit = big_digit & radix_mask;
+        *index-- = characters[radix_digit];
+	big_digit >>= radix_shift;
+	big_digit_len -= radix_shift;
+      }
+    }
+
+    assert(big_digit < radix);
+
+    /* Final digit (like overlap at start of while loop) */
+    if (big_digit) *index-- = characters[big_digit];
+
+    if (negp) {
+      /* Loop above might've overwritten sign position with a zero */
+      if (*(index+1) == '0') *(index+1) = '-';
+      else *index-- = '-';
+    }
+
+    /* Length calculation is always precise for radix powers of two. */
+    assert(index == buf-1);
+  } else {
+    C_uword base, *start, *scan, big_digit;
+    C_word working_copy;
+    int steps, i;
+
+    working_copy = allocate_tmp_bignum(C_fix(C_bignum_size(bignum)),
+                                       C_mk_bool(negp), C_SCHEME_FALSE);
+    bignum_digits_destructive_copy(working_copy, bignum);
+
+    start = C_bignum_digits(working_copy);
+
+    scan = start + C_bignum_size(bignum);
+    /* Calculate the largest power of radix that fits a halfdigit:
+     * steps = log10(2^halfdigit_bits), base = 10^steps
+     */
+    for(steps = 0, base = radix; C_fitsinbignumhalfdigitp(base); base *= radix)
+      steps++;
+
+    base /= radix; /* Back down: we overshot in the loop */
+
+    while (scan > start) {
+      big_digit = bignum_digits_destructive_scale_down(start, scan, base);
+
+      if (*(scan-1) == 0) scan--; /* Adjust if we exhausted the highest digit */
+
+      for(i = 0; i < steps && index >= buf; ++i) {
+	C_word tmp = big_digit / radix;
+        *index-- = characters[big_digit - (tmp*radix)]; /* big_digit % radix */
+        big_digit = tmp;
+      }
+    }
+    assert(index >= buf-1);
+    free_tmp_bignum(working_copy);
+
+    /* Move index onto first nonzero digit.  We're writing a bignum
+       here: it can't consist of only zeroes. */
+    while(*++index == '0');
+  
+    if (negp) *--index = '-';
+  
+    /* Shorten with distance between start and index. */
+    if (buf != index) {
+      i = C_header_size(string) - (index - buf);
+      C_memmove(buf, index, i); /* Move start of number to beginning. */
+      C_block_header(string) = C_STRING_TYPE | i; /* Mutate strlength. */
+    }
+  }
+
+  C_kontinue(k, string);
 }
 
 
@@ -8182,7 +10670,7 @@ void C_ccall C_make_structure(C_word c, C_word *av)
   if(!C_demand(size + 2))
     C_save_and_reclaim((void *)C_make_structure, c, av);
 
-  s = C_alloc(size + 2),
+  s = C_alloc(C_SIZEOF_STRUCTURE(size + 1)),
   s0 = (C_word)s;
   *(s++) = C_STRUCTURE_TYPE | (size + 1);
   *(s++) = type;
@@ -8291,7 +10779,7 @@ void C_ccall C_get_symbol_table_info(C_word c, C_word *av)
   C_SYMBOL_TABLE *stp;
   C_word
     x, y,
-    ab[ WORDS_PER_FLONUM * 2 + 5 ], /* 2 flonums + 1 vector of 4 elements */
+    ab[ WORDS_PER_FLONUM * 2 + C_SIZEOF_VECTOR(4) ],
     *a = ab;
 
   for(stp = symbol_table_list; stp != NULL; stp = stp->next)
@@ -8309,7 +10797,7 @@ void C_ccall C_get_memory_info(C_word c, C_word *av)
   C_word
     /* closure = av[ 0 ] */
     k = av[ 1 ],
-    ab[ 3 ],
+    ab[ C_SIZEOF_VECTOR(2) ],
     *a = ab;
 
   C_kontinue(k, C_vector(&a, 2, C_fix(heap_size), C_fix(stack_size)));
@@ -8343,14 +10831,12 @@ void C_ccall C_peek_signed_integer(C_word c, C_word *av)
     k = av[ 1 ],
     v = av[ 2 ],
     index = av[ 3 ],
-    x = C_block_item(v, C_unfix(index));
-  C_alloc_flonum;
+    x = C_block_item(v, C_unfix(index)),
+    ab[C_SIZEOF_BIGNUM(1)], *a = ab;
 
-  if((x & C_INT_SIGN_BIT) != (((C_uword)x << 1) & C_INT_SIGN_BIT)) {
-    C_kontinue_flonum(k, (double)x);
-  }
+  C_uword num = ((C_word *)C_data_pointer(v))[ C_unfix(index) ];
 
-  C_kontinue(k, C_fix(x));
+  C_kontinue(k, C_int_to_num(&a, num));
 }
 
 
@@ -8361,14 +10847,43 @@ void C_ccall C_peek_unsigned_integer(C_word c, C_word *av)
     k = av[ 1 ],
     v = av[ 2 ],
     index = av[ 3 ],
-    x = C_block_item(v, C_unfix(index));
-  C_alloc_flonum;
+    x = C_block_item(v, C_unfix(index)),
+    ab[C_SIZEOF_BIGNUM(1)], *a = ab;
 
-  if((x & C_INT_SIGN_BIT) || (((C_uword)x << 1) & C_INT_SIGN_BIT)) {
-    C_kontinue_flonum(k, (double)(C_uword)x);
-  }
+  C_uword num = ((C_word *)C_data_pointer(v))[ C_unfix(index) ];
 
-  C_kontinue(k, C_fix(x));
+  C_kontinue(k, C_unsigned_int_to_num(&a, num));
+}
+
+void C_ccall C_peek_int64(C_word c, C_word *av)
+{
+  C_word
+    /* closure = av[ 0 ] */
+    k = av[ 1 ],
+    v = av[ 2 ],
+    index = av[ 3 ],
+    x = C_block_item(v, C_unfix(index)),
+    ab[C_SIZEOF_BIGNUM(2)], *a = ab;
+
+  C_s64 num = ((C_s64 *)C_data_pointer(v))[ C_unfix(index) ];
+
+  C_kontinue(k, C_int64_to_num(&a, num));
+}
+
+
+void C_ccall C_peek_uint64(C_word c, C_word *av)
+{
+  C_word
+    /* closure = av[ 0 ] */
+    k = av[ 1 ],
+    v = av[ 2 ],
+    index = av[ 3 ],
+    x = C_block_item(v, C_unfix(index)),
+    ab[C_SIZEOF_BIGNUM(2)], *a = ab;
+
+  C_u64 num = ((C_u64 *)C_data_pointer(v))[ C_unfix(index) ];
+
+  C_kontinue(k, C_uint64_to_num(&a, num));
 }
 
 
@@ -8382,11 +10897,11 @@ void C_ccall C_decode_seconds(C_word c, C_word *av)
   time_t tsecs;
   struct tm *tmt;
   C_word
-    ab[ 11 ], 
+    ab[ C_SIZEOF_VECTOR(10) ], 
     *a = ab,
     info;
 
-  tsecs = (time_t)((secs & C_FIXNUM_BIT) != 0 ? C_unfix(secs) : C_flonum_magnitude(secs));
+  tsecs = (time_t)C_num_to_int64(secs);
   
   if(mode == C_SCHEME_FALSE) tmt = C_localtime(&tsecs);
   else tmt = C_gmtime(&tsecs);
@@ -8511,8 +11026,9 @@ void C_ccall C_register_finalizer(C_word c, C_word *av)
     x = av[ 2 ],
     proc = av[ 3 ];
 
-  if(C_immediatep(x) || (!C_in_stackp(x) && !C_in_heapp(x))) /* not GCable? */
-    C_kontinue(k, x);
+  if(C_immediatep(x) ||
+     (!C_in_stackp(x) && !C_in_heapp(x) && !C_in_scratchspacep(x)))
+    C_kontinue(k, x); /* not GCable */
 
   C_do_register_finalizer(x, proc);
   C_kontinue(k, x);
@@ -8644,7 +11160,7 @@ void C_ccall dload_2(C_word c, C_word *av0)
       current_module_handle = handle;
 
       if(debug_mode) {
-	C_dbg(C_text("debug"), C_text("loading compiled module `%s' (handle is " UWORD_FORMAT_STRING ")\n"),
+	C_dbg(C_text("debug"), C_text("loading compiled library %s (" UWORD_FORMAT_STRING ")\n"),
 	      current_module_name, (C_uword)current_module_handle);
       }
 
@@ -8700,7 +11216,7 @@ void C_ccall dload_2(C_word c, C_word *av0)
       current_module_handle = handle;
 
       if(debug_mode) {
-	C_dbg(C_text("debug"), C_text("loading compiled module `%s' (handle is " UWORD_FORMAT_STRING ")\n"),
+	C_dbg(C_text("debug"), C_text("loading compiled library %s (" UWORD_FORMAT_STRING ")\n"),
 	      current_module_name, (C_uword)current_module_handle);
       }
 
@@ -8748,7 +11264,7 @@ void C_ccall dload_2(C_word c, C_word *av0)
       current_module_handle = handle;
 
       if(debug_mode) {
-	C_dbg(C_text("debug"), C_text("loading compiled module `%s' (handle is " UWORD_FORMAT_STRING ")\n"),
+	C_dbg(C_text("debug"), C_text("loading compiled library %s (" UWORD_FORMAT_STRING ")\n"),
 	      current_module_name, (C_uword)current_module_handle);
       }
 
@@ -8817,14 +11333,14 @@ C_a_i_cpu_time(C_word **a, int c, C_word buf)
 
 #if defined(C_NONUNIX) || defined(__CYGWIN__)
   if(CLOCKS_PER_SEC == 1000) u = clock();
-  else u = C_number(a, C_floor(((double)clock() / (double)CLOCKS_PER_SEC) * 1000));
+  else u = C_uint64_to_num(a, ((C_u64)clock() / CLOCKS_PER_SEC) * 1000);
 #else
   struct rusage ru;
 
   if(C_getrusage(RUSAGE_SELF, &ru) == -1) u = 0;
   else {
-    u = C_number(a, C_floor((double)ru.ru_utime.tv_sec * 1000 + ru.ru_utime.tv_usec / 1000));
-    s = C_number(a, C_floor((double)ru.ru_stime.tv_sec * 1000 + ru.ru_stime.tv_usec / 1000));
+    u = C_uint64_to_num(a, (C_u64)ru.ru_utime.tv_sec * 1000 + ru.ru_utime.tv_usec / 1000);
+    s = C_uint64_to_num(a, (C_u64)ru.ru_stime.tv_sec * 1000 + ru.ru_stime.tv_usec / 1000);
   }
 #endif
 
@@ -8850,6 +11366,8 @@ C_regparm C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_w
   case C_U32_LOCATIVE:
   case C_F32_LOCATIVE:
   case C_S32_LOCATIVE: in *= 4; break;
+  case C_U64_LOCATIVE:
+  case C_S64_LOCATIVE:
   case C_F64_LOCATIVE: in *= 8; break;
   }
 
@@ -8882,42 +11400,6 @@ C_regparm C_word C_fcall C_a_i_make_locative(C_word **a, int c, C_word type, C_w
   return (C_word)loc;
 }
 
-/* DEPRECATED */
-void C_ccall C_locative_ref(C_word c, C_word *av)
-{
-  C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
-    loc,
-    *ptr, val,
-    ab[WORDS_PER_FLONUM], *a = ab;
-
-  if(c != 3) C_bad_argc(c, 3);
-
-  loc = av[ 2 ];
-
-  if(C_immediatep(loc) || C_block_header(loc) != C_LOCATIVE_TAG)
-    barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-ref", loc);
-
-  ptr = (C_word *)C_block_item(loc, 0);
-
-  if(ptr == NULL) barf(C_LOST_LOCATIVE_ERROR, "locative-ref", loc);
-
-  switch(C_unfix(C_block_item(loc, 2))) {
-  case C_SLOT_LOCATIVE: C_kontinue(k, *ptr);
-  case C_CHAR_LOCATIVE: C_kontinue(k, C_make_character(*((char *)ptr)));
-  case C_U8_LOCATIVE: C_kontinue(k, C_fix(*((unsigned char *)ptr)));
-  case C_S8_LOCATIVE: C_kontinue(k, C_fix(*((char *)ptr)));
-  case C_U16_LOCATIVE: C_kontinue(k, C_fix(*((unsigned short *)ptr)));
-  case C_S16_LOCATIVE: C_kontinue(k, C_fix(*((short *)ptr)));
-  case C_U32_LOCATIVE: C_kontinue(k, C_unsigned_int_to_num(&a, *((C_u32 *)ptr)));
-  case C_S32_LOCATIVE: C_kontinue(k, C_int_to_num(&a, *((C_s32 *)ptr)));
-  case C_F32_LOCATIVE: C_kontinue(k, C_flonum(&a, *((float *)ptr)));
-  case C_F64_LOCATIVE: C_kontinue(k, C_flonum(&a, *((double *)ptr)));
-  default: panic(C_text("bad locative type"));
-  }
-}
-
 C_regparm C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc)
 {
   C_word *ptr;
@@ -8938,6 +11420,8 @@ C_regparm C_word C_fcall C_a_i_locative_ref(C_word **a, int c, C_word loc)
   case C_S16_LOCATIVE: return C_fix(*((short *)ptr));
   case C_U32_LOCATIVE: return C_unsigned_int_to_num(a, *((C_u32 *)ptr));
   case C_S32_LOCATIVE: return C_int_to_num(a, *((C_s32 *)ptr));
+  case C_U64_LOCATIVE: return C_uint64_to_num(a, *((C_u64 *)ptr));
+  case C_S64_LOCATIVE: return C_int64_to_num(a, *((C_s64 *)ptr));
   case C_F32_LOCATIVE: return C_flonum(a, *((float *)ptr));
   case C_F64_LOCATIVE: return C_flonum(a, *((double *)ptr));
   default: panic(C_text("bad locative type"));
@@ -8957,7 +11441,7 @@ C_regparm C_word C_fcall C_i_locative_set(C_word loc, C_word x)
     barf(C_LOST_LOCATIVE_ERROR, "locative-set!", loc);
 
   switch(C_unfix(C_block_item(loc, 2))) {
-  case C_SLOT_LOCATIVE: C_mutate2(ptr, x); break;
+  case C_SLOT_LOCATIVE: C_mutate(ptr, x); break;
 
   case C_CHAR_LOCATIVE:
     if((x & C_IMMEDIATE_TYPE_BITS) != C_CHARACTER_BITS)
@@ -8995,17 +11479,31 @@ C_regparm C_word C_fcall C_i_locative_set(C_word loc, C_word x)
     break;
 
   case C_U32_LOCATIVE: 
-    if((x & C_FIXNUM_BIT) == 0 && (C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG))
+    if(!C_truep(C_i_exact_integerp(x)))
       barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-set!", x);
 
     *((C_u32 *)ptr) = C_num_to_unsigned_int(x); 
     break;
 
   case C_S32_LOCATIVE: 
-    if((x & C_FIXNUM_BIT) == 0 && (C_immediatep(x) || C_block_header(x) != C_FLONUM_TAG))
+    if(!C_truep(C_i_exact_integerp(x)))
       barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-set!", x);
     
     *((C_s32 *)ptr) = C_num_to_int(x); 
+    break;
+
+  case C_U64_LOCATIVE: 
+    if(!C_truep(C_i_exact_integerp(x)))
+      barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-set!", x);
+
+    *((C_u64 *)ptr) = C_num_to_uint64(x); 
+    break;
+
+  case C_S64_LOCATIVE: 
+    if(!C_truep(C_i_exact_integerp(x)))
+      barf(C_BAD_ARGUMENT_TYPE_ERROR, "locative-set!", x);
+    
+    *((C_s64 *)ptr) = C_num_to_int64(x); 
     break;
 
   case C_F32_LOCATIVE: 
@@ -9141,7 +11639,7 @@ static void C_ccall copy_closure_2(C_word c, C_word *av)
     proc = av[ 1 ];
   int cells = C_header_size(proc);
   C_word
-    *ptr = C_alloc(cells + 1),
+    *ptr = C_alloc(C_SIZEOF_CLOSURE(cells)),
     *p = ptr;
 
   *(p++) = C_CLOSURE_TYPE | cells;
@@ -9157,7 +11655,7 @@ void C_ccall C_call_with_cthulhu(C_word c, C_word *av)
 {
   C_word
     proc = av[ 2 ],
-    *a = C_alloc(3),
+    *a = C_alloc(C_SIZEOF_CLOSURE(1)),
     av2[ 2 ];
 
   av2[ 0 ] = proc;
@@ -9364,11 +11862,11 @@ static C_regparm C_word C_fcall decode_literal2(C_word **ptr, C_char **str,
       return C_fix(val); 
 
 #ifdef C_SIXTY_FOUR
-    case (C_FLONUM_TYPE >> (24 + 32)) & 0xff:
+    case ((C_STRING_TYPE | C_GC_FORWARDING_BIT) >> (24 + 32)) & 0xff:
 #else
-    case (C_FLONUM_TYPE >> 24) & 0xff:
+    case ((C_STRING_TYPE | C_GC_FORWARDING_BIT) >> 24) & 0xff:
 #endif
-      bits = C_FLONUM_TYPE;
+      bits = (C_STRING_TYPE | C_GC_FORWARDING_BIT);
       break;
 
     default: 
@@ -9385,34 +11883,25 @@ static C_regparm C_word C_fcall decode_literal2(C_word **ptr, C_char **str,
 
   val = (C_word)(*ptr);
 
+  if((bits & C_SPECIALBLOCK_BIT) != 0)
+    panic(C_text("literals with special bit cannot be decoded"));
+
   if(bits == C_FLONUM_TYPE) {
-    C_word ln;
-    double fn;
-
-    switch (convert_string_to_number(*str, 10, &ln, &fn)) {
-    case 0: 			/* failed */
-      panic(C_text("invalid encoded numeric literal"));
-      break;
-
-    case 1:			/* fixnum */
-      val = C_fix(ln);
-      break;
-
-    case 2:			/* flonum */
-      val = C_flonum(ptr, fn);
-      break;
-    }
-
+    val = C_flonum(ptr, decode_flonum_literal(*str));
     while(*((*str)++) != '\0');      /* skip terminating '\0' */
     return val;
   }
 
-  if((bits & C_SPECIALBLOCK_BIT) != 0)
-    panic(C_text("literals with special bit cannot be decoded"));
-
   size = decode_size(str);
 
   switch(bits) {
+  /* This cannot be encoded as a blob due to endianness differences */
+  case (C_STRING_TYPE | C_GC_FORWARDING_BIT): /* This represents "exact int" */
+    /* bignums are also allocated statically */
+    val = C_static_bignum(ptr, size, *str);
+    *str += size;
+    break;
+
   case C_STRING_TYPE:
     /* strings are always allocated statically */
     val = C_static_string(ptr, size, *str);
@@ -9474,7 +11963,7 @@ C_decode_literal(C_word **ptr, C_char *str)
 void
 C_use_private_repository(C_char *path)
 {
-  private_repository = path == NULL ? NULL : C_strdup(path);
+  private_repository = path;
 }
 
 
@@ -9484,6 +11973,152 @@ C_private_repository_path()
   return private_repository;
 }
 
+C_char *
+C_executable_pathname() {
+#ifdef SEARCH_EXE_PATH
+  return C_main_exe == NULL ? NULL : C_strdup(C_main_exe);
+#else
+  return C_resolve_executable_pathname(NULL);
+#endif
+}
+
+C_char *
+C_executable_dirname() {
+  int len;
+  C_char *path;
+
+  if((path = C_executable_pathname()) == NULL)
+    return NULL;
+
+#if defined(_WIN32) && !defined(__CYGWIN__)
+  for(len = C_strlen(path); len >= 0 && path[len] != '\\'; len--);
+#else
+  for(len = C_strlen(path); len >= 0 && path[len] != '/'; len--);
+#endif
+
+  path[len] = '\0';
+  return path;
+}
+
+C_char *
+C_resolve_executable_pathname(C_char *fname)
+{
+  int n;
+  C_char *buffer = (C_char *) C_malloc(C_MAX_PATH);
+
+  if(buffer == NULL) return NULL;
+
+#if defined(__linux__) || defined(__sun)
+  C_char linkname[64]; /* /proc/<pid>/exe */
+  pid_t pid = C_getpid();
+
+# ifdef __linux__
+  C_snprintf(linkname, sizeof(linkname), "/proc/%i/exe", pid);
+# else
+  C_snprintf(linkname, sizeof(linkname), "/proc/%i/path/a.out", pid); /* SunOS / Solaris */
+# endif
+
+  n = C_readlink(linkname, buffer, C_MAX_PATH);
+  if(n < 0 || n >= C_MAX_PATH)
+    goto error;
+
+  buffer[n] = '\0';
+  return buffer;
+#elif defined(_WIN32) && !defined(__CYGWIN__)
+  n = GetModuleFileName(NULL, buffer, C_MAX_PATH);
+  if(n == 0 || n >= C_MAX_PATH)
+    goto error;
+
+  return buffer;
+#elif defined(C_MACOSX)
+  C_char buf[C_MAX_PATH];
+  C_u32 size = C_MAX_PATH;
+
+  if(_NSGetExecutablePath(buf, &size) != 0)
+    goto error;
+
+  if(C_realpath(buf, buffer) == NULL)
+    goto error;
+
+  return buffer;
+#elif defined(__HAIKU__)
+{
+  image_info info;
+  int32 cookie = 0;
+
+  while (get_next_image_info(0, &cookie, &info) == B_OK) {
+    if (info.type == B_APP_IMAGE) {
+      C_strlcpy(buffer, info.name, C_MAX_PATH);
+      return buffer;
+    }
+  }
+}
+#elif defined(SEARCH_EXE_PATH)
+  int len;
+  C_char *path, buf[C_MAX_PATH];
+
+  /* no name given (execve) */
+  if(fname == NULL)
+    goto error;
+
+  /* absolute pathname */
+  if(fname[0] == '/') {
+    if(C_realpath(fname, buffer) == NULL)
+      goto error;
+    else
+      return buffer;
+  }
+
+  /* current directory */
+  if(C_strchr(fname, '/') != NULL) {
+    if(C_getcwd(buffer, C_MAX_PATH) == NULL)
+      goto error;
+
+    n = C_snprintf(buf, C_MAX_PATH, "%s/%s", buffer, fname);
+    if(n < 0 || n >= C_MAX_PATH)
+      goto error;
+
+    if(C_access(buf, X_OK) == 0) {
+      if(C_realpath(buf, buffer) == NULL)
+        goto error;
+      else
+        return buffer;
+    }
+  }
+
+  /* walk PATH */
+  if((path = C_getenv("PATH")) == NULL)
+    goto error;
+
+  do {
+    /* check PATH entry length */
+    len = C_strcspn(path, ":");
+    if(len == 0 || len >= C_MAX_PATH)
+      continue;
+
+    /* "<path>/<fname>" to buf */
+    C_strncpy(buf, path, len);
+    n = C_snprintf(buf + len, C_MAX_PATH - len, "/%s", fname);
+    if(n < 0 || n + len >= C_MAX_PATH)
+      continue;
+
+    if(C_access(buf, X_OK) != 0)
+      continue;
+
+    /* fname found, resolve links */
+    if(C_realpath(buf, buffer) != NULL)
+      return buffer;
+
+  /* seek next entry, skip colon */
+  } while (path += len, *path++);
+#else
+# error "Please either define SEARCH_EXE_PATH in Makefile.<platform> or implement C_resolve_executable_pathname for your platform!"
+#endif
+
+error:
+  C_free(buffer);
+  return NULL;
+}
 
 C_regparm C_word C_fcall
 C_i_getprop(C_word sym, C_word prop, C_word def)
@@ -9503,19 +12138,22 @@ C_i_getprop(C_word sym, C_word prop, C_word def)
 C_regparm C_word C_fcall
 C_putprop(C_word **ptr, C_word sym, C_word prop, C_word val)
 {
-  C_word pl = C_block_item(sym, 2);
+  C_word pl = C_symbol_plist(sym);
+
+  /* Newly added plist?  Ensure the symbol stays! */
+  if (pl == C_SCHEME_END_OF_LIST) C_i_persist_symbol(sym);
 
   while(pl != C_SCHEME_END_OF_LIST) {
     if(C_block_item(pl, 0) == prop) {
-      C_mutate2(&C_u_i_car(C_u_i_cdr(pl)), val);
+      C_mutate(&C_u_i_car(C_u_i_cdr(pl)), val);
       return val;
     }
     else pl = C_u_i_cdr(C_u_i_cdr(pl));
   }
 
-  pl = C_a_pair(ptr, val, C_block_item(sym, 2));
+  pl = C_a_pair(ptr, val, C_symbol_plist(sym));
   pl = C_a_pair(ptr, prop, pl);
-  C_mutate_slot(&C_block_item(sym, 2), pl);
+  C_mutate_slot(&C_symbol_plist(sym), pl);
   return val;
 }
 
@@ -9714,6 +12352,8 @@ static void C_ccall dump_heap_state_2(C_word c, C_word *av)
   }
 
   bp = hdump_table;
+  /* HACK */
+#define C_WEAK_PAIR_TYPE (C_PAIR_TYPE | C_SPECIALBLOCK_BIT)
   
   for(n = 0; n < HDUMP_TABLE_SIZE; ++n) {
     for(b = bp[ n ]; b != NULL; b = b2) {
@@ -9736,11 +12376,13 @@ static void C_ccall dump_heap_state_2(C_word c, C_word *av)
       case C_POINTER_TYPE: C_fprintf(C_stderr,        C_text("pointer        ")); break;
       case C_LOCATIVE_TYPE: C_fprintf(C_stderr,       C_text("locative       ")); break;
       case C_TAGGED_POINTER_TYPE: C_fprintf(C_stderr, C_text("tagged pointer ")); break;
-      case C_SWIG_POINTER_TYPE: C_fprintf(C_stderr,   C_text("swig pointer   ")); break;
       case C_LAMBDA_INFO_TYPE: C_fprintf(C_stderr,    C_text("lambda info    ")); break;
-      case C_BUCKET_TYPE: C_fprintf(C_stderr,         C_text("bucket         ")); break;
+      case C_WEAK_PAIR_TYPE: C_fprintf(C_stderr,      C_text("weak pair      ")); break;
       case C_VECTOR_TYPE: C_fprintf(C_stderr,         C_text("vector         ")); break;
       case C_BYTEVECTOR_TYPE: C_fprintf(C_stderr,     C_text("bytevector     ")); break;
+      case C_BIGNUM_TYPE: C_fprintf(C_stderr,         C_text("bignum         ")); break;
+      case C_CPLXNUM_TYPE: C_fprintf(C_stderr,        C_text("cplxnum        ")); break;
+      case C_RATNUM_TYPE: C_fprintf(C_stderr,         C_text("ratnum         ")); break;
 	/* XXX this is sort of funny: */
       case C_BYTEBLOCK_BIT: C_fprintf(C_stderr,        C_text("blob           ")); break;
       default:
@@ -9835,6 +12477,15 @@ void C_ccall C_filter_heap_objects(C_word c, C_word *av)
   C_reclaim((void *)filter_heap_objects_2, 4);
 }
 
+C_regparm C_word C_fcall C_i_process_sleep(C_word n)
+{
+#if defined(_WIN32) && !defined(__CYGWIN__)
+  Sleep(C_unfix(n) * 1000);
+  return C_fix(0);
+#else
+  return C_fix(sleep(C_unfix(n)));
+#endif
+}
 
 C_regparm C_word C_fcall 
 C_i_file_exists_p(C_word name, C_word file, C_word dir)
@@ -9842,7 +12493,7 @@ C_i_file_exists_p(C_word name, C_word file, C_word dir)
   struct stat buf;
   int res;
 
-  res = stat(C_c_string(name), &buf);
+  res = C_stat(C_c_string(name), &buf);
 
   if(res != 0) {
     switch(errno) {

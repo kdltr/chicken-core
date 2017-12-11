@@ -27,21 +27,252 @@
 
 (declare
   (unit chicken-syntax)
+  (uses expand internal)
   (disable-interrupts)
   (fixnum) )
+
+;; IMPORTANT: These macros expand directly into fully qualified names
+;; from the scrutinizer and support modules.
 
 #+(not debugbuild)
 (declare
   (no-bound-checks)
   (no-procedure-checks))
 
-(##sys#provide 'chicken-syntax)
+(import chicken (chicken internal))
 
+(include "common-declarations.scm")
+(include "mini-srfi-1.scm")
 
-;;; Non-standard macros:
-
-(define ##sys#chicken-macro-environment
+;;; Exceptions:
+(set! ##sys#chicken.condition-macro-environment
   (let ((me0 (##sys#macro-environment)))
+
+(##sys#extend-macro-environment
+ 'handle-exceptions
+ `((call-with-current-continuation . scheme#call-with-current-continuation))
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'handle-exceptions form '(_ variable _ . _))
+    (let ((k (r 'k))
+	  (args (r 'args)))
+      `((,(r 'call-with-current-continuation)
+	 (##core#lambda
+	  (,k)
+	  (chicken.condition#with-exception-handler
+	   (##core#lambda (,(cadr form)) (,k (##core#lambda () ,(caddr form))))
+	   (##core#lambda
+	    ()
+	    (##sys#call-with-values
+	     (##core#lambda () ,@(cdddr form))
+	     (##core#lambda
+	      ,args
+	      (,k (##core#lambda () (##sys#apply ##sys#values ,args))))))))))))))
+
+(##sys#extend-macro-environment
+ 'condition-case
+ `((else . ,(##sys#primitive-alias 'else))
+   (memv . scheme#memv))
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'condition-case form '(_ _ . _))
+    (let ((exvar (r 'exvar))
+	  (kvar (r 'kvar))
+	  (%and (r 'and))
+	  (%memv (r 'memv))
+	  (%else (r 'else)))
+      (define (parse-clause c)
+	(let* ((var (and (symbol? (car c)) (car c)))
+	       (kinds (if var (cadr c) (car c)))
+	       (body (if var
+			 `(##core#let ((,var ,exvar)) ,@(cddr c))
+			 `(##core#let () ,@(cdr c)))))
+	  (if (null? kinds)
+	      `(,%else ,body)
+	      `((,%and ,kvar ,@(map (lambda (k)
+				      `(,%memv (##core#quote ,k) ,kvar)) kinds))
+		,body))))
+      `(,(r 'handle-exceptions) ,exvar
+	(##core#let ((,kvar (,%and (##sys#structure? ,exvar
+						     (##core#quote condition))
+				   (##sys#slot ,exvar 1))))
+		    ,(let ((clauses (map parse-clause (cddr form))))
+		       `(,(r 'cond)
+			 ,@clauses
+			 ,@(if (assq %else clauses)
+			       `()   ; Don't generate two else clauses
+			       `((,%else (chicken.condition#signal ,exvar)))))))
+	,(cadr form))))))
+
+(macro-subset me0 ##sys#default-macro-environment)))
+
+
+;;; type-related syntax
+
+(set! ##sys#chicken.type-macro-environment
+  (let ((me0 (##sys#macro-environment)))
+
+(##sys#extend-macro-environment
+ ': '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax ': x '(_ symbol _ . _))
+    (if (not (memq #:compiling ##sys#features))
+	'(##core#undefined)
+	(let* ((type1 (chicken.syntax#strip-syntax (caddr x)))
+	       (name1 (cadr x)))
+	  ;; we need pred/pure info, so not using
+	  ;; "chicken.compiler.scrutinizer#check-and-validate-type"
+	  (let-values (((type pred pure)
+			(chicken.compiler.scrutinizer#validate-type
+			 type1
+			 (chicken.syntax#strip-syntax name1))))
+	    (cond ((not type)
+		   (chicken.syntax#syntax-error ': "invalid type syntax" name1 type1))
+		  (else
+		   `(##core#declare
+		     (type (,name1 ,type1 ,@(cdddr x)))
+		     ,@(if pure `((pure ,name1)) '())
+		     ,@(if pred `((predicate (,name1 ,pred))) '()))))))))))
+
+(##sys#extend-macro-environment
+ 'the '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'the x '(_ _ _))
+    (if (not (memq #:compiling ##sys#features))
+	(caddr x)
+	`(##core#the ,(chicken.compiler.scrutinizer#check-and-validate-type (cadr x) 'the)
+		     #t
+		     ,(caddr x))))))
+
+(##sys#extend-macro-environment
+ 'assume '()
+ (syntax-rules ()
+   ((_ ((var type) ...) body ...)
+    (let ((var (the type var)) ...) body ...))))
+
+(##sys#extend-macro-environment
+ 'define-specialization '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
+	  (else
+	   (##sys#check-syntax 'define-specialization x '(_ (variable . #(_ 0)) _ . #(_ 0 1)))
+	   (let* ((head (cadr x))
+		  (name (car head))
+		  (gname (##sys#globalize name '())) ;XXX correct?
+		  (args (cdr head))
+		  (alias (gensym name))
+		  (galias (##sys#globalize alias '())) ;XXX and this?
+		  (rtypes (and (pair? (cdddr x)) (chicken.syntax#strip-syntax (caddr x))))
+		  (%define (r 'define))
+		  (body (if rtypes (cadddr x) (caddr x))))
+	     (let loop ((args args) (anames '()) (atypes '()))
+	       (cond ((null? args)
+		      (let ((anames (reverse anames))
+			    (atypes (reverse atypes))
+			    (spec
+			     `(,galias ,@(let loop2 ((anames anames) (i 1))
+					   (if (null? anames)
+					       '()
+					       (cons (vector i)
+						     (loop2 (cdr anames) (fx+ i 1))))))))
+			(##sys#put!
+			 gname '##compiler#local-specializations
+			 (##sys#append
+			  (##sys#get gname '##compiler#local-specializations '())
+			  (list
+			   (cons atypes
+				 (if (and rtypes (pair? rtypes))
+				     (list
+				      (map (cut chicken.compiler.scrutinizer#check-and-validate-type
+						<>
+						'define-specialization)
+					   rtypes)
+				      spec)
+				     (list spec))))))
+			`(##core#begin
+			  (##core#declare (inline ,alias) (hide ,alias))
+			  (,%define (,alias ,@anames)
+				    (##core#let ,(map (lambda (an at)
+							(list an `(##core#the ,at #t ,an)))
+						      anames atypes)
+						,body)))))
+		     (else
+		      (let ((arg (car args)))
+			(cond ((symbol? arg)
+			       (loop (cdr args) (cons arg anames) (cons '* atypes)))
+			      ((and (list? arg) (fx= 2 (length arg)) (symbol? (car arg)))
+			       (loop
+				(cdr args)
+				(cons (car arg) anames)
+				(cons
+				 (chicken.compiler.scrutinizer#check-and-validate-type
+				  (cadr arg)
+				  'define-specialization)
+				 atypes)))
+			      (else (chicken.syntax#syntax-error
+				     'define-specialization
+				     "invalid argument syntax" arg head)))))))))))))
+
+(##sys#extend-macro-environment
+ 'compiler-typecase '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'compiler-typecase x '(_ _ . #((_ . #(_ 1)) 1)))
+    (let ((val (memq #:compiling ##sys#features))
+	  (var (gensym))
+	  (ln (chicken.syntax#get-line-number x)))
+      `(##core#let ((,var ,(cadr x)))
+	 (##core#typecase
+	  ,ln
+	  ,var		; must be variable (see: CPS transform)
+	  ,@(map (lambda (clause)
+		 (let ((hd (chicken.syntax#strip-syntax (car clause))))
+		   (list
+		    (if (eq? hd 'else)
+			'else
+			(if val
+			    (chicken.compiler.scrutinizer#check-and-validate-type
+			     hd
+			     'compiler-typecase)
+			    hd))
+		    `(##core#begin ,@(cdr clause)))))
+		 (cddr x))))))))
+
+(##sys#extend-macro-environment
+ 'define-type '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'define-type x '(_ variable _))
+    (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
+	  (else
+	   (let ((name (chicken.syntax#strip-syntax (cadr x)))
+		 (%quote (r 'quote))
+		 (t0 (chicken.syntax#strip-syntax (caddr x))))
+	     `(##core#elaborationtimeonly
+	       (##sys#put/restore!
+		(,%quote ,name)
+		(,%quote ##compiler#type-abbreviation)
+		(,%quote
+		 ,(chicken.compiler.scrutinizer#check-and-validate-type
+		   t0 'define-type name))))))))))
+
+(macro-subset me0 ##sys#default-macro-environment)))
+
+;;; Non-standard macros that provide core/"base" functionality:
+
+(set! ##sys#chicken.base-macro-environment
+  (let ((me0 (##sys#macro-environment)))
+
+(##sys#extend-macro-environment
+ 'begin-for-syntax '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'begin-for-syntax x '(_ . #(_ 0)))
+    (##sys#register-meta-expression `(##core#begin ,@(cdr x)))
+    `(##core#elaborationtimeonly (##core#begin ,@(cdr x))))))
 
 (##sys#extend-macro-environment
  'define-constant
@@ -56,12 +287,17 @@
  (##sys#er-transformer
   (lambda (x r c)
     (##sys#check-syntax 'define-record x '(_ symbol . _))
-    (let* ((name (cadr x))
+    (let* ((type-name (cadr x))
+	   (plain-name (strip-syntax type-name))
+	   (prefix (symbol->string plain-name))
+	   (tag (if (##sys#current-module)
+		    (symbol-append
+		     (##sys#module-name (##sys#current-module)) '|#| plain-name)
+		    plain-name))
 	   (slots (cddr x))
-	   (prefix (symbol->string name))
 	   (%define (r 'define))
-	   (%setter (r 'setter))
-	   (%getter-with-setter (r 'getter-with-setter))
+	   (%setter (r 'chicken.base#setter))
+	   (%getter-with-setter (r 'chicken.base#getter-with-setter))
 	   (slotnames
 	    (map (lambda (slot)
 		   (cond ((symbol? slot) slot)
@@ -72,18 +308,19 @@
 			       (null? (cddr slot)))
 			  (cadr slot))
 			 (else
-			  (syntax-error 
+			  (chicken.syntax#syntax-error
 			   'define-record "invalid slot specification" slot))))
 		 slots)))
       `(##core#begin
+	(,%define ,type-name (##core#quote ,tag))
 	(,%define 
 	 ,(string->symbol (string-append "make-" prefix))
 	 (##core#lambda 
 	  ,slotnames
-	  (##sys#make-structure (##core#quote ,name) ,@slotnames)))
+	  (##sys#make-structure (##core#quote ,tag) ,@slotnames)))
 	(,%define
 	 ,(string->symbol (string-append prefix "?"))
-	 (##core#lambda (x) (##sys#structure? x ',name)) )
+	 (##core#lambda (x) (##sys#structure? x (##core#quote ,tag))))
 	,@(let mapslots ((slots slots) (i 1))
 	    (if (eq? slots '())
 		slots
@@ -95,7 +332,7 @@
 		       (setrcode
 			`(##core#lambda 
 			  (x val)
-			  (##core#check (##sys#check-structure x (##core#quote ,name)))
+			  (##core#check (##sys#check-structure x (##core#quote ,tag)))
 			  (##sys#block-set! x ,i val) ) ))
 		  (cons
 		   `(##core#begin
@@ -108,12 +345,12 @@
 			   `(,%getter-with-setter
 			     (##core#lambda
 			      (x) 
-			      (##core#check (##sys#check-structure x (##core#quote ,name)))
+			      (##core#check (##sys#check-structure x (##core#quote ,tag)))
 			      (##sys#block-ref x ,i) )
 			     ,setrcode)
 			   `(##core#lambda 
 			     (x)
-			     (##core#check (##sys#check-structure x (##core#quote ,name)))
+			     (##core#check (##sys#check-structure x (##core#quote ,tag)))
 			     (##sys#block-ref x ,i) ) ) ) )
 		   (mapslots (##sys#slot slots 1) (fx+ i 1)) ) ) ) ) ) ) ) ) )
 
@@ -137,74 +374,32 @@
 		   (##core#lambda ,vars ,@rest)) ) ) ) ) )))
 
 (##sys#extend-macro-environment
- 'time '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (let ((rvar (r 't)))
-      `(##core#begin
-	(##sys#start-timer)
-	(##sys#call-with-values 
-	 (##core#lambda () ,@(cdr form))
-	 (##core#lambda 
-	  ,rvar
-	  (##sys#display-times (##sys#stop-timer))
-	  (##sys#apply ##sys#values ,rvar) ) ) ) ) ) ) )
-
-(##sys#extend-macro-environment
  'declare '()
  (##sys#er-transformer
   (lambda (form r c)
     `(##core#declare ,@(cdr form)))))
 
 (##sys#extend-macro-environment
+ 'delay-force
+ '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'delay-force form '(_ _))
+    `(##sys#make-promise (##core#lambda () ,(cadr form))))))
+
+(##sys#extend-macro-environment
  'include '()
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'include form '(_ string))
-    `(##core#include ,(cadr form)))))
+    `(##core#include ,(cadr form) #f))))
 
 (##sys#extend-macro-environment
- 'assert '()
- (##sys#er-transformer
-  (let ((string-append string-append))
-    (lambda (form r c)
-      (##sys#check-syntax 'assert form '#(_ 1))
-      (let* ((exp (cadr form))
-	     (msg-and-args (cddr form))
-	     (msg (optional msg-and-args "assertion failed"))
-	     (tmp (r 'tmp)))
-	(when (string? msg)
-	  (and-let* ((ln (get-line-number form)))
-	    (set! msg (string-append "(" ln ") " msg))))
-	`(##core#let ((,tmp ,exp))
-	   (##core#if (##core#check ,tmp)
-		      ,tmp
-		      (##sys#error
-		       ,msg
-		       ,@(if (pair? msg-and-args)
-			     (cdr msg-and-args)
-			     `((##core#quote ,(##sys#strip-syntax exp))))))))))))
-
-(##sys#extend-macro-environment
- 'ensure
- '()
+ 'include-relative '()
  (##sys#er-transformer
   (lambda (form r c)
-    (##sys#check-syntax 'ensure form '#(_ 3))
-    (let ((pred (cadr form))
-	  (exp (caddr form))
-	  (args (cdddr form))
-	  (tmp (r 'tmp)))
-      `(##core#let
-	([,tmp ,exp])
-	(##core#if (##core#check (,pred ,tmp))
-		   ,tmp
-		   (##sys#signal-hook
-		    #:type-error
-		    ,@(if (pair? args)
-			  args
-			  `((##core#immutable (##core#quote "argument has incorrect type"))
-			    ,tmp (##core#quote ,pred)) ) ) ) ) ) ) ) )
+    (##sys#check-syntax 'include-relative form '(_ string))
+    `(##core#include ,(cadr form) ,##sys#current-source-filename))))
 
 (##sys#extend-macro-environment
  'fluid-let '()
@@ -237,36 +432,6 @@
 		    ,@(map (lambda (id ot) `(##core#set! ,id ,ot))
 			   ids old-tmps)
 		    (##core#undefined) ) ) ) ) )))
-
-(##sys#extend-macro-environment
- 'eval-when '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'eval-when form '#(_ 2))
-    (let* ((situations (cadr form))
-	   (body `(##core#begin ,@(cddr form)))
-	   (%eval (r 'eval))
-	   (%compile (r 'compile))
-	   (%load (r 'load))
-	   (e #f)
-	   (co #f)
-	   (l #f))
-      (let loop ([ss situations])
-	(if (pair? ss)
-	    (let ((s (car ss)))
-	      (cond ((c s %eval) (set! e #t))
-		    ((c s %load) (set! l #t))
-		    ((c s %compile) (set! co #t))
-		    (else (##sys#error "invalid situation specifier" (car ss)) ))
-	      (loop (##sys#slot ss 1)) ) ) )
-      (if (memq '#:compiling ##sys#features)
-	  (cond [(and co l) `(##core#compiletimetoo ,body)]
-		[co `(##core#compiletimeonly ,body)]
-		[l body]
-		[else '(##core#undefined)] )
-	  (if e 
-	      body
-	      '(##core#undefined) ) ) ) ) ) )
 
 (##sys#extend-macro-environment
  'parameterize '()
@@ -325,6 +490,19 @@
 		      saveds temps))))))))))))
 
 (##sys#extend-macro-environment
+ 'require-library
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    `(##core#begin
+      ,@(map (lambda (x)
+	       (let-values (((name lib _ _ _ _) (##sys#decompose-import x r c 'import)))
+		 (if (not lib)
+		     '(##core#undefined)
+		     `(##core#require ,lib ,(module-requirement name)))))
+	     (cdr x))))))
+
+(##sys#extend-macro-environment
  'when '()
  (##sys#er-transformer
   (lambda (form r c)
@@ -348,20 +526,31 @@
     (##sys#check-syntax 'set!-values form '(_ lambda-list _))
     (##sys#expand-multiple-values-assignment (cadr form) (caddr form)))))
 
-(set! ##sys#define-values-definition
+(##sys#extend-macro-environment
+ 'syntax
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'syntax x '(_ _))
+    `(##core#syntax ,(cadr x)))))
+
+(set! chicken.syntax#define-values-definition
   (##sys#extend-macro-environment
    'define-values '()
    (##sys#er-transformer
     (lambda (form r c)
       (##sys#check-syntax 'define-values form '(_ lambda-list _))
-      (##sys#decompose-lambda-list
-       (cadr form)
-       (lambda (vars argc rest)
-         (for-each (lambda (nm)
-                     (let ((name (##sys#get nm '##core#macro-alias nm)))
-                       (##sys#register-export name (##sys#current-module))))
-                   vars)))
-      `(,(r 'set!-values) ,@(cdr form))))))
+      `(##core#begin
+	,@(##sys#decompose-lambda-list
+	   (cadr form)
+	   (lambda (vars argc rest)
+	     (for-each (lambda (nm)
+			 (let ((name (##sys#get nm '##core#macro-alias nm)))
+			   (##sys#register-export name (##sys#current-module))))
+		       vars)
+	     (map (lambda (nm) `(##core#ensure-toplevel-definition ,nm))
+		  vars)))
+	,(##sys#expand-multiple-values-assignment (cadr form) (caddr form)))))))
 
 (##sys#extend-macro-environment
  'let-values '()
@@ -452,8 +641,17 @@
           ,@body))))))
 
 (##sys#extend-macro-environment
+ 'letrec*
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'letrec* x '(_ #((symbol _) 0) . #(_ 1)))
+    (check-for-multiple-bindings (cadr x) x "letrec*")
+    `(##core#letrec* ,@(cdr x)))))
+
+(##sys#extend-macro-environment
  'nth-value 
- `((list-ref . ,(##sys#primitive-alias 'list-ref)))
+ `((list-ref . scheme#list-ref))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'nth-value form '(_ _ _))
@@ -477,7 +675,7 @@
 		  (when (or (not (pair? val)) 
 			    (and (not (eq? '##core#lambda (car val)))
 				 (not (c (r 'lambda) (car val)))))
-		    (syntax-error 
+		    (chicken.syntax#syntax-error
 		     'define-inline "invalid substitution form - must be lambda"
 		     name val) )
 		  (list name val) ) ) ] )
@@ -503,42 +701,6 @@
 		       `(##core#let ((,var ,(cadr b)))
 			 (##core#if ,var ,(fold bs2) #f) ) ) ] ) ) ) ) ) ) ) )
 
-(##sys#extend-macro-environment
- 'select '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'select form '(_ _ . _))
-    (let ((exp (cadr form))
-	  (body (cddr form))
-	  (tmp (r 'tmp))
-	  (%else (r 'else))
-	  (%or (r 'or)))
-      `(##core#let
-	((,tmp ,exp))
-	,(let expand ((clauses body) (else? #f))
-	   (cond ((null? clauses)
-		  '(##core#undefined) )
-		 ((not (pair? clauses))
-		  (syntax-error 'select "invalid syntax" clauses))
-		 (else
-		  (let ((clause (##sys#slot clauses 0))
-			(rclauses (##sys#slot clauses 1)) )
-		    (##sys#check-syntax 'select clause '#(_ 1))
-		    (cond ((c %else (car clause))
-			   (expand rclauses #t)
-			   `(##core#begin ,@(cdr clause)) )
-			  (else?
-			   (##sys#notice
-			    "non-`else' clause following `else' clause in `select'"
-			    (##sys#strip-syntax clause))
-			   (expand rclauses #t)
-			   '(##core#begin))
-			  (else
-			   `(##core#if
-			     (,%or ,@(map (lambda (x) `(##sys#eqv? ,tmp ,x)) 
-					  (car clause) ) )
-			     (##core#begin ,@(cdr clause)) 
-			     ,(expand rclauses #f) ) ) ) ) ) ) ) ) ) ) ) )
 
 
 ;;; Optional argument handling:
@@ -618,8 +780,9 @@
 
 (##sys#extend-macro-environment
  'let-optionals 
- `((car . ,(##sys#primitive-alias 'car))
-   (cdr . ,(##sys#primitive-alias 'cdr)))
+ `((null? . scheme#null?)
+   (car . scheme#car)
+   (cdr . scheme#cdr))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'let-optionals form '(_ _ . _))
@@ -653,7 +816,7 @@
 	  (if (null? vars)
 	      `(,body-proc . ,(reverse non-defaults))
 	      (let ((v (car vars)))
-		`(##core#if (null? ,rest)
+		`(##core#if (,(r 'null?) ,rest)
 		       (,(car defaulters) . ,(reverse non-defaults))
 		       (##core#let ((,v (,(r 'car) ,rest)) ; we use car/cdr, because of rest-list optimization
 			       (,rest (,(r 'cdr) ,rest)))
@@ -706,9 +869,9 @@
 
 (##sys#extend-macro-environment
  'optional 
- `((null? . ,(##sys#primitive-alias 'null?))
-   (car . ,(##sys#primitive-alias 'car))
-   (cdr . ,(##sys#primitive-alias 'cdr)) )
+ `((null? . scheme#null?)
+   (car . scheme#car)
+   (cdr . scheme#cdr) )
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'optional form '(_ _ . #(_ 0 1)))
@@ -734,9 +897,9 @@
 
 (##sys#extend-macro-environment
  'let-optionals* 
- `((null? . ,(##sys#primitive-alias 'null?))
-   (car . ,(##sys#primitive-alias 'car))
-   (cdr . ,(##sys#primitive-alias 'cdr)))
+ `((null? . scheme#null?)
+   (car . scheme#car)
+   (cdr . scheme#cdr))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'let-optionals* form '(_ _ list . _))
@@ -769,11 +932,11 @@
 
 (##sys#extend-macro-environment
  'case-lambda 
- `((>= . ,(##sys#primitive-alias '>=))
-   (car . ,(##sys#primitive-alias 'car))
-   (cdr . ,(##sys#primitive-alias 'cdr))
-   (eq? . ,(##sys#primitive-alias 'eq?))
-   (length . ,(##sys#primitive-alias 'length)))
+ `((>= . scheme#>=)
+   (car . scheme#car)
+   (cdr . scheme#cdr)
+   (eq? . scheme#eq?)
+   (length . scheme#length))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'case-lambda form '(_ . _))
@@ -782,7 +945,6 @@
 	(if (fx>= i n)
 	    '()
 	    (cons (r (gensym)) (loop (fx+ i 1))) ) ) )
-    (require 'srfi-1)			; ugh...
     (let* ((mincount (apply min (map (lambda (c)
 				       (##sys#decompose-lambda-list 
 					(car c)
@@ -800,20 +962,20 @@
 	,(append minvars rvar)
 	(##core#let
         ((,lvar (,%length ,rvar)))
-	 ,(fold-right
+	 ,(foldr
 	   (lambda (c body)
 	     (##sys#decompose-lambda-list
 	      (car c)
 	      (lambda (vars argc rest)
 		(##sys#check-syntax 'case-lambda (car c) 'lambda-list)
-		`(##core#if ,(let ([a2 (fx- argc mincount)])
+		`(##core#if ,(let ((a2 (fx- argc mincount)))
 			       (if rest
 				   (if (zero? a2)
 				       #t
 				       `(,%>= ,lvar ,a2) )
 				   `(,%eq? ,lvar ,a2) ) )
 			    ,(receive (vars1 vars2)
-				 (split-at! (take vars argc) mincount)
+				 (split-at (take vars argc) mincount)
 			       (let ((bindings
 				      (let build ((vars2 vars2) (vrest rvar))
 					(if (null? vars2)
@@ -847,105 +1009,65 @@
 	     (##sys#check-syntax 
 	      'define-record-printer (cons head body)
 	      '((symbol symbol symbol) . #(_ 1)))
-	     `(##sys#register-record-printer 
-	       ',(##sys#slot head 0)
-	       (##core#lambda ,(##sys#slot head 1) ,@body)) ]
-	    [else
+	     (let* ((plain-name (strip-syntax (##sys#slot head 0)))
+		    (tag (if (##sys#current-module)
+			     (symbol-append
+			      (##sys#module-name (##sys#current-module))
+			      '|#| plain-name)
+			     plain-name)))
+	       `(##sys#register-record-printer
+		 (##core#quote ,tag)
+		 (##core#lambda ,(##sys#slot head 1) ,@body)))]
+	    (else
 	     (##sys#check-syntax 'define-record-printer (cons head body) '(symbol _))
-	     `(##sys#register-record-printer ',head ,@body) ] ) ))))
-
-
-;;; Exceptions:
-
-(##sys#extend-macro-environment
- 'handle-exceptions 
- `((call-with-current-continuation . ,(##sys#primitive-alias 'call-with-current-continuation))
-   (with-exception-handler . ,(##sys#primitive-alias 'with-exception-handler)))
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'handle-exceptions form '(_ variable _ . _))
-    (let ((k (r 'k))
-	  (args (r 'args)))
-      `((,(r 'call-with-current-continuation)
-	 (##core#lambda
-	  (,k)
-	  (,(r 'with-exception-handler)
-	   (##core#lambda (,(cadr form)) (,k (##core#lambda () ,(caddr form))))
-	   (##core#lambda
-	    ()
-	    (##sys#call-with-values
-	     (##core#lambda () ,@(cdddr form))
-	     (##core#lambda 
-	      ,args 
-	      (,k (##core#lambda () (##sys#apply ##sys#values ,args)))) ) ) ) ) ) ) ) ) ) )
-
-(##sys#extend-macro-environment
- 'condition-case 
- `((else . ,(##sys#primitive-alias 'else))
-   (memv . ,(##sys#primitive-alias 'memv)))
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'condition-case form '(_ _ . _))
-    (let ((exvar (r 'exvar))
-	  (kvar (r 'kvar))
-	  (%and (r 'and))
-	  (%memv (r 'memv))
-	  (%else (r 'else)))
-      (define (parse-clause c)
-	(let* ((var (and (symbol? (car c)) (car c)))
-	       (kinds (if var (cadr c) (car c)))
-	       (body (if var
-			 `(##core#let ((,var ,exvar)) ,@(cddr c))
-			 `(##core#let () ,@(cdr c)))))
-	  (if (null? kinds)
-	      `(,%else ,body)
-	      `((,%and ,kvar ,@(map (lambda (k)
-				      `(,%memv (##core#quote ,k) ,kvar)) kinds))
-		,body ) ) ) )
-      `(,(r 'handle-exceptions) ,exvar
-	(##core#let ((,kvar (,%and (##sys#structure? ,exvar
-						     (##core#quote condition))
-				   (##sys#slot ,exvar 1))))
-		    ,(let ((clauses (map parse-clause (cddr form))))
-		       `(,(r 'cond)
-			 ,@clauses
-			 ,@(if (assq %else clauses)
-			       `()   ; Don't generate two else clauses
-			       `((,%else (##sys#signal ,exvar)))) )) )
-	,(cadr form))))))
-
+	     (let* ((plain-name (strip-syntax head))
+		    (tag (if (##sys#current-module)
+			     (symbol-append
+			      (##sys#module-name (##sys#current-module))
+			      '|#| plain-name)
+			     plain-name)))
+	       `(##sys#register-record-printer
+		 (##core#quote ,tag) ,@body))))))))
 
 ;;; SRFI-9:
 
 (##sys#extend-macro-environment
  'define-record-type
- `((getter-with-setter . ,(##sys#primitive-alias 'getter-with-setter)))
+ `()
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 
      'define-record-type 
      form
      '(_ variable #(variable 1) variable . _)) 
-    (let* ((t (cadr form))
+    (let* ((type-name (cadr form))
+	   (plain-name (strip-syntax type-name))
+	   (tag (if (##sys#current-module)
+		    (symbol-append
+		     (##sys#module-name (##sys#current-module))
+		     '|#| plain-name)
+		    plain-name))
 	   (conser (caddr form))
 	   (pred (cadddr form))
 	   (slots (cddddr form))
 	   (%define (r 'define))
-	   (%getter-with-setter (r 'getter-with-setter))
+	   (%getter-with-setter (r 'chicken.base#getter-with-setter))
 	   (vars (cdr conser))
 	   (x (r 'x))
 	   (y (r 'y))
 	   (slotnames (map car slots)))
       `(##core#begin
+	;; TODO: Maybe wrap this in an opaque object?
+	(,%define ,type-name (##core#quote ,tag))
 	(,%define ,conser
 		  (##sys#make-structure 
-		   (##core#quote ,t)
+		   (##core#quote ,tag)
 		   ,@(map (lambda (sname)
 			    (if (memq sname vars)
 				sname
 				'(##core#undefined) ) )
 			  slotnames) ) )
-	(,%define (,pred ,x) (##sys#structure? ,x (##core#quote ,t)))
+	(,%define (,pred ,x) (##sys#structure? ,x (##core#quote ,tag)))
 	,@(let loop ([slots slots] [i 1])
 	    (if (null? slots)
 		'()
@@ -961,7 +1083,7 @@
 			      (##core#check
 			       (##sys#check-structure
 				,x
-				(##core#quote ,t)
+				(##core#quote ,tag)
 				(##core#quote ,(cadr slot))))
 			      (##sys#block-ref ,x ,i) ) )
 		       (set (and settable
@@ -970,7 +1092,7 @@
 				   (##core#check
 				    (##sys#check-structure
 				     ,x
-				     (##core#quote ,t) 
+				     (##core#quote ,tag)
 				     (##core#quote ,ssetter)))
 				   (##sys#block-set! ,x ,i ,y)) )))
 		  `((,%define
@@ -992,14 +1114,14 @@
 
 (##sys#extend-macro-environment
  'cut 
- `((apply . ,(##sys#primitive-alias 'apply)))
+ `((apply . scheme#apply))
  (##sys#er-transformer
   (lambda (form r c)
     (let ((%<> (r '<>))
 	  (%<...> (r '<...>))
 	  (%apply (r 'apply)))
       (when (null? (cdr form))
-        (syntax-error 'cut "you need to supply at least a procedure" form))
+        (chicken.syntax#syntax-error 'cut "you need to supply at least a procedure" form))
       (let loop ([xs (cdr form)] [vars '()] [vals '()] [rest #f])
 	(if (null? xs)
 	    (let ([rvars (reverse vars)]
@@ -1015,23 +1137,24 @@
 		   (let ([v (r (gensym))])
 		     (loop (cdr xs) (cons v vars) (cons v vals) #f) ) )
 		  ((c %<...> (car xs))
-                   (if (null? (cdr xs))
-                       (loop '() vars vals #t)
-                       (syntax-error 'cut
-                                     "tail patterns after <...> are not supported"
-                                     form)))
+		   (if (null? (cdr xs))
+		       (loop '() vars vals #t)
+		       (chicken.syntax#syntax-error
+			'cut
+			"tail patterns after <...> are not supported"
+			form)))
 		  (else (loop (cdr xs) vars (cons (car xs) vals) #f)) ) ) ) ) )))
 
 (##sys#extend-macro-environment
  'cute 
- `((apply . ,(##sys#primitive-alias 'apply)))
+ `((apply . scheme#apply))
  (##sys#er-transformer
   (lambda (form r c)
     (let ((%apply (r 'apply))
 	  (%<> (r '<>))
 	  (%<...> (r '<...>)))
       (when (null? (cdr form))
-        (syntax-error 'cute "you need to supply at least a procedure" form))
+        (chicken.syntax#syntax-error 'cute "you need to supply at least a procedure" form))
       (let loop ([xs (cdr form)] [vars '()] [bs '()] [vals '()] [rest #f])
 	(if (null? xs)
 	    (let ([rvars (reverse vars)]
@@ -1048,11 +1171,12 @@
 		   (let ([v (r (gensym))])
 		     (loop (cdr xs) (cons v vars) bs (cons v vals) #f) ) )
 		  ((c %<...> (car xs))
-                   (if (null? (cdr xs))
-                       (loop '() vars bs vals #t)
-                       (syntax-error 'cute
-                                     "tail patterns after <...> are not supported"
-                                     form)))
+		   (if (null? (cdr xs))
+		       (loop '() vars bs vals #t)
+		       (chicken.syntax#syntax-error
+			'cute
+			"tail patterns after <...> are not supported"
+			form)))
 		  (else 
 		   (let ([v (r (gensym))])
 		     (loop (cdr xs) 
@@ -1077,6 +1201,152 @@
 	  `(##core#letrec* ((,head ,@(cddr form))) ,head))))))
 
 
+;;; SRFI-55
+
+(##sys#extend-macro-environment
+ 'require-extension
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    `(,(r 'import) ,@(cdr x)))))
+
+(##sys#extend-macro-environment
+ 'require-extension-for-syntax
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    `(,(r 'begin-for-syntax) (,(r 'require-extension) ,@(cdr x))))))
+
+(macro-subset me0 ##sys#default-macro-environment)))
+
+
+;;; Remaining non-standard macros:
+
+(set! ##sys#chicken-macro-environment
+  (let ((me0 (##sys#macro-environment)))
+
+(##sys#extend-macro-environment
+ 'time '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (let ((rvar (r 't)))
+      `(##core#begin
+	(##sys#start-timer)
+	(##sys#call-with-values
+	 (##core#lambda () ,@(cdr form))
+	 (##core#lambda
+	  ,rvar
+	  (##sys#display-times (##sys#stop-timer))
+	  (##sys#apply ##sys#values ,rvar))))))))
+
+(##sys#extend-macro-environment
+ 'assert '()
+ (##sys#er-transformer
+  (let ((string-append string-append))
+    (lambda (form r c)
+      (##sys#check-syntax 'assert form '#(_ 1))
+      (let* ((exp (cadr form))
+	     (msg-and-args (cddr form))
+	     (msg (optional msg-and-args "assertion failed"))
+	     (tmp (r 'tmp)))
+	(when (string? msg)
+	  (and-let* ((ln (chicken.syntax#get-line-number form)))
+	    (set! msg (string-append "(" ln ") " msg))))
+	`(##core#let ((,tmp ,exp))
+	   (##core#if (##core#check ,tmp)
+		      ,tmp
+		      (##sys#error
+		       ,msg
+		       ,@(if (pair? msg-and-args)
+			     (cdr msg-and-args)
+			     `((##core#quote ,(chicken.syntax#strip-syntax exp))))))))))))
+
+(##sys#extend-macro-environment
+ 'ensure
+ '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'ensure form '#(_ 3))
+    (let ((pred (cadr form))
+	  (exp (caddr form))
+	  (args (cdddr form))
+	  (tmp (r 'tmp)))
+      `(##core#let
+	([,tmp ,exp])
+	(##core#if (##core#check (,pred ,tmp))
+		   ,tmp
+		   (##sys#signal-hook
+		    #:type-error
+		    ,@(if (pair? args)
+			  args
+			  `((##core#immutable (##core#quote "argument has incorrect type"))
+			    ,tmp (##core#quote ,pred))))))))))
+
+(##sys#extend-macro-environment
+ 'eval-when '()
+ (##sys#er-transformer
+  (lambda (form r compare)
+    (##sys#check-syntax 'eval-when form '#(_ 2))
+    (let* ((situations (cadr form))
+	   (body `(##core#begin ,@(cddr form)))
+	   (e #f)
+	   (c #f)
+	   (l #f))
+      (let loop ((ss situations))
+	(if (pair? ss)
+	    (let ((s (car ss)))
+	      (cond ((compare s 'eval) (set! e #t))
+		    ((compare s 'load) (set! l #t))
+		    ((compare s 'compile) (set! c #t))
+		    (else (##sys#error "invalid situation specifier" (car ss))))
+	      (loop (cdr ss)))))
+      (if (memq '#:compiling ##sys#features)
+	  (cond ((and c l) `(##core#compiletimetoo ,body))
+		(c `(##core#compiletimeonly ,body))
+		(l body)
+		(else '(##core#undefined)))
+	  (if e
+	      body
+	      '(##core#undefined)))))))
+
+(##sys#extend-macro-environment
+ 'select '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'select form '(_ _ . _))
+    (let ((exp (cadr form))
+	  (body (cddr form))
+	  (tmp (r 'tmp))
+	  (%else (r 'else))
+	  (%or (r 'or)))
+      `(##core#let
+	((,tmp ,exp))
+	,(let expand ((clauses body) (else? #f))
+	   (cond ((null? clauses)
+		  '(##core#undefined))
+		 ((not (pair? clauses))
+		  (chicken.syntax#syntax-error 'select "invalid syntax" clauses))
+		 (else
+		  (let ((clause (##sys#slot clauses 0))
+			(rclauses (##sys#slot clauses 1)))
+		    (##sys#check-syntax 'select clause '#(_ 1))
+		    (cond ((c %else (car clause))
+			   (expand rclauses #t)
+			   `(##core#begin ,@(cdr clause)))
+			  (else?
+			   (##sys#notice
+			    "non-`else' clause following `else' clause in `select'"
+			    (chicken.syntax#strip-syntax clause))
+			   (expand rclauses #t)
+			   '(##core#begin))
+			  (else
+			   `(##core#if
+			     (,%or ,@(map (lambda (x) `(##sys#eqv? ,tmp ,x))
+					  (car clause)))
+			     (##core#begin ,@(cdr clause))
+			     ,(expand rclauses #f)))))))))))))
+
+
 ;;; Definitions available at macroexpansion-time:
 
 (##sys#extend-macro-environment
@@ -1086,23 +1356,6 @@
     (##sys#check-syntax 'define-for-syntax form '(_ _ . _))
     `(,(r 'begin-for-syntax)
       (,(r 'define) ,@(cdr form))))))
-
-
-;;; use
-
-(##sys#extend-macro-environment
- 'use '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'use x '(_ . #(_ 0)))
-    `(##core#require-extension ,(cdr x) #t))))
-
-(##sys#extend-macro-environment
- 'use-for-syntax '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'use-for-syntax x '(_ . #(_ 0)))
-    `(,(r 'require-extension-for-syntax) ,@(cdr x)))))
 
 
 ;;; compiler syntax
@@ -1122,220 +1375,14 @@
     (##core#let-compiler-syntax (binding ...) body ...))))
 
 
-;;; interface definition
+;; capture current macro env and add all the preceding ones as well
 
-(##sys#extend-macro-environment
- 'define-interface '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'define-interface x '(_ variable _))
-    (let ((name (##sys#strip-syntax (cadr x)))
-	  (%quote (r 'quote)))
-      (when (eq? '* name)
-	(syntax-error-hook
-	 'define-interface "`*' is not allowed as a name for an interface"))
-      `(##core#elaborationtimeonly
-	(##sys#put/restore!
-	 (,%quote ,name)
-	 (,%quote ##core#interface)
-	 (,%quote
-	  ,(let ((exps (##sys#strip-syntax (caddr x))))
-	     (cond ((eq? '* exps) '*)
-		   ((symbol? exps) `(#:interface ,exps))
-		   ((list? exps) 
-		    (##sys#validate-exports exps 'define-interface))
-		   (else
-		    (syntax-error-hook
-		     'define-interface "invalid exports" (caddr x))))))))))))
-
-
-;;; functor definition
-
-(##sys#extend-macro-environment
- 'functor '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'functor x '(_ (symbol . #((_ _) 0)) _ . _))
-    (let* ((x (##sys#strip-syntax x))
-	   (head (cadr x))
-	   (name (car head))
-	   (args (cdr head))
-	   (exps (caddr x))
-	   (body (cdddr x))
-	   (registration
-	    `(##sys#register-functor
-	      ',name
-	      ',(map (lambda (arg)
-		       (let ((argname (car arg))
-			     (exps (##sys#validate-exports (cadr arg) 'functor)))
-			 (unless (or (symbol? argname)
-				     (and (list? argname)
-					  (= 2 (length argname))
-					  (symbol? (car argname))
-					  (symbol? (cadr argname))))
-			   (##sys#syntax-error-hook "invalid functor argument" name arg))
-			 (cons argname exps)))
-		     args)
-	      ',(##sys#validate-exports exps 'functor)
-	      ',body)))
-      `(##core#module
-	,name
-	#t
-	(import scheme chicken)
-	(begin-for-syntax ,registration))))))
-
-
-;;; type-related syntax
-
-(##sys#extend-macro-environment
- ': '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax ': x '(_ symbol _ . _))
-    (if (not (memq #:compiling ##sys#features)) 
-	'(##core#undefined)
-	(let* ((type1 (##sys#strip-syntax (caddr x)))
-	       (name1 (cadr x)))
-	  ;; we need pred/pure info, so not using "##compiler#check-and-validate-type"
-	  (let-values (((type pred pure)
-			(##compiler#validate-type type1 (##sys#strip-syntax name1))))
-	    (cond ((not type)
-		   (syntax-error ': "invalid type syntax" name1 type1))
-		  (else
-		   `(##core#declare 
-		     (type (,name1 ,type1 ,@(cdddr x)))
-		     ,@(if pure `((pure ,name1)) '())
-		     ,@(if pred `((predicate (,name1 ,pred))) '()))))))))))
-
-(##sys#extend-macro-environment
- 'the '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'the x '(_ _ _))
-    (if (not (memq #:compiling ##sys#features)) 
-	(caddr x)
-	`(##core#the ,(##compiler#check-and-validate-type (cadr x) 'the)
-		     #t
-		     ,(caddr x))))))
-
-(##sys#extend-macro-environment
- 'assume '()
- (syntax-rules ()
-   ((_ ((var type) ...) body ...)
-    (let ((var (the type var)) ...) body ...))))
-
-(##sys#extend-macro-environment
- 'define-specialization '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
-	  (else
-	   (##sys#check-syntax 'define-specialization x '(_ (variable . #(_ 0)) _ . #(_ 0 1)))
-	   (let* ((head (cadr x))
-		  (name (car head))
-		  (gname (##sys#globalize name '())) ;XXX correct?
-		  (args (cdr head))
-		  (alias (gensym name))
-		  (galias (##sys#globalize alias '())) ;XXX and this?
-		  (rtypes (and (pair? (cdddr x)) (##sys#strip-syntax (caddr x))))
-		  (%define (r 'define))
-		  (body (if rtypes (cadddr x) (caddr x))))
-	     (let loop ((args args) (anames '()) (atypes '()))
-	       (cond ((null? args)
-		      (let ((anames (reverse anames))
-			    (atypes (reverse atypes))
-			    (spec
-			     `(,galias ,@(let loop2 ((anames anames) (i 1))
-					   (if (null? anames)
-					       '()
-					       (cons (vector i)
-						     (loop2 (cdr anames) (fx+ i 1))))))))
-			(##sys#put! 
-			 gname '##compiler#local-specializations
-			 (##sys#append
-			  (##sys#get gname '##compiler#local-specializations '())
-			  (list
-			   (cons atypes
-				 (if (and rtypes (pair? rtypes))
-				     (list
-				      (map (cut ##compiler#check-and-validate-type 
-						<>
-						'define-specialization)
-					   rtypes)
-				      spec)
-				     (list spec))))))
-			`(##core#begin
-			  (##core#declare (inline ,alias) (hide ,alias))
-			  (,%define (,alias ,@anames)
-				    (##core#let ,(map (lambda (an at)
-							(list an `(##core#the ,at #t ,an)))
-						      anames atypes)
-						,body)))))
-		     (else
-		      (let ((arg (car args)))
-			(cond ((symbol? arg)
-			       (loop (cdr args) (cons arg anames) (cons '* atypes)))
-			      ((and (list? arg) (fx= 2 (length arg)) (symbol? (car arg)))
-			       (loop
-				(cdr args)
-				(cons (car arg) anames)
-				(cons 
-				 (##compiler#check-and-validate-type 
-				  (cadr arg) 
-				  'define-specialization)
-				 atypes)))
-			      (else (syntax-error
-				     'define-specialization
-				     "invalid argument syntax" arg head)))))))))))))
-
-(##sys#extend-macro-environment
- 'compiler-typecase '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'compiler-typecase x '(_ _ . #((_ . #(_ 1)) 1)))
-    (let ((val (memq #:compiling ##sys#features))
-	  (var (gensym))
-	  (ln (get-line-number x)))
-      `(##core#let ((,var ,(cadr x)))
-		   (##core#typecase 
-		    ,ln
-		    ,var		; must be variable (see: CPS transform)
-		    ,@(map (lambda (clause)
-			     (let ((hd (##sys#strip-syntax (car clause))))
-			       (list
-				(if (eq? hd 'else)
-				    'else
-				    (if val
-					(##compiler#check-and-validate-type
-					 hd
-					 'compiler-typecase)
-					hd))
-				`(##core#begin ,@(cdr clause)))))
-			   (cddr x))))))))
-
-(##sys#extend-macro-environment
- 'define-type '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'define-type x '(_ variable _))
-    (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
-	  (else
-	   (let ((name (##sys#strip-syntax (cadr x)))
-		 (%quote (r 'quote))
-		 (t0 (##sys#strip-syntax (caddr x))))
-	     `(##core#elaborationtimeonly
-	       (##sys#put/restore!
-		(,%quote ,name)
-		(,%quote ##compiler#type-abbreviation)
-		(,%quote ,(##compiler#check-and-validate-type t0 'define-type name))))))))))
-
-
-;; capture current macro env
-
-(##sys#macro-subset me0 ##sys#default-macro-environment)))
-
+;; TODO: omit `chicken.{base,condition,type}-m-e' when plain "chicken" module goes away
+(append ##sys#chicken.condition-macro-environment
+	##sys#chicken.type-macro-environment
+	##sys#chicken.base-macro-environment
+	(macro-subset me0 ##sys#default-macro-environment))))
 
 ;; register features
 
-(eval-when (compile load eval)
-  (register-feature! 'srfi-8 'srfi-11 'srfi-15 'srfi-16 'srfi-26 'srfi-31) )
+(chicken.platform#register-feature! 'srfi-8 'srfi-11 'srfi-15 'srfi-16 'srfi-26 'srfi-31)

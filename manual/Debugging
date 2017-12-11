@@ -16,7 +16,7 @@ it. You can also run a program explicitly by pressing the {{F1}} key and
 selecting an executable to run. If the executable has been compiled with
 debugging information, it will connect to the debugger and the source code
 of the program will be shown in the debugger window, if the original source
-files of the program are available in the search path (see below for more
+files of the program are available in the search path (see bwlo for more
 details on this.)
 
 To enable debugging in compiled programs a number of requirements must be met:

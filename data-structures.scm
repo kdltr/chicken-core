@@ -28,10 +28,17 @@
 (declare
  (unit data-structures))
 
+(module chicken.data-structures
+  (alist-ref alist-update alist-update! atom? butlast
+   chop compress flatten intersperse join rassoc tail?
+   constantly complement compose
+   conjoin disjoin each flip identity list-of? o)
+
+(import scheme chicken)
+(import chicken.foreign)
+(import chicken.condition)
+
 (include "common-declarations.scm")
-
-(register-feature! 'data-structures)
-
 
 
 ;;; Combinators:
@@ -90,7 +97,7 @@
   (lambda (lst)
     (let loop ([lst lst])
       (cond [(null? lst) #t]
-	    [(not-pair? lst) #f]
+	    [(not (pair? lst)) #f]
 	    [(pred (##sys#slot lst 0)) (loop (##sys#slot lst 1))]
 	    [else #f] ) ) ) )
 
@@ -107,8 +114,6 @@
 		   (begin
 		     (apply h args)
 		     (loop t) ) ) ) ) ) ) ) )
-
-(define (any? x) #t)
 
 
 ;;; List operators:
@@ -153,7 +158,7 @@
 
 (define chop
   (lambda (lst n)
-    (##sys#check-exact n 'chop)
+    (##sys#check-fixnum n 'chop)
     (when (fx<= n 0) (##sys#error 'chop "invalid numeric argument" n))
     (let ([len (length lst)])
       (let loop ([lst lst] [i len])
@@ -253,6 +258,7 @@
 	(##sys#slot item 1)
 	default) ) )
 
+;; TODO: Make inlineable in C without "tst", to be more like assoc?
 (define (rassoc x lst . tst)
   (##sys#check-list lst 'rassoc)
   (let ([tst (if (pair? tst) (car tst) eqv?)])
@@ -264,7 +270,21 @@
 		 a
 		 (loop (##sys#slot l 1)) ) ) ) ) ) )
 
+) ; chicken.data-structures
 
+
+(module chicken.string
+  (conc ->string string-chop string-chomp
+   string-compare3 string-compare3-ci
+   reverse-list->string reverse-string-append
+   string-intersperse string-split
+   string-translate string-translate*
+   substring=? substring-ci=?
+   substring-index substring-index-ci)
+
+(import scheme chicken)
+(import chicken.foreign)
+(import chicken.condition)
 
 ; (reverse-string-append l) = (apply string-append (reverse l))
 
@@ -282,6 +302,9 @@
 	    result)))
       (make-string i)))
   (rev-string-append l 0))
+
+(define (reverse-list->string l)
+  (##sys#reverse-list->string l))
 
 ;;; Anything->string conversion:
 
@@ -310,7 +333,7 @@
     (let* ((wherelen (##sys#size where))
 	   (whichlen (##sys#size which))
 	   (end (fx- wherelen whichlen)))
-      (##sys#check-exact start loc)
+      (##sys#check-fixnum start loc)
       (if (and (fx>= start 0)
 	       (fx>= wherelen start))
 	  (if (fx= whichlen 0)
@@ -378,8 +401,8 @@
   (let ((len (or n
 		 (fxmin (fx- (##sys#size s1) start1)
 			(fx- (##sys#size s2) start2) ) ) ) )
-    (##sys#check-exact start1 'substring=?)
-    (##sys#check-exact start2 'substring=?)
+    (##sys#check-fixnum start1 'substring=?)
+    (##sys#check-fixnum start2 'substring=?)
     (##core#inline "C_substring_compare" s1 s2 start1 start2 len) ) )
 
 (define (substring=? s1 s2 #!optional (start1 0) (start2 0) len)
@@ -391,8 +414,8 @@
   (let ((len (or n
 		 (fxmin (fx- (##sys#size s1) start1)
 			(fx- (##sys#size s2) start2) ) ) ) )
-    (##sys#check-exact start1 'substring-ci=?)
-    (##sys#check-exact start2 'substring-ci=?)
+    (##sys#check-fixnum start1 'substring-ci=?)
+    (##sys#check-fixnum start2 'substring-ci=?)
     (##core#inline "C_substring_compare_case_insensitive"
 		   s1 s2 start1 start2 len) ) )
 
@@ -550,7 +573,7 @@
 
 (define (string-chop str len)
   (##sys#check-string str 'string-chop)
-  (##sys#check-exact len 'string-chop)
+  (##sys#check-fixnum len 'string-chop)
   (let ([total (##sys#size str)])
     (let loop ([total total] [pos 0])
       (cond [(fx<= total 0) '()]
@@ -571,6 +594,15 @@
 	(##sys#substring str 0 diff)
 	str) ) )
 
+) ; chicken.string
+
+
+(module chicken.sort
+    (merge merge! sort sort! sorted? topological-sort)
+
+(import chicken scheme)
+(import (only (chicken data-structures)
+	      alist-ref alist-update!))
 
 
 ;;; Defines: sorted?, merge, merge!, sort, sort!
@@ -733,13 +765,13 @@
   (define (visit dag node edges path state)
     (case (alist-ref node (car state) pred)
       ((grey)
-       (##sys#abort
+       (abort
         (##sys#make-structure
          'condition
          '(exn runtime cycle)
          `((exn . message) "cycle detected"
            (exn . arguments) ,(list (cons node (reverse path)))
-           (exn . call-chain) ,(##sys#get-call-chain)
+           (exn . call-chain) ,(get-call-chain)
            (exn . location) topological-sort))))
       ((black)
        state)
@@ -767,138 +799,5 @@
                      (cdar dag)
                      '()
                      state)))))
+) ; chicken.sort
 
-
-;;; Binary search:
-
-(define binary-search
-  (lambda (vec proc)
-    (if (pair? vec)
-	(set! vec (list->vector vec))
-	(##sys#check-vector vec 'binary-search) )
-    (let ([len (##sys#size vec)])
-      (and (fx> len 0)
-	   (let loop ([ps 0]
-		      [pe len] )
-	     (let ([p (fx+ ps (##core#inline "C_fixnum_shift_right" (fx- pe ps) 1))])
-	       (let* ([x (##sys#slot vec p)]
-		      [r (proc x)] )
-		 (cond [(fx= r 0) p]
-		       [(fx< r 0) (and (not (fx= pe p)) (loop ps p))]
-		       [else (and (not (fx= ps p)) (loop p pe))] ) ) ) ) ) ) ) )
-
-
-
-; Support for queues
-;
-; Written by Andrew Wilcox (awilcox@astro.psu.edu) on April 1, 1992.
-;
-; This code is in the public domain.
-; 
-; (heavily adapated for use with CHICKEN by felix)
-;
-
-
-; Elements in a queue are stored in a list.  The last pair in the list
-; is stored in the queue type so that datums can be added in constant
-; time.
-
-(define (make-queue) (##sys#make-structure 'queue '() '() 0))
-(define (queue? x) (##sys#structure? x 'queue))
-
-(define (queue-length q)		; thread-safe
-  (##sys#check-structure q 'queue 'queue-length)
-  (##sys#slot q 3))
-
-(define (queue-empty? q)		; thread-safe
-  (##sys#check-structure q 'queue 'queue-empty?)
-  (eq? '() (##sys#slot q 1)) )
-
-(define queue-first			; thread-safe
-  (lambda (q)
-    (##sys#check-structure q 'queue 'queue-first)
-    (let ((first-pair (##sys#slot q 1)))
-      (when (eq? '() first-pair)
-	(##sys#error 'queue-first "queue is empty" q))
-      (##sys#slot first-pair 0) ) ) )
-
-(define queue-last			; thread-safe
-  (lambda (q)
-    (##sys#check-structure q 'queue 'queue-last)
-    (let ((last-pair (##sys#slot q 2)))
-      (when (eq? '() last-pair)
-	(##sys#error 'queue-last "queue is empty" q))
-      (##sys#slot last-pair 0) ) ) )
-
-(define (queue-add! q datum)		; thread-safe
-  (##sys#check-structure q 'queue 'queue-add!)
-  (let ((new-pair (cons datum '())))
-    (cond ((eq? '() (##sys#slot q 1)) (##sys#setslot q 1 new-pair))
-	  (else (##sys#setslot (##sys#slot q 2) 1 new-pair)) )
-    (##sys#setslot q 2 new-pair) 
-    (##sys#setislot q 3 (fx+ (##sys#slot q 3) 1))
-    (##core#undefined) ) )
-
-(define queue-remove!			; thread-safe
-  (lambda (q)
-    (##sys#check-structure q 'queue 'queue-remove!)
-    (let ((first-pair (##sys#slot q 1)))
-      (when (eq? '() first-pair)
-	(##sys#error 'queue-remove! "queue is empty" q) )
-      (let ((first-cdr (##sys#slot first-pair 1)))
-	(##sys#setslot q 1 first-cdr)
-	(if (eq? '() first-cdr)
-	    (##sys#setslot q 2 '()) )
-	(##sys#setislot q 3 (fx- (##sys#slot q 3) 1))
-	(##sys#slot first-pair 0) ) ) ) )
-
-(define (queue->list q)
-  (##sys#check-structure q 'queue 'queue->list)
-  (let loop ((lst (##sys#slot q 1)) (lst2 '()))
-    (if (null? lst)
-	(##sys#fast-reverse lst2)
-	(loop (##sys#slot lst 1) (cons (##sys#slot lst 0) lst2)))))
-
-(define (list->queue lst0)		
-  (##sys#check-list lst0 'list->queue)
-  (##sys#make-structure 
-   'queue lst0
-   (if (eq? lst0 '())
-       '()
-       (do ((lst lst0 (##sys#slot lst 1)))
-	   ((eq? (##sys#slot lst 1) '()) lst)
-	 (if (or (not (##core#inline "C_blockp" lst))
-		 (not (##core#inline "C_pairp" lst)) )
-	     (##sys#error-not-a-proper-list lst0 'list->queue) ) ) )
-   (##sys#length lst0)) )
-
-
-; (queue-push-back! queue item)
-; Pushes an item into the first position of a queue.
-
-(define (queue-push-back! q item)	; thread-safe
-  (##sys#check-structure q 'queue 'queue-push-back!)
-  (let ((newlist (cons item (##sys#slot q 1))))
-    (##sys#setslot q 1 newlist)
-    (if (eq? '() (##sys#slot q 2))
-	(##sys#setslot q 2 newlist))
-    (##sys#setislot q 3 (fx+ (##sys#slot q 3) 1))))
-
-; (queue-push-back-list! queue item-list)
-; Pushes the items in item-list back onto the queue,
-; so that (car item-list) becomes the next removable item.
-
-(define-inline (last-pair lst0)
-  (do ((lst lst0 (##sys#slot lst 1)))
-      ((eq? (##sys#slot lst 1) '()) lst)))
-
-(define (queue-push-back-list! q itemlist)
-  (##sys#check-structure q 'queue 'queue-push-back-list!)
-  (##sys#check-list itemlist 'queue-push-back-list!)
-  (let* ((newlist (append itemlist (##sys#slot q 1)))
-	 (newtail (if (eq? newlist '())
-		       '()
-		       (last-pair newlist))))
-    (##sys#setslot q 1 newlist)
-    (##sys#setslot q 2 newtail)
-    (##sys#setislot q 3 (fx+ (##sys#slot q 3) (##core#inline "C_i_length" itemlist)))))

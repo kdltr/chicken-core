@@ -72,9 +72,9 @@ be a procedure of no arguments. {{FLUSH}} (if provided) is called
 for flushing the output port.
 
 
-==== with-error-output-to-port
+==== with-error-to-port
 
-<procedure>(with-error-output-to-port PORT THUNK)</procedure>
+<procedure>(with-error-to-port PORT THUNK)</procedure>
 
 Call procedure {{THUNK}} with the current error output-port
 temporarily bound to {{PORT}}.
@@ -121,6 +121,14 @@ bound to an input-string-port with the contents of {{STRING}}.
 Call procedure {{THUNK}} with the current output-port temporarily
 bound to a string-output-port and return the accumulated output string.
 
+==== with-error-to-string
+
+<procedure>(with-error-to-string THUNK)</procedure>
+
+Call procedure {{THUNK}} with the current error output-port
+temporarily bound to a string-output-port and return the accumulated
+output string.
+
 
 === Port iterators
 
@@ -158,6 +166,15 @@ as {{(READ FROM)}} and {{(WRITE X TO)}}, respectively.
 {{copy-port}} was introduced in CHICKEN 4.6.0.
 
 === Funky ports
+
+==== make-bidirectional-port
+
+<procedure>(make-bidirectional-port INPUT-PORT OUTPUT-PORT)</procedure>
+
+Returns a joint input/output port that proxies port operations to the
+given {{INPUT-PORT}} and {{OUTPUT-PORT}}, respectively. This port
+satisfies both {{input-port?}} and {{output-port?}}, and its two
+directions may be closed independently.
 
 ==== make-broadcast-port
 

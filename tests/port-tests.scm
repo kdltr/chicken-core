@@ -1,7 +1,9 @@
-(require-extension srfi-1 ports utils srfi-4 extras tcp posix)
+(import chicken.condition (only data-structures constantly)
+        chicken.file chicken.flonum chicken.format chicken.io
+        chicken.port chicken.posix chicken.tcp srfi-4)
 
 (include "test.scm")
-(test-begin)
+(test-begin "ports")
 
 (define-syntax assert-error
   (syntax-rules ()
@@ -97,8 +99,77 @@ EOF
      (lambda (in) (read-char in)))
     (get-output-string out))))
 
+;; {input,output}-port-open?
+
+(assert (input-port-open? (open-input-string "abc")))
+(assert (output-port-open? (open-output-string)))
+(assert-error (input-port-open? (open-output-string)))
+(assert-error (output-port-open? (open-input-string "abc")))
+
+;; direction-specific port closure
+
+(let* ((n 0)
+       (p (make-input-port (constantly #\a)
+			   (constantly #t)
+			   (lambda () (set! n (add1 n))))))
+  (close-output-port p)
+  (assert (input-port-open? p))
+  (assert (= n 0))
+  (close-input-port p)
+  (assert (not (input-port-open? p)))
+  (assert (= n 1))
+  (close-input-port p)
+  (assert (not (input-port-open? p)))
+  (assert (= n 1)))
+
+(let* ((n 0)
+       (p (make-output-port (lambda () (display #\a))
+			    (lambda () (set! n (add1 n))))))
+  (close-input-port p)
+  (assert (output-port-open? p))
+  (assert (= n 0))
+  (close-output-port p)
+  (assert (not (output-port-open? p)))
+  (assert (= n 1))
+  (close-output-port p)
+  (assert (not (output-port-open? p)))
+  (assert (= n 1)))
+
+;; bidirectional ports
+
+(let* ((b (string))
+       (w (lambda (s)
+	    (set! b (string-append b s))))
+       (e (lambda ()
+	    (positive? (string-length b))))
+       (r (lambda ()
+	    (let ((s b))
+	      (set! b (substring s 1))
+	      (string-ref s 0))))
+       (i (make-input-port r e void))
+       (o (make-output-port w void))
+       (p (make-bidirectional-port i o)))
+  (assert (input-port? p))
+  (assert (output-port? p))
+  (assert (input-port-open? p))
+  (assert (output-port-open? p))
+  (display "quartz ruby" p)
+  (newline p)
+  (assert (equal? (read p) 'quartz))
+  (assert (equal? (read i) 'ruby))
+  (display "emerald topaz" p)
+  (newline p)
+  (close-output-port p)
+  (assert (not (output-port-open? o)))
+  (assert (not (output-port-open? p)))
+  (assert (equal? (read p) 'emerald))
+  (assert (equal? (read i) 'topaz))
+  (close-input-port p)
+  (assert (not (input-port-open? i)))
+  (assert (not (input-port-open? p))))
+
 ;; fill buffers
-(read-all "compiler.scm") 
+(with-input-from-file "compiler.scm" read-string)
 
 (print "slow...")
 (time
@@ -260,27 +331,6 @@ EOF
 (define (read-echo-line/pos str limit)
   (read-process-line/pos "echo" (list "-n" str) limit))
 
-(use srfi-18)
-(define (read-tcp-line/pos str limit)
-  (let ((pn 8079))
-    (thread-start! (lambda ()
-		     (let ((L (tcp-listen pn)))
-		       (let-values (((i o) (tcp-accept L)))
-			 (display str o)
-			 (close-input-port i)
-			 (close-output-port o)
-			 (tcp-close L)))))
-    (let-values (((i o)
-		  (let lp ((n 10))
-		    (if (zero? n)
-			(error "timeout connecting to server")
-			(condition-case (tcp-connect "localhost" pn)
-					((exn i/o net) (thread-sleep! 0.1) (lp (- n 1))))))))
-      (let ((rc (read-line/pos i limit)))
-	(close-input-port i)
-	(close-output-port o)
-	rc))))
-
 (define (test-port-position proc)
   (test-equal "advance row when encountering delim" 
 	      (proc "abcde\nfghi" 6)
@@ -384,14 +434,8 @@ EOF
  "read-line process port position tests"
  (test-port-position read-echo-line/pos))
 
-;; Disabled because currently fragile if port is already taken by
-;; another service.
-;; Uncomment locally to run.
-#;
-(test-group
- "read-line TCP port position tests"
- (test-port-position read-tcp-line/pos))
-
 ;;;
 
 (test-end)
+
+(test-exit)

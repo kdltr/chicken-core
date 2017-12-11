@@ -207,11 +207,47 @@ Is {{x}} a fixnum object?
 
 Is {{x}} ''not'' a fixnum object?
 
+===== C_bignump
+
+ [C macro] C_word C_bignump(C_word x)
+
+Is {{x}} a Scheme bignum object?  Accepts only non-immediate objects.
+
 ===== C_i_numberp
 
  [C function] C_word C_i_numberp(C_word x)
 
-Is {{x}} a number object (fixnum or flonum)?
+Is {{x}} a number object (fixnum, bignum, flonum, ratnum, cplxnum)?
+
+===== C_i_bignump
+
+ [C function] C_word C_i_bignump(C_word x)
+
+Is {{x}} a Scheme bignum object?
+
+===== C_i_cplxnump
+
+ [C function] C_word C_i_cplxnump(C_word x)
+
+Is {{x}} a Scheme cplxnum object?
+
+===== C_i_ratnump
+
+ [C function] C_word C_i_ratnump(C_word x)
+
+Is {{x}} a Scheme ratnum object?
+
+===== C_i_flonump
+
+ [C function] C_word C_i_flonump(C_word x)
+
+Is {{x}} a flonum object?
+
+===== C_i_exact_integerp
+
+ [C macro] C_word C_i_exact_integerp(C_word x)
+
+Is {{x}} an exact integer (i.e., a fixnum or a bignum)?
 
 ===== C_pointerp
 
@@ -224,12 +260,6 @@ Is {{x}} a C pointer object?  Only accepts non-immediate objects.
  [C macro] C_word C_taggedpointerp(C_word x)
 
 Is {{x}} a tagged pointer object?  Only accepts non-immediate objects.
-
-===== C_swigpointerp
-
- [C macro] C_word C_swigpointerp(C_word x)
-
-Is {{x}} a SWIG pointer object?  Only accepts non-immediate objects.
 
 ===== C_anypointerp
 
@@ -363,6 +393,10 @@ accessor macros instead).
 
  [C function] C_word C_vector (C_word **ptr, int length, ...)
 
+===== C_structure
+
+ [C function] C_word C_structure (C_word **ptr, int length, ...)
+
 ===== C_list
 
  [C function] C_word C_list (C_word **ptr, int length, ...)
@@ -492,6 +526,30 @@ and can also be simulated by declaring a stack-allocated array of
 
 Returns the size in words needed for allocation of vector with ''length'' elements.
 
+===== C_SIZEOF_CLOSURE
+
+ [C macro] int C_SIZEOF_CLOSURE (int length)
+
+Returns the size in words needed for allocation of a closure with {{length}} slots.  The C function pointer also counts as a slot, so always remember to include it when calculating {{length}}.
+
+===== C_SIZEOF_STRUCT
+
+ [C macro] int C_SIZEOF_STRUCT (int length)
+
+Returns the size in words needed for allocation of a structure (record type) object with {{length}} slots.  The structure's type tag also counts as a slot, so always remember to include it when calculating {{length}}.
+
+===== C_SIZEOF_BIGNUM
+
+ [C macro] int C_SIZEOF_BIGNUM (int length)
+
+Returns the size in words needed for allocation of a bignum object with {{length}} word-sized digits (limbs).
+
+===== C_SIZEOF_FIX_BIGNUM
+
+ [C macro] int C_SIZEOF_FIX_BIGNUM
+
+The size in words needed for allocation of a bignum object which is large enough to store any fixnum (ie, if it were converted to a denormalized bignum, because if a number ''can'' be represented as a fixnum, it ''will'' be).
+
 ===== C_SIZEOF_INTERNED_SYMBOL
 
  [C macro] int C_SIZEOF_INTERNED_SYMBOL (int length)
@@ -539,7 +597,7 @@ of a given type.
 
 ==== C_num_to_int
 
- [C function] int C_num_to_int (C_word fixnum_or_flonum)
+ [C function] int C_num_to_int (C_word fixnum_or_bignum)
 
 ==== C_pointer_address
 
@@ -709,21 +767,21 @@ Is the (byte- or heterogenous) vector {{v}} nonempty?
 
 ==== Numbers
 
-These procedures accept any type of number, so you can pass in either
-a fixnum or a flonum.  You shouldn't pass in another type though,
-since that could crash your program.
+These procedures accept any type of number, so you can pass in a
+fixnum, a flonum, a bignum, a ratnum or a cplxnum.  You shouldn't pass
+in another type though, since that could crash your program.
 
 ===== C_u_i_exactp
 
  [C macro] C_word C_u_i_exactp(C_word x)
 
-Is {{x}} an exact number (i.e., a fixnum)?
+Is {{x}} an exact number (i.e., a fixnum, bignum, ratnum or exact cplxnum)?
 
 ===== C_u_i_inexactp
 
  [C macro] C_word C_u_i_inexactp(C_word x)
 
-Is {{x}} an inexact number (i.e., not a fixnum)?
+Is {{x}} an inexact number (i.e., a flonum or an inexact cplxnum)?
 
 ===== C_i_finitep
 
@@ -731,6 +789,38 @@ Is {{x}} an inexact number (i.e., not a fixnum)?
 
 Is {{x}} a finite number?  This returns false only when {{x}} is a
 flonum representing {{-inf}} or {{+inf}}.
+
+==== Bignums
+
+===== C_bignum_negativep
+
+ [C macro] int C_bignum_negativep(C_word b)
+
+Returns nonzero if the bignum {{b}} is negative, zero if it is not.
+
+===== C_bignum_digits
+
+ [C macro] C_uword *C_bignum_digits(C_word b)
+
+Returns a pointer to the first digit (the least significant one) of the bignum {{b}}.
+
+===== C_bignum_size
+
+ [C macro] C_word C_bignum_size(b)
+
+Returns the number of digits in the bignum {{b}}, as an unboxed C number.  If you want a fixnum, use {{C_u_i_bignum_size}}.
+
+===== C_u_i_bignum_size
+
+ [C macro] C_word C_u_i_bignum_size(b)
+
+Returns the number of digits in the bignum {{b}}, as a Scheme fixnum.  If you want an unboxed integer, use {{C_bignum_size}}.
+
+===== C_i_bignum_cmp
+
+ [C macro] C_word C_i_bignum_cmp(x, y)
+
+Compares the bignums {{x}} and {{y}} and returns the fixnums {{-1}}, {{0}} or {{1}} if {{x}} is less than, equal to or greater than {{y}}, respectively.
 
 ==== Fixnums
 
@@ -754,13 +844,25 @@ Is {{x}} an odd fixnum?
 
  [C macro] C_word C_fixnum_times(C_word n1, C_word n2)
 
-Multiply fixnum n1 by fixnum n2.
+Multiply fixnum n1 by fixnum n2.  Will not overflow into a bignum, but
+will handle overflows safely in the sense that it always produces a
+fixnum.
+
+===== C_a_i_fixnum_times
+
+ [C macro] C_word C_a_i_fixnum_times(C_word **ptr, C_word n, C_word x, C_word y)
+
+Calculate {{x}} * {{y}}, safely overflowing into a bignum, using the
+storage in {{ptr}} (which should be at least {{C_SIZEOF_BIGNUM(2)}}).
+
 
 ===== C_fixnum_plus
 
  [C macro] C_word C_fixnum_plus(C_word n1, C_word n2)
 
-Add fixnum {{n1}} to fixnum {{n2}}.
+Add fixnum {{n1}} to fixnum {{n2}}.  Will not overflow into a bignum,
+but will handle overflows safely in the sense that it always produces
+a fixnum.
 
 ===== C_u_fixnum_plus
 
@@ -768,17 +870,33 @@ Add fixnum {{n1}} to fixnum {{n2}}.
 
 Like {{C_fixnum_plus}}, but unsafe (assumes no overflow/underflow).
 
+===== C_a_i_fixnum_plus
+
+ [C macro] C_word C_a_i_fixnum_plus(C_word **ptr, C_word n, C_word x, C_word y)
+
+Calculate {{x}} + {{y}}, safely overflowing into a bignum, using the
+storage in {{ptr}} (which should be at least {{C_SIZEOF_FIX_BIGNUM}}).
+
 ===== C_fixnum_difference
 
  [C macro] C_word C_fixnum_difference(C_word n1, C_word n2)
 
-Calculate {{n1}} - {{n2}}.
+Calculate {{n1}} - {{n2}}.  Will not overflow into a bignum, but will
+handle overflows safely in the sense that it always produces a fixnum.
 
 ===== C_u_fixnum_difference
 
  [C macro] C_word C_u_fixnum_difference(C_word n1, C_word n2)
 
 Like {{C_fixnum_difference}}, but unsafe (assumes no overflow/underflow).
+
+===== C_a_i_fixnum_difference
+
+ [C macro] C_word C_a_i_fixnum_difference(C_word **ptr, C_word n, C_word x, C_word y)
+
+Calculate {{x}} - {{y}}, safely overflowing into a bignum, using the
+storage in {{ptr}} (which should be at least {{C_SIZEOF_FIX_BIGNUM}}).
+
 
 ===== C_fixnum_divide
 ===== C_u_fixnum_divide
@@ -795,7 +913,25 @@ division). {{C_fixnum_divide}} signals an error if {{n2}} is zero.
  [C macro] C_word C_fixnum_modulo(C_word n1, C_word n2)
  [C macro] C_word C_u_fixnum_modulo(C_word n1, C_word n2)
 
-Calculate {{n1}} modulo {{n2}}. {{C_fixnum_modulo}} signals an error if {{n2}} is zero.
+Calculate {{n1}} modulo {{n2}}. {{C_fixnum_modulo}} signals an error if {{n2}} is zero.  Neither handles overflow into bignums.
+
+===== C_a_i_fixnum_quotient_checked
+
+ [C macro] C_word C_a_i_fixnum_quotient_checked(C_word **ptr, C_word n, C_word x, C_word y)
+
+Calculate integer division of {{x}} / {{y}}, safely overflowing into a
+bignum (which can happen when dividing by {{C_MOST_NEGATIVE_FIXNUM}}),
+using the storage in {{ptr}} (which should be at least
+{{C_SIZEOF_FIX_BIGNUM}}).  If {{y}} is zero, this will signal an
+error.
+
+===== C_i_fixnum_remainder_checked
+
+ [C macro] C_word C_i_fixnum_remainder_checked(C_word x, C_word y)
+
+Calculate the remainder of integer division {{x}} / {{y}}.  If {{y}}
+is zero, this will signal an error.
+
 
 ===== C_fixnum_and
 
@@ -850,7 +986,17 @@ Shift the integral value of {{n1}} right by {{n2}}
 
  [C macro] C_word C_fixnum_negate(C_word n)
 
-Negate {{n}}, i.e. return {{-n}}.
+Negate {{n}}, i.e. return {{-n}}.  This will ''not'' overflow into a
+bignum.
+
+===== C_a_i_fixnum_negate
+
+ [C macro] C_word C_a_i_fixnum_negate(C_word **ptr, C_word n, C_word x)
+
+Negate {{n}}, i.e. return {{-n}}.  This will not overflow into a
+bignum, using the storage pointed to by {{ptr}}, which should at least
+be {{C_SIZEOF_FIX_BIGNUM}}.
+
 
 ===== C_fixnum_greaterp
 
@@ -879,6 +1025,20 @@ Returns {{C_SCHEME_TRUE}} when {{n1}} is less than {{n2}},
 
 Returns {{C_SCHEME_TRUE}} when {{n1}} is less than or equal to
 {{n2}}, {{C_SCHEME_FALSE}} if not.
+
+===== C_i_fixnum_positivep
+
+ [C macro] C_word C_i_fixnum_positivep(C_word n)
+
+Returns {{C_SCHEME_TRUE}} when {{n}} is a positive fixnum,
+{{C_SCHEME_FALSE}} if it is zero or negative.
+
+===== C_i_fixnum_negativep
+
+ [C macro] C_word C_i_fixnum_negativep(C_word n)
+
+Returns {{C_SCHEME_TRUE}} when {{n}} is a negative fixnum,
+{{C_SCHEME_FALSE}} if it is zero or positive.
 
 ===== C_fixnum_increase
 
@@ -912,15 +1072,27 @@ Returns the absolute value of {{n}}.
 
 ===== C_i_fixnum_min
 
- [C function] C_word C_fixnum_min(C_word n1, C_word n2)
+ [C function] C_word C_i_fixnum_min(C_word n1, C_word n2)
 
 Returns the smallest of the two fixnums {{n1}} and {{n2}}.
 
 ===== C_i_fixnum_max
 
- [C function] C_word C_fixnum_max(C_word n1, C_word n2)
+ [C function] C_word C_i_fixnum_max(C_word n1, C_word n2)
 
 Returns the largest of the two fixnums {{n1}} and {{n2}}.
+
+===== C_i_fixnum_gcd
+
+ [C function] C_word C_i_fixnum_gcd(C_word n1, C_word n2)
+
+Returns the greatest common divisor of the two fixnums {{n1}} and {{n2}}.
+
+===== C_i_fixnum_length
+
+ [C function] C_word C_i_fixnum_length(C_word x)
+
+Returns the integer length in bits of the fixnum {{x}} (as a fixnum).
 
 
 ==== Flonums
@@ -1008,8 +1180,31 @@ Multiplies the flonum {{n1}} by the flonum {{n2}}, using the storage at
 ===== C_a_i_flonum_quotient
 
  [C macro] C_word C_a_i_flonum_quotient(C_word **ptr, int c, C_word n1, C_word n2)
+ [C macro] C_word C_a_i_flonum_quotient_checked(C_word **ptr, int c, C_word n1, C_word n2)
 
-Calculates the quotient of the flonum {{n1}} divided by the flonum
+These are misnamed because they don't calculate the Scheme "quotient",
+but the simple result of flonum {{n1}} divided by the flonum {{n2}},
+using the storage at {{ptr}}.  {{c}} should always be 2.
+
+{{C_a_i_flonum_checked}} will signal an error if {{n2}} is zero.
+
+===== C_a_i_flonum_actual_quotient_checked
+
+ [C macro] C_word C_a_i_flonum_actual_quotient_checked(C_word **ptr, int c, C_word n1, C_word n2)
+
+Due to the misnaming of {{C_a_i_flonum_quotient[_checked]}}, this
+function has a peculiar name.  It calculates the Scheme integer
+quotient of {{n1}} divided by {{n2}}, using the storage at {{ptr}}.
+{{c}} should always be 2.
+
+If {{n2}} is zero or either of the numbers is not an integral flonum,
+an error will be signaled.
+
+===== C_a_i_flonum_gcd
+
+ [C macro] C_word C_a_i_flonum_gcd(C_word **ptr, int c, C_word n1, C_word n2)
+
+Calculates the greatest common divisor of the flonums {{n1}} and
 {{n2}}, using the storage at {{ptr}}.  {{c}} should always be 2.
 
 ===== C_a_i_flonum_negate
@@ -1139,6 +1334,93 @@ Calculates the square root of {{n}}.
  [C macro] C_word C_a_i_flonum_abs(C_word **ptr, int c, C_word n)
 
 Calculates the absolute value of {{n}}.
+
+===== C_u_i_flonum_nanp
+
+ [C macro] C_word C_u_i_flonum_nanp(C_word n)
+
+Is {{n}} a flonum NaN value?
+
+===== C_u_i_flonum_finitep
+
+ [C macro] C_word C_u_i_flonum_finitep(C_word n)
+
+Is {{n}} a finite flonum (i.e., not NaN or one of the infinities)?
+
+===== C_u_i_flonum_infinitep
+
+ [C macro] C_word C_u_i_flonum_infinitep(C_word n)
+
+Is {{n}} an infinite flonum?
+
+==== Exact integers
+
+Often you know a value is an integer, but you don't know whether it's
+a fixnum or a bignum.  In those cases, there are some optimized C
+functions and macros to perform operations on them.
+
+===== C_i_integer_evenp
+
+ [C macro] C_word C_i_integer_evenp(C_word n)
+
+Returns {{C_SCHEME_TRUE}} when {{n}} is an even fixnum or bignum,
+{{C_SCHEME_FALSE}} if it is odd.
+
+===== C_i_integer_oddp
+
+ [C macro] C_word C_i_integer_oddp(C_word n)
+
+Returns {{C_SCHEME_TRUE}} when {{n}} is an odd fixnum or bignum,
+{{C_SCHEME_FALSE}} if it is even.
+
+===== C_i_integer_positivep
+
+ [C macro] C_word C_i_integer_positivep(C_word n)
+
+Returns {{C_SCHEME_TRUE}} when {{n}} is a positive fixnum or bignum,
+{{C_SCHEME_FALSE}} if it is zero or negative.
+
+===== C_i_integer_negativep
+
+ [C macro] C_word C_i_integer_negativep(C_word n)
+
+Returns {{C_SCHEME_TRUE}} when {{n}} is a negative fixnum or bignum,
+{{C_SCHEME_FALSE}} if it is zero or positive.
+
+===== C_i_integer_equalp
+
+ [C macro] C_word C_i_integer_equalp(x, y)
+
+Returns {{C_SCHEME_TRUE}} when {{x}} and {{y}} are numerically equal,
+{{C_SCHEME_FALSE}} if they differ.
+
+===== C_i_integer_greaterp
+
+ [C macro] C_word C_i_integer_greaterp(x, y)
+
+Returns {{C_SCHEME_TRUE}} when {{x}} is greater than {{y}},
+{{C_SCHEME_FALSE}} if it is equal or less.
+
+===== C_i_integer_greater_or_equalp
+
+ [C macro] C_word C_i_integer_greaterp(x, y)
+
+Returns {{C_SCHEME_TRUE}} when {{x}} is greater than or equal to {{y}},
+{{C_SCHEME_FALSE}} if it is less.
+
+===== C_i_integer_lessp
+
+ [C macro] C_word C_i_integer_lessp(x, y)
+
+Returns {{C_SCHEME_TRUE}} when {{x}} is less than {{y}},
+{{C_SCHEME_FALSE}} if it is equal or greater.
+
+===== C_i_integer_less_or_equalp
+
+ [C macro] C_word C_i_integer_less_or_equalp(x, y)
+
+Returns {{C_SCHEME_TRUE}} when {{x}} is less than or equal to {{y}},
+{{C_SCHEME_FALSE}} if it is greater.
 
 
 ==== Pointers

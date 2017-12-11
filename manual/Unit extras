@@ -8,6 +8,7 @@ used in {{csi}} by default.
 
 === Random numbers
 
+These procedures are provided by the {{(chicken random)}} module.
 
 ==== randomize
 
@@ -42,6 +43,7 @@ output of reasonable quality.
 
 === Formatted output
 
+These procedures are provided by the {{(chicken format)}} module.
 
 ==== printf
 ==== fprintf
@@ -100,6 +102,7 @@ The optional {{DESTINATION}}, when supplied, performs:
 
 === Pretty-printing
 
+These procedures are provided by the {{(chicken pretty-print)}} module.
 
 ==== pretty-print
 
@@ -116,7 +119,10 @@ of {{(current-output-port)}}.
 Specifies the maximal line-width for pretty printing, after which line
 wrap will occur.
 
+
 === Input/Output extensions
+
+These procedures are provided by the {{(chicken io)}} module.
 
 ==== read-byte
 ==== write-byte
@@ -126,19 +132,6 @@ wrap will occur.
 
 Read/write a byte to the port given in {{PORT}}, which default to the values
 of {{(current-input-port)}} and {{(current-output-port)}}, respectively.
-
-==== read-file
-
-<procedure>(read-file [FILE-OR-PORT [READER [MAXCOUNT]]])</procedure>
-
-Returns a list containing all toplevel expressions
-read from the file or port {{FILE-OR-PORT}}. If no argument is given,
-input is read from the port that is the current value of {{(current-input-port)}}.
-After all expressions are read, and if the argument is a port, then the port will
-not be closed. The {{READER}} argument specifies the procedure used to read 
-expressions from the given file or port and defaults to {{read}}. The reader
-procedure will be called with a single argument (an input port).
-If {{MAXCOUNT}} is given then only up to {{MAXCOUNT}} expressions will be read in.
 
 
 ==== read-line
@@ -158,9 +151,10 @@ characters per line. {{read-line}} returns a string without the terminating newl
 
 <procedure>(read-lines [PORT [MAX]])</procedure>
 
-Read {{MAX}} or fewer lines from {{PORT}}. {{PORT}}
-defaults to the value of {{(current-input-port)}}. {{PORT}} may optionally be
-a string naming a file. Returns a list of strings, each string representing a line read, not including any line separation character(s).
+Read {{MAX}} or fewer lines from {{PORT}}. {{PORT}} defaults to the
+value of {{(current-input-port)}}. Returns a list of strings, each
+string representing a line read, not including any line separation
+character(s).
 
 
 ==== read-string
@@ -173,12 +167,14 @@ a string naming a file. Returns a list of strings, each string representing a li
 
 Read or write {{NUM}} characters from/to {{PORT}}, which defaults to the
 value of {{(current-input-port)}} or {{(current-output-port)}}, respectively. 
-If {{NUM}} is {{#f}} or not given, then all data
-up to the end-of-file is read, or, in the case of {{write-string}} the whole
-string is written. If no more input is available, {{read-string}} returns the
-empty string. {{read-string!}} reads destructively into the given {{STRING}} argument,
-but never more characters than would fit into {{STRING}}. If {{START}} is given, then
-the read characters are stored starting at that position.
+
+If {{NUM}} is {{#f}} or not given, then all data up to the end-of-file is
+read, or, in the case of {{write-string}} the whole string is written. If no
+more input is available, {{read-string}} returns {{#!eof}}.
+
+{{read-string!}} reads destructively into the given {{STRING}} argument, but
+never more characters than would fit into {{STRING}}. If {{START}} is given,
+then the read characters are stored starting at that position.
 {{read-string!}} returns the actual number of characters read.
 
 

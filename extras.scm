@@ -29,44 +29,27 @@
  (unit extras)
  (uses data-structures))
 
-(declare
-  (hide fprintf0 generic-write) )
+(module chicken.io
+  (read-list read-buffered read-byte read-line
+   read-lines read-string read-string! read-token
+   write-byte write-line write-string)
+
+(import scheme chicken)
 
 (include "common-declarations.scm")
-
-(register-feature! 'extras)
 
 
 ;;; Read expressions from file:
 
-(define read-file
-  (let ([read read]
-	[call-with-input-file call-with-input-file] )
+(define read-list
+  (let ((read read))
     (lambda (#!optional (port ##sys#standard-input) (reader read) max)
-      (define (slurp port)
-	(do ((x (reader port) (reader port))
-	     (i 0 (fx+ i 1))
-	     (xs '() (cons x xs)) )
-	    ((or (eof-object? x) (and max (fx>= i max))) (##sys#fast-reverse xs)) ) )
-      (if (port? port)
-	  (slurp port)
-	  (call-with-input-file port slurp) ) ) ) )
-
-
-;;; Random numbers:
-
-(define (randomize . n)
-  (let ((nn (if (null? n)
-		(##sys#flo2fix (fp/ (current-seconds) 1000.0)) ; wall clock time
-		(car n))))
-    (##sys#check-exact nn 'randomize)
-    (##core#inline "C_randomize" nn) ) )
-
-(define (random n)
-  (##sys#check-exact n 'random)
-  (if (eq? n 0)
-      0
-      (##core#inline "C_random_fixnum" n) ) )
+      (##sys#check-input-port port #t 'read-list)
+      (do ((x (reader port) (reader port))
+	   (i 0 (fx+ i 1))
+	   (xs '() (cons x xs)))
+	  ((or (eof-object? x) (and max (fx>= i max)))
+	   (##sys#fast-reverse xs))))))
 
 
 ;;; Line I/O:
@@ -107,24 +90,16 @@
 				(loop (fx+ i 1)) ] ) ) ) ) ) ) ) ) ) ) ) )
 
 (define read-lines
-  (lambda port-and-max
-    (let* ((port (if (pair? port-and-max) (##sys#slot port-and-max 0) ##sys#standard-input))
-	   (rest (and (pair? port-and-max) (##sys#slot port-and-max 1)))
-	   (max (if (pair? rest) (##sys#slot rest 0) #f)) )
-      (define (doread port)
-	(let loop ((lns '())
-		   (n (or max 1000000000)) ) ; this is silly
-	  (if (eq? n 0)
-	      (##sys#fast-reverse lns)
-	      (let ((ln (read-line port)))
-		(if (eof-object? ln)
-		    (##sys#fast-reverse lns)
-		    (loop (cons ln lns) (fx- n 1)) ) ) ) ) )
-      (if (string? port)
-	  (call-with-input-file port doread)
-	  (begin
-	    (##sys#check-input-port port #t 'read-lines)
-	    (doread port) ) ) ) ) )
+  (lambda (#!optional (port ##sys#standard-input) (max most-positive-fixnum))
+    (##sys#check-input-port port #t 'read-lines)
+    (let loop ((lns '())
+	       (n (or max 1000000000))) ; this is silly
+      (if (or (eq? n 0))
+	  (##sys#fast-reverse lns)
+	  (let ((ln (read-line port)))
+	    (if (eof-object? ln)
+		(##sys#fast-reverse lns)
+		(loop (cons ln lns) (fx- n 1))))))))
 
 (define write-line
   (lambda (str . port)
@@ -139,7 +114,7 @@
 
 ;;; Extended I/O 
 
-(define (##sys#read-string! n dest port start)
+(define (read-string!/port n dest port start)
   (cond ((eq? n 0) 0)
 	(else
 	 (let ((rdstring (##sys#slot (##sys#slot port 2) 7)))
@@ -167,21 +142,21 @@
 (define (read-string! n dest #!optional (port ##sys#standard-input) (start 0))
   (##sys#check-input-port port #t 'read-string!)
   (##sys#check-string dest 'read-string!)
-  (when n (##sys#check-exact n 'read-string!))
+  (when n (##sys#check-fixnum n 'read-string!))
   (let ((dest-size (##sys#size dest)))
     (unless (and n (fx<= (fx+ start n) dest-size))
       (set! n (fx- dest-size start))))
-  (##sys#check-exact start 'read-string!)
-  (##sys#read-string! n dest port start) )
+  (##sys#check-fixnum start 'read-string!)
+  (read-string!/port n dest port start))
 
 (define-constant read-string-buffer-size 2048)
 
-(define ##sys#read-string/port
+(define read-string/port
   (lambda (n p)
-    (##sys#check-input-port p #t 'read-string)
-    (cond (n (##sys#check-exact n 'read-string)
-	     (let* ((str (##sys#make-string n))
-		    (n2 (##sys#read-string! n str p 0)) )
+    (cond ((eof-object? (##sys#peek-char-0 p))
+	   (if (eq? n 0) "" #!eof))
+          (n (let* ((str (##sys#make-string n))
+		    (n2 (read-string!/port n str p 0)))
 	       (if (eq? n n2)
 		   str
 		   (##sys#substring str 0 n2))))
@@ -189,8 +164,8 @@
 	   (let ([out (open-output-string)]
 		 (buf (make-string read-string-buffer-size)))
 	     (let loop ()
-	       (let ((n (##sys#read-string! read-string-buffer-size
-					    buf p 0)))
+	       (let ((c (peek-char p))
+		     (n (read-string!/port read-string-buffer-size buf p 0)))
 		 (cond ((eq? n 0)
 			(get-output-string out))
 		       (else
@@ -198,14 +173,15 @@
 			(loop))))))))))
 
 (define (read-string #!optional n (port ##sys#standard-input))
-  (##sys#read-string/port n port) )
+  (##sys#check-input-port port #t 'read-string)
+  (when n (##sys#check-fixnum n 'read-string))
+  (read-string/port n port))
 
-;; <procedure>(read-buffered [PORT])</procedure>
-;;
-;; Reads any remaining data buffered after previous read operations on
-;; {{PORT}}. If no remaining data is currently buffered, an empty string
-;; is returned. This procedure will never block. Currently only useful for
-;; string-, process- and tcp ports.
+
+;; Make internal reader procedures available for use in srfi-4.scm:
+
+(define chicken.io#read-string/port read-string/port)
+(define chicken.io#read-string!/port read-string!/port)
 
 (define (read-buffered #!optional (port ##sys#standard-input))
   (##sys#check-input-port port #t 'read-buffered)
@@ -235,7 +211,7 @@
     (##sys#check-string s 'write-string)
     (let-optionals more ([n #f] [port ##sys#standard-output])
       (##sys#check-output-port port #t 'write-string)
-      (when n (##sys#check-exact n 'write-string))
+      (when n (##sys#check-fixnum n 'write-string))
       ((##sys#slot (##sys#slot port 2) 3) ; write-string
        port
        (if (and n (fx< n (##sys#size s)))
@@ -253,11 +229,11 @@
 	(char->integer x) ) ) )
 
 (define (write-byte byte #!optional (port ##sys#standard-output))
-  (##sys#check-exact byte 'write-byte)
+  (##sys#check-fixnum byte 'write-byte)
   (##sys#check-output-port port #t 'write-byte)
   (##sys#write-char-0 (integer->char byte) port) )
 
-
+) ; module chicken.io
 
 
 ;;; Pretty print:
@@ -268,6 +244,12 @@
 ;
 ; Modified by felix for use with CHICKEN
 ;
+
+(module chicken.pretty-print
+  (pp pretty-print pretty-print-width)
+
+(import scheme chicken
+	chicken.string)
 
 (define generic-write
   (lambda (obj display? width output)
@@ -375,7 +357,7 @@
 					    [else (out (make-string 1 obj) col)] ) ) ) )
 	    ((##core#inline "C_undefinedp" obj) (out "#<unspecified>" col))
 	    ((##core#inline "C_anypointerp" obj) (out (##sys#pointer->string obj) col))
-	    ((eq? obj (##sys#slot '##sys#arbitrary-unbound-symbol 0))
+	    ((##core#inline "C_unboundvaluep" obj)
 	     (out "#<unbound value>" col) )
 	    ((##sys#generic-structure? obj)
 	     (let ([o (open-output-string)])
@@ -574,10 +556,15 @@
     (generic-write obj #f (pretty-print-width) (lambda (s) (display s port) #t))
     (##core#undefined) ) )
 
-(define pp pretty-print)
+(define pp pretty-print))
 
 
 ;;; Write simple formatted output:
+
+(module chicken.format
+  (format fprintf printf sprintf)
+
+(import scheme chicken chicken.platform)
 
 (define fprintf0
   (lambda (loc port msg args)
@@ -651,5 +638,25 @@
 		  (##sys#error 'format "illegal destination" fmt-or-dst args)])
 	   args) ) )
 
-(register-feature! 'srfi-28)
+(register-feature! 'srfi-28))
 
+
+;;; Random numbers:
+
+(module chicken.random
+  (randomize random)
+
+(import scheme chicken chicken.time)
+
+(define (randomize . n)
+  (let ((nn (if (null? n)
+		(quotient (current-seconds) 1000) ; wall clock time
+		(car n))))
+    (##sys#check-fixnum nn 'randomize)
+    (##core#inline "C_randomize" nn)))
+
+(define (random n)
+  (##sys#check-fixnum n 'random)
+  (if (eq? n 0)
+      0
+      (##core#inline "C_random_fixnum" n))))

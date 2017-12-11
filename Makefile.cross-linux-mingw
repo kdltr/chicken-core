@@ -76,13 +76,13 @@ include $(SRCDIR)/defaults.make
 ifndef BUILD_SETUP_TOOLS
 TARGETS = libchicken$(A) $(CHICKEN_PROGRAM)$(EXE) $(CSI_PROGRAM)$(EXE) \
 	$(CHICKEN_PROFILE_PROGRAM)$(EXE) $(CSC_PROGRAM)$(EXE) lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(SO) \
-	$(CHICKEN_BUG_PROGRAM)$(EXE)
+	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DO_PROGRAM)$(EXE)
 else
 TARGETS = libchicken$(A) $(CHICKEN_PROGRAM)$(EXE) $(CSI_PROGRAM)$(EXE) \
 	$(CHICKEN_PROFILE_PROGRAM)$(EXE) $(CSC_PROGRAM)$(EXE) lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(SO) \
 	$(CHICKEN_INSTALL_PROGRAM)$(EXE) $(CHICKEN_UNINSTALL_PROGRAM)$(EXE) \
 	$(CHICKEN_STATUS_PROGRAM)$(EXE) \
-	$(CHICKEN_BUG_PROGRAM)$(EXE)
+	$(CHICKEN_BUG_PROGRAM)$(EXE) $(CHICKEN_DO_PROGRAM)$(EXE)
 endif
 
 chicken-config.h: chicken-defaults.h
@@ -113,9 +113,6 @@ chicken-config.h: chicken-defaults.h
 	echo "#define C_STACK_GROWS_DOWNWARD 1" >>$@
 ifdef GCHOOKS
 	echo "#define C_GC_HOOKS" >>$@
-endif
-ifdef SYMBOLGC
-	echo "#define C_COLLECT_ALL_SYMBOLS" >>$@
 endif
 	echo "#define C_USE_STD_FEATURE_MACROS" >>$@
 	cat chicken-defaults.h >>$@

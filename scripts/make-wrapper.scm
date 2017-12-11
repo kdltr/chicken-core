@@ -2,9 +2,7 @@
 ;
 ; usage: csi -s make-wrapper.scm NAME BINPATH
 
-
-(use extras files)
-
+(import (chicken pathname))
 
 (let* ((args (command-line-arguments))
        (name (car args))

@@ -1,4 +1,8 @@
-(use data-structures posix)
+(import (chicken file)
+        (chicken process-context)
+        (chicken sort)
+        (chicken string))
+
 (include "test.scm")
 
 (handle-exceptions exn
@@ -211,3 +215,5 @@
 
 (change-directory "..")
 (delete-directory "find-files-test-dir" #t)
+
+(test-exit)

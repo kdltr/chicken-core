@@ -1,17 +1,22 @@
 ;;;; functor-tests.scm
 
 
-(use srfi-1 data-structures extras)
+(import data-structures chicken.port chicken.pretty-print)
 
 
 (include "test.scm")
-(test-begin)
+(test-begin "functor tests")
 
 ;;
 
 
 (include "test-queue")
 (include "breadth-first")
+
+(define (take lst n)
+  (if (fx<= n 0)
+      '()
+      (cons (car lst) (take (cdr lst) (fx- n 1)))))
 
 
 (module queue1 QUEUE
@@ -28,8 +33,7 @@
 
 
 (module queue2 QUEUE
-  (import (rename scheme (not empty?)) 
-	  chicken)
+  (import (rename scheme (not empty?)) chicken)
   (define-record entry q x)
   (define empty-queue #f)
   (define enqueue make-entry)
@@ -69,6 +73,12 @@
 (import (rename test-q2 (list->queue l2q2) (queue->list q2l2)))
 (import (rename test-q3 (list->queue l2q3) (queue->list q2l3)))
 
+(define (list-tabulate n proc)
+  (let loop ((i 0))
+    (if (fx>= i n)
+	'()
+	(cons (proc i) (loop (fx+ i 1))))))
+
 (define long-list (list-tabulate (cond-expand (csi 500) (else 1000)) identity))
 
 (print "Queue representation #1:")
@@ -89,6 +99,36 @@
 
 ;;XXX shows (""), which looks wrong:
 (pp (show 8 (search next-char '())))	;XXX assert
+
+;; list-style library names
+
+(functor ((double printer) ((P (chicken)) (print))) (print-twice)
+  (import (scheme) P)
+  (define (print-twice x) (print x) (print x)))
+
+(module (noop printer) *
+  (import (only (scheme) define) (only (chicken) void))
+  (define print void))
+
+(module (2x print) = ((double printer)))
+
+(module (2x noop) = ((double printer) (noop printer)))
+
+(module (2x write) = (double printer)
+  (import (chicken module))
+  (reexport (rename (scheme) (write print))))
+
+(define output
+  (with-output-to-string
+   (lambda ()
+     (import (2x print))
+     (print-twice #\a)
+     (import (2x noop))
+     (print-twice #\a)
+     (import (2x write))
+     (print-twice #\a))))
+
+(test-equal "double printer" output "a\na\n#\\a#\\a")
 
 ;; Test for errors
 
@@ -126,6 +166,8 @@
   (import chicken X)
   yibble)
 
+;; XXX This is somewhat iffy: functor instantiation results in a
+;; value!
 (test-equal
  "alternative functor instantiation syntax"
  (module yabble = frob (import scheme) (define yibble 99))
@@ -197,3 +239,5 @@
 ;;
 
 (test-end)
+
+(test-exit)

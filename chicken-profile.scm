@@ -24,14 +24,20 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
+(declare (block))
 
-(declare
-  (block)
-  (uses srfi-1
-	srfi-13
-	srfi-69
-	posix
-	utils))
+(module main ()
+
+(import chicken scheme)
+(import chicken.file
+	chicken.internal
+	chicken.posix
+	chicken.sort
+	chicken.string)
+
+(include "mini-srfi-1.scm")
+
+(define symbol-table-size 3001)
 
 (define sort-by #f)
 (define file #f)
@@ -43,7 +49,7 @@
 
 (define (print-usage)
   (display #<#EOF
-Usage: chicken-profile [FILENAME | OPTION] ...
+Usage: chicken-profile [OPTION ...] [FILENAME ...]
 
  -sort-by-calls            sort output by call frequency
  -sort-by-time             sort output by procedure execution time
@@ -138,21 +144,24 @@ EOF
 (set! sort-by sort-by-time)
 
 (define (set-decimals arg)
+  (define (arg-digit n)
+    (let ((n (- (char->integer (string-ref arg n))
+		(char->integer #\0))))
+      (if (<= 0 n 9)
+	  (if (= n 9) 8 n)		; 9 => overflow in format-real
+	  (error "invalid argument to -decimals option" arg))))
   (if (= (string-length arg) 3)
       (begin
-	(define (arg-digit n)
-	  (let ((n (- (char->integer (string-ref arg n))
-		      (char->integer #\0))))
-	    (if (<= 0 n 9)
-		(if (= n 9) 8 n) ; 9 => overflow in format-real
-		(error "invalid argument to -decimals option" arg))))
 	(set! seconds-digits (arg-digit 0))
 	(set! average-digits (arg-digit 1))
 	(set! percent-digits (arg-digit 2)))
       (error "invalid argument to -decimals option" arg)))
 
+(define (make-symbol-table)
+  (make-vector symbol-table-size '()))
+
 (define (read-profile)
-  (let* ((hash (make-hash-table eq?))
+  (let* ((hash (make-symbol-table))
 	 (header (read))
 	 (type (if (symbol? header) header 'instrumented)))
     (do ((line (if (symbol? header) (read) header) (read)))
@@ -160,9 +169,14 @@ EOF
       (hash-table-set!
        hash (first line)
        (map (lambda (x y) (and x y (+ x y)))
-	    (hash-table-ref/default hash (first line) '(0 0)) 
+	    (or (hash-table-ref hash (first line)) '(0 0))
 	    (cdr line))))
-    (cons type (hash-table->alist hash))))
+    (let ((alist '()))
+      (hash-table-for-each
+       (lambda (sym counts)
+	 (set! alist (alist-cons sym counts alist)))
+       hash)
+      (cons type alist))))
 
 (define (format-string str cols #!optional right (padc #\space))
   (let* ((len (string-length str))
@@ -212,35 +226,35 @@ EOF
     (if (< 0 top (length data))
 	(set! data (take data top)))
     (set! data (map (lambda (entry)
-		      (let ([c (second entry)] ; count
-			    [t (third entry)]  ; total time
-			    [a (fourth entry)] ; average time
-			    [p (fifth entry)] ) ; % of max time
+		      (let ((c (second entry)) ; count
+			    (t (third entry))  ; total time
+			    (a (fourth entry)) ; average time
+			    (p (fifth entry)) ) ; % of max time
 			(list (##sys#symbol->qualified-string (first entry))
 			      (if (not c) "overflow" (number->string c))
 			      (format-real (/ t 1000) seconds-digits)
 			      (format-real (/ a 1000) average-digits)
 			      (format-real p percent-digits))))
-		    (remove (lambda (entry) 
-			      (if (second entry) 
-				  (and (zero? (second entry)) no-unused)
-				  #f) )
-			    data)))
-    (let* ([headers (list "procedure" "calls" "seconds" "average" "percent")]
-	   [alignments (list #f #t #t #t #t)]
-	   [spacing 2]
-	   [spacer (make-string spacing #\space)]
-	   [column-widths (fold
-			   (lambda (row max-widths)
+		    (if no-unused
+			(filter (lambda (entry) (> (second entry) 0)) data)
+			data)))
+    (let* ((headers (list "procedure" "calls" "seconds" "average" "percent"))
+	   (alignments (list #f #t #t #t #t))
+	   (spacing 2)
+	   (spacer (make-string spacing #\space))
+	   (column-widths (foldl
+			   (lambda (max-widths row)
 			     (map max (map string-length row) max-widths))
 			   (list 0 0 0 0 0)
-			   (cons headers data))])
+			   (cons headers data))))
       (define (print-row row)
-	(print (string-join (map format-string row column-widths alignments) spacer)))
+	(print (string-intersperse (map format-string row column-widths alignments) spacer)))
       (print-row headers)
-      (print (make-string (+ (reduce + 0 column-widths)
+      (print (make-string (+ (foldl + 0 column-widths)
 			     (* spacing (- (length alignments) 1)))
 			  #\-))
       (for-each print-row data))))
   
 (run (command-line-arguments))
+
+)

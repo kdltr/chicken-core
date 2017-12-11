@@ -25,24 +25,92 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-(declare
-  (unit support))
+(declare (unit support)
+	 (not inline ##sys#user-read-hook) ; XXX: Is this needed?
+	 (uses data-structures extras file internal pathname port))
 
+(module chicken.compiler.support
+    (compiler-cleanup-hook bomb collected-debugging-output debugging
+     debugging-chicken with-debugging-output quit-compiling
+     emit-syntax-trace-info check-signature stringify symbolify
+     build-lambda-list c-ify-string valid-c-identifier?
+     read-expressions
+     bytes->words words->bytes
+     check-and-open-input-file close-checked-input-file fold-inner
+     constant? collapsable-literal? immediate? basic-literal?
+     canonicalize-begin-body string->expr llist-length llist-match?
+     expand-profile-lambda reset-profile-info-vector-name!
+     profiling-prelude-exps db-get db-get-all db-put! collect! db-get-list
+     get-line get-line-2 display-line-number-database
+     make-node node? node-class node-class-set!
+     node-parameters node-parameters-set!
+     node-subexpressions node-subexpressions-set! varnode qnode
+     build-node-graph build-expression-tree fold-boolean inline-lambda-bindings
+     tree-copy copy-node! copy-node emit-global-inline-file load-inline-file
+     match-node expression-has-side-effects? simple-lambda-node?
+     dump-undefined-globals dump-defined-globals dump-global-refs
+     make-foreign-callback-stub foreign-callback-stub?
+     foreign-callback-stub-id foreign-callback-stub-name
+     foreign-callback-stub-qualifiers foreign-callback-stub-return-type
+     foreign-callback-stub-argument-types register-foreign-callback-stub!
+     foreign-callback-stubs 		; should not be exported
+     foreign-type-check foreign-type-convert-result
+     foreign-type-convert-argument final-foreign-type
+     register-foreign-type! lookup-foreign-type clear-foreign-type-table!
+     estimate-foreign-result-size estimate-foreign-result-location-size
+     finish-foreign-result foreign-type->scrutiny-type scan-used-variables
+     scan-free-variables chop-separator
+     make-block-variable-literal block-variable-literal?
+     block-variable-literal-name make-random-name
+     clear-real-name-table! get-real-name set-real-name!
+     real-name real-name2 display-real-name-table
+     source-info->string source-info->line call-info constant-form-eval
+     dump-nodes read-info-hook read/source-info big-fixnum? small-bignum?
+     hide-variable export-variable variable-hidden? variable-visible?
+     mark-variable variable-mark intrinsic? predicate? foldable?
+     load-identifier-database
+     print-version print-usage print-debug-options
 
-(include "compiler-namespace")
+     ;; XXX: These are evil globals that were too hairy to get rid of.
+     ;; These values are set! by compiler and batch-driver, and read
+     ;; in a lot of other places.
+     number-type unsafe)
+
+(import chicken scheme
+	chicken.bitwise
+	chicken.blob
+	chicken.condition
+	(only chicken.data-structures butlast alist-ref atom?)
+	chicken.file
+	chicken.foreign
+	chicken.format
+	chicken.internal
+	chicken.io
+	chicken.keyword
+	chicken.pathname
+	chicken.platform
+	chicken.plist
+	chicken.port
+	chicken.pretty-print
+	chicken.random
+	chicken.sort
+	chicken.string
+	chicken.syntax
+	chicken.time)
+
 (include "tweaks")
+(include "mini-srfi-1.scm")
 (include "banner")
 
-(declare
-  (not inline compiler-cleanup-hook ##sys#user-read-hook) )
-
+;; Evil globals
+(define number-type 'generic)
+(define unsafe #f)
 
 ;;; Debugging and error-handling stuff:
 
 (define (compiler-cleanup-hook) #f)
 
 (define debugging-chicken '())
-(define disabled-warnings '())		; usage type load var const syntax redef use call ffi
 
 (define (bomb . msg-and-args)
   (if (pair? msg-and-args)
@@ -57,7 +125,7 @@
 (define (test-debugging-mode mode enabled)
   (if (symbol? mode)
       (memq mode enabled)
-      (pair? (lset-intersection eq? mode enabled))))
+      (any (lambda (m) (memq m enabled)) mode)))
 
 (define (debugging mode msg . args)
   (define (text)
@@ -101,7 +169,7 @@
 	((test-debugging-mode mode +logged-debugging-modes+)
 	 (collect (with-output-to-string thunk)))))
 
-(define (quit msg . args)
+(define (quit-compiling msg . args)
   (let ([out (current-error-port)])
     (apply fprintf out (string-append "\nError: " msg) args)
     (newline out)
@@ -124,8 +192,11 @@
 
 (set! syntax-error ##sys#syntax-error-hook)
 
+;; Move to C-platform?
 (define (emit-syntax-trace-info info cntr) 
-  (##core#inline "C_emit_syntax_trace_info" info cntr ##sys#current-thread) )
+  (define (thread-id t) (##sys#slot t 14))
+  (##core#inline "C_emit_syntax_trace_info" info cntr
+                 (thread-id ##sys#current-thread)))
 
 (define (map-llist proc llist)
   (let loop ([llist llist])
@@ -133,11 +204,13 @@
 	  [(symbol? llist) (proc llist)]
 	  [else (cons (proc (car llist)) (loop (cdr llist)))] ) ) )
 
+;; XXX: Shouldn't this be in optimizer.scm?
 (define (check-signature var args llist)
   (define (err)
-    (quit "Arguments to inlined call of `~A' do not match parameter-list ~A" 
-	  (real-name var)
-	  (map-llist real-name (cdr llist)) ) )
+    (quit-compiling
+     "Arguments to inlined call of `~A' do not match parameter-list ~A" 
+     (real-name var)
+     (map-llist real-name (cdr llist)) ) )
   (let loop ([as args] [ll llist])
     (cond [(null? ll) (unless (null? as) (err))]
 	  [(symbol? ll)]
@@ -146,18 +219,6 @@
 
 
 ;;; Generic utility routines:
-
-(define (posq x lst)
-  (let loop ([lst lst] [i 0])
-    (cond [(null? lst) #f]
-	  [(eq? x (car lst)) i]
-	  [else (loop (cdr lst) (add1 i))] ) ) )
-
-(define (posv x lst)
-  (let loop ([lst lst] [i 0])
-    (cond [(null? lst) #f]
-	  [(eqv? x (car lst)) i]
-	  [else (loop (cdr lst) (add1 i))] ) ) )
 
 (define (stringify x)
   (cond ((string? x) x)
@@ -169,17 +230,12 @@
 	((string? x) (string->symbol x))
 	(else (string->symbol (sprintf "~a" x))) ) )
 
-(define (backslashify s) (string-translate* (->string s) '(("\\" . "\\\\"))))
-
-(define (uncommentify s) (string-translate* (->string s) '(("*/" . "*_/"))))
-  
 (define (build-lambda-list vars argc rest)
   (let loop ((vars vars) (n argc))
     (cond ((or (zero? n) (null? vars)) (or rest '()))
           (else (cons (car vars) (loop (cdr vars) (sub1 n)))) ) ) )
 
-(define string->c-identifier ##sys#string->c-identifier)
-
+;; XXX: Put this too in c-platform or c-backend?
 (define (c-ify-string str)
   (list->string
    (cons 
@@ -198,30 +254,26 @@
 			(loop (cdr chars)) )
 		(cons c (loop (cdr chars))) ) ) ) ) ) ) )
 
+;; XXX: This too, but it's used only in compiler.scm, WTF?
 (define (valid-c-identifier? name)
   (let ([str (string->list (->string name))])
     (and (pair? str)
 	 (let ([c0 (car str)])
 	   (and (or (char-alphabetic? c0) (char=? #\_ c0))
-		(any (lambda (c) (or (char-alphabetic? c) (char-numeric? c) (char=? #\_ c)))
-		     (cdr str) ) ) ) ) ) )
+		(every (lambda (c) (or (char-alphabetic? c) (char-numeric? c) (char=? #\_ c)))
+		       (cdr str)))))))
 
-(eval-when (load)
-  (define words (foreign-lambda int "C_bytestowords" int)) 
-  (define words->bytes (foreign-lambda int "C_wordstobytes" int)) )
+;; TODO: Move these to (chicken memory)?
+(define bytes->words (foreign-lambda int "C_bytestowords" int))
+(define words->bytes (foreign-lambda int "C_wordstobytes" int))
 
-(eval-when (eval)
-  (define (words n)
-    (let ([wordsize (##sys#fudge 7)])
-      (+ (quotient n wordsize) (if (zero? (modulo n wordsize)) 0 1)) ) )
-  (define (words->bytes n)
-    (* n (##sys#fudge 7)) ) )
-
+;; Used only in batch-driver; move it there?
 (define (check-and-open-input-file fname . line)
-  (cond [(string=? fname "-") (current-input-port)]
-	[(file-exists? fname) (open-input-file fname)]
-	[(or (null? line) (not (car line))) (quit "Can not open file ~s" fname)]
-	[else (quit "(~a) can not open file ~s" (car line) fname)] ) )
+  (cond ((string=? fname "-") (current-input-port))
+	((file-exists? fname) (open-input-file fname))
+	((or (null? line) (not (car line)))
+	 (quit-compiling "Can not open file ~s" fname))
+	(else (quit-compiling "(~a) can not open file ~s" (car line) fname)) ) )
 
 (define (close-checked-input-file port fname)
   (unless (string=? fname "-") (close-input-port port)) )
@@ -244,6 +296,12 @@
 
 (define (sort-symbols lst)
   (sort lst (lambda (s1 s2) (string<? (symbol->string s1) (symbol->string s2)))))
+
+(define (read-expressions #!optional (port (current-input-port)))
+  (do ((x (read port) (read port))
+       (i 0 (add1 i))
+       (xs '() (cons x xs)))
+      ((eof-object? x) (reverse xs))))
 
 
 ;;; Predicates on expressions and literals:
@@ -298,25 +356,31 @@
 	  (else `(let ((,(gensym 't) ,(car xs)))
 		   ,(loop (cdr xs))) ) ) ) )
 
+;; Only used in batch-driver: move it there?
 (define string->expr
   (let ([exn? (condition-predicate 'exn)]
 	[exn-msg (condition-property-accessor 'exn 'message)] )
     (lambda (str)
       (handle-exceptions ex
-	  (quit "cannot parse expression: ~s [~a]~%" 
-		str
-		(if (exn? ex) 
-		    (exn-msg ex)
-		    (->string ex) ) ) 
-	(let ([xs (with-input-from-string
+	  (quit-compiling "cannot parse expression: ~s [~a]~%" 
+			  str
+			  (if (exn? ex) 
+			      (exn-msg ex)
+			      (->string ex) ) ) 
+	(let ((xs (with-input-from-string
 		      str
-		    (lambda () (unfold eof-object? values (lambda (x) (read)) (read))))])
+		    (lambda ()
+		      (let loop ((lst '()))
+			(let ((x (read)))
+			  (if (eof-object? x)
+			      (apply values (reverse lst))
+			      (loop (cons x lst)))))))))
 	  (cond [(null? xs) '(##core#undefined)]
 		[(null? (cdr xs)) (car xs)]
 		[else `(begin ,@xs)] ) ) ) ) ) )
 
-(define decompose-lambda-list ##sys#decompose-lambda-list)
-
+;; Only used in optimizer; move it there?  But it's a C function call, so
+;; it may be better in c-platform
 (define (llist-length llist)
   (##core#inline "C_u_i_length" llist))	; stops at non-pair node
 
@@ -329,6 +393,12 @@
 
 
 ;;; Profiling instrumentation:
+(define profile-info-vector-name #f)
+(define (reset-profile-info-vector-name!)
+  (set! profile-info-vector-name (make-random-name 'profile-info)))
+
+(define profile-lambda-list '())
+(define profile-lambda-index 0)
 
 (define (expand-profile-lambda name llist body)
   (let ([index profile-lambda-index] 
@@ -341,161 +411,71 @@
 	(##core#lambda () (##sys#apply (##core#lambda ,llist ,body) ,args))
 	(##core#lambda () (##sys#profile-exit ',index ,profile-info-vector-name)) ) ) ) )
 
+;; Get expressions which initialize and populate the profiling vector
+(define (profiling-prelude-exps profile-name)
+  `((set! ,profile-info-vector-name 
+      (##sys#register-profile-info
+       ',(length profile-lambda-list)
+       ',profile-name))
+    ,@(map (lambda (pl)
+	     `(##sys#set-profile-info-vector!
+	       ,profile-info-vector-name
+	       ',(car pl)
+	       ',(cdr pl) ) )
+	   profile-lambda-list)))
 
 ;;; Database operations:
-;
-; - 'get' and 'put' shadow the routines in the extras-unit, we use low-level
-;   symbol-keyed hash-tables here.
-; - does currently nothing after the first invocation, but we leave it
-;   this way to have the option to add default entries for each new db.
 
-(define initialize-analysis-database
-  (let ((initial #t))
-    (lambda ()
-      (when initial
-	(for-each
-	 (lambda (s)
-	   (mark-variable s '##compiler#intrinsic 'standard)
-	   (when (memq s foldable-bindings)
-	     (mark-variable s '##compiler#foldable #t)))
-	 standard-bindings)
-	(for-each
-	 (lambda (s)
-	   (mark-variable s '##compiler#intrinsic 'extended)
-	   (when (memq s foldable-bindings)
-	     (mark-variable s '##compiler#foldable #t)))
-	 extended-bindings)
-	(for-each
-	 (lambda (s)
-	   (mark-variable s '##compiler#intrinsic 'internal))
-	 internal-bindings))
-      (set! initial #f))))
-
-(define (get db key prop)
-  (let ((plist (##sys#hash-table-ref db key)))
+(define (db-get db key prop)
+  (let ((plist (hash-table-ref db key)))
     (and plist
 	 (let ([a (assq prop plist)])
 	   (and a (##sys#slot a 1)) ) ) ) )
 
-(define (get-all db key . props)
-  (let ((plist (##sys#hash-table-ref db key)))
+(define (db-get-all db key . props)
+  (let ((plist (hash-table-ref db key)))
     (if plist
 	(filter-map (lambda (prop) (assq prop plist)) props)
 	'() ) ) )
 
-(define (put! db key prop val)
-  (let ([plist (##sys#hash-table-ref db key)])
+(define (db-put! db key prop val)
+  (let ((plist (hash-table-ref db key)))
     (if plist
 	(let ([a (assq prop plist)])
 	  (cond [a (##sys#setslot a 1 val)]
 		[val (##sys#setslot plist 1 (alist-cons prop val (##sys#slot plist 1)))] ) )
-	(when val (##sys#hash-table-set! db key (list (cons prop val)))) ) ) )
+	(when val (hash-table-set! db key (list (cons prop val)))))))
 
 (define (collect! db key prop val)
-  (let ((plist (##sys#hash-table-ref db key)))
+  (let ((plist (hash-table-ref db key)))
     (if plist
 	(let ([a (assq prop plist)])
 	  (cond [a (##sys#setslot a 1 (cons val (##sys#slot a 1)))]
 		[else (##sys#setslot plist 1 (alist-cons prop (list val) (##sys#slot plist 1)))] ) )
-	(##sys#hash-table-set! db key (list (list prop val)))) ) )
+	(hash-table-set! db key (list (list prop val))))))
 
-(define (count! db key prop . val)
-  (let ([plist (##sys#hash-table-ref db key)]
-	[n (if (pair? val) (car val) 1)] )
-    (if plist
-	(let ([a (assq prop plist)])
-	  (cond [a (##sys#setslot a 1 (+ (##sys#slot a 1) n))]
-		[else (##sys#setslot plist 1 (alist-cons prop n (##sys#slot plist 1)))] ) )
-	(##sys#hash-table-set! db key (list (cons prop val)))) ) )
-
-(define (get-list db key prop)		; returns '() if not set
-  (let ((x (get db key prop)))
+(define (db-get-list db key prop)		; returns '() if not set
+  (let ((x (db-get db key prop)))
     (or x '())))
 
 
 ;;; Line-number database management:
 
 (define (get-line exp)
-  (get ##sys#line-number-database (car exp) exp) )
+  (db-get ##sys#line-number-database (car exp) exp) )
 
 (define (get-line-2 exp)
   (let* ((name (car exp))
-	 (lst (##sys#hash-table-ref ##sys#line-number-database name)) )
+	 (lst (hash-table-ref ##sys#line-number-database name)))
     (cond ((and lst (assq exp (cdr lst)))
 	   => (lambda (a) (values (car lst) (cdr a))) )
 	  (else (values name #f)) ) ) )
 
 (define (display-line-number-database)
-  (##sys#hash-table-for-each
+  (hash-table-for-each
    (lambda (key val)
      (when val (printf "~S ~S~%" key (map cdr val))) )
    ##sys#line-number-database) )
-
-
-;;; Display analysis database:
-
-(define display-analysis-database
-  (let ((names '((captured . cpt) (assigned . set) (boxed . box) (global . glo)
-		 (assigned-locally . stl)
-		 (contractable . con) (standard-binding . stb) (simple . sim)
-		 (inlinable . inl)
-		 (collapsable . col) (removable . rem) (constant . con)
-		 (inline-target . ilt) (inline-transient . itr)
-		 (undefined . und) (replacing . rpg) (unused . uud) (extended-binding . xtb)
-		 (inline-export . ilx) (hidden-refs . hrf)
-		 (value-ref . vvf)
-		 (customizable . cst) (has-unused-parameters . hup) (boxed-rest . bxr) ) ) 
-	(omit #f))
-    (lambda (db)
-      (unless omit
-	(set! omit 
-	  (append default-standard-bindings
-		  default-extended-bindings
-		  internal-bindings) ) )
-      (##sys#hash-table-for-each
-       (lambda (sym plist)
-	 (let ([val #f]
-	       (lval #f)
-	       [pval #f]
-	       [csites '()]
-	       [refs '()] )
-	   (unless (memq sym omit)
-	     (write sym)
-	     (let loop ((es plist))
-	       (if (pair? es)
-		   (begin
-		     (case (caar es)
-		       ((captured assigned boxed global contractable standard-binding assigned-locally
-				  collapsable removable undefined replacing unused simple inlinable inline-export
-				  has-unused-parameters extended-binding customizable constant boxed-rest hidden-refs)
-			(printf "\t~a" (cdr (assq (caar es) names))) )
-		       ((unknown)
-			(set! val 'unknown) )
-		       ((value)
-			(unless (eq? val 'unknown) (set! val (cdar es))) )
-		       ((local-value)
-			(unless (eq? val 'unknown) (set! lval (cdar es))) )
-		       ((potential-value)
-			(set! pval (cdar es)) )
-		       ((replacable home contains contained-in use-expr closure-size rest-parameter
-				    captured-variables explicit-rest)
-			(printf "\t~a=~s" (caar es) (cdar es)) )
-		       ((references)
-			(set! refs (cdar es)) )
-		       ((call-sites)
-			(set! csites (cdar es)) )
-		       (else (bomb "Illegal property" (car es))) )
-		     (loop (cdr es)) ) ) )
-	     (cond [(and val (not (eq? val 'unknown)))
-		    (printf "\tval=~s" (cons (node-class val) (node-parameters val))) ]
-		   [(and lval (not (eq? val 'unknown)))
-		    (printf "\tlval=~s" (cons (node-class lval) (node-parameters lval))) ]
-		   [(and pval (not (eq? val 'unknown)))
-		    (printf "\tpval=~s" (cons (node-class pval) (node-parameters pval)))] )
-	     (when (pair? refs) (printf "\trefs=~s" (length refs)))
-	     (when (pair? csites) (printf "\tcss=~s" (length csites)))
-	     (newline) ) ) )
-       db) ) ) )       
 
 
 ;;; Node creation and -manipulation:
@@ -513,7 +493,7 @@
   (fprintf out "#<node ~a ~a>" (node-class n) (node-parameters n)))
 
 (define (make-node c p s)
-  (##sys#make-structure 'node c p s) ) ; this kludge is for allowing the inlined `make-node'
+  (##sys#make-structure 'chicken.compiler.support#node c p s))
 
 (define (varnode var) (make-node '##core#variable (list var) '()))
 (define (qnode const) (make-node 'quote (list const) '()))
@@ -523,7 +503,7 @@
     (define (walk x)
       (cond ((symbol? x) (varnode x))
 	    ((node? x) x)
-	    ((not-pair? x) (bomb "bad expression" x))
+	    ((not (pair? x)) (bomb "bad expression" x))
 	    ((symbol? (car x))
 	     (case (car x)
 	       ((if ##core#undefined) (make-node (car x) '() (map walk (cdr x))))
@@ -543,11 +523,7 @@
 		  (if (null? bs)
 		      (walk body)
 		      (make-node
-		       'let 
-		       (map (lambda (v) 
-			      ;; for temporaries introduced by specialization
-			      (if (eq? '#:tmp v) (error "SHOULD NOT HAPPEN") v)) ; OBSOLETE
-			    (unzip1 bs))
+		       'let (unzip1 bs)
 		       (append (map (lambda (b) (walk (cadr b))) (cadr x))
 			       (list (walk body)) ) ) ) ) )
 	       ((lambda ##core#lambda) 
@@ -579,7 +555,7 @@
 		   (car x)
 		   (list (if (and (pair? arg) (eq? 'quote (car arg))) (cadr arg) arg))
 		   (map walk (cddr x)) ) ) )
-	       ((##core#inline ##core#callunit) 
+	       ((##core#inline ##core#provide ##core#callunit)
 		(make-node (car x) (list (cadr x)) (map walk (cddr x))) )
 	       ((##core#debug-event) ; 2nd argument is provided by canonicalization phase
 		(make-node (car x) (cdr x) '()))
@@ -594,7 +570,7 @@
 		  (make-node
 		   '##core#foreign-callback-wrapper
 		   (list name (cadr (third x)) (cadr (fourth x)) (cadr (fifth x)))
-		   (list (walk (sixth x))) ) ) )
+		   (list (walk (list-ref x 5))) ) ) )
 	       ((##core#inline_allocate ##core#inline_ref ##core#inline_update
 					##core#inline_loc_ref ##core#inline_loc_update)
 		(make-node (first x) (second x) (map walk (cddr x))) )
@@ -682,66 +658,70 @@
 	 (list (proc (first vars) (second vars))
 	       (fold (cdr vars)) ) ) ) ) )
 
+;; Move to optimizer.scm?
 (define (inline-lambda-bindings llist args body copy? db cfk)
-  (decompose-lambda-list
+  (##sys#decompose-lambda-list
    llist
    (lambda (vars argc rest)
      (receive (largs rargs) (split-at args argc)
-       (let* ([rlist (if copy? (map gensym vars) vars)]
-	      [body (if copy? 
+       (let* ((rlist (if copy? (map gensym vars) vars))
+	      (body (if copy? 
 			(copy-node-tree-and-rename body vars rlist db cfk)
-			body) ] )
-	 (fold-right
-	  (lambda (var val body) (make-node 'let (list var) (list val body)) )
-	  (if rest
-	      (make-node
-	       'let (list (last rlist))
-	       (list (if (null? rargs)
-			 (qnode '())
-			 (make-node
-			  '##core#inline_allocate
-			  (list "C_a_i_list" (* 3 (length rargs))) 
-			  rargs) )
-		     body) )
-	      body)
-	  (take rlist argc)
-	  largs) ) ) ) ) )
+			body) ) )
+	 (let loop ((vars (take rlist argc))
+		    (vals largs))
+	   (if (null? vars)
+	       (if rest
+		   (make-node
+		    'let (list (last rlist))
+		    (list (if (null? rargs)
+			      (qnode '())
+			      (make-node
+			       '##core#inline_allocate
+			       (list "C_a_i_list" (* 3 (length rargs))) 
+			       rargs) )
+			  body) )
+		   body)
+	       (make-node 'let (list (car vars))
+			  (list (car vals)
+				(loop (cdr vars) (cdr vals)))))))))))
 
+;; Copy along with the above
 (define (copy-node-tree-and-rename node vars aliases db cfk)
-  (let ([rlist (map cons vars aliases)])
+  (let ((rlist (map cons vars aliases)))
     (define (rename v rl) (alist-ref v rl eq? v))
     (define (walk n rl)
-      (let ([subs (node-subexpressions n)]
-	    [params (node-parameters n)]
-	    [class (node-class n)] )
+      (let ((subs (node-subexpressions n))
+	    (params (node-parameters n))
+	    (class (node-class n)) )
 	(case class
 	  ((quote)
 	   (make-node class params '()))
-	  [(##core#variable) 
+	  ((##core#variable) 
 	   (let ((var (first params)))
-	     (when (get db var 'contractable)
+	     (when (db-get db var 'contractable)
 	       (cfk var))
-	     (varnode (rename var rl))) ]
-	  [(set!) 
+	     (varnode (rename var rl))) )
+	  ((set!) 
 	   (make-node
 	    'set! (list (rename (first params) rl))
-	    (list (walk (first subs) rl)) ) ]
-	  [(let) 
+	    (list (walk (first subs) rl)) ) )
+	  ((let) 
 	   (let* ((v (first params))
 		  (val1 (walk (first subs) rl))
 		  (a (gensym v))
 		  (rl2 (alist-cons v a rl)) )
-	     (put! db a 'inline-transient #t)
+	     (db-put! db a 'inline-transient #t)
 	     (make-node 
 	      'let (list a)
-	      (list val1 (walk (second subs) rl2)))) ]
-	  [(##core#lambda)
-	   (decompose-lambda-list
+	      (list val1 (walk (second subs) rl2)))) )
+	  ((##core#lambda)
+	   (##sys#decompose-lambda-list
 	    (third params)
 	    (lambda (vars argc rest)
 	      (let* ((as (map (lambda (v)
 				(let ((a (gensym v)))
-				  (put! db v 'inline-transient #t)
+				  (db-put! db v 'inline-transient #t)
 				  a))
 			      vars) )
 		     (rl2 (append (map cons vars as) rl)) )
@@ -750,10 +730,12 @@
 		 (list (gensym 'f) (second params) ; new function-id
 		       (build-lambda-list as argc (and rest (rename rest rl2)))
 		       (fourth params) )
-		 (map (cut walk <> rl2) subs) ) ) ) ) ]
-	  [else (make-node class (tree-copy params) (map (cut walk <> rl) subs))] ) ) )
+		 (map (cut walk <> rl2) subs) ) ) ) ) )
+	  (else (make-node class (tree-copy params)
+			   (map (cut walk <> rl) subs))) ) ) )
     (walk node rlist) ) )
 
+;; Maybe move to scrutinizer.  It's generic enough to keep it here though
 (define (tree-copy t)
   (let rec ([t t])
     (if (pair? t)
@@ -781,12 +763,14 @@
   (let walk ((x x))
     (make-node (car x) (cadr x) (map walk (cddr x)))))
 
-(define (emit-global-inline-file filename db)
+;; Only used in batch-driver.scm
+(define (emit-global-inline-file source-file inline-file db
+				 block-compilation inline-limit)
   (let ((lst '())
 	(out '()))
-    (##sys#hash-table-for-each
+    (hash-table-for-each
      (lambda (sym plist)
-       (when (variable-visible? sym)
+       (when (variable-visible? sym block-compilation)
 	 (and-let* ((val (assq 'local-value plist))
 		    ((not (node? (variable-mark sym '##compiler#inline-global))))
 		    ((let ((val (assq 'value plist)))
@@ -794,21 +778,21 @@
 			   (not (eq? 'unknown (cdr val))))))
 		    ((assq 'inlinable plist))
 		    (lparams (node-parameters (cdr val)))
-		    ((not (get db sym 'hidden-refs)))
+		    ((not (db-get db sym 'hidden-refs)))
 		    ((case (variable-mark sym '##compiler#inline)
 		       ((yes) #t)
 		       ((no) #f)
 		       (else 
-			(< (fourth lparams) inline-max-size) ) ) ) )
+			(< (fourth lparams) inline-limit) ) ) ) )
 	   (set! lst (cons sym lst))
 	   (set! out (cons (list sym (node->sexpr (cdr val))) out)))))
      db)
     (if (null? out)
-	(delete-file* filename)
-	(with-output-to-file filename
+	(delete-file* inline-file)
+	(with-output-to-file inline-file
 	  (lambda ()
 	    (print "; GENERATED BY CHICKEN " (chicken-version) " FROM "
-		   source-filename "\n")
+		   source-file "\n")
 	    (for-each
 	     (lambda (x)
 	       (pp x)
@@ -819,6 +803,7 @@
 	       (debugging 'i "the following procedures can be globally inlined:"))
       (for-each (cut print "  " <>) (sort-symbols lst)))))
 
+;; Used only in batch-driver.scm
 (define (load-inline-file fname)
   (with-input-from-file fname
     (lambda ()
@@ -834,7 +819,7 @@
 
 ;;; Match node-structure with pattern:
 
-(define (match-node node pat vars)
+(define (match-node node pat vars)	; Only used in optimizer.scm
   (let ((env '()))
 
     (define (resolve v x)
@@ -845,20 +830,20 @@
 	    (else (eq? v x)) ) )
 
     (define (match1 x p)
-      (cond ((not-pair? p) (resolve p x))
-	    ((not-pair? x) #f)
+      (cond ((not (pair? p)) (resolve p x))
+	    ((not (pair? x)) #f)
 	    ((match1 (car x) (car p)) (match1 (cdr x) (cdr p)))
 	    (else #f) ) )
     
     (define (matchn n p)
-      (if (not-pair? p)
+      (if (not (pair? p))
 	  (resolve p n)
 	  (and (eq? (node-class n) (first p))
 	       (match1 (node-parameters n) (second p))
 	       (let loop ((ns (node-subexpressions n))
 			  (ps (cddr p)) )
 		 (cond ((null? ps) (null? ns))
-		       ((not-pair? ps) (resolve ps ns))
+		       ((not (pair? ps)) (resolve ps ns))
 		       ((null? ns) #f)
 		       (else (and (matchn (car ns) (car ps))
 				  (loop (cdr ns) (cdr ps)) ) ) ) ) ) ) )
@@ -885,7 +870,7 @@
 	[(if let) (any walk subs)]
 	[else #t] ) ) ) )
 
-(define (simple-lambda-node? node)
+(define (simple-lambda-node? node)	; Used only in compiler.scm
   (let* ([params (node-parameters node)]
 	 [llist (third params)]
 	 [k (and (pair? llist) (first llist))] ) ; leaf-routine has no continuation argument
@@ -905,8 +890,8 @@
 
 ;;; Some safety checks and database dumping:
 
-(define (dump-undefined-globals db)
-  (##sys#hash-table-for-each
+(define (dump-undefined-globals db)	; Used only in batch-driver.scm
+  (hash-table-for-each
    (lambda (sym plist)
      (when (and (not (keyword? sym))
 		(assq 'global plist)
@@ -915,8 +900,8 @@
        (newline) ) )
    db) )
 
-(define (dump-defined-globals db)
-  (##sys#hash-table-for-each
+(define (dump-defined-globals db)	; Used only in batch-driver.scm
+  (hash-table-for-each
    (lambda (sym plist)
      (when (and (not (keyword? sym))
 		(assq 'global plist)
@@ -925,8 +910,8 @@
        (newline) ) )
    db) )
 
-(define (dump-global-refs db)
-  (##sys#hash-table-for-each
+(define (dump-global-refs db)		; Used only in batch-driver.scm
+  (hash-table-for-each
    (lambda (sym plist)
      (when (and (not (keyword? sym)) (assq 'global plist))
        (let ((a (assq 'references plist)))
@@ -938,111 +923,98 @@
 ;;; change hook function to hide non-exported module bindings
 
 (set! ##sys#toplevel-definition-hook
-  (lambda (sym mod exp val)
-    (when (and (not val) (not exp))
-      (debugging 'o "hiding nonexported module bindings" sym)
-      (hide-variable sym))))
+  (lambda (sym renamed exported?)
+    (cond ((or (##sys#qualified-symbol? sym) (namespaced-symbol? sym))
+	   (unhide-variable sym))
+	  ((not exported?)
+	   (debugging 'o "hiding unexported module binding" renamed)
+	   (hide-variable renamed)))))
 
 
-;;; Compute general statistics from analysis database:
-;
-; - Returns:
-;
-;   current-program-size
-;   original-program-size
-;   number of known variables
-;   number of known procedures
-;   number of global variables
-;   number of known call-sites
-;   number of database entries
-;   average bucket load
+;;; Foreign callback stub and type tables:
 
-(define (compute-database-statistics db)
-  (let ((nprocs 0)
-	(nvars 0)
-	(nglobs 0)
-	(entries 0)
-	(nsites 0) )
-    (##sys#hash-table-for-each
-     (lambda (sym plist)
-       (for-each
-	(lambda (prop)
-	  (set! entries (+ entries 1))
-	  (case (car prop)
-	    ((global) (set! nglobs (+ nglobs 1)))
-	    ((value)
-	     (set! nvars (+ nvars 1))
-	     (if (eq? '##core#lambda (node-class (cdr prop)))
-		 (set! nprocs (+ nprocs 1)) ) )
-	    ((call-sites) (set! nsites (+ nsites (length (cdr prop))))) ) )
-	plist) )
-     db)
-    (values current-program-size
-	    original-program-size
-	    nvars
-	    nprocs
-	    nglobs
-	    nsites
-	    entries) ) )
+(define foreign-callback-stubs '())
 
-(define (print-program-statistics db)
-  (receive
-   (size osize kvars kprocs globs sites entries) (compute-database-statistics db)
-   (when (debugging 's "program statistics:")
-     (printf ";   program size: \t~s \toriginal program size: \t~s\n" size osize)
-     (printf ";   variables with known values: \t~s\n" kvars)
-     (printf ";   known procedures: \t~s\n" kprocs)
-     (printf ";   global variables: \t~s\n" globs)
-     (printf ";   known call sites: \t~s\n" sites) 
-     (printf ";   database entries: \t~s\n" entries) ) ) )
+(define-record-type foreign-callback-stub
+  (make-foreign-callback-stub id name qualifiers return-type argument-types)
+  foreign-callback-stub?
+  (id foreign-callback-stub-id)		; symbol
+  (name foreign-callback-stub-name)	; string
+  (qualifiers foreign-callback-stub-qualifiers)	; string
+  (return-type foreign-callback-stub-return-type) ; type-specifier
+  (argument-types foreign-callback-stub-argument-types)) ; (type-specifier ...)
 
+(define (register-foreign-callback-stub! id params)
+  (set! foreign-callback-stubs
+    (cons (apply make-foreign-callback-stub id params) foreign-callback-stubs) )
+  ;; mark to avoid leaf-routine optimization
+  (mark-variable id '##compiler#callback-lambda))
 
-;;; Pretty-print expressions:
+(define-constant foreign-type-table-size 301)
 
-(define (pprint-expressions-to-file exps filename)
-  (let ([port (if filename (open-output-file filename) (current-output-port))])
-    (with-output-to-port port
-      (lambda ()
-	(for-each
-	 (lambda (x)
-	   (pretty-print x)
-	   (newline) ) 
-	 exps) ) )
-    (when filename (close-output-port port)) ) )
+(define foreign-type-table #f)
 
+(define (clear-foreign-type-table!)
+  (if foreign-type-table
+      (vector-fill! foreign-type-table '())
+      (set! foreign-type-table (make-vector foreign-type-table-size '())) ))
+
+;; Register a foreign type under the given alias.  type is the foreign
+;; type's name, arg and ret are the *names* of conversion procedures
+;; when this type is used as argument or return value, respectively.
+;; The latter two must either both be supplied, or neither.
+;; TODO: Maybe create a separate record type for foreign types?
+(define (register-foreign-type! alias type #!optional arg ret)
+  (hash-table-set! foreign-type-table alias
+		   (vector type (and ret arg) (and arg ret))))
+
+;; Returns either #f (if t does not exist) or a vector with the type,
+;; the *name* of the argument conversion procedure and the *name* of
+;; the return value conversion procedure.  If no conversion procedures
+;; have been supplied, the corresponding slots will be #f.
+(define (lookup-foreign-type t)
+  (hash-table-ref foreign-type-table t))
 
 ;;; Create foreign type checking expression:
 
-(define foreign-type-check
+(define foreign-type-check		; Used only in compiler.scm
   (let ((tmap '((nonnull-u8vector . u8vector) (nonnull-u16vector . u16vector)
 		(nonnull-s8vector . s8vector) (nonnull-s16vector . s16vector)
 		(nonnull-u32vector . u32vector) (nonnull-s32vector . s32vector)
-		(nonnull-f32vector . f32vector) (nonnull-f64vector . f64vector))))
+		(nonnull-u64vector . u64vector) (nonnull-s64vector . s64vector)
+		(nonnull-f32vector . f32vector) (nonnull-f64vector . f64vector)))
+	(ftmap '((integer . "int") (unsigned-integer . "unsigned int")
+		 (integer32 . "C_s32") (unsigned-integer32 . "C_u32")
+		 (integer64 . "C_s64") (unsigned-integer64 . "C_u64")
+		 (short . "short") (unsigned-short . "unsigned short")
+		 (long . "long") (unsigned-long . "unsigned long")
+		 (ssize_t . "ssize_t") (size_t . "size_t"))))
     (lambda (param type)
       (follow-without-loop
        type
        (lambda (t next)
-	 (let repeat ([t t])
+	 (let repeat ((t t))
 	   (case t
-	     [(char unsigned-char) (if unsafe param `(##sys#foreign-char-argument ,param))]
-	     [(int unsigned-int short unsigned-short byte unsigned-byte int32 unsigned-int32)
-	      (if unsafe param `(##sys#foreign-fixnum-argument ,param))]
-	     [(float double number) (if unsafe param `(##sys#foreign-flonum-argument ,param))]
-	     [(blob scheme-pointer)
-	      (let ([tmp (gensym)])
-		`(let ([,tmp ,param])
+	     ((char unsigned-char) (if unsafe param `(##sys#foreign-char-argument ,param)))
+	     ;; TODO: Should "[unsigned-]byte" be range checked?
+	     ((int unsigned-int byte unsigned-byte int32 unsigned-int32)
+	      (if unsafe param `(##sys#foreign-fixnum-argument ,param)))
+	     ((float double number) (if unsafe param `(##sys#foreign-flonum-argument ,param)))
+	     ((blob scheme-pointer)
+	      (let ((tmp (gensym)))
+		`(let ((,tmp ,param))
 		   (if ,tmp
 		       ,(if unsafe
 			    tmp
 			    `(##sys#foreign-block-argument ,tmp) )
-		       '#f) ) ) ]
-	     [(nonnull-scheme-pointer nonnull-blob)
+		       '#f) ) ) )
+	     ((nonnull-scheme-pointer nonnull-blob)
 	      (if unsafe
 		  param
-		  `(##sys#foreign-block-argument ,param) ) ]
+		  `(##sys#foreign-block-argument ,param) ) )
 	     ((pointer-vector)
-	      (let ([tmp (gensym)])
-		`(let ([,tmp ,param])
+	      (let ((tmp (gensym)))
+		`(let ((,tmp ,param))
 		   (if ,tmp
 		       ,(if unsafe
 			    tmp
@@ -1052,129 +1024,141 @@
 	      (if unsafe
 		  param
 		  `(##sys#foreign-struct-wrapper-argument 'pointer-vector ,param) ) )
-	     [(u8vector u16vector s8vector s16vector u32vector s32vector f32vector f64vector)
-	      (let ([tmp (gensym)])
-		`(let ([,tmp ,param])
+	     ((u8vector u16vector s8vector s16vector u32vector s32vector
+			u64vector s64vector f32vector f64vector)
+	      (let ((tmp (gensym)))
+		`(let ((,tmp ,param))
 		   (if ,tmp
 		       ,(if unsafe
 			    tmp
 			    `(##sys#foreign-struct-wrapper-argument ',t ,tmp) )
-		       '#f) ) ) ]
-	     [(nonnull-u8vector nonnull-u16vector nonnull-s8vector nonnull-s16vector nonnull-u32vector nonnull-s32vector 
+		       '#f) ) ) )
+	     ((nonnull-u8vector nonnull-u16vector
+				nonnull-s8vector nonnull-s16vector
+				nonnull-u32vector nonnull-s32vector
+				nonnull-u64vector nonnull-s64vector
 				nonnull-f32vector nonnull-f64vector)
 	      (if unsafe
 		  param
 		  `(##sys#foreign-struct-wrapper-argument 
 		    ',(##sys#slot (assq t tmap) 1)
-		    ,param) ) ]
-	     [(integer long size_t integer32)
-	      (if unsafe param `(##sys#foreign-integer-argument ,param))]
-	     [(integer64)
-	      (if unsafe param `(##sys#foreign-integer64-argument ,param))]
-	     [(unsigned-integer unsigned-integer32 unsigned-long)
-	      (if unsafe
-		  param
-		  `(##sys#foreign-unsigned-integer-argument ,param) ) ]
-	     [(unsigned-integer64)
-	      (if unsafe
-		  param
-		  `(##sys#foreign-unsigned-integer64-argument ,param) ) ]
-	     [(c-pointer c-string-list c-string-list*)
-	      (let ([tmp (gensym)])
-		`(let ([,tmp ,param])
+		    ,param) ) )
+	     ((integer32 integer64 integer short long ssize_t)
+	      (let* ((foreign-type (##sys#slot (assq t ftmap) 1))
+		     (size-expr (sprintf "sizeof(~A) * CHAR_BIT" foreign-type)))
+		(if unsafe
+		    param
+		    `(##sys#foreign-ranged-integer-argument
+		      ,param (foreign-value ,size-expr int)))))
+	     ((unsigned-short unsigned-long unsigned-integer size_t
+			      unsigned-integer32 unsigned-integer64)
+	      (let* ((foreign-type (##sys#slot (assq t ftmap) 1))
+		     (size-expr (sprintf "sizeof(~A) * CHAR_BIT" foreign-type)))
+		(if unsafe
+		    param
+		    `(##sys#foreign-unsigned-ranged-integer-argument
+		      ,param (foreign-value ,size-expr int)))))
+	     ((c-pointer c-string-list c-string-list*)
+	      (let ((tmp (gensym)))
+		`(let ((,tmp ,param))
 		   (if ,tmp
 		       (##sys#foreign-pointer-argument ,tmp)
-		       '#f) ) ) ]
-	     [(nonnull-c-pointer)
-	      `(##sys#foreign-pointer-argument ,param) ]
-	     [(c-string c-string* unsigned-c-string unsigned-c-string*)
-	      (let ([tmp (gensym)])
-		`(let ([,tmp ,param])
+		       '#f) ) ) )
+	     ((nonnull-c-pointer)
+	      `(##sys#foreign-pointer-argument ,param) )
+	     ((c-string c-string* unsigned-c-string unsigned-c-string*)
+	      (let ((tmp (gensym)))
+		`(let ((,tmp ,param))
 		   (if ,tmp
 		       ,(if unsafe 
 			    `(##sys#make-c-string ,tmp)
 			    `(##sys#make-c-string (##sys#foreign-string-argument ,tmp)) )
-		       '#f) ) ) ]
-	     [(nonnull-c-string nonnull-c-string* nonnull-unsigned-c-string*)
+		       '#f) ) ) )
+	     ((nonnull-c-string nonnull-c-string* nonnull-unsigned-c-string*)
 	      (if unsafe 
 		  `(##sys#make-c-string ,param)
-		  `(##sys#make-c-string (##sys#foreign-string-argument ,param)) ) ]
-	     [(symbol)
+		  `(##sys#make-c-string (##sys#foreign-string-argument ,param)) ) )
+	     ((symbol)
 	      (if unsafe 
 		  `(##sys#make-c-string (##sys#symbol->string ,param))
-		  `(##sys#make-c-string (##sys#foreign-string-argument (##sys#symbol->string ,param))) ) ]
-	     [else
-	      (cond [(and (symbol? t) (##sys#hash-table-ref foreign-type-table t))
-		     => (lambda (t)
-			  (next (if (vector? t) (vector-ref t 0) t)) ) ]
-		    [(pair? t)
+		  `(##sys#make-c-string (##sys#foreign-string-argument (##sys#symbol->string ,param))) ) )
+	     (else
+	      (cond ((and (symbol? t) (lookup-foreign-type t))
+		     => (lambda (t) (next (vector-ref t 0)) ) )
+		    ((pair? t)
 		     (case (car t)
-		       [(ref pointer function c-pointer)
-			(let ([tmp (gensym)])
-			  `(let ([,tmp ,param])
+		       ((ref pointer function c-pointer)
+			(let ((tmp (gensym)))
+			  `(let ((,tmp ,param))
 			     (if ,tmp
 				 (##sys#foreign-pointer-argument ,tmp)
-				 '#f) ) )  ]
-		       [(instance instance-ref)
-			(let ([tmp (gensym)])
-			  `(let ([,tmp ,param])
+				 '#f) ) )  )
+		       ((instance instance-ref)
+			(let ((tmp (gensym)))
+			  `(let ((,tmp ,param))
 			     (if ,tmp
 				 (slot-ref ,param 'this)
-				 '#f) ) ) ]
-		       [(scheme-pointer)
-			(let ([tmp (gensym)])
-			  `(let ([,tmp ,param])
+				 '#f) ) ) )
+		       ((scheme-pointer)
+			(let ((tmp (gensym)))
+			  `(let ((,tmp ,param))
 			     (if ,tmp
 				 ,(if unsafe
 				      tmp
 				      `(##sys#foreign-block-argument ,tmp) )
-				 '#f) ) ) ]
-		       [(nonnull-scheme-pointer)
+				 '#f) ) ) )
+		       ((nonnull-scheme-pointer)
 			(if unsafe
 			    param
-			    `(##sys#foreign-block-argument ,param) ) ]
-		       [(nonnull-instance)
-			`(slot-ref ,param 'this) ]
-		       [(const) (repeat (cadr t))]
-		       [(enum)
-			(if unsafe param `(##sys#foreign-integer-argument ,param))]
-		       [(nonnull-pointer nonnull-c-pointer)
-			`(##sys#foreign-pointer-argument ,param) ]
-		       [else param] ) ]
-		    [else param] ) ] ) ) )
-       (lambda () (quit "foreign type `~S' refers to itself" type)) ) ) ) )
+			    `(##sys#foreign-block-argument ,param) ) )
+		       ((nonnull-instance)
+			`(slot-ref ,param 'this) )
+		       ((const) (repeat (cadr t)))
+		       ((enum)
+			(if unsafe
+			    param
+			    `(##sys#foreign-ranged-integer-argument
+			      ;; enums are integer size, according to the C standard.
+			      ,param (foreign-value "sizeof(int) * CHAR_BIT" int))))
+		       ((nonnull-pointer nonnull-c-pointer)
+			`(##sys#foreign-pointer-argument ,param) )
+		       (else param) ) )
+		    (else param) ) ) ) ) )
+       (lambda ()
+	 (quit-compiling "foreign type `~S' refers to itself" type)) ) ) ) )
 
 
 ;;; Compute foreign-type conversions:
 
-(define (foreign-type-convert-result r t)
-  (or (and-let* ([(symbol? t)]
-		 [ft (##sys#hash-table-ref foreign-type-table t)] 
-		 [(vector? ft)] )
-	(list (vector-ref ft 2) r) )
+(define (foreign-type-convert-result r t) ; Used only in compiler.scm
+  (or (and-let* (((symbol? t))
+		 (ft (lookup-foreign-type t)) 
+		 (retconv (vector-ref ft 2)) )
+	(list retconv r) )
       r) )
 
-(define (foreign-type-convert-argument a t)
-  (or (and-let* ([(symbol? t)]
-		 [ft (##sys#hash-table-ref foreign-type-table t)] 
-		 [(vector? ft)] )
-	(list (vector-ref ft 1) a) )
+(define (foreign-type-convert-argument a t) ; Used only in compiler.scm
+  (or (and-let* (((symbol? t))
+		 (ft (lookup-foreign-type t))
+		 (argconv (vector-ref ft 1)) )
+	(list argconv a) )
       a) )
 
-(define (final-foreign-type t0)
+(define (final-foreign-type t0)		; Used here and in compiler.scm
   (follow-without-loop
    t0
    (lambda (t next)
-     (cond [(and (symbol? t) (##sys#hash-table-ref foreign-type-table t))
-	    => (lambda (t2)
-		 (next (if (vector? t2) (vector-ref t2 0) t2)) ) ]
-	   [else t] ) )
-   (lambda () (quit "foreign type `~S' refers to itself" t0)) ) )
+     (cond ((and (symbol? t) (lookup-foreign-type t))
+	    => (lambda (t2) (next (vector-ref t2 0)) ) )
+	   (else t) ) )
+   (lambda () (quit-compiling "foreign type `~S' refers to itself" t0)) ) )
 
 
 ;;; Compute foreign result size:
 
 (define (estimate-foreign-result-size type)
+  (define (err t)
+    (quit-compiling "cannot compute size for unknown foreign type `~S' result" type))
   (follow-without-loop
    type
    (lambda (t next)
@@ -1186,57 +1170,58 @@
                   unsigned-c-string unsigned-c-string* nonnull-unsigned-c-string*
 		  c-string-list c-string-list*)
 	(words->bytes 3) )
-       ((unsigned-integer long integer size_t unsigned-long integer32 unsigned-integer32)
-	(words->bytes 4) )
-       ((float double number integer64 unsigned-integer64) 
+       ((unsigned-integer long integer unsigned-long integer32 unsigned-integer32)
+	(words->bytes 6) )    ; 1 bignum digit on 32-bit (overallocs on 64-bit)
+       ((float double number) 
 	(words->bytes 4) )		; possibly 8-byte aligned 64-bit double
+       ((integer64 unsigned-integer64 size_t ssize_t)
+	(words->bytes 7))     ; 2 bignum digits on 32-bit (overallocs on 64-bit)
        (else
-	(cond [(and (symbol? t) (##sys#hash-table-ref foreign-type-table t))
-	       => (lambda (t2)
-		    (next (if (vector? t2) (vector-ref t2 0) t2)) ) ]
-	      [(pair? t)
+	(cond ((and (symbol? t) (lookup-foreign-type t))
+	       => (lambda (t2) (next (vector-ref t2 0)) ) )
+	      ((pair? t)
 	       (case (car t)
-		 [(ref nonnull-pointer pointer c-pointer nonnull-c-pointer function instance instance-ref nonnull-instance) 
-		  (words->bytes 3) ]
-		 [(const) (next (cadr t))]
-		 [else 0] ) ]
-	      [else 0] ) ) ) )
-   (lambda () (quit "foreign type `~S' refers to itself" type)) ) )
+		 ((ref nonnull-pointer pointer c-pointer nonnull-c-pointer function instance instance-ref nonnull-instance) 
+		  (words->bytes 3) )
+		 ((const) (next (cadr t)))
+		 ((enum) (words->bytes 6)) ; 1 bignum digit on 32-bit (overallocs on 64-bit)
+		 (else (err t))))
+	      (else (err t))))))
+   (lambda () (quit-compiling "foreign type `~S' refers to itself" type)) ) )
 
-(define (estimate-foreign-result-location-size type)
+(define (estimate-foreign-result-location-size type) ; Used only in compiler.scm
   (define (err t) 
-    (quit "cannot compute size of location for foreign type `~S'" t) )
+    (quit-compiling "cannot compute size of location for foreign type `~S'" t) )
   (follow-without-loop
    type
    (lambda (t next)
      (case t
-       ((char int short bool unsigned-short unsigned-char unsigned-int long unsigned-long byte unsigned-byte
-	      c-pointer nonnull-c-pointer unsigned-integer integer float c-string symbol
+       ((char int short bool unsigned-short unsigned-char unsigned-int long unsigned-long byte
+	      unsigned-byte c-pointer nonnull-c-pointer unsigned-integer integer float c-string symbol
 	      scheme-pointer nonnull-scheme-pointer int32 unsigned-int32 integer32 unsigned-integer32
-              unsigned-c-string unsigned-c-string* nonnull-unsigned-c-string* size_t
+              unsigned-c-string unsigned-c-string* nonnull-unsigned-c-string*
 	      nonnull-c-string c-string* nonnull-c-string* c-string-list c-string-list*)
 	(words->bytes 1) )
-       ((double number integer64 unsigned-integer64)
+       ((double integer64 unsigned-integer64 size_t ssize_t)
 	(words->bytes 2) )
        (else
-	(cond [(and (symbol? t) (##sys#hash-table-ref foreign-type-table t))
-	       => (lambda (t2)
-		    (next (if (vector? t2) (vector-ref t2 0) t2)) ) ]
-	      [(pair? t)
+	(cond ((and (symbol? t) (lookup-foreign-type t))
+	       => (lambda (t2) (next (vector-ref t2 0)) ) )
+	      ((pair? t)
 	       (case (car t)
-		 [(ref nonnull-pointer pointer c-pointer nonnull-c-pointer function
-		       scheme-pointer nonnull-scheme-pointer)
-		  (words->bytes 1)]
-		 [(const) (next (cadr t))]
-		 [else (err t)] ) ]
-	      [else (err t)] ) ) ) )
-   (lambda () (quit "foreign type `~S' refers to itself" type)) ) )
+		 ((ref nonnull-pointer pointer c-pointer nonnull-c-pointer function
+		       scheme-pointer nonnull-scheme-pointer enum)
+		  (words->bytes 1))
+		 ((const) (next (cadr t)))
+		 (else (err t)) ) )
+	      (else (err t)) ) ) ) )
+   (lambda () (quit-compiling "foreign type `~S' refers to itself" type)) ) )
 
 
 ;;; Convert result value, if a string:
 
-(define (finish-foreign-result type body)
-  (let ((type (##sys#strip-syntax type)))
+(define (finish-foreign-result type body) ; Used only in compiler.scm
+  (let ((type (strip-syntax type)))
     (case type
       [(c-string unsigned-c-string) `(##sys#peek-c-string ,body '0)]
       [(nonnull-c-string) `(##sys#peek-nonnull-c-string ,body '0)]
@@ -1271,6 +1256,7 @@
 
 ;;; Translate foreign-type into scrutinizer type:
 
+;; Used in chicken-ffi-syntax.scm and scrutinizer.scm
 (define (foreign-type->scrutiny-type t mode) ; MODE = 'arg | 'result
   (let ((ft (final-foreign-type t)))
     (case ft
@@ -1293,7 +1279,7 @@
 	 ((arg) '(or boolean pointer-vector))
 	 (else 'pointer-vector)))
       ((nonnull-pointer-vector) 'pointer-vector)
-      ((u8vector u16vector s8vector s16vector u32vector s32vector f32vector f64vector)
+      ((u8vector u16vector s8vector s16vector u32vector s32vector u64vector s64vector f32vector f64vector)
        (case mode
 	 ((arg) `(or boolean (struct ,ft)))
 	 (else `(struct ,ft))))
@@ -1303,11 +1289,13 @@
       ((nonnull-s16vector) '(struct s16vector))
       ((nonnull-u32vector) '(struct u32vector))
       ((nonnull-s32vector) '(struct s32vector))
+      ((nonnull-u64vector) '(struct u64vector))
+      ((nonnull-s64vector) '(struct s64vector))
       ((nonnull-f32vector) '(struct f32vector))
       ((nonnull-f64vector) '(struct f64vector))
-      ((integer long size_t integer32 unsigned-integer32 integer64 unsigned-integer64
+      ((integer long size_t ssize_t integer32 unsigned-integer32 integer64 unsigned-integer64
 		unsigned-long) 
-       'number)
+       'integer)
       ((c-pointer)
        '(or boolean pointer locative))
       ((nonnull-c-pointer) 'pointer)
@@ -1323,7 +1311,7 @@
 		((ref pointer function c-pointer)
 		 '(or boolean pointer locative))
 		((const) (foreign-type->scrutiny-type (cadr t) mode))
-		((enum) 'number)
+		((enum) 'integer)
 		((nonnull-pointer nonnull-c-pointer) 'pointer)
 		(else '*)))
 	     (else '*))))))
@@ -1348,7 +1336,7 @@
 
 ;;; Scan expression-node for free variables (that are not in env):
 
-(define (scan-free-variables node)
+(define (scan-free-variables node block-compilation)
   (let ((vars '())
 	(hvars '()))
 
@@ -1360,18 +1348,18 @@
 	  ((##core#variable) 
 	   (let ((var (first params)))
 	     (unless (memq var e)
-	       (set! vars (lset-adjoin eq? vars var))
-	       (unless (variable-visible? var) 
-		 (set! hvars (lset-adjoin eq? hvars var))))))
+	       (set! vars (lset-adjoin/eq? vars var))
+	       (unless (variable-visible? var block-compilation) 
+		 (set! hvars (lset-adjoin/eq? hvars var))))))
 	  ((set!)
 	   (let ((var (first params)))
-	     (unless (memq var e) (set! vars (lset-adjoin eq? vars var)))
+	     (unless (memq var e) (set! vars (lset-adjoin/eq? vars var)))
 	     (walk (car subs) e) ) )
 	  ((let) 
 	   (walk (first subs) e)
 	   (walk (second subs) (append params e)) )
 	  ((##core#lambda)
-	   (decompose-lambda-list
+	   (##sys#decompose-lambda-list
 	    (third params)
 	    (lambda (vars argc rest)
 	      (walk (first subs) (append vars e)) ) ) )
@@ -1386,20 +1374,12 @@
 
 ;;; Some pathname operations:
 
-(define (chop-separator str)
+(define (chop-separator str)		; Used only in batch-driver.scm
   (let ([len (sub1 (string-length str))])
     (if (and (> len 0) 
 	     (memq (string-ref str len) '(#\\ #\/)))
 	(substring str 0 len)
 	str) ) )
-
-(define (chop-extension str)
-  (let ([len (sub1 (string-length str))])
-    (let loop ([i len])
-      (cond [(zero? i) str]
-	    [(char=? #\. (string-ref str i)) (substring str 0 i)]
-	    [else (loop (sub1 i))] ) ) ) )
-
 
 ;;; Special block-variable literal type:
 
@@ -1411,6 +1391,7 @@
 
 ;;; Generation of random names:
 
+;; This one looks iffy.  It's also used only in compiler.scm
 (define (make-random-name . prefix)
   (string->symbol
    (sprintf "~A-~A~A"
@@ -1426,50 +1407,62 @@
 ;     <variable-alias> -> <variable>
 ;     <lambda-id> -> <variable> or <variable-alias>
 
-(define (set-real-name! name rname)
-  (##sys#hash-table-set! real-name-table name rname) )
+(define-constant real-name-table-size 997)
+
+(define real-name-table #f)
+
+(define (clear-real-name-table!)
+  (set! real-name-table (make-vector real-name-table-size '())))
+
+(define (set-real-name! name rname)	; Used only in compiler.scm
+  (hash-table-set! real-name-table name rname))
+
+;; TODO: Find out why there are so many lookup functions for this and
+;; reduce them to the minimum.
+(define (get-real-name name)
+  (hash-table-ref real-name-table name))
 
 ;; Arbitrary limit to prevent runoff into exponential behavior
 (define real-name-max-depth 20)
 
 (define (real-name var . db)
   (define (resolve n)
-    (let ([n2 (##sys#hash-table-ref real-name-table n)])
+    (let ((n2 (hash-table-ref real-name-table n)))
       (if n2
-	  (or (##sys#hash-table-ref real-name-table n2)
+	  (or (hash-table-ref real-name-table n2)
 	      n2) 
 	  n) ) )
-  (let ([rn (resolve var)])
-    (cond [(not rn) (##sys#symbol->qualified-string var)]
-	  [(pair? db)
-	   (let ([db (car db)])
-	     (let loop ([nesting (list (##sys#symbol->qualified-string rn))]
-                        [depth 0]
-			[container (get db var 'contained-in)] )
+  (let ((rn (resolve var)))
+    (cond ((not rn) (##sys#symbol->qualified-string var))
+	  ((pair? db)
+	   (let ((db (car db)))
+	     (let loop ((nesting (list (##sys#symbol->qualified-string rn)))
+			(depth 0)
+			(container (db-get db var 'contained-in)) )
 	       (cond
-                ((> depth real-name-max-depth)
-                 (string-intersperse (reverse (cons "..." nesting)) " in "))
-                (container
-                 (let ([rc (resolve container)])
-                   (if (eq? rc container)
-                       (string-intersperse (reverse nesting) " in ")
-                       (loop (cons (symbol->string rc) nesting)
-                             (fx+ depth 1)
-                             (get db container 'contained-in) ) ) ))
-                (else (string-intersperse (reverse nesting) " in "))) ) ) ]
-	  [else (##sys#symbol->qualified-string rn)] ) ) )
+		((> depth real-name-max-depth)
+		 (string-intersperse (reverse (cons "..." nesting)) " in "))
+		(container
+		 (let ((rc (resolve container)))
+		   (if (eq? rc container)
+		       (string-intersperse (reverse nesting) " in ")
+		       (loop (cons (symbol->string rc) nesting)
+			     (fx+ depth 1)
+			     (db-get db container 'contained-in) ) ) ))
+		(else (string-intersperse (reverse nesting) " in "))) ) ) )
+	  (else (##sys#symbol->qualified-string rn)) ) ) )
 
-(define (real-name2 var db)
-  (and-let* ([rn (##sys#hash-table-ref real-name-table var)])
+(define (real-name2 var db)		; Used only in c-backend.scm
+  (and-let* ((rn (hash-table-ref real-name-table var)))
     (real-name rn db) ) )
 
 (define (display-real-name-table)
-  (##sys#hash-table-for-each
+  (hash-table-for-each
    (lambda (key val)
      (printf "~S\t~S~%" key val) )
    real-name-table) )
 
-(define (source-info->string info)
+(define (source-info->string info)	; Used only in c-backend.scm
   (if (list? info)
       (let ((ln (car info))
 	    (name (cadr info)))
@@ -1481,7 +1474,7 @@
       (car info)
       (and info (->string info))))
 
-(define (call-info params var)
+(define (call-info params var)		; Used only in optimizer.scm
   (or (and-let* ((info (and (pair? (cdr params)) (second params))))
 	(and (list? info)
 	     (let ((ln (car info))
@@ -1492,7 +1485,7 @@
 
 ;;; constant folding support:
 
-(define (constant-form-eval op argnodes k)
+(define (constant-form-eval op argnodes k)  ; Used only in optimizer.scm
   (let* ((args (map (lambda (n) (first (node-parameters n))) argnodes))
 	 (form (cons op (map (lambda (arg) `(quote ,arg)) args))))
     ;; op must have toplevel binding, result must be single-valued
@@ -1521,9 +1514,14 @@
     (foreign-lambda* int ((scheme-object lit))
       "return(C_header_size(lit));"))
   (define (fits? n)
-    (zero? (arithmetic-shift n -24)))
+    (fx<= (integer-length n) 24))
   (cond ((immediate? lit))
-	((fixnum? lit))
+	((exact-integer? lit)
+	 ;; Could use integer-length, but that's trickier (minus
+	 ;; symbol etc).  If the string is too large to allocate,
+	 ;; we'll also get an exception!
+	 (let ((str (handle-exceptions ex #f (number->string lit 16))))
+	   (and str (fits? (string-length str)))))
 	((flonum? lit))
 	((symbol? lit)
 	 (let ((str (##sys#slot lit 1)))
@@ -1541,7 +1539,7 @@
 
 ;;; Dump node structure:
 
-(define (dump-nodes n)
+(define (dump-nodes n)			; Used only in batch-driver.scm
   (let loop ([i 0] [n n])
     (let ([class (node-class n)]
 	  [params (node-parameters n)]
@@ -1563,18 +1561,18 @@
 
 ;;; Hook for source information
 
-(define (read-info-hook class data val)
+(define (read-info-hook class data val)	; Used here and in compiler.scm
   (when (and (eq? 'list-info class) (symbol? (car data)))
-    (##sys#hash-table-set!
+    (hash-table-set!
      ##sys#line-number-database
      (car data)
      (alist-cons 
       data (conc ##sys#current-source-filename ":" val)
-      (or (##sys#hash-table-ref ##sys#line-number-database (car data))
+      (or (hash-table-ref ##sys#line-number-database (car data))
 	  '() ) ) ) )
   data)
 
-(define (read/source-info in)
+(define (read/source-info in)		; Used only in batch-driver
   (##sys#read in read-info-hook) )
 
 
@@ -1592,51 +1590,63 @@
 (define (scan-sharp-greater-string port)
   (let ([out (open-output-string)])
     (let loop ()
-      (let ([c (read-char port)])
-	(cond [(eof-object? c) (quit "unexpected end of `#> ... <#' sequence")]
-	      [(char=? c #\newline)
+      (let ((c (read-char port)))
+	(cond ((eof-object? c)
+	       (quit-compiling "unexpected end of `#> ... <#' sequence"))
+	      ((char=? c #\newline)
 	       (newline out)
-	       (loop) ]
-	      [(char=? c #\<)
+	       (loop) )
+	      ((char=? c #\<)
 	       (let ([c (read-char port)])
 		 (if (eqv? #\# c)
 		     (get-output-string out)
 		     (begin
 		       (write-char #\< out)
 		       (write-char c out) 
-		       (loop) ) ) ) ]
-	      [else
+		       (loop) ) ) ) )
+	      (else
 	       (write-char c out)
-	       (loop) ] ) ) ) ) )
+	       (loop) ) ) ) ) ) )
 
 
 ;;; 64-bit fixnum?
 
-(define (big-fixnum? x)
+(define (big-fixnum? x)	;; XXX: This should probably be in c-platform
   (and (fixnum? x)
-       (##sys#fudge 3)			; 64 bit?
+       (feature? #:64bit)
        (or (fx> x 1073741823)
 	   (fx< x -1073741824) ) ) )
+
+(define (small-bignum? x) ;; XXX: This should probably be in c-platform
+  (and (bignum? x)
+       (not (feature? #:64bit))
+       (fx<= (integer-length x) 62) ) )
 
 
 ;;; symbol visibility and other global variable properties
 
-(define (hide-variable sym)
+(define (hide-variable sym)		; Used in compiler.scm and here
   (mark-variable sym '##compiler#visibility 'hidden))
 
-(define (export-variable sym)
+(define (export-variable sym)		; Used only in compiler.scm
   (mark-variable sym '##compiler#visibility 'exported))
 
 (define (variable-hidden? sym)
   (eq? (##sys#get sym '##compiler#visibility) 'hidden))
 
-(define (variable-visible? sym)
+(define (unhide-variable sym)
+  (when (variable-hidden? sym) (remprop! sym '##compiler#visibility)))
+
+(define (variable-visible? sym block-compilation)
   (let ((p (##sys#get sym '##compiler#visibility)))
     (case p
       ((hidden) #f)
       ((exported) #t)
       (else (not block-compilation)))))
 
+;; These two have somewhat confusing names.  Maybe mark-variable could
+;; be renamed to "variable-mark-set!"?  Also, in some other situations,
+;; put!/get are used directly.
 (define (mark-variable var mark #!optional (val #t))
   (##sys#put! var mark val) )
 
@@ -1644,14 +1654,15 @@
   (##sys#get var mark) )
 
 (define intrinsic? (cut variable-mark <> '##compiler#intrinsic))
+;; Used only in optimizer.scm
 (define foldable? (cut variable-mark <> '##compiler#foldable))
+(define predicate? (cut variable-mark <> '##compiler#predicate))
 
 
 ;;; Load support files
 
-(define (load-identifier-database name)
-  (and-let* ((rp (repository-path))
-	     (dbfile (file-exists? (make-pathname rp name))))
+(define (load-identifier-database name)	; Used only in batch-driver.scm
+  (and-let* ((dbfile (chicken.load#find-file name (repository-path))))
     (debugging 'p (sprintf "loading identifier database ~a ...~%" dbfile))
     (for-each
      (lambda (e)
@@ -1659,20 +1670,22 @@
 	 (##sys#put! 
 	  id '##core#db
 	  (append (or (##sys#get id '##core#db) '()) (list (cdr e))) )))
-     (read-file dbfile))))
+     (call-with-input-file dbfile read-expressions))))
 
 
 ;;; Print version/usage information:
 
-(define (print-version #!optional b)
+(define (print-version #!optional b)	; Used only in batch-driver.scm
   (when b (print* +banner+))
   (print (chicken-version #t)) )
 
+;; Used only in batch-driver.scm, but it seems to me this should be moved
+;; to chicken.scm, as that's the only place this belongs.
 (define (print-usage)
   (print-version)
   (newline)
   (display #<<EOF
-Usage: chicken FILENAME OPTION ...
+Usage: chicken FILENAME [OPTION ...]
 
   `chicken' is the CHICKEN compiler.
   
@@ -1712,7 +1725,7 @@ Usage: chicken FILENAME OPTION ...
     -emit-all-import-libraries   emit import-libraries for all defined modules
     -no-module-registration      do not generate module registration code
     -no-compiler-syntax          disable expansion of compiler-macros
-    -module                      wrap compiled code into implicit module
+    -module NAME                 wrap compiled code in a module
 
   Translation options:
 
@@ -1733,8 +1746,8 @@ Usage: chicken FILENAME OPTION ...
     -accumulate-profile          executable emits profiling information in
                                   append mode
     -no-lambda-info              omit additional procedure-information
-    -types FILENAME              load additional type database
     -emit-type-file FILENAME     write type-declaration information into file
+    -consult-type-file FILENAME  load additional type database
 
   Optimization options:
 
@@ -1797,6 +1810,7 @@ Usage: chicken FILENAME OPTION ...
 EOF
 ) )
 
+;; Same as above
 (define (print-debug-options)
   (display #<<EOF
 
@@ -1838,3 +1852,4 @@ Available debugging options:
 
 EOF
 ))
+)

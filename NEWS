@@ -1,3 +1,128 @@
+5.0.0 (preliminary)
+
+- Runtime system
+  - Added support for the full numeric tower, including various new
+    procedures taken from the "numbers" egg.  All calculations will
+    now return exact numbers where possible, so code relying on flonums
+    being returned may need to be changed if rational numbers do not
+    provide the desired performance.
+  - Port directionality has been generalized from a simple input/output
+    flag to a bitmap, to allow for multidirectional ports.
+  - Weak symbol GC is faster, simpler, and can now collect all
+    unreferenced symbols instead of a maximum of 997 per major GC.
+  - The -:w option has been removed; symbols are now always collected.
+  - Increased the "binary compatibility version" to 9.
+  - Continuations which discard additional values beyond the first now
+    also accept multiple values via direct invocation after being
+    captured through `call/cc`, not just via `values` (#1390)
+  - Removed the deprecated C_locative_ref and C_mutate2 C functions.
+  - The trace buffer no longer holds on to thread objects, allowing them to
+    be garbage collected sooner (#1356, thanks to Kristian Lein-Mathisen)
+
+- Compiler
+  - Fixed an off by one allocation problem in generated C code for (list ...).
+  - The "-scrutinize" compiler option has been removed.
+  - The "-module" compiler option (aliased as "-m") now expects a module name.
+  - The generated C output of the compiler is now deterministic: it
+    will be bit-for-bit identical when compiling the same Scheme file
+    with the same version of the compiler.
+
+- Tools
+  - The new "-link" option to csc allows linking with objects from extensions.
+  - The new "-libdir" option to csc allows overriding the runtime library
+    directory.
+  - The ambiguous "-l<libname>" option for csc has been removed (#1193).
+  - Removed deprecated "-n" shorthand for "-emit-inline-file" from csc.
+  - Removed "chicken-bug" tool.
+
+- Core libraries
+  - Removed support for memory-mapped files (posix), queues
+    (data-structures), binary-search (data-structures), scan-input-lines
+    (utils), group-information (posix) object-eviction (lolevel), and
+    compile-file (utils). These are now available as eggs.
+  - Removed the srfi-1, srfi-13, srfi-14, srfi-18, srfi-69, and utils
+    units. These are now available as eggs.
+  - Added the `executable-pathname` procedure for retrieving a path to
+    the currently-running executable.
+  - Removed all support for SWIG.
+  - `sleep` now suspends the current thread when threading is enabled,
+    otherwise it sleeps the process. The new `process-sleep` procedure
+    in unit posix can be used to sleep the process unconditionally.
+  - `with-error-output-to-port' from the ports module has been renamed
+    to the more common `with-error-to-port', and `with-error-to-string'
+    has been added for completeness (thanks to Michael Silver).
+  - A new `make-bidirectional-port' procedure has been added to the
+    ports unit that will combine separate input- and output- ports into
+    a single bidirectional port.
+  - New `input-port-open?` and `output-port-open?` procedures have been
+    added for testing whether a port is open in a specific direction.
+  - An `include-relative` form has been added to the chicken module.
+    This works like `load-relative` but for textual inclusion.
+  - Keywords are now always written in "portable" style by WRITE, so
+    that the reader's keyword style doesn't need to match the writer's.
+  - The environment variable `CHICKEN_PREFIX` has been removed.
+  - Added the `glob->sre` procedure to the irregex library.
+  - Removed the `get-host-name' and `system-information' procedures.
+    These are available in the "system-information" egg.
+  - Renamed bit-set? to bit->boolean because of swapped argument order
+    with respect to SRFI-33 and SRFI-60, which was confusing (fixes
+    #1385, thanks to Lemonboy).
+  - file-{read,write,execute}-access will now raise an exception when
+    the file doesn't exist or some other non-access related problem is
+    detected (fixes #1386, thanks to Vasilij Schneidermann).
+  - `read-file` has been renamed to `read-list`.
+
+- Module system
+  - The compiler has been modularised, for improved namespacing.  This
+    means names from the compiler should not leak out into the compiled
+    program's (macro) namespace anymore.
+  - The core units have been converted to modules under the "chicken"
+    namespace.
+  - Added support for list-style library names.
+  - The "use" and "use-for-syntax" special forms have been removed
+    in favor of "import" and "import-for-syntax" to reduce confusion.
+
+- Syntax expander
+  - Removed support for (define-syntax (foo e r c) ...), which was
+    undocumented and not officially supported anyway.
+  - define and friends are now aggressively rejected in "expression
+    contexts" (i.e., anywhere but toplevel or as internal defines).
+  - define-record and define-record-type now create record types
+    which are tagged with the module in which they're defined, so
+    predicates no longer return #t for records with the same tag
+    defined in another module. This tag is now also available under
+    an identifier that matches the record type name (fixes #1342).
+
+- Eggs management
+  - Egg-installation and building has been completely overhauled.
+  - .meta + .setup files have been merged into a single declarative
+    ".egg" file.
+  - More static checks for egg descriptions, simplified generation
+    of OS-specific build + install commands that is (hopefully)
+    more practical for package maintainers.
+  - Egg sources are cached locally to reduce download and rebuild
+    times.
+  - Dropped many obscure or unimportant options and features from
+    `chicken-install`: (`-keep-installed`, `-reinstall`, `-proxy`,
+    `-no-install`, `-username`, `-password`, `-init`, `-deploy`,
+    `-keep-going`, `-scan`, `-csi`, `-show-depends`, `-show-foreign-depends`,
+    `-prefix`.
+  - Added new "-from-list" option to chicken-install.
+  - Eggs can now be installed and located in multiple directories,
+    using the `CHICKEN_REPOSITORY_PATH` + `CHICKEN_INSTALL_REPOSITORY`
+    environment variables.
+  - Static compilation of eggs is now fully supported and static
+    versions of compiled eggs are available by default.
+  - In a statically built chicken, the egg-tools ("chicken-install", "-status",
+    "-uninstall") are still available, but only support static compilation
+    of eggs.
+
+- Foreign function interface
+  - The foreign type specifier "ssize_t" is now accepted, and "size_t"
+    arguments now only accept positive integers.  Return values of
+    type size_t are no longer truncated on 32-bit platforms.
+
+
 4.13.0
 
 - Security fixes
@@ -194,7 +319,7 @@
   - "chicken-status"
     - -prefix and -deploy options were added, matching chicken-install.
   - The -sudo and -s options for chicken-install and chicken-uninstall
-    now honor a "SUDO" environment variable (thanks to Timo Myyr‰).
+    now honor a "SUDO" environment variable (thanks to Timo Myyr√§).
 
 - Syntax expander
   - Mixed internal define/define-values are now correctly ordered, so

@@ -1,11 +1,11 @@
 ;;;; sgrep.scm - grepping benchmark
 
 
-(use irregex extras utils posix srfi-1)
+(import chicken.io chicken.irregex chicken.port)
 
 
 (define big-string
-  (read-all (optional (command-line-arguments) "compiler.scm")))
+  (with-input-from-file (optional (command-line-arguments) "compiler.scm") read-string))
 
 (define-syntax bgrep
   (syntax-rules ()
@@ -17,14 +17,12 @@
 	  (lambda ()
 	    (let ((h 0)
 		  (c 0))
-	      (scan-input-lines
-	       (lambda (line)
-		 (set! c (fx+ c 1))
-		 ;(when (zero? (fxmod c 500)) (print* "."))
-		 (when (irregex-search expr line)
-		   (set! h (fx+ h 1)))
-		 #f))
-	      ;(newline)
+	      (do ((line (read-line) (read-line)))
+		  ((eof-object? line))
+		(set! c (fx+ c 1))
+		;(when (zero? (fxmod c 500)) (print* "."))
+		(when (irregex-search expr line)
+		  (set! h (fx+ h 1))))
 	      h))))))))
 
 (define-syntax rx1

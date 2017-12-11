@@ -31,11 +31,9 @@
  (debugbuild
   (define-syntax d
     (syntax-rules ()
-      ((_ arg1)
-       (when (##sys#fudge 13) (pp arg1))) ; debug-mode
-      ((_ arg1 more ...)
-       (when (##sys#fudge 13)
-	 (print arg1 more ...))))))
+      ((_ arg ...)
+       (when (##sys#debug-mode?)
+	 (print arg ...))))))
  (else
   (begin
     (declare

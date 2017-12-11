@@ -1,4 +1,14 @@
 
+
+                                                                          
+     _/_/_/  _/    _/  _/_/_/    _/_/_/  _/    _/  _/_/_/_/  _/      _/   
+  _/        _/    _/    _/    _/        _/  _/    _/        _/_/    _/    
+ _/        _/_/_/_/    _/    _/        _/_/      _/_/_/    _/  _/  _/     
+_/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/      
+ _/_/_/  _/    _/  _/_/_/    _/_/_/  _/    _/  _/_/_/_/  _/      _/       
+
+
+
   README file for the CHICKEN Scheme system
   =========================================
 
@@ -6,7 +16,7 @@
   (c) 2008-2017, The CHICKEN Team
   (c) 2000-2007, Felix L. Winkelmann
 
-  version 4.12.1
+  version 5.0.0
 
 
  1. Introduction
@@ -45,7 +55,7 @@
         Building CHICKEN requires GNU Make. Other "make" derivates are
         not supported. If you are using a Windows system and do not
         have GNU Make, download
-        http://code.call-cc.org/legacy-eggs/tarballs/UnxUtils.zip.
+        http://www.call-with-current-continuation.org/tarballs/UnxUtils.zip.
         It contains a precompiled set of UNIX utilities, which among
         other useful tools contains "make".
 
@@ -157,22 +167,11 @@
 
         STATICBUILD=1
           Build only static versions of the runtime library, compiler
-          and interpreter. `chicken-install', `chicken-uninstall' and
-          `chicken-status' will not be generated, as it is mostly 
-          useless unless compiled code can be loaded.
+          and interpreter.
 
-        SYMBOLGC=1
-          Always enable garbage collection for unused symbols in the 
-          symbol table by default. This will result in slightly slower 
-          garbage collection, but minimizes the amount of garbage 
-          retained at runtime (which might be important for long 
-          running server applications). If you don't specify this 
-          option you can still enable symbol GC at runtime by passing 
-          the `-:w' runtime option when running the program.
-
-	EXTRA_CHICKEN_OPTIONS=...
-	  Additional options that should be passed to `chicken' when
-	  building the system.
+        EXTRA_CHICKEN_OPTIONS=...
+          Additional options that should be passed to `chicken' when
+          building the system.
 
         C_COMPILER_OPTIMIZATION_OPTIONS=...
           Override built-in C compiler optimization options. Available
@@ -262,12 +261,11 @@
         <PREFIX>
 	|-- bin
 	|   |-- chicken
-	|   |-- chicken-bug
 	|   |-- chicken-install
 	|   |-- chicken-profile
 	|   |-- chicken-status
 	|   |-- chicken-uninstall
-	|   |-- libchicken.dll                        (Windows)
+ 	|   |-- libchicken.dll                        (Windows)
 	|   |-- csc
 	|   |-- csi
 	|   |-- feathers.bat                          (Windows)
@@ -278,36 +276,60 @@
 	|       `-- chicken.h
 	|-- lib
 	|   |-- chicken
-	|   |   `-- 8
+	|   |   `-- 9
 	|   |       |-- chicken.import.so
-	|   |       |-- csi.import.so
-	|   |       |-- data-structures.import.so
-	|   |       |-- extras.import.so
-	|   |       |-- files.import.so
-	|   |       |-- foreign.import.so
-	|   |       |-- irregex.import.so
-	|   |       |-- lolevel.import.so
+	|   |       |-- chicken.base.import.so
+	|   |       |-- chicken.bitwise.import.so
+	|   |       |-- chicken.blob.import.so
+	|   |       |-- chicken.compiler.user-pass.import.so
+	|   |       |-- chicken.condition.import.so
+	|   |       |-- chicken.continuation.import.so
+	|   |       |-- chicken.csi.import.so
+	|   |       |-- chicken.data-structures.import.so
+	|   |       |-- chicken.errno.import.so
+	|   |       |-- chicken.eval.import.so
+	|   |       |-- chicken.file.import.so
+	|   |       |-- chicken.file.posix.import.so
+	|   |       |-- chicken.fixnum.import.so
+	|   |       |-- chicken.flonum.import.so
+	|   |       |-- chicken.foreign.import.so
+	|   |       |-- chicken.format.import.so
+	|   |       |-- chicken.gc.import.so
+	|   |       |-- chicken.internal.import.so
+	|   |       |-- chicken.io.import.so
+	|   |       |-- chicken.irregex.import.so
+	|   |       |-- chicken.keyword.import.so
+	|   |       |-- chicken.load.import.so
+	|   |       |-- chicken.locative.import.so
+	|   |       |-- chicken.memory.import.so
+	|   |       |-- chicken.memory.representation.import.so
+	|   |       |-- chicken.pathname.import.so
+	|   |       |-- chicken.platform.import.so
+	|   |       |-- chicken.plist.import.so
+	|   |       |-- chicken.port.import.so
+	|   |       |-- chicken.posix.import.so
+	|   |       |-- chicken.pretty-print.import.so
+	|   |       |-- chicken.process.import.so
+	|   |       |-- chicken.process.signal.import.so
+	|   |       |-- chicken.process-context.import.so
+	|   |       |-- chicken.random.import.so
+	|   |       |-- chicken.repl.import.so
+	|   |       |-- chicken.sort.import.so
+	|   |       |-- chicken.string.import.so
+	|   |       |-- chicken.read-syntax.import.so
+	|   |       |-- chicken.syntax.import.so
+	|   |       |-- chicken.tcp.import.so
+	|   |       |-- chicken.time.import.so
+	|   |       |-- chicken.time.posix.import.so
+	|   |       |-- chicken.type.import.so
 	|   |       |-- modules.db
-	|   |       |-- ports.import.so
-	|   |       |-- posix.import.so
-	|   |       |-- setup-api.import.so
-	|   |       |-- setup-api.so
-	|   |       |-- setup-download.import.so
-	|   |       |-- setup-download.so
-	|   |       |-- srfi-1.import.so
-	|   |       |-- srfi-13.import.so
-	|   |       |-- srfi-14.import.so
-	|   |       |-- srfi-18.import.so
 	|   |       |-- srfi-4.import.so
-	|   |       |-- srfi-69.import.so
-	|   |       |-- tcp.import.so
-	|   |       |-- types.db
-	|   |       `-- utils.import.so
+	|   |       `-- types.db
 	|   |-- libchicken.a
 	|   |-- libchicken.dll.a                      (Windows)
 	|   |-- libchicken.dylib                      (Macintosh)
-	|   |-- libchicken.so -> libchicken.so.8      (Unix)
-	|   `-- libchicken.so.8                       (Unix)
+	|   |-- libchicken.so -> libchicken.so.9      (Unix)
+	|   `-- libchicken.so.9                       (Unix)
 	`-- share
 	    |-- chicken
 	    |   |-- doc
@@ -322,7 +344,6 @@
 	    |   `-- setup.defaults
 	    `-- man
 		`-- man1
-		    |-- chicken-bug.1
 		    |-- chicken-install.1
 		    |-- chicken-profile.1
 		    |-- chicken-status.1
@@ -352,7 +373,7 @@
         A selection of 3rd party libraries, together with source and
         binary packages for tools helpful for development with CHICKEN
         are also available at:
-        <http://code.call-cc.org/legacy-eggs/tarballs/>.
+        <http://www.call-with-current-continuation.org/tarballs/>.
 
         
  5. Platform issues
@@ -619,8 +640,8 @@
 
         To build a bootstrapping compiler yourself, get the most
         recent development snapshot tarball from
-        http://code.call-cc.org, unpack it, build and install it. Then
-        change to the directory containing the git code and run:
+        http://code.call-cc.org, unpack it, build and install it.
+        Then change to the directory containing the git code and run:
 
           make PLATFORM=<platform> CHICKEN=<path-to-existing-chicken> \
             boot-chicken
@@ -651,8 +672,8 @@
 
  9. What's next?
 
-        If you find any bugs, or want to report a problem, please consider
-        using the "chicken-bug" tool to create a detailed bug report.
+        If you find any bugs, or want to report a problem, please send
+        a detailed bug report.
 
         If you have any more questions or problems (even the slightest
         problems, or the most stupid questions), then please subscribe

@@ -1,11 +1,23 @@
 ;;;; library-tests.scm
 
-(use srfi-1 extras ports)
+(import chicken.blob chicken.bitwise chicken.flonum chicken.keyword chicken.port)
 
 (define-syntax assert-fail
   (syntax-rules ()
     ((_ exp)
      (assert (handle-exceptions ex #t exp #f)))))
+
+(define (list-tabulate n proc)
+  (let loop ((i 0))
+    (if (fx>= i n)
+	'()
+	(cons (proc i) (loop (fx+ i 1))))))
+
+(define (every pred lst)
+  (let loop ((lst lst))
+    (cond ((null? lst))
+	  ((not (pred (car lst))) #f)
+	  (else (loop (cdr lst))))))
 
 ;; numbers
 
@@ -54,12 +66,13 @@
 (assert (inexact? 1.1))
 (assert-fail (inexact? 'foo))
 
+;; Division by inexact zero used to fail, but now it returns +inf.0
 (assert-fail (/ 1 1 0))
-(assert-fail (/ 1 1 0.0))
-(assert-fail (/ 1 0.0))
+(assert (eqv? +inf.0 (/ 1 1 0.0)))
+(assert (eqv? +inf.0 (/ 1 0.0)))
 (assert-fail (/ 1 0))
 (assert-fail (/ 0))
-(assert-fail (/ 0.0))
+(assert (eqv? +inf.0 (/ 0.0)))
 
 (assert (fixnum? (/ 1)))
 
@@ -90,12 +103,12 @@
 ;;; A few denormalised numbers, cribbed from NetBSD ATF tests for ldexp():
 ;; On some machines/OSes these tests fail due to missing hardware support
 ;; and sometimes due to broken libc/libm support, so we have disabled them.
-(assert (equal? 1.0 (numerator 1.1125369292536006915451e-308)))
-(assert (equal? +inf.0 (denominator 1.1125369292536006915451e-308)))
-(assert (equal? -1.0 (numerator -5.5626846462680034577256e-309)))
-(assert (equal? +inf.0 (denominator -5.5626846462680034577256e-309)))
-(assert (equal? 1.0 (numerator 4.9406564584124654417657e-324)))
-(assert (equal? +inf.0 (denominator 4.9406564584124654417657e-324)))
+;(assert (equal? 1.0 (numerator 1.1125369292536006915451e-308)))
+;(assert (equal? +inf.0 (denominator 1.1125369292536006915451e-308)))
+;(assert (equal? -1.0 (numerator -5.5626846462680034577256e-309)))
+;(assert (equal? +inf.0 (denominator -5.5626846462680034577256e-309)))
+;(assert (equal? 1.0 (numerator 4.9406564584124654417657e-324)))
+;(assert (equal? +inf.0 (denominator 4.9406564584124654417657e-324)))
 
 (assert (equal? 4.0 (denominator -1.25)))
 (assert (equal? 1e10 (numerator 1e10)))
@@ -226,8 +239,8 @@
 ;; by Christian Kellermann
 (assert 
  (equal?
-  (map (lambda (n) (number->string 32 n)) (iota 15 2))
-  '("100000" "1012" "200" "112" "52" "44" "40" "35" "32" "2A" "28" "26" "24" "22" "20")))
+  (map (lambda (n) (number->string 32 n)) (list-tabulate 15 (cut + 2 <>)))
+  '("100000" "1012" "200" "112" "52" "44" "40" "35" "32" "2a" "28" "26" "24" "22" "20")))
 
 
 ;; string->number conversion
@@ -328,7 +341,7 @@
     (assert (string=? "foo bar" (symbol->string kw)))
     (assert (string=? "foo bar:"
 		      (with-output-to-string (lambda () (display kw)))))
-    (assert (string=? "|foo bar|:"
+    (assert (string=? "#:|foo bar|"
 		      (with-output-to-string (lambda () (write kw)))))))
 
 (parameterize ((keyword-style #:prefix))
@@ -339,7 +352,7 @@
     (assert (string=? "foo bar" (symbol->string kw)))
     (assert (string=? ":foo bar"
 		      (with-output-to-string (lambda () (display kw)))))
-    (assert (string=? ":|foo bar|"
+    (assert (string=? "#:|foo bar|"
 		      (with-output-to-string (lambda () (write kw)))))))
 
 (assert (eq? '|#:| (string->symbol "#:")))
@@ -389,6 +402,11 @@
 (let ((empty-kw (with-input-from-string "#:||" read)))
   (assert (keyword? empty-kw))
   (assert (string=? "" (keyword->string empty-kw))))
+
+;; TODO: It should eventually be possible to distinguish these (#1077)
+#;(let ((nul-sym (with-input-from-string "|\\x00|" read)))
+  (assert (not (keyword? nul-sym)))
+  (assert (string=? "\x00" (symbol->string nul-sym))))
 
 (assert (keyword? (with-input-from-string "42:" read)))
 (assert (keyword? (with-input-from-string ".:" read)))
