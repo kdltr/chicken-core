@@ -1,3 +1,56 @@
+4.13.0
+
+- Security fixes
+  - CVE-2017-6949: Remove unchecked malloc() call in SRFI-4 constructors
+    when allocating in non-GC memory, resulting in potential 1-word
+    buffer overrun and/or segfault (thanks to Lemonboy).
+  - CVE-2017-9334: `length' no longer crashes on improper lists (fixes
+    #1375, thanks to "megane").
+  - CVE-2017-11343: The randomization factor of the symbol table was
+    set before the random seed was set, causing it to have a fixed value
+    on many platforms.
+
+- Core Libraries
+  - Unit "posix": If file-lock, file-lock/blocking or file-unlock are
+    interrupted by a signal, we now retry (thanks to Joerg Wittenberger).
+  - char-ready? on string ports now also returns #t at EOF, as per R5RS;
+    in other words, it always returns #t (thanks to Moritz Heidkamp)
+  - Unit srfi-4: Fixed typo that broke SRFI-17 generalised set! syntax
+    on s8vectors (thanks to Kristian Lein-Mathisen).
+  - Large literals no longer crash with "invalid encoded numeric literal"
+    on mingw-64 (#1344, thanks to Lemonboy).
+  - Unit irregex: Fix bug that prevented multibyte UTF-8 character sets
+    from being matched correctly (Thanks to Lemonboy and Chunyang Xu).
+
+- Runtime system:
+  - The profiler no longer uses malloc from a signal handler which may
+    cause deadlocks (#1414, thanks to Lemonboy).
+  - The scheduler no longer indirectly hangs on to the old thread
+    when switching to a new one, which caused excessive memory
+    consumption (#1367, thanks to "megane").
+  - C++ programs no longer fail with a symbol lookup error when
+    compiled with debugger support (-d3 or -debug-info).
+
+- Syntax expander
+  - Renaming an identifier twice no longer results in an undo of the
+    rename (fixes #1362, thanks to "megane").
+
+- Build system
+  - Fixed broken compilation on NetBSD, due to missing _NETBSD_SOURCE.
+  - Fixed compilation on DragonflyBSD due to no feature macro support
+    in its standard C library (thanks to Markus Pfeiffer).
+
+- Compiler
+  - The scrutinizer no longer uses 'fixnum as the type for fixnums
+    that might not fit into a fixnum on 32-bit architectures.
+
+- Foreign function interface
+  - Correctly calculate memory requirements of Scheme objects produced
+    from foreign types with "const" qualifiers, avoiding memory
+    corruption (#1424, thanks to Vasilij Schneidermann and Lemonboy)
+  - Do not read beyond temporary stack buffer, which could lead to
+    a crash when returning from a foreign callback (#1428).
+
 4.12.0
 
 - Security fixes

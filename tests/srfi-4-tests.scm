@@ -16,12 +16,17 @@
 	  (assert (= 100 (,(conc "vector-ref") x 0)))
           (assert (,(conc "vector?") x))
           (assert (number-vector? x))
+	  ;; Test direct setter and ref
 	  (,(conc "vector-set!") x 1 99)
 	  (assert (= 99 (,(conc "vector-ref") x 1)))
+	  ;; Test SRFI-17 generalised set! and ref
+	  (set! (,(conc "vector-ref") x 0) 127)
+	  (assert (= 127 (,(conc "vector-ref") x 0)))
+	  ;; Ensure length is okay
 	  (assert (= 2 (,(conc "vector-length") x)))
 	  (assert
 	   (every =
-		  '(100 99)
+		  '(127 99)
 		  (,(conc "vector->list") x))))))))
 
 (test1 u8)

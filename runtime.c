@@ -200,7 +200,7 @@ static C_TLS int timezone;
 #endif
 
 #ifdef C_LLP
-# define LONG_FORMAT_STRING            "%lldf"
+# define LONG_FORMAT_STRING            "%lld"
 #else
 # define LONG_FORMAT_STRING            "%ld"
 #endif
@@ -488,7 +488,9 @@ static C_TLS FINALIZER_NODE
 static C_TLS void *current_module_handle;
 static C_TLS int flonum_print_precision = FLONUM_PRINT_PRECISION;
 static C_TLS HDUMP_BUCKET **hdump_table;
-static C_TLS PROFILE_BUCKET **profile_table = NULL;
+static C_TLS PROFILE_BUCKET
+  *next_profile_bucket = NULL,
+  **profile_table = NULL;
 static C_TLS int 
   pending_interrupts[ MAX_PENDING_INTERRUPTS ],
   pending_interrupts_count,
@@ -783,7 +785,6 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   C_initial_timer_interrupt_period = INITIAL_TIMER_INTERRUPT_PERIOD;
   C_timer_interrupt_counter = INITIAL_TIMER_INTERRUPT_PERIOD;
   memset(signal_mapping_table, 0, sizeof(int) * NSIG);
-  initialize_symbol_table();
   C_dlerror = "cannot load compiled code dynamically - this is a statically linked executable";
   error_location = C_SCHEME_FALSE;
   C_pre_gc_hook = NULL;
@@ -795,6 +796,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   callback_continuation_level = 0;
   gc_ms = 0;
   (void)C_randomize(C_fix(time(NULL)));
+  initialize_symbol_table();
 
   if (profiling) {
 #ifndef C_NONUNIX
@@ -820,6 +822,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   C_set_block_item(k0, 0, (C_word)termination_continuation);
   C_save(k0);
   C_save(C_SCHEME_UNDEFINED);
+  C_restart_c = 2;
   return 1;
 }
 
@@ -1508,9 +1511,9 @@ C_word CHICKEN_run(void *toplevel)
     /* We must copy the argvector onto the stack, because
      * any subsequent save() will otherwise clobber it.
      */
-    int argcount = C_temporary_stack_bottom - C_temporary_stack;
-    C_word *p = C_alloc(argcount);
-    C_memcpy(p, C_temporary_stack, argcount * sizeof(C_word));
+    C_word *p = C_alloc(C_restart_c);
+    assert(C_restart_c == (C_temporary_stack_bottom - C_temporary_stack));
+    C_memcpy(p, C_temporary_stack, C_restart_c * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
   }
@@ -2015,6 +2018,7 @@ C_word C_fcall C_callback(C_word closure, int argc)
      * any subsequent save() will otherwise clobber it.
      */
     C_word *p = C_alloc(C_restart_c);
+    assert(C_restart_c == (C_temporary_stack_bottom - C_temporary_stack));
     C_memcpy(p, C_temporary_stack, C_restart_c * sizeof(C_word));
     C_temporary_stack = C_temporary_stack_bottom;
     ((C_proc)C_restart_trampoline)(C_restart_c, p);
@@ -3447,7 +3451,14 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
    */
   if(size > heap_size && size - heap_size < stack_size * 2)
     size = heap_size + stack_size * 2;
-	  
+
+  /*
+   * The heap has grown but we've already hit the maximal size with the current
+   * heap, we can't do anything else but panic.
+   */
+  if(size > heap_size && heap_size >= C_maximal_heap_size)
+    panic(C_text("out of memory - heap has reached its maximum size"));
+
   if(size > C_maximal_heap_size) size = C_maximal_heap_size;
 
   if(debug_mode) {
@@ -3967,10 +3978,8 @@ static void take_profile_sample()
     tb = trace_buffer_top - 1;
   }
 
-  key = tb->raw;
-  if (key == NULL) return; /* May happen while in C_trace() */
-
   /* We could also just hash the pointer but that's a bit trickier */
+  key = tb->raw;
   bp = profile_table + hash_string(C_strlen(key), key, PROFILE_TABLE_SIZE, 0, 0);
   b = *bp;
 
@@ -3986,10 +3995,10 @@ static void take_profile_sample()
   }
 
   /* Not found, allocate a new item and use it as bucket's new head */
-  b = (PROFILE_BUCKET *)C_malloc(sizeof(PROFILE_BUCKET));
+  b = next_profile_bucket;
+  next_profile_bucket = NULL;
 
-  if(b == NULL)
-    panic(C_text("out of memory - cannot allocate profile table-bucket"));
+  assert(b != NULL);
 
   b->next = *bp;
   b->key = key;
@@ -4005,6 +4014,17 @@ done:
 
 C_regparm void C_fcall C_trace(C_char *name)
 {
+  /*
+   * When profiling, pre-allocate profile bucket if necessary.  This
+   * is used in the signal handler, because it may not malloc.
+   */
+  if(profiling && next_profile_bucket == NULL) {
+    next_profile_bucket = (PROFILE_BUCKET *)C_malloc(sizeof(PROFILE_BUCKET));
+    if (next_profile_bucket == NULL) {
+      panic(C_text("out of memory - cannot allocate profile table-bucket"));
+    }
+  }
+
   if(show_trace) {
     C_fputs(name, C_stderr);
     C_fputc('\n', C_stderr);
@@ -4025,6 +4045,14 @@ C_regparm void C_fcall C_trace(C_char *name)
 
 C_regparm C_word C_fcall C_emit_trace_info2(char *raw, C_word x, C_word y, C_word t)
 {
+  /* See above */
+  if(profiling && next_profile_bucket == NULL) {
+    next_profile_bucket = (PROFILE_BUCKET *)C_malloc(sizeof(PROFILE_BUCKET));
+    if (next_profile_bucket == NULL) {
+      panic(C_text("out of memory - cannot allocate profile table-bucket"));
+    }
+  }
+
   if(trace_buffer_top >= trace_buffer_limit) {
     trace_buffer_top = trace_buffer;
     trace_buffer_full = 1;
@@ -4413,7 +4441,7 @@ C_regparm C_word C_fcall C_execute_shell_command(C_word string)
   C_memcpy(buf, C_data_pointer(string), n);
   buf[ n ] = '\0';
   if (n != strlen(buf))
-    barf(C_ASCIIZ_REPRESENTATION_ERROR, "get-environment-variable", string);
+    barf(C_ASCIIZ_REPRESENTATION_ERROR, "system", string);
 
   n = C_system(buf);
 
@@ -5372,7 +5400,7 @@ C_regparm C_word C_fcall C_i_length(C_word lst)
       }
     }
 
-    if(C_immediatep(slow) || C_block_header(lst) != C_PAIR_TAG)
+    if(C_immediatep(slow) || C_block_header(slow) != C_PAIR_TAG)
       barf(C_NOT_A_PROPER_LIST_ERROR, "length", lst);
 
     slow = C_u_i_cdr(slow);
@@ -7421,7 +7449,7 @@ void C_ccall C_gc(C_word c, C_word *av)
   }
   else if(f) C_fromspace_top = C_fromspace_limit;
 
-  C_reclaim((void *)gc_2, c);
+  C_reclaim((void *)gc_2, 1);
 }
 
 
@@ -8225,7 +8253,7 @@ void C_ccall C_ensure_heap_reserve(C_word c, C_word *av)
   C_save(k);
 
   if(!C_demand(C_bytestowords(C_unfix(n))))
-    C_reclaim((void *)generic_trampoline, c);
+    C_reclaim((void *)generic_trampoline, 1);
 
   p = C_temporary_stack;
   C_temporary_stack = C_temporary_stack_bottom;
@@ -8249,7 +8277,7 @@ void C_ccall C_return_to_host(C_word c, C_word *av)
 
   return_to_host = 1;
   C_save(k);
-  C_reclaim((void *)generic_trampoline, c);
+  C_reclaim((void *)generic_trampoline, 1);
 }
 
 
@@ -9123,21 +9151,18 @@ static void C_ccall copy_closure_2(C_word c, C_word *av)
 }
 
 
-/* Creating black holes: */
+/* Ph'nglui mglw'nafh Cthulhu R'lyeh wgah'nagl fhtagn */
 
 void C_ccall C_call_with_cthulhu(C_word c, C_word *av)
 {
   C_word
-    /* closure = av[ 0 ] */
-    k = av[ 1 ],
     proc = av[ 2 ],
     *a = C_alloc(3),
-    av2[ 3 ];
+    av2[ 2 ];
 
-  av2[ 0 ] = C_closure(&a, 1, (C_word)termination_continuation); /* k */
-  av2[ 1 ] = proc;
-  av2[ 2 ] = C_SCHEME_END_OF_LIST;
-  C_do_apply(3, av2);
+  av2[ 0 ] = proc;
+  av2[ 1 ] = C_closure(&a, 1, (C_word)termination_continuation); /* k */
+  C_do_apply(2, av2);
 }
 
 
@@ -9196,6 +9221,8 @@ C_regparm C_word C_fcall C_i_o_fixnum_times(C_word n1, C_word n2)
 #else
   C_uword c = 1UL<<31UL;
 #endif
+
+  if((n1 & C_FIXNUM_BIT) == 0 || (n2 & C_FIXNUM_BIT) == 0) return C_SCHEME_FALSE;
 
   if((n1 & C_INT_SIGN_BIT) == (n2 & C_INT_SIGN_BIT)) --c;
 
@@ -9581,7 +9608,7 @@ void C_ccall C_dump_heap_state(C_word c, C_word *av)
   /* make sure heap is compacted */
   C_save(k);
   C_fromspace_top = C_fromspace_limit; /* force major GC */
-  C_reclaim((void *)dump_heap_state_2, c);
+  C_reclaim((void *)dump_heap_state_2, 1);
 }
 
 
@@ -9805,7 +9832,7 @@ void C_ccall C_filter_heap_objects(C_word c, C_word *av)
   C_save(userarg);
   C_save(func);
   C_fromspace_top = C_fromspace_limit; /* force major GC */
-  C_reclaim((void *)filter_heap_objects_2, c);
+  C_reclaim((void *)filter_heap_objects_2, 4);
 }
 
 

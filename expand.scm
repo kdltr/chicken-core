@@ -243,7 +243,7 @@
 	    "syntax transformer for `" (symbol->string name)
 	    "' returns original form, which would result in endless expansion")
 	   exp))
-	(dx `(,name --> ,exp2))
+	(dx `(,name ~~> ,exp2))
 	exp2)))
   (define (expand head exp mdef)
     (dd `(EXPAND: 
@@ -813,24 +813,15 @@
 		(lambda (a) 
 		  (dd `(RENAME/RENV: ,sym --> ,(cdr a)))
 		  (cdr a)))
-	       ((lookup sym se) => 
+	       ((assq sym se) =>
 		(lambda (a)
 		  (cond ((symbol? a)
-			 ;; Add an extra level of indirection for already aliased
-			 ;; symbols.  This prevents aliased symbols from popping up
-			 ;; in syntax-stripped output.
-			 (cond ((or (getp a '##core#aliased)
-				    (getp a '##core#primitive))
-				(let ((a2 (macro-alias sym se)))
-				  (dd `(RENAME/LOOKUP/ALIASED: ,sym --> ,a ==> ,a2))
-				  (set! renv (cons (cons sym a2) renv))
-				  a2))
-			       (else (dd `(RENAME/LOOKUP: ,sym --> ,a))
-				     (set! renv (cons (cons sym a) renv))
-				     a)))
+			 (dd `(RENAME/SE: ,sym --> ,a))
+			 (set! renv (cons (cons sym a) renv))
+			 a)
 			(else
 			 (let ((a2 (macro-alias sym se)))
-			   (dd `(RENAME/LOOKUP/MACRO: ,sym --> ,a2))
+			   (dd `(RENAME/SE/MACRO: ,sym --> ,a2))
 			   (set! renv (cons (cons sym a2) renv))
 			   a2)))))
 	       (else

@@ -525,15 +525,14 @@ EOF
 	 (##sys#check-char c 'make-string)
 	 c ) ) ) )
 
-(define string->list
-  (lambda (s)
-    (##sys#check-string s 'string->list)
-    (let ((len (##core#inline "C_block_size" s)))
-      (let loop ((i 0))
-	(if (fx>= i len)
-	    '()
-	    (cons (##core#inline "C_subchar" s i)
-		  (loop (fx+ i 1)) ) ) ) ) ) )
+(define (string->list s)
+  (##sys#check-string s 'string->list)
+  (let ((len (##sys#size s)))
+    (let loop ((i (fx- len 1)) (ls '()))
+      (if (fx< i 0)
+	  ls
+	  (loop (fx- i 1)
+		(cons (##core#inline "C_subchar" s i) ls))))))
 
 (define ##sys#string->list string->list)
 
@@ -3549,8 +3548,7 @@ EOF
 	   (##sys#setislot p 10 (fx+ position len)) ) ) )
      void ; close
      (lambda (p) #f)			; flush-output
-     (lambda (p)			; char-ready?
-       (fx< (##sys#slot p 10) (##sys#slot p 11)) )
+     (lambda (p) #t)			; char-ready?
      (lambda (p n dest start)		; read-string!
        (let* ((pos (##sys#slot p 10))
 	      (n2 (fx- (##sys#slot p 11) pos) ) )
