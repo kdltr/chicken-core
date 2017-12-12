@@ -12705,7 +12705,7 @@ C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
  * number in [0, 1], 0.00001010011111010100...; then round it.
  * More information on https://mumble.net/~campbell/2014/04/28/uniform-random-float
  */
-#ifdef C_SIXTYFOUR
+#ifdef C_SIXTY_FOUR
 # define random64() random_word()
 #else
 # define random64() ((((C_u64) random_word()) << 32) | ((C_u64) random_word()))
