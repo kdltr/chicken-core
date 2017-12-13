@@ -646,7 +646,7 @@
 (module chicken.random
   (set-pseudo-random-seed! pseudo-random-integer pseudo-random-real random-bytes)
 
-(import scheme chicken chicken.time chicken.io foreign)
+(import scheme chicken chicken.time chicken.io chicken.foreign)
 
 (define (set-pseudo-random-seed! buf #!optional n)
   (cond (n (##sys#check-fixnum n 'set-pseudo-random-seed!)
