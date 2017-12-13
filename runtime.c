@@ -12771,8 +12771,6 @@ C_a_i_random_real(C_word **ptr, C_word n) {
   significand |= 1;
   return C_flonum(ptr, ldexp((double)significand, exponent));
 }
-#undef random64
-
 
 C_word C_set_random_seed(C_word buf, C_word n)
 {
