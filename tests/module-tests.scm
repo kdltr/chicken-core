@@ -225,7 +225,7 @@
 (test-equal
  "local module alias scope"
  (module m21 ()
-   (import scheme chicken)
+   (import scheme (chicken syntax))
    (begin-for-syntax ; XXX s.a.
      (##sys#register-module-alias 'm18 'm19))
    (import m18)

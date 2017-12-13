@@ -494,7 +494,6 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.random,extras))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.locative,lolevel))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.memory,lolevel))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.memory.representation,lolevel))
-$(eval $(call declare-emitted-import-lib-dependency,chicken.syntax,expand))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.sort,data-structures))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.string,data-structures))
 
@@ -783,8 +782,7 @@ repl.c: $(SRCDIR)repl.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.repl
 expand.c: $(SRCDIR)expand.scm $(SRCDIR)synrules.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
-	-no-module-registration \
-	-emit-import-library chicken.syntax
+	-no-module-registration
 modules.c: $(SRCDIR)modules.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib)
 extras.c: $(SRCDIR)extras.scm $(SRCDIR)common-declarations.scm

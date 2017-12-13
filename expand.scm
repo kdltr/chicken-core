@@ -174,6 +174,7 @@
 (define ##sys#chicken-ffi-macro-environment '()) ; used later in foreign.import.scm
 (define ##sys#chicken.condition-macro-environment '()) ; used later in chicken.condition.import.scm
 (define ##sys#chicken.type-macro-environment '()) ; used later in chicken.type.import.scm
+(define ##sys#chicken.syntax-macro-environment '()) ; used later in chicken.syntax.import.scm
 (define ##sys#chicken.base-macro-environment '()) ; used later in chicken.base.import.scm
 
 (define (##sys#ensure-transformer t #!optional loc)
@@ -1171,7 +1172,7 @@
 	      (##core#quote ,body))))
       `(##core#module ,(library-id name)
 	#t
-	(import scheme chicken)
+	(import scheme chicken.syntax) ;; TODO: Is this correct?
 	(begin-for-syntax ,registration))))))
 
 ;;; interface definition

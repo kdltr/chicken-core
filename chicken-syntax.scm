@@ -261,10 +261,18 @@
 
 (macro-subset me0 ##sys#default-macro-environment)))
 
-;;; Non-standard macros that provide core/"base" functionality:
+;;; Syntax-related syntax (for use in macro transformers)
 
-(set! ##sys#chicken.base-macro-environment
+(set! ##sys#chicken.syntax-macro-environment
   (let ((me0 (##sys#macro-environment)))
+
+(##sys#extend-macro-environment
+ 'syntax
+ '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'syntax x '(_ _))
+    `(##core#syntax ,(cadr x)))))
 
 (##sys#extend-macro-environment
  'begin-for-syntax '()
@@ -273,6 +281,14 @@
     (##sys#check-syntax 'begin-for-syntax x '(_ . #(_ 0)))
     (##sys#register-meta-expression `(##core#begin ,@(cdr x)))
     `(##core#elaborationtimeonly (##core#begin ,@(cdr x))))))
+
+(macro-subset me0 ##sys#default-macro-environment)))
+
+
+;;; Non-standard macros that provide core/"base" functionality:
+
+(set! ##sys#chicken.base-macro-environment
+  (let ((me0 (##sys#macro-environment)))
 
 (##sys#extend-macro-environment
  'define-constant
@@ -525,14 +541,6 @@
   (lambda (form r c)
     (##sys#check-syntax 'set!-values form '(_ lambda-list _))
     (##sys#expand-multiple-values-assignment (cadr form) (caddr form)))))
-
-(##sys#extend-macro-environment
- 'syntax
- '()
- (##sys#er-transformer
-  (lambda (x r c)
-    (##sys#check-syntax 'syntax x '(_ _))
-    `(##core#syntax ,(cadr x)))))
 
 (set! chicken.syntax#define-values-definition
   (##sys#extend-macro-environment

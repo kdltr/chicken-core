@@ -11,7 +11,7 @@
 ;;
 
 (module foo (bar listify)
-  (import scheme chicken)
+  (import scheme chicken.syntax)
   (begin-for-syntax
    (define (baz x) 
      (list (cadr x))))
@@ -30,7 +30,7 @@
        (call-it-123 list)))))
 
 (module test-import-syntax-for-syntax (test)
-  (import chicken scheme)
+  (import scheme chicken.syntax)
   (import-syntax-for-syntax (prefix foo foo:))
   (define-syntax test-import-syntax-for-syntax
     (er-macro-transformer
@@ -40,7 +40,7 @@
     (test-import-syntax-for-syntax)))
 
 (module test-begin-for-syntax (test)
-  (import chicken scheme)
+  (import scheme chicken.syntax)
   (begin-for-syntax
     (import-syntax (prefix foo foo:)))
   (define-syntax test-begin-for-syntax
