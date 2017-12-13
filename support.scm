@@ -92,7 +92,6 @@
 	chicken.plist
 	chicken.port
 	chicken.pretty-print
-	chicken.random
 	chicken.sort
 	chicken.string
 	chicken.syntax
@@ -1397,7 +1396,7 @@
    (sprintf "~A-~A~A"
 	    (optional prefix (gensym))
 	    (current-seconds)
-	    (random 1000) ) ) )
+	    (##core#inline "C_random_fixnum" 1000))))
 
 
 ;;; Register/lookup real names:

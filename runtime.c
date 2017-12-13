@@ -41,6 +41,10 @@
 # include <android/log.h>
 #endif
 
+#if defined(C_XXXBSD) || defined(__linux__)
+#include <fcntl.h>
+#endif
+
 #if !defined(PIC)
 # define NO_DLOAD2
 #endif
@@ -481,6 +485,8 @@ static C_TLS int
   pending_interrupts[ MAX_PENDING_INTERRUPTS ],
   pending_interrupts_count,
   handling_interrupts;
+static C_TLS C_uword random_state[ C_RANDOM_STATE_SIZE / sizeof(C_uword) ]; 
+static C_TLS int random_state_index = 0;
 
 
 /* Prototypes: */
@@ -818,7 +824,11 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   current_module_handle = NULL;
   callback_continuation_level = 0;
   gc_ms = 0;
-  (void)C_randomize(C_fix(time(NULL)));
+  srand(C_fix(time(NULL)));
+
+  for(i = 0; i < C_RANDOM_STATE_SIZE / sizeof(C_uword); ++i)
+    random_state[ i ] = rand();
+
   initialize_symbol_table();
 
   if (profiling) {
@@ -12521,4 +12531,261 @@ C_i_pending_interrupt(C_word dummy)
     handling_interrupts = 0; /* OK, can go on */
     return C_SCHEME_FALSE;
   }
+}
+
+
+/* random numbers, mostly lifted from 
+  https://github.com/jedisct1/libsodium/blob/master/src/libsodium/randombytes/sysrandom/randombytes_sysrandom.c
+*/
+
+#ifdef __linux__
+# include <sys/syscall.h>
+#endif
+
+
+#if !defined(_WIN32) 
+static C_word random_urandom(C_word buf, int count)
+{
+  static int fd = -1;
+  int off = 0, r;
+
+  if(fd == -1) {
+    fd = open("/dev/urandom", O_RDONLY);
+
+    if(fd == -1) return C_SCHEME_FALSE;
+  }
+
+  while(count > 0) {
+    r = read(fd, C_data_pointer(buf) + off, count);
+
+    if(r == -1) {
+      if(errno != EINTR && errno != EAGAIN) return C_SCHEME_FALSE;
+      else r = 0;
+    }
+
+    count -= r;
+    off += r;
+   }
+
+  return C_SCHEME_TRUE;
+}
+#endif
+
+
+C_word C_random_bytes(C_word buf, C_word size)
+{
+  int count = C_unfix(size);
+  int r = 0;
+  int off = 0;
+
+#ifdef __OpenBSD__
+  arc4random_buf(C_data_pointer(buf), count);
+#elif defined(SYS_getrandom) && defined(__NR_getrandom)
+  static int use_urandom = 0;
+
+  if(use_urandom) return random_urandom(buf, count);
+
+  while(count > 0) {
+    /* GRND_NONBLOCK = 0x0001 */
+    r = syscall(SYS_getrandom, C_data_pointer(buf) + off, count, 1);
+
+    if(r == -1) {
+      if(errno == ENOSYS) {
+        use_urandom = 1;
+        return random_urandom(buf, count);
+      }
+      else if(errno != EINTR) return C_SCHEME_FALSE;
+      else r = 0;
+    }
+
+    count -= r;
+    off += r;
+  }
+#elif defined(_WIN32) && !defined(__CYGWIN__)
+  typedef BOOLEAN (*func)(PVOID, ULONG);
+  static func RtlGenRandom = NULL;
+  
+  if(RtlGenRandom == NULL) {
+     HMODULE mod = LoadLibrary("advapi32.dll");
+	 
+     if(mod == NULL) return C_SCHEME_FALSE;
+	 
+     if((RtlGenRandom = (func)GetProcAddress(mod, "SystemFunction036")) == NULL)
+       return C_SCHEME_FALSE;
+  }
+  
+  if(!RtlGenRandom((PVOID)C_data_pointer(buf), (LONG)count)) 
+    return C_SCHEME_FALSE;
+#else 
+  return random_urandom(buf, count);
+#endif
+
+  return C_SCHEME_TRUE;
+}
+
+
+/* WELL512 pseudo random number generator, see also:
+   https://en.wikipedia.org/wiki/Well_equidistributed_long-period_linear
+   http://lomont.org/Math/Papers/2008/Lomont_PRNG_2008.pdf
+*/
+
+static C_uword random_word(void)
+{ 
+  C_uword a, b, c, d, r; 
+  a  = random_state[random_state_index]; 
+  c  = random_state[(random_state_index+13)&15]; 
+  b  = a^c^(a<<16)^(c<<15); 
+  c  = random_state[(random_state_index+9)&15]; 
+  c ^= (c>>11); 
+  a  = random_state[random_state_index] = b^c;  
+  d  = a^((a<<5)&0xDA442D24UL);  
+  random_state_index = (random_state_index + 15)&15; 
+  a  = random_state[random_state_index]; 
+  random_state[random_state_index] = a^b^d^(a<<2)^(b<<18)^(c<<28); 
+  r = random_state[random_state_index];
+  return r;
+} 
+
+
+static C_uword random_uniform(C_uword bound)
+{
+  C_uword r, min;
+
+  if (bound < 2) return 0;
+
+  min = (1U + ~bound) % bound; /* = 2**<wordsize> mod bound */
+
+  do r = random_word(); while (r < min);
+
+  /* r is now clamped to a set whose size mod upper_bound == 0
+   * the worst case (2**<wordsize-1>+1) requires ~ 2 attempts */
+
+  return r % bound;
+}
+                 
+
+C_regparm C_word C_random_fixnum(C_word n)
+{ 
+  C_word nf;
+
+  if (!(n & C_FIXNUM_BIT))
+    barf(C_BAD_ARGUMENT_TYPE_NO_FIXNUM_ERROR, "pseudo-random-integer", n);
+
+  nf = C_unfix(n);
+
+  if(nf < 0)
+    barf(C_OUT_OF_RANGE_ERROR, "pseudo-random-integer", n, C_fix(0));
+
+  return C_fix(random_uniform(nf));
+} 
+
+
+C_regparm C_word C_fcall
+C_s_a_u_i_random_int(C_word **ptr, C_word n, C_word rn)
+{
+  C_uword *start, *end;
+
+  if(C_bignum_negativep(rn))
+    barf(C_OUT_OF_RANGE_ERROR, "pseudo-random-integer", rn, C_fix(0));
+
+  int len = integer_length_abs(rn);
+  C_word size = C_fix(C_BIGNUM_BITS_TO_DIGITS(len));
+  C_word result = C_allocate_scratch_bignum(ptr, size, C_SCHEME_FALSE, C_SCHEME_FALSE);
+  C_uword *p;
+  C_uword highest_word = C_bignum_digits(rn)[C_bignum_size(rn)-1];
+  start = C_bignum_digits(result);
+  end = start + C_bignum_size(result);
+
+  for(p = start; p < (end - 1); ++p) {
+    *p = random_word();
+    len -= sizeof(C_uword);
+  }
+
+  *p = random_uniform(highest_word);
+  return C_bignum_simplify(result);
+}
+
+/*
+ * C_a_i_random_real: Generate a stream of bits uniformly at random and
+ * interpret it as the fractional part of the binary expansion of a
+ * number in [0, 1], 0.00001010011111010100...; then round it.
+ * More information on https://mumble.net/~campbell/2014/04/28/uniform-random-float
+ */
+
+static inline C_u64 random64() {
+#ifdef C_SIXTY_FOUR
+    return random_word();
+#else
+    C_u64 v = 0;
+    v |= ((C_u64) random_word()) << 32;
+    v |= (C_u64) random_word();
+    return v;
+#endif
+}
+
+#ifdef __GNUC__
+# define	clz64	__builtin_clzll		
+#else
+/* https://en.wikipedia.org/wiki/Find_first_set#CLZ */
+static const C_uchar clz_table_4bit[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+int clz32(C_u32 x)
+{
+  int n;
+  if ((x & 0xFFFF0000) == 0) {n  = 16; x <<= 16;} else {n = 0;}
+  if ((x & 0xFF000000) == 0) {n +=  8; x <<=  8;}
+  if ((x & 0xF0000000) == 0) {n +=  4; x <<=  4;}
+  n += (int)clz_table_4bit[x >> (32-4)];
+  return n;
+}
+
+int clz64(C_u64 x) 
+{
+    int y = clz32(x >> 32);
+
+    if(y == 32) return y + clz32(x);
+
+    return y;
+}
+#endif
+
+C_regparm C_word C_fcall
+C_a_i_random_real(C_word **ptr, C_word n) {
+  int exponent = -64;
+  uint64_t significand;
+  unsigned shift;
+
+  while (C_unlikely((significand = random64()) == 0)) {
+    exponent -= 64;
+    if (C_unlikely(exponent < -1074))
+      return 0;
+  }
+
+  shift = clz64(significand);
+  if (shift != 0) {
+    exponent -= shift;
+    significand <<= shift;
+    significand |= (random64() >> (64 - shift));
+  }
+
+  significand |= 1;
+  return C_flonum(ptr, ldexp((double)significand, exponent));
+}
+#undef random64
+
+
+C_word C_set_random_seed(C_word buf, C_word n)
+{
+  int i, nsu = C_unfix(n) / sizeof(C_uword);
+  int off = 0;
+
+  for(i = 0; i < (C_RANDOM_STATE_SIZE / sizeof(C_uword)); ++i) {
+    if(off >= nsu) off = 0;
+
+    random_state[ i ] = *((C_uword *)C_data_pointer(buf) + off);
+    ++off;
+  }
+
+  random_state_index = 0;
+  return C_SCHEME_FALSE;
 }

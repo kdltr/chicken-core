@@ -71,6 +71,9 @@
     the file doesn't exist or some other non-access related problem is
     detected (fixes #1386, thanks to Vasilij Schneidermann).
   - `read-file` has been renamed to `read-list`.
+  - The procedures for random numbers have been reimplemented;
+    access to system-specific entropy is available, together with a reasonably
+    good pseudo random number generator (WELL512).
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This
