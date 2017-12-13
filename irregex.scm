@@ -62,6 +62,8 @@
 	chicken
 	chicken.syntax)
 
+(import-for-syntax chicken.fixnum)
+
 (include "common-declarations.scm")
 
 ;; These should probably be taken out of irregex upstream
