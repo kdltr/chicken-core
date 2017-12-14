@@ -128,6 +128,7 @@ tests/inlining-tests.scm
 tests/locative-stress-test.scm
 tests/record-rename-test.scm
 tests/r4rstest.scm
+tests/r4rstest.expected
 tests/null.scm
 tests/sgrep.scm
 tests/r7rs-tests.scm
@@ -151,7 +152,6 @@ tests/numbers-test-ashinn.scm
 tests/numbers-test-gauche.scm
 tests/path-tests.scm
 tests/posix-tests.scm
-tests/r4rstest.out
 tests/port-tests.scm
 tests/test-gc-hooks.scm
 tests/test-glob.scm
