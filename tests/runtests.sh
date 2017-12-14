@@ -328,6 +328,9 @@ echo "======================================== fixnum tests ..."
 $compile fixnum-tests.scm
 ./a.out
 
+echo "======================================== random number tests ..."
+$interpret -s random-tests.scm
+
 echo "======================================== string->number tests ..."
 $interpret -s numbers-string-conversion-tests.scm
 $compile -specialize numbers-string-conversion-tests.scm

@@ -1576,8 +1576,11 @@
 
 ;; random
 
-(chicken.random#random (#(procedure #:clean #:enforce) chicken.random#random (fixnum) fixnum))
-(chicken.random#randomize (#(procedure #:clean #:enforce) chicken.random#randomize (#!optional fixnum) undefined))
+(chicken.random#pseudo-random-integer (#(procedure #:clean #:enforce) chicken.random#pseudo-random-integer (integer) integer)
+                                      ((fixnum) (##core#inline "C_random_fixnum" #(1))))
+(chicken.random#pseudo-random-real (#(procedure #:clean #:enforce) chicken.random#pseudo-random-real () float))
+(chicken.random#set-pseudo-random-seed! (#(procedure #:clean #:enforce) chicken.random#set-pseudo-random-seed! ((or blob string) #!optional fixnum) undefined))
+(chicken.random#random-bytes (#(procedure #:clean #:enforce) chicken.random#random-bytes (#!optional * fixnum) *))
 
 ;; file
 
