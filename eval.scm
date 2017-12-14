@@ -866,11 +866,6 @@
 	  'null-environment
 	  "unsupported null environment version" n))))))
 
-
-;;; OBSOLETE: Remove after bootstrapping.  Import libraries emitted by
-;;; old compilers will still refer to chicken.eval#eval.
-(define chicken.eval#eval scheme#eval)
-
 ) ; eval module
 
 
@@ -1373,11 +1368,6 @@
 					"/"
 					fname) ) )
 		  (else (loop (##sys#slot paths 1))) ) ) ) ) ) )
-
-;;; OBSOLETE: Remove after bootstrapping.  Import libraries loaded
-;;; from an old compiler's library path will still refer to
-;;; chicken.load#load in their compiled module registration code.
-(define chicken.load#load scheme#load)
 
 ) ; chicken.load
 

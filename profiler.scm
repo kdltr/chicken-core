@@ -31,7 +31,7 @@
   (unsafe)
   (disable-interrupts))
 
-(import chicken)
+(import chicken.base chicken.fixnum scheme)
 
 (include "common-declarations.scm")
 

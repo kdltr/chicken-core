@@ -178,9 +178,9 @@
 (define ##sys#chicken.base-macro-environment '()) ; used later in chicken.base.import.scm
 
 (define (##sys#ensure-transformer t #!optional loc)
-  (cond ((procedure? t) (##sys#slot (##sys#er-transformer t) 1)) ; DEPRECATED
-	((##sys#structure? t 'transformer) (##sys#slot t 1))
-	(else (##sys#error loc "expected syntax-transformer, but got" t))))
+  (if (##sys#structure? t 'transformer)
+      (##sys#slot t 1)
+      (##sys#error loc "expected syntax-transformer, but got" t)))
 
 (define (##sys#extend-macro-environment name se transformer)
   (let ((me (##sys#macro-environment))
@@ -961,7 +961,7 @@
 
 ) ; chicken.syntax module
 
-(import chicken chicken.blob chicken.syntax chicken.internal)
+(import scheme chicken chicken.blob chicken.syntax chicken.internal)
 
 ;;; Macro definitions:
 

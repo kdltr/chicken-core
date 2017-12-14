@@ -23,14 +23,6 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-;; OBSOLETE: This can be removed after bootstrapping (needed for
-;; macros and constant evaluation in compiler)
-(if (not (##sys#symbol-has-toplevel-binding? 'chicken.base#add1))
-    (begin
-      (set! chicken.base#add1 add1)
-      (set! chicken.base#sub1 sub1)
-      (set! chicken.base#symbol-append symbol-append)))
-
 (##sys#register-primitive-module
  'chicken
  '((abort . chicken.condition#abort)

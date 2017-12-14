@@ -39,7 +39,7 @@
   (no-bound-checks)
   (no-procedure-checks))
 
-(import chicken (chicken internal))
+(import chicken scheme (chicken internal))
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")

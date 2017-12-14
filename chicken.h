@@ -2146,13 +2146,6 @@ C_mutate(C_word *slot, C_word val)
   else return *slot = val;
 }
 
-inline static C_word
-C_mutate2(C_word *slot, C_word val) /* OBSOLETE */
-{
-  if(!C_immediatep(val)) return C_mutate_slot(slot, val);
-  else return *slot = val;
-}
-
 inline static C_word C_permanentp(C_word x)
 {
   return C_mk_bool(!C_immediatep(x) &&

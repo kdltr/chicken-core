@@ -36,7 +36,8 @@
   (no-bound-checks)
   (no-procedure-checks))
 
-(import chicken.base
+(import scheme
+	chicken.base
 	chicken.format
 	chicken.internal
 	chicken.platform

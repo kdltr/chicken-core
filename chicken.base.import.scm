@@ -96,7 +96,4 @@
    (vector-resize . chicken.base#vector-resize)
    (void . chicken.base#void)
    (warning . chicken.base#warning))
- ;; OBSOLETE: This can be removed after bootstrapping
- (if (##sys#symbol-has-toplevel-binding? '##sys#chicken.base-macro-environment)
-     ##sys#chicken.base-macro-environment
-     ##sys#chicken-macro-environment))
+ ##sys#chicken.base-macro-environment)

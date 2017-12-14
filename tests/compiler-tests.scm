@@ -367,11 +367,12 @@
 ;; #1059: foreign vector types use wrong lolevel accessors, causing
 ;; paranoid DEBUGBUILD assertions to fail.
 (define-syntax srfi-4-vector-length
-  (lambda (e r c)
-    (let* ((type (symbol->string (strip-syntax (cadr e))))
-           (base-type (string-translate* type '(("nonnull-" . ""))))
-           (length-procedure-name (string-append base-type "-length")))
-     `(,(string->symbol length-procedure-name) ,(caddr e)))))
+  (er-macro-transformer
+   (lambda (e r c)
+     (let* ((type (symbol->string (strip-syntax (cadr e))))
+	    (base-type (string-translate* type '(("nonnull-" . ""))))
+	    (length-procedure-name (string-append base-type "-length")))
+       `(,(string->symbol length-procedure-name) ,(caddr e))))))
 
 (define-syntax s4v-sum
   (syntax-rules ()

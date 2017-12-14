@@ -34,17 +34,17 @@
 	mark-imported-symbols match-functor-argument merge-se
 	module-indirect-exports module-rename register-undefined))
 
-(include "common-declarations.scm")
-(include "mini-srfi-1.scm")
-
-(define-syntax d (syntax-rules () ((_ . _) (void))))
-
 (import scheme
 	chicken.base
 	chicken.internal
 	chicken.keyword
 	chicken.platform
 	chicken.syntax)
+
+(include "common-declarations.scm")
+(include "mini-srfi-1.scm")
+
+(define-syntax d (syntax-rules () ((_ . _) (void))))
 
 (define-alias dd d)
 (define-alias dm d)

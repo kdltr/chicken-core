@@ -988,7 +988,6 @@ EOF
 	   (program-name (cadr script))
 	   (command-line-arguments (cddr script))
 	   ;; 2012-10-04 (felix) left 'script activated to avoid breaking too much code
-	   (register-feature! 'script)	; DEPRECATED
 	   (register-feature! 'chicken-script)
 	   (set-cdr! (cdr script) '()) 
 	   (when ##sys#windows-platform

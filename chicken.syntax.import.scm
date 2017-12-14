@@ -36,7 +36,4 @@
    (syntax-error . chicken.syntax#syntax-error)
    (er-macro-transformer . chicken.syntax#er-macro-transformer)
    (ir-macro-transformer . chicken.syntax#ir-macro-transformer))
- ;; OBSOLETE: This can be removed after bootstrapping
- (if (##sys#symbol-has-toplevel-binding? '##sys#chicken.syntax-macro-environment)
-     ##sys#chicken.syntax-macro-environment
-     ##sys#chicken-macro-environment))
+ ##sys#chicken.syntax-macro-environment)
