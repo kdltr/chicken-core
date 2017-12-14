@@ -182,18 +182,14 @@ EOF
 ;; NOTE: Modules defined here will typically exclude syntax
 ;; definitions, those are handled by expand.scm or modules.scm.
 ;; Handwritten import libraries (or a special-case module in
-;; modules.scm for scheme) contains the value exports merged with
+;; modules.scm for scheme) contain the value exports merged with
 ;; syntactic exports.  The upshot of this is that any module that
 ;; refers to another module defined *earlier* in this file cannot use
 ;; macros from the earlier module!
-
-;; We get around that problem for now by using "chicken" when
-;; importing things like "when", "unless" from chicken.base,
-;; "handle-exceptions" from chicken.condition.  For "scheme" there's a
-;; workaround available: we import r5rs-null which contains only the
-;; syntactic definitions from r5rs and reexport it straight away in
-;; this file, so that we may use at least the scheme definitions
-;; normally. For other modules, this still is a major TODO!
+;;
+;; We get around this problem by using the "chicken.internal.syntax"
+;; module, which is baked in and exports *every* available core macro.
+;; See modules.scm, expand.scm and chicken-syntax.scm for details.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Pre-declaration of scheme, so it can be used later on.  We only use
@@ -247,10 +243,7 @@ EOF
      eval interaction-environment null-environment
      scheme-report-environment load)
 
-;; We use r5rs-null to get just the syntax exports for "scheme",
-;; because importing them from "scheme" would be importing then from
-;; the module currently being defined, which is initially empty....
-(import r5rs-null)
+(import chicken.internal.syntax) ;; See note above
 
 ;;; Operations on booleans:
 
@@ -603,7 +596,7 @@ EOF
    on-exit exit exit-handler implicit-exit-handler emergency-exit
    )
 
-(import scheme (only chicken when unless))
+(import scheme chicken.internal.syntax)
 
 (define (fixnum? x) (##core#inline "C_fixnump" x))
 (define (flonum? x) (##core#inline "C_i_flonump" x))
@@ -1536,9 +1529,7 @@ EOF
 (import scheme)
 (import chicken.foreign)
 (import (only chicken.base flonum?))
-;; TODO: Importing these from chicken.base won't work due to
-;; incomplete chicken.base definition above
-(import (only chicken when unless define-inline))
+(import chicken.internal.syntax)
 
 (define maximum-flonum (foreign-value "DBL_MAX" double))
 (define minimum-flonum (foreign-value "DBL_MIN" double))
@@ -5089,12 +5080,9 @@ EOF
      condition condition? condition->list condition-predicate
      condition-property-accessor get-condition-property)
 
-(import scheme)
-(import chicken.fixnum)
-(import chicken.foreign)
-(import (only chicken get-call-chain print-call-chain when unless
-	      get-output-string open-output-string let-optionals
-	      make-parameter))
+(import scheme chicken.base chicken.fixnum chicken.foreign)
+(import (only chicken get-output-string open-output-string))
+(import chicken.internal.syntax)
 
 (define (##sys#signal-hook mode msg . args)
   (##core#inline "C_dbg_hook" #f)
@@ -5952,7 +5940,7 @@ EOF
 
 (import scheme)
 (import chicken.base chicken.fixnum chicken.foreign)
-(import (only chicken when unless handle-exceptions))
+(import chicken.internal.syntax)
 
 ;;; GC info:
 
@@ -6165,7 +6153,7 @@ EOF
 
 (import scheme)
 (import (only (chicken base) getter-with-setter))
-(import (only chicken when))
+(import chicken.internal.syntax)
 
 (define (put! sym prop val)
   (##sys#check-symbol sym 'put!)
@@ -6299,7 +6287,7 @@ EOF
 (import scheme)
 (import chicken.fixnum chicken.foreign chicken.keyword)
 (import (only chicken get-environment-variable make-parameter))
-(import (only chicken when unless define-constant))
+(import chicken.internal.syntax)
 
 (define software-type
   (let ((sym (string->symbol ((##core#primitive "C_software_type")))))
