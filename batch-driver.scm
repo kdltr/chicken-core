@@ -187,7 +187,14 @@
 			     `((uses ,@default-units)))))
 		     ,@(if explicit-use-flag
 			   '()
-			   `((import ,@default-imports)))))
+			   `((import ,@default-imports)))
+		     ;; Ensure the same default environment is
+		     ;; available from eval, as well.  See notes at
+		     ;; the end of internal.scm and modules.scm.
+		     ,@(if explicit-use-flag
+			   '()
+			   `((scheme#eval '(import-for-syntax ,@default-syntax-imports))
+			     (scheme#eval '(import ,@default-imports))))))
         (verbose (memq 'verbose options))
 	(outfile (cond ((memq 'output-file options) 
 			=> (lambda (node)

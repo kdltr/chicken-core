@@ -211,6 +211,8 @@
 
 ;; WARNING: These import libs must all exist.  They cannot be emitted,
 ;; because the compiler itself needs them to expand macros!
+;; WARNING: These also need to be built into modules.scm, so that
+;; statically linked programs can eval the imports for these modules.
 
 (define default-imports '(scheme chicken.base chicken.syntax))
 (define default-syntax-imports '(scheme chicken.base chicken.syntax))

@@ -1130,3 +1130,10 @@
 	 'module-environment "undefined module" mname)
 	(##sys#make-structure
 	 'environment ename (car (module-saved-environments mod)) #t))))
+
+;; Ensure default modules are available in "eval", too
+;; TODO: Figure out a better way to make this work for static programs.
+;; The actual imports are handled by the prelude inserted by
+;; batch-driver.scm
+(include "chicken.base.import.scm")
+(include "chicken.syntax.import.scm")
