@@ -27,7 +27,7 @@
 
 (declare
   (unit c-platform)
-  (uses data-structures internal optimizer support compiler))
+  (uses internal optimizer support compiler))
 
 (module chicken.compiler.c-platform
     (;; Batch compilation defaults
@@ -39,11 +39,12 @@
      ;; For consumption by c-backend *only*
      target-include-file words-per-flonum)
 
-(import chicken scheme
-	chicken.data-structures
+(import scheme
+	chicken.base
 	chicken.compiler.optimizer
 	chicken.compiler.support
 	chicken.compiler.core
+	chicken.fixnum
 	chicken.internal)
 
 (include "tweaks")
@@ -166,6 +167,9 @@
     chicken.base#setter chicken.base#getter-with-setter
     chicken.base#equal=? chicken.base#exact-integer? flush-output
 
+    chicken.base#identity chicken.base#o chicken.base#atom?
+    chicken.base#alist-ref chicken.base#rassoc
+
     chicken.bitwise#integer-length
     chicken.bitwise#bitwise-and chicken.bitwise#bitwise-not
     chicken.bitwise#bitwise-ior chicken.bitwise#bitwise-xor
@@ -224,10 +228,6 @@
 
     chicken.string#substring-index chicken.string#substring-index-ci
     chicken.string#substring=? chicken.string#substring-ci=?
-
-    chicken.data-structures#identity chicken.data-structures#o
-    chicken.data-structures#atom?
-    chicken.data-structures#alist-ref chicken.data-structures#rassoc
 
     chicken.io#read-string
 
@@ -685,7 +685,7 @@
 
 (rewrite 'scheme#gcd 12 '##sys#gcd #t 2)
 (rewrite 'scheme#lcm 12 '##sys#lcm #t 2)
-(rewrite 'chicken.data-structures#identity 12 #f #t 1)
+(rewrite 'chicken.base#identity 12 #f #t 1)
 
 (rewrite 'scheme#gcd 19)
 (rewrite 'scheme#lcm 19)
@@ -915,7 +915,7 @@
 (rewrite 'srfi-4#f32vector-length 2 1 "C_u_i_32vector_length" #f)
 (rewrite 'srfi-4#f64vector-length 2 1 "C_u_i_64vector_length" #f)
 
-(rewrite 'chicken.data-structures#atom? 17 1 "C_i_not_pair_p")
+(rewrite 'chicken.base#atom? 17 1 "C_i_not_pair_p")
 
 (rewrite 'srfi-4#u8vector->blob/shared 7 1 "C_slot" 1 #f)
 (rewrite 'srfi-4#s8vector->blob/shared 7 1 "C_slot" 1 #f)

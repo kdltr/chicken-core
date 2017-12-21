@@ -76,12 +76,14 @@
      ;; in a lot of other places.
      number-type unsafe)
 
-(import chicken scheme
+(import scheme
+	(only chicken open-output-string get-output-string flush-output)
+	chicken.base
 	chicken.bitwise
 	chicken.blob
 	chicken.condition
-	(only chicken.data-structures butlast alist-ref atom?)
 	chicken.file
+	chicken.fixnum
 	chicken.foreign
 	chicken.format
 	chicken.internal

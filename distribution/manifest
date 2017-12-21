@@ -279,8 +279,6 @@ chicken.continuation.import.scm
 chicken.continuation.import.c
 chicken.csi.import.scm
 chicken.csi.import.c
-chicken.data-structures.import.scm
-chicken.data-structures.import.c
 chicken.errno.import.scm
 chicken.errno.import.c
 chicken.eval.import.scm

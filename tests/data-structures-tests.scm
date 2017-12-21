@@ -1,8 +1,6 @@
 ;;;; data-structures-tests.scm
 
-(import (only (chicken data-structures)
-	      alist-ref alist-update! alist-update)
-	(chicken sort)
+(import (chicken sort)
 	(chicken string))
 
 (define-syntax assert-error

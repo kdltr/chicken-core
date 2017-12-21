@@ -34,13 +34,16 @@
      ;; For "foreign" (aka chicken-ffi-syntax):
      foreign-type-declaration)
 
-(import chicken scheme
+(import scheme
+	(only chicken get-output-string)
+	chicken.base
 	chicken.bitwise
-	(only chicken.data-structures intersperse)
+	chicken.fixnum
 	chicken.flonum
 	chicken.foreign
 	chicken.format
 	chicken.internal
+	chicken.platform
 	chicken.sort
 	chicken.string
 	chicken.time

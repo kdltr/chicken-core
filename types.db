@@ -1004,6 +1004,51 @@
 ;; TODO: Add nonspecializing type specific entries, to help flow analysis?
 (chicken.base#quotient&modulo (#(procedure #:clean #:enforce #:foldable) chicken.base#quotient&modulo ((or integer float) (or integer float)) (or integer float) (or integer float)))
 
+(chicken.base#alist-ref
+ (forall (a b c d)
+         (#(procedure #:clean #:foldable) chicken.base#alist-ref
+          (a (list-of (pair b c)) #!optional (procedure (a b) *) d)
+          (or false c d))))
+(chicken.base#alist-update!
+ (forall (a b c d)
+         (#(procedure) chicken.base#alist-update!
+          (a b (list-of (pair c d)) #!optional (procedure (a c) *))
+          (list-of (pair c (or b d))))))
+(chicken.base#alist-update
+ (forall (a b c d)
+         (#(procedure #:clean) chicken.base#alist-update
+          (a b (list-of (pair c d)) #!optional (procedure (a c) *))
+          (list-of (pair c (or b d))))))
+
+(chicken.base#atom? (#(procedure #:pure #:foldable) chicken.base#atom? (*) boolean)
+       ((pair) (let ((#(tmp) #(1))) '#f))
+       (((not (or pair list))) (let ((#(tmp) #(1))) '#t)))
+
+(chicken.base#butlast (forall (a) (#(procedure #:clean #:enforce) chicken.base#butlast ((pair a *)) (list-of a))))
+(chicken.base#chop (forall (a) (#(procedure #:clean #:enforce) chicken.base#chop ((list-of a) fixnum) (list-of a))))
+(chicken.base#complement (#(procedure #:clean #:enforce) chicken.base#complement ((procedure (#!rest) *)) (procedure (#!rest) boolean)))
+(chicken.base#compose (#(procedure #:clean #:enforce) chicken.base#compose (#!rest procedure) procedure))
+(chicken.base#compress (forall (a) (#(procedure #:clean #:enforce) chicken.base#compress (list (list-of a)) (list-of a))))
+(chicken.base#conjoin (#(procedure #:clean #:enforce) chicken.base#conjoin (#!rest (procedure (*) *)) (procedure (*) *)))
+(chicken.base#constantly (forall (a) (#(procedure #:pure) chicken.base#constantly (a) (procedure (#!rest) a))))
+(chicken.base#disjoin (#(procedure #:clean #:enforce) chicken.base#disjoin (#!rest (procedure (*) *)) (procedure (*) *)))
+(chicken.base#each (#(procedure #:clean #:enforce) chicken.base#each (#!rest procedure) procedure))
+(chicken.base#flatten (#(procedure #:clean #:enforce) chicken.base#flatten (#!rest *) list))
+(chicken.base#flip (#(procedure #:clean #:enforce) chicken.base#flip ((procedure (* *) . *)) (procedure (* *) . *)))
+(chicken.base#identity (forall (a) (#(procedure #:pure #:foldable) chicken.base#identity (a) a)))
+(chicken.base#intersperse (#(procedure #:clean #:enforce) chicken.base#intersperse (list *) list))
+(chicken.base#join (#(procedure #:clean #:enforce) chicken.base#join ((list-of list) #!optional list) list))
+(chicken.base#list-of? (#(procedure #:clean #:enforce) chicken.base#list-of? ((procedure (*) *)) (procedure (list) boolean)))
+
+(chicken.base#o (#(procedure #:clean #:enforce) chicken.base#o (#!rest (procedure (*) *)) (procedure (*) *)))
+
+(chicken.base#rassoc
+ (forall (a b c) (#(procedure #:clean #:foldable) chicken.base#rassoc
+                  (a (list-of (pair b c)) #!optional (procedure (a b) *))
+                  (or false (pair b c)))))
+(chicken.base#tail? (#(procedure #:clean) chicken.base#tail? (* *) boolean))
+
+
 ;; bitwise
 
 (chicken.bitwise#integer-length
@@ -1490,51 +1535,6 @@
 (chicken.string#reverse-list->string (#(procedure #:clean #:enforce) chicken.string#reverse-list->string ((list-of char)) string))
 (chicken.string#reverse-string-append (#(procedure #:clean #:enforce) chicken.string#reverse-string-append ((list-of string)) string))
 
-;; data-structures
-
-(chicken.data-structures#alist-ref
- (forall (a b c d)
-         (#(procedure #:clean #:foldable) chicken.data-structures#alist-ref
-          (a (list-of (pair b c)) #!optional (procedure (a b) *) d)
-          (or false c d))))
-(chicken.data-structures#alist-update!
- (forall (a b c d)
-         (#(procedure) chicken.data-structures#alist-update!
-          (a b (list-of (pair c d)) #!optional (procedure (a c) *))
-          (list-of (pair c (or b d))))))
-(chicken.data-structures#alist-update
- (forall (a b c d)
-         (#(procedure #:clean) chicken.data-structures#alist-update
-          (a b (list-of (pair c d)) #!optional (procedure (a c) *))
-          (list-of (pair c (or b d))))))
-
-(chicken.data-structures#atom? (#(procedure #:pure #:foldable) chicken.data-structures#atom? (*) boolean)
-       ((pair) (let ((#(tmp) #(1))) '#f))
-       (((not (or pair list))) (let ((#(tmp) #(1))) '#t)))
-
-(chicken.data-structures#butlast (forall (a) (#(procedure #:clean #:enforce) chicken.data-structures#butlast ((pair a *)) (list-of a))))
-(chicken.data-structures#chop (forall (a) (#(procedure #:clean #:enforce) chicken.data-structures#chop ((list-of a) fixnum) (list-of a))))
-(chicken.data-structures#complement (#(procedure #:clean #:enforce) chicken.data-structures#complement ((procedure (#!rest) *)) (procedure (#!rest) boolean)))
-(chicken.data-structures#compose (#(procedure #:clean #:enforce) chicken.data-structures#compose (#!rest procedure) procedure))
-(chicken.data-structures#compress (forall (a) (#(procedure #:clean #:enforce) chicken.data-structures#compress (list (list-of a)) (list-of a))))
-(chicken.data-structures#conjoin (#(procedure #:clean #:enforce) chicken.data-structures#conjoin (#!rest (procedure (*) *)) (procedure (*) *)))
-(chicken.data-structures#constantly (forall (a) (#(procedure #:pure) chicken.data-structures#constantly (a) (procedure (#!rest) a))))
-(chicken.data-structures#disjoin (#(procedure #:clean #:enforce) chicken.data-structures#disjoin (#!rest (procedure (*) *)) (procedure (*) *)))
-(chicken.data-structures#each (#(procedure #:clean #:enforce) chicken.data-structures#each (#!rest procedure) procedure))
-(chicken.data-structures#flatten (#(procedure #:clean #:enforce) chicken.data-structures#flatten (#!rest *) list))
-(chicken.data-structures#flip (#(procedure #:clean #:enforce) chicken.data-structures#flip ((procedure (* *) . *)) (procedure (* *) . *)))
-(chicken.data-structures#identity (forall (a) (#(procedure #:pure #:foldable) chicken.data-structures#identity (a) a)))
-(chicken.data-structures#intersperse (#(procedure #:clean #:enforce) chicken.data-structures#intersperse (list *) list))
-(chicken.data-structures#join (#(procedure #:clean #:enforce) chicken.data-structures#join ((list-of list) #!optional list) list))
-(chicken.data-structures#list-of? (#(procedure #:clean #:enforce) chicken.data-structures#list-of? ((procedure (*) *)) (procedure (list) boolean)))
-
-(chicken.data-structures#o (#(procedure #:clean #:enforce) chicken.data-structures#o (#!rest (procedure (*) *)) (procedure (*) *)))
-
-(chicken.data-structures#rassoc
- (forall (a b c) (#(procedure #:clean #:foldable) chicken.data-structures#rassoc
-                  (a (list-of (pair b c)) #!optional (procedure (a b) *))
-                  (or false (pair b c)))))
-
 (##sys#substring-index
  (#(procedure #:clean #:enforce #:foldable) ##sys#substring-index
   (string string fixnum)
@@ -1544,8 +1544,6 @@
  (#(procedure #:clean #:enforce #:foldable) ##sys#substring-index-ci
   (string string fixnum)
   (or false fixnum)))
-
-(chicken.data-structures#tail? (#(procedure #:clean) chicken.data-structures#tail? (* *) boolean))
 
 ;; io
 

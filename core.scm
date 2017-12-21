@@ -321,22 +321,26 @@
      constant-table immutable-constants inline-table line-number-database-2
      line-number-database-size)
 
-(import chicken scheme
+(import scheme
+	(only chicken open-output-string get-output-string file-exists?)
+	chicken.base
 	chicken.condition
 	chicken.compiler.scrutinizer
 	chicken.compiler.support
-	(only chicken.data-structures butlast rassoc o)
 	chicken.eval
+	chicken.fixnum
 	chicken.foreign
 	chicken.format
 	chicken.internal
 	chicken.io
 	chicken.keyword
 	chicken.load
+	chicken.platform
 	chicken.pretty-print
 	chicken.pathname
 	chicken.string
-	chicken.syntax)
+	chicken.syntax
+	chicken.type)
 
 (define (d arg1 . more)
   (when (##sys#debug-mode?)

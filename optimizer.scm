@@ -35,9 +35,10 @@
      eq-inline-operator membership-test-operators membership-unfold-limit
      default-optimization-passes rewrite)
 
-(import chicken scheme
+(import scheme
+	chicken.base
 	chicken.compiler.support
-	(only chicken.data-structures o alist-ref alist-update! butlast)
+	chicken.fixnum
 	chicken.internal
 	chicken.sort
 	chicken.string)

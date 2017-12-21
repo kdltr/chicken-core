@@ -1042,9 +1042,6 @@
 (##sys#register-module-alias 'r5rs 'scheme)
 (##sys#register-module-alias 'srfi-88 'chicken.keyword)
 
-;; TODO drop when data-structures goes away
-(##sys#register-module-alias 'data-structures 'chicken.data-structures)
-
 (define-inline (se-subset names env) (map (cut assq <> env) names))
 
 ;; Hack for library.scm to use macros from modules it defines itself.

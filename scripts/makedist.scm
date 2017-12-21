@@ -1,8 +1,7 @@
 ;;;; makedist.scm - Make distribution tarballs
 
 
-(import (chicken data-structures)
-        (chicken file)
+(import (chicken file)
         (chicken fixnum)
         (chicken format)
         (chicken io)

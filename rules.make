@@ -526,14 +526,13 @@ c-platform.c: c-platform.scm mini-srfi-1.scm \
 		chicken.compiler.optimizer.import.scm \
 		chicken.compiler.support.import.scm \
 		chicken.compiler.core.import.scm \
-		chicken.data-structures.import.scm \
 		chicken.internal.import.scm
 c-backend.c: c-backend.scm mini-srfi-1.scm \
 		chicken.compiler.c-platform.import.scm \
 		chicken.compiler.support.import.scm \
 		chicken.compiler.core.import.scm \
+		chicken.base.import.scm \
 		chicken.bitwise.import.scm \
-		chicken.data-structures.import.scm \
 		chicken.flonum.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
@@ -544,7 +543,7 @@ c-backend.c: c-backend.scm mini-srfi-1.scm \
 core.c: core.scm mini-srfi-1.scm \
 		chicken.compiler.scrutinizer.import.scm \
 		chicken.compiler.support.import.scm \
-		chicken.data-structures.import.scm \
+		chicken.base.import.scm \
 		chicken.eval.import.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
@@ -555,15 +554,15 @@ core.c: core.scm mini-srfi-1.scm \
 		chicken.syntax.import.scm
 optimizer.c: optimizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
-		chicken.data-structures.import.scm \
+		chicken.base.import.scm \
 		chicken.internal.import.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm
 scheduler.c: scheduler.scm \
 		chicken.format.import.scm
 scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
+		chicken.base.import.scm \
 		chicken.compiler.support.import.scm \
-		chicken.data-structures.import.scm \
 		chicken.format.import.scm \
 		chicken.internal.import.scm \
 		chicken.io.import.scm \
@@ -579,17 +578,16 @@ lfa2.c: lfa2.scm mini-srfi-1.scm \
 compiler-syntax.c: compiler-syntax.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.compiler.core.import.scm \
-		chicken.data-structures.import.scm \
 		chicken.format.import.scm
 chicken-ffi-syntax.c: chicken-ffi-syntax.scm \
 		chicken.format.import.scm \
 		chicken.internal.import.scm \
 		chicken.string.import.scm
 support.c: support.scm mini-srfi-1.scm \
+		chicken.base.import.scm \
 		chicken.bitwise.import.scm \
 		chicken.blob.import.scm \
 		chicken.condition.import.scm \
-		chicken.data-structures.import.scm \
 		chicken.file.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
@@ -622,8 +620,8 @@ csc.c: csc.scm \
 		chicken.process.import.scm \
 		chicken.string.import.scm
 csi.c: csi.scm \
+		chicken.base.import.scm \
 		chicken.condition.import.scm \
-		chicken.data-structures.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
 		chicken.gc.import.scm \
@@ -656,7 +654,6 @@ chicken-status.c: chicken-status.scm \
 		chicken.string.import.scm
 chicken-install.c: chicken-install.scm \
 		chicken.condition.import.scm \
-		chicken.data-structures.import.scm \
 		chicken.file.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
@@ -819,7 +816,6 @@ continuation.c: $(SRCDIR)continuation.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.continuation
 data-structures.c: $(SRCDIR)data-structures.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) \
-	-emit-import-library chicken.data-structures \
 	-emit-import-library chicken.sort \
 	-emit-import-library chicken.string
 pathname.c: $(SRCDIR)pathname.scm $(SRCDIR)common-declarations.scm

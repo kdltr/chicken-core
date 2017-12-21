@@ -26,15 +26,16 @@
 
 (declare 
   (unit compiler-syntax)
-  (uses data-structures extras support compiler))
+  (uses extras support compiler))
 
 (module chicken.compiler.compiler-syntax
     (compiler-syntax-statistics)
 
-(import chicken scheme
+(import scheme
+	chicken.base
 	chicken.compiler.support
 	chicken.compiler.core
-	chicken.data-structures
+	chicken.fixnum
 	chicken.format)
 
 (include "tweaks.scm")
@@ -138,9 +139,9 @@
 		       (##sys#slot ,%result 1))))))
 	x)))
 
-(define-internal-compiler-syntax ((chicken.data-structures#o) x r c) '()
+(define-internal-compiler-syntax ((chicken.base#o) x r c) '()
   (if (and (fx> (length x) 1)
-	   (memq 'chicken.data-structures#o extended-bindings)) ; s.a.
+	   (memq 'chicken.base#o extended-bindings)) ; s.a.
       (let ((%tmp (r 'tmp)))
 	`(,(r 'lambda) (,%tmp) ,(foldr list %tmp (cdr x))))
       x))

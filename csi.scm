@@ -44,9 +44,14 @@ EOF
 (module chicken.csi
   (editor-command toplevel-command set-describer!)
 
-(import chicken scheme
+(import scheme
+	(only chicken open-input-string open-output-string
+	      get-output-string file-exists? parentheses-synonyms
+	      case-sensitive symbol-escape flush-output port?
+	      keyword-style)
+	chicken.base
 	chicken.condition
-	(only chicken.data-structures atom?)
+	chicken.fixnum
 	chicken.foreign
 	chicken.format
 	chicken.gc
@@ -57,10 +62,13 @@ EOF
 	chicken.platform
 	chicken.port
 	chicken.pretty-print
+	chicken.process
+	chicken.process-context
 	chicken.repl
 	chicken.sort
 	chicken.string
-	chicken.syntax)
+	chicken.syntax
+	chicken.time)
 
 (include "banner.scm")
 (include "mini-srfi-1.scm")

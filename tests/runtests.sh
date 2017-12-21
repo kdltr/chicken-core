@@ -279,7 +279,7 @@ $interpret -s loopy-test.scm
 
 echo "======================================== r4rstest ..."
 echo "(expect mult-float-print-test to fail)"
-$interpret -R data-structures -e '(set! ##sys#procedure->string (constantly "#<procedure>"))' \
+$interpret -e '(set! ##sys#procedure->string (constantly "#<procedure>"))' \
   -i -s r4rstest.scm >r4rstest.out
 
 diff $DIFF_OPTS r4rstest.expected r4rstest.out

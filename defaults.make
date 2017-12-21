@@ -271,8 +271,8 @@ DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise blob errno file.posix	\
 	process process.signal process-context random sort string	\
 	time time.posix
 DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
-DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation data-structures \
-	eval file internal irregex pathname port read-syntax repl tcp
+DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation eval file \
+	internal irregex pathname port read-syntax repl tcp
 
 # targets
 

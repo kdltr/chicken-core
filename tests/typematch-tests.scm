@@ -1,8 +1,7 @@
 ;;;; typematch-tests.scm
 
 
-(import (only chicken.data-structures identity)
-        chicken.blob chicken.condition chicken.memory chicken.locative)
+(import chicken.blob chicken.condition chicken.memory chicken.locative)
 
 
 (define (make-list n x)

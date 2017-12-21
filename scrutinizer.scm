@@ -34,10 +34,11 @@
      ;; Exported for use in the tests:
      match-types refine-types type<=?)
 
-(import chicken scheme
+(import scheme
+	(only chicken file-exists?) ; Should this depend on "file"?
+	chicken.base
 	chicken.compiler.support
-	(only chicken.data-structures
-	      identity constantly alist-ref alist-update! butlast atom?)
+	chicken.fixnum
 	chicken.format
 	chicken.internal
 	chicken.io

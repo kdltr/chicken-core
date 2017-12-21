@@ -1,6 +1,5 @@
-(import chicken.condition (only data-structures constantly)
-        chicken.file chicken.flonum chicken.format chicken.io
-        chicken.port chicken.posix chicken.tcp srfi-4)
+(import chicken.condition chicken.file chicken.flonum chicken.format
+	chicken.io chicken.port chicken.posix chicken.tcp srfi-4)
 
 (include "test.scm")
 (test-begin "ports")
