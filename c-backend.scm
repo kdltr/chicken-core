@@ -272,7 +272,7 @@
 			  (gen #t "C_debugger(&(C_debug_info[" dbi "]),"
 			       (if non-av-proc "0,NULL" "c,av") ");")))
 		       (emit-trace-info
-			(gen #t "C_trace(\"" (backslashify name-str) "\");"))
+			(gen #t "C_trace(C_text(\"" (backslashify name-str) "\"));"))
 		       (else
 			(gen #t "/* " (uncommentify name-str) " */") ) ) )
 	       (cond ((eq? '##core#proc (node-class fn))
