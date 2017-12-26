@@ -5,9 +5,14 @@
         (chicken process-context)
         (chicken string))
 
-(define (abs x) (make-pathname (current-directory) x))
-(define (run x . args) (system* (string-intersperse (cons (abs x) args))))
-(define (csc . args) (apply run "../csc" "-v" "-compiler ../chicken" "-I.." "-libdir .." args))
+(define (realpath x)
+  (normalize-pathname (make-pathname (current-directory) x)))
+
+(define (run x . args)
+  (system* (string-intersperse (cons (realpath x) args))))
+
+(define (csc . args)
+  (apply run "../csc" "-v" "-I.." "-compiler" (realpath "../chicken") "-libdir" ".." args))
 
 (csc "null.scm" "-t")
 (assert (file-exists? "null.c"))
