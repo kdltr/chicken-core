@@ -8,10 +8,12 @@
 set -e
 if test -z "$MSYSTEM"; then
     TEST_DIR=`pwd`
+    PATH_SEP=':'
 else
     # Use Windows-native format with drive letters instead of awkward
     # MSYS /c/blabla "pseudo-paths" which break when used in syscalls.
     TEST_DIR=`pwd -W`
+    PATH_SEP=';'
 fi
 
 DYLD_LIBRARY_PATH=${TEST_DIR}/..
@@ -36,7 +38,7 @@ CHICKEN_PROFILE=${TEST_DIR}/../chicken-profile
 CHICKEN_INSTALL=${TEST_DIR}/../chicken-install
 CHICKEN_UNINSTALL=${TEST_DIR}/../chicken-uninstall
 CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
-CHICKEN_REPOSITORY_PATH=${TEST_DIR}/..:$CHICKEN_INSTALL_REPOSITORY
+CHICKEN_REPOSITORY_PATH="${TEST_DIR}/..${PATH_SEP}${CHICKEN_INSTALL_REPOSITORY}"
 
 export CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH
 
