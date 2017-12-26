@@ -11,14 +11,15 @@ set CHICKEN_INSTALL_REPOSITORY=%TEST_DIR%\test-repository
 set CHICKEN_REPOSITORY_PATH=%TEST_DIR%\..;%CHICKEN_INSTALL_REPOSITORY%
 set PATH=%TEST_DIR%\..;%PATH%
 
-set TYPESDB=..\types.db
 rem Increase this when tests start failing on "inexplicable" diffs
 set FCBUFSIZE=500
 
-set compile=..\csc -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/.. -o a.out
-set compile2=..\csc -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
-set compile_s=..\csc -s -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
-set compile_static=..\csc -static -types %TYPESDB% -ignore-repository -compiler %CHICKEN% -v -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
+set TYPESDB=..\types.db
+set COMPILE_OPTIONS=-v -compiler %CHICKEN% -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
+
+set compile=..\csc %COMPILE_OPTIONS% -o a.out -types %TYPESDB% -ignore-repository
+set compile_r=..\csc %COMPILE_OPTIONS% -o a.out
+set compile_s=..\csc %COMPILE_OPTIONS% -s -types %TYPESDB% -ignore-repository
 set interpret=..\csi -n -include-path %TEST_DIR%/..
 
 del /f /q /s *.exe *.so *.o *.import.* ..\foo.import.* %CHICKEN_INSTALL_REPOSITORY%
@@ -587,22 +588,22 @@ a.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== linking tests ...
-%compile2% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.o
-%compile2% -link reverser linking-tests.scm -o a.out
+%compile_r% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.o
+%compile_r% -link reverser linking-tests.scm
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile_static% -link reverser linking-tests.scm -o a.out 
+%compile_r% -link reverser linking-tests.scm -static
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 move reverser.o %CHICKEN_INSTALL_REPOSITORY%
 move reverser.import.scm %CHICKEN_INSTALL_REPOSITORY%
-%compile2% -link reverser linking-tests.scm -o a.out
+%compile_r% -link reverser linking-tests.scm
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile_static% -link reverser linking-tests.scm -o a.out 
+%compile_r% -link reverser linking-tests.scm -static
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
