@@ -3,11 +3,14 @@
 
 (import (chicken data-structures)
         (chicken file)
+        (chicken fixnum)
         (chicken format)
         (chicken io)
         (chicken irregex)
         (chicken pathname)
+        (chicken platform)
         (chicken process)
+        (chicken process-context)
         (chicken string))
 
 (include "mini-srfi-1.scm")
