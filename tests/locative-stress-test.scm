@@ -2,7 +2,8 @@
 
 (declare (usual-integrations))
 
-(import (chicken fixnum))
+(import (chicken fixnum)
+	(only (chicken process-context) command-line-arguments))
 
 ;(set-gc-report! #t)
 

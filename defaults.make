@@ -268,8 +268,8 @@ DYNAMIC_IMPORT_LIBRARIES = srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise blob errno file.posix	\
 	fixnum flonum format gc io keyword load locative memory		\
 	memory.representation platform plist posix pretty-print		\
-	process process.signal process-context random sort string	\
-	time time.posix
+	process process.signal process-context process-context.posix	\
+	random sort string time time.posix
 DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass
 DYNAMIC_CHICKEN_UNIT_IMPORT_LIBRARIES = continuation eval file \
 	internal irregex pathname port read-syntax repl tcp

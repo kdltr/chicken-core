@@ -1118,8 +1118,8 @@
 
 (##sys#register-core-module
  'srfi-98 'posix
- '(get-environment-variable
-   (get-environment-variables . chicken.posix#get-environment-variables)))
+ '((get-environment-variable . chicken.process-context#get-environment-variable)
+   (get-environment-variables . chicken.process-context#get-environment-variables)))
 
 (register-feature! 'module-environments)
 

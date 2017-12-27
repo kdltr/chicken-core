@@ -39,6 +39,7 @@
 	chicken.compiler.c-platform
 	chicken.compiler.support
 	chicken.compiler.user-pass
+	chicken.process-context
 	chicken.string)
 
 (include "tweaks")

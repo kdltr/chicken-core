@@ -105,10 +105,6 @@ static C_TLS char C_shlcmd[256] = "";
 /* Current user name */
 static C_TLS TCHAR C_username[255 + 1] = "";
 
-/* Directory Operations */
-
-#define C_chdir(str)	    C_fix(chdir(C_c_string(str)))
-
 /* DIRENT stuff */
 struct dirent
 {
@@ -196,8 +192,6 @@ readdir(DIR * dir)
 #define C_test_access(fn, m)	    C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_pipe(d, m)	    C_fix(_pipe(C_pipefds, PIPE_BUF, C_unfix(m)))
 #define C_close(fd)	    C_fix(close(C_unfix(fd)))
-
-#define C_getenventry(i)   environ[ i ]
 
 #define C_u_i_lstat(fn)     C_u_i_stat(fn)
 

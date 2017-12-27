@@ -41,9 +41,9 @@
 
 (module chicken.posix
   (block-device? call-with-input-pipe call-with-output-pipe
-   change-directory change-directory* character-device? close-input-pipe
+   change-directory* character-device? close-input-pipe
    close-output-pipe create-fifo create-pipe
-   create-session create-symbolic-link current-directory
+   create-session create-symbolic-link
    current-effective-group-id current-effective-user-id
    current-effective-user-name current-group-id current-process-id
    current-user-id current-user-name directory
@@ -55,7 +55,7 @@
    file-owner file-permissions file-position file-read file-read-access?
    file-select file-size file-stat file-test-lock file-truncate
    file-type file-unlock file-write file-write-access? fileno/stderr
-   fileno/stdin fileno/stdout get-environment-variables
+   fileno/stdin fileno/stdout
    local-time->seconds local-timezone-abbreviation
    open-input-file* open-input-pipe open-output-file* open-output-pipe
    open/append open/binary open/creat open/excl open/fsync open/noctty
@@ -69,7 +69,7 @@
    process-spawn process-wait read-symbolic-link regular-file?
    seconds->local-time seconds->string seconds->utc-time seek/cur
    seek/end seek/set
-   set-alarm! set-environment-variable! set-file-group! set-file-owner!
+   set-alarm! set-file-group! set-file-owner!
    set-file-permissions! set-file-position! set-file-times!
    set-root-directory! set-signal-handler! set-signal-mask!
    signal-handler signal-mask signal-mask! signal-masked? signal-unmask!
@@ -81,7 +81,7 @@
    signal/xfsz signals-list socket? spawn/detach spawn/nowait
    spawn/nowaito spawn/overlay spawn/wait string->time symbolic-link?
    terminal-name terminal-port? terminal-size
-   time->string unset-environment-variable! user-information
+   time->string user-information
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 
 (import scheme chicken)
@@ -90,6 +90,7 @@
 	chicken.memory
 	chicken.pathname
 	chicken.port
+	chicken.process-context
 	chicken.time)
 
 (cond-expand
@@ -160,13 +161,13 @@
    perm/ixgrp perm/ixoth perm/ixusr
    port->fileno seek/cur seek/end seek/set set-file-group! set-file-owner!
    set-file-permissions! set-file-position! set-file-times!)
-(import chicken chicken.posix))
+(import chicken.posix))
 
 (module chicken.time.posix
   (seconds->utc-time utc-time->seconds seconds->local-time
    seconds->string local-time->seconds string->time time->string
    local-timezone-abbreviation)
-(import chicken chicken.posix))
+(import chicken.posix))
 
 (module chicken.process
   (qs system system* process-execute process-fork process-run
@@ -213,17 +214,13 @@
    signal/quit signal/segv signal/stop signal/term signal/trap
    signal/tstp signal/urg signal/usr1 signal/usr2 signal/vtalrm
    signal/winch signal/xcpu signal/xfsz set-alarm!)
-(import chicken chicken.posix))
+(import chicken.posix))
 
-(module chicken.process-context
-  (change-directory change-directory* current-directory
-   command-line-arguments argv get-environment-variable
-   get-environment-variables set-environment-variable!
-   unset-environment-variable!
-   executable-pathname program-name set-root-directory!
+(module chicken.process-context.posix
+  (change-directory* set-root-directory!
    current-effective-group-id current-effective-user-id
    current-group-id current-process-id current-user-id
    parent-process-id current-user-name
    current-effective-user-name create-session
    process-group-id user-information)
-(import chicken chicken.posix))
+(import chicken.posix))

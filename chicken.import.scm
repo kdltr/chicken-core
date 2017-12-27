@@ -28,7 +28,6 @@
  '((abort . chicken.condition#abort)
    (add1 . chicken.base#add1)
    argc+argv
-   argv
    (bignum? . chicken.base#bignum?)
    (build-platform . chicken.platform#build-platform)
    (call/cc . chicken.base#call/cc)
@@ -36,7 +35,6 @@
    (char-name . chicken.base#char-name)
    (chicken-home . chicken.platform#chicken-home)
    (chicken-version . chicken.platform#chicken-version)
-   command-line-arguments
    (condition-predicate . chicken.condition#condition-predicate)
    (condition-property-accessor . chicken.condition#condition-property-accessor)
    (condition? . chicken.condition#condition?)
@@ -55,7 +53,6 @@
    (exact-integer? . chicken.base#exact-integer?)
    (exact-integer-sqrt . chicken.base#exact-integer-sqrt)
    (exact-integer-nth-root . chicken.base#exact-integer-nth-root)
-   executable-pathname
    (exit . chicken.base#exit)
    (exit-handler . chicken.base#exit-handler)
    (expand . chicken.syntax#expand)
@@ -99,7 +96,6 @@
    (gensym . chicken.base#gensym)
    (get-call-chain . chicken.base#get-call-chain)
    (get-condition-property . chicken.condition#get-condition-property)
-   get-environment-variable
    (get-line-number . chicken.syntax#get-line-number)
    get-output-string
    (getter-with-setter . chicken.base#getter-with-setter)
@@ -138,7 +134,6 @@
    (print-call-chain . chicken.base#print-call-chain)
    (print* . chicken.base#print*)
    (procedure-information . chicken.base#procedure-information)
-   program-name
    (promise? . chicken.base#promise?)
    (quotient&modulo . chicken.base#quotient&modulo)
    (quotient&remainder . chicken.base#quotient&remainder)

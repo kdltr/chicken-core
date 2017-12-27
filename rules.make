@@ -477,6 +477,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.file.posix,$(POSIXFI
 $(eval $(call declare-emitted-import-lib-dependency,chicken.time.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.process,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.process.signal,$(POSIXFILE)))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.process-context.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.bitwise,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.blob,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.fixnum,library))
@@ -485,6 +486,7 @@ $(eval $(call declare-emitted-import-lib-dependency,chicken.gc,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.keyword,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.platform,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.plist,library))
+$(eval $(call declare-emitted-import-lib-dependency,chicken.process-context,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.time,library))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.load,eval))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.format,extras))
@@ -502,6 +504,7 @@ chicken.c: chicken.scm mini-srfi-1.scm \
 		chicken.compiler.c-platform.import.scm \
 		chicken.compiler.support.import.scm \
 		chicken.compiler.user-pass.import.scm \
+		chicken.process-context.import.scm \
 		chicken.string.import.scm
 batch-driver.c: batch-driver.scm mini-srfi-1.scm \
 		chicken.compiler.core.import.scm \
@@ -520,6 +523,7 @@ batch-driver.c: batch-driver.scm mini-srfi-1.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
 		chicken.pretty-print.import.scm \
+		chicken.process-context.import.scm \
 		chicken.string.import.scm \
 		chicken.time.import.scm
 c-platform.c: c-platform.scm mini-srfi-1.scm \
@@ -618,6 +622,7 @@ csc.c: csc.scm \
 		chicken.pathname.import.scm \
 		chicken.posix.import.scm \
 		chicken.process.import.scm \
+		chicken.process-context.import.scm \
 		chicken.string.import.scm
 csi.c: csi.scm \
 		chicken.base.import.scm \
@@ -632,6 +637,7 @@ csi.c: csi.scm \
 		chicken.platform.import.scm \
 		chicken.port.import.scm \
 		chicken.pretty-print.import.scm \
+		chicken.process-context.import.scm \
 		chicken.repl.import.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm \
@@ -639,6 +645,7 @@ csi.c: csi.scm \
 chicken-profile.c: chicken-profile.scm \
 		chicken.internal.import.scm \
 		chicken.posix.import.scm \
+		chicken.process-context.import.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm
 chicken-status.c: chicken-status.scm \
@@ -650,6 +657,7 @@ chicken-status.c: chicken-status.scm \
 		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm \
+		chicken.process-context.import.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm
 chicken-install.c: chicken-install.scm \
@@ -663,6 +671,7 @@ chicken-install.c: chicken-install.scm \
 		chicken.port.import.scm \
 		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm \
+		chicken.process-context.import.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm \
 		chicken.tcp.import.scm
@@ -674,6 +683,7 @@ chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.pathname.import.scm \
 		chicken.port.import.scm \
 		chicken.posix.import.scm \
+		chicken.process-context.import.scm \
 		chicken.string.import.scm
 chicken-syntax.c: chicken-syntax.scm \
 		chicken.platform.import.scm \
@@ -692,6 +702,7 @@ posixunix.c: posixunix.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
 		chicken.port.import.scm \
+		chicken.process-context.import.scm \
 		chicken.time.import.scm
 posixwin.c: posixwin.scm \
 		chicken.condition.import.scm \
@@ -701,6 +712,7 @@ posixwin.c: posixwin.scm \
 		chicken.pathname.import.scm \
 		chicken.platform.import.scm \
 		chicken.port.import.scm \
+		chicken.process-context.import.scm \
 		chicken.string.import.scm \
 		chicken.time.import.scm
 data-structures.c: data-structures.scm \
@@ -732,7 +744,8 @@ file.c: file.scm \
 		chicken.irregex.import.scm \
 		chicken.foreign.import.scm \
 		chicken.pathname.import.scm \
-		chicken.posix.import.scm
+		chicken.posix.import.scm \
+		chicken.process-context.import.scm
 lolevel.c: lolevel.scm \
 		chicken.foreign.import.scm
 pathname.c: pathname.scm \
@@ -766,6 +779,7 @@ library.c: $(SRCDIR)library.scm
 	-emit-import-library chicken.keyword \
 	-emit-import-library chicken.platform \
 	-emit-import-library chicken.plist \
+	-emit-import-library chicken.process-context \
 	-emit-import-library chicken.time
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal
@@ -795,7 +809,7 @@ posixunix.c: $(SRCDIR)posix.scm $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm
 	-emit-import-library chicken.time.posix \
 	-emit-import-library chicken.process \
 	-emit-import-library chicken.process.signal \
-	-emit-import-library chicken.process-context \
+	-emit-import-library chicken.process-context.posix \
 	-emit-import-library chicken.posix
 posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -feature platform-windows \
@@ -804,7 +818,7 @@ posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $
 	-emit-import-library chicken.time.posix \
 	-emit-import-library chicken.process \
 	-emit-import-library chicken.process.signal \
-	-emit-import-library chicken.process-context \
+	-emit-import-library chicken.process-context.posix \
 	-emit-import-library chicken.posix
 irregex.c: $(SRCDIR)irregex.scm $(SRCDIR)irregex-core.scm $(SRCDIR)irregex-utils.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.irregex

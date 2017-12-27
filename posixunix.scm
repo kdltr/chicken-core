@@ -79,16 +79,6 @@ static C_TLS int C_wait_status;
 # define MAP_ANON    0
 #endif
 
-#if defined(HAVE_CRT_EXTERNS_H)
-# include <crt_externs.h>
-# define C_getenventry(i)       ((*_NSGetEnviron())[ i ])
-#elif defined(C_MACOSX)
-# define C_getenventry(i)       NULL
-#else
-extern char **environ;
-# define C_getenventry(i)       (environ[ i ])
-#endif
-
 #ifndef FILENAME_MAX
 # define FILENAME_MAX          1024
 #endif
@@ -110,7 +100,6 @@ static C_TLS struct timeval C_timeval;
 static C_TLS struct stat C_statbuf;
 
 #define C_fchdir(fd)        C_fix(fchdir(C_unfix(fd)))
-#define C_chdir(str)        C_fix(chdir(C_c_string(str)))
 
 #define open_binary_input_pipe(a, n, name)   C_mpointer(a, popen(C_c_string(name), "r"))
 #define open_text_input_pipe(a, n, name)     open_binary_input_pipe(a, n, name)

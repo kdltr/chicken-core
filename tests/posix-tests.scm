@@ -2,6 +2,7 @@
         (chicken file)
         (chicken platform)
         (chicken posix)
+        (chicken process-context)
         (chicken memory representation))
 
 (define-syntax assert-error

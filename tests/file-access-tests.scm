@@ -4,6 +4,8 @@
 ;; These may seem silly, but some of them actually fail on MinGW without help.
 ;;
 
+(import (chicken process-context))
+
 (define /   (car (command-line-arguments)))
 (define //  (string-append / /))
 (define /// (string-append / / /))

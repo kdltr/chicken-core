@@ -32,8 +32,6 @@
 static int C_not_implemented(void);
 int C_not_implemented() { return -1; }
 
-#define C_curdir(buf)       (getcwd(C_c_string(buf), 1024) ? C_fix(strlen(C_c_string(buf))) : C_SCHEME_FALSE)
-
 static C_TLS struct stat C_statbuf;
 
 #define C_stat_type         (C_statbuf.st_mode & S_IFMT)
@@ -109,31 +107,6 @@ static char C_time_string [TIME_STRING_MAXLENGTH + 1];
 #define C_ftell(a, n, p)    C_int64_to_num(a, ftell(C_port_file(p)))
 #define C_fseek(p, n, w)    C_mk_nbool(fseek(C_port_file(p), C_num_to_int64(n), C_unfix(w)))
 #define C_lseek(fd, o, w)     C_fix(lseek(C_unfix(fd), C_num_to_int64(o), C_unfix(w)))
-
-#ifdef HAVE_SETENV
-# define C_unsetenv(s)      (unsetenv((char *)C_data_pointer(s)), C_SCHEME_TRUE)
-# define C_setenv(x, y)     C_fix(setenv((char *)C_data_pointer(x), (char *)C_data_pointer(y), 1))
-#else
-# if defined(_WIN32) && !defined(__CYGWIN__)
-#  define C_unsetenv(s)      C_setenv(s, C_SCHEME_FALSE)
-# else
-#  define C_unsetenv(s)      C_fix(putenv((char *)C_data_pointer(s)))
-# endif
-static C_word C_fcall C_setenv(C_word x, C_word y) {
-  char *sx = C_c_string(x),
-       *sy = (y == C_SCHEME_FALSE ? "" : C_c_string(y));
-  int n1 = C_strlen(sx), n2 = C_strlen(sy);
-  int buf_len = n1 + n2 + 2;
-  char *buf = (char *)C_malloc(buf_len);
-  if(buf == NULL) return(C_fix(0));
-  else {
-    C_strlcpy(buf, sx, buf_len);
-    C_strlcat(buf, "=", buf_len);
-    C_strlcat(buf, sy, buf_len);
-    return(C_fix(putenv(buf)));
-  }
-}
-#endif
 
 EOF
 ))
@@ -482,15 +455,7 @@ EOF
       fd) ) )
 
 
-;;; Set or get current directory:
-
-(define change-directory
-  (lambda (name)
-    (##sys#check-string name 'change-directory)
-    (let ((sname (##sys#make-c-string name 'change-directory)))
-      (unless (fx= 0 (##core#inline "C_chdir" sname))
-       (posix-error #:file-error 'change-directory "cannot change current directory" name))
-      name)))
+;;; Set or get current directory by file descriptor:
 
 (define (change-directory* fd)
   (##sys#check-fixnum fd 'change-directory*)
@@ -498,21 +463,10 @@ EOF
     (posix-error #:file-error 'change-directory* "cannot change current directory" fd))
   fd)
 
-(define current-directory
-  (getter-with-setter
-   (lambda ()
-     (let* ((buffer (make-string 1024))
-	   (len (##core#inline "C_curdir" buffer)))
-      #+(or unix cygwin)
-      (##sys#update-errno)
-      (if len
-	  (##sys#substring buffer 0 len)
-	  (##sys#signal-hook
-	   #:file-error
-	   'current-directory "cannot retrieve current directory"))))
-   (lambda (dir)
-     ((if (fixnum? dir) change-directory* change-directory) dir))
-  "(current-directory)"))
+(set! ##sys#change-directory-hook
+  (let ((cd ##sys#change-directory-hook))
+    (lambda (dir)
+      ((if (fixnum? dir) change-directory* cd) dir))))
 
 (define directory
   (lambda (#!optional (spec (current-directory)) show-dotfiles?)
@@ -605,38 +559,6 @@ EOF
             (if str
                 (##sys#substring str 0 (fx- (##sys#size str) 1))
                 (##sys#error 'time->string "cannot convert time vector to string" tm) ) ) ) ) ) )
-
-
-;;; Environment access:
-
-(define set-environment-variable!
-  (lambda (var val)
-    (##sys#check-string var 'set-environment-variable!)
-    (##sys#check-string val 'set-environment-variable!)
-    (##core#inline "C_setenv"
-     (##sys#make-c-string var 'set-environment-variable!)
-     (##sys#make-c-string val 'set-environment-variable!))
-    (##core#undefined) ) )
-
-(define (unset-environment-variable! var)
-  (##sys#check-string var 'unset-environment-variable!)
-  (##core#inline "C_unsetenv"
-   (##sys#make-c-string var 'unset-environment-variable!))
-  (##core#undefined) )
-
-(define get-environment-variables
-  (let ([get (foreign-lambda c-string "C_getenventry" int)])
-    (lambda ()
-      (let loop ([i 0])
-        (let ([entry (get i)])
-          (if entry
-              (let scan ([j 0])
-                (if (char=? #\= (##core#inline "C_subchar" entry j))
-                    (cons (cons (##sys#substring entry 0 j)
-                                (##sys#substring entry (fx+ j 1) (##sys#size entry)))
-                          (loop (fx+ i 1)))
-                    (scan (fx+ j 1)) ) )
-              '() ) ) ) ) ) )
 
 
 ;;; Signals

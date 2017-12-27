@@ -28,14 +28,14 @@
 (module main ()
 
 (import scheme
-        chicken
+	chicken
 	chicken.file
 	chicken.foreign
 	chicken.format
-        chicken.io
+	chicken.io
 	chicken.pathname
-        chicken.posix
-        chicken.process
+	chicken.process
+	chicken.process-context
 	chicken.string)
 
 (include "egg-environment.scm")

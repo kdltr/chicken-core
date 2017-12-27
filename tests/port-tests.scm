@@ -1,5 +1,7 @@
-(import chicken.condition chicken.file chicken.flonum chicken.format
-	chicken.io chicken.port chicken.posix chicken.tcp srfi-4)
+(import chicken.condition chicken.file chicken.file.posix
+	chicken.flonum chicken.format chicken.io chicken.port
+	chicken.process chicken.process.signal chicken.tcp srfi-4
+	chicken.posix) ; FIXME drop once terminal-port? is rehomed
 
 (include "test.scm")
 (test-begin "ports")

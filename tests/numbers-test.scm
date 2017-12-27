@@ -7,7 +7,6 @@
         (chicken flonum)
         (chicken format)
         (chicken platform)
-        (chicken posix)
         (chicken time))
 
 ;; The default "comparator" doesn't know how to deal with extended number types

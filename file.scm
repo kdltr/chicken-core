@@ -87,7 +87,8 @@ EOF
 	chicken.io
 	chicken.irregex
 	chicken.pathname
-	chicken.posix)
+	chicken.process-context
+	chicken.posix) ; FIXME file should not depend on posix
 
 (include "common-declarations.scm")
 

@@ -846,11 +846,6 @@
 (chicken.eval#module-environment
  (#(procedure #:clean #:enforce) chicken.eval#module-environment ((or symbol (list-of (or symbol fixnum)))) (struct environment)))
 
-;; chicken
-
-(argc+argv (#(procedure #:clean) argc+argv () fixnum pointer))
-(argv (#(procedure #:clean) argv () (list-of string)))
-
 
 ;; base
 
@@ -1105,7 +1100,6 @@
 (chicken.blob#string->blob (#(procedure #:clean #:enforce) chicken.blob#string->blob (string) blob))
 
 (case-sensitive (#(procedure #:clean) case-sensitive (#!optional *) *))
-(command-line-arguments (#(procedure #:clean) command-line-arguments (#!optional (list-of string)) (list-of string)))
 
 ;; condition
 
@@ -1169,7 +1163,6 @@
 (##sys#signal-hook (procedure ##sys#signal-hook (* #!rest) noreturn))
 (##sys#debug-mode? (procedure ##sys#debug-mode? () boolean)
 		   (() (##core#inline "C_i_debug_modep")))
-(executable-pathname (#(procedure #:pure) executable-pathname () (or string false)))
 (file-exists? (#(procedure #:clean #:enforce) file-exists? (string) (or false string)))
 (directory-exists? (#(procedure #:clean #:enforce) directory-exists? (string) (or false string)))
 
@@ -1314,7 +1307,6 @@
 (chicken.fixnum#fx*? (#(procedure #:pure) chicken.fixnum#fx*? ((or fixnum false) (or fixnum false)) (or fixnum false)))
 (chicken.fixnum#fx/? (#(procedure #:clean) chicken.fixnum#fx/? ((or fixnum false) (or fixnum false)) (or fixnum false)))
 
-(get-environment-variable (#(procedure #:clean #:enforce) get-environment-variable (string) *))
 (get-output-string (#(procedure #:clean #:enforce) get-output-string (output-port) string))
 
 ;; keyword
@@ -1385,8 +1377,6 @@
 
 (port-closed? (#(procedure #:clean #:enforce) port-closed? (port) boolean)
 	      ((port) (scheme#eq? (##sys#slot #(1) '8) '0)))
-
-(program-name (#(procedure #:clean #:enforce) program-name (#!optional string) string))
 
 
 ;; gc
@@ -1912,11 +1902,24 @@
 (chicken.errno#errno/wouldblock fixnum)
 (chicken.errno#errno/xdev fixnum)
 
+;; process-context
+
+(chicken.process-context#argc+argv (#(procedure #:clean) chicken.process-context#argc+argv () fixnum pointer))
+(chicken.process-context#argv (#(procedure #:clean) chicken.process-context#argv () (list-of string)))
+(chicken.process-context#change-directory (#(procedure #:clean #:enforce) chicken.process-context#change-directory (string) string))
+(chicken.process-context#command-line-arguments (#(procedure #:clean) chicken.process-context#command-line-arguments (#!optional (list-of string)) (list-of string)))
+(chicken.process-context#current-directory (#(procedure #:clean #:enforce) chicken.process-context#current-directory () string))
+(chicken.process-context#executable-pathname (#(procedure #:pure) chicken.process-context#executable-pathname () (or string false)))
+(chicken.process-context#get-environment-variable (#(procedure #:clean #:enforce) chicken.process-context#get-environment-variable (string) *))
+(chicken.process-context#get-environment-variables (#(procedure #:clean) chicken.process-context#get-environment-variables () (list-of (pair string string))))
+(chicken.process-context#program-name (#(procedure #:clean #:enforce) chicken.process-context#program-name (#!optional string) string))
+(chicken.process-context#set-environment-variable! (#(procedure #:clean #:enforce) chicken.process-context#set-environment-variable! (string string) undefined))
+(chicken.process-context#unset-environment-variable! (#(procedure #:clean #:enforce) chicken.process-context#unset-environment-variable! (string) undefined))
+
 ;; posix
 
 (chicken.posix#call-with-input-pipe (#(procedure #:enforce) chicken.posix#call-with-input-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
 (chicken.posix#call-with-output-pipe (#(procedure #:enforce) chicken.posix#call-with-output-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
-(chicken.posix#change-directory (#(procedure #:clean #:enforce) chicken.posix#change-directory (string) string))
 (chicken.posix#change-directory* (#(procedure #:clean #:enforce) chicken.posix#change-directory* (fixnum) fixnum))
 (chicken.posix#close-input-pipe (#(procedure #:clean #:enforce) chicken.posix#close-input-pipe (input-port) fixnum))
 (chicken.posix#close-output-pipe (#(procedure #:clean #:enforce) chicken.posix#close-output-pipe (output-port) fixnum))
@@ -1925,12 +1928,9 @@
 (chicken.posix#create-session (#(procedure #:clean) chicken.posix#create-session () fixnum))
 (chicken.posix#create-symbolic-link (#(procedure #:clean #:enforce) chicken.posix#create-symbolic-link (string string) undefined))
 
-(chicken.posix#current-directory (#(procedure #:clean #:enforce) chicken.posix#current-directory () string))
-
 (chicken.posix#current-effective-group-id (#(procedure #:clean) chicken.posix#current-effective-group-id () fixnum))
 (chicken.posix#current-effective-user-id (#(procedure #:clean) chicken.posix#current-effective-user-id () fixnum))
 (chicken.posix#current-effective-user-name (#(procedure #:clean) chicken.posix#current-effective-user-name () string))
-(chicken.posix#get-environment-variables (#(procedure #:clean) chicken.posix#get-environment-variables () (list-of (pair string string))))
 (chicken.posix#current-group-id (#(procedure #:clean) chicken.posix#current-group-id () fixnum))
 (chicken.posix#current-process-id (#(procedure #:clean) chicken.posix#current-process-id () fixnum))
 (chicken.posix#current-user-id (#(procedure #:clean) chicken.posix#current-user-id () fixnum))
@@ -2044,7 +2044,6 @@
 (chicken.posix#set-root-directory! (#(procedure #:clean #:enforce) chicken.posix#set-root-directory! (string) undefined))
 (chicken.posix#set-signal-handler! (#(procedure #:clean #:enforce) chicken.posix#set-signal-handler! (fixnum (or false (procedure (fixnum) . *))) undefined))
 (chicken.posix#set-signal-mask! (#(procedure #:clean #:enforce) chicken.posix#set-signal-mask! ((list-of fixnum)) undefined))
-(chicken.posix#set-environment-variable! (#(procedure #:clean #:enforce) chicken.posix#set-environment-variable! (string string) undefined))
 (chicken.posix#signal-handler (#(procedure #:clean #:enforce) chicken.posix#signal-handler (fixnum) (or false (procedure (fixnum) . *))))
 (chicken.posix#signal-mask (#(procedure #:clean) chicken.posix#signal-mask () fixnum))
 (chicken.posix#signal-mask! (#(procedure #:clean #:enforce) chicken.posix#signal-mask! (fixnum) undefined))
@@ -2093,7 +2092,6 @@
 (chicken.posix#terminal-port? (#(procedure #:clean #:enforce) chicken.posix#terminal-port? (port) boolean))
 (chicken.posix#terminal-size (#(procedure #:clean #:enforce) chicken.posix#terminal-size (port) fixnum fixnum))
 (chicken.posix#time->string (#(procedure #:clean #:enforce) chicken.posix#time->string ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum) #!optional string) string))
-(chicken.posix#unset-environment-variable! (#(procedure #:clean #:enforce) chicken.posix#unset-environment-variable! (string) undefined))
 (chicken.posix#user-information (#(procedure #:clean #:enforce) chicken.posix#user-information ((or string fixnum) #!optional *) *))
 (chicken.posix#utc-time->seconds (#(procedure #:clean #:enforce) chicken.posix#utc-time->seconds ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)) integer))
 (chicken.posix#with-input-from-pipe (#(procedure #:enforce) chicken.posix#with-input-from-pipe (string (procedure () . *) #!optional symbol) . *))

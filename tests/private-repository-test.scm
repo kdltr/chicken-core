@@ -3,7 +3,8 @@
 
 (import (chicken pathname)
 	(chicken platform)
-        (chicken posix))
+        (chicken process-context)
+        (chicken file))
 
 (define read-symbolic-link*
   (cond-expand

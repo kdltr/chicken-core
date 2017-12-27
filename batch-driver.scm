@@ -43,6 +43,7 @@
 	chicken.pathname
 	chicken.platform
 	chicken.pretty-print
+	chicken.process-context
 	chicken.string
 	chicken.time
 	chicken.compiler.support

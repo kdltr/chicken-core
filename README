@@ -311,6 +311,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.process.import.so
 	|   |       |-- chicken.process.signal.import.so
 	|   |       |-- chicken.process-context.import.so
+	|   |       |-- chicken.process-context.posix.import.so
 	|   |       |-- chicken.random.import.so
 	|   |       |-- chicken.repl.import.so
 	|   |       |-- chicken.sort.import.so

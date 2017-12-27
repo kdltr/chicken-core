@@ -39,11 +39,12 @@
 	make-complex flonum->ratnum ratnum
 	+maximum-allowed-exponent+ mantexp->dbl ldexp round-quotient
 	##sys#string->compnum ##sys#internal-gcd)
-  (not inline ##sys#user-read-hook ##sys#error-hook ##sys#signal-hook
-       ##sys#sleep-hook ##sys#schedule ##sys#default-read-info-hook
-       ##sys#infix-list-hook ##sys#sharp-number-hook
-       ##sys#user-print-hook ##sys#user-interrupt-hook
-       ##sys#windows-platform ##sys#features)
+  (not inline ##sys#change-directory-hook ##sys#user-read-hook
+       ##sys#error-hook ##sys#signal-hook ##sys#sleep-hook
+       ##sys#default-read-info-hook ##sys#infix-list-hook
+       ##sys#sharp-number-hook ##sys#user-print-hook
+       ##sys#user-interrupt-hook ##sys#windows-platform
+       ##sys#schedule ##sys#features)
   (foreign-declare #<<EOF
 #include <errno.h>
 #include <float.h>
@@ -1012,22 +1013,17 @@ EOF
 (define ##sys#warn warning)
 (define ##sys#notice notice)
 
-(define-foreign-variable main_argc int "C_main_argc")
-(define-foreign-variable main_argv c-pointer "C_main_argv")
 (define-foreign-variable strerror c-string "strerror(errno)")
 
 (define ##sys#gc (##core#primitive "C_gc"))
 (define (##sys#setslot x i y) (##core#inline "C_i_setslot" x i y))
 (define (##sys#setislot x i y) (##core#inline "C_i_set_i_slot" x i y))
 (define ##sys#allocate-vector (##core#primitive "C_allocate_vector"))
-(define (argc+argv) (##sys#values main_argc main_argv))
 (define ##sys#make-structure (##core#primitive "C_make_structure"))
 (define ##sys#ensure-heap-reserve (##core#primitive "C_ensure_heap_reserve"))
 (define ##sys#symbol-table-info (##core#primitive "C_get_symbol_table_info"))
 (define ##sys#memory-info (##core#primitive "C_get_memory_info"))
 (define ##sys#decode-seconds (##core#primitive "C_decode_seconds"))
-(define get-environment-variable (foreign-lambda c-string "C_getenv" c-string))
-(define executable-pathname (foreign-lambda c-string* "C_executable_pathname"))
 
 (define (##sys#start-timer)
   (##sys#gc #t)
@@ -5892,8 +5888,134 @@ EOF
 	       [else (##sys#read-error port "unreadable object")] ) ] ) ) ) )
 
 
-;;; command-line handling
+;;; Accessing process information (cwd, environ, etc.)
 
+#>
+
+#define C_chdir(str) C_fix(chdir(C_c_string(str)))
+#define C_curdir(buf) (getcwd(C_c_string(buf), 1024) ? C_fix(strlen(C_c_string(buf))) : C_SCHEME_FALSE)
+#define C_getenventry(i) (environ[ i ])
+
+#ifdef HAVE_CRT_EXTERNS_H
+# include <crt_externs.h>
+# define environ (*_NSGetEnviron())
+#else
+extern char **environ;
+#endif
+
+#ifdef HAVE_SETENV
+# define C_unsetenv(s)    (unsetenv((char *)C_data_pointer(s)), C_SCHEME_TRUE)
+# define C_setenv(x, y)   C_fix(setenv((char *)C_data_pointer(x), (char *)C_data_pointer(y), 1))
+#else
+# if defined(_WIN32) && !defined(__CYGWIN__)
+#  define C_unsetenv(s)   C_setenv(s, C_SCHEME_FALSE)
+# else
+#  define C_unsetenv(s)   C_fix(putenv((char *)C_data_pointer(s)))
+# endif
+static C_word C_fcall C_setenv(C_word x, C_word y) {
+  char *sx = C_c_string(x),
+       *sy = (y == C_SCHEME_FALSE ? "" : C_c_string(y));
+  int n1 = C_strlen(sx), n2 = C_strlen(sy);
+  int buf_len = n1 + n2 + 2;
+  char *buf = (char *)C_malloc(buf_len);
+  if(buf == NULL) return(C_fix(0));
+  else {
+    C_strlcpy(buf, sx, buf_len);
+    C_strlcat(buf, "=", buf_len);
+    C_strlcat(buf, sy, buf_len);
+    return(C_fix(putenv(buf)));
+  }
+}
+#endif
+
+<#
+
+(module chicken.process-context
+  (argv argc+argv command-line-arguments
+   program-name executable-pathname
+   change-directory current-directory
+   get-environment-variable get-environment-variables
+   set-environment-variable! unset-environment-variable!)
+
+(import scheme)
+(import chicken.base chicken.fixnum chicken.foreign)
+(import (only chicken unless)) ; FIXME
+
+
+;;; Current directory access:
+
+(define (change-directory name)
+  (##sys#check-string name 'change-directory)
+  (let ((sname (##sys#make-c-string name 'change-directory)))
+    (unless (fx= (##core#inline "C_chdir" sname) 0)
+      (##sys#update-errno)
+      (##sys#signal-hook #:file-error 'change-directory
+       (string-append "cannot change current directory - " strerror) name))
+    name))
+
+(define (##sys#change-directory-hook dir) ; set! by posix for fd support
+  (change-directory dir))
+
+(define current-directory
+  (getter-with-setter
+   (lambda ()
+     (let* ((buffer (make-string 1024))
+	    (len (##core#inline "C_curdir" buffer)))
+      (unless ##sys#windows-platform ; FIXME need `cond-expand' here
+	(##sys#update-errno))
+      (if len
+	  (##sys#substring buffer 0 len)
+	  (##sys#signal-hook
+	   #:file-error
+	   'current-directory "cannot retrieve current directory"))))
+   (lambda (dir)
+     (##sys#change-directory-hook dir))))
+
+
+;;; Environment access:
+
+(define get-environment-variable
+  (foreign-lambda c-string "C_getenv" c-string))
+
+(define (set-environment-variable! var val)
+  (##sys#check-string var 'set-environment-variable!)
+  (##sys#check-string val 'set-environment-variable!)
+  (##core#inline "C_setenv"
+   (##sys#make-c-string var 'set-environment-variable!)
+   (##sys#make-c-string val 'set-environment-variable!))
+  (##core#undefined))
+
+(define (unset-environment-variable! var)
+  (##sys#check-string var 'unset-environment-variable!)
+  (##core#inline "C_unsetenv"
+   (##sys#make-c-string var 'unset-environment-variable!))
+  (##core#undefined))
+
+(define get-environment-variables
+  (let ((get (foreign-lambda c-string "C_getenventry" int)))
+    (lambda ()
+      (let loop ((i 0))
+        (let ((entry (get i)))
+          (if entry
+              (let scan ((j 0))
+                (if (char=? #\= (##core#inline "C_subchar" entry j))
+                    (cons (cons (##sys#substring entry 0 j)
+                                (##sys#substring entry (fx+ j 1) (##sys#size entry)))
+                          (loop (fx+ i 1)))
+                    (scan (fx+ j 1))))
+              '()))))))
+
+
+;;; Command line handling
+
+(define-foreign-variable main_argc int "C_main_argc")
+(define-foreign-variable main_argv c-pointer "C_main_argv")
+
+(define executable-pathname
+  (foreign-lambda c-string* "C_executable_pathname"))
+
+(define (argc+argv)
+  (##sys#values main_argc main_argv))
 
 (define argv				; includes program name
   (let ((cache #f)
@@ -5932,6 +6054,8 @@ EOF
    (lambda (x)
      (##sys#check-list x 'command-line-arguments)
      x) ) )
+
+) ; chicken.process-context
 
 
 (module chicken.gc
@@ -6285,9 +6409,11 @@ EOF
      )
 
 (import scheme)
-(import chicken.fixnum chicken.foreign chicken.keyword)
-(import (only chicken get-environment-variable make-parameter))
+(import chicken.fixnum chicken.foreign chicken.keyword chicken.process-context)
 (import chicken.internal.syntax)
+
+(import (only chicken make-parameter))
+(import (only chicken when unless define-constant))
 
 (define software-type
   (let ((sym (string->symbol ((##core#primitive "C_software_type")))))

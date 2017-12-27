@@ -30,8 +30,9 @@
 
 (import chicken scheme)
 (import chicken.file
+	chicken.file.posix
 	chicken.internal
-	chicken.posix
+	chicken.process-context
 	chicken.sort
 	chicken.string)
 

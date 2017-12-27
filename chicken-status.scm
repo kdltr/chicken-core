@@ -32,9 +32,10 @@
 	  (chicken format)
 	  (chicken irregex)
 	  (chicken port)
-	  (chicken posix)
-          (chicken pathname)
+	  (chicken posix) ; FIXME once terminal-{size,port?} are rehomed
+	  (chicken pathname)
 	  (chicken pretty-print)
+	  (chicken process-context)
 	  (chicken sort)
 	  (only (chicken string) ->string))
 

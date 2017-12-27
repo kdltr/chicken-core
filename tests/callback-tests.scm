@@ -1,5 +1,6 @@
 ;;;; callback-tests.scm
 
+(import (only (chicken process-context) command-line-arguments))
 
 (define k1)
 

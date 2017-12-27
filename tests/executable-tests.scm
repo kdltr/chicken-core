@@ -2,8 +2,9 @@
 
 (include "test.scm")
 
-(import (chicken pathname)
-        (chicken posix)
+(import (chicken file)
+        (chicken pathname)
+        (chicken process-context)
         (chicken string))
 
 (define program-path
