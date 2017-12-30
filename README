@@ -91,7 +91,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 
         to remove old configuration files.
 
-    2.2. Building from git
+    2.2. Building from Git
 
         If you build CHICKEN directly from the development sources out
         of the git repository, you will need a "chicken" executable to
@@ -642,14 +642,31 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         http://code.call-cc.org, unpack it, build and install it.
         Then change to the directory containing the git code and run:
 
-          make PLATFORM=<platform> CHICKEN=<path-to-existing-chicken> \
-            boot-chicken
+            make PLATFORM=<platform> CHICKEN=<path-to-existing-chicken> \
+              boot-chicken
 
-	This will produce a statically linked binary with the name
-	"chicken-boot[.exe]" that can be given as the value of the
-	"CHICKEN" argument when invoking make(1). Note that the path
-	to an existing `chicken' binary must be given to use it for
-	compiling the Scheme code of the runtime-system and compiler.
+        This will produce a statically linked binary with the name
+        "chicken-boot[.exe]" that can be given as the value of the
+        "CHICKEN" argument when invoking make(1). Note that the path
+        to an existing `chicken' binary must be given to use it for
+        compiling the Scheme code of the runtime-system and compiler.
+
+        "scripts/bootstrap.sh" automates this process; use this script
+        if you are unsure how to build from the repository sources. It
+        downloads the necessary development snapshot with wget(1) and
+        builds the boot-chicken that you can use to compile the
+        development sources. The invocation is:
+
+            scripts/bootstrap.sh PLATFORM=<platform> ...
+
+        You can add additional parameters if you like to customize the
+        build, but this should not be necessary. Note that your current
+        working directory must be the root directory of the CHICKEN
+        git(1) repository. Once the boot-chicken is built, proceed by
+        invoking make(1) as described above (in 2.2, Building from Git),
+        with the additional parameter:
+
+            make CHICKEN=./chicken-boot ...
 
 
  7. Emacs support
