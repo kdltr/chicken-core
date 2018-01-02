@@ -7,7 +7,7 @@ set -e
 mkdir -p boot/pre4
 cd boot
 wget http://code.call-cc.org/dev-snapshots/2017/12/14/chicken-5.0.0pre4.tar.gz
-tar xfz chicken-5.0.0pre4.tar.gz
+tar -xzf chicken-5.0.0pre4.tar.gz
 cd chicken-5.0.0pre4
 make PREFIX="$(pwd)"/../pre4 "$@"
 make PREFIX="$(pwd)"/../pre4 "$@" install
