@@ -112,16 +112,14 @@
         (get-environment-variable "DYLD_LIBRARY_PATH")))
 
 (define (probe-dir dir)
-  (and dir (file-exists? dir) (directory? dir) dir))
-  
+  (and dir (directory? dir) dir))
+
 (define cache-directory
   (or (get-environment-variable "CHICKEN_EGG_CACHE")
       (make-pathname (or (probe-dir (get-environment-variable "HOME"))
                          (probe-dir (get-environment-variable "USERPROFILE"))
-                         (probe-dir "/tmp")
-                         (probe-dir "/Temp")
-                         ".")
-                     ".chicken-install.cache")))
+                         (current-directory))
+                     ".chicken-install/cache")))
 
 (define (repo-path)
   (if (and cross-chicken (not host-extension))
@@ -410,11 +408,9 @@
     (define (fetch lax)
       (when (file-exists? cached)
         (delete-directory cached #t))
-      (create-directory cached)
+      (create-directory cached #t)
       (fetch-egg-sources name version cached lax)
       (with-output-to-file status (cut write current-status)))
-    (unless (file-exists? cache-directory)
-      (create-directory cache-directory))
     (cond ((or (not (probe-dir cached))
                (not (file-exists? eggfile)))
            (d "~a not cached~%" name)
@@ -964,8 +960,9 @@
 
 (define (purge-cache eggs)
   (cond ((null? eggs)
-         (d "purging complete cache at ~a~%" cache-directory)
-         (delete-directory cache-directory #t))
+         (when (file-exists? cache-directory)
+           (d "purging complete cache at ~a~%" cache-directory)
+           (delete-directory cache-directory #t)))
         (else
           (for-each
             (lambda (egg)
