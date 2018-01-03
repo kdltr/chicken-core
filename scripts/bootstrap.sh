@@ -9,8 +9,8 @@ cd boot
 wget http://code.call-cc.org/dev-snapshots/2017/12/14/chicken-5.0.0pre4.tar.gz
 tar -xzf chicken-5.0.0pre4.tar.gz
 cd chicken-5.0.0pre4
-make PREFIX="$(pwd)"/../pre4 "$@"
-make PREFIX="$(pwd)"/../pre4 "$@" install
+make "$@" PREFIX="$(pwd)"/../pre4
+make "$@" PREFIX="$(pwd)"/../pre4 install
 cd ../..
 
 # build a boot-chicken from git head using pre4 chicken and
@@ -21,7 +21,7 @@ cd ../..
 # a boot-chicken needs to be built.
 
 make "$@" spotless
-make CHICKEN="$(pwd)"/boot/pre4/bin/chicken "$@" boot-chicken
+make "$@" CHICKEN="$(pwd)"/boot/pre4/bin/chicken boot-chicken
 
 # remove pre4 installation and tarball
 rm -fr boot/pre4
