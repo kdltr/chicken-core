@@ -4448,7 +4448,7 @@ C_regparm void C_fcall C_trace(C_char *name)
   trace_buffer_top->cooked1 = C_SCHEME_FALSE;
   trace_buffer_top->cooked2 = C_SCHEME_FALSE;
   thread = C_block_item(current_thread_symbol, 0);
-  trace_buffer_top->thread = C_thread_id(thread);
+  trace_buffer_top->thread = C_and(C_blockp(thread), C_thread_id(thread));
   ++trace_buffer_top;
 }
 
