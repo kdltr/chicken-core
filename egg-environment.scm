@@ -91,7 +91,7 @@ EOF
 (define target-run-repo
   (string-append default-runlibdir "/chicken/" (number->string binary-version)))
 
-(define +egg-info-extension+ ".egg-info") 
+(define +egg-info-extension+ "egg-info")
 
 (define (destination-repository mode #!optional run)
   (if (eq? 'target mode)

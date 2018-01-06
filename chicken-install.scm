@@ -538,7 +538,7 @@
 ;; check installed eggs for already installed files
 
 (define (matching-installed-files egg fnames)
-  (let ((eggs (glob (make-pathname (install-path) "*.egg-info"))))
+  (let ((eggs (glob (make-pathname (install-path) "*" +egg-info-extension+))))
     (let loop ((eggs eggs) (same '()))
       (cond ((null? eggs) same)
             ((string=? egg (pathname-file (car eggs)))
@@ -554,8 +554,7 @@
                 (loop (cdr eggs) (append (or mfiles '()) same))))))))
 
 (define (check-installed-files name info)
-  (let ((bad (matching-installed-files name
-                                       (cdr (assq 'installed-files info)))))
+  (let ((bad (matching-installed-files name (cdr (assq 'installed-files info)))))
     (unless (null? bad)
       (flush-output)
       (fprintf (current-error-port) 

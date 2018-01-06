@@ -6345,8 +6345,6 @@ EOF
 
 ;;; Installation locations
 
-(define-constant setup-file-extension "egg-info")
-
 (define-foreign-variable binary-version int "C_BINARY_VERSION")
 (define-foreign-variable installation-home c-string "C_INSTALL_SHARE_HOME")
 (define-foreign-variable install-egg-home c-string "C_INSTALL_EGG_HOME")
