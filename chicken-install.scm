@@ -983,11 +983,7 @@
         ((null? eggs)
          (if list-versions-only
              (print "no eggs specified")
-             (let ((files (append (glob "*.egg")
-                                  (if (and (file-exists? "chicken")
-                                           (directory? "chicken"))
-                                      (glob "chicken/*.egg")
-                                      '()))))
+             (let ((files (glob "*.egg" "chicken/*.egg")))
                (set! canonical-eggs 
                  (map (lambda (fname)
                         (list (pathname-file fname) (current-directory) #f))

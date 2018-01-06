@@ -297,21 +297,22 @@ EOF
 
 ;;; Filename globbing:
 
-(define glob
-  (lambda paths
-    (let conc-loop ((paths paths))
-      (if (null? paths)
-	  '()
-	  (let ((path (car paths)))
-	    (let-values (((dir fil ext) (decompose-pathname path)))
-	      (let ((rx (irregex (glob->sre (make-pathname #f (or fil "*") ext)))))
-		(let loop ((fns (directory (or dir ".") #t)))
-		  (cond ((null? fns) (conc-loop (cdr paths)))
-			((irregex-match rx (car fns)) =>
-			 (lambda (m)
-			   (cons (make-pathname dir (irregex-match-substring m))
-				 (loop (cdr fns)))))
-			(else (loop (cdr fns))))))))))))
+(define (glob . paths)
+  (let conc-loop ((paths paths))
+    (if (null? paths)
+	'()
+	(let ((path (car paths)))
+	  (let-values (((dir fil ext) (decompose-pathname path)))
+	    (let ((dir* (or dir "."))
+		  (rx   (irregex (glob->sre (make-pathname #f (or fil "*") ext)))))
+	      (let loop ((fns (condition-case (directory dir* #t)
+				((exn i/o file) #f))))
+		(cond ((not (pair? fns)) (conc-loop (cdr paths)))
+		      ((irregex-match rx (car fns)) =>
+		       (lambda (m)
+			 (cons (make-pathname dir (irregex-match-substring m))
+			       (loop (cdr fns)))))
+		      (else (loop (cdr fns)))))))))))
 
 
 ;;; Find matching files:

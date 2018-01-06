@@ -74,6 +74,8 @@
   - The procedures for random numbers have been reimplemented;
     access to system-specific entropy is available, together with a reasonably
     good pseudo random number generator (WELL512).
+  - `glob` now returns an empty list for non-existent or inaccessible
+    directories, instead of erroring out.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

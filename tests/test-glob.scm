@@ -1,5 +1,7 @@
-;;;; test-glob.scm - test glob-pattern -> regex translation
 
+;;;; test-glob.scm
+
+;; test glob-pattern -> regex translation
 
 (import (chicken irregex))
 
@@ -18,3 +20,12 @@
 (assert (not (irregex-match (glob->sre "main.[ch]") "main.cpp")))
 (assert (irregex-match (glob->sre "main.[-c]") "main.h"))
 (assert (not (irregex-match (glob->sre "main.[-h]") "main.h")))
+
+;; test file globbing
+
+(import (chicken file))
+
+(assert (pair? (glob "../tests")))
+(assert (pair? (glob "../tests/*")))
+(assert (null? (glob "../nowhere")))
+(assert (null? (glob "../nowhere/*")))
