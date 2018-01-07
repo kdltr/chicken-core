@@ -41,10 +41,6 @@
 # include <android/log.h>
 #endif
 
-#if defined(C_XXXBSD) || defined(__linux__)
-#include <fcntl.h>
-#endif
-
 #if !defined(PIC)
 # define NO_DLOAD2
 #endif
@@ -77,6 +73,7 @@
 # include <sys/time.h>
 # include <sys/resource.h>
 # include <sys/wait.h>
+# include <fcntl.h>
 
 /* ITIMER_PROF is more precise, but Cygwin doesn't support it... */
 # ifdef __CYGWIN__
