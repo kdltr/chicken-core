@@ -5939,7 +5939,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 
 (import scheme)
 (import chicken.base chicken.fixnum chicken.foreign)
-(import (only chicken unless)) ; FIXME
+(import chicken.internal.syntax)
 
 
 ;;; Current directory access:
@@ -6411,9 +6411,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (import scheme)
 (import chicken.fixnum chicken.foreign chicken.keyword chicken.process-context)
 (import chicken.internal.syntax)
-
-(import (only chicken make-parameter))
-(import (only chicken when unless define-constant))
+(import (only (chicken base) make-parameter))
 
 (define software-type
   (let ((sym (string->symbol ((##core#primitive "C_software_type")))))
