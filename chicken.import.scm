@@ -27,7 +27,6 @@
  'chicken
  '((abort . chicken.condition#abort)
    (add1 . chicken.base#add1)
-   argc+argv
    (bignum? . chicken.base#bignum?)
    (build-platform . chicken.platform#build-platform)
    (call/cc . chicken.base#call/cc)
