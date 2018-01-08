@@ -739,6 +739,15 @@
   (make-parameter
    (lambda (x #!optional env)
      (let ((se (##sys#current-environment)))
+       ;; When se is empty, it's the first time eval was called:
+       ;; ensure an active default environment.  We do it here because
+       ;; eval does not work yet at the end of modules.scm, and we
+       ;; don't want to inject calls into every toplevel (see #1437)
+       (when (null? se)
+	 ((compile-to-closure
+	   `(##core#begin (import-for-syntax ,@default-syntax-imports)
+			  (import ,@default-imports))
+	   '() se #f #f #f #t) '()))
        (cond (env
 	      (##sys#check-structure env 'environment 'eval)
 	      (let ((se2 (##sys#slot env 2)))

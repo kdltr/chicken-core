@@ -19,6 +19,7 @@ chicken.compiler.core.import.scm
 csc.c
 csi.c
 eval.c
+eval-modules.c
 continuation.c
 data-structures.c
 dbg-stub.c
@@ -72,6 +73,7 @@ csi.mdoc
 csi.scm
 csibatch.bat
 eval.scm
+eval-modules.scm
 extras.scm
 data-structures.scm
 debugger-client.scm
@@ -157,6 +159,7 @@ tests/test-gc-hooks.scm
 tests/test-glob.scm
 tests/matchable.scm
 tests/module-tests.scm
+tests/module-static-eval-compiled.scm
 tests/module-tests-2.scm
 tests/multiple-values.scm
 tests/test-finalizers.scm

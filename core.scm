@@ -1011,12 +1011,8 @@
 						       (else
 							(values
 							 (reverse xs)
-							 ;; XXX there's currently no way to enable
-							 ;; module registration for executables!
-							 (if standalone-executable
-							     '()
-							     (##sys#compiled-module-registration
-							      (##sys#current-module)))))))
+							 (##sys#compiled-module-registration
+							  (##sys#current-module))))))
 						(else
 						 (loop
 						  (cdr body)

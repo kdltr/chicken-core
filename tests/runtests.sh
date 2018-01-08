@@ -304,6 +304,10 @@ rm -f "$module.import.scm"
 echo "======================================== module tests (compiled) ..."
 $compile module-tests-compiled.scm
 ./a.out
+$compile module-static-eval-compiled.scm
+./a.out
+$compile -static module-static-eval-compiled.scm
+./a.out
 
 echo "======================================== module tests (chained) ..."
 rm -f m*.import.* test-chained-modules.so

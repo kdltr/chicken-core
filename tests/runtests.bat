@@ -374,6 +374,14 @@ echo ======================================== module tests (compiled) ...
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
+%compile% module-static-eval-compiled.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+%compile% -static module-static-eval-compiled.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
 
 echo ======================================== module tests (chained) ...
 del /f /q m*.import.* test-chained-modules.so

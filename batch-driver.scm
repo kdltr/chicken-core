@@ -176,7 +176,14 @@
   (initialize-compiler)
   (set! explicit-use-flag (memq 'explicit-use options))
   (set! emit-debug-info (memq 'debug-info options))
-  (let ((initforms `((import-for-syntax ,@default-syntax-imports)
+  (set! enable-module-registration
+    (not (memq 'no-module-registration options)))
+  (when (memq 'static options)
+    (set! static-extensions #t)
+    (register-feature! 'chicken-compile-static))
+  (let* ((dynamic (memq 'dynamic options))
+	(unit (memq 'unit options))
+        (initforms `((import-for-syntax ,@default-syntax-imports)
 		     (##core#declare
 		      ,@(append 
 			 default-declarations
@@ -185,17 +192,17 @@
 			     '())
 			 (if explicit-use-flag
 			     '()
-			     `((uses ,@default-units)))))
+			     `((uses ,@default-units)))
+			 (if (and static-extensions
+				  enable-module-registration
+				  (not dynamic)
+				  (not unit)
+				  (not explicit-use-flag))
+			     '((uses eval-modules))
+			     '())))
 		     ,@(if explicit-use-flag
 			   '()
-			   `((import ,@default-imports)))
-		     ;; Ensure the same default environment is
-		     ;; available from eval, as well.  See notes at
-		     ;; the end of internal.scm and modules.scm.
-		     ,@(if explicit-use-flag
-			   '()
-			   `((scheme#eval '(import-for-syntax ,@default-syntax-imports))
-			     (scheme#eval '(import ,@default-imports))))))
+			   `((import ,@default-imports)))))
         (verbose (memq 'verbose options))
 	(outfile (cond ((memq 'output-file options) 
 			=> (lambda (node)
@@ -224,9 +231,7 @@
 	(hsize (memq 'heap-size options))
 	(kwstyle (memq 'keyword-style options))
 	(loop/dispatch (memq 'clustering options))
-	(unit (memq 'unit options))
 	(a-only (memq 'analyze-only options))
-	(dynamic (memq 'dynamic options))
 	(do-scrutinize #t)
 	(do-lfa2 (memq 'lfa2 options))
 	(dumpnodes #f)
@@ -329,7 +334,6 @@
     (when (and (memq 'emit-all-import-libraries options)
 	       (not a-only))
       (set! all-import-libraries #t))
-    (set! enable-module-registration (not (memq 'no-module-registration options)))
     (when enable-specialization
       (set! do-scrutinize #t))
     (when (memq 't debugging-chicken) (##sys#start-timer))
@@ -338,9 +342,6 @@
       (set! explicit-use-flag #t)
       (set! cleanup-forms '())
       (set! initforms '()) )
-    (when (memq 'static options)
-      (set! static-extensions #t)
-      (register-feature! 'chicken-compile-static))
     (when (memq 'no-lambda-info options)
       (set! emit-closure-info #f) )
     (when (memq 'no-compiler-syntax options)

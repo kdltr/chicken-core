@@ -474,7 +474,7 @@
            " -emit-link-file "
            (quotearg (conc sname +link-file-extension+))
            (if (eq? mode 'host) " -host" "")
-           " -D compiling-extension -c -J -unit " name
+           " -D compiling-extension -c -unit " name
            " -D compiling-static-extension"
            " -C -I" srcdir (arglist opts) 
            " " src " -o " out " : "

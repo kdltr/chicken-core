@@ -173,6 +173,7 @@
     (|-K| "-keyword-style")
     (|-X| "-extend")
     (|-J| "-emit-all-import-libraries")
+    (|-N| "-no-module-registration")
     (-x "-explicit-use")
     (-u "-unsafe")
     (-j "-emit-import-library")

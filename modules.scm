@@ -299,16 +299,15 @@
 			  (warn "indirect export of unknown binding" (car iexports))
 			  (loop2 (cdr iexports)))))))))))
 
-(define (merge-se . ses)		; later occurrences take precedence to earlier ones
-  (let ((se (apply append ses)))
-    (dm "merging " (length ses) " se's with total length of " (length se))
-    (let ((se2
-	   (let loop ((se se))
-	     (cond ((null? se) '())
-		   ((assq (caar se) (cdr se)) (loop (cdr se)))
-		   (else (cons (car se) (loop (cdr se))))))))
-      (dm "  merged has length " (length se2))
-      se2)))
+(define (merge-se . ses)		; later occurrences take precedence
+  (let bwd ((ses ses))
+    (if (null? ses)
+	'()
+	(let fwd ((se (car ses))
+		  (rest (bwd (cdr ses))))
+	  (cond ((null? se) rest)
+		((assq (caar se) rest) (fwd (cdr se) rest))
+		(else (cons (car se) (fwd (cdr se) rest))))))))
 
 (define (##sys#compiled-module-registration mod)
   (let ((dlist (module-defined-list mod))
@@ -564,22 +563,25 @@
 
 ;;; Import-expansion
 
+(define (##sys#import-library-hook mname)
+  (and-let* ((il (chicken.load#find-dynamic-extension
+		  (string-append (symbol->string mname) ".import")
+		  #t)))
+     (parameterize ((##sys#current-module #f)
+		    (##sys#current-environment '())
+		    (##sys#current-meta-environment
+		     (##sys#current-meta-environment))
+		      (##sys#macro-environment
+		       (##sys#meta-macro-environment)))
+	(fluid-let ((##sys#notices-enabled #f)) ; to avoid re-import warnings
+	  (load il)
+	  (##sys#find-module mname 'import)))))
+
 (define (find-module/import-library lib loc)
   (let* ((mname (##sys#resolve-module-name lib loc))
 	 (mod (##sys#find-module mname #f loc)))
     (unless mod
-      (and-let* ((il (chicken.load#find-dynamic-extension
-		      (string-append (symbol->string mname) ".import")
-		      #t)))
-	(parameterize ((##sys#current-module #f)
-		       (##sys#current-environment '())
-		       (##sys#current-meta-environment
-			(##sys#current-meta-environment))
-		       (##sys#macro-environment
-			(##sys#meta-macro-environment)))
-	  (fluid-let ((##sys#notices-enabled #f)) ; to avoid re-import warnings
-	    (load il)
-	    (set! mod (##sys#find-module mname 'import))))))
+      (set! mod (##sys#import-library-hook mname)))
     mod))
 
 (define (##sys#decompose-import x r c loc)
@@ -1133,7 +1135,6 @@
 
 ;; Ensure default modules are available in "eval", too
 ;; TODO: Figure out a better way to make this work for static programs.
-;; The actual imports are handled by the prelude inserted by
-;; batch-driver.scm
+;; The actual imports are handled lazily by eval when first called.
 (include "chicken.base.import.scm")
 (include "chicken.syntax.import.scm")
