@@ -881,7 +881,6 @@
 	chicken.internal)
 
 (include "mini-srfi-1.scm")
-(include "egg-information.scm")
 
 ;;; Installation locations
 
