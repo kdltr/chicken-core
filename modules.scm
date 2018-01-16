@@ -581,11 +581,9 @@
 	  (##sys#find-module mname 'import)))))
 
 (define (find-module/import-library lib loc)
-  (let* ((mname (##sys#resolve-module-name lib loc))
-	 (mod (##sys#find-module mname #f loc)))
-    (unless mod
-      (set! mod (##sys#import-library-hook mname)))
-    mod))
+  (let ((mname (##sys#resolve-module-name lib loc)))
+    (or (##sys#find-module mname #f loc)
+	(##sys#import-library-hook mname))))
 
 (define (##sys#decompose-import x r c loc)
   (let ((%only (r 'only))
