@@ -25,7 +25,8 @@
 
 
 (declare
-  (unit eval-modules))
+  (unit eval-modules)
+  (uses eval))
 
 (include "common-declarations.scm")
 

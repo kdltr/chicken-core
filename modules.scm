@@ -24,9 +24,12 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
+;; this unit needs the "eval" unit, but must be initialized first, so it doesn't
+;; declare "eval" as used - if you use "-explicit-use", take care of this.
+
 (declare
   (unit modules)
-  (uses eval expand internal)
+  (uses chicken-syntax)
   (disable-interrupts)
   (fixnum)
   (not inline ##sys#alias-global-hook)
