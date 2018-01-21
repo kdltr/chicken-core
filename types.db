@@ -1402,7 +1402,6 @@
 
 (symbol-escape (#(procedure #:clean) symbol-escape (#!optional *) *))
 
-(system (#(procedure #:clean #:enforce) system (string) fixnum))
 (##sys#void (#(procedure #:pure) void (#!rest) undefined))
 
 ;; chicken (internal)
@@ -2099,6 +2098,7 @@
 
 ;; process
 
+(chicken.process#system (#(procedure #:clean #:enforce) chicken.process#system (string) fixnum))
 (chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string #!rest) undefined))
 (chicken.process#qs (#(procedure #:clean #:enforce) chicken.process#qs (string) string))
 

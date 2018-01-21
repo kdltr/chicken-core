@@ -35,6 +35,7 @@
           (chicken irregex)
           (chicken port)
           (chicken pathname)
+          (chicken process)
           (chicken process-context)
           (chicken string))
 

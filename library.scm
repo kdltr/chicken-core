@@ -1212,14 +1212,6 @@ EOF
 		   (lp val forward)))))
 	obj)))
 
-(define (system cmd)
-  (##sys#check-string cmd 'system)
-  (let ((r (##core#inline "C_execute_shell_command" cmd)))
-    (cond ((fx< r 0)
-	   (##sys#update-errno)
-	   (##sys#signal-hook #:process-error 'system "`system' invocation failed" cmd) )
-	  (else r) ) ) )
-
 
 ;;; Dynamic Load
 

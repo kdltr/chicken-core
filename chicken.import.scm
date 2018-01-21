@@ -155,7 +155,7 @@
    (symbol-append . chicken.base#symbol-append)
    symbol-escape
    (syntax-error . chicken.syntax#syntax-error)
-   system
+   (system . chicken.process#system)
    (unregister-feature! . chicken.platform#unregister-feature!)
    (vector-copy! . chicken.base#vector-copy!)
    (vector-resize . chicken.base#vector-resize)
