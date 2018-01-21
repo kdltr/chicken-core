@@ -948,6 +948,8 @@
 (chicken.base#implicit-exit-handler
  (#(procedure #:clean #:enforce) chicken.base#implicit-exit-handler (#!optional (procedure () . *)) procedure))
 
+(chicken.base#sleep (#(procedure #:clean #:enforce) chicken.base#sleep (fixnum) undefined))
+
 (chicken.base#exit (procedure chicken.base#exit (#!optional fixnum) noreturn))
 (chicken.base#exit-handler (#(procedure #:clean #:enforce) chicken.base#exit-handler (#!optional (procedure (fixnum) . *)) procedure))
 
@@ -1397,8 +1399,6 @@
 (set-port-name! (#(procedure #:clean #:enforce) set-port-name! (port string) undefined)
 		((port string) (##sys#setslot #(1) '3 #(2))))
 
-
-(sleep (#(procedure #:clean #:enforce) sleep (fixnum) undefined))
 
 (symbol-escape (#(procedure #:clean) symbol-escape (#!optional *) *))
 

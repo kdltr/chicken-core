@@ -145,7 +145,7 @@
    (setter . chicken.base#setter)
    (signal . chicken.condition#signal)
    (signum . chicken.base#signum)
-   sleep
+   (sleep . chicken.base#sleep)
    (software-type . chicken.platform#software-type)
    (software-version . chicken.platform#software-version)
    (string->uninterned-symbol . chicken.base#string->uninterned-symbol)

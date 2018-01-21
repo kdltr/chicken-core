@@ -36,7 +36,7 @@
 	; ##sys#force-primordial
 	remove-from-ready-queue fdset-test create-fdset stderr delq
 	##sys#clear-i/o-state-for-thread! ##sys#abandon-mutexes) 
-  (not inline ##sys#interrupt-hook ##sys#sleep-hook ##sys#force-primordial)
+  (not inline chicken.base#sleep-hook ##sys#interrupt-hook ##sys#force-primordial)
   (unsafe)
   (foreign-declare #<<EOF
 #ifdef HAVE_ERRNO_H
@@ -597,7 +597,7 @@ EOF
 
 ;;; Override `sleep` in library.scm to operate on the current thread:
 
-(set! ##sys#sleep-hook
+(set! chicken.base#sleep-hook
   (lambda (n)
     (##sys#thread-sleep!
      (+ (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)

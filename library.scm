@@ -39,8 +39,8 @@
 	make-complex flonum->ratnum ratnum
 	+maximum-allowed-exponent+ mantexp->dbl ldexp round-quotient
 	##sys#string->compnum ##sys#internal-gcd)
-  (not inline ##sys#change-directory-hook ##sys#user-read-hook
-       ##sys#error-hook ##sys#signal-hook ##sys#sleep-hook
+  (not inline chicken.base#sleep-hook ##sys#change-directory-hook
+       ##sys#user-read-hook ##sys#error-hook ##sys#signal-hook
        ##sys#default-read-info-hook ##sys#infix-list-hook
        ##sys#sharp-number-hook ##sys#user-print-hook
        ##sys#user-interrupt-hook ##sys#windows-platform
@@ -5718,12 +5718,12 @@ EOF
 
 ;;; Sleeping:
 
-(define (##sys#sleep-hook n) ; modified by scheduler.scm
+(define (chicken.base#sleep-hook n) ; modified by scheduler.scm
   (##core#inline "C_i_process_sleep" n))
 
 (define (sleep n)
   (##sys#check-fixnum n 'sleep)
-  (##sys#sleep-hook n)
+  (chicken.base#sleep-hook n)
   (##core#undefined))
 
 

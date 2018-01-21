@@ -174,7 +174,7 @@
    process-signal process-spawn process-wait call-with-input-pipe
    call-with-output-pipe close-input-pipe close-output-pipe create-pipe
    open-input-pipe open-output-pipe with-input-from-pipe
-   with-output-to-pipe process process* pipe/buf
+   with-output-to-pipe process process* process-sleep pipe/buf
    spawn/overlay spawn/wait spawn/nowait spawn/nowaito spawn/detach)
 
 (import chicken scheme chicken.posix chicken.platform)
