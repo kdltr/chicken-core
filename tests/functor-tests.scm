@@ -33,7 +33,7 @@
 
 
 (module queue2 QUEUE
-  (import (rename scheme (not empty?)) chicken)
+  (import (rename scheme (not empty?)) chicken.base)
   (define-record entry q x)
   (define empty-queue #f)
   (define enqueue make-entry)
@@ -49,7 +49,7 @@
 
 
 (module queue3 QUEUE
-  (import scheme chicken)
+  (import scheme chicken.base)
   (define-record queue heads tails)
   (define empty-queue (make-queue '() '()))
   (define (norm q)
@@ -107,7 +107,7 @@
   (define (print-twice x) (print x) (print x)))
 
 (module (noop printer) *
-  (import (only (scheme) define) (only (chicken) void))
+  (import (only (scheme) define) (only (chicken base) void))
   (define print void))
 
 (module (2x print) = ((double printer)))
@@ -163,7 +163,7 @@
 ;; Test alternative instantiation syntax:
 
 (functor (frob (X (yibble))) *
-  (import chicken X)
+  (import chicken.base X)
   yibble)
 
 ;; XXX This is somewhat iffy: functor instantiation results in a

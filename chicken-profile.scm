@@ -28,10 +28,13 @@
 
 (module main ()
 
-(import chicken scheme)
-(import chicken.file
+(import scheme
+	chicken.base
+	chicken.file
 	chicken.file.posix
+	chicken.fixnum
 	chicken.internal
+	chicken.platform
 	chicken.process-context
 	chicken.sort
 	chicken.string)

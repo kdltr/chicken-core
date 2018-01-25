@@ -528,11 +528,11 @@
 ;;; (reported by Jack Trades)
 
 (module prefixed-self-reference1 (a b c)
-  (import scheme (prefix chicken c:))
+  (import scheme (prefix chicken.base c:))
   (c:define-values (a b c) (values 1 2 3)) )
 
 (module prefixed-self-reference2 ()
-  (import scheme (prefix chicken c:) (prefix (chicken condition) c:))
+  (import scheme (prefix (chicken base) c:) (prefix (chicken condition) c:))
   (c:define-values (a b c) (values 1 2 3))
   (c:print "ok")
   (c:condition-case 
@@ -541,8 +541,7 @@
 
 (module prefixed-self-reference3 (a)
   ;; TODO: Switch this around when plain "chicken" has been removed
-  ;(import (prefix scheme s.) (prefix (chicken condition) c.))
-  (import (prefix scheme s.) (prefix chicken c.))
+  (import (prefix scheme s.) (prefix (chicken condition) c.))
   (s.define (a x y)
 	    (c.condition-case (s.+ x y) ((exn) "not numbers")))
   )
@@ -722,7 +721,7 @@
 
 ;; Literal quotation of a symbol, injected or not, should always result in that symbol
 (module ir-se-test (run)
-  (import chicken scheme)
+  (import scheme chicken.base)
   (define-syntax run
     (ir-macro-transformer
      (lambda (e i c)
@@ -1148,7 +1147,7 @@ other-eval
 ;; #852: renamed macros should not be returned as first-class
 ;;       objects in the interpreter
 (module renamed-macros (renamed-macro-not-firstclassed)
-  (import chicken scheme)
+  (import scheme chicken.base)
   (define-syntax renamed-macro-not-firstclassed
     (er-macro-transformer
      (lambda (e r c)
@@ -1161,7 +1160,7 @@ other-eval
 ;;       strip-syntax can still access the original symbol.
 (module rename-builtins
  (strip-syntax-on-*)
- (import chicken scheme)
+ (import scheme chicken.base)
  (define-syntax strip-syntax-on-*
    (ir-macro-transformer
     (lambda (e r c) '(quote *)))))

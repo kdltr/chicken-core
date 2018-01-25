@@ -28,12 +28,14 @@
 (module main ()
 
 (import scheme
-	chicken
+	chicken.base
 	chicken.file
+	chicken.fixnum
 	chicken.foreign
 	chicken.format
 	chicken.io
 	chicken.pathname
+	chicken.platform
 	chicken.process
 	chicken.process-context
 	chicken.string)

@@ -33,9 +33,11 @@
   (quit repl repl-prompt reset reset-handler)
 
 (import scheme
-	chicken
+	chicken ;; for string ports
+	chicken.base
 	chicken.eval
-	chicken.foreign)
+	chicken.foreign
+	chicken.load)
 
 (include "common-declarations.scm")
 

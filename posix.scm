@@ -84,8 +84,13 @@
    time->string user-information
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 
-(import scheme chicken)
-(import chicken.bitwise
+(import chicken) ; for "select" and string ports
+
+(import scheme
+	chicken.base
+	chicken.bitwise
+	chicken.condition
+	chicken.fixnum
 	chicken.foreign
 	chicken.memory
 	chicken.pathname
@@ -177,7 +182,7 @@
    with-output-to-pipe process process* process-sleep pipe/buf
    spawn/overlay spawn/wait spawn/nowait spawn/nowaito spawn/detach)
 
-(import chicken scheme chicken.posix chicken.platform)
+(import scheme chicken.base chicken.fixnum chicken.posix chicken.platform)
 
 
 ;;; Execute a shell command:

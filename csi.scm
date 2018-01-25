@@ -44,16 +44,15 @@ EOF
 (module chicken.csi
   (editor-command toplevel-command set-describer!)
 
+(import chicken) ; parentheses-synonyms case-sensitive symbol-escape keyword-style and string ports
+
 (import scheme
-	(only chicken open-input-string open-output-string
-	      get-output-string file-exists? parentheses-synonyms
-	      case-sensitive symbol-escape flush-output port?
-	      keyword-style)
 	chicken.base
 	chicken.condition
 	chicken.fixnum
 	chicken.foreign
 	chicken.format
+	chicken.file
 	chicken.gc
 	chicken.internal
 	chicken.io

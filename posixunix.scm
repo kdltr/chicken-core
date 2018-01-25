@@ -903,7 +903,7 @@ static C_word C_i_fifo_p(C_word name)
 	  (if (null? components)
 	      result
 	      (let ((pathname (make-pathname result (car components))))
-		(if (file-exists? pathname)
+		(if (##sys#file-exists? pathname #f #f 'read-symbolic-link)
 		    (loop (cdr components)
 			  (if (symbolic-link? pathname)
 			      (let ((target (##sys#read-symbolic-link pathname 'read-symbolic-link)))
@@ -1047,7 +1047,7 @@ static C_word C_i_fifo_p(C_word name)
 			   (set! bufpos buflen)
 			   str)))
 		   ) ] )
-	  (set-port-name! this-port nam)
+	  (##sys#setslot this-port 3 nam)
 	  this-port ) ) ) ) )
 
 (define ##sys#custom-output-port
@@ -1101,7 +1101,7 @@ static C_word C_i_fifo_p(C_word name)
 		   (on-close))
 		 (lambda ()		; flush
 		   (store #f) ) )] )
-	(set-port-name! this-port nam)
+	(##sys#setslot this-port 3 nam)
 	this-port ) ) ) )
 
 

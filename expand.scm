@@ -42,8 +42,12 @@
    er-macro-transformer
    ir-macro-transformer)
 
-(import scheme (except chicken expand get-line-number strip-syntax syntax-error er-macro-transformer ir-macro-transformer)
+(import chicken) ;; assert and string ports
+
+(import scheme
+	chicken.base
 	chicken.condition
+	chicken.fixnum
 	chicken.internal
 	chicken.keyword
 	chicken.platform)
@@ -961,7 +965,8 @@
 
 ) ; chicken.syntax module
 
-(import scheme chicken chicken.blob chicken.syntax chicken.internal)
+(import scheme chicken.base chicken.blob chicken.fixnum)
+(import chicken.syntax chicken.internal chicken.platform)
 
 ;;; Macro definitions:
 

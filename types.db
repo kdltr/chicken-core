@@ -734,8 +734,6 @@
 (scheme#open-output-file (#(procedure #:clean #:enforce) scheme#open-output-file (string #!rest symbol) output-port))
 (scheme#close-input-port (#(procedure #:enforce) scheme#close-input-port (input-port) undefined))
 (scheme#close-output-port (#(procedure #:enforce) scheme#close-output-port (output-port) undefined))
-(input-port-open? (#(procedure #:enforce) input-port-open? (input-port) boolean))
-(output-port-open? (#(procedure #:enforce) output-port-open? (output-port) boolean))
 
 (scheme#read (#(procedure #:enforce) scheme#read (#!optional input-port) *))
 
@@ -927,12 +925,27 @@
 
 (chicken.base#call/cc (#(procedure #:enforce) chicken.base#call/cc ((procedure (*) . *)) . *))
 
+(chicken.base#port? (#(procedure #:pure #:predicate port) chicken.base#port? (*) boolean))
+
+(chicken.base#port-closed?
+ (#(procedure #:clean #:enforce) chicken.base#port-closed? (port) boolean)
+ ((port) (scheme#eq? (##sys#slot #(1) '8) '0)))
+
+(chicken.base#input-port-open? (#(procedure #:enforce) chicken.base#input-port-open? (input-port) boolean))
+(chicken.base#output-port-open? (#(procedure #:enforce) chicken.base#output-port-open? (output-port) boolean))
+
+(chicken.base#get-output-string (#(procedure #:clean #:enforce) chicken.base#get-output-string (output-port) string))
+(chicken.base#open-input-string (#(procedure #:clean #:enforce) chicken.base#open-input-string (string #!rest) input-port))
+(chicken.base#open-output-string (#(procedure #:clean) chicken.base#open-output-string (#!rest) output-port))
+
 (chicken.base#current-error-port
  (#(procedure #:clean #:enforce) chicken.base#current-error-port (#!optional output-port boolean boolean) output-port)
  ((output-port) (let ((#(tmp1) #(1)))
 		  (let ((#(tmp2) (set! ##sys#standard-error #(tmp1))))
 		    #(tmp1))))
  (() ##sys#standard-error))
+
+(chicken.base#flush-output (#(procedure #:enforce) chicken.base#flush-output (#!optional output-port) undefined))
 
 (chicken.base#enable-warnings (#(procedure #:clean) chicken.base#enable-warnings (#!optional *) *))
 
@@ -1168,8 +1181,6 @@
 (file-exists? (#(procedure #:clean #:enforce) file-exists? (string) (or false string)))
 (directory-exists? (#(procedure #:clean #:enforce) directory-exists? (string) (or false string)))
 
-(flush-output (#(procedure #:enforce) flush-output (#!optional output-port) undefined))
-
 
 ;; flonum
 
@@ -1309,8 +1320,6 @@
 (chicken.fixnum#fx*? (#(procedure #:pure) chicken.fixnum#fx*? ((or fixnum false) (or fixnum false)) (or fixnum false)))
 (chicken.fixnum#fx/? (#(procedure #:clean) chicken.fixnum#fx/? ((or fixnum false) (or fixnum false)) (or fixnum false)))
 
-(get-output-string (#(procedure #:clean #:enforce) get-output-string (output-port) string))
-
 ;; keyword
 
 (chicken.keyword#get-keyword (#(procedure #:clean #:enforce) chicken.keyword#get-keyword (symbol list #!optional *) *))
@@ -1366,20 +1375,7 @@
 (chicken.flonum#minimum-flonum float)
 (chicken.fixnum#most-negative-fixnum fixnum)
 (chicken.fixnum#most-positive-fixnum fixnum)
-(open-input-string (#(procedure #:clean #:enforce) open-input-string (string #!rest) input-port))
-(open-output-string (#(procedure #:clean) open-output-string (#!rest) output-port))
 (parentheses-synonyms (#(procedure #:clean) parentheses-synonyms (#!optional *) *))
-
-(port-name (#(procedure #:clean #:enforce) port-name (#!optional port) *)
-	   ((port) (##sys#slot #(1) '3)))
-
-(port-position (#(procedure #:clean #:enforce) port-position (#!optional port) fixnum fixnum))
-
-(port? (#(procedure #:pure #:predicate port) port? (*) boolean))
-
-(port-closed? (#(procedure #:clean #:enforce) port-closed? (port) boolean)
-	      ((port) (scheme#eq? (##sys#slot #(1) '8) '0)))
-
 
 ;; gc
 
@@ -1395,9 +1391,6 @@
 (chicken.repl#reset (procedure chicken.repl#reset () noreturn))
 (chicken.repl#reset-handler (#(procedure #:clean #:enforce) chicken.repl#reset-handler (#!optional (procedure () . *)) procedure))
 (chicken.repl#quit (procedure chicken.repl#quit (#!optional *) noreturn))
-
-(set-port-name! (#(procedure #:clean #:enforce) set-port-name! (port string) undefined)
-		((port string) (##sys#setslot #(1) '3 #(2))))
 
 
 (symbol-escape (#(procedure #:clean) symbol-escape (#!optional *) *))
@@ -1848,6 +1841,7 @@
  (forall (a b) (#(procedure #:enforce) chicken.port#port-map ((procedure (a) b) (procedure () a)) (list-of b))))
 
 (chicken.port#port-fold (#(procedure #:enforce) chicken.port#port-fold ((procedure (* *) *) * (procedure () *)) *))
+(chicken.port#port-position (#(procedure #:clean #:enforce) chicken.port#port-position (#!optional port) fixnum fixnum))
 (chicken.port#make-bidirectional-port (#(procedure #:clean #:enforce) chicken.port#make-bidirectional-port (input-port output-port) (refine (input output) port)))
 (chicken.port#make-broadcast-port (#(procedure #:clean #:enforce) chicken.port#make-broadcast-port (#!rest output-port) output-port))
 (chicken.port#make-concatenated-port (#(procedure #:clean #:enforce) chicken.port#make-concatenated-port (port #!rest input-port) input-port))
@@ -1858,6 +1852,14 @@
 (chicken.port#with-output-to-port (#(procedure #:enforce) chicken.port#with-output-to-port (output-port (procedure () . *)) . *))
 (chicken.port#with-output-to-string (#(procedure #:enforce) chicken.port#with-output-to-string ((procedure () . *)) string))
 (chicken.port#with-error-output-to-string (#(procedure #:enforce) chicken.port#with-error-output-to-string ((procedure () . *)) string))
+
+(chicken.port#port-name
+ (#(procedure #:clean #:enforce) chicken.port#port-name (#!optional port) *)
+ ((port) (##sys#slot #(1) '3)))
+
+(chicken.port#set-port-name!
+ (#(procedure #:clean #:enforce) chicken.port#set-port-name! (port string) undefined)
+ ((port string) (##sys#setslot #(1) '3 #(2))))
 
 ;; errno
 

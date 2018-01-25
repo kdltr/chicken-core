@@ -39,7 +39,11 @@
   (no-bound-checks)
   (no-procedure-checks))
 
-(import chicken scheme (chicken internal))
+(import (scheme)
+        (chicken base)
+        (chicken fixnum)
+        (chicken syntax)
+        (chicken internal))
 
 (include "common-declarations.scm")
 (include "mini-srfi-1.scm")
@@ -119,16 +123,16 @@
     (##sys#check-syntax ': x '(_ symbol _ . _))
     (if (not (memq #:compiling ##sys#features))
 	'(##core#undefined)
-	(let* ((type1 (chicken.syntax#strip-syntax (caddr x)))
+	(let* ((type1 (strip-syntax (caddr x)))
 	       (name1 (cadr x)))
 	  ;; we need pred/pure info, so not using
 	  ;; "chicken.compiler.scrutinizer#check-and-validate-type"
 	  (let-values (((type pred pure)
 			(chicken.compiler.scrutinizer#validate-type
 			 type1
-			 (chicken.syntax#strip-syntax name1))))
+			 (strip-syntax name1))))
 	    (cond ((not type)
-		   (chicken.syntax#syntax-error ': "invalid type syntax" name1 type1))
+		   (syntax-error ': "invalid type syntax" name1 type1))
 		  (else
 		   `(##core#declare
 		     (type (,name1 ,type1 ,@(cdddr x)))
@@ -165,7 +169,7 @@
 		  (args (cdr head))
 		  (alias (gensym name))
 		  (galias (##sys#globalize alias '())) ;XXX and this?
-		  (rtypes (and (pair? (cdddr x)) (chicken.syntax#strip-syntax (caddr x))))
+		  (rtypes (and (pair? (cdddr x)) (strip-syntax (caddr x))))
 		  (%define (r 'define))
 		  (body (if rtypes (cadddr x) (caddr x))))
 	     (let loop ((args args) (anames '()) (atypes '()))
@@ -212,7 +216,7 @@
 				  (cadr arg)
 				  'define-specialization)
 				 atypes)))
-			      (else (chicken.syntax#syntax-error
+			      (else (syntax-error
 				     'define-specialization
 				     "invalid argument syntax" arg head)))))))))))))
 
@@ -223,13 +227,13 @@
     (##sys#check-syntax 'compiler-typecase x '(_ _ . #((_ . #(_ 1)) 1)))
     (let ((val (memq #:compiling ##sys#features))
 	  (var (gensym))
-	  (ln (chicken.syntax#get-line-number x)))
+	  (ln (get-line-number x)))
       `(##core#let ((,var ,(cadr x)))
 	 (##core#typecase
 	  ,ln
 	  ,var		; must be variable (see: CPS transform)
 	  ,@(map (lambda (clause)
-		 (let ((hd (chicken.syntax#strip-syntax (car clause))))
+		 (let ((hd (strip-syntax (car clause))))
 		   (list
 		    (if (eq? hd 'else)
 			'else
@@ -248,9 +252,9 @@
     (##sys#check-syntax 'define-type x '(_ variable _))
     (cond ((not (memq #:compiling ##sys#features)) '(##core#undefined))
 	  (else
-	   (let ((name (chicken.syntax#strip-syntax (cadr x)))
+	   (let ((name (strip-syntax (cadr x)))
 		 (%quote (r 'quote))
-		 (t0 (chicken.syntax#strip-syntax (caddr x))))
+		 (t0 (strip-syntax (caddr x))))
 	     `(##core#elaborationtimeonly
 	       (##sys#put/restore!
 		(,%quote ,name)
@@ -324,7 +328,7 @@
 			       (null? (cddr slot)))
 			  (cadr slot))
 			 (else
-			  (chicken.syntax#syntax-error
+			  (syntax-error
 			   'define-record "invalid slot specification" slot))))
 		 slots)))
       `(##core#begin
@@ -683,7 +687,7 @@
 		  (when (or (not (pair? val)) 
 			    (and (not (eq? '##core#lambda (car val)))
 				 (not (c (r 'lambda) (car val)))))
-		    (chicken.syntax#syntax-error
+		    (syntax-error
 		     'define-inline "invalid substitution form - must be lambda"
 		     name val) )
 		  (list name val) ) ) ] )
@@ -1136,7 +1140,7 @@
 	  (%<...> (r '<...>))
 	  (%apply (r 'apply)))
       (when (null? (cdr form))
-        (chicken.syntax#syntax-error 'cut "you need to supply at least a procedure" form))
+        (syntax-error 'cut "you need to supply at least a procedure" form))
       (let loop ([xs (cdr form)] [vars '()] [vals '()] [rest #f])
 	(if (null? xs)
 	    (let ([rvars (reverse vars)]
@@ -1154,7 +1158,7 @@
 		  ((c %<...> (car xs))
 		   (if (null? (cdr xs))
 		       (loop '() vars vals #t)
-		       (chicken.syntax#syntax-error
+		       (syntax-error
 			'cut
 			"tail patterns after <...> are not supported"
 			form)))
@@ -1169,7 +1173,7 @@
 	  (%<> (r '<>))
 	  (%<...> (r '<...>)))
       (when (null? (cdr form))
-        (chicken.syntax#syntax-error 'cute "you need to supply at least a procedure" form))
+        (syntax-error 'cute "you need to supply at least a procedure" form))
       (let loop ([xs (cdr form)] [vars '()] [bs '()] [vals '()] [rest #f])
 	(if (null? xs)
 	    (let ([rvars (reverse vars)]
@@ -1188,7 +1192,7 @@
 		  ((c %<...> (car xs))
 		   (if (null? (cdr xs))
 		       (loop '() vars bs vals #t)
-		       (chicken.syntax#syntax-error
+		       (syntax-error
 			'cute
 			"tail patterns after <...> are not supported"
 			form)))
@@ -1265,7 +1269,7 @@
 	     (msg (optional msg-and-args "assertion failed"))
 	     (tmp (r 'tmp)))
 	(when (string? msg)
-	  (and-let* ((ln (chicken.syntax#get-line-number form)))
+	  (and-let* ((ln (get-line-number form)))
 	    (set! msg (string-append "(" ln ") " msg))))
 	`(##core#let ((,tmp ,exp))
 	   (##core#if (##core#check ,tmp)
@@ -1274,7 +1278,7 @@
 		       ,msg
 		       ,@(if (pair? msg-and-args)
 			     (cdr msg-and-args)
-			     `((##core#quote ,(chicken.syntax#strip-syntax exp))))))))))))
+			     `((##core#quote ,(strip-syntax exp))))))))))))
 
 (##sys#extend-macro-environment
  'ensure
@@ -1340,7 +1344,7 @@
 	   (cond ((null? clauses)
 		  '(##core#undefined))
 		 ((not (pair? clauses))
-		  (chicken.syntax#syntax-error 'select "invalid syntax" clauses))
+		  (syntax-error 'select "invalid syntax" clauses))
 		 (else
 		  (let ((clause (##sys#slot clauses 0))
 			(rclauses (##sys#slot clauses 1)))
@@ -1351,7 +1355,7 @@
 			  (else?
 			   (##sys#notice
 			    "non-`else' clause following `else' clause in `select'"
-			    (chicken.syntax#strip-syntax clause))
+			    (strip-syntax clause))
 			   (expand rclauses #t)
 			   '(##core#begin))
 			  (else

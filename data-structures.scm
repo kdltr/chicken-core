@@ -37,9 +37,12 @@
    substring=? substring-ci=?
    substring-index substring-index-ci)
 
-(import scheme chicken)
-(import chicken.foreign)
+(import scheme)
+(import chicken) ;; for string ports
+(import chicken.base)
 (import chicken.condition)
+(import chicken.fixnum)
+(import chicken.foreign)
 
 ; (reverse-string-append l) = (apply string-append (reverse l))
 

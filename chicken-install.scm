@@ -27,7 +27,7 @@
 (module main ()
 
 (import (scheme))
-(import (only chicken open-input-string flush-output))
+(import (chicken)) ;; for string ports
 (import (chicken base))
 (import (chicken condition))
 (import (chicken foreign))

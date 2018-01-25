@@ -47,10 +47,13 @@
    pathname-replace-file pathname-strip-directory
    pathname-strip-extension)
 
-(import chicken scheme
-        chicken.string
+(import scheme
+	chicken ;; for string ports
+        chicken.base
+        chicken.fixnum
         chicken.irregex
-	chicken.platform)
+        chicken.platform
+        chicken.string)
 
 (include "common-declarations.scm")
 

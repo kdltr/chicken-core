@@ -78,8 +78,9 @@ EOF
    subs8vector subu16vector subu8vector subu32vector subu64vector
    write-u8vector)
 
-(import scheme chicken)
-(import chicken.bitwise
+(import scheme
+	chicken.base
+	chicken.bitwise
 	chicken.fixnum
 	chicken.foreign
 	chicken.gc

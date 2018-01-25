@@ -583,6 +583,8 @@ EOF
    bignum? flonum? fixnum? ratnum? cplxnum? finite? infinite? nan?
    exact-integer? exact-integer-sqrt exact-integer-nth-root
 
+   port? port-closed? input-port-open? output-port-open? flush-output
+   get-output-string open-input-string open-output-string
    get-call-chain print print* add1 sub1 call/cc
    current-error-port error void gensym print-call-chain
    make-promise promise? char-name enable-warnings
@@ -664,6 +666,15 @@ EOF
 (define symbol-append)
 (define warning)
 (define notice)
+
+(define port?)
+(define port-closed?)
+(define input-port-open?)
+(define output-port-open?)
+(define get-output-string)
+(define open-input-string)
+(define open-output-string)
+(define flush-output)
 
 ;;; Promises:
 
@@ -3119,21 +3130,27 @@ EOF
 
 ;;; Ports:
 
-(define (port? x)
-  (and (##core#inline "C_blockp" x)
-       (##core#inline "C_portp" x)))
+(set! chicken.base#port?
+  (lambda (x)
+    (and (##core#inline "C_blockp" x)
+         (##core#inline "C_portp" x))))
 
-(define (input-port-open? p)
-  (##sys#check-input-port p 'input-port-open?)
-  (##core#inline "C_input_port_openp" p))
+(set! chicken.base#input-port-open?
+  (lambda (p)
+    (##sys#check-input-port p 'input-port-open?)
+    (##core#inline "C_input_port_openp" p)))
 
-(define (output-port-open? p)
-  (##sys#check-output-port p 'output-port-open?)
-  (##core#inline "C_output_port_openp" p))
+(set! chicken.base#output-port-open?
+  (lambda (p)
+    (##sys#check-output-port p 'output-port-open?)
+    (##core#inline "C_output_port_openp" p)))
 
-(define (port-closed? p)
-  (##sys#check-port p 'port-closed?)
-  (eq? (##sys#slot p 8) 0))
+(set! chicken.base#port-closed?
+  (lambda (p)
+    (##sys#check-port p 'port-closed?)
+    (eq? (##sys#slot p 8) 0)))
+
+;;; Custom ports:
 
 ;;; Port layout:
 ;
@@ -3444,28 +3461,14 @@ EOF
   ((##sys#slot (##sys#slot port 2) 5) port) ; flush-output
   (##core#undefined) )
 
-(define (flush-output #!optional (port ##sys#standard-output))
-  (##sys#check-output-port port #t 'flush-output)
-  (##sys#flush-output port) )
-
-(define (port-name #!optional (port ##sys#standard-input))
-  (##sys#check-port port 'port-name)
-  (##sys#slot port 3) )
-
-(define (set-port-name! port name)
-  (##sys#check-port port 'set-port-name!)
-  (##sys#check-string name 'set-port-name!)
-  (##sys#setslot port 3 name) )
+(set! chicken.base#flush-output
+  (lambda (#!optional (port ##sys#standard-output))
+    (##sys#check-output-port port #t 'flush-output)
+    (##sys#flush-output port)))
 
 (define (##sys#port-line port)
   (and (##core#inline "C_input_portp" port)
        (##sys#slot port 4) ) )
-
-(define (port-position #!optional (port ##sys#standard-input))
-  (##sys#check-port port 'port-position)
-  (if (##core#inline "C_input_portp" port)
-      (##sys#values (##sys#slot port 4) (##sys#slot port 5))
-      (##sys#error 'port-position "cannot compute position of port" port) ) )
 
 ;;; Decorate procedure with arbitrary data
 ;
@@ -4890,27 +4893,30 @@ EOF
 		 (values (fx+ pos 1) (copy&append buf offset pos line) #t))
 		(else (loop buf offset (fx+ pos 1) limit line)) ) ) ) ) )
 
-(define (open-input-string string)
-  (##sys#check-string string 'open-input-string)
-  (let ((port (##sys#make-port 1 ##sys#string-port-class "(string)" 'string)))
-    (##sys#setislot port 11 (##core#inline "C_block_size" string))
-    (##sys#setislot port 10 0)
-    (##sys#setslot port 12 string)
-    port ) )
+(set! chicken.base#open-input-string
+  (lambda (string)
+    (##sys#check-string string 'open-input-string)
+    (let ((port (##sys#make-port 1 ##sys#string-port-class "(string)" 'string)))
+      (##sys#setislot port 11 (##core#inline "C_block_size" string))
+      (##sys#setislot port 10 0)
+      (##sys#setslot port 12 string)
+      port)))
 
-(define (open-output-string)
-  (let ((port (##sys#make-port 2 ##sys#string-port-class "(string)" 'string)))
-    (##sys#setislot port 10 0)
-    (##sys#setislot port 11 output-string-initial-size)
-    (##sys#setslot port 12 (##sys#make-string output-string-initial-size))
-    port ) )
+(set! chicken.base#open-output-string
+  (lambda ()
+    (let ((port (##sys#make-port 2 ##sys#string-port-class "(string)" 'string)))
+      (##sys#setislot port 10 0)
+      (##sys#setislot port 11 output-string-initial-size)
+      (##sys#setslot port 12 (##sys#make-string output-string-initial-size))
+      port)))
 
-(define (get-output-string port)
-  (##sys#check-output-port port #f 'get-output-string)
-  (if (not (eq? 'string (##sys#slot port 7)))
-      (##sys#signal-hook
-       #:type-error 'get-output-string "argument is not a string-output-port" port) 
-      (##sys#substring (##sys#slot port 12) 0 (##sys#slot port 10)) ) )
+(set! chicken.base#get-output-string
+  (lambda (port)
+    (##sys#check-output-port port #f 'get-output-string)
+    (if (not (eq? 'string (##sys#slot port 7)))
+        (##sys#signal-hook
+         #:type-error 'get-output-string "argument is not a string-output-port" port)
+        (##sys#substring (##sys#slot port 12) 0 (##sys#slot port 10)))))
 
 (define ##sys#print-to-string
   (let ([get-output-string get-output-string]
@@ -5069,7 +5075,6 @@ EOF
      condition-property-accessor get-condition-property)
 
 (import scheme chicken.base chicken.fixnum chicken.foreign)
-(import (only chicken get-output-string open-output-string))
 (import chicken.internal.syntax)
 
 (define (##sys#signal-hook mode msg . args)

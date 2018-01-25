@@ -35,7 +35,11 @@
 (module chicken.compiler.batch-driver
     (compile-source-file)
 
-(import chicken scheme
+(import (only chicken case-sensitive keyword-style parentheses-synonyms symbol-escape))
+
+(import scheme
+	chicken.base
+	chicken.fixnum
 	chicken.format
 	chicken.gc
 	chicken.internal

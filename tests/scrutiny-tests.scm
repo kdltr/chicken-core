@@ -132,7 +132,7 @@
 
 ;; Checking whether reported line numbers inside modules are correct
 (module foo (blabla)
-  (import chicken scheme)
+  (import scheme)
   (define (blabla)
     (+ 1 'x)))
 
@@ -140,7 +140,7 @@
 ;;
 ;; Custom types defined in modules need to be resolved during canonicalization
 (module bar ()
-  (import chicken scheme)
+  (import scheme chicken.type)
   (define-type footype string)
   (the footype "bar"))
 

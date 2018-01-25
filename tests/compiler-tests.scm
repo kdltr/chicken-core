@@ -22,7 +22,7 @@
 ;; test hiding of unexported toplevel variables
 
 (module foo (bar)
-  (import scheme chicken)
+  (import scheme chicken.base)
   (declare (hide bar))
   (define (bar x) (+ x 1)))
 
@@ -53,7 +53,7 @@
 (module
  x
  (bar)
- (import scheme chicken chicken.foreign)
+ (import scheme chicken.base chicken.foreign)
 
  (define (bar n)
   (let-location ((off integer 0))
@@ -111,8 +111,8 @@
 (foreign-declare "enum intlimits {min=INT_MIN, zero=0, max=INT_MAX};")
 
 (module foo ()
-  (import chicken scheme chicken.foreign) ; "chicken" includes an export for "void"
-  
+  (import scheme chicken.base chicken.foreign)
+
   (let-syntax ((fl
                 (syntax-rules ()
                   ((_)
@@ -148,7 +148,7 @@
 ;; Unused arguments in foreign callback wrappers are not optimized away (#584)
 (module bla (foo)
 
-(import chicken scheme chicken.foreign)
+(import scheme (only chicken assert) chicken.base chicken.foreign)
 
 (define-external
   (blabla (int a) (c-string b) (int c) (int d) (c-string e) (int f))
@@ -417,7 +417,7 @@
 ;; procedures not getting replaced with explicitly consed rest
 ;; list when the procedures themselves were hidden.
 (module explicitly-consed-rest-args-bug (do-it also-do-it)
- (import scheme chicken)
+ (import scheme chicken.base chicken.type)
 
  (: get-value (* * #!rest * --> *))
  (define (get-value x y . rest)

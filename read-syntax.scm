@@ -33,7 +33,7 @@
   (copy-read-table current-read-table define-reader-ctor set-read-syntax!
    set-sharp-read-syntax! set-parameterized-read-syntax!)
 
-(import scheme chicken chicken.internal chicken.platform)
+(import scheme chicken.base chicken.internal chicken.platform)
 
 (include "common-declarations.scm")
 

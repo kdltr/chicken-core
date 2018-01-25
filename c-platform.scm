@@ -165,7 +165,8 @@
     chicken.base#current-error-port
     chicken.base#symbol-append chicken.base#foldl chicken.base#foldr
     chicken.base#setter chicken.base#getter-with-setter
-    chicken.base#equal=? chicken.base#exact-integer? flush-output
+    chicken.base#equal=? chicken.base#exact-integer?
+    chicken.base#flush-output
 
     chicken.base#identity chicken.base#o chicken.base#atom?
     chicken.base#alist-ref chicken.base#rassoc
@@ -503,7 +504,7 @@
 (rewrite 'scheme#pair? 2 1 "C_i_pairp" #t)
 (rewrite '##sys#pair? 2 1 "C_i_pairp" #t)
 (rewrite 'scheme#procedure? 2 1 "C_i_closurep" #t)
-(rewrite 'scheme#port? 2 1 "C_i_portp" #t)
+(rewrite 'chicken.base#port? 2 1 "C_i_portp" #t)
 (rewrite 'scheme#boolean? 2 1 "C_booleanp" #t)
 (rewrite 'scheme#number? 2 1 "C_i_numberp" #t)
 (rewrite 'scheme#complex? 2 1 "C_i_numberp" #t)

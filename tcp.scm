@@ -143,8 +143,10 @@ EOF
    tcp-listener-fileno tcp-port-numbers tcp-buffer-size tcp-read-timeout
    tcp-write-timeout tcp-accept-timeout tcp-connect-timeout)
 
-(import scheme chicken)
-(import chicken.foreign
+(import scheme
+	chicken.base
+	chicken.fixnum
+	chicken.foreign
 	chicken.port
 	chicken.time)
 

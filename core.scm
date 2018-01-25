@@ -322,13 +322,14 @@
      line-number-database-size)
 
 (import scheme
-	(only chicken open-output-string get-output-string file-exists?)
+	chicken ;; for string ports
 	chicken.base
 	chicken.condition
 	chicken.compiler.scrutinizer
 	chicken.compiler.support
 	chicken.eval
 	chicken.fixnum
+	chicken.file
 	chicken.foreign
 	chicken.format
 	chicken.internal

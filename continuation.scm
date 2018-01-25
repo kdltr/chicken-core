@@ -36,7 +36,7 @@
    continuation-graft
    continuation-return)
 
-(import scheme chicken)
+(import scheme chicken.base chicken.fixnum)
 
 (include "common-declarations.scm")
 

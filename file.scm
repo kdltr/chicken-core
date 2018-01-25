@@ -82,7 +82,12 @@ EOF
    socket?
    symbolic-link?)
 
-(import chicken scheme
+(import (only chicken file-exists? directory-exists?))
+
+(import scheme
+	chicken.base
+	chicken.condition
+	chicken.fixnum
 	chicken.foreign
 	chicken.io
 	chicken.irregex

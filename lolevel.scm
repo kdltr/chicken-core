@@ -51,8 +51,7 @@ EOF
    pointer-vector-set! pointer-vector? pointer=? pointer? tag-pointer
    tagged-pointer?)
 
-(import scheme chicken)
-(import chicken.foreign)
+(import scheme chicken.base chicken.fixnum chicken.foreign)
 
 
 ;;; Helpers:
@@ -415,8 +414,7 @@ EOF
    record-instance-slot-set! record-instance-type record-instance?
    set-procedure-data! vector-like?)
 
-(import scheme chicken)
-(import chicken.foreign)
+(import scheme chicken.base chicken.fixnum chicken.foreign)
 
 
 ;;; Copy arbitrary object:
@@ -560,7 +558,7 @@ EOF
   (locative? make-locative make-weak-locative
    locative-ref locative-set! locative->object)
 
-(import scheme chicken)
+(import scheme chicken.base)
 
 ;;; locatives:
 

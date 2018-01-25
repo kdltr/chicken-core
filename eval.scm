@@ -47,13 +47,15 @@
 (module chicken.eval
   (eval-handler module-environment)
 
-;; Exclude bindings defined within this module.
 (import scheme
-	(except chicken eval-handler)
+	chicken ;; for string ports
+	chicken.base
 	chicken.blob
+	chicken.fixnum
 	chicken.internal
 	chicken.keyword
-	chicken.syntax)
+	chicken.syntax
+	chicken.type)
 
 (include "common-declarations.scm")
 
@@ -884,10 +886,14 @@
    provide provided? require)
 
 (import scheme
-	chicken
+	chicken ; file-exists? and output string stuff
+	chicken.base
 	chicken.eval
+	chicken.fixnum
 	chicken.foreign
-	chicken.internal)
+	chicken.internal
+	chicken.platform
+	chicken.time)
 
 (include "mini-srfi-1.scm")
 
@@ -1382,7 +1388,7 @@
 
 ;;; Simple invocation API:
 
-(import chicken scheme chicken.eval chicken.load chicken.condition)
+(import scheme chicken.base chicken.condition chicken.eval chicken.fixnum chicken.load)
 
 (declare
   (hide last-error run-safe store-result store-string

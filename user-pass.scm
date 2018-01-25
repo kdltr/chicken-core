@@ -32,7 +32,7 @@
    user-pass
    user-post-analysis-pass)
 
-(import scheme chicken)
+(import scheme chicken.base)
 
 (define user-options-pass (make-parameter #f))
 (define user-read-pass (make-parameter #f))

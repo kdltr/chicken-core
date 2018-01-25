@@ -34,7 +34,8 @@
    read-lines read-string read-string! read-token
    write-byte write-line write-string)
 
-(import scheme chicken)
+(import chicken) ;; for string ports
+(import scheme chicken.base chicken.fixnum)
 
 (include "common-declarations.scm")
 
@@ -248,8 +249,7 @@
 (module chicken.pretty-print
   (pp pretty-print pretty-print-width)
 
-(import scheme chicken
-	chicken.string)
+(import scheme chicken chicken.base chicken.fixnum chicken.string)
 
 (define generic-write
   (lambda (obj display? width output)
@@ -564,7 +564,7 @@
 (module chicken.format
   (format fprintf printf sprintf)
 
-(import scheme chicken chicken.platform)
+(import scheme chicken chicken.base chicken.fixnum chicken.platform)
 
 (define fprintf0
   (lambda (loc port msg args)
@@ -646,7 +646,7 @@
 (module chicken.random
   (set-pseudo-random-seed! pseudo-random-integer pseudo-random-real random-bytes)
 
-(import scheme chicken chicken.time chicken.io chicken.foreign)
+(import scheme chicken.base chicken.time chicken.io chicken.foreign)
 
 (define (set-pseudo-random-seed! buf #!optional n)
   (cond (n (##sys#check-fixnum n 'set-pseudo-random-seed!)
@@ -694,3 +694,7 @@
         dest))))
 
 )
+
+;; OBSOLETE - remove after next bootstrapping snapshot
+(##sys#setslot 'get-output-string 0 chicken.base#get-output-string)
+(##sys#setslot 'open-output-string 0 chicken.base#open-output-string)

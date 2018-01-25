@@ -43,7 +43,7 @@
 (module
  m4
  (foo-m4)
- (import chicken scheme) 
+ (import scheme chicken.base)
  (define-syntax foo-m4
    (ir-macro-transformer
     (lambda (e i c)

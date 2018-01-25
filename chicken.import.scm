@@ -63,7 +63,7 @@
    (fixnum-precision . chicken.fixnum#fixnum-precision)
    (fixnum? . chicken.base#fixnum?)
    (flonum? . chicken.base#flonum?)
-   flush-output
+   (flush-output . chicken.base#flush-output)
    (foldl . chicken.base#foldl)
    (foldr . chicken.base#foldr)
    (force-finalizers . chicken.gc#force-finalizers)
@@ -96,11 +96,10 @@
    (get-call-chain . chicken.base#get-call-chain)
    (get-condition-property . chicken.condition#get-condition-property)
    (get-line-number . chicken.syntax#get-line-number)
-   get-output-string
+   (get-output-string . chicken.base#get-output-string)
    (getter-with-setter . chicken.base#getter-with-setter)
    (implicit-exit-handler . chicken.base#implicit-exit-handler)
    (infinite? . chicken.base#infinite?)
-   input-port-open?
    (installation-repository . chicken.platform#installation-repository)
    (ir-macro-transformer . chicken.syntax#ir-macro-transformer)
    keyword-style
@@ -108,6 +107,9 @@
    (load-noisily . chicken.load#load-noisily)
    (load-relative . chicken.load#load-relative)
    (load-verbose . chicken.load#load-verbose)
+   (open-input-string . chicken.base#open-input-string)
+   (open-output-string . chicken.base#open-output-string)
+   (port? . chicken.base#port?)
    (machine-byte-order . chicken.platform#machine-byte-order)
    (machine-type . chicken.platform#machine-type)
    (make-composite-condition . chicken.condition#make-composite-condition)
@@ -119,14 +121,7 @@
    (nan? . chicken.base#nan?)
    (notice . chicken.base#notice)
    (on-exit . chicken.base#on-exit)
-   open-input-string
-   open-output-string
-   output-port-open?
    parentheses-synonyms
-   port-closed?
-   port-name
-   port-position
-   port?
    (provide . chicken.load#provide)
    (provided? . chicken.load#provided?)
    (print . chicken.base#print)
@@ -141,7 +136,6 @@
    (repository-path . chicken.platform#repository-path)
    (require . chicken.load#require)
    (return-to-host . chicken.platform#return-to-host)
-   set-port-name!
    (setter . chicken.base#setter)
    (signal . chicken.condition#signal)
    (signum . chicken.base#signum)

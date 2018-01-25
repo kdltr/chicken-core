@@ -14,7 +14,7 @@
 		     min-ec max-ec last-ec first-ec
 		     ec-guarded-do-ec any?-ec every?-ec)
 
-(import scheme (except chicken :))
+(import scheme chicken.base)
 
 ; <PLAINTEXT>
 ; Eager Comprehensions in [outer..inner|expr]-Convention

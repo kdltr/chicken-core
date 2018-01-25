@@ -35,7 +35,6 @@
      match-types refine-types type<=?)
 
 (import scheme
-	(only chicken file-exists?) ; Should this depend on "file"?
 	chicken.base
 	chicken.compiler.support
 	chicken.fixnum
@@ -1706,7 +1705,7 @@
   (define (pure! name)
     (when specialize (mark-variable name '##compiler#pure #t)))
   (and-let* ((dbfile (if (not path)
-			 (file-exists? name)
+			 (and (##sys#file-exists? name #t #f #f) name)
 			 (chicken.load#find-file name path))))
     (debugging 'p (sprintf "loading type database `~a' ...~%" dbfile))
     (fluid-let ((scrutiny-debug #f))

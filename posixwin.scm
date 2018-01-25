@@ -709,7 +709,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 			       (eq? (string-ref tmpl i) #\X))
 			  (loop (fx- i 1))
 			  (fx+ i 1)))))
-      (cond ((not (directory-exists? (or (pathname-directory template) ".")))
+      (cond ((not (##sys#file-exists? (or (pathname-directory template) ".") #f #t 'file-mkstemp))
 	     ;; Quit early instead of looping needlessly with C_open
 	     ;; failing every time.  This is a race condition, but not
 	     ;; a security-critical one.

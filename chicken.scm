@@ -34,11 +34,13 @@
 
 (module chicken.compiler.chicken ()
 
-(import scheme chicken
+(import scheme
+	chicken.base
 	chicken.compiler.batch-driver
 	chicken.compiler.c-platform
 	chicken.compiler.support
 	chicken.compiler.user-pass
+	chicken.fixnum
 	chicken.process-context
 	chicken.string)
 

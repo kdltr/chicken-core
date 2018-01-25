@@ -39,8 +39,10 @@
 (module chicken.compiler.lfa2
     (perform-secondary-flow-analysis)
 
-(import chicken scheme
+(import scheme
+	chicken.base
 	chicken.compiler.support
+	chicken.fixnum
 	chicken.format)
 
 (include "tweaks")

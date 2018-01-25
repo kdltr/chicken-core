@@ -42,13 +42,16 @@
    copy-port
    make-input-port
    make-output-port
+   port-fold
    port-for-each
    port-map
-   port-fold
+   port-name
+   port-position
    make-bidirectional-port
    make-broadcast-port
    make-concatenated-port
    set-buffering-mode!
+   set-port-name!
    with-error-output-to-port
    with-input-from-port
    with-input-from-string
@@ -56,8 +59,11 @@
    with-output-to-string
    with-error-output-to-string)
 
-(import scheme chicken)
-(import chicken.foreign
+(import scheme
+	chicken ;; for string ports
+	chicken.base
+	chicken.fixnum
+	chicken.foreign
 	chicken.io)
 
 (include "common-declarations.scm")
@@ -66,6 +72,21 @@
 (define-foreign-variable _iolbf int "_IOLBF")
 (define-foreign-variable _ionbf int "_IONBF")
 (define-foreign-variable _bufsiz int "BUFSIZ")
+
+(define (port-name #!optional (port ##sys#standard-input))
+  (##sys#check-port port 'port-name)
+  (##sys#slot port 3))
+
+(define (set-port-name! port name)
+  (##sys#check-port port 'set-port-name!)
+  (##sys#check-string name 'set-port-name!)
+  (##sys#setslot port 3 name))
+
+(define (port-position #!optional (port ##sys#standard-input))
+  (##sys#check-port port 'port-position)
+  (if (##core#inline "C_input_portp" port)
+      (##sys#values (##sys#slot port 4) (##sys#slot port 5))
+      (##sys#error 'port-position "cannot compute position of port" port)))
 
 (define (set-buffering-mode! port mode . size)
   (##sys#check-port port 'set-buffering-mode!)
