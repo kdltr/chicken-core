@@ -1789,8 +1789,6 @@ C_fctexport C_word C_fcall C_pair(C_word **ptr, C_word car, C_word cdr) C_regpar
 C_fctexport C_word C_fcall C_number(C_word **ptr, double n) C_regparm;
 C_fctexport C_word C_fcall C_mpointer(C_word **ptr, void *mp) C_regparm;
 C_fctexport C_word C_fcall C_mpointer_or_false(C_word **ptr, void *mp) C_regparm;
-C_fctexport C_word C_fcall C_mpointer(C_word **ptr, void *mp) C_regparm;
-C_fctexport C_word C_fcall C_mpointer_or_false(C_word **ptr, void *mp) C_regparm;
 C_fctexport C_word C_fcall C_taggedmpointer(C_word **ptr, C_word tag, void *mp) C_regparm;
 C_fctexport C_word C_fcall C_taggedmpointer_or_false(C_word **ptr, C_word tag, void *mp) C_regparm;
 C_fctexport C_word C_vector(C_word **ptr, int n, ...);
