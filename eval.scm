@@ -1388,6 +1388,7 @@
 
 ;;; Simple invocation API:
 
+(import chicken) ; for string ports (can be removed after bootstrapping)
 (import scheme chicken.base chicken.condition chicken.eval chicken.fixnum chicken.load)
 
 (declare
