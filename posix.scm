@@ -80,7 +80,6 @@
    signal/usr1 signal/usr2 signal/vtalrm signal/winch signal/xcpu
    signal/xfsz signals-list socket? spawn/detach spawn/nowait
    spawn/nowaito spawn/overlay spawn/wait string->time symbolic-link?
-   terminal-name terminal-port? terminal-size
    time->string user-information
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 

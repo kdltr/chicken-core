@@ -260,29 +260,6 @@ C_tm_get( C_word v, void *tm )
 #define C_strptime(s, f, v, stm) \
         (strptime(C_c_string(s), C_c_string(f), ((struct tm *)(stm))) ? C_tm_get((v), (stm)) : C_SCHEME_FALSE)
 
-#if !defined(__ANDROID__) && defined(TIOCGWINSZ)
-static int get_tty_size(int p, int *rows, int *cols)
-{
- struct winsize tty_size;
- int r;
-
- memset(&tty_size, 0, sizeof tty_size);
-
- r = ioctl(p, TIOCGWINSZ, &tty_size);
- if (r == 0) {
-    *rows = tty_size.ws_row;
-    *cols = tty_size.ws_col;
- }
- return r;
-}
-#else
-static int get_tty_size(int p, int *rows, int *cols)
-{
- *rows = *cols = 0;
- return -1;
-}
-#endif
-
 static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 {
   struct stat sb;
@@ -1234,39 +1211,6 @@ static C_word C_i_fifo_p(C_word name)
 
 (define set-alarm! (foreign-lambda int "C_alarm" int))
 
-(define (terminal-port? port)
-  (##sys#check-open-port port 'terminal-port?)
-  (let ([fp (##sys#peek-unsigned-integer port 0)])
-    (and (not (eq? 0 fp)) (##core#inline "C_tty_portp" port) ) ) )
-
-(define (##sys#terminal-check caller port)
-  (##sys#check-open-port port caller)
-  (unless (and (eq? 'stream (##sys#slot port 7))
-	       (##core#inline "C_tty_portp" port))
-	  (##sys#error caller "port is not connected to a terminal" port)))
-
-(define terminal-name
-  (let ([ttyname (foreign-lambda nonnull-c-string "ttyname" int)] )
-    (lambda (port)
-      (##sys#terminal-check 'terminal-name port)
-      (ttyname (##core#inline "C_C_fileno" port) ) ) ) )
-
-(define terminal-size
-  (let ((ttysize (foreign-lambda int "get_tty_size" int
-				 (nonnull-c-pointer int)
-				 (nonnull-c-pointer int))))
-    (lambda (port)
-      (##sys#terminal-check 'terminal-size port)
-      (let-location ((columns int)
-		     (rows int))
-	(if (fx= 0
-		 (ttysize (##core#inline "C_C_fileno" port)
-			  (location columns)
-			  (location rows)))
-	    (values columns rows)
-	    (posix-error #:error 'terminal-size
-			 "Unable to get size of terminal" port))))))
-  
 
 ;;; Process handling:
 

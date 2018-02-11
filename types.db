@@ -1861,6 +1861,10 @@
  (#(procedure #:clean #:enforce) chicken.port#set-port-name! (port string) undefined)
  ((port string) (##sys#setslot #(1) '3 #(2))))
 
+(chicken.port#terminal-name (#(procedure #:clean #:enforce) chicken.port#terminal-name (port) string))
+(chicken.port#terminal-port? (#(procedure #:clean #:enforce) chicken.port#terminal-port? (port) boolean))
+(chicken.port#terminal-size (#(procedure #:clean #:enforce) chicken.port#terminal-size (port) fixnum fixnum))
+
 ;; errno
 
 (chicken.errno#errno/2big fixnum)
@@ -2089,9 +2093,6 @@
 (chicken.posix#socket? (#(procedure #:clean #:enforce) chicken.posix#socket? ((or string fixnum)) boolean))
 (chicken.posix#string->time (#(procedure #:clean #:enforce) chicken.posix#string->time (string #!optional string) (vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)))
 (chicken.posix#symbolic-link? (#(procedure #:clean #:enforce) chicken.posix#symbolic-link? ((or string fixnum)) boolean))
-(chicken.posix#terminal-name (#(procedure #:clean #:enforce) chicken.posix#terminal-name (port) string))
-(chicken.posix#terminal-port? (#(procedure #:clean #:enforce) chicken.posix#terminal-port? (port) boolean))
-(chicken.posix#terminal-size (#(procedure #:clean #:enforce) chicken.posix#terminal-size (port) fixnum fixnum))
 (chicken.posix#time->string (#(procedure #:clean #:enforce) chicken.posix#time->string ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum) #!optional string) string))
 (chicken.posix#user-information (#(procedure #:clean #:enforce) chicken.posix#user-information ((or string fixnum) #!optional *) *))
 (chicken.posix#utc-time->seconds (#(procedure #:clean #:enforce) chicken.posix#utc-time->seconds ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)) integer))

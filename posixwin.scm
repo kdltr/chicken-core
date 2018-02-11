@@ -46,7 +46,6 @@
 ; prot/...
 ; map/...
 ; set-alarm!
-; terminal-name
 ; process-fork	process-wait
 ; parent-process-id
 ; process-signal
@@ -951,18 +950,6 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
    "C_return(z);") )
 
 
-;;; Other things:
-
-(define (terminal-port? port)
-  (##sys#check-open-port port 'terminal-port?)
-  (let ([fp (##sys#peek-unsigned-integer port 0)])
-    (and (not (eq? 0 fp)) (##core#inline "C_tty_portp" port) ) ) )
-
-(define (terminal-size port)
-  (if (terminal-port? port)
-      (values 0 0)
-      (##sys#error 'terminal-size "port is not connected to a terminal" port)))
-
 ;;; Process handling:
 
 (define-foreign-variable _p_overlay int "P_OVERLAY")
@@ -1171,7 +1158,6 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (define-unimplemented signal-mask!)
 (define-unimplemented signal-masked?)
 (define-unimplemented signal-unmask!)
-(define-unimplemented terminal-name)
 (define-unimplemented user-information)
 (define-unimplemented utc-time->seconds)
 (define-unimplemented string->time)

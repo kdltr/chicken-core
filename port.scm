@@ -52,6 +52,9 @@
    make-concatenated-port
    set-buffering-mode!
    set-port-name!
+   terminal-name
+   terminal-port?
+   terminal-size
    with-error-output-to-port
    with-input-from-port
    with-input-from-string
@@ -67,6 +70,49 @@
 	chicken.io)
 
 (include "common-declarations.scm")
+
+#>
+
+#if !defined(_WIN32)
+# include <sys/ioctl.h>
+# include <termios.h>
+#endif
+
+#define C_C_fileno(p)       C_fix(fileno(C_port_file(p)))
+
+#if !defined(__ANDROID__) && defined(TIOCGWINSZ)
+static int get_tty_size(int fd, int *rows, int *cols)
+{
+  struct winsize tty_size;
+  int r;
+
+  memset(&tty_size, 0, sizeof tty_size);
+
+  r = ioctl(fd, TIOCGWINSZ, &tty_size);
+  if (r == 0) {
+     *rows = tty_size.ws_row;
+     *cols = tty_size.ws_col;
+  }
+  return r;
+}
+#else
+static int get_tty_size(int fd, int *rows, int *cols)
+{
+  *rows = *cols = 0;
+  errno = ENOSYS;
+  return -1;
+}
+#endif
+
+#if defined(_WIN32) && !defined(__CYGWIN__)
+char *ttyname(int fd) {
+  errno = ENOSYS;
+  return NULL;
+}
+#endif
+
+<#
+
 
 (define-foreign-variable _iofbf int "_IOFBF")
 (define-foreign-variable _iolbf int "_IOLBF")
@@ -361,5 +407,48 @@
 	 (port (##sys#make-port 3 class "(bidirectional)" 'bidirectional)))
     (##sys#set-port-data! port (vector #f))
     port))
+
+;; Duplication from posix-common.scm
+(define posix-error
+  (let ((strerror (foreign-lambda c-string "strerror" int))
+	(string-append string-append))
+    (lambda (type loc msg . args)
+      (let ((rn (##sys#update-errno)))
+	(apply ##sys#signal-hook type loc (string-append msg " - " (strerror rn)) args)))))
+
+;; Terminal ports
+(define (terminal-port? port)
+  (##sys#check-open-port port 'terminal-port?)
+  (let ((fp (##sys#peek-unsigned-integer port 0)))
+    (and (not (eq? 0 fp)) (##core#inline "C_tty_portp" port))))
+
+(define (check-terminal! caller port)
+  (##sys#check-open-port port caller)
+  (unless (and (eq? 'stream (##sys#slot port 7))
+	       (##core#inline "C_tty_portp" port))
+    (##sys#error caller "port is not connected to a terminal" port)))
+
+(define terminal-name
+  (let ((ttyname (foreign-lambda c-string "ttyname" int)))
+    (lambda (port)
+      (check-terminal! 'terminal-name port)
+      (or (ttyname (##core#inline "C_C_fileno" port))
+	  (posix-error #:error 'terminal-name
+		       "cannot determine terminal name" port)))))
+
+(define terminal-size
+  (let ((ttysize (foreign-lambda int "get_tty_size" int
+				 (nonnull-c-pointer int)
+				 (nonnull-c-pointer int))))
+    (lambda (port)
+      (check-terminal! 'terminal-size port)
+      (let-location ((columns int)
+		     (rows int))
+	(if (fx= 0 (ttysize (##core#inline "C_C_fileno" port)
+			    (location columns)
+			    (location rows)))
+	    (values columns rows)
+	    (posix-error #:error 'terminal-size
+			 "cannot determine terminal size" port))))))
 
 )
