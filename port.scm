@@ -78,8 +78,6 @@
 # include <termios.h>
 #endif
 
-#define C_C_fileno(p)       C_fix(fileno(C_port_file(p)))
-
 #if !defined(__ANDROID__) && defined(TIOCGWINSZ)
 static int get_tty_size(int fd, int *rows, int *cols)
 {
@@ -432,7 +430,7 @@ char *ttyname(int fd) {
   (let ((ttyname (foreign-lambda c-string "ttyname" int)))
     (lambda (port)
       (check-terminal! 'terminal-name port)
-      (or (ttyname (##core#inline "C_C_fileno" port))
+      (or (ttyname (##core#inline "C_port_fileno" port))
 	  (posix-error #:error 'terminal-name
 		       "cannot determine terminal name" port)))))
 
@@ -444,7 +442,7 @@ char *ttyname(int fd) {
       (check-terminal! 'terminal-size port)
       (let-location ((columns int)
 		     (rows int))
-	(if (fx= 0 (ttysize (##core#inline "C_C_fileno" port)
+	(if (fx= 0 (ttysize (##core#inline "C_port_fileno" port)
 			    (location columns)
 			    (location rows)))
 	    (values columns rows)

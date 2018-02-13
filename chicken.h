@@ -1033,6 +1033,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_mk_bool(x)               ((x) ? C_SCHEME_TRUE : C_SCHEME_FALSE)
 #define C_mk_nbool(x)              ((x) ? C_SCHEME_FALSE : C_SCHEME_TRUE)
 #define C_port_file(p)             C_CHECKp(p,C_portp(C_VAL1(p)),(C_FILEPTR)C_block_item(C_VAL1(p), 0))
+#define C_port_fileno(p)           C_fix(C_fileno(C_port_file(p)))
 #define C_data_pointer(b)          C_CHECKp(b,C_blockp((C_word)C_VAL1(b)),(void *)(((C_SCHEME_BLOCK *)(C_VAL1(b)))->data))
 #define C_bignum_negativep(b)      C_CHECKp(b,C_bignump(C_VAL1(b)),(C_block_item(C_internal_bignum_vector(C_VAL1(b)),0)!=0))
 #define C_bignum_digits(b)         C_CHECKp(b,C_bignump(C_VAL1(b)),(((C_uword *)C_data_pointer(C_internal_bignum_vector(C_VAL1(b))))+1))

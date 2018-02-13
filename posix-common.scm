@@ -92,7 +92,6 @@ static char C_time_string [TIME_STRING_MAXLENGTH + 1];
 #define C_asctime(v, tm)    (asctime(C_tm_set((v), (tm))))
 
 #define C_fdopen(a, n, fd, m) C_mpointer(a, fdopen(C_unfix(fd), C_c_string(m)))
-#define C_C_fileno(p)       C_fix(fileno(C_port_file(p)))
 #define C_dup(x)            C_fix(dup(C_unfix(x)))
 #define C_dup2(x, y)        C_fix(dup2(C_unfix(x), C_unfix(y)))
 
@@ -436,7 +435,7 @@ EOF
 	   ;; Peter agrees with that. I think. Have a nice day.
 	   (##sys#slot (##sys#port-data port) 0) ]
           [(not (zero? (##sys#peek-unsigned-integer port 0)))
-           (let ([fd (##core#inline "C_C_fileno" port)])
+           (let ([fd (##core#inline "C_port_fileno" port)])
              (when (fx< fd 0)
                (posix-error #:file-error 'port->fileno "cannot access file-descriptor of port" port) )
              fd) ]
