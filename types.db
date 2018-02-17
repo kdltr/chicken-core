@@ -990,6 +990,11 @@
 (chicken.base#string->uninterned-symbol (#(procedure #:clean #:enforce) chicken.base#string->uninterned-symbol (string) symbol))
 (chicken.base#symbol-append (#(procedure #:clean #:enforce #:foldable) chicken.base#symbol-append (#!rest symbol) symbol))
 
+(chicken.base#case-sensitive (#(procedure #:clean) chicken.base#case-sensitive (#!optional *) *))
+(chicken.base#keyword-style (#(procedure #:clean) chicken.base#keyword-style (#!optional symbol) symbol))
+(chicken.base#parentheses-synonyms (#(procedure #:clean) chicken.base#parentheses-synonyms (#!optional *) *))
+(chicken.base#symbol-escape (#(procedure #:clean) chicken.base#symbol-escape (#!optional *) *))
+
 (chicken.base#quotient&remainder (#(procedure #:clean #:enforce #:foldable) chicken.base#quotient&remainder ((or integer float) (or integer float)) (or integer float) (or integer float))
 	  ((float float) (float float)
 	   (let ((#(tmp1) #(1)))
@@ -1113,8 +1118,6 @@
 (chicken.blob#make-blob (#(procedure #:clean #:enforce) chicken.blob#make-blob (fixnum) blob)
 	   ((fixnum) (##sys#make-blob #(1))))
 (chicken.blob#string->blob (#(procedure #:clean #:enforce) chicken.blob#string->blob (string) blob))
-
-(case-sensitive (#(procedure #:clean) case-sensitive (#!optional *) *))
 
 ;; condition
 
@@ -1369,13 +1372,10 @@
 (chicken.plist#symbol-plist (#(procedure #:clean #:enforce) chicken.plist#symbol-plist (symbol) list)
 			    ((symbol) (##sys#slot #(1) '2)))
 
-(keyword-style (#(procedure #:clean) keyword-style (#!optional symbol) symbol))
-
 (chicken.flonum#maximum-flonum float)
 (chicken.flonum#minimum-flonum float)
 (chicken.fixnum#most-negative-fixnum fixnum)
 (chicken.fixnum#most-positive-fixnum fixnum)
-(parentheses-synonyms (#(procedure #:clean) parentheses-synonyms (#!optional *) *))
 
 ;; gc
 
@@ -1392,8 +1392,6 @@
 (chicken.repl#reset-handler (#(procedure #:clean #:enforce) chicken.repl#reset-handler (#!optional (procedure () . *)) procedure))
 (chicken.repl#quit (procedure chicken.repl#quit (#!optional *) noreturn))
 
-
-(symbol-escape (#(procedure #:clean) symbol-escape (#!optional *) *))
 
 (##sys#void (#(procedure #:pure) void (#!rest) undefined))
 

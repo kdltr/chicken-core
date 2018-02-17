@@ -596,6 +596,8 @@ EOF
    compress flatten intersperse join list-of? tail? constantly
    complement compose conjoin disjoin each flip identity o
 
+   case-sensitive keyword-style parentheses-synonyms symbol-escape
+
    on-exit exit exit-handler implicit-exit-handler emergency-exit
    )
 
@@ -721,6 +723,12 @@ EOF
   (##sys#check-fixnum code 'emergency-exit)
   (##core#inline "C_exit_runtime" code))
 
+;;; Parameters:
+
+(define case-sensitive)
+(define keyword-style)
+(define parentheses-synonyms)
+(define symbol-escape)
 
 ;;; Combinators:
 
@@ -3718,10 +3726,11 @@ EOF
 (define (##sys#sharp-number-hook port n)
   (##sys#read-error port "invalid `#...' read syntax" n) )
 
-(define case-sensitive (make-parameter #t))
-(define keyword-style (make-parameter #:suffix))
-(define parentheses-synonyms (make-parameter #t))
-(define symbol-escape (make-parameter #t))
+(set! chicken.base#case-sensitive (make-parameter #t))
+(set! chicken.base#keyword-style (make-parameter #:suffix))
+(set! chicken.base#parentheses-synonyms (make-parameter #t))
+(set! chicken.base#symbol-escape (make-parameter #t))
+
 (define ##sys#current-read-table (make-parameter (##sys#make-structure 'read-table #f #f #f)))
 
 (define ##sys#read-warning

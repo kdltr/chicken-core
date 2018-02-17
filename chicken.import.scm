@@ -30,7 +30,7 @@
    (bignum? . chicken.base#bignum?)
    (build-platform . chicken.platform#build-platform)
    (call/cc . chicken.base#call/cc)
-   case-sensitive
+   (case-sensitive . chicken.base#case-sensitive)
    (char-name . chicken.base#char-name)
    (chicken-home . chicken.platform#chicken-home)
    (chicken-version . chicken.platform#chicken-version)
@@ -102,7 +102,7 @@
    (infinite? . chicken.base#infinite?)
    (installation-repository . chicken.platform#installation-repository)
    (ir-macro-transformer . chicken.syntax#ir-macro-transformer)
-   keyword-style
+   (keyword-style . chicken.base#keyword-style)
    (load-library . chicken.load#load-library)
    (load-noisily . chicken.load#load-noisily)
    (load-relative . chicken.load#load-relative)
@@ -121,7 +121,7 @@
    (nan? . chicken.base#nan?)
    (notice . chicken.base#notice)
    (on-exit . chicken.base#on-exit)
-   parentheses-synonyms
+   (parentheses-synonyms . chicken.base#parentheses-synonyms)
    (provide . chicken.load#provide)
    (provided? . chicken.load#provided?)
    (print . chicken.base#print)
@@ -147,7 +147,7 @@
    (sub1 . chicken.base#sub1)
    (subvector . chicken.base#subvector)
    (symbol-append . chicken.base#symbol-append)
-   symbol-escape
+   (symbol-escape . chicken.base#symbol-escape)
    (syntax-error . chicken.syntax#syntax-error)
    (system . chicken.process#system)
    (unregister-feature! . chicken.platform#unregister-feature!)
