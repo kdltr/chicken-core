@@ -82,8 +82,6 @@ EOF
    socket?
    symbolic-link?)
 
-(import (only chicken file-exists? directory-exists?))
-
 (import scheme
 	chicken.base
 	chicken.condition
@@ -109,6 +107,13 @@ EOF
       (let ([rn (##sys#update-errno)])
 	(apply ##sys#signal-hook type loc (string-append msg " - " (strerror rn)) args) ) ) ) )
 
+(define (file-exists? name)
+  (##sys#check-string name 'file-exists?)
+  (and (##sys#file-exists? name #f #f 'file-exists?) name))
+
+(define (directory-exists? name)
+  (##sys#check-string name 'directory-exists?)
+  (and (##sys#file-exists? name #f #t 'directory-exists?) name))
 
 (define (delete-file filename)
   (##sys#check-string filename 'delete-file)

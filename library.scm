@@ -3453,14 +3453,6 @@ EOF
       #:file-error loc "system error while trying to access file" 
       name))))
 
-(define (file-exists? name)
-  (##sys#check-string name 'file-exists?)
-  (and (##sys#file-exists? name #f #f 'file-exists?) name))
-
-(define (directory-exists? name)
-  (##sys#check-string name 'directory-exists?)
-  (and (##sys#file-exists? name #f #t 'directory-exists?) name))
-
 (define (##sys#flush-output port)
   ((##sys#slot (##sys#slot port 2) 5) port) ; flush-output
   (##core#undefined) )

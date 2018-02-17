@@ -41,7 +41,6 @@
    (cplxnum? . chicken.base#cplxnum?)
    (current-error-port . chicken.base#current-error-port)
    (current-exception-handler . chicken.condition#current-exception-handler)
-   directory-exists?
    (dynamic-load-libraries . chicken.load#dynamic-load-libraries)
    (enable-warnings . chicken.base#enable-warnings)
    (equal=? . chicken.base#equal=?)
@@ -56,7 +55,6 @@
    (expand . chicken.syntax#expand)
    (feature? . chicken.platform#feature?)
    (features . chicken.platform#features)
-   file-exists?
    (finite? . chicken.base#finite?)
    (fixnum-bits . chicken.fixnum#fixnum-bits)
    (fixnum-precision . chicken.fixnum#fixnum-precision)

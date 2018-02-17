@@ -33,7 +33,7 @@
   (er-macro-transformer
    (lambda (x r c)
      (let ((fn (cadr x)))
-       (and (file-exists? fn)
+       (and (##sys#file-exists? fn #t #f #f)
 	    (call-with-input-file (cadr x)
 	     (lambda (p)
 	       (let ((ver ((##sys#slot (##sys#slot p 2) 8) p 256))) ; read-line

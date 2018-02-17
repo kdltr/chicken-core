@@ -886,7 +886,7 @@
    provide provided? require)
 
 (import scheme
-	chicken ; file-exists? and output string stuff
+	chicken ; string ports
 	chicken.base
 	chicken.eval
 	chicken.fixnum
@@ -1243,6 +1243,9 @@
                 (set! cache (cons path lst))
                 lst))))))
 
+(define (file-exists? name) ; defined here to avoid file unit dependency
+  (and (##sys#file-exists? name #t #f #f) name))
+
 (define (find-file name search-path)
   (let loop ((p (##sys#split-path search-path)))
     (cond ((null? p) #f)
@@ -1250,8 +1253,7 @@
 	  (else (loop (cdr p))))))
 
 (define find-dynamic-extension
-  (let ((file-exists? file-exists?)
-	(string-append string-append))
+  (let ((string-append string-append))
     (lambda (path inc?)
       (let ((p  (##sys#canonicalize-extension-path path #f))
 	    (rp (repository-path)))
@@ -1348,15 +1350,12 @@
 
 (define ##sys#resolve-include-filename
   (let ((string-append string-append) )
-    (define (exists? fname)
-      (##sys#file-exists? fname #t #f #f))
     (lambda (fname exts repo source)
       (define (test-extensions fname lst)
 	(if (null? lst)
-	    (and (exists? fname) fname)
+	    (and (file-exists? fname) fname)
 	    (let ((fn (##sys#string-append fname (car lst))))
-	      (if (exists? fn)
-		  fn
+	      (or (file-exists? fn)
 		  (test-extensions fname (cdr lst))))))
       (define (test fname)
 	(test-extensions

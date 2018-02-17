@@ -1180,8 +1180,6 @@
 (##sys#signal-hook (procedure ##sys#signal-hook (* #!rest) noreturn))
 (##sys#debug-mode? (procedure ##sys#debug-mode? () boolean)
 		   (() (##core#inline "C_i_debug_modep")))
-(file-exists? (#(procedure #:clean #:enforce) file-exists? (string) (or false string)))
-(directory-exists? (#(procedure #:clean #:enforce) directory-exists? (string) (or false string)))
 
 
 ;; flonum
@@ -1567,12 +1565,13 @@
 (chicken.file#delete-directory (#(procedure #:clean #:enforce) chicken.file#delete-directory (string #!optional *) string))
 (chicken.file#delete-file (#(procedure #:clean #:enforce) chicken.file#delete-file (string) string))
 (chicken.file#delete-file* (#(procedure #:clean #:enforce) chicken.file#delete-file* (string) *))
+(chicken.file#directory-exists? (#(procedure #:clean #:enforce) chicken.file#directory-exists? (string) (or false string)))
+(chicken.file#file-exists? (#(procedure #:clean #:enforce) chicken.file#file-exists? (string) (or false string)))
 (chicken.file#file-copy (#(procedure #:clean #:enforce) chicken.file#file-copy (string string #!optional * fixnum) fixnum))
 (chicken.file#file-move (#(procedure #:clean #:enforce) chicken.file#file-move (string string #!optional * fixnum) fixnum))
 (chicken.file#find-files (#(procedure #:enforce) chicken.file#find-files (string #!rest) list))
 (chicken.file#glob (#(procedure #:clean #:enforce) chicken.file#glob (#!rest string) list))
 (chicken.file#rename-file (#(procedure #:clean #:enforce) chicken.file#rename-file (string string) string))
-
 
 ;; pathname
 

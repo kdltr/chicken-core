@@ -1,6 +1,7 @@
 ;;; csc interface tests
 
-(import (chicken pathname)
+(import (chicken file)
+        (chicken pathname)
         (chicken process)
         (chicken process-context)
         (chicken string))
