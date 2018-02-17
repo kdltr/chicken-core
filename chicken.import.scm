@@ -46,7 +46,6 @@
    (enable-warnings . chicken.base#enable-warnings)
    (equal=? . chicken.base#equal=?)
    (er-macro-transformer . chicken.syntax#er-macro-transformer)
-   errno
    (error . chicken.base#error)
    (eval-handler . chicken.eval#eval-handler)
    (exact-integer? . chicken.base#exact-integer?)

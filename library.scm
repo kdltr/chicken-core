@@ -3208,8 +3208,7 @@ EOF
 	      (let ((c (##core#inline "C_read_char" p)))
 		(cond
 		 ((eq? -1 c)
-		  (##sys#update-errno)
-		  (if (eq? (errno) (foreign-value "EINTR" int))
+		  (if (eq? (##sys#update-errno) (foreign-value "EINTR" int))
 		      (##sys#dispatch-interrupt loop)
 		      (##sys#signal-hook
 		       #:file-error 'read-char
@@ -3221,8 +3220,7 @@ EOF
 	      (let ((c (##core#inline "C_peek_char" p)))
 		(cond
 		 ((eq? -1 c)
-		  (##sys#update-errno)
-		  (if (eq? (errno) (foreign-value "EINTR" int))
+		  (if (eq? (##sys#update-errno) (foreign-value "EINTR" int))
 		      (##sys#dispatch-interrupt loop)
 		      (##sys#signal-hook
 		       #:file-error 'peek-char
@@ -3246,8 +3244,7 @@ EOF
 		(cond ((eof-object? len) ; EOF returns 0 bytes read
 		       act)
 		      ((fx< len 0)
-		       (##sys#update-errno)
-		       (if (eq? (errno) (foreign-value "EINTR" int))
+		       (if (eq? (##sys#update-errno) (foreign-value "EINTR" int))
 			   (##sys#dispatch-interrupt
 			    (lambda ()
 			      (loop (fx- rem len) (fx+ act len) (fx+ start len))))
@@ -3281,8 +3278,7 @@ EOF
 				   (##sys#string-append result buffer)
 				   #t)) ]
 			((fx< n 0)
-			 (##sys#update-errno)
-			 (if (eq? (errno) (foreign-value "EINTR" int))
+			 (if (eq? (##sys#update-errno) (foreign-value "EINTR" int))
 			     (let ((n (fx- (fxneg n) 1)))
 			       (##sys#dispatch-interrupt
 				(lambda ()
@@ -5767,14 +5763,14 @@ EOF
 
 ;;; Accessing "errno":
 
-(define-foreign-variable ##sys#errno int "errno")
+(define-foreign-variable _errno int "errno")
 
 (define ##sys#update-errno)
-(define errno)
+(define ##sys#errno)
 
-(let ([rn 0])
-  (set! ##sys#update-errno (lambda () (set! rn ##sys#errno) rn))
-  (set! errno (lambda () rn)) )
+(let ((n 0))
+  (set! ##sys#update-errno (lambda () (set! n _errno) n))
+  (set! ##sys#errno (lambda () n)))
 
 
 ;;; Format error string for unterminated here-docs:

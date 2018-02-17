@@ -1176,7 +1176,6 @@
 (chicken.time#current-seconds (#(procedure #:clean) chicken.time#current-seconds () integer))
 (chicken.time#current-milliseconds (#(procedure #:clean) chicken.time#current-milliseconds () integer))
 
-(errno (#(procedure #:clean) errno () fixnum))
 (##sys#error (procedure ##sys#error (* #!rest) noreturn))
 (##sys#signal-hook (procedure ##sys#signal-hook (* #!rest) noreturn))
 (##sys#debug-mode? (procedure ##sys#debug-mode? () boolean)
@@ -1865,6 +1864,7 @@
 
 ;; errno
 
+(chicken.errno#errno (#(procedure #:clean) chicken.errno#errno () fixnum))
 (chicken.errno#errno/2big fixnum)
 (chicken.errno#errno/acces fixnum)
 (chicken.errno#errno/again fixnum)
