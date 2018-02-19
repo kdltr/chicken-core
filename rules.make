@@ -125,8 +125,6 @@ declare-static-libchicken-object = $(declare-static-library-object)
 $(foreach obj, $(LIBCHICKEN_OBJECTS_1),\
           $(eval $(call declare-static-libchicken-object,$(obj))))
 
-$(eval $(call declare-static-libchicken-object,eval-modules))
-
 # import library objects
 
 define declare-import-lib-object
@@ -207,7 +205,7 @@ cyg$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)-0.dll: $(LIBCHICKEN_SHARED_OBJECTS)
 	    -Wl,--whole-archive $(LIBCHICKEN_SHARED_OBJECTS) \
 	    -Wl,--no-whole-archive $(LIBCHICKEN_SO_LIBRARIES)
 
-lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A): $(LIBCHICKEN_STATIC_OBJECTS) eval-modules-static.o
+lib$(PROGRAM_PREFIX)chicken$(PROGRAM_SUFFIX)$(A): $(LIBCHICKEN_STATIC_OBJECTS)
 	$(LIBRARIAN) $(LIBRARIAN_OPTIONS) $(LIBRARIAN_OUTPUT) $^
 
 # import libraries and extensions
