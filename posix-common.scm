@@ -97,11 +97,6 @@ static char C_time_string [TIME_STRING_MAXLENGTH + 1];
 
 #define C_set_file_ptr(port, ptr)  (C_set_block_item(port, 0, (C_block_item(ptr, 0))), C_SCHEME_UNDEFINED)
 
-#define C_opendir(x,h)      C_set_block_item(h, 0, (C_word) opendir(C_c_string(x)))
-#define C_closedir(h)       (closedir((DIR *)C_block_item(h, 0)), C_SCHEME_UNDEFINED)
-#define C_readdir(h,e)      C_set_block_item(e, 0, (C_word) readdir((DIR *)C_block_item(h, 0)))
-#define C_foundfile(e,b,l)    (C_strlcpy(C_c_string(b), ((struct dirent *) C_block_item(e, 0))->d_name, l), C_fix(strlen(((struct dirent *) C_block_item(e, 0))->d_name)))
-
 /* It is assumed that 'int' is-a 'long' */
 #define C_ftell(a, n, p)    C_int64_to_num(a, ftell(C_port_file(p)))
 #define C_fseek(p, n, w)    C_mk_nbool(fseek(C_port_file(p), C_num_to_int64(n), C_unfix(w)))
@@ -466,34 +461,6 @@ EOF
   (let ((cd ##sys#change-directory-hook))
     (lambda (dir)
       ((if (fixnum? dir) change-directory* cd) dir))))
-
-(define directory
-  (lambda (#!optional (spec (current-directory)) show-dotfiles?)
-    (##sys#check-string spec 'directory)
-    (let ([buffer (make-string 256)]
-	  [handle (##sys#make-pointer)]
-	  [entry (##sys#make-pointer)] )
-      (##core#inline 
-       "C_opendir"
-       (##sys#make-c-string spec 'directory) handle)
-      (if (##sys#null-pointer? handle)
-	  (posix-error #:file-error 'directory "cannot open directory" spec)
-	  (let loop ()
-	    (##core#inline "C_readdir" handle entry)
-	    (if (##sys#null-pointer? entry)
-		(begin
-		  (##core#inline "C_closedir" handle)
-		  '() )
-		(let* ([flen (##core#inline "C_foundfile" entry buffer (string-length buffer))]
-		       [file (##sys#substring buffer 0 flen)]
-		       [char1 (string-ref file 0)]
-		       [char2 (and (fx> flen 1) (string-ref file 1))] )
-		  (if (and (eq? #\. char1)
-			   (or (not char2)
-			       (and (eq? #\. char2) (eq? 2 flen))
-			       (not show-dotfiles?) ) )
-		      (loop)
-		      (cons file (loop)) ) ) ) ) ) ) ) )
 
 ;;; umask
 

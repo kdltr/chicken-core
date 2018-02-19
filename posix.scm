@@ -46,7 +46,7 @@
    create-session create-symbolic-link
    current-effective-group-id current-effective-user-id
    current-effective-user-name current-group-id current-process-id
-   current-user-id current-user-name directory
+   current-user-id current-user-name
    directory? duplicate-fileno fcntl/dupfd fcntl/getfd
    fcntl/getfl fcntl/setfd fcntl/setfl fifo? fifo? file-access-time
    file-change-time file-close file-control file-creation-mode

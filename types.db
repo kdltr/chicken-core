@@ -1559,6 +1559,7 @@
 
 ;; file
 
+(chicken.file#directory (#(procedure #:clean #:enforce) chicken.file#directory (#!optional string *) (list-of string)))
 (chicken.file#create-directory (#(procedure #:clean #:enforce) chicken.file#create-directory (string #!optional *) string))
 (chicken.file#create-temporary-directory (#(procedure #:clean #:enforce) chicken.file#create-temporary-directory () string))
 (chicken.file#create-temporary-file (#(procedure #:clean #:enforce) chicken.file#create-temporary-file (#!optional string) string))
@@ -1937,7 +1938,6 @@
 (chicken.posix#current-process-id (#(procedure #:clean) chicken.posix#current-process-id () fixnum))
 (chicken.posix#current-user-id (#(procedure #:clean) chicken.posix#current-user-id () fixnum))
 (chicken.posix#current-user-name (#(procedure #:clean) chicken.posix#current-user-name () string))
-(chicken.posix#directory (#(procedure #:clean #:enforce) chicken.posix#directory (#!optional string *) (list-of string)))
 (chicken.posix#directory? (#(procedure #:clean #:enforce) chicken.posix#directory? ((or string fixnum)) boolean))
 (chicken.posix#duplicate-fileno (#(procedure #:clean #:enforce) chicken.posix#duplicate-fileno (fixnum #!optional fixnum) fixnum))
 (chicken.posix#fcntl/dupfd fixnum)

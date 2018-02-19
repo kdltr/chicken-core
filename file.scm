@@ -41,14 +41,101 @@
   (foreign-declare #<<EOF
 #include <errno.h>
 
+#define C_rmdir(str)        C_fix(rmdir(C_c_string(str)))
+
 #ifndef _WIN32
 # include <sys/stat.h>
 # define C_mkdir(str)       C_fix(mkdir(C_c_string(str), S_IRWXU | S_IRWXG | S_IRWXO))
 #else
-# define C_mkdir(str)	    C_fix(mkdir(C_c_string(str)))
+# define C_mkdir(str)       C_fix(mkdir(C_c_string(str)))
 #endif
 
-#define C_rmdir(str)	    C_fix(rmdir(C_c_string(str)))
+#if !defined(_WIN32) || defined(__CYGWIN__)
+# include <sys/types.h>
+# include <dirent.h>
+#else
+struct dirent
+{
+    char *              d_name;
+};
+
+typedef struct
+{
+    struct _finddata_t  fdata;
+    int                 handle;
+    struct dirent       current;
+} DIR;
+
+static DIR * C_fcall
+opendir(const char *name)
+{
+    int name_len = strlen(name);
+    int what_len = name_len + 3;
+    DIR *dir = (DIR *)malloc(sizeof(DIR));
+    char *what;
+    if (!dir)
+    {
+	errno = ENOMEM;
+	return NULL;
+    }
+    what = (char *)malloc(what_len);
+    if (!what)
+    {
+	free(dir);
+	errno = ENOMEM;
+	return NULL;
+    }
+    C_strlcpy(what, name, what_len);
+    if (strchr("\\/", name[name_len - 1]))
+	C_strlcat(what, "*", what_len);
+    else
+	C_strlcat(what, "\\*", what_len);
+
+    dir->handle = _findfirst(what, &dir->fdata);
+    if (dir->handle == -1)
+    {
+	free(what);
+	free(dir);
+	return NULL;
+    }
+    dir->current.d_name = NULL; /* as the first-time indicator */
+    free(what);
+    return dir;
+}
+
+static int C_fcall
+closedir(DIR * dir)
+{
+    if (dir)
+    {
+	int res = _findclose(dir->handle);
+	free(dir);
+	return res;
+    }
+    return -1;
+}
+
+static struct dirent * C_fcall
+readdir(DIR * dir)
+{
+    if (dir)
+    {
+	if (!dir->current.d_name /* first time after opendir */
+	     || _findnext(dir->handle, &dir->fdata) != -1)
+	{
+	    dir->current.d_name = dir->fdata.name;
+	    return &dir->current;
+	}
+    }
+    return NULL;
+}
+#endif
+
+#define C_opendir(s,h)      C_set_block_item(h, 0, (C_word) opendir(C_c_string(s)))
+#define C_readdir(h,e)      C_set_block_item(e, 0, (C_word) readdir((DIR *)C_block_item(h, 0)))
+#define C_closedir(h)       (closedir((DIR *)C_block_item(h, 0)), C_SCHEME_UNDEFINED)
+#define C_foundfile(e,b,l)  (C_strlcpy(C_c_string(b), ((struct dirent *) C_block_item(e, 0))->d_name, l), C_fix(strlen(((struct dirent *) C_block_item(e, 0))->d_name)))
+
 EOF
 ))
 
@@ -140,7 +227,33 @@ EOF
      (##sys#string-append "cannot rename file - " strerror) old new))
   new)
 
-;;; Directory management:
+
+;;; Directories:
+
+(define (directory #!optional (spec (current-directory)) show-dotfiles?)
+  (##sys#check-string spec 'directory)
+  (let ((buffer (make-string 256))
+	(handle (##sys#make-pointer))
+	(entry (##sys#make-pointer)))
+    (##core#inline
+     "C_opendir"
+     (##sys#make-c-string spec 'directory) handle)
+    (if (##sys#null-pointer? handle)
+	(posix-error #:file-error 'directory "cannot open directory" spec)
+	(let loop ()
+	  (##core#inline "C_readdir" handle entry)
+	  (if (##sys#null-pointer? entry)
+	      (begin (##core#inline "C_closedir" handle) '())
+	      (let* ((flen (##core#inline "C_foundfile" entry buffer (string-length buffer)))
+		     (file (##sys#substring buffer 0 flen))
+		     (char1 (string-ref file 0))
+		     (char2 (and (fx> flen 1) (string-ref file 1))))
+		(if (and (eq? #\. char1)
+			 (or (not char2)
+			     (and (eq? #\. char2) (eq? 2 flen))
+			     (not show-dotfiles?)))
+		    (loop)
+		    (cons file (loop)))))))))
 
 (define-inline (*create-directory loc name)
   (unless (fx= 0 (##core#inline "C_mkdir" (##sys#make-c-string name loc)))
@@ -181,6 +294,7 @@ EOF
 	   files)
 	  (rmdir name))
 	(rmdir name))))
+
 
 ;;; file-copy and file-move : they do what you'd think.
 
