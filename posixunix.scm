@@ -134,7 +134,6 @@ static C_TLS struct stat C_statbuf;
 #define C_truncate(f, n)    C_fix(truncate((char *)C_data_pointer(f), C_num_to_int(n)))
 #define C_ftruncate(f, n)   C_fix(ftruncate(C_unfix(f), C_num_to_int(n)))
 #define C_alarm             alarm
-#define C_test_access(fn, m)     C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_close(fd)         C_fix(close(C_unfix(fd)))
 #define C_umask(m)          C_fix(umask(C_unfix(m)))
 

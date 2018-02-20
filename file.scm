@@ -41,6 +41,19 @@
   (foreign-declare #<<EOF
 #include <errno.h>
 
+#define C_test_access(fn, m) C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
+
+/* For Windows */
+#ifndef R_OK
+# define R_OK 2
+#endif
+#ifndef W_OK
+# define W_OK 4
+#endif
+#ifndef X_OK
+# define X_OK 2
+#endif
+
 #define C_rmdir(str)        C_fix(rmdir(C_c_string(str)))
 
 #ifndef _WIN32
@@ -226,6 +239,25 @@ EOF
      #:file-error 'rename-file
      (##sys#string-append "cannot rename file - " strerror) old new))
   new)
+
+
+;;; Permissions:
+
+(define-foreign-variable _r_ok int "R_OK")
+(define-foreign-variable _w_ok int "W_OK")
+(define-foreign-variable _x_ok int "X_OK")
+
+(define (test-access filename acc loc)
+  (##sys#check-string filename loc)
+  (let ((r (##core#inline "C_test_access" (##sys#make-c-string filename loc) acc)))
+    (or (fx= r 0)
+	(if (fx= (##sys#update-errno) (foreign-value "EACCES" int))
+	    #f
+	    (posix-error #:file-error loc "cannot access file" filename)))))
+
+(define (file-read-access? filename) (test-access filename _r_ok 'file-read-access?))
+(define (file-write-access? filename) (test-access filename _w_ok 'file-write-access?))
+(define (file-execute-access? filename) (test-access filename _x_ok 'file-execute-access?))
 
 
 ;;; Directories:

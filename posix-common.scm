@@ -44,17 +44,6 @@ static C_TLS struct stat C_statbuf;
 # define S_IFSOCK           0140000
 #endif
 
-/* For Windows */
-#ifndef R_OK
-#define R_OK			2
-#endif
-#ifndef W_OK
-#define W_OK			4
-#endif
-#ifndef X_OK
-#define X_OK			2
-#endif
-
 #define cpy_tmvec_to_tmstc08(ptm, v) \
     ((ptm)->tm_sec = C_unfix(C_block_item((v), 0)), \
     (ptm)->tm_min = C_unfix(C_block_item((v), 1)), \
@@ -316,27 +305,6 @@ EOF
 
 (define (directory? file)
   (eq? 'directory (file-type file #f #f)))
-
-(define file-read-access?)
-(define file-write-access?)
-(define file-execute-access?)
-
-(define-foreign-variable _r_ok int "R_OK")
-(define-foreign-variable _w_ok int "W_OK")
-(define-foreign-variable _x_ok int "X_OK")
-
-(let ()
-  (define (check filename acc loc)
-    (##sys#check-string filename loc)
-    (let ((r (##core#inline "C_test_access" (##sys#make-c-string filename loc) acc)))
-      (if (fx= r -1)
-	  (if (fx= (##sys#update-errno) _eacces)
-	      #f
-	      (posix-error #:file-error loc "cannot access file" filename))
-	  #t)))
-  (set! file-read-access? (lambda (filename) (check filename _r_ok 'file-read-access?)))
-  (set! file-write-access? (lambda (filename) (check filename _w_ok 'file-write-access?)))
-  (set! file-execute-access? (lambda (filename) (check filename _x_ok 'file-execute-access?))) )
 
 
 ;;; File position access:

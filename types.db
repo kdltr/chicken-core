@@ -1573,6 +1573,10 @@
 (chicken.file#find-files (#(procedure #:enforce) chicken.file#find-files (string #!rest) list))
 (chicken.file#glob (#(procedure #:clean #:enforce) chicken.file#glob (#!rest string) list))
 (chicken.file#rename-file (#(procedure #:clean #:enforce) chicken.file#rename-file (string string) string))
+(chicken.file#file-read-access? (#(procedure #:clean #:enforce) chicken.file#file-read-access? (string) boolean))
+(chicken.file#file-write-access? (#(procedure #:clean #:enforce) chicken.file#file-write-access? (string) boolean))
+(chicken.file#file-execute-access? (#(procedure #:clean #:enforce) chicken.file#file-execute-access? (string) boolean))
+
 
 ;; pathname
 
@@ -1950,7 +1954,6 @@
 (chicken.posix#file-close (#(procedure #:clean #:enforce) chicken.posix#file-close (fixnum) undefined))
 (chicken.posix#file-control (#(procedure #:clean #:enforce) chicken.posix#file-control (fixnum fixnum #!optional fixnum) fixnum))
 (chicken.posix#file-creation-mode (#(procedure #:clean #:enforce) chicken.posix#file-creation-mode (#!optional fixnum) fixnum))
-(chicken.posix#file-execute-access? (#(procedure #:clean #:enforce) chicken.posix#file-execute-access? (string) boolean))
 (chicken.posix#file-link (#(procedure #:clean #:enforce) chicken.posix#file-link (string string) undefined))
 (chicken.posix#file-lock (#(procedure #:clean #:enforce) chicken.posix#file-lock (port #!optional fixnum integer) (struct lock)))
 (chicken.posix#file-lock/blocking (#(procedure #:clean #:enforce) chicken.posix#file-lock/blocking (port #!optional fixnum integer) (struct lock)))
@@ -1962,7 +1965,6 @@
 (chicken.posix#file-permissions (#(procedure #:clean #:enforce) chicken.posix#file-permissions ((or string fixnum)) fixnum))
 (chicken.posix#file-position (#(procedure #:clean #:enforce) chicken.posix#file-position ((or port fixnum)) integer))
 (chicken.posix#file-read (#(procedure #:clean #:enforce) chicken.posix#file-read (fixnum fixnum #!optional *) list))
-(chicken.posix#file-read-access? (#(procedure #:clean #:enforce) chicken.posix#file-read-access? (string) boolean))
 (chicken.posix#file-select (#(procedure #:clean #:enforce) chicken.posix#file-select ((or (list-of fixnum) fixnum false) (or (list-of fixnum) fixnum false) #!optional fixnum) * *))
 (chicken.posix#file-size (#(procedure #:clean #:enforce) chicken.posix#file-size ((or string fixnum)) integer))
 (chicken.posix#file-stat (#(procedure #:clean #:enforce) chicken.posix#file-stat ((or string fixnum) #!optional *) (vector-of integer)))
@@ -1971,7 +1973,6 @@
 (chicken.posix#file-type (#(procedure #:clean #:enforce) chicken.posix#file-type ((or string fixnum) #!optional * *) symbol))
 (chicken.posix#file-unlock (#(procedure #:clean #:enforce) chicken.posix#file-unlock ((struct lock)) undefined))
 (chicken.posix#file-write (#(procedure #:clean #:enforce) chicken.posix#file-write (fixnum * #!optional fixnum) fixnum))
-(chicken.posix#file-write-access? (#(procedure #:clean #:enforce) chicken.posix#file-write-access? (string) boolean))
 (chicken.posix#fileno/stderr fixnum)
 (chicken.posix#fileno/stdin fixnum)
 (chicken.posix#fileno/stdout fixnum)

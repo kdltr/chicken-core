@@ -50,11 +50,11 @@
    directory? duplicate-fileno fcntl/dupfd fcntl/getfd
    fcntl/getfl fcntl/setfd fcntl/setfl fifo? fifo? file-access-time
    file-change-time file-close file-control file-creation-mode
-   file-execute-access? file-group file-link file-lock
+   file-group file-link file-lock
    file-lock/blocking file-mkstemp file-modification-time file-open
-   file-owner file-permissions file-position file-read file-read-access?
+   file-owner file-permissions file-position file-read
    file-select file-size file-stat file-test-lock file-truncate
-   file-type file-unlock file-write file-write-access? fileno/stderr
+   file-type file-unlock file-write fileno/stderr
    fileno/stdin fileno/stdout
    local-time->seconds local-timezone-abbreviation
    open-input-file* open-input-pipe open-output-file* open-output-pipe

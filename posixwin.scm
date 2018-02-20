@@ -111,7 +111,6 @@ static C_TLS TCHAR C_username[255 + 1] = "";
 #define close_pipe(p)			     C_fix(_pclose(C_port_file(p)))
 
 #define C_chmod(fn, m)	    C_fix(chmod(C_data_pointer(fn), C_unfix(m)))
-#define C_test_access(fn, m)	    C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
 #define C_pipe(d, m)	    C_fix(_pipe(C_pipefds, PIPE_BUF, C_unfix(m)))
 #define C_close(fd)	    C_fix(close(C_unfix(fd)))
 
