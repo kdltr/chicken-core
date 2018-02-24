@@ -694,7 +694,3 @@
         dest))))
 
 )
-
-;; OBSOLETE - remove after next bootstrapping snapshot
-(##sys#setslot 'get-output-string 0 chicken.base#get-output-string)
-(##sys#setslot 'open-output-string 0 chicken.base#open-output-string)
