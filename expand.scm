@@ -851,17 +851,6 @@
 		(lambda (a) 
 		  (dd `(RENAME/RENV: ,sym --> ,(cdr a)))
 		  (cdr a)))
-	       ((assq sym se) =>
-		(lambda (a)
-		  (cond ((symbol? a)
-			 (dd `(RENAME/SE: ,sym --> ,a))
-			 (set! renv (cons (cons sym a) renv))
-			 a)
-			(else
-			 (let ((a2 (macro-alias sym se)))
-			   (dd `(RENAME/SE/MACRO: ,sym --> ,a2))
-			   (set! renv (cons (cons sym a2) renv))
-			   a2)))))
 	       (else
 		(let ((a (macro-alias sym se)))
 		  (dd `(RENAME: ,sym --> ,a))
