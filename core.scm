@@ -819,7 +819,7 @@
 					     se
 					     (##sys#ensure-transformer
 					      (##sys#eval/meta (cadr b))
-					      (strip-syntax (car b)))))
+					      (car b))))
 					  (cadr x) )
 				     se) )
 			       (ln (or (get-line x) outer-ln)))
@@ -835,7 +835,7 @@
 					   #f
 					   (##sys#ensure-transformer
 					    (##sys#eval/meta (cadr b))
-					    (strip-syntax (car b)))))
+					    (car b))))
 					(cadr x) ) )
 			       (se2 (append ms se))
 			       (ln (or (get-line x) outer-ln)) )
@@ -889,7 +889,7 @@
 				(##sys#cons
 				 (##sys#ensure-transformer
 				  (##sys#eval/meta body)
-				  (strip-syntax var))
+				  var)
 				 (##sys#current-environment))))
 			  (walk
 			   (if ##sys#enable-runtime-macros
@@ -916,7 +916,7 @@
 					(and (pair? (cdr b))
 					     (cons (##sys#ensure-transformer
 						    (##sys#eval/meta (cadr b))
-						    (strip-syntax (car b)))
+						    (car b))
 						   se))
 					(##sys#get name '##compiler#compiler-syntax) ) ) )
 				   (cadr x)))
