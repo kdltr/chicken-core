@@ -286,6 +286,31 @@
     (##sys#register-meta-expression `(##core#begin ,@(cdr x)))
     `(##core#elaborationtimeonly (##core#begin ,@(cdr x))))))
 
+(##sys#extend-macro-environment
+ 'define-for-syntax '()
+ (##sys#er-transformer
+  (lambda (form r c)
+    (##sys#check-syntax 'define-for-syntax form '(_ _ . _))
+    `(,(r 'begin-for-syntax)
+      (,(r 'define) ,@(cdr form))))))
+
+
+;;; Compiler syntax
+
+(##sys#extend-macro-environment
+ 'define-compiler-syntax '()
+ (syntax-rules ()
+   ((_ name)
+    (##core#define-compiler-syntax name #f))
+   ((_ name transformer)
+    (##core#define-compiler-syntax name transformer))))
+
+(##sys#extend-macro-environment
+ 'let-compiler-syntax '()
+ (syntax-rules ()
+   ((_ (binding ...) body ...)
+    (##core#let-compiler-syntax (binding ...) body ...))))
+
 (macro-subset me0 ##sys#default-macro-environment)))
 
 
@@ -1236,27 +1261,8 @@
   (lambda (x r c)
     `(,(r 'begin-for-syntax) (,(r 'require-extension) ,@(cdr x))))))
 
-(macro-subset me0 ##sys#default-macro-environment)))
 
-
-;;; Remaining non-standard macros:
-
-(set! ##sys#chicken-macro-environment
-  (let ((me0 (##sys#macro-environment)))
-
-(##sys#extend-macro-environment
- 'time '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (let ((rvar (r 't)))
-      `(##core#begin
-	(##sys#start-timer)
-	(##sys#call-with-values
-	 (##core#lambda () ,@(cdr form))
-	 (##core#lambda
-	  ,rvar
-	  (##sys#display-times (##sys#stop-timer))
-	  (##sys#apply ##sys#values ,rvar))))))))
+;;; Assertions
 
 (##sys#extend-macro-environment
  'assert '()
@@ -1280,124 +1286,39 @@
 			     (cdr msg-and-args)
 			     `((##core#quote ,(strip-syntax exp))))))))))))
 
+(macro-subset me0 ##sys#default-macro-environment)))
+
+
+;;; "time"
+
+(set! ##sys#chicken.time-macro-environment
+  (let ((me0 (##sys#macro-environment)))
+
 (##sys#extend-macro-environment
- 'ensure
- '()
+ 'time '()
  (##sys#er-transformer
   (lambda (form r c)
-    (##sys#check-syntax 'ensure form '#(_ 3))
-    (let ((pred (cadr form))
-	  (exp (caddr form))
-	  (args (cdddr form))
-	  (tmp (r 'tmp)))
-      `(##core#let
-	([,tmp ,exp])
-	(##core#if (##core#check (,pred ,tmp))
-		   ,tmp
-		   (##sys#signal-hook
-		    #:type-error
-		    ,@(if (pair? args)
-			  args
-			  `((##core#immutable (##core#quote "argument has incorrect type"))
-			    ,tmp (##core#quote ,pred))))))))))
+    (let ((rvar (r 't)))
+      `(##core#begin
+	(##sys#start-timer)
+	(##sys#call-with-values
+	 (##core#lambda () ,@(cdr form))
+	 (##core#lambda
+	  ,rvar
+	  (##sys#display-times (##sys#stop-timer))
+	  (##sys#apply ##sys#values ,rvar))))))))
 
-(##sys#extend-macro-environment
- 'eval-when '()
- (##sys#er-transformer
-  (lambda (form r compare)
-    (##sys#check-syntax 'eval-when form '#(_ 2))
-    (let* ((situations (cadr form))
-	   (body `(##core#begin ,@(cddr form)))
-	   (e #f)
-	   (c #f)
-	   (l #f))
-      (let loop ((ss situations))
-	(if (pair? ss)
-	    (let ((s (car ss)))
-	      (cond ((compare s 'eval) (set! e #t))
-		    ((compare s 'load) (set! l #t))
-		    ((compare s 'compile) (set! c #t))
-		    (else (##sys#error "invalid situation specifier" (car ss))))
-	      (loop (cdr ss)))))
-      (if (memq '#:compiling ##sys#features)
-	  (cond ((and c l) `(##core#compiletimetoo ,body))
-		(c `(##core#compiletimeonly ,body))
-		(l body)
-		(else '(##core#undefined)))
-	  (if e
-	      body
-	      '(##core#undefined)))))))
-
-(##sys#extend-macro-environment
- 'select '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'select form '(_ _ . _))
-    (let ((exp (cadr form))
-	  (body (cddr form))
-	  (tmp (r 'tmp))
-	  (%else (r 'else))
-	  (%or (r 'or)))
-      `(##core#let
-	((,tmp ,exp))
-	,(let expand ((clauses body) (else? #f))
-	   (cond ((null? clauses)
-		  '(##core#undefined))
-		 ((not (pair? clauses))
-		  (syntax-error 'select "invalid syntax" clauses))
-		 (else
-		  (let ((clause (##sys#slot clauses 0))
-			(rclauses (##sys#slot clauses 1)))
-		    (##sys#check-syntax 'select clause '#(_ 1))
-		    (cond ((c %else (car clause))
-			   (expand rclauses #t)
-			   `(##core#begin ,@(cdr clause)))
-			  (else?
-			   (##sys#notice
-			    "non-`else' clause following `else' clause in `select'"
-			    (strip-syntax clause))
-			   (expand rclauses #t)
-			   '(##core#begin))
-			  (else
-			   `(##core#if
-			     (,%or ,@(map (lambda (x) `(##sys#eqv? ,tmp ,x))
-					  (car clause)))
-			     (##core#begin ,@(cdr clause))
-			     ,(expand rclauses #f)))))))))))))
+(macro-subset me0 ##sys#default-macro-environment)))
 
 
-;;; Definitions available at macroexpansion-time:
-
-(##sys#extend-macro-environment
- 'define-for-syntax '()
- (##sys#er-transformer
-  (lambda (form r c)
-    (##sys#check-syntax 'define-for-syntax form '(_ _ . _))
-    `(,(r 'begin-for-syntax)
-      (,(r 'define) ,@(cdr form))))))
-
-
-;;; compiler syntax
-
-(##sys#extend-macro-environment
- 'define-compiler-syntax '()
- (syntax-rules ()
-   ((_ name)
-    (##core#define-compiler-syntax name #f))
-   ((_ name transformer)
-    (##core#define-compiler-syntax name transformer))))
-
-(##sys#extend-macro-environment
- 'let-compiler-syntax '()
- (syntax-rules ()
-   ((_ (binding ...) body ...)
-    (##core#let-compiler-syntax (binding ...) body ...))))
-
+(set! ##sys#chicken-macro-environment ;; OBSOLETE, remove after bootstrapping
+  (let ((me0 (##sys#macro-environment)))
 
 ;; capture current macro env and add all the preceding ones as well
 
-;; TODO: omit `chicken.{base,condition,type}-m-e' when plain "chicken" module goes away
+;; TODO: omit `chicken.{base,condition,time,type}-m-e' when plain "chicken" module goes away
 (append ##sys#chicken.condition-macro-environment
+	##sys#chicken.time-macro-environment
 	##sys#chicken.type-macro-environment
 	##sys#chicken.base-macro-environment
 	(macro-subset me0 ##sys#default-macro-environment))))

@@ -586,8 +586,8 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
     (##sys#check-fixnum fd 'file-close)
     (let loop ()
       (when (fx< (##core#inline "C_close" fd) 0)
-	(select _errno
-	  ((_eintr) (##sys#dispatch-interrupt loop))
+	(cond
+	  ((fx= _errno _eintr) (##sys#dispatch-interrupt loop))
 	  (else
 	   (posix-error #:file-error 'file-close "cannot close file" fd)))))))
 

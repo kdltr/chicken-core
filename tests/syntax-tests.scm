@@ -1132,11 +1132,10 @@ eval
 other-eval
 
 
-;; #805: case-lambda is unhygienic (as well as ensure, see 4706afb4 and bc5cc698)
+;; #805: case-lambda is unhygienic (see 4706afb4 and bc5cc698)
 (module case-lambda-and-ensure-hygiene ()
   (import (prefix chicken c/) (prefix scheme s/))
-  (c/case-lambda ((a) a))
-  (c/ensure s/even? 2))
+  (c/case-lambda ((a) a)))
 
 
 ;; #816: compiler-syntax should obey hygiene in its rewrites

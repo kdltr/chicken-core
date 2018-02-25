@@ -15,7 +15,7 @@
 (assert (= 2 (foo 42)))
 
 (module m1 (bar)
-  (import (prefix scheme s:) chicken)
+  (import (prefix scheme s:) (chicken syntax))
   (define-compiler-syntax s:+
     (syntax-rules ()
       ((_ x y) (s:- x y))))
@@ -25,7 +25,7 @@
   (s:define (bar x) (s:+ x 1)) )
 
 (module m2 ()
-  (import scheme chicken (prefix m1 m-))
+  (import scheme (chicken base) (prefix m1 m-))
   (print (m-bar 10))
   (assert (= 9 (m-bar 10)))
   (print (+ 4 3)))
@@ -55,7 +55,7 @@
 (assert (eq? 'cs-goo2 (car (goo 5))))
 
 (module bar (xxx)
-  (import scheme chicken)
+  (import scheme (chicken syntax) (chicken base))
   (define (xxx) 'yyy)			; ineffective - suboptimal
   ;(assert (eq? 'yyy (xxx)))
   (define-compiler-syntax xxx
@@ -79,7 +79,7 @@
 (define (f1 x) x)
 
 (module m3 ()
-(import scheme chicken)
+(import scheme (chicken syntax))
 (define-compiler-syntax f1
   (syntax-rules () ((_ x) (list x))))
 )

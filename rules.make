@@ -772,8 +772,7 @@ library.c: $(SRCDIR)library.scm
 	-emit-import-library chicken.keyword \
 	-emit-import-library chicken.platform \
 	-emit-import-library chicken.plist \
-	-emit-import-library chicken.process-context \
-	-emit-import-library chicken.time
+	-emit-import-library chicken.process-context
 internal.c: $(SRCDIR)internal.scm $(SRCDIR)mini-srfi-1.scm
 	$(bootstrap-lib) -emit-import-library chicken.internal
 eval.c: $(SRCDIR)eval.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm

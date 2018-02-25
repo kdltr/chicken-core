@@ -174,9 +174,10 @@
 
 (define ##sys#scheme-macro-environment '()) ; reassigned below
 ;; These are all re-assigned by chicken-syntax.scm:
-(define ##sys#chicken-macro-environment '()) ; used later in chicken.import.scm
+(define ##sys#chicken-macro-environment '()) ; used later in chicken.import.scm [OBSOLETE]
 (define ##sys#chicken-ffi-macro-environment '()) ; used later in foreign.import.scm
 (define ##sys#chicken.condition-macro-environment '()) ; used later in chicken.condition.import.scm
+(define ##sys#chicken.time-macro-environment '()) ; used later in chicken.time.import.scm
 (define ##sys#chicken.type-macro-environment '()) ; used later in chicken.type.import.scm
 (define ##sys#chicken.syntax-macro-environment '()) ; used later in chicken.syntax.import.scm
 (define ##sys#chicken.base-macro-environment '()) ; used later in chicken.base.import.scm
@@ -360,8 +361,8 @@
 	    ;; These might not exist in se, use default or chicken env:
 	    (%let* (macro-alias 'let* ##sys#default-macro-environment))
 	    (%lambda '##core#lambda)
-	    (%opt (macro-alias 'optional ##sys#chicken-macro-environment))
-	    (%let-optionals* (macro-alias 'let-optionals* ##sys#chicken-macro-environment))
+	    (%opt (macro-alias 'optional ##sys#chicken.base-macro-environment))
+	    (%let-optionals* (macro-alias 'let-optionals* ##sys#chicken.base-macro-environment))
 	    (%let '##core#let))
 	(let loop ([mode 0]		; req=0, opt=1, rest=2, key=3, end=4
 		   [req '()]

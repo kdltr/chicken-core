@@ -1077,7 +1077,11 @@ EOF
   (##sys#setslot x i y) )
 
 (module chicken.time
-  (cpu-time current-milliseconds current-seconds)
+    ;; NOTE: We don't emit the import lib.  Due to syntax exports, it has
+    ;; to be a hardcoded primitive module.
+    ;;
+    ;; [syntax] time
+    (cpu-time current-milliseconds current-seconds)
 
 (import scheme)
 (import (only (chicken module) reexport))

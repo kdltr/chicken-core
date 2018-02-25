@@ -428,8 +428,8 @@ static C_word C_i_fifo_p(C_word name)
     (##sys#check-fixnum fd 'file-close)
     (let loop ()
       (when (fx< (##core#inline "C_close" fd) 0)
-	(select _errno
-	  ((_eintr) (##sys#dispatch-interrupt loop))
+	(cond
+	  ((fx= _errno _eintr) (##sys#dispatch-interrupt loop))
 	  (else
 	   (posix-error #:file-error 'file-close "cannot close file" fd)))))))
 
@@ -925,12 +925,13 @@ static C_word C_i_fifo_p(C_word name)
 	       (let loop ()
 		 (let ([cnt (##core#inline "C_read" fd buf bufsiz)])
 		   (cond ((fx= cnt -1)
-			  (select _errno
-			    ((_ewouldblock _eagain)
+			  (cond
+			    ((or (fx= _errno _ewouldblock)
+				 (fx= _errno _eagain))
 			     (##sys#thread-block-for-i/o! ##sys#current-thread fd #:input)
 			     (##sys#thread-yield!)
 			     (loop) )
-			    ((_eintr)
+			    ((fx= _errno _eintr)
 			     (##sys#dispatch-interrupt loop))
 			    (else (posix-error #:file-error loc "cannot read" fd nam) )))
 			 [(and more? (fx= cnt 0))
@@ -1032,16 +1033,17 @@ static C_word C_i_fifo_p(C_word name)
     (letrec ([poke
 	      (lambda (str len)
 		(let loop ()
-		  (let ([cnt (##core#inline "C_write" fd str len)])
+		  (let ((cnt (##core#inline "C_write" fd str len)))
 		    (cond ((fx= -1 cnt)
-			   (select _errno
-			     ((_ewouldblock _eagain)
-			      (##sys#thread-yield!)
-			      (poke str len) )
-			     ((_eintr)
-			      (##sys#dispatch-interrupt loop))
-			     (else
-			      (posix-error loc #:file-error "cannot write" fd nam) ) ) )
+			   (cond
+			    ((or (fx= _errno _ewouldblock)
+				 (fx= _errno _eagain))
+			     (##sys#thread-yield!)
+			     (poke str len) )
+			    ((fx= _errno _eintr)
+			     (##sys#dispatch-interrupt loop))
+			    (else
+			     (posix-error loc #:file-error "cannot write" fd nam) ) ) )
 			  ((fx< cnt len)
 			   (poke (##sys#substring str cnt len) (fx- len cnt)) ) ) ) ))]
 	     [store
@@ -1121,8 +1123,8 @@ static C_word C_i_fifo_p(C_word name)
       (let loop ()
 	(let ((lock (setup port args 'file-lock)))
 	  (if (fx< (##core#inline "C_flock_lock" port) 0)
-	      (select _errno
-		((_eintr) (##sys#dispatch-interrupt loop))
+	      (cond
+		((fx= _errno _eintr) (##sys#dispatch-interrupt loop))
 		(else (err "cannot lock file" lock 'file-lock)))
 	      lock)))))
   (set! file-lock/blocking
@@ -1130,8 +1132,8 @@ static C_word C_i_fifo_p(C_word name)
       (let loop ()
 	(let ((lock (setup port args 'file-lock/blocking)))
 	  (if (fx< (##core#inline "C_flock_lockw" port) 0)
-	      (select _errno
-		((_eintr) (##sys#dispatch-interrupt loop))
+	      (cond
+		((fx= _errno _eintr) (##sys#dispatch-interrupt loop))
 		(else (err "cannot lock file" lock 'file-lock/blocking)))
 	      lock)))))
   (set! file-test-lock
@@ -1145,8 +1147,8 @@ static C_word C_i_fifo_p(C_word name)
     (##sys#check-structure lock 'lock 'file-unlock)
     (##core#inline "C_flock_setup" _f_unlck (##sys#slot lock 2) (##sys#slot lock 3))
     (when (fx< (##core#inline "C_flock_lock" (##sys#slot lock 1)) 0)
-      (select _errno
-	((_eintr) (##sys#dispatch-interrupt (lambda () (file-unlock lock))))
+      (cond
+	((fx= _errno _eintr) (##sys#dispatch-interrupt (lambda () (file-unlock lock))))
 	(else (posix-error #:file-error 'file-unlock "cannot unlock file" lock))))))
 
 
