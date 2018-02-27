@@ -63,9 +63,9 @@
 
 ;;; Parameters:
 
-(define mingw (eq? (build-platform) 'mingw32))
+(define mingw (eq? (software-version) 'mingw32))
 (define osx (eq? (software-version) 'macosx))
-(define cygwin (eq? (build-platform) 'cygwin))
+(define cygwin (eq? (software-version) 'cygwin))
 (define aix (eq? (build-platform) 'aix))
 
 (define elf

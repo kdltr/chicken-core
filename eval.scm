@@ -947,7 +947,7 @@
     srfi-16 srfi-17 srfi-26 srfi-31 srfi-55 srfi-88)) ; syntax cont
 
 (define default-dynamic-load-libraries
-  (case (build-platform)
+  (case (software-version)
     ((cygwin) cygwin-default-dynamic-load-libraries)
     (else `(,(string-append "lib" install-lib-name)))))
 

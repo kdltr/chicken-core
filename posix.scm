@@ -203,7 +203,7 @@
 
 ;;; Quote string for shell:
 
-(define (qs str #!optional (platform (build-platform)))
+(define (qs str #!optional (platform (software-version)))
   (let* ((delim (if (eq? platform 'mingw32) #\" #\'))
 	 (escaped (if (eq? platform 'mingw32) "\"\"" "'\\''"))
 	 (escaped-parts

@@ -22,14 +22,11 @@
 (define *platform* 
   (let ((sv (symbol->string (software-version))))
     (cond ((irregex-match ".*bsd" sv) "bsd")
-	  (else
-	   (case (build-platform)
-	     ((mingw32) 
-	      (if (equal? (get-environment-variable "MSYSTEM") "MINGW32")
-		  "mingw-msys"
-		  "mingw32"))
-	     ((msvc) "msvc")
-	     (else sv))))))
+	  ((string=? sv "mingw32")
+	   (if (equal? (get-environment-variable "MSYSTEM") "MINGW32")
+	       "mingw-msys"
+	       "mingw32"))
+	  (else sv))))
 
 (define *make* 
   (cond ((string=? "bsd" *platform*) "gmake")

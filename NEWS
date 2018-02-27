@@ -18,6 +18,11 @@
   - Removed the deprecated C_locative_ref and C_mutate2 C functions.
   - The trace buffer no longer holds on to thread objects, allowing them to
     be garbage collected sooner (#1356, thanks to Kristian Lein-Mathisen)
+  - On Cygwin and MinGW, the "build-platform" now corresponds to the
+    tool chain used (gnu, clang, unknown) like on *nix, while the
+    software-version is now "cygwin" or "mingw32" instead of "unknown".
+    This also means the features list will now contain the tool chain
+    on all platforms.
 
 - Compiler
   - Fixed an off by one allocation problem in generated C code for (list ...).

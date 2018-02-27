@@ -6436,7 +6436,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define ##sys#windows-platform
   (and (eq? 'windows (software-type))
        ;; Still windows even if 'Linux-like'
-       (not (eq? 'cygwin (build-platform)))))
+       (not (eq? 'cygwin (software-version)))))
 
 (define (chicken-version #!optional full)
   (define (get-config)
