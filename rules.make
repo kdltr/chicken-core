@@ -37,10 +37,11 @@ LIBCHICKEN_SCHEME_OBJECTS_1 = \
        library eval read-syntax repl data-structures pathname port file \
        extras lolevel tcp srfi-4 continuation $(POSIXFILE) internal \
        irregex scheduler debugger-client profiler stub expand modules \
-       chicken-syntax chicken-ffi-syntax build-version eval-modules
+       chicken-syntax chicken-ffi-syntax build-version
 LIBCHICKEN_OBJECTS_1 = $(LIBCHICKEN_SCHEME_OBJECTS_1) runtime
 LIBCHICKEN_SHARED_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=$(O))
-LIBCHICKEN_STATIC_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=-static$(O))
+LIBCHICKEN_STATIC_OBJECTS = $(LIBCHICKEN_OBJECTS_1:=-static$(O)) \
+	eval-modules-static$(O)
 
 COMPILER_OBJECTS_1 = \
 	chicken batch-driver core optimizer lfa2 compiler-syntax scrutinizer support \
@@ -124,6 +125,8 @@ declare-static-libchicken-object = $(declare-static-library-object)
 
 $(foreach obj, $(LIBCHICKEN_OBJECTS_1),\
           $(eval $(call declare-static-libchicken-object,$(obj))))
+
+$(eval $(call declare-static-libchicken-object,eval-modules))
 
 # import library objects
 
