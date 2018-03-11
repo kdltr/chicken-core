@@ -3,6 +3,7 @@
 (include "test.scm")
 
 (import (chicken file)
+        (chicken file posix)
         (chicken pathname)
         (chicken process-context)
         (chicken string))

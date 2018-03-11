@@ -1568,14 +1568,14 @@
 (chicken.file#delete-file* (#(procedure #:clean #:enforce) chicken.file#delete-file* (string) *))
 (chicken.file#directory-exists? (#(procedure #:clean #:enforce) chicken.file#directory-exists? (string) (or false string)))
 (chicken.file#file-exists? (#(procedure #:clean #:enforce) chicken.file#file-exists? (string) (or false string)))
-(chicken.file#file-copy (#(procedure #:clean #:enforce) chicken.file#file-copy (string string #!optional * fixnum) fixnum))
-(chicken.file#file-move (#(procedure #:clean #:enforce) chicken.file#file-move (string string #!optional * fixnum) fixnum))
 (chicken.file#find-files (#(procedure #:enforce) chicken.file#find-files (string #!rest) list))
 (chicken.file#glob (#(procedure #:clean #:enforce) chicken.file#glob (#!rest string) list))
-(chicken.file#rename-file (#(procedure #:clean #:enforce) chicken.file#rename-file (string string) string))
-(chicken.file#file-read-access? (#(procedure #:clean #:enforce) chicken.file#file-read-access? (string) boolean))
-(chicken.file#file-write-access? (#(procedure #:clean #:enforce) chicken.file#file-write-access? (string) boolean))
-(chicken.file#file-execute-access? (#(procedure #:clean #:enforce) chicken.file#file-execute-access? (string) boolean))
+(chicken.file#copy-file (#(procedure #:clean #:enforce) chicken.file#copy-file (string string #!optional * fixnum) fixnum))
+(chicken.file#move-file (#(procedure #:clean #:enforce) chicken.file#move-file (string string #!optional * fixnum) fixnum))
+(chicken.file#rename-file (#(procedure #:clean #:enforce) chicken.file#rename-file (string string #!optional *) string))
+(chicken.file#file-readable? (#(procedure #:clean #:enforce) chicken.file#file-readable? (string) boolean))
+(chicken.file#file-writable? (#(procedure #:clean #:enforce) chicken.file#file-writable? (string) boolean))
+(chicken.file#file-executable? (#(procedure #:clean #:enforce) chicken.file#file-executable? (string) boolean))
 
 
 ;; pathname

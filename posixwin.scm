@@ -110,18 +110,18 @@ static C_TLS TCHAR C_username[255 + 1] = "";
 #define open_text_output_pipe(a, n, name)    open_binary_output_pipe(a, n, name)
 #define close_pipe(p)			     C_fix(_pclose(C_port_file(p)))
 
-#define C_chmod(fn, m)	    C_fix(chmod(C_data_pointer(fn), C_unfix(m)))
+#define C_chmod(fn, m)	    C_fix(chmod(C_c_string(fn), C_unfix(m)))
 #define C_pipe(d, m)	    C_fix(_pipe(C_pipefds, PIPE_BUF, C_unfix(m)))
 #define C_close(fd)	    C_fix(close(C_unfix(fd)))
 
 #define C_u_i_lstat(fn)     C_u_i_stat(fn)
 
-#define C_u_i_execvp(f,a)   C_fix(execvp(C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a)))
-#define C_u_i_execve(f,a,e) C_fix(execve(C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a), (const char *const *)C_c_pointer_vector_or_null(e)))
+#define C_u_i_execvp(f,a)   C_fix(execvp(C_c_string(f), (const char *const *)C_c_pointer_vector_or_null(a)))
+#define C_u_i_execve(f,a,e) C_fix(execve(C_c_string(f), (const char *const *)C_c_pointer_vector_or_null(a), (const char *const *)C_c_pointer_vector_or_null(e)))
 
 /* MS replacement for the fork-exec pair */
-#define C_u_i_spawnvp(m,f,a) C_fix(spawnvp(C_unfix(m), C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a)))
-#define C_u_i_spawnvpe(m,f,a,e) C_fix(spawnvpe(C_unfix(m), C_data_pointer(f), (const char *const *)C_c_pointer_vector_or_null(a), (const char *const *)C_c_pointer_vector_or_null(e)))
+#define C_u_i_spawnvp(m,f,a)    C_fix(spawnvp(C_unfix(m), C_c_string(f), (const char *const *)C_c_pointer_vector_or_null(a)))
+#define C_u_i_spawnvpe(m,f,a,e) C_fix(spawnvpe(C_unfix(m), C_c_string(f), (const char *const *)C_c_pointer_vector_or_null(a), (const char *const *)C_c_pointer_vector_or_null(e)))
 
 #define C_open(fn, fl, m)   C_fix(open(C_c_string(fn), C_unfix(fl), C_unfix(m)))
 #define C_read(fd, b, n)    C_fix(read(C_unfix(fd), C_data_pointer(b), C_unfix(n)))

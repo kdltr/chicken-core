@@ -1270,8 +1270,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_string_compare(to, from, n)   C_fix(C_memcmp(C_c_string(to), C_c_string(from), C_unfix(n)))
 #define C_string_compare_case_insensitive(from, to, n) \
                                         C_fix(C_memcasecmp(C_c_string(from), C_c_string(to), C_unfix(n)))
-#define C_rename_file(old, new)         C_fix(rename(C_c_string(old), C_c_string(new)))
-#define C_delete_file(fname)            C_fix(remove(C_c_string(fname)))
 #define C_poke_double(b, i, n)          (((double *)C_data_pointer(b))[ C_unfix(i) ] = C_c_double(n), C_SCHEME_UNDEFINED)
 #define C_poke_c_string(b, i, from, s)  (C_strlcpy((char *)C_block_item(b, C_unfix(i)), C_data_pointer(from), s), C_SCHEME_UNDEFINED)
 #define C_peek_fixnum(b, i)             C_fix(C_block_item(b, C_unfix(i)))

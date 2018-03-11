@@ -35,13 +35,13 @@
 
 (declare
   (unit file)
-  (uses extras irregex pathname posix)
+  (uses extras irregex pathname)
   (fixnum)
   (disable-interrupts)
   (foreign-declare #<<EOF
 #include <errno.h>
 
-#define C_test_access(fn, m) C_fix(access((char *)C_data_pointer(fn), C_unfix(m)))
+#define C_test_access(fn, m) C_fix(access(C_c_string(fn), C_unfix(m)))
 
 /* For Windows */
 #ifndef R_OK
@@ -54,6 +54,8 @@
 # define X_OK 2
 #endif
 
+#define C_rename(old, new)  C_fix(rename(C_c_string(old), C_c_string(new)))
+#define C_remove(str)       C_fix(remove(C_c_string(str)))
 #define C_rmdir(str)        C_fix(rmdir(C_c_string(str)))
 
 #ifndef _WIN32
@@ -149,38 +151,26 @@ readdir(DIR * dir)
 #define C_closedir(h)       (closedir((DIR *)C_block_item(h, 0)), C_SCHEME_UNDEFINED)
 #define C_foundfile(e,b,l)  (C_strlcpy(C_c_string(b), ((struct dirent *) C_block_item(e, 0))->d_name, l), C_fix(strlen(((struct dirent *) C_block_item(e, 0))->d_name)))
 
+static C_word C_fcall C_u_i_symbolic_linkp(C_word path)
+{
+#if !defined(_WIN32) || defined(__CYGWIN__)
+  struct stat buf;
+  if (lstat(C_c_string(path), &buf) == 0)
+    return C_mk_bool(S_ISLNK(buf.st_mode));
+#endif
+  return C_SCHEME_FALSE;
+}
+
 EOF
 ))
 
 (module chicken.file
-  (block-device?
-   character-device?
-   create-directory
-   create-fifo
-   create-symbolic-link
-   create-temporary-directory
-   create-temporary-file
-   delete-directory
-   delete-file
-   delete-file*
-   directory
-   directory-exists?
-   directory?
-   fifo?
-   file-copy
-   file-execute-access?
-   file-exists?
-   file-move
-   file-read-access?
-   file-type
-   file-write-access?
-   find-files
-   glob
-   read-symbolic-link
-   regular-file?
-   rename-file
-   socket?
-   symbolic-link?)
+  (create-directory delete-directory
+   create-temporary-file create-temporary-directory
+   delete-file delete-file* copy-file move-file rename-file
+   file-exists? directory-exists?
+   file-readable? file-writable? file-executable?
+   directory find-files glob)
 
 (import scheme
 	chicken.base
@@ -190,8 +180,7 @@ EOF
 	chicken.io
 	chicken.irregex
 	chicken.pathname
-	chicken.process-context
-	chicken.posix) ; FIXME file should not depend on posix
+	chicken.process-context)
 
 (include "common-declarations.scm")
 
@@ -207,6 +196,9 @@ EOF
       (let ([rn (##sys#update-errno)])
 	(apply ##sys#signal-hook type loc (string-append msg " - " (strerror rn)) args) ) ) ) )
 
+
+;;; Existence checks:
+
 (define (file-exists? name)
   (##sys#check-string name 'file-exists?)
   (and (##sys#file-exists? name #f #f 'file-exists?) name))
@@ -214,31 +206,6 @@ EOF
 (define (directory-exists? name)
   (##sys#check-string name 'directory-exists?)
   (and (##sys#file-exists? name #f #t 'directory-exists?) name))
-
-(define (delete-file filename)
-  (##sys#check-string filename 'delete-file)
-  (unless (eq? 0 (##core#inline "C_delete_file" (##sys#make-c-string filename 'delete-file)))
-    (##sys#update-errno)
-    (##sys#signal-hook
-     #:file-error 'delete-file
-     (##sys#string-append "cannot delete file - " strerror) filename))
-  filename)
-
-;;; Like `delete-file', but does nothing if the file doesn't exist:
-
-(define delete-file*
-  (lambda (file)
-    (and (file-exists? file) (delete-file file))))
-
-(define (rename-file old new)
-  (##sys#check-string old 'rename-file)
-  (##sys#check-string new 'rename-file)
-  (unless (eq? 0 (##core#inline "C_rename_file" (##sys#make-c-string old 'rename-file) (##sys#make-c-string new)))
-    (##sys#update-errno)
-    (##sys#signal-hook
-     #:file-error 'rename-file
-     (##sys#string-append "cannot rename file - " strerror) old new))
-  new)
 
 
 ;;; Permissions:
@@ -255,9 +222,9 @@ EOF
 	    #f
 	    (posix-error #:file-error loc "cannot access file" filename)))))
 
-(define (file-read-access? filename) (test-access filename _r_ok 'file-read-access?))
-(define (file-write-access? filename) (test-access filename _w_ok 'file-write-access?))
-(define (file-execute-access? filename) (test-access filename _x_ok 'file-execute-access?))
+(define (file-readable? filename) (test-access filename _r_ok 'file-readable?))
+(define (file-writable? filename) (test-access filename _w_ok 'file-writable?))
+(define (file-executable? filename) (test-access filename _x_ok 'file-executable?))
 
 
 ;;; Directories:
@@ -287,6 +254,9 @@ EOF
 		    (loop)
 		    (cons file (loop)))))))))
 
+(define-inline (*symbolic-link? name loc)
+  (##core#inline "C_u_i_symbolic_linkp" (##sys#make-c-string name loc)))
+
 (define-inline (*create-directory loc name)
   (unless (fx= 0 (##core#inline "C_mkdir" (##sys#make-c-string name loc)))
     (posix-error #:file-error loc "cannot create directory" name)))
@@ -299,7 +269,7 @@ EOF
       (if recursive
 	  (let loop ((dir (let-values (((dir file ext) (decompose-pathname name)))
 			    (if file (make-pathname dir file ext) dir))))
-	    (when (and dir (not (directory? dir)))
+	    (when (and dir (not (directory-exists? dir)))
 	      (loop (pathname-directory dir))
 	      (*create-directory 'create-directory dir)))
 	  (*create-directory 'create-directory name)))
@@ -319,8 +289,8 @@ EOF
 		      follow-symlinks: #f)))
 	  (for-each
 	   (lambda (f)
-	     ((cond ((symbolic-link? f) delete-file)
-		    ((directory? f) rmdir)
+	     ((cond ((*symbolic-link? f 'delete-directory) delete-file)
+		    ((directory-exists? f) rmdir)
 		    (else delete-file))
 	      f))
 	   files)
@@ -328,26 +298,46 @@ EOF
 	(rmdir name))))
 
 
-;;; file-copy and file-move : they do what you'd think.
+;;; File management:
 
-(define (file-copy origfile newfile #!optional (clobber #f) (blocksize 1024))
-  (##sys#check-string origfile 'file-copy)
-  (##sys#check-string newfile 'file-copy)
-  (##sys#check-number blocksize 'file-copy)
+(define (delete-file filename)
+  (##sys#check-string filename 'delete-file)
+  (unless (eq? 0 (##core#inline "C_remove" (##sys#make-c-string filename 'delete-file)))
+    (##sys#update-errno)
+    (##sys#signal-hook
+     #:file-error 'delete-file
+     (##sys#string-append "cannot delete file - " strerror) filename))
+  filename)
+
+(define (delete-file* file)
+  (and (file-exists? file) (delete-file file)))
+
+(define (rename-file oldfile newfile #!optional (clobber #f))
+  (##sys#check-string oldfile 'rename-file)
+  (##sys#check-string newfile 'rename-file)
+  (when (and (not clobber) (file-exists? newfile))
+    (##sys#error 'rename-file "newfile exists but clobber is false" newfile))
+  (unless (eq? 0 (##core#inline
+		  "C_rename"
+		  (##sys#make-c-string oldfile 'rename-file)
+		  (##sys#make-c-string newfile 'rename-file)))
+    (##sys#update-errno)
+    (##sys#signal-hook
+     #:file-error 'rename-file
+     (##sys#string-append "cannot rename file - " strerror) oldfile newfile))
+  newfile)
+
+(define (copy-file oldfile newfile #!optional (clobber #f) (blocksize 1024))
+  (##sys#check-string oldfile 'copy-file)
+  (##sys#check-string newfile 'copy-file)
+  (##sys#check-number blocksize 'copy-file)
   (unless (and (integer? blocksize) (> blocksize 0))
-    (##sys#error
-     'file-copy
-     "invalid blocksize given: not a positive integer"
-     blocksize))
-  (and (file-exists? newfile)
-       (or clobber
-	   (##sys#error
-	    'file-copy
-	    "newfile exists but clobber is false"
-	     newfile)))
-  (when (directory-exists? origfile)
-    (##sys#error 'file-copy "can not copy directories" origfile))
-  (let* ((i (open-input-file origfile #:binary))
+    (##sys#error 'copy-file "invalid blocksize - not a positive integer" blocksize))
+  (when (directory-exists? oldfile)
+    (##sys#error 'copy-file "cannot copy directories" oldfile))
+  (when (and (not clobber) (file-exists? newfile))
+    (##sys#error 'copy-file "newfile exists but clobber is false" newfile))
+  (let* ((i (open-input-file oldfile #:binary))
 	 (o (open-output-file newfile #:binary))
 	 (s (make-string blocksize)))
     (let loop ((d (read-string! blocksize s i))
@@ -361,24 +351,17 @@ EOF
 	    (write-string s d o)
 	    (loop (read-string! blocksize s i) (fx+ d l)))))))
 
-(define (file-move origfile newfile #!optional (clobber #f) (blocksize 1024))
-  (##sys#check-string origfile 'file-move)
-  (##sys#check-string newfile 'file-move)
-  (##sys#check-number blocksize 'file-move)
+(define (move-file oldfile newfile #!optional (clobber #f) (blocksize 1024))
+  (##sys#check-string oldfile 'move-file)
+  (##sys#check-string newfile 'move-file)
+  (##sys#check-number blocksize 'move-file)
   (unless (and (integer? blocksize) (> blocksize 0))
-    (##sys#error
-     'file-move
-     "invalid blocksize given: not a positive integer"
-     blocksize))
-  (when (directory-exists? origfile)
-    (##sys#error 'file-move "can not move directories" origfile))
-  (and (file-exists? newfile)
-       (or clobber
-	   (##sys#error
-	    'file-move
-	    "newfile exists but clobber is false"
-	    newfile)))
-  (let* ((i (open-input-file origfile #:binary))
+    (##sys#error 'move-file "invalid blocksize - not a positive integer" blocksize))
+  (when (directory-exists? oldfile)
+    (##sys#error 'move-file "cannot move directories" oldfile))
+  (when (and (not clobber) (file-exists? newfile))
+    (##sys#error 'move-file "newfile exists but clobber is false" newfile))
+  (let* ((i (open-input-file oldfile #:binary))
 	 (o (open-output-file newfile #:binary))
 	 (s (make-string blocksize)))
     (let loop ((d (read-string! blocksize s i))
@@ -387,7 +370,7 @@ EOF
 	  (begin
 	    (close-input-port i)
 	    (close-output-port o)
-	    (delete-file origfile)
+	    (delete-file oldfile)
 	    l)
 	  (begin
 	    (write-string s d o)
@@ -498,9 +481,9 @@ EOF
 	  (let* ((filename (##sys#slot fs 0))
 		 (f (make-pathname dir filename))
 		 (rest (##sys#slot fs 1)))
-	    (cond ((directory? f)
+	    (cond ((directory-exists? f)
 		   (cond ((member filename '("." "..")) (loop dir rest r))
-			 ((and (symbolic-link? f) (not follow-symlinks))
+			 ((and (*symbolic-link? f 'find-files) (not follow-symlinks))
 			  (loop dir rest (if (pproc f) (action f r) r)))
 			 ((lproc f)
 			  (loop dir

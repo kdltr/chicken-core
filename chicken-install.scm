@@ -112,7 +112,7 @@
         (get-environment-variable "DYLD_LIBRARY_PATH")))
 
 (define (probe-dir dir)
-  (and dir (directory? dir) dir))
+  (and dir (directory-exists? dir) dir))
 
 (define cache-directory
   (or (get-environment-variable "CHICKEN_EGG_CACHE")
@@ -528,10 +528,10 @@
                           (hf2 (string-append here "/" f)))
                       (and (<= (file-modification-time tf2)
                                (file-modification-time hf2))
-                           (if (directory? tf2)
-                               (and (directory? hf2)
+                           (if (directory-exists? tf2)
+                               (and (directory-exists? hf2)
                                     (walk tf2 hf2))
-                               (not (directory? hf2)))))))
+                               (not (directory-exists? hf2)))))))
              tfs))))
 
 
@@ -862,8 +862,7 @@
          (version (caddr egg))
          (testdir (make-pathname dir "tests"))
          (tscript (make-pathname testdir "run.scm")))
-    (if (and (file-exists? testdir)
-             (directory? testdir)
+    (if (and (directory-exists? testdir)
              (file-exists? tscript))
         (let ((old (current-directory))
               (cmd (string-append default-csi " -s " tscript " " name " " (or version ""))))
@@ -952,7 +951,7 @@
         (with-output-to-file dbfile
           (lambda ()
             (for-each (lambda (x) (write x) (newline)) db)))
-        (file-copy dbfile (make-pathname (install-path) +module-db+) #t))))
+        (copy-file dbfile (make-pathname (install-path) +module-db+) #t))))
 
 
 ;; purge cache for given (or all) eggs

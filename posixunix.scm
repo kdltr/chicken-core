@@ -115,9 +115,9 @@ static C_TLS struct stat C_statbuf;
 #define C_getgid            getgid
 #define C_geteuid           geteuid
 #define C_getegid           getegid
-#define C_chown(fn, u, g)   C_fix(chown(C_data_pointer(fn), C_unfix(u), C_unfix(g)))
+#define C_chown(fn, u, g)   C_fix(chown(C_c_string(fn), C_unfix(u), C_unfix(g)))
 #define C_fchown(fd, u, g)  C_fix(fchown(C_unfix(fd), C_unfix(u), C_unfix(g)))
-#define C_chmod(fn, m)      C_fix(chmod(C_data_pointer(fn), C_unfix(m)))
+#define C_chmod(fn, m)      C_fix(chmod(C_c_string(fn), C_unfix(m)))
 #define C_fchmod(fd, m)     C_fix(fchmod(C_unfix(fd), C_unfix(m)))
 #define C_setuid(id)        C_fix(setuid(C_unfix(id)))
 #define C_setgid(id)        C_fix(setgid(C_unfix(id)))
@@ -126,21 +126,21 @@ static C_TLS struct stat C_statbuf;
 #define C_setsid(dummy)     C_fix(setsid())
 #define C_setpgid(x, y)     C_fix(setpgid(C_unfix(x), C_unfix(y)))
 #define C_getpgid(x)        C_fix(getpgid(C_unfix(x)))
-#define C_symlink(o, n)     C_fix(symlink(C_data_pointer(o), C_data_pointer(n)))
-#define C_do_readlink(f, b)    C_fix(readlink(C_data_pointer(f), C_data_pointer(b), FILENAME_MAX))
-#define C_getpwnam(n)       C_mk_bool((C_user = getpwnam((char *)C_data_pointer(n))) != NULL)
+#define C_symlink(o, n)     C_fix(symlink(C_c_string(o), C_c_string(n)))
+#define C_do_readlink(f, b) C_fix(readlink(C_c_string(f), C_c_string(b), FILENAME_MAX))
+#define C_getpwnam(n)       C_mk_bool((C_user = getpwnam(C_c_string(n))) != NULL)
 #define C_getpwuid(u)       C_mk_bool((C_user = getpwuid(C_unfix(u))) != NULL)
 #define C_pipe(d)           C_fix(pipe(C_pipefds))
-#define C_truncate(f, n)    C_fix(truncate((char *)C_data_pointer(f), C_num_to_int(n)))
+#define C_truncate(f, n)    C_fix(truncate(C_c_string(f), C_num_to_int(n)))
 #define C_ftruncate(f, n)   C_fix(ftruncate(C_unfix(f), C_num_to_int(n)))
 #define C_alarm             alarm
 #define C_close(fd)         C_fix(close(C_unfix(fd)))
 #define C_umask(m)          C_fix(umask(C_unfix(m)))
 
-#define C_u_i_lstat(fn)     C_fix(lstat((char *)C_data_pointer(fn), &C_statbuf))
+#define C_u_i_lstat(fn)     C_fix(lstat(C_c_string(fn), &C_statbuf))
 
-#define C_u_i_execvp(f,a)   C_fix(execvp(C_data_pointer(f), (char *const *)C_c_pointer_vector_or_null(a)))
-#define C_u_i_execve(f,a,e) C_fix(execve(C_data_pointer(f), (char *const *)C_c_pointer_vector_or_null(a), (char *const *)C_c_pointer_vector_or_null(e)))
+#define C_u_i_execvp(f,a)   C_fix(execvp(C_c_string(f), (char *const *)C_c_pointer_vector_or_null(a)))
+#define C_u_i_execve(f,a,e) C_fix(execve(C_c_string(f), (char *const *)C_c_pointer_vector_or_null(a), (char *const *)C_c_pointer_vector_or_null(e)))
 
 #if defined(__FreeBSD__) || defined(C_MACOSX) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__sgi__) || defined(sgi) || defined(__DragonFly__) || defined(__SUNPRO_C)
 static C_TLS int C_uw;
@@ -162,7 +162,7 @@ static C_TLS int C_uw;
 #ifdef __CYGWIN__
 # define C_mkfifo(fn, m)    C_fix(-1);
 #else
-# define C_mkfifo(fn, m)    C_fix(mkfifo((char *)C_data_pointer(fn), C_unfix(m)))
+# define C_mkfifo(fn, m)    C_fix(mkfifo(C_c_string(fn), C_unfix(m)))
 #endif
 
 #define C_flock_setup(t, s, n) (C_flock.l_type = C_unfix(t), C_flock.l_start = C_num_to_int(s), C_flock.l_whence = SEEK_SET, C_flock.l_len = C_num_to_int(n), C_SCHEME_UNDEFINED)

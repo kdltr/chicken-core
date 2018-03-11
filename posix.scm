@@ -48,7 +48,7 @@
    current-effective-user-name current-group-id current-process-id
    current-user-id current-user-name
    directory? duplicate-fileno fcntl/dupfd fcntl/getfd
-   fcntl/getfl fcntl/setfd fcntl/setfl fifo? fifo? file-access-time
+   fcntl/getfl fcntl/setfd fcntl/setfl fifo? file-access-time
    file-change-time file-close file-control file-creation-mode
    file-group file-link file-lock
    file-lock/blocking file-mkstemp file-modification-time file-open
@@ -147,12 +147,15 @@
 (define errno/xdev _exdev))
 
 (module chicken.file.posix
-  (duplicate-fileno fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd
+  (create-fifo create-symbolic-link read-symbolic-link
+   duplicate-fileno fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd
    fcntl/setfl file-access-time file-change-time file-modification-time
    file-close file-control file-creation-mode file-group file-link
    file-lock file-lock/blocking file-mkstemp file-open file-owner
    file-permissions file-position file-read file-select file-size
    file-stat file-test-lock file-truncate file-unlock file-write
+   file-type block-device? character-device? directory? fifo?
+   regular-file? socket? symbolic-link?
    fileno/stderr fileno/stdin fileno/stdout
    open-input-file* open-output-file*
    open/append open/binary open/creat open/excl open/fsync open/noctty

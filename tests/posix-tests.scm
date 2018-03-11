@@ -1,7 +1,8 @@
 (import (chicken pathname)
         (chicken file)
+        (chicken file posix)
         (chicken platform)
-        (chicken posix)
+        (chicken process)
         (chicken process-context)
         (chicken memory representation))
 

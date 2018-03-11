@@ -1,4 +1,5 @@
 (import (chicken file)
+        (chicken file posix)
         (chicken process-context)
         (chicken sort)
         (chicken string))

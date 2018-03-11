@@ -37,7 +37,7 @@ static C_TLS struct stat C_statbuf;
 #define C_stat_type         (C_statbuf.st_mode & S_IFMT)
 #define C_stat_perm         (C_statbuf.st_mode & ~S_IFMT)
 
-#define C_u_i_stat(fn)      C_fix(C_stat((char *)C_data_pointer(fn), &C_statbuf))
+#define C_u_i_stat(fn)      C_fix(C_stat(C_c_string(fn), &C_statbuf))
 #define C_u_i_fstat(fd)     C_fix(fstat(C_unfix(fd), &C_statbuf))
 
 #ifndef S_IFSOCK

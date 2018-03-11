@@ -78,6 +78,10 @@
     good pseudo random number generator (WELL512).
   - `glob` now returns an empty list for non-existent or inaccessible
     directories, instead of erroring out.
+  - `file-copy' and `file-move' have been renamed to `copy-file' and
+    `move-file', for consistency with `delete-file' and `rename-file'.
+  - `rename-file' now refuses to overwrite an existing file unless an
+    optional "clobber" argument is provided.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This
