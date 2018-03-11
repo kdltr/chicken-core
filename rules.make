@@ -730,11 +730,11 @@ eval.c: eval.scm \
 repl.c: repl.scm \
 		chicken.eval.import.scm
 file.c: file.scm \
+		chicken.condition.import.scm \
 		chicken.io.import.scm \
 		chicken.irregex.import.scm \
 		chicken.foreign.import.scm \
 		chicken.pathname.import.scm \
-		chicken.posix.import.scm \
 		chicken.process-context.import.scm
 lolevel.c: lolevel.scm \
 		chicken.foreign.import.scm
