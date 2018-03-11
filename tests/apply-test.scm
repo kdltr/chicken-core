@@ -22,9 +22,6 @@
 	(car lst)
 	(loop (cdr lst)))))
 
-;; Non-manyarg CHICKENs are no longer made
-(assert (feature? 'manyargs))
-
 (define (foo . args)
   (when (pair? args)
     (assert (= (length args) (last args)))))

@@ -1124,8 +1124,6 @@
  '((get-environment-variable . chicken.process-context#get-environment-variable)
    (get-environment-variables . chicken.process-context#get-environment-variables)))
 
-(register-feature! 'module-environments)
-
 (define (chicken.module#module-environment mname #!optional (ename mname))
   (let ((mod (find-module/import-library mname 'module-environment)))
     (if (not mod)

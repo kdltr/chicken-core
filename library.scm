@@ -6502,9 +6502,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 
 (define ##sys#features
   '(#:chicken
-    #:srfi-6 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62
-    ;; TODO: consider removing at least irregex-is-core-unit
-    #:irregex-is-core-unit #:full-numeric-tower #:manyargs))
+    #:srfi-6 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62 #:full-numeric-tower))
 
 ;; Add system features:
 
