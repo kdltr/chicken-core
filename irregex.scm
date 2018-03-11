@@ -59,9 +59,7 @@
      glob->sre sre->string irregex-opt irregex-quote)
 
 
-(import chicken); For assume, define-compiler-syntax, and string ports
-
-(import scheme chicken.base chicken.fixnum chicken.syntax)
+(import scheme chicken.base chicken.fixnum chicken.syntax chicken.type)
 
 (import-for-syntax chicken.fixnum)
 

@@ -102,7 +102,7 @@
 
 ;; list-style library names
 
-(functor ((double printer) ((P (chicken)) (print))) (print-twice)
+(functor ((double printer) ((P (chicken base)) (print))) (print-twice)
   (import (scheme) P)
   (define (print-twice x) (print x) (print x)))
 

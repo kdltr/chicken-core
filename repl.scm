@@ -33,7 +33,6 @@
   (quit repl repl-prompt reset reset-handler)
 
 (import scheme
-	chicken ;; for string ports
 	chicken.base
 	chicken.eval
 	chicken.foreign

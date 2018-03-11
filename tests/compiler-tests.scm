@@ -148,7 +148,7 @@
 ;; Unused arguments in foreign callback wrappers are not optimized away (#584)
 (module bla (foo)
 
-(import scheme (only chicken assert) chicken.base chicken.foreign)
+(import scheme chicken.base chicken.foreign)
 
 (define-external
   (blabla (int a) (c-string b) (int c) (int d) (c-string e) (int f))

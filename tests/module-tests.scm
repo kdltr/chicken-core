@@ -69,7 +69,7 @@
       ((_ x) (gna 'x)))))
 
 (module m2 (run)
-  (import scheme chicken m1)
+  (import scheme (chicken base) m1)
   (define-syntax baz
     (syntax-rules ()
       ((_ x) (list 'goo 'x))))
@@ -80,7 +80,7 @@
 (test-equal "indirect imports" (run) '(gna 99))
 
 (module m1 ((s1 f1))
-  (import scheme chicken)
+  (import scheme (chicken base))
   (define (f1) (print "f1") 'f1)
   (define-syntax s1
     (syntax-rules ()
@@ -172,7 +172,7 @@
 ;;; import-forms in `require-extension':
 
 (module m15 ()
-  (import scheme chicken)
+  (import scheme (chicken base))
   (import (prefix (rename srfi-4 (u8vector u)) 99:))
   (print 99:u))
 
@@ -181,13 +181,13 @@
 
 (module m16 (foo-module)
 
-(import scheme chicken)
+(import scheme)
 
 (define-syntax foo-module
   (syntax-rules ()
     ((_ name)
      (module name (maker definer)
-       (import scheme chicken)
+       (import scheme)
        (define (maker) 'name)
        (define-syntax definer
          (syntax-rules () 
@@ -282,7 +282,7 @@
 (test-equal
  "handle star-exporting module with reexport"
  (module m28 ()
-   (import scheme chicken)
+   (import scheme (chicken base))
    (import (prefix m26 b/))
    (import (prefix m27 c/))
    (print b/foo)

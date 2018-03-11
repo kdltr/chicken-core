@@ -488,7 +488,7 @@
 ;;; incorrect lookup for keyword variables in DSSSL llists
 
 (module broken-keyword-var ()
-  (import scheme (only chicken assert))
+  (import scheme (chicken base))
   ((lambda (#!key string) (assert (not string))))) ; refered to R5RS `string'
 
 ;;; Missing check for keyword and optional variable types in DSSSL llists
@@ -516,7 +516,7 @@
 (define x 99)
 
 (module primitive-assign ()
-  (import scheme (only chicken assert setter))
+  (import scheme (chicken base))
   (let ((x 100)) (set! x 20) (assert (= x 20)))
   (set! setter 123))
 
@@ -774,8 +774,8 @@
 ;;; redefining definition forms (disabled, since we can not catch this error easily)
 
 #|
-(module m0a () (import chicken) (reexport (only scheme define)))
-(module m0b () (import chicken) (reexport (only scheme define-syntax)))
+(module m0a () (import chicken.module) (reexport (only scheme define)))
+(module m0b () (import chicken.module) (reexport (only scheme define-syntax)))
 
 (module m1 ()
 (import (prefix scheme s:) (prefix m0b m:))
@@ -1107,7 +1107,7 @@
 ;; an identifier to something imported for the runtime environment
 
 (module foonumbers (+)
-  (import (except scheme +) (only chicken error))
+  (import (except scheme +) (only (chicken base) error))
   (define (+ . _) (error "failed.")))
 
 (import foonumbers)
@@ -1134,7 +1134,7 @@ other-eval
 
 ;; #805: case-lambda is unhygienic (see 4706afb4 and bc5cc698)
 (module case-lambda-and-ensure-hygiene ()
-  (import (prefix chicken c/) (prefix scheme s/))
+  (import (prefix (chicken base) c/) (prefix scheme s/))
   (c/case-lambda ((a) a)))
 
 

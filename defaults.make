@@ -262,7 +262,7 @@ CHICKEN_PROGRAM_OPTIONS += $(if $(PROFILE_OBJECTS),-profile)
 
 # import libraries
 
-PRIMITIVE_IMPORT_LIBRARIES = chicken chicken.base chicken.condition \
+PRIMITIVE_IMPORT_LIBRARIES = chicken.base chicken.condition \
 	chicken.csi chicken.foreign chicken.syntax chicken.time
 DYNAMIC_IMPORT_LIBRARIES = srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise blob errno file.posix	\

@@ -34,7 +34,6 @@
    read-lines read-string read-string! read-token
    write-byte write-line write-string)
 
-(import chicken) ;; for string ports
 (import scheme chicken.base chicken.fixnum)
 
 (include "common-declarations.scm")
@@ -249,7 +248,7 @@
 (module chicken.pretty-print
   (pp pretty-print pretty-print-width)
 
-(import scheme chicken chicken.base chicken.fixnum chicken.string)
+(import scheme chicken.base chicken.fixnum chicken.string)
 
 (define generic-write
   (lambda (obj display? width output)
@@ -564,7 +563,7 @@
 (module chicken.format
   (format fprintf printf sprintf)
 
-(import scheme chicken chicken.base chicken.fixnum chicken.platform)
+(import scheme chicken.base chicken.fixnum chicken.platform)
 
 (define fprintf0
   (lambda (loc port msg args)

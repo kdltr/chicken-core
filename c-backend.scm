@@ -35,7 +35,6 @@
      foreign-type-declaration)
 
 (import scheme
-	chicken ;; for string ports
 	chicken.base
 	chicken.bitwise
 	chicken.fixnum

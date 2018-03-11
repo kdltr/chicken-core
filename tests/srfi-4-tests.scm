@@ -2,7 +2,7 @@
 
 
 (import (srfi 4) (chicken port))
-(import-for-syntax (chicken))
+(import-for-syntax (chicken base))
 
 (define-syntax test1
   (er-macro-transformer

@@ -56,7 +56,6 @@
     ;; Modules that are made available to code by default
     default-imports default-syntax-imports)
 
-(import chicken) ;; for string ports
 (import scheme chicken.base chicken.fixnum)
 
 (include "common-declarations.scm")

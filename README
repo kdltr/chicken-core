@@ -277,7 +277,6 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|-- lib
 	|   |-- chicken
 	|   |   `-- 9
-	|   |       |-- chicken.import.so
 	|   |       |-- chicken.base.import.so
 	|   |       |-- chicken.bitwise.import.so
 	|   |       |-- chicken.blob.import.so

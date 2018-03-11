@@ -8,7 +8,7 @@
   (x get-x))
 
 (module m1 (make-foo make-bar foo? bar?)
-(import scheme chicken)
+(import scheme (chicken base))
 
 (define-record foo a b)
 

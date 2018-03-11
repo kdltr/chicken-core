@@ -27,7 +27,6 @@
 (module main ()
 
   (import (scheme)
-	  (chicken) ;; for string ports
           (chicken base)
           (chicken file)
           (chicken fixnum)

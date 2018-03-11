@@ -3,7 +3,7 @@
   (define var 42))
 
 (module foo *
-  (import scheme chicken boo)
+  (import scheme (chicken base) boo)
   (define-syntax bar
     (syntax-rules ()))
   (set! bar 42) ;; set!-ing a macro

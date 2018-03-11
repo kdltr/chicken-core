@@ -42,8 +42,6 @@
    er-macro-transformer
    ir-macro-transformer)
 
-(import chicken) ;; assert and string ports
-
 (import scheme
 	chicken.base
 	chicken.condition

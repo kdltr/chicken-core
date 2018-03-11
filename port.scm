@@ -63,7 +63,6 @@
    with-error-output-to-string)
 
 (import scheme
-	chicken ;; for string ports
 	chicken.base
 	chicken.fixnum
 	chicken.foreign

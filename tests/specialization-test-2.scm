@@ -2,7 +2,7 @@
 
 
 (module main ()
-(import scheme chicken chicken.foreign)
+(import scheme chicken.base chicken.foreign)
 (import-syntax foo) ; note: does not load foo!
 
 #>

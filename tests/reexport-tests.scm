@@ -28,7 +28,7 @@
        (reexport imp ...)))))
 
 (compound-module big-chicken
- chicken
+ chicken.base
  chicken.file
  chicken.port
  chicken.pretty-print

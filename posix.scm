@@ -83,8 +83,6 @@
    time->string user-information
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 
-(import chicken) ; for "select" and string ports
-
 (import scheme
 	chicken.base
 	chicken.bitwise

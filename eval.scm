@@ -48,7 +48,6 @@
   (eval-handler module-environment)
 
 (import scheme
-	chicken ;; for string ports
 	chicken.base
 	chicken.blob
 	chicken.fixnum
@@ -886,7 +885,6 @@
    provide provided? require)
 
 (import scheme
-	chicken ; string ports
 	chicken.base
 	chicken.eval
 	chicken.fixnum
@@ -909,10 +907,6 @@
   '((chicken.foreign
      . (##core#require-for-syntax chicken-ffi-syntax))
     (chicken.condition
-     . (##core#begin
-	(##core#require-for-syntax chicken-syntax)
-	(##core#require library)))
-    (chicken
      . (##core#begin
 	(##core#require-for-syntax chicken-syntax)
 	(##core#require library)))))
@@ -1387,7 +1381,6 @@
 
 ;;; Simple invocation API:
 
-(import chicken) ; for string ports (can be removed after bootstrapping)
 (import scheme chicken.base chicken.condition chicken.eval chicken.fixnum chicken.load)
 
 (declare

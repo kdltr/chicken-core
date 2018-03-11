@@ -322,7 +322,6 @@
      line-number-database-size)
 
 (import scheme
-	chicken ;; for string ports
 	chicken.base
 	chicken.condition
 	chicken.compiler.scrutinizer

@@ -1085,7 +1085,6 @@ EOF
 
 (import scheme)
 (import (only (chicken module) reexport))
-(reexport (only chicken time))
 
 (define (current-milliseconds)
   (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f))

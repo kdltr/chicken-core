@@ -5,7 +5,7 @@
 
 
 (functor (test-queue (Q QUEUE)) *
-  (import scheme chicken Q)
+  (import scheme (chicken base) Q)
   
   (define (list->queue lst)
     (foldl (lambda (q x) (enqueue q x)) empty-queue lst))

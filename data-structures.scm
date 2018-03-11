@@ -38,7 +38,6 @@
    substring-index substring-index-ci)
 
 (import scheme)
-(import chicken) ;; for string ports
 (import chicken.base)
 (import chicken.condition)
 (import chicken.fixnum)

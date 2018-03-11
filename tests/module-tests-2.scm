@@ -38,7 +38,7 @@
 )
 
 (module mtest ()
-  (import scheme m chicken oo)
+  (import scheme m (chicken base) oo)
   (assert (string=? "f1\n" (output-of (f1))))
   (assert (string=? "f1\n" (output-of (f1))))
   (assert (string=? "f2\n" (output-of (f2))))
@@ -66,7 +66,7 @@
 )
 
 (module mtest2 (f3 f4)
-  (import (except scheme lambda) m1 (only chicken assert) oo)
+  (import (except scheme lambda) m1 (chicken base) oo)
 
   (define (f3)				; standard lambda
     (display 'f3)
@@ -91,7 +91,7 @@
 
 (module m3 ()
   (import (rename scheme (define s:define)))
-  (import (only chicken assert))
+  (import (only (chicken base) assert))
   (define-syntax define
     (syntax-rules ()
       ((_) (display 'oink))))

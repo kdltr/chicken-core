@@ -54,7 +54,6 @@
                    (,%include ,(string-append (symbol->string name)
                                               ".import.scm"))))))))
 
-(defmod chicken)
 (defmod chicken.bitwise)
 (defmod chicken.blob)
 (defmod chicken.foreign)

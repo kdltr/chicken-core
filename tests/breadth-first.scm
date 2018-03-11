@@ -5,7 +5,7 @@
 
 
 (functor (breadth-first (Q QUEUE)) (search)
-  (import scheme chicken Q)
+  (import scheme (chicken base) Q)
   
   (define (enqlist q xs)
     (foldl (lambda (q x) (enqueue q x)) q xs))

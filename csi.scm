@@ -44,8 +44,6 @@ EOF
 (module chicken.csi
   (editor-command toplevel-command set-describer!)
 
-(import chicken) ; parentheses-synonyms case-sensitive symbol-escape keyword-style and string ports
-
 (import scheme
 	chicken.base
 	chicken.condition

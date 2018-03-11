@@ -1,5 +1,5 @@
 (module reverser *
-  (import scheme chicken)
+  (import scheme (chicken base))
   (define rev-version 1.0)
 
   (define (string-reverse s)

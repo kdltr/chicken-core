@@ -13,7 +13,6 @@ c-platform.c
 chicken.compiler.c-platform.import.scm
 chicken-profile.c
 chicken.c
-chicken.import.scm
 core.c
 chicken.compiler.core.import.scm
 csc.c
@@ -266,8 +265,6 @@ modules.c
 chicken-syntax.scm
 chicken-syntax.c
 common-declarations.scm
-chicken.import.scm
-chicken.import.c
 chicken.base.import.scm
 chicken.base.import.c
 chicken.bitwise.import.scm

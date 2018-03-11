@@ -77,7 +77,6 @@
      number-type unsafe)
 
 (import scheme
-	chicken ;; for string ports
 	chicken.base
 	chicken.bitwise
 	chicken.blob

@@ -48,7 +48,6 @@
    pathname-strip-extension)
 
 (import scheme
-	chicken ;; for string ports
         chicken.base
         chicken.fixnum
         chicken.irregex
