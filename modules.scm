@@ -1020,7 +1020,7 @@
 	 (eof-object? . scheme#eof-object?)
 	 (with-input-from-file . scheme#with-input-from-file)
 	 (with-output-to-file . scheme#with-output-to-file)
-	 (eval . scheme#eval) (char-ready? . scheme#char-ready?)
+	 (char-ready? . scheme#char-ready?)
 	 (imag-part . scheme#imag-part) (real-part . scheme#real-part)
 	 (make-rectangular . scheme#make-rectangular)
 	 (make-polar . scheme#make-polar)
@@ -1035,6 +1035,7 @@
   (##sys#register-core-module
    'scheme 'library
    (append '((dynamic-wind . scheme#dynamic-wind)
+	     (eval . scheme#eval)
 	     (values . scheme#values)
 	     (call-with-values . scheme#call-with-values))
 	   r4rs-values)

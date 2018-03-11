@@ -82,6 +82,7 @@
     `move-file', for consistency with `delete-file' and `rename-file'.
   - `rename-file' now refuses to overwrite an existing file unless an
     optional "clobber" argument is provided.
+  - The `r4rs` module no longer exports `eval`, which was not in R4RS.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This
