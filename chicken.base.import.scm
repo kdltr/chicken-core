@@ -98,6 +98,7 @@
    (ratnum? . chicken.base#ratnum?)
    (setter . chicken.base#setter)
    (signum . chicken.base#signum)
+   (sleep . chicken.base#sleep)
    (string->uninterned-symbol . chicken.base#string->uninterned-symbol)
    (sub1 . chicken.base#sub1)
    (subvector . chicken.base#subvector)

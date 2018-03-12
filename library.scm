@@ -585,7 +585,7 @@ EOF
 
    port? port-closed? input-port-open? output-port-open? flush-output
    get-output-string open-input-string open-output-string
-   get-call-chain print print* add1 sub1 call/cc
+   get-call-chain print print* add1 sub1 sleep call/cc
    current-error-port error void gensym print-call-chain
    make-promise promise? char-name enable-warnings
    equal=? finite? foldl foldr getter-with-setter make-parameter
@@ -648,6 +648,8 @@ EOF
       (##sys#signal-hook #:error #f)))
 
 (define (void . _) (##core#undefined))
+
+(define sleep)
 
 (define call/cc)
 (define char-name)
@@ -5726,10 +5728,11 @@ EOF
 (define (chicken.base#sleep-hook n) ; modified by scheduler.scm
   (##core#inline "C_i_process_sleep" n))
 
-(define (sleep n)
-  (##sys#check-fixnum n 'sleep)
-  (chicken.base#sleep-hook n)
-  (##core#undefined))
+(set! chicken.base#sleep
+  (lambda (n)
+    (##sys#check-fixnum n 'sleep)
+    (chicken.base#sleep-hook n)
+    (##core#undefined)))
 
 
 ;;; Interrupt-handling:
