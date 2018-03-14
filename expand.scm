@@ -403,7 +403,7 @@
 			(r (cdr llist)))
 		   (case x
 		     [(#!optional)
-		      (unless rvar (set! rvar (macro-alias 'tmp se)))
+		      (unless rvar (set! rvar (macro-alias 'rest se)))
 		      (if (eq? mode 0)
 			  (loop 1 req '() '() r)
 			  (err "`#!optional' argument marker in wrong context") ) ]
@@ -417,7 +417,7 @@
 			      (err "invalid syntax of `#!rest' argument") ) 
 			  (err "`#!rest' argument marker in wrong context") ) ]
 		     [(#!key)
-		      (if (not rvar) (set! rvar (macro-alias 'tmp se)))
+		      (if (not rvar) (set! rvar (macro-alias 'rest se)))
 		      (if (fx<= mode 2)
 			  (loop 3 req opt '() r)
 			  (err "`#!key' argument marker in wrong context") ) ]
