@@ -2601,7 +2601,8 @@
 			    (qnode
 			     (##sys#make-lambda-info
 			      (->string (cons (or (real-name id) '?)
-					      (cdr llist) )))))) ; this is not always correct, due to optimizations
+					      ;; this is not always correct, due to optimizations
+					      (strip-syntax (cdr llist))))))))
 			  cvars) ) ) ) ) ) ) ) )
 
 	  ((set!)
