@@ -1,7 +1,7 @@
 ;;;; syntax-tests.scm - various macro tests
 
 (import-for-syntax chicken.pretty-print)
-(import chicken.gc chicken.pretty-print)
+(import chicken.gc chicken.pretty-print chicken.port)
 
 (define-syntax t
   (syntax-rules ()
@@ -264,10 +264,23 @@
 ;; and not documented, but shouldn't be messed with by the expander
 
 (t "foo#bar" (symbol->string 'foo#bar))
-(t "#%void" (symbol->string '#%void))
-
 (t "foo#bar" (symbol->string (strip-syntax 'foo#bar)))
-(t "#%void" (symbol->string (strip-syntax '#%void)))
+
+(t "#!rest" (symbol->string '#!rest))
+(t "#!rest" (symbol->string '|#!rest|))
+(t "#!rest" (symbol->string (strip-syntax '#!rest)))
+
+;; Read-write invariance of "special" symbols
+
+(t '#!rest (with-input-from-string "#!rest" read))
+(t '#!rest (with-input-from-string "|#!rest|" read))
+(t "#!rest" (with-output-to-string (lambda () (write '#!rest))))
+(t "foo#bar" (with-output-to-string (lambda () (write 'foo#bar))))
+
+;; These used to be treated specially, but now they just trigger an
+;; "invalid sharp-sign read syntax" error.
+(t "|#%foo|" (with-output-to-string (lambda () (write '|#%foo|))))
+(f (with-input-from-string "#%foo" read))
 
 ;;; alternative ellipsis test (SRFI-46)
 

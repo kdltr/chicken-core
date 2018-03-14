@@ -23,6 +23,9 @@
     software-version is now "cygwin" or "mingw32" instead of "unknown".
     This also means the features list will now contain the tool chain
     on all platforms.
+  - Symbols starting with #% are no longer treated specially and need
+    to be quoted with pipes. This makes the "%" sign available for use
+    in custom/user-defined sharp-sign read syntax.
 
 - Compiler
   - Fixed an off by one allocation problem in generated C code for (list ...).
