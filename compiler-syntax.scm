@@ -67,7 +67,7 @@
     ((_ (names . llist) se . body)
      (r-c-s 'names (lambda llist . body) se))))
 
-(define-internal-compiler-syntax ((scheme#for-each ##sys#for-each #%for-each) x r c)
+(define-internal-compiler-syntax ((scheme#for-each ##sys#for-each) x r c)
   '((pair? . scheme#pair?))
   (let ((%let (r 'let))
 	(%if (r 'if))
@@ -97,7 +97,7 @@
 				 ,@(map (lambda (v) `(##sys#slot ,v 1)) vars) ) )))))
 	x)))
 
-(define-internal-compiler-syntax ((scheme#map ##sys#map #%map) x r c)
+(define-internal-compiler-syntax ((scheme#map ##sys#map) x r c)
   '((pair? . scheme#pair?) (cons . scheme#cons))
   (let ((%let (r 'let))
 	(%if (r 'if))
@@ -274,7 +274,7 @@
 			       (loop '()) )
 			     (loop (cons c chunk)))))))))))))
 
-(define-internal-compiler-syntax ((chicken.base#foldr #%foldr) x r c)
+(define-internal-compiler-syntax ((chicken.base#foldr) x r c)
   '((pair? . scheme#pair?))
   (if (and (fx= (length x) 4)
 	   (memq 'chicken.base#foldr extended-bindings) ) ; s.a.
@@ -296,7 +296,7 @@
 			      ,z))))
       x))
 
-(define-internal-compiler-syntax ((chicken.base#foldl #%foldl) x r c)
+(define-internal-compiler-syntax ((chicken.base#foldl) x r c)
   '((pair? . scheme#pair?))
   (if (and (fx= (length x) 4)
 	   (memq 'chicken.base#foldl extended-bindings) ) ; s.a.

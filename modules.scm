@@ -407,11 +407,7 @@
   (let* ((me (##sys#macro-environment))
 	 (mod (make-module
 	       name lib '()
-	       (map (lambda (ve)
-		      (if (symbol? ve)
-			  (cons ve (##sys#primitive-alias ve))
-			  ve))
-		    vexports)
+	       vexports
 	       (map (lambda (se)
 		      (if (symbol? se)
 			  (or (assq se me)
@@ -782,11 +778,7 @@
 	     (module-rename sym (module-name mod))))
 	  (else sym)))
   (cond ((##sys#qualified-symbol? sym) sym)
-	((getp sym '##core#primitive) =>
-	 (lambda (p)
-	   (dm "(ALIAS) primitive: " p)
-	   p))
-	((getp sym '##core#aliased) 
+	((getp sym '##core#aliased)
 	 (dm "(ALIAS) marked: " sym)
 	 sym)
 	((namespaced-symbol? sym) sym)
@@ -794,9 +786,8 @@
 	 (lambda (a)
 	   (let ((sym2 (cdr a)))
 	     (dm "(ALIAS) in current environment " sym " -> " sym2)
-	     (if (pair? sym2)		; macro (XXX can this be?)
-		 (mrename sym)
-		 (or (getp sym2 '##core#primitive) sym2)))))
+	     ;; check for macro (XXX can this be?)
+	     (if (pair? sym2) (mrename sym) sym2))))
 	(else (mrename sym))))
 
 (define (##sys#validate-exports exps loc)

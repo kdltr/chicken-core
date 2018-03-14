@@ -578,7 +578,6 @@
 		      (finish-foreign-result ft body)
 		      t)
 		     e se dest ldest h #f #f))))
-	    ((##sys#get x '##core#primitive))
 	    ((not (memq x e)) (##sys#alias-global-hook x #f h)) ; only if global
 	    (else x))))
 
@@ -624,8 +623,7 @@
 		   (##sys#syntax-error/context (sprintf "(~a) - malformed expression" ln) x)
 		   (##sys#syntax-error/context "malformed expression" x)))
 	     (set! ##sys#syntax-error-culprit x)
-	     (let* ((name0 (lookup (car x) se))
-		    (name (or (and (symbol? name0) (##sys#get name0 '##core#primitive)) name0))
+	     (let* ((name (lookup (car x) se))
 		    (xexpanded
 		     (fluid-let ((chicken.syntax#expansion-result-hook
 				  (handle-expansion-result ln)))
@@ -1100,8 +1098,7 @@
 					 e se #f #f h ln #f))))
 				(else
 				 (unless (memq var e) ; global?
-				   (set! var (or (##sys#get var '##core#primitive)
-						 (##sys#alias-global-hook var #t dest)))
+				   (set! var (##sys#alias-global-hook var #t dest))
 				   (when safe-globals-flag
 				     (mark-variable var '##compiler#always-bound-to-procedure)
 				     (mark-variable var '##compiler#always-bound))

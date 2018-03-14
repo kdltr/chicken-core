@@ -134,10 +134,10 @@
 	       (receive (i j) (lookup x e se)
 		 (cond ((not i)
 			(let ((var (cond ((not (symbol? j)) x) ; syntax?
-                                         ((not (assq x se))
-                                          (and (not static)
-                                               (##sys#alias-global-hook j #f cntr)))
-                                         (else (or (##sys#get j '##core#primitive) j)))))
+					 ((assq x se) j)
+					 ((not static)
+					  (##sys#alias-global-hook j #f cntr))
+					 (else #f))))
 			  (when (and ##sys#unbound-in-eval
 				     (or (not var)
 					 (not (##sys#symbol-has-toplevel-binding? var))))
@@ -263,10 +263,10 @@
 						    ((symbol? (cdr a))))
 					   (##sys#notice "assignment to imported value binding" var)))
 				       (let ((var
-					      (if (not (assq x se)) ;XXX this looks wrong
-						  (and (not static)
-						       (##sys#alias-global-hook j #t cntr))
-						  (or (##sys#get j '##core#primitive) j))))
+					      (cond ((assq x se) j) ;XXX this looks wrong
+						    ((not static)
+						     (##sys#alias-global-hook j #t cntr))
+						    (else #f))))
 					 (if (not var) ; static
 					     (lambda (v)
 					       (##sys#error 'eval "environment is not mutable" evalenv var)) ;XXX var?

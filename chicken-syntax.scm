@@ -75,8 +75,7 @@
 
 (##sys#extend-macro-environment
  'condition-case
- `((else . ,(##sys#primitive-alias 'else))
-   (memv . scheme#memv))
+ `((memv . scheme#memv))
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'condition-case form '(_ _ . _))

@@ -91,12 +91,6 @@
 ;;XXX should this be in eval.scm?
 (define ##sys#active-eval-environment (make-parameter ##sys#current-environment))
 
-(define (##sys#primitive-alias sym)
-  (let ((alias (##sys#string->symbol
-		(##sys#string-append "#%" (##sys#slot sym 1)))))
-    (putp alias '##core#primitive sym)
-    alias))
-
 (define (lookup id se)
   (cond ((##core#inline "C_u_i_assq" id se) => cdr)
 	((getp id '##core#macro-alias))
@@ -874,9 +868,7 @@
 				      (lookup2 2 s2 dse)
 				      s2) ) )
 			 (cond ((symbol? ss1)
-				(cond ((symbol? ss2) 
-				       (eq? (or (getp ss1 '##core#primitive) ss1)
-					    (or (getp ss2 '##core#primitive) ss2)))
+				(cond ((symbol? ss2) (eq? ss1 ss2))
 				      ((assq ss1 (##sys#macro-environment)) =>
 				       (lambda (a) (eq? (cdr a) ss2)))
 				      (else #f) ) )
