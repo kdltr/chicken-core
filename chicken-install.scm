@@ -92,6 +92,7 @@
 (define keepfiles #f)
 (define print-repository #f)
 (define no-deps #f)
+(define cached-only #f)
   
 (define platform
   (if (eq? 'mingw32 (build-platform))
@@ -399,23 +400,35 @@
     (cond ((or (not (probe-dir cached))
                (not (file-exists? eggfile)))
            (d "~a not cached~%" name)
+           (when cached-only (error "extension not cached"))
            (fetch #f))
           ((and (file-exists? status)
                 (not (equal? current-status 
                              (with-input-from-file status read))))
            (d "status changed for ~a~%" name)
-           (fetch #f)))
+           (cond (cached-only
+                   (if force-install
+                       (warning "cached egg does not match CHICKEN version" name)
+                       (error "cached egg does not match CHICKEN version - use `-force' to install anyway" name)))
+                 (else (fetch #f)))))
     (let* ((info (validate-egg-info (load-egg-info eggfile)))
            (vfile (make-pathname cached +version-file+))
            (lversion (or (get-egg-property info 'version)
                          (and (file-exists? vfile)
                               (with-input-from-file vfile read)))))
-      (cond ((if (file-exists? timestamp)
-                 (and (> (- now (with-input-from-file timestamp read)) +one-hour+)
-                      (not (check-remote-version name version lversion
-                                                 cached)))
-                 (not (check-remote-version name version lversion
-                                            cached)))
+      (cond ((and (not cached-only)
+                  (if (file-exists? timestamp)
+                      (and (> (- now (with-input-from-file
+                                       timestamp read))
+                              +one-hour+)
+                           (not (check-remote-version name
+                                                      version
+                                                      lversion
+                                                      cached)))
+                      (not (check-remote-version name
+                                                 version
+                                                 lversion
+                                                 cached))))
              (d "version of ~a out of date~%" name)
              (fetch #t)
              (let* ((info (validate-egg-info (load-egg-info eggfile))) ; new egg info (fetched)
@@ -965,6 +978,8 @@
         (purge-mode (purge-cache eggs))
         (print-repository (print (install-path)))
         ((null? eggs)
+         (when cached-only
+           (error "`-cached' needs explicit egg list"))
          (if list-versions-only
              (print "no eggs specified")
              (let ((files (glob "*.egg" "chicken/*.egg")))
@@ -979,7 +994,6 @@
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
-                  ;;XXX other actions...
                   (else 
                     (when run-tests
                       (set! tested-eggs (map (o car canonical) eggs)))
@@ -1012,6 +1026,7 @@ usage: chicken-install [OPTION ...] [NAME[:VERSION] ...]
        -override FILENAME       override versions for installed eggs with information from file
        -from-list FILENAME      install eggs from list obtained by `chicken-status -list'
   -v   -verbose                 be verbose
+       -cached                  only install from cache
 
 chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
 
@@ -1087,6 +1102,9 @@ EOF
                    (loop (cdr args)))
                   ((equal? arg "-purge")
                    (set! purge-mode #t)
+                   (loop (cdr args)))
+                  ((equal? arg "-cached")
+                   (set! cached-only #t)
                    (loop (cdr args)))
                   ((equal? arg "-from-list")
                    (unless (pair? (cdr args)) (usage 1))
