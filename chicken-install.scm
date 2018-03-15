@@ -53,10 +53,6 @@
 (define +defaults-file+ "setup.defaults")
 (define +short-options+ '(#\h #\k #\s #\r #\n #\u #\v))
 (define +one-hour+ (* 60 60))
-(define +timestamp-file+ "TIMESTAMP")
-(define +status-file+ "STATUS")
-(define +egg-extension+ "egg")
-(define +version-file+ "VERSION")
 (define +internal-modules+ '(chicken.internal chicken.internal.syntax))
 
 (include "mini-srfi-1.scm")
@@ -109,16 +105,6 @@
         (get-environment-variable "DYLD_LIBRARY_PATH")
         (get-environment-variable "CHICKEN_INCLUDE_PATH")
         (get-environment-variable "DYLD_LIBRARY_PATH")))
-
-(define (probe-dir dir)
-  (and dir (directory-exists? dir) dir))
-
-(define cache-directory
-  (or (get-environment-variable "CHICKEN_EGG_CACHE")
-      (make-pathname (or (probe-dir (get-environment-variable "HOME"))
-                         (probe-dir (get-environment-variable "USERPROFILE"))
-                         (current-directory))
-                     ".chicken-install/cache")))
 
 (define (repo-path)
   (if (and cross-chicken (not host-extension))

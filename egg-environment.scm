@@ -92,9 +92,23 @@ EOF
   (string-append default-runlibdir "/chicken/" (number->string binary-version)))
 
 (define +egg-info-extension+ "egg-info")
+(define +version-file+ "VERSION")
+(define +timestamp-file+ "TIMESTAMP")
+(define +status-file+ "STATUS")
+(define +egg-extension+ "egg")
 
 (define (destination-repository mode #!optional run)
   (if (eq? 'target mode)
       (if run target-run-repo target-repo)
       (or (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
           host-repo)))
+
+(define (probe-dir dir)
+  (and dir (directory-exists? dir) dir))
+
+(define cache-directory
+  (or (get-environment-variable "CHICKEN_EGG_CACHE")
+      (make-pathname (or (probe-dir (get-environment-variable "HOME"))
+                         (probe-dir (get-environment-variable "USERPROFILE"))
+                         (current-directory))
+                     ".chicken-install/cache")))
