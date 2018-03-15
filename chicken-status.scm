@@ -48,19 +48,31 @@
   (define host-extensions #t)
   (define target-extensions #t)
 
+  (define get-terminal-width
+    (let ((default-width 79))	     ; Standard default terminal width
+      (lambda ()
+	(let ((cop (current-output-port)))
+	  (if (terminal-port? cop)
+	      (let ((w (nth-value 1 (terminal-size cop))))
+		(if (zero? w)
+		    default-width
+		    (min default-width w)))
+	      default-width)))))
+
+  (define list-width (quotient (- (get-terminal-width) 2) 2))
+
   (define (repo-path)
     (if (and cross-chicken (not host-extensions))
-        (destination-repository 'target)
-        (repository-path)))
+	(destination-repository 'target)
+	(repository-path)))
 
   (define (grep rx lst)
     (filter (cut irregex-search rx <>) lst))
 
-  (define (read-info egg)
+  (define (read-info egg #!optional (dir (repo-path))
+                     (ext +egg-info-extension+))
     (load-egg-info
-     (or (chicken.load#find-file
-          (make-pathname #f egg +egg-info-extension+)
-          (repo-path))
+     (or (chicken.load#find-file (make-pathname #f egg ext) dir)
          (error "egg not found" egg))))
 
   (define (filter-eggs patterns mtch)
@@ -94,30 +106,32 @@
 	  (string-append pad str)
 	  (string-append str pad) ) ) )
 
-  (define get-terminal-width
-    (let ((default-width 80))	     ; Standard default terminal width
-      (lambda ()
-	(let ((cop (current-output-port)))
-	  (if (terminal-port? cop)
-	      (let ((w (nth-value 1 (terminal-size cop))))
-		(if (zero? w) 
-		    default-width 
-		    (min default-width w)))
-	      default-width)))))
+  (define (list-installed-eggs eggs #!optional (dir (repo-path))
+			       (ext +egg-info-extension+))
+    (for-each (cut list-egg-info <> dir ext)
+      (sort eggs string<?)))
 
-  (define (list-installed-eggs eggs)
-    (let ((w (quotient (- (get-terminal-width) 2) 2)))
-      (for-each
-       (lambda (egg)
-	 (let ((version (get-egg-property (read-info egg) 'version)))
-	   (if version
-	       (print
-		(format-string (string-append egg " ") w #f #\.)
-		(format-string 
-		 (string-append " version: " (->string version))
-		 w #t #\.))
-	       (print egg))))
-       (sort eggs string<?))))
+  (define (list-egg-info egg dir ext)
+    (let ((version
+	    (cond ((get-egg-property (read-info egg dir ext)
+				     'version))
+		  ((file-exists? (make-pathname (list dir egg)
+						+version-file+))
+		   => (lambda (fname)
+			(with-input-from-file fname read)))
+		  (else "unknown"))))
+      (print (format-string (string-append egg " ")
+			    list-width #f #\.)
+	     (format-string (string-append " version: "
+					   (->string version))
+			    list-width #t #\.))))
+
+  (define (list-cached-eggs)
+    (for-each
+      (lambda (egg)
+	(list-egg-info egg (make-pathname cache-directory egg)
+		       +egg-extension+))
+      (sort (directory cache-directory) string<?)))
 
   (define (gather-components lst mode)
     (append-map (cut gather-components-rec <> mode) lst))
@@ -186,6 +200,7 @@ usage: chicken-status [OPTION ...] [NAME ...]
   -h   -help                    show this message
        -version                 show version and exit
   -c   -components              list installed components
+       -cached                  list eggs in cache
   -f   -files                   list installed files
        -list                    dump installed extensions and their versions in "override" format
        -match                   treat NAME as glob pattern
@@ -201,6 +216,7 @@ EOF
     (let ((files #f)
           (comps #f)
           (dump #f)
+          (cached #f)
           (mtch #f))
       (let loop ((args args) (pats '()))
         (if (null? args)
@@ -208,6 +224,7 @@ EOF
                    (with-output-to-port (current-error-port)
                      (cut print "-components cannot be used with -list."))
                    (exit 1))
+                  (cached (list-cached-eggs))
                   (dump (dump-installed-versions))
                   (else
                     (let ((eggs (filter-eggs pats mtch)))
@@ -228,6 +245,9 @@ EOF
 		     (loop (cdr args) pats))
                     ((string=? arg "-match")
                      (set! mtch #t)
+                     (loop (cdr args) pats))
+                    ((string=? arg "-cached")
+                     (set! cached #t)
                      (loop (cdr args) pats))
 		    ((string=? arg "-list")
 		     (set! dump #t)

@@ -622,6 +622,7 @@ Available options:
 ; {{-target}} : when cross-compiling, show eggs for target system only
 ; {{-list}} : list installed egg version in format suitable for {{chicken-install -override}} or {{-from-list}}
 ; {{-c   -components}} : list installed components
+; {{-cached}} : list eggs that are locally cached
 
 
 === Security
@@ -727,7 +728,7 @@ and for providing a temporary location for building the eggs before
 they are installed.
 
 By default the cache is located in the directory
-{{.chicken-install.cache}} is the user's home directory ({{$HOME}} on
+{{.chicken-install/cache}} is the user's home directory ({{$HOME}} on
 UNIX, or {{%USERPROFILE%}} on Windows. If the respective environment
 variable is not set, then {{/tmp}} or {{/Temp}} is used.
 
@@ -739,6 +740,8 @@ the first download and re-download is not needed.
 {{chicken-install}} tries to take extreme care to avoid stale binaries,
 but should you be in doubt, simply delete the directory, or run
 {{chicken-install -purge}} to clear the cache or parts of it.
+{{chicken-status -cached}} will list the eggs that are currently
+in the cache.
 
 You can override the location of the cache by setting the
 {{CHICKEN_EGG_CACHE}} environment variable.
