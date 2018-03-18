@@ -127,11 +127,12 @@
 			    list-width #t #\.))))
 
   (define (list-cached-eggs)
-    (for-each
-      (lambda (egg)
-	(list-egg-info egg (make-pathname cache-directory egg)
-		       +egg-extension+))
-      (sort (directory cache-directory) string<?)))
+    (when (directory? cache-directory)
+      (for-each
+       (lambda (egg)
+	 (list-egg-info egg (make-pathname cache-directory egg)
+			+egg-extension+))
+       (sort (directory cache-directory) string<?))))
 
   (define (gather-components lst mode)
     (append-map (cut gather-components-rec <> mode) lst))
