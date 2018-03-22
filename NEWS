@@ -74,6 +74,7 @@
     These are available in the "system-information" egg.
   - Removed the `eval-when`, `select` and `ensure` macros.  These are
     available in the "miscmacros" egg.
+  - Removed the require-extension-for-syntax macro.
   - Renamed bit-set? to bit->boolean because of swapped argument order
     with respect to SRFI-33 and SRFI-60, which was confusing (fixes
     #1385, thanks to Lemonboy).
