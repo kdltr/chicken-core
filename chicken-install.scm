@@ -95,7 +95,7 @@
 (define cached-only #f)
   
 (define platform
-  (if (eq? 'mingw32 (build-platform))
+  (if (eq? 'mingw32 (software-version))
       'windows
       'unix))
 

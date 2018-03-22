@@ -4294,8 +4294,6 @@ EOF
 						     (not (char=? c #\|)))
 						(##sys#read-error port "empty keyword")
 						(build-keyword str)))))))
-				    ((#\%)
-				     (build-symbol (##sys#string-append "#" (r-token))) )
 				    ((#\+)
 				     (##sys#read-char-0 port)
 				     (let ((tst (readrec)))
@@ -4560,9 +4558,8 @@ EOF
 				      (eq? c #\-) )
 				  (not (##sys#string->number str)) )
 				 ((eq? c #\:) (not (eq? ksp #:prefix)))
-				 ((and (eq? c #\#)
-				       (not (eq? #\% (##core#inline "C_subchar" str 1))))
-				  #f)
+				 ((eq? c #\#) ;; #!rest, #!key etc
+				  (eq? (##core#inline "C_subchar" str 1) #\!))
 				 ((specialchar? c) #f)
 				 (else #t) ) )
 			 (let ((c (##core#inline "C_subchar" str i)))
@@ -6436,7 +6433,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define ##sys#windows-platform
   (and (eq? 'windows (software-type))
        ;; Still windows even if 'Linux-like'
-       (not (eq? 'cygwin (build-platform)))))
+       (not (eq? 'cygwin (software-version)))))
 
 (define (chicken-version #!optional full)
   (define (get-config)

@@ -680,12 +680,8 @@ void *alloca ();
 # define C_SOFTWARE_TYPE "unknown"
 #endif
 
-#if defined(__CYGWIN__)
-# define C_BUILD_PLATFORM "cygwin"
-#elif defined(__SUNPRO_C)
+#if defined(__SUNPRO_C)
 # define C_BUILD_PLATFORM "sun"
-#elif defined(__MINGW32__)
-# define C_BUILD_PLATFORM "mingw32"
 #elif defined(__clang__)
 # define C_BUILD_PLATFORM "clang"
 #elif defined(_AIX)
@@ -724,6 +720,10 @@ void *alloca ();
 # define C_SOFTWARE_VERSION "aix"
 #elif defined(__GNU__)
 # define C_SOFTWARE_VERSION "hurd"
+#elif defined(__CYGWIN__)
+# define C_SOFTWARE_VERSION "cygwin"
+#elif defined(__MINGW32__)
+# define C_SOFTWARE_VERSION "mingw32"
 #else
 # define C_SOFTWARE_VERSION "unknown"
 #endif

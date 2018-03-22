@@ -34,8 +34,8 @@
   (fixnum)
   (not inline ##sys#alias-global-hook)
   (hide check-for-redef find-export find-module/import-library
-	mark-imported-symbols match-functor-argument merge-se
-	module-indirect-exports module-rename register-undefined))
+	match-functor-argument merge-se module-indirect-exports
+	module-rename register-undefined))
 
 (import scheme
 	chicken.base
@@ -251,14 +251,6 @@
     (set! ##sys#module-table (cons (cons name mod) ##sys#module-table))
     mod) )
 
-(define (mark-imported-symbols se)
-  (for-each
-   (lambda (imp)
-     (when (and (symbol? (cdr imp)) (not (eq? (car imp) (cdr imp))))
-       (dm `(MARKING: ,(cdr imp)))
-       (putp (cdr imp) '##core#aliased #t)))
-   se))
-
 (define (module-indirect-exports mod)
   (let ((exports (module-export-list mod))
 	(mname (module-name mod))
@@ -382,7 +374,6 @@
 		(##sys#macro-environment)
 		(##sys#current-environment)
 		iexps vexports sexps nexps)))
-    (mark-imported-symbols iexps)
     (for-each
      (lambda (sexp)
        (set-car! (cdr sexp) (merge-se (or (cadr sexp) '()) senv)))
@@ -533,7 +524,6 @@
 			(##sys#macro-environment) 
 			(##sys#current-environment) 
 			iexports vexports sexports sdlist)))
-	  (mark-imported-symbols iexports)
 	  (for-each
 	   (lambda (m)
 	     (let ((se (merge-se (cadr m) new-se))) ;XXX needed?
@@ -720,7 +710,6 @@
     (dd `(IMPORT: ,loc))
     (dd `(V: ,(if cm (module-name cm) '<toplevel>) ,(map-se vsv)))
     (dd `(S: ,(if cm (module-name cm) '<toplevel>) ,(map-se vss)))
-    (mark-imported-symbols vsv) ; mark imports as ##core#aliased
     (for-each
      (lambda (imp)
        (and-let* ((id (car imp))
@@ -778,9 +767,6 @@
 	     (module-rename sym (module-name mod))))
 	  (else sym)))
   (cond ((##sys#qualified-symbol? sym) sym)
-	((getp sym '##core#aliased)
-	 (dm "(ALIAS) marked: " sym)
-	 sym)
 	((namespaced-symbol? sym) sym)
 	((assq sym ((##sys#active-eval-environment))) =>
 	 (lambda (a)
