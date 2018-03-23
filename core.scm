@@ -36,7 +36,6 @@
 ;
 ; ([not] extended-bindings {<name>})
 ; ([not] inline {<var>})
-; ([not] interrupts-enabled)
 ; ([not] safe)
 ; ([not] standard-bindings {<name>})
 ; ([not] usual-integrations {<name>})
@@ -1547,7 +1546,6 @@
        ((no-bound-checks) (set! no-bound-checks #t))
        ((no-argc-checks) (set! no-argc-checks #t))
        ((no-procedure-checks) (set! no-procedure-checks #t))
-       ((interrupts-enabled) (set! insert-timer-checks #t))
        ((disable-interrupts) (set! insert-timer-checks #f))
        ((always-bound)
 	(for-each (cut mark-variable <> '##compiler#always-bound) (stripa (cdr spec))))
@@ -1618,7 +1616,6 @@
 	   (check-decl spec 1 1)
 	   (let ((id (strip-syntax (cadr spec))))
 	     (case id
-	       [(interrupts-enabled) (set! insert-timer-checks #f)]
 	       [(safe) (set! unsafe #t)]
 	       [else (warning "unsupported declaration specifier" id)]))]))
        ((compile-syntax)
