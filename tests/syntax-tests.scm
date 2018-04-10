@@ -732,6 +732,10 @@
       (1 ==> (lambda (x) x))
       (else 'yep))))
 
+;; Undefined value (but no compiler error) on empty `else' clauses
+(t (void) (cond (else)))
+(t (void) (case 1 (else)))
+
 ;; Literal quotation of a symbol, injected or not, should always result in that symbol
 (module ir-se-test (run)
   (import scheme chicken.base)
