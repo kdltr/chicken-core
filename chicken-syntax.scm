@@ -488,8 +488,6 @@
     (##sys#check-syntax 'parameterize form '#(_ 2))
     (let* ((bindings (cadr form))
 	   (body (cddr form))
-	   (the (r 'the))
-	   (boolean (r 'boolean))
 	   (convert? (r 'convert?))
 	   (params (##sys#map car bindings))
 	   (vals (##sys#map cadr bindings))
@@ -506,7 +504,7 @@
 	  ;; value expressions (see first example in #1336).
 	  ,(map ##sys#list saveds saveds)
 	  (##core#let
-	   ((,convert? (,the ,boolean #t))) ; Convert only first time extent is entered!
+	   ((,convert? (##core#the (##core#quote boolean) #t #t))) ; Convert only first time extent is entered!
 	   (##sys#dynamic-wind
 	    (##core#lambda ()
 	      (##core#let
