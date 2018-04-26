@@ -54,7 +54,6 @@ EOF
 (define default-slibdir (foreign-value "C_TARGET_STATIC_LIB_HOME" c-string))
 (define default-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
 (define default-bindir (foreign-value "C_TARGET_BIN_HOME" c-string))
-(define default-incdir (foreign-value "C_TARGET_INCLUDE_HOME" c-string))
 (define default-sharedir (foreign-value "C_TARGET_SHARE_HOME" c-string))
 
 (define default-platform
