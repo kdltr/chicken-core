@@ -363,21 +363,15 @@
 		     (find-reexport se)
 		     (list (car se) #f (##sys#ensure-transformer (cdr se) (car se)))))
 	       sexports))
-	 (iexps 
-	  (map (lambda (ie)
-		 (if (pair? (cdr ie))
-		     (list (car ie) (cadr ie) (##sys#ensure-transformer (caddr ie) (car ie)))
-		     ie))
-	       iexports))
 	 (nexps
 	  (map (lambda (ne)
 		 (list (car ne) #f (##sys#ensure-transformer (cdr ne) (car ne))))
 	       sdefs))
-	 (mod (make-module name lib '() vexports sexps iexps))
+	 (mod (make-module name lib '() vexports sexps iexports))
 	 (senv (merge-se 
 		(##sys#macro-environment)
 		(##sys#current-environment)
-		iexps vexports sexps nexps)))
+		iexports vexports sexps nexps)))
     (for-each
      (lambda (sexp)
        (set-car! (cdr sexp) (merge-se (or (cadr sexp) '()) senv)))
@@ -386,7 +380,7 @@
      (lambda (iexp)
        (when (pair? (cdr iexp))
 	 (set-car! (cdr iexp) (merge-se (or (cadr iexp) '()) senv))))
-     iexps)
+     iexports)
     (for-each
      (lambda (nexp)
        (set-car! (cdr nexp) (merge-se (or (cadr nexp) '()) senv)))
