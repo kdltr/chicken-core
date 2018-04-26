@@ -316,14 +316,14 @@
       (##sys#register-compiled-module
        ',(module-name mod)
        ',(module-library mod)
-       (scheme#list
+       (scheme#list			; iexports
 	,@(map (lambda (ie)
 		 (if (symbol? (cdr ie))
 		     `'(,(car ie) . ,(cdr ie))
 		     `(scheme#list ',(car ie) '() ,(cdr ie))))
 	       (module-iexports mod)))
-       ',(module-vexports mod)
-       (scheme#list
+       ',(module-vexports mod)		; vexports
+       (scheme#list			; sexports
 	,@(map (lambda (sexport)
 		 (let* ((name (car sexport))
 			(a (assq name dlist)))
@@ -333,7 +333,7 @@
 			  (dm "re-exported syntax" name mname)
 			  `',name))))
 	       sexports))
-       (scheme#list
+       (scheme#list			; sdefs
 	,@(if (null? sexports)
 	      '() 			; no syntax exported - no more info needed
 	      (let loop ((sd (module-defined-syntax-list mod)))
@@ -344,6 +344,10 @@
 			 (cons `(scheme#cons ',(caar sd) ,(strip-syntax (cdar sd)))
 			       (loop (cdr sd)))))))))))))
 
+;; iexports = indirect exports (syntax dependencies on value idents, explicitly included in module export list)
+;; vexports = value (non-syntax) exports
+;; sexports = syntax exports
+;; sdefs = unexported definitions from syntax environment used by exported macros (not in export list)
 (define (##sys#register-compiled-module name lib iexports vexports sexports #!optional
 					(sdefs '()))
   (define (find-reexport name)
