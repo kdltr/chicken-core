@@ -1834,7 +1834,7 @@
 (define (expand-foreign-lambda* exp callback?)
   (let* ((rtype (second exp))
 	 (args (third exp))
-	 (body (apply string-append (cdddr exp)))
+	 (body (string-intersperse (cdddr exp) "\n"))
  	 (argtypes (map (lambda (x) (car x)) args))
 	 ;; C identifiers aren't hygienically renamed inside body strings
 	 (argnames (map cadr (strip-syntax args))))
@@ -1845,7 +1845,7 @@
   (let* ((hasrtype (and (pair? (cddr exp)) (not (string? (caddr exp)))))
 	 (rtype (if hasrtype (second exp) 'void))
 	 (args (strip-syntax (if hasrtype (third exp) (second exp))))
-	 (body (apply string-append (if hasrtype (cdddr exp) (cddr exp))))
+	 (body (string-intersperse (if hasrtype (cdddr exp) (cddr exp)) "\n"))
  	 (argtypes (map (lambda (x) (car x)) args))
 	 ;; C identifiers aren't hygienically renamed inside body strings
 	 (argnames (map cadr (strip-syntax args))))
