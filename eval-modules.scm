@@ -98,6 +98,5 @@
 (set! ##sys#import-library-hook
   (let ((hook ##sys#import-library-hook))
     (lambda (mname)
-      (let ((il (get mname '##sys#import)))
-        (or (il)
-            (hook mname))))))
+      (cond ((get mname '##sys#import) => (lambda (il) (il)))
+	    (else (hook mname)) ) ) ) )
