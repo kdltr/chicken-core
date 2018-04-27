@@ -380,11 +380,6 @@
        (set-car! (cdr sexp) (merge-se (or (cadr sexp) '()) senv)))
      sexps)
     (for-each
-     (lambda (iexp)
-       (when (pair? (cdr iexp))
-	 (set-car! (cdr iexp) (merge-se (or (cadr iexp) '()) senv))))
-     iexports)
-    (for-each
      (lambda (nexp)
        (set-car! (cdr nexp) (merge-se (or (cadr nexp) '()) senv)))
      nexps)
