@@ -295,14 +295,14 @@
 			  (loop2 (cdr iexports)))))))))))
 
 (define (merge-se . ses)		; later occurrences take precedence
-  (let bwd ((ses ses))
-    (if (null? ses)
-	'()
-	(let fwd ((se (car ses))
-		  (rest (bwd (cdr ses))))
-	  (cond ((null? se) rest)
-		((assq (caar se) rest) (fwd (cdr se) rest))
-		(else (cons (car se) (fwd (cdr se) rest))))))))
+  (let bwd ((ses (remove null? ses)))
+    (cond ((null? ses) '())
+	  ((null? (cdr ses)) (car ses))	; Do not re-cons the final list
+	  (else (let fwd ((se (car ses))
+			  (rest (bwd (cdr ses))))
+		  (cond ((null? se) rest)
+			((assq (caar se) rest) (fwd (cdr se) rest))
+			(else (cons (car se) (fwd (cdr se) rest)))))))))
 
 (define (##sys#compiled-module-registration mod)
   (let ((dlist (module-defined-list mod))
@@ -368,10 +368,13 @@
 		 (list (car ne) #f (##sys#ensure-transformer (cdr ne) (car ne))))
 	       sdefs))
 	 (mod (make-module name lib '() vexports sexps iexports))
-	 (senv (merge-se 
-		(##sys#macro-environment)
-		(##sys#current-environment)
-		iexports vexports sexps nexps)))
+	 (senv (if (or (not (null? sexps))  ; Only macros have an senv
+		       (not (null? nexps))) ; which must be patched up
+		   (merge-se
+		    (##sys#macro-environment)
+		    (##sys#current-environment)
+		    iexports vexports sexps nexps)
+		   '())))
     (for-each
      (lambda (sexp)
        (set-car! (cdr sexp) (merge-se (or (cadr sexp) '()) senv)))
