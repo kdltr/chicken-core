@@ -124,7 +124,7 @@
        (lambda (sym plist)
 	 (let ([val #f]
 	       (lval #f)
-	       [pval #f]
+	       [pvals #f]
 	       [csites '()]
 	       [refs '()] )
 	   (unless (memq sym omit)
@@ -143,8 +143,8 @@
 			(unless (eq? val 'unknown) (set! val (cdar es))) )
 		       ((local-value)
 			(unless (eq? val 'unknown) (set! lval (cdar es))) )
-		       ((potential-value)
-			(set! pval (cdar es)) )
+		       ((potential-values)
+			(set! pvals (cdar es)))
 		       ((replacable home contains contained-in use-expr closure-size rest-parameter
 				    captured-variables explicit-rest)
 			(printf "\t~a=~s" (caar es) (cdar es)) )
@@ -154,14 +154,17 @@
 			(set! csites (cdar es)) )
 		       (else (bomb "Illegal property" (car es))) )
 		     (loop (cdr es)) ) ) )
+	     (when (pair? refs) (printf "\trefs=~s" (length refs)))
+	     (when (pair? csites) (printf "\tcss=~s" (length csites)))
 	     (cond [(and val (not (eq? val 'unknown)))
 		    (printf "\tval=~s" (cons (node-class val) (node-parameters val))) ]
 		   [(and lval (not (eq? val 'unknown)))
-		    (printf "\tlval=~s" (cons (node-class lval) (node-parameters lval))) ]
-		   [(and pval (not (eq? val 'unknown)))
-		    (printf "\tpval=~s" (cons (node-class pval) (node-parameters pval)))] )
-	     (when (pair? refs) (printf "\trefs=~s" (length refs)))
-	     (when (pair? csites) (printf "\tcss=~s" (length csites)))
+		    (printf "\tlval=~s" (cons (node-class lval) (node-parameters lval)))])
+	     (when (pair? pvals)
+	       (for-each
+		(lambda (pval)
+		  (printf "\tpval=~s" (cons (node-class pval) (node-parameters pval))))
+		pvals))
 	     (newline) ) ) )
        db) ) ) )
 

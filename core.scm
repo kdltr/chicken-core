@@ -236,7 +236,7 @@
 ;   undefined -> <boolean>                   If true: variable is unknown yet but can be known later
 ;   value -> <node>                          Variable has a known value
 ;   local-value -> <node>                    Variable is declared local and has value
-;   potential-value -> <node>                Global variable was assigned this value (used for lambda-info)
+;   potential-values -> (<node> ...)         Global variable was assigned this value (used for lambda-info)
 ;   references -> (<node> ...)               Nodes that are accesses of this variable (##core#variable nodes)
 ;   boxed -> <boolean>                       If true: variable has to be boxed after closure-conversion
 ;   contractable -> <boolean>                If true: variable names contractable procedure
@@ -2107,7 +2107,7 @@
 		  (warning "redefinition of standard binding" var) )
 		 ((extended)
 		  (warning "redefinition of extended binding" var) ) ))
-	     (db-put! db var 'potential-value val)
+	     (collect! db var 'potential-values val)
 	     (unless (memq var localenv)
 	       (grow 1)
 	       (cond ((memq var env)
@@ -2176,7 +2176,7 @@
        (let ([unknown #f]
 	     [value #f]
 	     [local-value #f]
-	     [pvalue #f]
+	     [potential-values #f]
 	     [references '()]
 	     [captured #f]
 	     [call-sites '()]
@@ -2198,7 +2198,8 @@
 	       (set! references (cdr prop))
 	       (set! nreferences (length references)) ]
 	      [(captured) (set! captured #t)]
-	      [(potential-value) (set! pvalue (cdr prop))]
+	      [(potential-values)
+	       (set! potential-values (cdr prop))]
 	      [(call-sites)
 	       (set! call-sites (cdr prop))
 	       (set! ncall-sites (length call-sites)) ]
@@ -2216,11 +2217,14 @@
 
 	 ;; If this is the first analysis, register known local or potentially known global
 	 ;;  lambda-value id's along with their names:
-	 (when (and first-analysis
-		    (eq? '##core#lambda
-			 (and-let* ([val (or value (and global pvalue))])
-			   (node-class val) ) ) )
-	   (set-real-name! (first (node-parameters (or value pvalue))) sym) )
+         (when first-analysis
+	   (and-let* ((vals (or (and value (list value))
+				(and global potential-values))))
+	     (for-each
+	      (lambda (val)
+		(when (eq? (node-class val) '##core#lambda)
+		  (set-real-name! (first (node-parameters val)) sym)))
+	      vals)))
 
 	 ;; If this is the first analysis and the variable is global and has no references
 	 ;;  and is hidden then issue warning:
