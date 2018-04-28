@@ -70,7 +70,6 @@
 (defmod chicken.port)
 (defmod chicken.time)
 (defmod chicken.memory)
-(defmod chicken.posix)
 (defmod chicken.file.posix)
 (defmod chicken.flonum)
 (defmod chicken.format)

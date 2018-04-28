@@ -321,8 +321,6 @@ chicken.plist.import.scm
 chicken.plist.import.c
 chicken.port.import.scm
 chicken.port.import.c
-chicken.posix.import.scm
-chicken.posix.import.c
 chicken.pretty-print.import.scm
 chicken.pretty-print.import.c
 chicken.process.import.scm

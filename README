@@ -305,7 +305,6 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	|   |       |-- chicken.platform.import.so
 	|   |       |-- chicken.plist.import.so
 	|   |       |-- chicken.port.import.so
-	|   |       |-- chicken.posix.import.so
 	|   |       |-- chicken.pretty-print.import.so
 	|   |       |-- chicken.process.import.so
 	|   |       |-- chicken.process.signal.import.so

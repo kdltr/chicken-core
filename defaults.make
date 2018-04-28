@@ -267,7 +267,7 @@ PRIMITIVE_IMPORT_LIBRARIES = chicken.base chicken.condition \
 DYNAMIC_IMPORT_LIBRARIES = srfi-4
 DYNAMIC_CHICKEN_IMPORT_LIBRARIES = bitwise blob errno file.posix	\
 	fixnum flonum format gc io keyword load locative memory		\
-	memory.representation platform plist posix pretty-print		\
+	memory.representation platform plist pretty-print		\
 	process process.signal process-context process-context.posix	\
 	random sort string time.posix
 DYNAMIC_CHICKEN_COMPILER_IMPORT_LIBRARIES = user-pass

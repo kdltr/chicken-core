@@ -39,6 +39,9 @@
   (disable-interrupts)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
 
+;; This module really does not belong, but it is used to keep all the
+;; posix stuff in one place.  The modules defined later are actually
+;; the user-visible ones.
 (module chicken.posix
   (block-device? call-with-input-pipe call-with-output-pipe
    change-directory* character-device? close-input-pipe
@@ -99,7 +102,9 @@
   (platform-unix
    (include "posixunix.scm"))
   (platform-windows
-   (include "posixwin.scm"))))
+   (include "posixwin.scm")))
+
+) ; chicken.posix [internal, no implib generated]
 
 (module chicken.errno *
 (import scheme)
@@ -142,7 +147,8 @@
 (define errno/spipe _espipe)
 (define errno/srch _esrch)
 (define errno/wouldblock _ewouldblock)
-(define errno/xdev _exdev))
+(define errno/xdev _exdev)
+) ; chicken.errno
 
 (module chicken.file.posix
   (create-fifo create-symbolic-link read-symbolic-link
@@ -164,13 +170,122 @@
    perm/ixgrp perm/ixoth perm/ixusr
    port->fileno seek/cur seek/end seek/set set-file-group! set-file-owner!
    set-file-permissions! set-file-position! set-file-times!)
-(import chicken.posix))
+
+(import scheme)
+
+(define create-fifo chicken.posix#create-fifo)
+(define create-symbolic-link chicken.posix#create-symbolic-link)
+(define read-symbolic-link chicken.posix#read-symbolic-link)
+(define duplicate-fileno chicken.posix#duplicate-fileno)
+
+(define fcntl/dupfd chicken.posix#fcntl/dupfd)
+(define fcntl/getfd chicken.posix#fcntl/getfd)
+(define fcntl/getfl chicken.posix#fcntl/getfl)
+(define fcntl/setfd chicken.posix#fcntl/setfd)
+(define fcntl/setfl chicken.posix#fcntl/setfl)
+
+(define file-access-time chicken.posix#file-access-time)
+(define file-change-time chicken.posix#file-change-time)
+(define file-modification-time chicken.posix#file-modification-time)
+(define file-close chicken.posix#file-close)
+(define file-control chicken.posix#file-control)
+(define file-creation-mode chicken.posix#file-creation-mode)
+(define file-group chicken.posix#file-group)
+(define file-link chicken.posix#file-link)
+(define file-lock chicken.posix#file-lock)
+(define file-lock/blocking chicken.posix#file-lock/blocking)
+(define file-mkstemp chicken.posix#file-mkstemp)
+(define file-open chicken.posix#file-open)
+(define file-owner chicken.posix#file-owner)
+(define file-permissions chicken.posix#file-permissions)
+(define file-position chicken.posix#file-position)
+(define file-read chicken.posix#file-read)
+(define file-select chicken.posix#file-select)
+(define file-size chicken.posix#file-size)
+(define file-stat chicken.posix#file-stat)
+(define file-test-lock chicken.posix#file-test-lock)
+(define file-truncate chicken.posix#file-truncate)
+(define file-unlock chicken.posix#file-unlock)
+(define file-write chicken.posix#file-write)
+(define file-type chicken.posix#file-type)
+
+(define block-device? chicken.posix#block-device?)
+(define character-device? chicken.posix#character-device?)
+(define directory? chicken.posix#directory?)
+(define fifo? chicken.posix#fifo?)
+(define regular-file? chicken.posix#regular-file?)
+(define socket? chicken.posix#socket?)
+(define symbolic-link? chicken.posix#symbolic-link?)
+  
+(define fileno/stderr chicken.posix#fileno/stderr)
+(define fileno/stdin chicken.posix#fileno/stdin)
+(define fileno/stdout chicken.posix#fileno/stdout)
+  
+(define open-input-file* chicken.posix#open-input-file*)
+(define open-output-file* chicken.posix#open-output-file*)
+  
+(define open/append chicken.posix#open/append)
+(define open/binary chicken.posix#open/binary)
+(define open/creat chicken.posix#open/creat)
+(define open/excl chicken.posix#open/excl)
+(define open/fsync chicken.posix#open/fsync)
+(define open/noctty chicken.posix#open/noctty)
+(define open/noinherit chicken.posix#open/noinherit)
+(define open/nonblock chicken.posix#open/nonblock)
+(define open/rdonly chicken.posix#open/rdonly)
+(define open/rdwr chicken.posix#open/rdwr)
+(define open/read chicken.posix#open/read)
+(define open/sync chicken.posix#open/sync)
+(define open/text chicken.posix#open/text)
+(define open/trunc chicken.posix#open/trunc)
+(define open/write chicken.posix#open/write)
+(define open/wronly chicken.posix#open/wronly)
+  
+(define perm/irgrp chicken.posix#perm/irgrp)
+(define perm/iroth chicken.posix#perm/iroth)
+(define perm/irusr chicken.posix#perm/irusr)
+(define perm/irwxg chicken.posix#perm/irwxg)
+(define perm/irwxo chicken.posix#perm/irwxo)
+(define perm/irwxu chicken.posix#perm/irwxu)
+(define perm/isgid chicken.posix#perm/isgid)
+(define perm/isuid chicken.posix#perm/isuid)
+(define perm/isvtx chicken.posix#perm/isvtx)
+(define perm/iwgrp chicken.posix#perm/iwgrp)
+(define perm/iwoth chicken.posix#perm/iwoth)
+(define perm/iwusr chicken.posix#perm/iwusr)
+(define perm/ixgrp chicken.posix#perm/ixgrp)
+(define perm/ixoth chicken.posix#perm/ixoth)
+(define perm/ixusr chicken.posix#perm/ixusr)
+  
+(define port->fileno chicken.posix#port->fileno)
+
+(define seek/cur chicken.posix#seek/cur)
+(define seek/end chicken.posix#seek/end)
+(define seek/set chicken.posix#seek/set)
+
+(define set-file-group! chicken.posix#set-file-group!)
+(define set-file-owner! chicken.posix#set-file-owner!)
+(define set-file-permissions! chicken.posix#set-file-permissions!)
+(define set-file-position! chicken.posix#set-file-position!)
+(define set-file-times! chicken.posix#set-file-times!)
+) ; chicken.file.posix
 
 (module chicken.time.posix
   (seconds->utc-time utc-time->seconds seconds->local-time
    seconds->string local-time->seconds string->time time->string
    local-timezone-abbreviation)
-(import chicken.posix))
+
+(import scheme)
+
+(define seconds->utc-time chicken.posix#seconds->utc-time)
+(define utc-time->seconds chicken.posix#utc-time->seconds)
+(define seconds->local-time chicken.posix#seconds->local-time)
+(define seconds->string chicken.posix#seconds->string)
+(define local-time->seconds chicken.posix#local-time->seconds)
+(define string->time chicken.posix#string->time)
+(define time->string chicken.posix#time->string)
+(define local-timezone-abbreviation chicken.posix#local-timezone-abbreviation)
+) ; chicken.time.posix
 
 (module chicken.process
   (qs system system* process-execute process-fork process-run
@@ -180,7 +295,7 @@
    with-output-to-pipe process process* process-sleep pipe/buf
    spawn/overlay spawn/wait spawn/nowait spawn/nowaito spawn/detach)
 
-(import scheme chicken.base chicken.fixnum chicken.posix chicken.platform)
+(import scheme chicken.base chicken.fixnum chicken.platform)
 
 
 ;;; Execute a shell command:
@@ -217,7 +332,37 @@
     (string-append
      (string delim)
      (apply string-append escaped-parts)
-     (string delim)))))
+     (string delim))))
+
+(define process-execute chicken.posix#process-execute)
+(define process-fork chicken.posix#process-fork)
+(define process-run chicken.posix#process-run)
+(define process-signal chicken.posix#process-signal)
+(define process-spawn chicken.posix#process-spawn)
+(define process-wait chicken.posix#process-wait)
+
+(define call-with-input-pipe chicken.posix#call-with-input-pipe)
+(define call-with-output-pipe chicken.posix#call-with-output-pipe)
+(define close-input-pipe chicken.posix#close-input-pipe)
+(define close-output-pipe chicken.posix#close-output-pipe)
+(define create-pipe chicken.posix#create-pipe)
+(define open-input-pipe chicken.posix#open-input-pipe)
+(define open-output-pipe chicken.posix#open-output-pipe)
+(define with-input-from-pipe chicken.posix#with-input-from-pipe)
+(define with-output-to-pipe chicken.posix#with-output-to-pipe)
+
+(define process chicken.posix#process)
+(define process* chicken.posix#process*)
+(define process-sleep chicken.posix#process-sleep)
+
+(define pipe/buf chicken.posix#pipe/buf)
+
+(define spawn/overlay chicken.posix#spawn/overlay)
+(define spawn/wait chicken.posix#spawn/wait)
+(define spawn/nowait chicken.posix#spawn/nowait)
+(define spawn/nowaito chicken.posix#spawn/nowaito)
+(define spawn/detach chicken.posix#spawn/detach)
+) ; chicken.process
 
 (module chicken.process.signal
   (set-signal-handler! set-signal-mask! signal-handler signal-mask
@@ -227,7 +372,47 @@
    signal/quit signal/segv signal/stop signal/term signal/trap
    signal/tstp signal/urg signal/usr1 signal/usr2 signal/vtalrm
    signal/winch signal/xcpu signal/xfsz set-alarm!)
-(import chicken.posix))
+
+(import scheme)
+
+(define set-signal-handler! chicken.posix#set-signal-handler!)
+(define set-signal-mask! chicken.posix#set-signal-mask!)
+(define signal-handler chicken.posix#signal-handler)
+
+(define signal-mask chicken.posix#signal-mask)
+(define signal-mask! chicken.posix#signal-mask!)
+(define signal-masked? chicken.posix#signal-masked?)
+(define signal-unmask! chicken.posix#signal-unmask!)
+
+(define signal/abrt chicken.posix#signal/abrt)
+(define signal/alrm chicken.posix#signal/alrm)
+(define signal/break chicken.posix#signal/break)
+(define signal/bus chicken.posix#signal/bus)
+(define signal/chld chicken.posix#signal/chld)
+(define signal/cont chicken.posix#signal/cont)
+(define signal/fpe chicken.posix#signal/fpe)
+(define signal/hup chicken.posix#signal/hup)
+(define signal/ill chicken.posix#signal/ill)
+(define signal/int chicken.posix#signal/int)
+(define signal/io chicken.posix#signal/io)
+(define signal/kill chicken.posix#signal/kill)
+(define signal/pipe chicken.posix#signal/pipe)
+(define signal/prof chicken.posix#signal/prof)
+(define signal/quit chicken.posix#signal/quit)
+(define signal/segv chicken.posix#signal/segv)
+(define signal/stop chicken.posix#signal/stop)
+(define signal/term chicken.posix#signal/term)
+(define signal/trap chicken.posix#signal/trap)
+(define signal/tstp chicken.posix#signal/tstp)
+(define signal/urg chicken.posix#signal/urg)
+(define signal/usr1 chicken.posix#signal/usr1)
+(define signal/usr2 chicken.posix#signal/usr2)
+(define signal/vtalrm chicken.posix#signal/vtalrm)
+(define signal/winch chicken.posix#signal/winch)
+(define signal/xcpu chicken.posix#signal/xcpu)
+(define signal/xfsz chicken.posix#signal/xfsz)
+(define set-alarm! chicken.posix#set-alarm!)
+) ; chicken.process.signal
 
 (module chicken.process-context.posix
   (change-directory* set-root-directory!
@@ -236,4 +421,20 @@
    parent-process-id current-user-name
    current-effective-user-name create-session
    process-group-id user-information)
-(import chicken.posix))
+
+(import scheme)
+
+(define change-directory* chicken.posix#change-directory*)
+(define set-root-directory! chicken.posix#set-root-directory!)
+(define current-effective-group-id chicken.posix#current-effective-group-id)
+(define current-effective-user-id chicken.posix#current-effective-user-id)
+(define current-group-id chicken.posix#current-group-id)
+(define current-process-id chicken.posix#current-process-id)
+(define current-user-id chicken.posix#current-user-id)
+(define parent-process-id chicken.posix#parent-process-id)
+(define current-user-name chicken.posix#current-user-name)
+(define current-effective-user-name chicken.posix#current-effective-user-name)
+(define create-session chicken.posix#create-session)
+(define process-group-id chicken.posix#process-group-id)
+(define user-information chicken.posix#user-information)
+) ; chicken.process-context.posix

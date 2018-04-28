@@ -483,7 +483,6 @@ $(foreach lib, $(COMPILER_OBJECTS_1),\
           $(eval $(call declare-emitted-compiler-import-lib-dependency,$(lib))))
 
 # special cases for modules not corresponding directly to units
-$(eval $(call declare-emitted-import-lib-dependency,chicken.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.errno,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.file.posix,$(POSIXFILE)))
 $(eval $(call declare-emitted-import-lib-dependency,chicken.time.posix,$(POSIXFILE)))
@@ -811,8 +810,7 @@ posixunix.c: $(SRCDIR)posix.scm $(SRCDIR)posixunix.scm $(SRCDIR)posix-common.scm
 	-emit-import-library chicken.time.posix \
 	-emit-import-library chicken.process \
 	-emit-import-library chicken.process.signal \
-	-emit-import-library chicken.process-context.posix \
-	-emit-import-library chicken.posix
+	-emit-import-library chicken.process-context.posix
 posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -feature platform-windows \
 	-emit-import-library chicken.errno \
@@ -820,8 +818,7 @@ posixwin.c: $(SRCDIR)posix.scm $(SRCDIR)posixwin.scm $(SRCDIR)posix-common.scm $
 	-emit-import-library chicken.time.posix \
 	-emit-import-library chicken.process \
 	-emit-import-library chicken.process.signal \
-	-emit-import-library chicken.process-context.posix \
-	-emit-import-library chicken.posix
+	-emit-import-library chicken.process-context.posix
 irregex.c: $(SRCDIR)irregex.scm $(SRCDIR)irregex-core.scm $(SRCDIR)irregex-utils.scm $(SRCDIR)common-declarations.scm
 	$(bootstrap-lib) -emit-import-library chicken.irregex
 chicken-syntax.c: $(SRCDIR)chicken-syntax.scm $(SRCDIR)common-declarations.scm $(SRCDIR)mini-srfi-1.scm
