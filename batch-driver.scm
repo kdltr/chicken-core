@@ -382,7 +382,7 @@
       (set! inline-locally #t)		; otherwise this option makes no sense
       (set! local-definitions #t)
       (set! inline-output-file (option-arg ifile)))
-    (and-let* ((tfile (memq 'emit-type-file options)))
+    (and-let* ((tfile (memq 'emit-types-file options)))
       (set! type-output-file (option-arg tfile)))
     (and-let* ([inlimit (memq 'inline-limit options)])
       (set! inline-max-size 
@@ -696,7 +696,7 @@
 		    (lambda (fn)
 		      (or (load-type-database fn enable-specialization #f)
 			  (quit-compiling "type-database `~a' not found" fn)))
-		    (collect-options 'consult-type-file))
+		    (collect-options 'consult-types-file))
 		   (for-each
 		    (lambda (id)
 		      (load-type-database
@@ -751,7 +751,7 @@
 		       ;; do this here, because we must make sure we have a db
 		       (when type-output-file
 			 (dribble "generating type file `~a' ..." type-output-file)
-			 (emit-type-file filename type-output-file db block-compilation)))
+			 (emit-types-file filename type-output-file db block-compilation)))
 		     (set! first-analysis #f)
 		     (end-time "analysis")
 		     (print-db "analysis" '|4| db i)

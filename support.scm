@@ -1746,8 +1746,8 @@ Usage: chicken FILENAME [OPTION ...]
     -accumulate-profile          executable emits profiling information in
                                   append mode
     -no-lambda-info              omit additional procedure-information
-    -emit-type-file FILENAME     write type-declaration information into file
-    -consult-type-file FILENAME  load additional type database
+    -emit-types-file FILENAME    write type-declaration information into file
+    -consult-types-file FILENAME load additional type database
 
   Optimization options:
 

@@ -454,7 +454,7 @@
                            options)
                        (if (and types-file
                                 (not predefined-types))
-                           (list "-emit-type-file"
+                           (list "-emit-types-file"
                                  (quotearg (prefix srcdir (conc types-file ".types"))))
                            '())
                        (if inline-file
@@ -493,7 +493,7 @@
                            options)
                        (if (and types-file
                                 (not predefined-types))
-                           (list "-emit-type-file"
+                           (list "-emit-types-file"
                                  (quotearg (prefix srcdir (conc types-file ".types"))))
                            '())
                        (if inline-file

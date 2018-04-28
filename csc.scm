@@ -158,7 +158,7 @@
     -optimize-level -include-path -database-size -extend -prelude -postlude -prologue -epilogue -emit-link-file
     -inline-limit -profile-name
     -emit-inline-file -consult-inline-file
-    -emit-type-file -consult-type-file
+    -emit-types-file -consult-types-file
     -feature -debug-level
     -emit-import-library
     -module -link
@@ -180,7 +180,10 @@
     (-u "-unsafe")
     (-j "-emit-import-library")
     (-b "-block")
-    (-types "-consult-type-file")))
+    (-types "-consult-types-file")
+    ;; deprecated flag names:
+    (-emit-type-file "-emit-types-file")
+    (-consult-type-file "-consult-types-file")))
 
 (define short-options
   (string->list "PHhsfiENxubvwAOeWkctgSJM") )
@@ -377,7 +380,7 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
                                     append mode
     -profile-name FILENAME         name of the generated profile information
                                     file
-    -consult-type-file FILENAME    load additional type database
+    -consult-types-file FILENAME   load additional type database
 
   Optimization options:
 
@@ -396,10 +399,10 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
     -inline-limit LIMIT            set inlining threshold
     -inline-global                 enable cross-module inlining
     -specialize                    perform type-based specialization of primitive calls
-    -oi -emit-inline-file FILENAME  generate file with globally inlinable
+    -oi -emit-inline-file FILENAME generate file with globally inlinable
                                     procedures (implies -inline -local)
     -consult-inline-file FILENAME  explicitly load inline file
-    -ot  -emit-type-file FILENAME  write type-declaration information into file
+    -ot  -emit-types-file FILENAME write type-declaration information into file
     -no-argc-checks                disable argument count checks
     -no-bound-checks               disable bound variable checks
     -no-procedure-checks           disable procedure call checks
@@ -747,7 +750,7 @@ EOF
 		(set! rest (cdr rest)))
 	       ((-ot) 
 		(check s rest)
-		(t-options "-emit-type-file" (car rest))
+		(t-options "-emit-types-file" (car rest))
 		(set! rest (cdr rest)))
 	       [(-) 
 		(set! scheme-files (append scheme-files '("-")))

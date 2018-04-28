@@ -110,7 +110,7 @@
     keyword-style require-extension inline-limit profile-name
     prelude postlude prologue epilogue nursery extend feature no-feature
     emit-inline-file consult-inline-file
-    emit-type-file consult-type-file
+    emit-types-file consult-types-file
     emit-import-library))
 
 

@@ -127,7 +127,7 @@ $compile scrutiny-tests-strict.scm -strict-types -specialize
 
 echo "======================================== specialization tests ..."
 rm -f foo.types foo.import.*
-$compile specialization-test-1.scm -emit-type-file foo.types -specialize \
+$compile specialization-test-1.scm -emit-types-file foo.types -specialize \
   -debug ox -emit-import-library foo
 ./a.out
 $compile specialization-test-2.scm -types foo.types -types specialization-test-2.types -specialize -debug ox
