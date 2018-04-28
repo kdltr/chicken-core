@@ -653,12 +653,12 @@ chicken-profile.c: chicken-profile.scm \
 		chicken.string.import.scm
 chicken-status.c: chicken-status.scm \
 		chicken.file.import.scm \
+		chicken.file.posix.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
 		chicken.port.import.scm \
-		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm \
 		chicken.process-context.import.scm \
 		chicken.sort.import.scm \

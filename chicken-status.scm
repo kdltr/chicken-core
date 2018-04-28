@@ -28,12 +28,12 @@
   (import (scheme)
 	  (chicken base)
 	  (chicken file)
+	  (chicken file posix)
 	  (chicken fixnum)
 	  (chicken foreign)
 	  (chicken format)
 	  (chicken irregex)
 	  (chicken port)
-	  (chicken posix) ; FIXME once terminal-{size,port?} are rehomed
 	  (chicken pathname)
 	  (chicken platform)
 	  (chicken pretty-print)
