@@ -3589,28 +3589,27 @@ EOF
 	     p))
 	  p1))))
 
-(set! scheme#car (getter-with-setter scheme#car set-car! "(car p)"))
-(set! scheme#cdr (getter-with-setter scheme#cdr set-cdr! "(cdr p)"))
-(set! scheme#caar (getter-with-setter scheme#caar (lambda (x y) (set-car! (car x) y)) "(caar p)"))
-(set! scheme#cadr (getter-with-setter scheme#cadr (lambda (x y) (set-car! (cdr x) y)) "(cadr p)"))
-(set! scheme#cdar (getter-with-setter scheme#cdar (lambda (x y) (set-cdr! (car x) y)) "(cdar p)"))
-(set! scheme#cddr (getter-with-setter scheme#cddr (lambda (x y) (set-cdr! (cdr x) y)) "(cddr p)"))
-(set! scheme#caaar (getter-with-setter scheme#caaar (lambda (x y) (set-car! (caar x) y)) "(caaar p)"))
-(set! scheme#caadr (getter-with-setter scheme#caadr (lambda (x y) (set-car! (cadr x) y)) "(caadr p)"))
-(set! scheme#cadar (getter-with-setter scheme#cadar (lambda (x y) (set-car! (cdar x) y)) "(cadar p)"))
-(set! scheme#caddr (getter-with-setter scheme#caddr (lambda (x y) (set-car! (cddr x) y)) "(caddr p)"))
-(set! scheme#cdaar (getter-with-setter scheme#cdaar (lambda (x y) (set-cdr! (caar x) y)) "(cdaar p)"))
-(set! scheme#cdadr (getter-with-setter scheme#cdadr (lambda (x y) (set-cdr! (cadr x) y)) "(cdadr p)"))
-(set! scheme#cddar (getter-with-setter scheme#cddar (lambda (x y) (set-cdr! (cdar x) y)) "(cddar p)"))
-(set! scheme#cdddr (getter-with-setter scheme#cdddr (lambda (x y) (set-cdr! (cddr x) y)) "(cdddr p)"))
-(set! scheme#string-ref (getter-with-setter scheme#string-ref string-set! "(string-ref str i)"))
-(set! scheme#vector-ref (getter-with-setter scheme#vector-ref vector-set! "(vector-ref vec i)"))
+(set! scheme#car (getter-with-setter scheme#car set-car!))
+(set! scheme#cdr (getter-with-setter scheme#cdr set-cdr!))
+(set! scheme#caar (getter-with-setter scheme#caar (lambda (x y) (set-car! (car x) y))))
+(set! scheme#cadr (getter-with-setter scheme#cadr (lambda (x y) (set-car! (cdr x) y))))
+(set! scheme#cdar (getter-with-setter scheme#cdar (lambda (x y) (set-cdr! (car x) y))))
+(set! scheme#cddr (getter-with-setter scheme#cddr (lambda (x y) (set-cdr! (cdr x) y))))
+(set! scheme#caaar (getter-with-setter scheme#caaar (lambda (x y) (set-car! (caar x) y))))
+(set! scheme#caadr (getter-with-setter scheme#caadr (lambda (x y) (set-car! (cadr x) y))))
+(set! scheme#cadar (getter-with-setter scheme#cadar (lambda (x y) (set-car! (cdar x) y))))
+(set! scheme#caddr (getter-with-setter scheme#caddr (lambda (x y) (set-car! (cddr x) y))))
+(set! scheme#cdaar (getter-with-setter scheme#cdaar (lambda (x y) (set-cdr! (caar x) y))))
+(set! scheme#cdadr (getter-with-setter scheme#cdadr (lambda (x y) (set-cdr! (cadr x) y))))
+(set! scheme#cddar (getter-with-setter scheme#cddar (lambda (x y) (set-cdr! (cdar x) y))))
+(set! scheme#cdddr (getter-with-setter scheme#cdddr (lambda (x y) (set-cdr! (cddr x) y))))
+(set! scheme#string-ref (getter-with-setter scheme#string-ref string-set!))
+(set! scheme#vector-ref (getter-with-setter scheme#vector-ref vector-set!))
 
 (set! scheme#list-ref
-  (getter-with-setter 
+  (getter-with-setter
    scheme#list-ref
-   (lambda (x i y) (set-car! (list-tail x i) y))
-   "(list-ref lst i)"))
+   (lambda (x i y) (set-car! (list-tail x i) y))))
 
 
 ;;; Parameters:
@@ -6280,13 +6279,14 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
   (##sys#check-symbol sym 'put!)
   (##core#inline_allocate ("C_a_i_putprop" 8) sym prop val) )
 
-(define ##sys#put! put!)
-
-(define (##sys#get sym prop #!optional default)
+(define (get sym prop #!optional default)
   (##sys#check-symbol sym 'get)
   (##core#inline "C_i_getprop" sym prop default))
 
-(define get (getter-with-setter ##sys#get put! "(get sym prop . default)"))
+(define ##sys#put! put!)
+(define ##sys#get get)
+
+(set! get (getter-with-setter get put!))
 
 (define (remprop! sym prop)
   (##sys#check-symbol sym 'remprop!)
