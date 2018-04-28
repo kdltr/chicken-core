@@ -50,9 +50,11 @@
 ;;; Prefix argument list with default options:
 
 (define compiler-arguments
-  (append
-   (string-split (or (get-environment-variable "CHICKEN_OPTIONS") ""))
-   (cdr (argv))))
+  (let ((args (cdr (argv))))
+    (append
+     (take args 1) ; Leave source filename argument first.
+     (string-split (or (get-environment-variable "CHICKEN_OPTIONS") ""))
+     (drop args 1))))
 
 
 ;;; Process command-line options:
