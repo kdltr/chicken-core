@@ -103,6 +103,8 @@
   - Added support for list-style library names.
   - The "use" and "use-for-syntax" special forms have been removed
     in favor of "import" and "import-for-syntax" to reduce confusion.
+  - Module imports are now lexically scoped: identifiers provided by
+    an (import ...) inside (let ...) won't be visible outside that let.
 
 - Syntax expander
   - Removed support for (define-syntax (foo e r c) ...), which was
