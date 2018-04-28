@@ -457,7 +457,7 @@
                (if (null? srvs) 
                    (if lax
                        (print "no connection to server or egg not found remotely - will use cached version")
-                       (error "extension or version not found"))
+                       (error "extension or version not found" name))
                    (begin
                      (d "trying server ~a ...~%" (car srvs)) 
                      (receive (dir ver)
@@ -582,7 +582,7 @@
                 (let-values (((dir ver) (locate-egg name version)))
                   (when (or (not dir)
                             (null? (directory dir)))
-                    (error "extension or version not found"))
+                    (error "extension or version not found" name))
                   (d retrieve-only "~a located at ~a~%" egg dir)
                   (set! canonical-eggs
                     (cons (list name dir ver) canonical-eggs)))))))
