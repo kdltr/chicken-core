@@ -625,7 +625,6 @@ csc.c: csc.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
 		chicken.pathname.import.scm \
-		chicken.posix.import.scm \
 		chicken.process.import.scm \
 		chicken.process-context.import.scm \
 		chicken.string.import.scm
@@ -647,7 +646,7 @@ csi.c: csi.scm \
 		chicken.string.import.scm
 chicken-profile.c: chicken-profile.scm \
 		chicken.internal.import.scm \
-		chicken.posix.import.scm \
+		chicken.file.posix.import.scm \
 		chicken.process-context.import.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm
@@ -666,14 +665,15 @@ chicken-status.c: chicken-status.scm \
 chicken-install.c: chicken-install.scm \
 		chicken.condition.import.scm \
 		chicken.file.import.scm \
+		chicken.file.posix.import.scm \
 		chicken.foreign.import.scm \
 		chicken.format.import.scm \
 		chicken.io.import.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
 		chicken.port.import.scm \
-		chicken.posix.import.scm \
 		chicken.pretty-print.import.scm \
+		chicken.process.import.scm \
 		chicken.process-context.import.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm \
@@ -685,7 +685,7 @@ chicken-uninstall.c: chicken-uninstall.scm \
 		chicken.irregex.import.scm \
 		chicken.pathname.import.scm \
 		chicken.port.import.scm \
-		chicken.posix.import.scm \
+		chicken.process.import.scm \
 		chicken.process-context.import.scm \
 		chicken.string.import.scm
 chicken-syntax.c: chicken-syntax.scm \
