@@ -372,6 +372,14 @@
  "Internal getter returns same thing"
  3 (get-count))
 
+(test-assert
+ (not (current-module)))
+
+(test-assert
+ (module m33 ()
+   (import (scheme) (chicken module))
+   (eq? (current-module) 'm33)))
+
 (test-end "modules")
 
 (test-exit)

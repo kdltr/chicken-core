@@ -929,7 +929,7 @@
 		  (sprintf "Failed to import from `~a'" file))
 	       (eval `(import-syntax ,(string->symbol module-name))))))
          files))
-      (print "generating database")
+      (print "generating database ...")
       (let ((db
              (sort
               (concatenate
@@ -938,14 +938,12 @@
                   (and-let* ((mod (cdr m))
                              (mname (##sys#module-name mod))
                              ((not (memq mname +internal-modules+))))
-                    (print* " " mname)
                     (let-values (((_ ve se) (##sys#module-exports mod)))
                       (append (map (lambda (se) (list (car se) 'syntax mname)) se)
                               (map (lambda (ve) (list (car ve) 'value mname)) ve)))))
                 ##sys#module-table))
               (lambda (e1 e2)
                 (string<? (symbol->string (car e1)) (symbol->string (car e2)))))))
-        (newline)
         (with-output-to-file dbfile
           (lambda ()
             (for-each (lambda (x) (write x) (newline)) db)))
