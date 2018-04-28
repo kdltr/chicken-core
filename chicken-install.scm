@@ -23,6 +23,8 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
+(declare
+  (uses chicken-ffi-syntax)) ; populate ##sys#chicken-ffi-macro-environment
 
 (module main ()
 
@@ -36,6 +38,7 @@
 (import (chicken fixnum))
 (import (chicken format))
 (import (chicken irregex))
+(import (chicken module))
 (import (chicken tcp))
 (import (chicken port))
 (import (chicken platform))
@@ -865,8 +868,8 @@
         (let ((old (current-directory))
               (cmd (string-append default-csi " -s " tscript " " name " " (or version ""))))
           (change-directory testdir)
+	  (d "running: ~a~%" cmd)
           (let ((r (system cmd)))
-            (d "running: ~a~%" cmd)
             (flush-output (current-error-port))
             (cond ((zero? r) 
                    (change-directory old)
@@ -927,9 +930,10 @@
 		 (print-error-message 
 		  ex (current-error-port) 
 		  (sprintf "Failed to import from `~a'" file))
+	       (unless quiet (print "loading " file " ..."))
 	       (eval `(import-syntax ,(string->symbol module-name))))))
          files))
-      (print "generating database")
+      (print "generating database ...")
       (let ((db
              (sort
               (concatenate
@@ -937,18 +941,19 @@
                 (lambda (m)
                   (and-let* ((mod (cdr m))
                              (mname (##sys#module-name mod))
-                             ((not (memq mname +internal-modules+))))
-                    (print* " " mname)
+                             ((not (memq mname +internal-modules+)))
+                             ((not (eq? mname (current-module)))))
+                    (unless quiet (print "processing " mname " ..."))
                     (let-values (((_ ve se) (##sys#module-exports mod)))
                       (append (map (lambda (se) (list (car se) 'syntax mname)) se)
                               (map (lambda (ve) (list (car ve) 'value mname)) ve)))))
                 ##sys#module-table))
               (lambda (e1 e2)
                 (string<? (symbol->string (car e1)) (symbol->string (car e2)))))))
-        (newline)
         (with-output-to-file dbfile
           (lambda ()
             (for-each (lambda (x) (write x) (newline)) db)))
+        (unless quiet (print "installing " +module-db+ " ..."))
         (copy-file dbfile (make-pathname (install-path) +module-db+) #t))))
 
 

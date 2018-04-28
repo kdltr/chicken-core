@@ -1184,6 +1184,14 @@
 		    (syntax-error-hook
 		     'define-interface "invalid exports" (caddr x))))))))))))
 
+(##sys#extend-macro-environment
+ 'current-module '()
+ (##sys#er-transformer
+  (lambda (x r c)
+    (##sys#check-syntax 'current-module x '(_))
+    (and-let* ((mod (##sys#current-module)))
+      `(##core#quote ,(##sys#module-name mod))))))
+
 ;; The chicken.module syntax environment
 (define ##sys#chicken.module-macro-environment (##sys#macro-environment))
 
