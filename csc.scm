@@ -773,8 +773,12 @@ EOF
 		      [(and (> (string-length arg) 1)
 			    (char=? #\- (string-ref arg 0)) )
 		       (cond [(char=? #\L (string-ref arg 1))
+			      (when (char-whitespace? (string-ref arg 2))
+				    (error "bad -L argument, <DIR> starts with whitespace" arg))
  			      (set! link-options (append link-options (list arg))) ]
  			     [(char=? #\I (string-ref arg 1))
+			      (when (char-whitespace? (string-ref arg 2))
+				    (error "bad -I argument: <DIR> starts with whitespace" arg))
  			      (set! compile-options (append compile-options (list arg))) ]
 			     [(char=? #\D (string-ref arg 1))
 			      (t-options "-feature" (substring arg 2)) ]
