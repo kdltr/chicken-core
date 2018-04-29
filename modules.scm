@@ -764,7 +764,7 @@
 	  (else sym)))
   (cond ((##sys#qualified-symbol? sym) sym)
 	((namespaced-symbol? sym) sym)
-	((assq sym ((##sys#active-eval-environment))) =>
+	((assq sym (##sys#current-environment)) =>
 	 (lambda (a)
 	   (let ((sym2 (cdr a)))
 	     (dm "(ALIAS) in current environment " sym " -> " sym2)
