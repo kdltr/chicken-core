@@ -180,10 +180,7 @@
     (-u "-unsafe")
     (-j "-emit-import-library")
     (-b "-block")
-    (-types "-consult-types-file")
-    ;; deprecated flag names:
-    (-emit-type-file "-emit-types-file")
-    (-consult-type-file "-consult-types-file")))
+    (-types "-consult-types-file")))
 
 (define short-options
   (string->list "PHhsfiENxubvwAOeWkctgSJM") )
