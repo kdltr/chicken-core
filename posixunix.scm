@@ -296,10 +296,6 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; Lo-level I/O:
 
-(define-foreign-variable _pipe_buf int "PIPE_BUF")
-
-(define pipe/buf _pipe_buf)
-
 (define-foreign-variable _f_dupfd int "F_DUPFD")
 (define-foreign-variable _f_getfd int "F_GETFD")
 (define-foreign-variable _f_setfd int "F_SETFD")
@@ -324,11 +320,11 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 ;; Windows-only definitions
 (set! chicken.file.posix#open/noinherit 0)
 
-(define spawn/overlay 0)
-(define spawn/wait 0)
-(define spawn/nowait 0)
-(define spawn/nowaito 0)
-(define spawn/detach 0)
+(set! chicken.process#spawn/overlay 0)
+(set! chicken.process#spawn/wait 0)
+(set! chicken.process#spawn/nowait 0)
+(set! chicken.process#spawn/nowaito 0)
+(set! chicken.process#spawn/detach 0)
 
 (define-foreign-variable _s_isuid int "S_ISUID")
 (define-foreign-variable _s_isgid int "S_ISGID")
@@ -462,101 +458,16 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 		  (and fdsw (if (fixnum? fdsw) (and (memq fdsw wl) fdsw) wl))))))))))
 
 
-;;; Pipes:
-
-(define open-input-pipe)
-(define open-output-pipe)
-(define close-input-pipe)
-(define close-output-pipe)
-
-(let ()
-  (define (mode arg) (if (pair? arg) (##sys#slot arg 0) '###text))
-  (define (badmode m) (##sys#error "illegal input/output mode specifier" m))
-  (define (check loc cmd inp r)
-    (if (##sys#null-pointer? r)
-	(posix-error #:file-error loc "cannot open pipe" cmd)
-	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(pipe)" 'stream)))
-	  (##core#inline "C_set_file_ptr" port r)
-	  port) ) )
-  (set! open-input-pipe
-    (lambda (cmd . m)
-      (##sys#check-string cmd 'open-input-pipe)
-      (let ([m (mode m)])
-	(check
-	 'open-input-pipe
-	 cmd #t
-	 (case m
-	   ((#:text) (##core#inline_allocate ("open_text_input_pipe" 2) (##sys#make-c-string cmd 'open-input-pipe)))
-	   ((#:binary) (##core#inline_allocate ("open_binary_input_pipe" 2) (##sys#make-c-string cmd 'open-input-pipe)))
-	   (else (badmode m)) ) ) ) ) )
-  (set! open-output-pipe
-    (lambda (cmd . m)
-      (##sys#check-string cmd 'open-output-pipe)
-      (let ((m (mode m)))
-	(check
-	 'open-output-pipe
-	 cmd #f
-	 (case m
-	   ((#:text) (##core#inline_allocate ("open_text_output_pipe" 2) (##sys#make-c-string cmd 'open-output-pipe)))
-	   ((#:binary) (##core#inline_allocate ("open_binary_output_pipe" 2) (##sys#make-c-string cmd 'open-output-pipe)))
-	   (else (badmode m)) ) ) ) ) )
-  (set! close-input-pipe
-    (lambda (port)
-      (##sys#check-input-port port #t 'close-input-pipe)
-      (let ((r (##core#inline "close_pipe" port)))
-	(when (eq? -1 r)
-	  (posix-error #:file-error 'close-input-pipe "error while closing pipe" port))
-	r) ) )
-  (set! close-output-pipe
-    (lambda (port)
-      (##sys#check-output-port port #t 'close-output-pipe)
-      (let ((r (##core#inline "close_pipe" port)))
-	(when (eq? -1 r) 
-	  (posix-error #:file-error 'close-output-pipe "error while closing pipe" port))
-	r) ) ))
-
-(define call-with-input-pipe
-  (lambda (cmd proc . mode)
-    (let ([p (apply open-input-pipe cmd mode)])
-      (##sys#call-with-values
-       (lambda () (proc p))
-       (lambda results
-	 (close-input-pipe p)
-	 (apply values results) ) ) ) ) )
-
-(define call-with-output-pipe
-  (lambda (cmd proc . mode)
-    (let ([p (apply open-output-pipe cmd mode)])
-      (##sys#call-with-values
-       (lambda () (proc p))
-       (lambda results
-	 (close-output-pipe p)
-	 (apply values results) ) ) ) ) )
-
-(define with-input-from-pipe
-  (lambda (cmd thunk . mode)
-    (let ([p (apply open-input-pipe cmd mode)])
-      (fluid-let ((##sys#standard-input p))
-	(##sys#call-with-values thunk
-				(lambda results
-				  (close-input-pipe p)
-				  (apply values results) ) ) ) ) ) )
-(define with-output-to-pipe
-  (lambda (cmd thunk . mode)
-    (let ([p (apply open-output-pipe cmd mode)])
-      (fluid-let ((##sys#standard-output p))
-	(##sys#call-with-values thunk
-				(lambda results
-				  (close-output-pipe p)
-				  (apply values results) ) ) ) ) ) )
+;;; Pipe primitive:
 
 (define-foreign-variable _pipefd0 int "C_pipefds[ 0 ]")
 (define-foreign-variable _pipefd1 int "C_pipefds[ 1 ]")
 
-(define (create-pipe #!optional mode)
-  (when (fx< (##core#inline "C_pipe" #f) 0)
-    (posix-error #:file-error 'create-pipe "cannot create pipe") )
-  (values _pipefd0 _pipefd1)  )
+(set! chicken.process#create-pipe
+  (lambda (#!optional mode)
+   (when (fx< (##core#inline "C_pipe" #f) 0)
+     (posix-error #:file-error 'create-pipe "cannot create pipe") )
+   (values _pipefd0 _pipefd1))  )
 
 
 ;;; Signal processing:
@@ -1137,7 +1048,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; Process handling:
 
-(define process-fork
+(set! chicken.process#process-fork
   (let ((fork (foreign-lambda int "C_fork")))
     (lambda (#!optional thunk killothers)
       ;; flush all stdio streams before fork
@@ -1156,61 +1067,64 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 		  (exit 0)))))
 	    pid)))))
 
-(define (process-execute filename #!optional (arglist '()) envlist exactf)
-  (call-with-exec-args
-   'process-execute filename (lambda (x) x) arglist envlist
-   (lambda (prg argbuf envbuf)
-     (let ((r (if envbuf
-		  (##core#inline "C_u_i_execve" prg argbuf envbuf)
-		  (##core#inline "C_u_i_execvp" prg argbuf))))
-       (when (fx= r -1)
-	 (posix-error #:process-error 'process-execute "cannot execute process" filename))))))
+(set! chicken.process#process-execute
+  (lambda (filename #!optional (arglist '()) envlist exactf)
+    (call-with-exec-args
+     'process-execute filename (lambda (x) x) arglist envlist
+     (lambda (prg argbuf envbuf)
+       (let ((r (if envbuf
+		    (##core#inline "C_u_i_execve" prg argbuf envbuf)
+		    (##core#inline "C_u_i_execvp" prg argbuf))))
+	 (when (fx= r -1)
+	   (posix-error #:process-error 'process-execute "cannot execute process" filename)))))))
 
 (define-foreign-variable _wnohang int "WNOHANG")
 (define-foreign-variable _wait-status int "C_wait_status")
 
-(define (##sys#process-wait pid nohang)
-  (let* ([res (##core#inline "C_waitpid" pid (if nohang _wnohang 0))]
-	 [norm (##core#inline "C_WIFEXITED" _wait-status)] )
+(define (process-wait-impl pid nohang)
+  (let* ((res (##core#inline "C_waitpid" pid (if nohang _wnohang 0)))
+	 (norm (##core#inline "C_WIFEXITED" _wait-status)) )
     (if (and (fx= res -1) (fx= _errno _eintr))
 	(##sys#dispatch-interrupt
-         (lambda () (##sys#process-wait pid nohang)))
+         (lambda () (process-wait-impl pid nohang)))
 	(values
 	 res
 	 norm
-	 (cond [norm (##core#inline "C_WEXITSTATUS" _wait-status)]
-	       [(##core#inline "C_WIFSIGNALED" _wait-status)
-		(##core#inline "C_WTERMSIG" _wait-status)]
-	       [else (##core#inline "C_WSTOPSIG" _wait-status)] ) )) ) )
+	 (cond (norm (##core#inline "C_WEXITSTATUS" _wait-status))
+	       ((##core#inline "C_WIFSIGNALED" _wait-status)
+		(##core#inline "C_WTERMSIG" _wait-status))
+	       (else (##core#inline "C_WSTOPSIG" _wait-status)) ) )) ) )
 
 (define parent-process-id (foreign-lambda int "C_getppid"))
 
-(define process-signal
+(set! chicken.process#process-signal
   (lambda (id . sig)
-    (let ([sig (if (pair? sig) (car sig) _sigterm)])
+    (let ((sig (if (pair? sig) (car sig) _sigterm)))
       (##sys#check-fixnum id 'process-signal)
       (##sys#check-fixnum sig 'process-signal)
-      (let ([r (##core#inline "C_kill" id sig)])
+      (let ((r (##core#inline "C_kill" id sig)))
       (when (fx= r -1) (posix-error #:process-error 'process-signal "could not send signal to process" id sig) ) ) ) ) )
 
-(define (##sys#shell-command)
+(define (shell-command loc)
   (or (get-environment-variable "SHELL") "/bin/sh") )
 
-(define (##sys#shell-command-arguments cmdlin)
+(define (shell-command-arguments cmdlin)
   (list "-c" cmdlin) )
 
-(define process-run
+(set! chicken.process#process-run
   (lambda (f . args)
-    (let ([args (if (pair? args) (car args) #f)]
-	  [pid (process-fork)] )
-      (cond [(not (eq? 0 pid)) pid]
-	    [args (process-execute f args)]
-	    [else
-	     (process-execute (##sys#shell-command) (##sys#shell-command-arguments f)) ] ) ) ) )
+    (let ((args (if (pair? args) (car args) #f))
+	  (pid (chicken.process#process-fork)) )
+      (cond ((not (eq? 0 pid)) pid)
+	    (args (chicken.process#process-execute f args))
+	    (else
+	     (chicken.process#process-execute
+	      (shell-command 'process-run)
+	      (shell-command-arguments f)) ) ) ) ) )
 
 ;;; Run subprocess connected with pipes:
 
-;; ##sys#process
+;; process-impl
 ; loc            caller procedure symbol
 ; cmd            pathname or commandline
 ; args           string-list or '()
@@ -1227,26 +1141,26 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;FIXME process-execute, process-fork don't show parent caller
 
-(define ##sys#process
+(define process-impl
   (let ((replace-fd
 	 (lambda (loc fd stdfd)
 	   (unless (fx= stdfd fd)
 	     (chicken.file.posix#duplicate-fileno fd stdfd)
 	     (chicken.file.posix#file-close fd) ) )) )
-    (let (
-        [make-on-close
-          (lambda (loc pid clsvec idx idxa idxb)
-            (lambda ()
-              (vector-set! clsvec idx #t)
-              (when (and (vector-ref clsvec idxa) (vector-ref clsvec idxb))
-                (receive [_ flg cod] (##sys#process-wait pid #f)
-                  (unless flg
-                    (##sys#signal-hook #:process-error loc
-                      "abnormal process exit" pid cod)) ) ) ) )]
-        [needed-pipe
-          (lambda (loc port)
-            (and port
-                 (receive [i o] (create-pipe) (cons i o))) )]
+    (let ((make-on-close
+	   (lambda (loc pid clsvec idx idxa idxb)
+	     (lambda ()
+	       (vector-set! clsvec idx #t)
+	       (when (and (vector-ref clsvec idxa) (vector-ref clsvec idxb))
+		 (receive (_ flg cod) (process-wait-impl pid #f)
+		   (unless flg
+		     (##sys#signal-hook #:process-error loc
+					"abnormal process exit" pid cod)) ) ) ) ))
+	  (needed-pipe
+	   (lambda (loc port)
+	     (and port
+		  (receive (i o) (chicken.process#create-pipe)
+		    (cons i o))) ))
         [connect-parent
           (lambda (loc pipe port fd)
             (and port
@@ -1271,12 +1185,12 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 		     [epipe (needed-pipe loc stderrf)])
 		 (values
 		  ipipe (swapped-ends opipe) epipe
-		  (process-fork
+		  (chicken.process#process-fork
 		   (lambda ()
 		     (connect-child loc opipe stdinf chicken.file.posix#fileno/stdin)
 		     (connect-child loc (swapped-ends ipipe) stdoutf chicken.file.posix#fileno/stdout)
 		     (connect-child loc (swapped-ends epipe) stderrf chicken.file.posix#fileno/stderr)
-		     (process-execute cmd args env)))) ) ) ))
+		     (chicken.process#process-execute cmd args env)))) ) ) ))
           [input-port
             (lambda (loc pid cmd pipe stdf stdfd on-close)
               (and-let* ([fd (connect-parent loc pipe stdf stdfd)])
@@ -1306,31 +1220,29 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; Run subprocess connected with pipes:
 
-(define process)
-(define process*)
-
+;; TODO: See if this can be moved to posix-common
 (let ((%process
         (lambda (loc err? cmd args env k)
-          (let ([chkstrlst
-                 (lambda (lst)
-                   (##sys#check-list lst loc)
-                   (for-each (cut ##sys#check-string <> loc) lst) )])
+          (let ((chkstrlst
+		 (lambda (lst)
+		   (##sys#check-list lst loc)
+		   (for-each (cut ##sys#check-string <> loc) lst) )))
             (##sys#check-string cmd loc)
             (if args
                 (chkstrlst args)
                 (begin
-                  (set! args (##sys#shell-command-arguments cmd))
-                  (set! cmd (##sys#shell-command)) ) )
+                  (set! args (shell-command-arguments cmd))
+                  (set! cmd (shell-command loc)) ) )
 	    (when env (check-environment-list env loc))
 	    (##sys#call-with-values
-	     (lambda () (##sys#process loc cmd args env #t #t err?))
+	     (lambda () (process-impl loc cmd args env #t #t err?))
 	     k)))))
-  (set! process
+  (set! chicken.process#process
     (lambda (cmd #!optional args env exactf)
       (%process 
        'process #f cmd args env
        (lambda (i o p e) (values i o p)))))
-  (set! process*
+  (set! chicken.process#process*
     (lambda (cmd #!optional args env exactf)
       (%process
        'process* #t cmd args env
@@ -1348,4 +1260,4 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; unimplemented stuff:
 
-(define-unimplemented process-spawn)
+(set!-unimplemented chicken.process#process-spawn)

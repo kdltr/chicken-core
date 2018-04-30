@@ -182,21 +182,95 @@
 ) ; chicken.time.posix
 
 
+(module chicken.process
+  (qs system system* process-execute process-fork process-run
+   process-signal process-spawn process-wait call-with-input-pipe
+   call-with-output-pipe close-input-pipe close-output-pipe create-pipe
+   open-input-pipe open-output-pipe with-input-from-pipe
+   with-output-to-pipe process process* process-sleep pipe/buf
+   spawn/overlay spawn/wait spawn/nowait spawn/nowaito spawn/detach)
+
+(import scheme chicken.base chicken.fixnum chicken.platform)
+
+
+;;; Execute a shell command:
+
+(define (system cmd)
+  (##sys#check-string cmd 'system)
+  (let ((r (##core#inline "C_execute_shell_command" cmd)))
+    (cond ((fx< r 0)
+	   (##sys#update-errno)
+	   (##sys#signal-hook #:process-error 'system "`system' invocation failed" cmd))
+	  (else r))))
+
+;;; Like `system', but bombs on nonzero return code:
+
+(define (system* str)
+  (let ((n (system str)))
+    (unless (zero? n)
+      (##sys#error "shell invocation failed with non-zero return status" str n))))
+
+
+;;; Quote string for shell:
+
+(define (qs str #!optional (platform (software-version)))
+  (let* ((delim (if (eq? platform 'mingw32) #\" #\'))
+	 (escaped (if (eq? platform 'mingw32) "\"\"" "'\\''"))
+	 (escaped-parts
+	  (map (lambda (c)
+		 (cond
+		   ((char=? c delim) escaped)
+		   ((char=? c #\nul)
+		    (error 'qs "NUL character can not be represented in shell string" str))
+		   (else (string c))))
+	       (string->list str))))
+    (string-append
+     (string delim)
+     (apply string-append escaped-parts)
+     (string delim))))
+
+
+;; These are all set! inside the posix module
+(define process-execute)
+(define process-fork)
+(define process-run)
+(define process-signal)
+(define process-spawn)
+(define process-wait)
+
+(define call-with-input-pipe)
+(define call-with-output-pipe)
+(define close-input-pipe)
+(define close-output-pipe)
+(define create-pipe)
+(define open-input-pipe)
+(define open-output-pipe)
+(define with-input-from-pipe)
+(define with-output-to-pipe)
+
+(define process)
+(define process*)
+(define process-sleep)
+
+(define pipe/buf)
+
+(define spawn/overlay)
+(define spawn/wait)
+(define spawn/nowait)
+(define spawn/nowaito)
+(define spawn/detach)
+) ; chicken.process
+
+
 ;; This module really does nothing.  It is used to keep all the posix
 ;; stuff in one place, in a clean namespace.  The included file will
 ;; set! values from the modules defined above.
 (module chicken.posix
-  (call-with-input-pipe call-with-output-pipe
-   change-directory* close-input-pipe
-   close-output-pipe create-pipe create-session 
+  (change-directory* create-session
    current-effective-group-id current-effective-user-id
    current-effective-user-name current-group-id current-process-id
    current-user-id current-user-name
-   open-input-pipe open-output-pipe
-   parent-process-id
-   process process* process-execute process-fork
-   process-group-id process-run process-signal process-sleep
-   process-spawn process-wait
+   parent-process-id process-group-id
    set-alarm! set-root-directory! set-signal-handler! set-signal-mask!
    signal-handler signal-mask signal-mask! signal-masked? signal-unmask!
    signal/abrt signal/alrm signal/break signal/bus signal/chld
@@ -204,9 +278,7 @@
    signal/kill signal/pipe signal/prof signal/quit signal/segv
    signal/stop signal/term signal/trap signal/tstp signal/urg
    signal/usr1 signal/usr2 signal/vtalrm signal/winch signal/xcpu
-   signal/xfsz signals-list spawn/detach spawn/nowait
-   spawn/nowaito spawn/overlay spawn/wait user-information
-   with-input-from-pipe with-output-to-pipe)
+   signal/xfsz signals-list)
 
 (import scheme
 	chicken.base
@@ -273,83 +345,6 @@
 (define errno/xdev _exdev)
 ) ; chicken.errno
 
-
-(module chicken.process
-  (qs system system* process-execute process-fork process-run
-   process-signal process-spawn process-wait call-with-input-pipe
-   call-with-output-pipe close-input-pipe close-output-pipe create-pipe
-   open-input-pipe open-output-pipe with-input-from-pipe
-   with-output-to-pipe process process* process-sleep pipe/buf
-   spawn/overlay spawn/wait spawn/nowait spawn/nowaito spawn/detach)
-
-(import scheme chicken.base chicken.fixnum chicken.platform)
-
-
-;;; Execute a shell command:
-
-(define (system cmd)
-  (##sys#check-string cmd 'system)
-  (let ((r (##core#inline "C_execute_shell_command" cmd)))
-    (cond ((fx< r 0)
-	   (##sys#update-errno)
-	   (##sys#signal-hook #:process-error 'system "`system' invocation failed" cmd))
-	  (else r))))
-
-;;; Like `system', but bombs on nonzero return code:
-
-(define (system* str)
-  (let ((n (system str)))
-    (unless (zero? n)
-      (##sys#error "shell invocation failed with non-zero return status" str n))))
-
-
-;;; Quote string for shell:
-
-(define (qs str #!optional (platform (software-version)))
-  (let* ((delim (if (eq? platform 'mingw32) #\" #\'))
-	 (escaped (if (eq? platform 'mingw32) "\"\"" "'\\''"))
-	 (escaped-parts
-	  (map (lambda (c)
-		 (cond
-		   ((char=? c delim) escaped)
-		   ((char=? c #\nul)
-		    (error 'qs "NUL character can not be represented in shell string" str))
-		   (else (string c))))
-	       (string->list str))))
-    (string-append
-     (string delim)
-     (apply string-append escaped-parts)
-     (string delim))))
-
-(define process-execute chicken.posix#process-execute)
-(define process-fork chicken.posix#process-fork)
-(define process-run chicken.posix#process-run)
-(define process-signal chicken.posix#process-signal)
-(define process-spawn chicken.posix#process-spawn)
-(define process-wait chicken.posix#process-wait)
-
-(define call-with-input-pipe chicken.posix#call-with-input-pipe)
-(define call-with-output-pipe chicken.posix#call-with-output-pipe)
-(define close-input-pipe chicken.posix#close-input-pipe)
-(define close-output-pipe chicken.posix#close-output-pipe)
-(define create-pipe chicken.posix#create-pipe)
-(define open-input-pipe chicken.posix#open-input-pipe)
-(define open-output-pipe chicken.posix#open-output-pipe)
-(define with-input-from-pipe chicken.posix#with-input-from-pipe)
-(define with-output-to-pipe chicken.posix#with-output-to-pipe)
-
-(define process chicken.posix#process)
-(define process* chicken.posix#process*)
-(define process-sleep chicken.posix#process-sleep)
-
-(define pipe/buf chicken.posix#pipe/buf)
-
-(define spawn/overlay chicken.posix#spawn/overlay)
-(define spawn/wait chicken.posix#spawn/wait)
-(define spawn/nowait chicken.posix#spawn/nowait)
-(define spawn/nowaito chicken.posix#spawn/nowaito)
-(define spawn/detach chicken.posix#spawn/detach)
-) ; chicken.process
 
 (module chicken.process.signal
   (set-signal-handler! set-signal-mask! signal-handler signal-mask

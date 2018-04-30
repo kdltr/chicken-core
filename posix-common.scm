@@ -598,16 +598,17 @@ EOF
 
 (define current-process-id (foreign-lambda int "C_getpid"))
 
-(define (process-sleep n)
-  (##sys#check-fixnum n 'process-sleep)
-  (##core#inline "C_i_process_sleep" n))
+(set! chicken.process#process-sleep
+  (lambda (n)
+    (##sys#check-fixnum n 'process-sleep)
+    (##core#inline "C_i_process_sleep" n)))
 
-(define process-wait
+(set! chicken.process#process-wait
   (lambda args
-    (let-optionals* args ([pid #f] [nohang #f])
-      (let ([pid (or pid -1)])
+    (let-optionals* args ((pid #f) (nohang #f))
+      (let ((pid (or pid -1)))
         (##sys#check-fixnum pid 'process-wait)
-        (receive [epid enorm ecode] (##sys#process-wait pid nohang)
+        (receive (epid enorm ecode) (process-wait-impl pid nohang)
           (if (fx= epid -1)
               (posix-error #:process-error 'process-wait "waiting for child process failed" pid)
               (values epid enorm ecode) ) ) ) ) ) )
@@ -687,3 +688,90 @@ EOF
 	       nop loc)))
 
 	  (proc (##sys#make-c-string filename loc) argbuf envbuf))))))
+
+;; Pipes:
+
+(define-foreign-variable _pipe_buf int "PIPE_BUF")
+(set! chicken.process#pipe/buf _pipe_buf)
+
+(let ()
+  (define (mode arg) (if (pair? arg) (##sys#slot arg 0) '###text))
+  (define (badmode m) (##sys#error "illegal input/output mode specifier" m))
+  (define (check loc cmd inp r)
+    (if (##sys#null-pointer? r)
+	(posix-error #:file-error loc "cannot open pipe" cmd)
+	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(pipe)" 'stream)))
+	  (##core#inline "C_set_file_ptr" port r)
+	  port) ) )
+  (set! chicken.process#open-input-pipe
+    (lambda (cmd . m)
+      (##sys#check-string cmd 'open-input-pipe)
+      (let ([m (mode m)])
+	(check
+	 'open-input-pipe
+	 cmd #t
+	 (case m
+	   ((#:text) (##core#inline_allocate ("open_text_input_pipe" 2) (##sys#make-c-string cmd 'open-input-pipe)))
+	   ((#:binary) (##core#inline_allocate ("open_binary_input_pipe" 2) (##sys#make-c-string cmd 'open-input-pipe)))
+	   (else (badmode m)) ) ) ) ) )
+  (set! chicken.process#open-output-pipe
+    (lambda (cmd . m)
+      (##sys#check-string cmd 'open-output-pipe)
+      (let ((m (mode m)))
+	(check
+	 'open-output-pipe
+	 cmd #f
+	 (case m
+	   ((#:text) (##core#inline_allocate ("open_text_output_pipe" 2) (##sys#make-c-string cmd 'open-output-pipe)))
+	   ((#:binary) (##core#inline_allocate ("open_binary_output_pipe" 2) (##sys#make-c-string cmd 'open-output-pipe)))
+	   (else (badmode m)) ) ) ) ) )
+  (set! chicken.process#close-input-pipe
+    (lambda (port)
+      (##sys#check-input-port port #t 'close-input-pipe)
+      (let ((r (##core#inline "close_pipe" port)))
+	(when (eq? -1 r)
+	  (posix-error #:file-error 'close-input-pipe "error while closing pipe" port))
+	r) ) )
+  (set! chicken.process#close-output-pipe
+    (lambda (port)
+      (##sys#check-output-port port #t 'close-output-pipe)
+      (let ((r (##core#inline "close_pipe" port)))
+	(when (eq? -1 r)
+	  (posix-error #:file-error 'close-output-pipe "error while closing pipe" port))
+	r) ) ))
+
+(set! chicken.process#with-input-from-pipe
+  (lambda (cmd thunk . mode)
+    (let ((p (apply chicken.process#open-input-pipe cmd mode)))
+      (fluid-let ((##sys#standard-input p))
+	(call-with-values thunk
+	  (lambda results
+	    (chicken.process#close-input-pipe p)
+	    (apply values results) ) ) ) ) ) )
+
+(set! chicken.process#call-with-output-pipe
+  (lambda (cmd proc . mode)
+    (let ((p (apply chicken.process#open-output-pipe cmd mode)))
+      (call-with-values
+       (lambda () (proc p))
+       (lambda results
+	 (chicken.process#close-output-pipe p)
+	 (apply values results) ) ) ) ) )
+
+(set! chicken.process#call-with-input-pipe
+  (lambda (cmd proc . mode)
+    (let ([p (apply chicken.process#open-input-pipe cmd mode)])
+      (call-with-values
+       (lambda () (proc p))
+       (lambda results
+	 (chicken.process#close-input-pipe p)
+	 (apply values results) ) ) ) ) )
+
+(set! chicken.process#with-output-to-pipe
+  (lambda (cmd thunk . mode)
+    (let ((p (apply chicken.process#open-output-pipe cmd mode)))
+      (fluid-let ((##sys#standard-output p))
+	(call-with-values thunk
+	  (lambda results
+	    (chicken.process#close-output-pipe p)
+	    (apply values results) ) ) ) ) ) )

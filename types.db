@@ -2035,12 +2035,7 @@
 
 ;; posix
 
-(chicken.posix#call-with-input-pipe (#(procedure #:enforce) chicken.posix#call-with-input-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
-(chicken.posix#call-with-output-pipe (#(procedure #:enforce) chicken.posix#call-with-output-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
 (chicken.posix#change-directory* (#(procedure #:clean #:enforce) chicken.posix#change-directory* (fixnum) fixnum))
-(chicken.posix#close-input-pipe (#(procedure #:clean #:enforce) chicken.posix#close-input-pipe (input-port) fixnum))
-(chicken.posix#close-output-pipe (#(procedure #:clean #:enforce) chicken.posix#close-output-pipe (output-port) fixnum))
-(chicken.posix#create-pipe (procedure chicken.posix#create-pipe (#!optional fixnum) fixnum fixnum))
 (chicken.posix#create-session (#(procedure #:clean) chicken.posix#create-session () fixnum))
 
 (chicken.posix#current-effective-group-id (#(procedure #:clean) chicken.posix#current-effective-group-id () fixnum))
@@ -2050,24 +2045,9 @@
 (chicken.posix#current-process-id (#(procedure #:clean) chicken.posix#current-process-id () fixnum))
 (chicken.posix#current-user-id (#(procedure #:clean) chicken.posix#current-user-id () fixnum))
 (chicken.posix#current-user-name (#(procedure #:clean) chicken.posix#current-user-name () string))
-(chicken.posix#open-input-pipe (#(procedure #:clean #:enforce) chicken.posix#open-input-pipe (string #!optional symbol) input-port))
-(chicken.posix#open-output-pipe (#(procedure #:clean #:enforce) chicken.posix#open-output-pipe (string #!optional symbol) output-port))
 (chicken.posix#parent-process-id (#(procedure #:clean) chicken.posix#parent-process-id () fixnum))
-(chicken.posix#pipe/buf fixnum)
-(chicken.posix#process (#(procedure #:clean #:enforce) chicken.posix#process (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum))
-(chicken.posix#process* (#(procedure #:clean #:enforce) chicken.posix#process* (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum *))
-
-(chicken.posix#process-execute
- (#(procedure #:clean #:enforce) chicken.posix#process-execute (string #!optional (list-of string) (list-of (pair string string)) fixnum) noreturn))
-
-(chicken.posix#process-fork (#(procedure #:enforce) chicken.posix#process-fork (#!optional (or (procedure () . *) false) *) fixnum))
 
 (chicken.posix#process-group-id (#(procedure #:clean #:enforce) chicken.posix#process-group-id () fixnum))
-(chicken.posix#process-run (#(procedure #:clean #:enforce) chicken.posix#process-run (string #!optional (list-of string)) fixnum))
-(chicken.posix#process-signal (#(procedure #:clean #:enforce) chicken.posix#process-signal (fixnum #!optional fixnum) undefined))
-(chicken.posix#process-spawn
- (#(procedure #:clean #:enforce) chicken.posix#process-spawn (fixnum string #!optional (list-of string) (list-of (pair string string)) boolean) fixnum))
-(chicken.posix#process-wait (#(procedure #:clean #:enforce) chicken.posix#process-wait (#!optional fixnum *) fixnum fixnum fixnum))
 (chicken.posix#set-alarm! (#(procedure #:clean #:enforce) chicken.posix#set-alarm! (integer) integer))
 (chicken.posix#set-root-directory! (#(procedure #:clean #:enforce) chicken.posix#set-root-directory! (string) undefined))
 (chicken.posix#set-signal-handler! (#(procedure #:clean #:enforce) chicken.posix#set-signal-handler! (fixnum (or false (procedure (fixnum) . *))) undefined))
@@ -2104,21 +2084,40 @@
 (chicken.posix#signal/xcpu fixnum)
 (chicken.posix#signal/xfsz fixnum)
 (chicken.posix#signals-list list)
-(chicken.posix#spawn/overlay fixnum)
-(chicken.posix#spawn/wait fixnum)
-(chicken.posix#spawn/nowait fixnum)
-(chicken.posix#spawn/nowaito fixnum)
-(chicken.posix#spawn/detach fixnum)
-(chicken.posix#process-sleep (#(procedure #:clean #:enforce) chicken.posix#process-sleep (fixnum) fixnum))
 (chicken.posix#user-information (#(procedure #:clean #:enforce) chicken.posix#user-information ((or string fixnum) #!optional *) *))
-(chicken.posix#with-input-from-pipe (#(procedure #:enforce) chicken.posix#with-input-from-pipe (string (procedure () . *) #!optional symbol) . *))
-(chicken.posix#with-output-to-pipe (#(procedure #:enforce) chicken.posix#with-output-to-pipe (string (procedure () . *) #!optional symbol) . *))
 
 ;; process
 
+(chicken.process#process-execute
+ (#(procedure #:clean #:enforce) chicken.process#process-execute (string #!optional (list-of string) (list-of (pair string string)) fixnum) noreturn))
+(chicken.process#process-fork (#(procedure #:enforce) chicken.process#process-fork (#!optional (or (procedure () . *) false) *) fixnum))
+(chicken.process#qs (#(procedure #:clean #:enforce) chicken.process#qs (string) string))
+(chicken.process#process-run (#(procedure #:clean #:enforce) chicken.process#process-run (string #!optional (list-of string)) fixnum))
+(chicken.process#process-signal (#(procedure #:clean #:enforce) chicken.process#process-signal (fixnum #!optional fixnum) undefined))
+(chicken.process#process-spawn
+ (#(procedure #:clean #:enforce) chicken.process#process-spawn (fixnum string #!optional (list-of string) (list-of (pair string string)) boolean) fixnum))
 (chicken.process#system (#(procedure #:clean #:enforce) chicken.process#system (string) fixnum))
 (chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string #!rest) undefined))
-(chicken.process#qs (#(procedure #:clean #:enforce) chicken.process#qs (string) string))
+(chicken.process#process (#(procedure #:clean #:enforce) chicken.process#process (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum))
+(chicken.process#process* (#(procedure #:clean #:enforce) chicken.process#process* (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum *))
+(chicken.process#process-wait (#(procedure #:clean #:enforce) chicken.process#process-wait (#!optional fixnum *) fixnum fixnum fixnum))
+(chicken.process#process-sleep (#(procedure #:clean #:enforce) chicken.process#process-sleep (fixnum) fixnum))
+(chicken.process#call-with-input-pipe (#(procedure #:enforce) chicken.process#call-with-input-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
+(chicken.process#call-with-output-pipe (#(procedure #:enforce) chicken.process#call-with-output-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
+(chicken.process#close-input-pipe (#(procedure #:clean #:enforce) chicken.process#close-input-pipe (input-port) fixnum))
+(chicken.process#close-output-pipe (#(procedure #:clean #:enforce) chicken.process#close-output-pipe (output-port) fixnum))
+(chicken.process#create-pipe (procedure chicken.process#create-pipe (#!optional fixnum) fixnum fixnum))
+(chicken.process#open-input-pipe (#(procedure #:clean #:enforce) chicken.process#open-input-pipe (string #!optional symbol) input-port))
+(chicken.process#open-output-pipe (#(procedure #:clean #:enforce) chicken.process#open-output-pipe (string #!optional symbol) output-port))
+(chicken.process#with-input-from-pipe (#(procedure #:enforce) chicken.process#with-input-from-pipe (string (procedure () . *) #!optional symbol) . *))
+(chicken.process#with-output-to-pipe (#(procedure #:enforce) chicken.process#with-output-to-pipe (string (procedure () . *) #!optional symbol) . *))
+
+(chicken.process#pipe/buf fixnum)
+(chicken.process#spawn/overlay fixnum)
+(chicken.process#spawn/wait fixnum)
+(chicken.process#spawn/nowait fixnum)
+(chicken.process#spawn/nowaito fixnum)
+(chicken.process#spawn/detach fixnum)
 
 ;; sort
 
