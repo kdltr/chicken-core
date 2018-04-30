@@ -457,6 +457,7 @@ EOF
 	 (rq? (pair? ready-queue-head))
 	 (tmo (if (and to? (not rq?)) ; no thread was unblocked by timeout, so wait
 		  (let* ((tmo1 (caar ##sys#timeout-list))
+			 (tmo1 (inexact->exact (round tmo1)))
 			 (now (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)))
 		    (max 0 (- tmo1 now)) )
 		  0))) ; otherwise immediate timeout.
