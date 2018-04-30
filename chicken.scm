@@ -51,10 +51,11 @@
 
 (define compiler-arguments
   (let ((args (cdr (argv))))
-    (append
-     (take args 1) ; Leave source filename argument first.
-     (string-split (or (get-environment-variable "CHICKEN_OPTIONS") ""))
-     (drop args 1))))
+    (if (null? args)
+        '()
+        (append (take args 1) ; Leave source filename argument first.
+                (string-split (or (get-environment-variable "CHICKEN_OPTIONS") ""))
+                (drop args 1)))))
 
 
 ;;; Process command-line options:
