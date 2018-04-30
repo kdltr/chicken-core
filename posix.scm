@@ -39,41 +39,145 @@
   (disable-interrupts)
   (not inline ##sys#interrupt-hook ##sys#user-interrupt-hook))
 
-;; This module really does not belong, but it is used to keep all the
-;; posix stuff in one place.  The modules defined later are actually
-;; the user-visible ones.
-(module chicken.posix
-  (block-device? call-with-input-pipe call-with-output-pipe
-   change-directory* character-device? close-input-pipe
-   close-output-pipe create-fifo create-pipe
-   create-session create-symbolic-link
-   current-effective-group-id current-effective-user-id
-   current-effective-user-name current-group-id current-process-id
-   current-user-id current-user-name
-   directory? duplicate-fileno fcntl/dupfd fcntl/getfd
-   fcntl/getfl fcntl/setfd fcntl/setfl fifo? file-access-time
-   file-change-time file-close file-control file-creation-mode
-   file-group file-link file-lock
-   file-lock/blocking file-mkstemp file-modification-time file-open
-   file-owner file-permissions file-position file-read
-   file-select file-size file-stat file-test-lock file-truncate
-   file-type file-unlock file-write fileno/stderr
-   fileno/stdin fileno/stdout
-   local-time->seconds local-timezone-abbreviation
-   open-input-file* open-input-pipe open-output-file* open-output-pipe
+
+(module chicken.file.posix
+  (create-fifo create-symbolic-link read-symbolic-link
+   duplicate-fileno fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd
+   fcntl/setfl file-access-time file-change-time file-modification-time
+   file-close file-control file-creation-mode file-group file-link
+   file-lock file-lock/blocking file-mkstemp file-open file-owner
+   file-permissions file-position file-read file-select file-size
+   file-stat file-test-lock file-truncate file-unlock file-write
+   file-type block-device? character-device? directory? fifo?
+   regular-file? socket? symbolic-link?
+   fileno/stderr fileno/stdin fileno/stdout
+   open-input-file* open-output-file*
    open/append open/binary open/creat open/excl open/fsync open/noctty
    open/noinherit open/nonblock open/rdonly open/rdwr open/read
    open/sync open/text open/trunc open/write open/wronly
-   parent-process-id perm/irgrp perm/iroth perm/irusr perm/irwxg
-   perm/irwxo perm/irwxu perm/isgid perm/isuid perm/isvtx perm/iwgrp
-   perm/iwoth perm/iwusr perm/ixgrp perm/ixoth perm/ixusr pipe/buf
-   port->fileno process process* process-execute process-fork
-   process-group-id process-run process-signal process-sleep
-   process-spawn process-wait read-symbolic-link regular-file?
-   seconds->local-time seconds->string seconds->utc-time seek/cur
-   seek/end seek/set
-   set-alarm! set-file-group! set-file-owner!
+   perm/irgrp perm/iroth perm/irusr perm/irwxg perm/irwxo perm/irwxu
+   perm/isgid perm/isuid perm/isvtx perm/iwgrp perm/iwoth perm/iwusr
+   perm/ixgrp perm/ixoth perm/ixusr
+   port->fileno set-file-group! set-file-owner!
    set-file-permissions! set-file-position! set-file-times!
+   seek/cur seek/set seek/end)
+
+(import scheme)
+
+(define create-fifo)
+(define create-symbolic-link)
+(define read-symbolic-link)
+(define duplicate-fileno)
+
+(define fcntl/dupfd)
+(define fcntl/getfd)
+(define fcntl/getfl)
+(define fcntl/setfd)
+(define fcntl/setfl)
+
+(define file-access-time)
+(define file-change-time)
+(define file-modification-time)
+(define file-close)
+(define file-control)
+(define file-creation-mode)
+(define file-group)
+(define file-link)
+(define file-lock)
+(define file-lock/blocking)
+(define file-mkstemp)
+(define file-open)
+(define file-owner)
+(define file-permissions)
+(define file-position)
+(define file-read)
+(define file-select)
+(define file-size)
+(define file-stat)
+(define file-test-lock)
+(define file-truncate)
+(define file-unlock)
+(define file-write)
+(define file-type)
+
+(define block-device?)
+(define character-device?)
+(define directory?)
+(define fifo?)
+(define regular-file?)
+(define socket?)
+(define symbolic-link?)
+  
+(define fileno/stderr)
+(define fileno/stdin)
+(define fileno/stdout)
+  
+(define open-input-file*)
+(define open-output-file*)
+  
+(define open/append)
+(define open/binary)
+(define open/creat)
+(define open/excl)
+(define open/fsync)
+(define open/noctty)
+(define open/noinherit)
+(define open/nonblock)
+(define open/rdonly)
+(define open/rdwr)
+(define open/read)
+(define open/sync)
+(define open/text)
+(define open/trunc)
+(define open/write)
+(define open/wronly)
+  
+(define perm/irgrp)
+(define perm/iroth)
+(define perm/irusr)
+(define perm/irwxg)
+(define perm/irwxo)
+(define perm/irwxu)
+(define perm/isgid)
+(define perm/isuid)
+(define perm/isvtx)
+(define perm/iwgrp)
+(define perm/iwoth)
+(define perm/iwusr)
+(define perm/ixgrp)
+(define perm/ixoth)
+(define perm/ixusr)
+  
+(define port->fileno)
+
+(define seek/cur)
+(define seek/end)
+(define seek/set)
+
+(define set-file-group!)
+(define set-file-owner!)
+(define set-file-permissions!)
+(define set-file-position!)
+(define set-file-times!)
+) ; chicken.file.posix
+
+;; This module really does nothing.  It is used to keep all the posix
+;; stuff in one place, in a clean namespace.  The included file will
+;; set! values from the modules defined above.
+(module chicken.posix
+  (call-with-input-pipe call-with-output-pipe
+   change-directory* close-input-pipe
+   close-output-pipe create-pipe create-session 
+   current-effective-group-id current-effective-user-id
+   current-effective-user-name current-group-id current-process-id
+   current-user-id current-user-name
+   local-time->seconds local-timezone-abbreviation
+   open-input-pipe open-output-pipe
+   parent-process-id
+   process process* process-execute process-fork
+   process-group-id process-run process-signal process-sleep
+   process-spawn process-wait
+   seconds->local-time seconds->string seconds->utc-time set-alarm!
    set-root-directory! set-signal-handler! set-signal-mask!
    signal-handler signal-mask signal-mask! signal-masked? signal-unmask!
    signal/abrt signal/alrm signal/break signal/bus signal/chld
@@ -81,8 +185,8 @@
    signal/kill signal/pipe signal/prof signal/quit signal/segv
    signal/stop signal/term signal/trap signal/tstp signal/urg
    signal/usr1 signal/usr2 signal/vtalrm signal/winch signal/xcpu
-   signal/xfsz signals-list socket? spawn/detach spawn/nowait
-   spawn/nowaito spawn/overlay spawn/wait string->time symbolic-link?
+   signal/xfsz signals-list spawn/detach spawn/nowait
+   spawn/nowaito spawn/overlay spawn/wait string->time
    time->string user-information
    utc-time->seconds with-input-from-pipe with-output-to-pipe)
 
@@ -150,125 +254,6 @@
 (define errno/xdev _exdev)
 ) ; chicken.errno
 
-(module chicken.file.posix
-  (create-fifo create-symbolic-link read-symbolic-link
-   duplicate-fileno fcntl/dupfd fcntl/getfd fcntl/getfl fcntl/setfd
-   fcntl/setfl file-access-time file-change-time file-modification-time
-   file-close file-control file-creation-mode file-group file-link
-   file-lock file-lock/blocking file-mkstemp file-open file-owner
-   file-permissions file-position file-read file-select file-size
-   file-stat file-test-lock file-truncate file-unlock file-write
-   file-type block-device? character-device? directory? fifo?
-   regular-file? socket? symbolic-link?
-   fileno/stderr fileno/stdin fileno/stdout
-   open-input-file* open-output-file*
-   open/append open/binary open/creat open/excl open/fsync open/noctty
-   open/noinherit open/nonblock open/rdonly open/rdwr open/read
-   open/sync open/text open/trunc open/write open/wronly
-   perm/irgrp perm/iroth perm/irusr perm/irwxg perm/irwxo perm/irwxu
-   perm/isgid perm/isuid perm/isvtx perm/iwgrp perm/iwoth perm/iwusr
-   perm/ixgrp perm/ixoth perm/ixusr
-   port->fileno seek/cur seek/end seek/set set-file-group! set-file-owner!
-   set-file-permissions! set-file-position! set-file-times!)
-
-(import scheme)
-
-(define create-fifo chicken.posix#create-fifo)
-(define create-symbolic-link chicken.posix#create-symbolic-link)
-(define read-symbolic-link chicken.posix#read-symbolic-link)
-(define duplicate-fileno chicken.posix#duplicate-fileno)
-
-(define fcntl/dupfd chicken.posix#fcntl/dupfd)
-(define fcntl/getfd chicken.posix#fcntl/getfd)
-(define fcntl/getfl chicken.posix#fcntl/getfl)
-(define fcntl/setfd chicken.posix#fcntl/setfd)
-(define fcntl/setfl chicken.posix#fcntl/setfl)
-
-(define file-access-time chicken.posix#file-access-time)
-(define file-change-time chicken.posix#file-change-time)
-(define file-modification-time chicken.posix#file-modification-time)
-(define file-close chicken.posix#file-close)
-(define file-control chicken.posix#file-control)
-(define file-creation-mode chicken.posix#file-creation-mode)
-(define file-group chicken.posix#file-group)
-(define file-link chicken.posix#file-link)
-(define file-lock chicken.posix#file-lock)
-(define file-lock/blocking chicken.posix#file-lock/blocking)
-(define file-mkstemp chicken.posix#file-mkstemp)
-(define file-open chicken.posix#file-open)
-(define file-owner chicken.posix#file-owner)
-(define file-permissions chicken.posix#file-permissions)
-(define file-position chicken.posix#file-position)
-(define file-read chicken.posix#file-read)
-(define file-select chicken.posix#file-select)
-(define file-size chicken.posix#file-size)
-(define file-stat chicken.posix#file-stat)
-(define file-test-lock chicken.posix#file-test-lock)
-(define file-truncate chicken.posix#file-truncate)
-(define file-unlock chicken.posix#file-unlock)
-(define file-write chicken.posix#file-write)
-(define file-type chicken.posix#file-type)
-
-(define block-device? chicken.posix#block-device?)
-(define character-device? chicken.posix#character-device?)
-(define directory? chicken.posix#directory?)
-(define fifo? chicken.posix#fifo?)
-(define regular-file? chicken.posix#regular-file?)
-(define socket? chicken.posix#socket?)
-(define symbolic-link? chicken.posix#symbolic-link?)
-  
-(define fileno/stderr chicken.posix#fileno/stderr)
-(define fileno/stdin chicken.posix#fileno/stdin)
-(define fileno/stdout chicken.posix#fileno/stdout)
-  
-(define open-input-file* chicken.posix#open-input-file*)
-(define open-output-file* chicken.posix#open-output-file*)
-  
-(define open/append chicken.posix#open/append)
-(define open/binary chicken.posix#open/binary)
-(define open/creat chicken.posix#open/creat)
-(define open/excl chicken.posix#open/excl)
-(define open/fsync chicken.posix#open/fsync)
-(define open/noctty chicken.posix#open/noctty)
-(define open/noinherit chicken.posix#open/noinherit)
-(define open/nonblock chicken.posix#open/nonblock)
-(define open/rdonly chicken.posix#open/rdonly)
-(define open/rdwr chicken.posix#open/rdwr)
-(define open/read chicken.posix#open/read)
-(define open/sync chicken.posix#open/sync)
-(define open/text chicken.posix#open/text)
-(define open/trunc chicken.posix#open/trunc)
-(define open/write chicken.posix#open/write)
-(define open/wronly chicken.posix#open/wronly)
-  
-(define perm/irgrp chicken.posix#perm/irgrp)
-(define perm/iroth chicken.posix#perm/iroth)
-(define perm/irusr chicken.posix#perm/irusr)
-(define perm/irwxg chicken.posix#perm/irwxg)
-(define perm/irwxo chicken.posix#perm/irwxo)
-(define perm/irwxu chicken.posix#perm/irwxu)
-(define perm/isgid chicken.posix#perm/isgid)
-(define perm/isuid chicken.posix#perm/isuid)
-(define perm/isvtx chicken.posix#perm/isvtx)
-(define perm/iwgrp chicken.posix#perm/iwgrp)
-(define perm/iwoth chicken.posix#perm/iwoth)
-(define perm/iwusr chicken.posix#perm/iwusr)
-(define perm/ixgrp chicken.posix#perm/ixgrp)
-(define perm/ixoth chicken.posix#perm/ixoth)
-(define perm/ixusr chicken.posix#perm/ixusr)
-  
-(define port->fileno chicken.posix#port->fileno)
-
-(define seek/cur chicken.posix#seek/cur)
-(define seek/end chicken.posix#seek/end)
-(define seek/set chicken.posix#seek/set)
-
-(define set-file-group! chicken.posix#set-file-group!)
-(define set-file-owner! chicken.posix#set-file-owner!)
-(define set-file-permissions! chicken.posix#set-file-permissions!)
-(define set-file-position! chicken.posix#set-file-position!)
-(define set-file-times! chicken.posix#set-file-times!)
-) ; chicken.file.posix
 
 (module chicken.time.posix
   (seconds->utc-time utc-time->seconds seconds->local-time

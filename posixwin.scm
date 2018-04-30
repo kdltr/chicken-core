@@ -30,7 +30,6 @@
 ; open/noctty  open/nonblock  open/fsync  open/sync
 ; perm/isvtx  perm/isuid  perm/isgid
 ; file-select
-; symbolic-link?
 ; set-signal-mask!  signal-mask	 signal-masked?	 signal-mask!  signal-unmask!
 ; user-information
 ; change-file-owner
@@ -42,7 +41,7 @@
 ; create-symbolic-link	read-symbolic-link
 ; file-truncate
 ; file-lock  file-lock/blocking	 file-unlock  file-test-lock
-; create-fifo  fifo?
+; create-fifo
 ; prot/...
 ; map/...
 ; set-alarm!
@@ -518,58 +517,11 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 (define pipe/buf _pipe_buf)
 
-(define-foreign-variable _o_rdonly int "O_RDONLY")
-(define-foreign-variable _o_wronly int "O_WRONLY")
-(define-foreign-variable _o_rdwr int "O_RDWR")
-(define-foreign-variable _o_creat int "O_CREAT")
-(define-foreign-variable _o_append int "O_APPEND")
-(define-foreign-variable _o_excl int "O_EXCL")
-(define-foreign-variable _o_trunc int "O_TRUNC")
-(define-foreign-variable _o_binary int "O_BINARY")
-(define-foreign-variable _o_text int "O_TEXT")
 (define-foreign-variable _o_noinherit int "O_NOINHERIT")
+(set! chicken.file.posix#open/noinherit _o_noinherit)
 
-(define open/rdonly _o_rdonly)
-(define open/wronly _o_wronly)
-(define open/rdwr _o_rdwr)
-(define open/read _o_rdwr)
-(define open/write _o_wronly)
-(define open/creat _o_creat)
-(define open/append _o_append)
-(define open/excl _o_excl)
-(define open/trunc _o_trunc)
-(define open/binary _o_binary)
-(define open/text _o_text)
-(define open/noinherit _o_noinherit)
-
-(define-foreign-variable _s_irusr int "S_IREAD")
-(define-foreign-variable _s_iwusr int "S_IWRITE")
-(define-foreign-variable _s_ixusr int "S_IEXEC")
-(define-foreign-variable _s_irgrp int "S_IREAD")
-(define-foreign-variable _s_iwgrp int "S_IWRITE")
-(define-foreign-variable _s_ixgrp int "S_IEXEC")
-(define-foreign-variable _s_iroth int "S_IREAD")
-(define-foreign-variable _s_iwoth int "S_IWRITE")
-(define-foreign-variable _s_ixoth int "S_IEXEC")
-(define-foreign-variable _s_irwxu int "S_IREAD | S_IWRITE | S_IEXEC")
-(define-foreign-variable _s_irwxg int "S_IREAD | S_IWRITE | S_IEXEC")
-(define-foreign-variable _s_irwxo int "S_IREAD | S_IWRITE | S_IEXEC")
-
-(define perm/irusr _s_irusr)
-(define perm/iwusr _s_iwusr)
-(define perm/ixusr _s_ixusr)
-(define perm/irgrp _s_irgrp)
-(define perm/iwgrp _s_iwgrp)
-(define perm/ixgrp _s_ixgrp)
-(define perm/iroth _s_iroth)
-(define perm/iwoth _s_iwoth)
-(define perm/ixoth _s_ixoth)
-(define perm/irwxu _s_irwxu)
-(define perm/irwxg _s_irwxg)
-(define perm/irwxo _s_irwxo)
-
-(define file-open
-  (let ([defmode (bitwise-ior _s_irwxu (fxior _s_irgrp _s_iroth))] )
+(set! chicken.file.posix#file-open
+  (let ((defmode (bitwise-ior _s_irwxu (fxior _s_irgrp _s_iroth))))
     (lambda (filename flags . mode)
       (let ([mode (if (pair? mode) (car mode) defmode)])
 	(##sys#check-string filename 'file-open)
@@ -581,7 +533,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	    (##sys#signal-hook #:file-error 'file-open "cannot open file" filename flags mode) )
 	  fd) ) ) ) )
 
-(define file-close
+(set! chicken.file.posix#file-close
   (lambda (fd)
     (##sys#check-fixnum fd 'file-close)
     (let loop ()
@@ -591,7 +543,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	  (else
 	   (posix-error #:file-error 'file-close "cannot close file" fd)))))))
 
-(define file-read
+(set! chicken.file.posix#file-read
   (lambda (fd size . buffer)
     (##sys#check-fixnum fd 'file-read)
     (##sys#check-fixnum size 'file-read)
@@ -604,7 +556,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	  (##sys#signal-hook #:file-error 'file-read "cannot read from file" fd size) )
 	(list buf n) ) ) ) )
 
-(define file-write
+(set! chicken.file.posix#file-write
   (lambda (fd buffer . size)
     (##sys#check-fixnum fd 'file-write)
     (unless (and (##core#inline "C_blockp" buffer) (##core#inline "C_byteblockp" buffer))
@@ -617,7 +569,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	  (##sys#signal-hook #:file-error 'file-write "cannot write to file" fd size) )
 	n) ) ) )
 
-(define file-mkstemp
+(set! chicken.file.posix#file-mkstemp
   (lambda (template)
     (##sys#check-string template 'file-mkstemp)
     (let* ((diz "0123456789abcdefghijklmnopqrstuvwxyz")
@@ -645,7 +597,9 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	    (suffix-loop (fx- index 1))))
 	(let ((fd (##core#inline "C_open"
 				 (##sys#make-c-string tmpl 'file-open)
-				 (bitwise-ior open/rdwr open/creat open/excl)
+				 (bitwise-ior chicken.file.posix#open/rdwr
+					      chicken.file.posix#open/creat
+					      chicken.file.posix#open/excl)
 				 (fxior _s_irusr _s_iwusr))))
 	  (if (eq? -1 fd)
 	      (if (fx< count max-attempts)
@@ -751,7 +705,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (define-foreign-variable _pipefd0 int "C_pipefds[ 0 ]")
 (define-foreign-variable _pipefd1 int "C_pipefds[ 1 ]")
 
-(define (create-pipe #!optional (mode (fxior open/binary open/noinherit)))
+(define (create-pipe #!optional (mode (fxior chicken.file.posix#open/binary chicken.file.posix#open/noinherit)))
   (when (fx< (##core#inline "C_pipe" #f mode) 0)
     (##sys#update-errno)
     (##sys#signal-hook #:file-error 'create-pipe "cannot create pipe") )
@@ -803,52 +757,6 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 
 ;;; Using file-descriptors:
-
-(define-foreign-variable _stdin_fileno int "0")
-(define-foreign-variable _stdout_fileno int "1")
-(define-foreign-variable _stderr_fileno int "2")
-
-(define fileno/stdin _stdin_fileno)
-(define fileno/stdout _stdout_fileno)
-(define fileno/stderr _stderr_fileno)
-
-(let ()
-  (define (mode inp m loc)
-    (##sys#make-c-string
-     (cond [(pair? m)
-	    (let ([m (car m)])
-	      (case m
-		[(###append) (if (not inp) "a" (##sys#error "invalid mode for input file" m))]
-		[else (##sys#error "invalid mode argument" m)] ) ) ]
-	   [inp "r"]
-	   [else "w"] )
-     loc) )
-  (define (check fd inp r)
-    (##sys#update-errno)
-    (if (##sys#null-pointer? r)
-	(##sys#signal-hook #:file-error "cannot open file" fd)
-	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(fdport)" 'stream)))
-	  (##core#inline "C_set_file_ptr" port r)
-	  port) ) )
-  (set! open-input-file*
-    (lambda (fd . m)
-      (##sys#check-fixnum fd 'open-input-file*)
-      (check fd #t (##core#inline_allocate ("C_fdopen" 2) fd (mode #t m 'open-input-file*))) ) )
-  (set! open-output-file*
-    (lambda (fd . m)
-      (##sys#check-fixnum fd 'open-output-file*)
-      (check fd #f (##core#inline_allocate ("C_fdopen" 2) fd (mode #f m 'open-output-file*)) ) ) ) )
-
-(define port->fileno
-  (lambda (port)
-    (##sys#check-open-port port 'port->fileno)
-    (if (not (zero? (##sys#peek-unsigned-integer port 0)))
-	(let ([fd (##core#inline "C_port_fileno" port)])
-	  (when (fx< fd 0)
-	    (##sys#update-errno)
-	    (##sys#signal-hook #:file-error 'port->fileno "cannot access file-descriptor of port" port) )
-	  fd)
-	(##sys#signal-hook #:type-error 'port->fileno "port has no attached file" port) ) ) )
 
 (define duplicate-fileno
   (lambda (old . new)
@@ -990,10 +898,13 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 		    (+ (if stdinf 0 1) (if stdoutf 0 2) (if stderrf 0 4)))])
 	    (if res
 	      (values
-		(and stdoutf (open-input-file* stdout_fd)) ;Parent stdin
-		(and stdinf (open-output-file* stdin_fd))  ;Parent stdout
-		handle
-		(and stderrf (open-input-file* stderr_fd)))
+	       (and stdoutf (chicken.file.posix#open-input-file*
+			     stdout_fd)) ;Parent stdin
+	       (and stdinf (chicken.file.posix#open-output-file*
+			    stdin_fd))  ;Parent stdout
+	       handle
+	       (and stderrf (chicken.file.posix#open-input-file*
+			     stderr_fd)))
 	      (begin
 		(##sys#update-errno)
 		(##sys#signal-hook #:process-error loc "cannot execute process" cmdlin))) ) ) ) ) ) )
@@ -1049,27 +960,27 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 ;;; unimplemented stuff:
 
 (define-unimplemented chown) ; covers set-file-group! and set-file-owner!
-(define-unimplemented create-fifo)
+(set!-unimplemented chicken.file.posix#create-fifo)
 (define-unimplemented create-session)
-(define-unimplemented create-symbolic-link)
+(set!-unimplemented chicken.file.posix#create-symbolic-link)
 (define-unimplemented current-effective-group-id)
 (define-unimplemented current-effective-user-id)
 (define-unimplemented current-effective-user-name)
 (define-unimplemented current-group-id)
 (define-unimplemented current-user-id)
-(define-unimplemented file-control)
-(define-unimplemented file-link)
-(define-unimplemented file-lock)
-(define-unimplemented file-lock/blocking)
-(define-unimplemented file-select)
-(define-unimplemented file-test-lock)
-(define-unimplemented file-truncate)
-(define-unimplemented file-unlock)
+(set!-unimplemented chicken.file.posix#file-control)
+(set!-unimplemented chicken.file.posix#file-link)
+(set!-unimplemented chicken.file.posix#file-lock)
+(set!-unimplemented chicken.file.posix#file-lock/blocking)
+(set!-unimplemented chicken.file.posix#file-select)
+(set!-unimplemented chicken.file.posix#file-test-lock)
+(set!-unimplemented chicken.file.posix#file-truncate)
+(set!-unimplemented chicken.file.posix#file-unlock)
 (define-unimplemented parent-process-id)
 (define-unimplemented process-fork)
 (define-unimplemented process-group-id)
 (define-unimplemented process-signal)
-(define-unimplemented read-symbolic-link)
+(set!-unimplemented chicken.file.posix#read-symbolic-link)
 (define-unimplemented set-alarm!)
 (define-unimplemented set-group-id!)
 (define-unimplemented set-process-group-id!)
@@ -1084,17 +995,16 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (define-unimplemented utc-time->seconds)
 (define-unimplemented string->time)
 
-(define (fifo? _) #f)
-
-(define fcntl/dupfd 0)
-(define fcntl/getfd 0)
-(define fcntl/setfd 0)
-(define fcntl/getfl 0)
-(define fcntl/setfl 0)
-(define open/fsync 0)
-(define open/noctty 0)
-(define open/nonblock 0)
-(define open/sync 0)
-(define perm/isgid 0)
-(define perm/isuid 0)
-(define perm/isvtx 0)
+;; Unix-only definitions
+(set! chicken.file.posix#fcntl/dupfd 0)
+(set! chicken.file.posix#fcntl/getfd 0)
+(set! chicken.file.posix#fcntl/setfd 0)
+(set! chicken.file.posix#fcntl/getfl 0)
+(set! chicken.file.posix#fcntl/setfl 0)
+(set! chicken.file.posix#open/noctty 0)
+(set! chicken.file.posix#open/nonblock 0)
+(set! chicken.file.posix#open/fsync 0)
+(set! chicken.file.posix#open/sync 0)
+(set! chicken.file.posix#perm/isgid 0)
+(set! chicken.file.posix#perm/isuid 0)
+(set! chicken.file.posix#perm/isvtx 0)
