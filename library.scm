@@ -1044,7 +1044,6 @@ EOF
 (define ##sys#ensure-heap-reserve (##core#primitive "C_ensure_heap_reserve"))
 (define ##sys#symbol-table-info (##core#primitive "C_get_symbol_table_info"))
 (define ##sys#memory-info (##core#primitive "C_get_memory_info"))
-(define ##sys#decode-seconds (##core#primitive "C_decode_seconds"))
 
 (define (##sys#start-timer)
   (##sys#gc #t)

@@ -527,20 +527,24 @@ EOF
 
 ;;; Time related things:
 
+(define decode-seconds (##core#primitive "C_decode_seconds"))
+
 (define (check-time-vector loc tm)
   (##sys#check-vector tm loc)
   (when (fx< (##sys#size tm) 10)
     (##sys#error loc "time vector too short" tm) ) )
 
-(define (seconds->local-time #!optional (secs (current-seconds)))
-  (##sys#check-exact-integer secs 'seconds->local-time)
-  (##sys#decode-seconds secs #f) )
+(set! chicken.time.posix#seconds->local-time
+  (lambda (#!optional (secs (current-seconds)))
+    (##sys#check-exact-integer secs 'seconds->local-time)
+    (decode-seconds secs #f) ))
 
-(define (seconds->utc-time #!optional (secs (current-seconds)))
-  (##sys#check-exact-integer secs 'seconds->utc-time)
-  (##sys#decode-seconds secs #t) )
+(set! chicken.time.posix#seconds->utc-time
+  (lambda (#!optional (secs (current-seconds)))
+    (##sys#check-exact-integer secs 'seconds->utc-time)
+    (decode-seconds secs #t) ) )
 
-(define seconds->string
+(set! chicken.time.posix#seconds->string
   (let ([ctime (foreign-lambda c-string "C_ctime" integer)])
     (lambda (#!optional (secs (current-seconds)))
       (##sys#check-exact-integer secs 'seconds->string)
@@ -549,7 +553,7 @@ EOF
             (##sys#substring str 0 (fx- (##sys#size str) 1))
             (##sys#error 'seconds->string "cannot convert seconds to string" secs) ) ) ) ) )
 
-(define local-time->seconds
+(set! chicken.time.posix#local-time->seconds
   (let ((tm-size (foreign-value "sizeof(struct tm)" int)))
     (lambda (tm)
       (check-time-vector 'local-time->seconds tm)
@@ -558,7 +562,7 @@ EOF
             (##sys#error 'local-time->seconds "cannot convert time vector to seconds" tm)
             t)))))
 
-(define time->string
+(set! chicken.time.posix#time->string
   (let ((asctime (foreign-lambda c-string "C_asctime" scheme-object scheme-pointer))
         (strftime (foreign-lambda c-string "C_strftime" scheme-object scheme-object scheme-pointer))
         (tm-size (foreign-value "sizeof(struct tm)" int)))

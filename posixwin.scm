@@ -774,7 +774,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; Time related things:
 
-(define local-timezone-abbreviation
+(set! chicken.time.posix#local-timezone-abbreviation
   (foreign-lambda* c-string ()
    "char *z = (_daylight ? _tzname[1] : _tzname[0]);\n"
    "C_return(z);") )
@@ -992,8 +992,8 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (define-unimplemented signal-masked?)
 (define-unimplemented signal-unmask!)
 (define-unimplemented user-information)
-(define-unimplemented utc-time->seconds)
-(define-unimplemented string->time)
+(set!-unimplemented chicken.time.posix#utc-time->seconds)
+(set!-unimplemented chicken.time.posix#string->time)
 
 ;; Unix-only definitions
 (set! chicken.file.posix#fcntl/dupfd 0)

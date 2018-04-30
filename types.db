@@ -2022,6 +2022,16 @@
 (chicken.file.posix#set-file-times! (#(procedure #:clean #:enforce) chicken.file.posix#set-file-times! (string #!optional (or false integer) (or false integer)) undefined))
 
 
+;; time.posix
+
+(chicken.time.posix#seconds->local-time (#(procedure #:clean #:enforce) chicken.time.posix#seconds->local-time (#!optional integer) (vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)))
+(chicken.time.posix#seconds->string (#(procedure #:clean #:enforce) chicken.time.posix#seconds->string (#!optional integer) string))
+(chicken.time.posix#seconds->utc-time (#(procedure #:clean #:enforce) chicken.time.posix#seconds->utc-time (#!optional integer) (vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)))
+(chicken.time.posix#utc-time->seconds (#(procedure #:clean #:enforce) chicken.time.posix#utc-time->seconds ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)) integer))
+(chicken.time.posix#local-time->seconds (#(procedure #:clean #:enforce) chicken.time.posix#local-time->seconds ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)) integer))
+(chicken.time.posix#local-timezone-abbreviation (#(procedure #:clean) chicken.time.posix#local-timezone-abbreviation () string))
+(chicken.time.posix#string->time (#(procedure #:clean #:enforce) chicken.time.posix#string->time (string #!optional string) (vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)))
+(chicken.time.posix#time->string (#(procedure #:clean #:enforce) chicken.time.posix#time->string ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum) #!optional string) string))
 
 ;; posix
 
@@ -2040,8 +2050,6 @@
 (chicken.posix#current-process-id (#(procedure #:clean) chicken.posix#current-process-id () fixnum))
 (chicken.posix#current-user-id (#(procedure #:clean) chicken.posix#current-user-id () fixnum))
 (chicken.posix#current-user-name (#(procedure #:clean) chicken.posix#current-user-name () string))
-(chicken.posix#local-time->seconds (#(procedure #:clean #:enforce) chicken.posix#local-time->seconds ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)) integer))
-(chicken.posix#local-timezone-abbreviation (#(procedure #:clean) chicken.posix#local-timezone-abbreviation () string))
 (chicken.posix#open-input-pipe (#(procedure #:clean #:enforce) chicken.posix#open-input-pipe (string #!optional symbol) input-port))
 (chicken.posix#open-output-pipe (#(procedure #:clean #:enforce) chicken.posix#open-output-pipe (string #!optional symbol) output-port))
 (chicken.posix#parent-process-id (#(procedure #:clean) chicken.posix#parent-process-id () fixnum))
@@ -2060,9 +2068,6 @@
 (chicken.posix#process-spawn
  (#(procedure #:clean #:enforce) chicken.posix#process-spawn (fixnum string #!optional (list-of string) (list-of (pair string string)) boolean) fixnum))
 (chicken.posix#process-wait (#(procedure #:clean #:enforce) chicken.posix#process-wait (#!optional fixnum *) fixnum fixnum fixnum))
-(chicken.posix#seconds->local-time (#(procedure #:clean #:enforce) chicken.posix#seconds->local-time (#!optional integer) (vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)))
-(chicken.posix#seconds->string (#(procedure #:clean #:enforce) chicken.posix#seconds->string (#!optional integer) string))
-(chicken.posix#seconds->utc-time (#(procedure #:clean #:enforce) chicken.posix#seconds->utc-time (#!optional integer) (vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)))
 (chicken.posix#set-alarm! (#(procedure #:clean #:enforce) chicken.posix#set-alarm! (integer) integer))
 (chicken.posix#set-root-directory! (#(procedure #:clean #:enforce) chicken.posix#set-root-directory! (string) undefined))
 (chicken.posix#set-signal-handler! (#(procedure #:clean #:enforce) chicken.posix#set-signal-handler! (fixnum (or false (procedure (fixnum) . *))) undefined))
@@ -2105,10 +2110,7 @@
 (chicken.posix#spawn/nowaito fixnum)
 (chicken.posix#spawn/detach fixnum)
 (chicken.posix#process-sleep (#(procedure #:clean #:enforce) chicken.posix#process-sleep (fixnum) fixnum))
-(chicken.posix#string->time (#(procedure #:clean #:enforce) chicken.posix#string->time (string #!optional string) (vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)))
-(chicken.posix#time->string (#(procedure #:clean #:enforce) chicken.posix#time->string ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum) #!optional string) string))
 (chicken.posix#user-information (#(procedure #:clean #:enforce) chicken.posix#user-information ((or string fixnum) #!optional *) *))
-(chicken.posix#utc-time->seconds (#(procedure #:clean #:enforce) chicken.posix#utc-time->seconds ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)) integer))
 (chicken.posix#with-input-from-pipe (#(procedure #:enforce) chicken.posix#with-input-from-pipe (string (procedure () . *) #!optional symbol) . *))
 (chicken.posix#with-output-to-pipe (#(procedure #:enforce) chicken.posix#with-output-to-pipe (string (procedure () . *) #!optional symbol) . *))
 

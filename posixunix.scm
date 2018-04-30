@@ -1101,7 +1101,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; Time related things:
 
-(define string->time
+(set! chicken.time.posix#string->time
   (let ((strptime (foreign-lambda scheme-object "C_strptime" scheme-object scheme-object scheme-object scheme-pointer))
         (tm-size (foreign-value "sizeof(struct tm)" int)))
     (lambda (tim #!optional (fmt "%a %b %e %H:%M:%S %Z %Y"))
@@ -1109,7 +1109,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
       (##sys#check-string fmt 'string->time)
       (strptime (##sys#make-c-string tim 'string->time) (##sys#make-c-string fmt) (make-vector 10 #f) (##sys#make-string tm-size #\nul)) ) ) )
 
-(define utc-time->seconds
+(set! chicken.time.posix#utc-time->seconds
   (let ((tm-size (foreign-value "sizeof(struct tm)" int)))
     (lambda (tm)
       (check-time-vector 'utc-time->seconds tm)
@@ -1118,7 +1118,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
             (##sys#error 'utc-time->seconds "cannot convert time vector to seconds" tm)
             t)))))
 
-(define local-timezone-abbreviation
+(set! chicken.time.posix#local-timezone-abbreviation
   (foreign-lambda* c-string ()
    "\n#if !defined(__CYGWIN__) && !defined(__SVR4) && !defined(__uClinux__) && !defined(__hpux__) && !defined(_AIX)\n"
    "time_t clock = time(NULL);"

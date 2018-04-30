@@ -64,6 +64,7 @@
 
 (import scheme)
 
+;; These are all set! inside the posix module
 (define create-fifo)
 (define create-symbolic-link)
 (define read-symbolic-link)
@@ -161,6 +162,26 @@
 (define set-file-times!)
 ) ; chicken.file.posix
 
+
+(module chicken.time.posix
+  (seconds->utc-time utc-time->seconds seconds->local-time
+   seconds->string local-time->seconds string->time time->string
+   local-timezone-abbreviation)
+
+(import scheme)
+
+;; These are all set! inside the posix module
+(define seconds->utc-time)
+(define utc-time->seconds)
+(define seconds->local-time)
+(define seconds->string)
+(define local-time->seconds)
+(define string->time)
+(define time->string)
+(define local-timezone-abbreviation)
+) ; chicken.time.posix
+
+
 ;; This module really does nothing.  It is used to keep all the posix
 ;; stuff in one place, in a clean namespace.  The included file will
 ;; set! values from the modules defined above.
@@ -171,14 +192,12 @@
    current-effective-group-id current-effective-user-id
    current-effective-user-name current-group-id current-process-id
    current-user-id current-user-name
-   local-time->seconds local-timezone-abbreviation
    open-input-pipe open-output-pipe
    parent-process-id
    process process* process-execute process-fork
    process-group-id process-run process-signal process-sleep
    process-spawn process-wait
-   seconds->local-time seconds->string seconds->utc-time set-alarm!
-   set-root-directory! set-signal-handler! set-signal-mask!
+   set-alarm! set-root-directory! set-signal-handler! set-signal-mask!
    signal-handler signal-mask signal-mask! signal-masked? signal-unmask!
    signal/abrt signal/alrm signal/break signal/bus signal/chld
    signal/cont signal/fpe signal/hup signal/ill signal/int signal/io
@@ -186,9 +205,8 @@
    signal/stop signal/term signal/trap signal/tstp signal/urg
    signal/usr1 signal/usr2 signal/vtalrm signal/winch signal/xcpu
    signal/xfsz signals-list spawn/detach spawn/nowait
-   spawn/nowaito spawn/overlay spawn/wait string->time
-   time->string user-information
-   utc-time->seconds with-input-from-pipe with-output-to-pipe)
+   spawn/nowaito spawn/overlay spawn/wait user-information
+   with-input-from-pipe with-output-to-pipe)
 
 (import scheme
 	chicken.base
@@ -209,6 +227,7 @@
    (include "posixwin.scm")))
 
 ) ; chicken.posix [internal, no implib generated]
+
 
 (module chicken.errno *
 (import scheme)
@@ -254,23 +273,6 @@
 (define errno/xdev _exdev)
 ) ; chicken.errno
 
-
-(module chicken.time.posix
-  (seconds->utc-time utc-time->seconds seconds->local-time
-   seconds->string local-time->seconds string->time time->string
-   local-timezone-abbreviation)
-
-(import scheme)
-
-(define seconds->utc-time chicken.posix#seconds->utc-time)
-(define utc-time->seconds chicken.posix#utc-time->seconds)
-(define seconds->local-time chicken.posix#seconds->local-time)
-(define seconds->string chicken.posix#seconds->string)
-(define local-time->seconds chicken.posix#local-time->seconds)
-(define string->time chicken.posix#string->time)
-(define time->string chicken.posix#time->string)
-(define local-timezone-abbreviation chicken.posix#local-timezone-abbreviation)
-) ; chicken.time.posix
 
 (module chicken.process
   (qs system system* process-execute process-fork process-run
