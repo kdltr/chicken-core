@@ -262,6 +262,61 @@
 ) ; chicken.process
 
 
+(module chicken.process.signal
+  (set-alarm! set-signal-handler! set-signal-mask!
+   signal-handler signal-mask signal-mask! signal-masked? signal-unmask!
+   signal/abrt signal/alrm signal/break signal/bus signal/chld
+   signal/cont signal/fpe signal/hup signal/ill signal/int signal/io
+   signal/kill signal/pipe signal/prof signal/quit signal/segv
+   signal/stop signal/term signal/trap signal/tstp signal/urg
+   signal/usr1 signal/usr2 signal/vtalrm signal/winch signal/xcpu
+   signal/xfsz signals-list)
+
+(import scheme)
+
+;; These are all set! inside the posix module
+(define set-alarm!)
+(define set-signal-handler!)
+(define set-signal-mask!)
+(define signal-handler)
+
+(define signal-mask)
+(define signal-mask!)
+(define signal-masked?)
+(define signal-unmask!)
+
+(define signal/abrt)
+(define signal/alrm)
+(define signal/break)
+(define signal/bus)
+(define signal/chld)
+(define signal/cont)
+(define signal/fpe)
+(define signal/hup)
+(define signal/ill)
+(define signal/int)
+(define signal/io)
+(define signal/kill)
+(define signal/pipe)
+(define signal/prof)
+(define signal/quit)
+(define signal/segv)
+(define signal/stop)
+(define signal/term)
+(define signal/trap)
+(define signal/tstp)
+(define signal/urg)
+(define signal/usr1)
+(define signal/usr2)
+(define signal/vtalrm)
+(define signal/winch)
+(define signal/xcpu)
+(define signal/xfsz)
+
+(define signals-list)
+) ; chicken.process.signal
+
+
 ;; This module really does nothing.  It is used to keep all the posix
 ;; stuff in one place, in a clean namespace.  The included file will
 ;; set! values from the modules defined above.
@@ -271,14 +326,7 @@
    current-effective-user-name current-group-id current-process-id
    current-user-id current-user-name
    parent-process-id process-group-id
-   set-alarm! set-root-directory! set-signal-handler! set-signal-mask!
-   signal-handler signal-mask signal-mask! signal-masked? signal-unmask!
-   signal/abrt signal/alrm signal/break signal/bus signal/chld
-   signal/cont signal/fpe signal/hup signal/ill signal/int signal/io
-   signal/kill signal/pipe signal/prof signal/quit signal/segv
-   signal/stop signal/term signal/trap signal/tstp signal/urg
-   signal/usr1 signal/usr2 signal/vtalrm signal/winch signal/xcpu
-   signal/xfsz signals-list)
+   set-root-directory!)
 
 (import scheme
 	chicken.base
@@ -345,56 +393,6 @@
 (define errno/xdev _exdev)
 ) ; chicken.errno
 
-
-(module chicken.process.signal
-  (set-signal-handler! set-signal-mask! signal-handler signal-mask
-   signal-mask! signal-masked? signal-unmask! signal/abrt signal/alrm
-   signal/break signal/bus signal/chld signal/cont signal/fpe signal/hup
-   signal/ill signal/int signal/io signal/kill signal/pipe signal/prof
-   signal/quit signal/segv signal/stop signal/term signal/trap
-   signal/tstp signal/urg signal/usr1 signal/usr2 signal/vtalrm
-   signal/winch signal/xcpu signal/xfsz set-alarm!)
-
-(import scheme)
-
-(define set-signal-handler! chicken.posix#set-signal-handler!)
-(define set-signal-mask! chicken.posix#set-signal-mask!)
-(define signal-handler chicken.posix#signal-handler)
-
-(define signal-mask chicken.posix#signal-mask)
-(define signal-mask! chicken.posix#signal-mask!)
-(define signal-masked? chicken.posix#signal-masked?)
-(define signal-unmask! chicken.posix#signal-unmask!)
-
-(define signal/abrt chicken.posix#signal/abrt)
-(define signal/alrm chicken.posix#signal/alrm)
-(define signal/break chicken.posix#signal/break)
-(define signal/bus chicken.posix#signal/bus)
-(define signal/chld chicken.posix#signal/chld)
-(define signal/cont chicken.posix#signal/cont)
-(define signal/fpe chicken.posix#signal/fpe)
-(define signal/hup chicken.posix#signal/hup)
-(define signal/ill chicken.posix#signal/ill)
-(define signal/int chicken.posix#signal/int)
-(define signal/io chicken.posix#signal/io)
-(define signal/kill chicken.posix#signal/kill)
-(define signal/pipe chicken.posix#signal/pipe)
-(define signal/prof chicken.posix#signal/prof)
-(define signal/quit chicken.posix#signal/quit)
-(define signal/segv chicken.posix#signal/segv)
-(define signal/stop chicken.posix#signal/stop)
-(define signal/term chicken.posix#signal/term)
-(define signal/trap chicken.posix#signal/trap)
-(define signal/tstp chicken.posix#signal/tstp)
-(define signal/urg chicken.posix#signal/urg)
-(define signal/usr1 chicken.posix#signal/usr1)
-(define signal/usr2 chicken.posix#signal/usr2)
-(define signal/vtalrm chicken.posix#signal/vtalrm)
-(define signal/winch chicken.posix#signal/winch)
-(define signal/xcpu chicken.posix#signal/xcpu)
-(define signal/xfsz chicken.posix#signal/xfsz)
-(define set-alarm! chicken.posix#set-alarm!)
-) ; chicken.process.signal
 
 (module chicken.process-context.posix
   (change-directory* set-root-directory!

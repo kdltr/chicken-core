@@ -581,17 +581,18 @@ EOF
 
 ;;; Signals
 
-(define (set-signal-handler! sig proc)
-  (##sys#check-fixnum sig 'set-signal-handler!)
-  (##core#inline "C_establish_signal_handler" sig (and proc sig))
-  (vector-set! ##sys#signal-vector sig proc) )
+(set! chicken.process.signal#set-signal-handler!
+  (lambda (sig proc)
+    (##sys#check-fixnum sig 'set-signal-handler!)
+    (##core#inline "C_establish_signal_handler" sig (and proc sig))
+    (vector-set! ##sys#signal-vector sig proc) ) )
 
-(define signal-handler
+(set! chicken.process.signal#signal-handler
   (getter-with-setter
    (lambda (sig)
      (##sys#check-fixnum sig 'signal-handler)
      (##sys#slot ##sys#signal-vector sig) )
-   set-signal-handler!))
+   chicken.process.signal#set-signal-handler!))
 
 
 ;;; Processes

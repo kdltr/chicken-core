@@ -500,43 +500,64 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (define-foreign-variable _sigxfsz int "SIGXFSZ")
 (define-foreign-variable _sigwinch int "SIGWINCH")
 
-(define signal/term _sigterm)
-(define signal/kill _sigkill)
-(define signal/int _sigint)
-(define signal/hup _sighup)
-(define signal/fpe _sigfpe)
-(define signal/ill _sigill)
-(define signal/segv _sigsegv)
-(define signal/abrt _sigabrt)
-(define signal/trap _sigtrap)
-(define signal/quit _sigquit)
-(define signal/alrm _sigalrm)
-(define signal/vtalrm _sigvtalrm)
-(define signal/prof _sigprof)
-(define signal/io _sigio)
-(define signal/urg _sigurg)
-(define signal/chld _sigchld)
-(define signal/cont _sigcont)
-(define signal/stop _sigstop)
-(define signal/tstp _sigtstp)
-(define signal/pipe _sigpipe)
-(define signal/xcpu _sigxcpu)
-(define signal/xfsz _sigxfsz)
-(define signal/usr1 _sigusr1)
-(define signal/usr2 _sigusr2)
-(define signal/winch _sigwinch)
-(define signal/bus _sigbus)
-(define signal/break 0)
+(set! chicken.process.signal#signal/term _sigterm)
+(set! chicken.process.signal#signal/kill _sigkill)
+(set! chicken.process.signal#signal/int _sigint)
+(set! chicken.process.signal#signal/hup _sighup)
+(set! chicken.process.signal#signal/fpe _sigfpe)
+(set! chicken.process.signal#signal/ill _sigill)
+(set! chicken.process.signal#signal/segv _sigsegv)
+(set! chicken.process.signal#signal/abrt _sigabrt)
+(set! chicken.process.signal#signal/trap _sigtrap)
+(set! chicken.process.signal#signal/quit _sigquit)
+(set! chicken.process.signal#signal/alrm _sigalrm)
+(set! chicken.process.signal#signal/vtalrm _sigvtalrm)
+(set! chicken.process.signal#signal/prof _sigprof)
+(set! chicken.process.signal#signal/io _sigio)
+(set! chicken.process.signal#signal/urg _sigurg)
+(set! chicken.process.signal#signal/chld _sigchld)
+(set! chicken.process.signal#signal/cont _sigcont)
+(set! chicken.process.signal#signal/stop _sigstop)
+(set! chicken.process.signal#signal/tstp _sigtstp)
+(set! chicken.process.signal#signal/pipe _sigpipe)
+(set! chicken.process.signal#signal/xcpu _sigxcpu)
+(set! chicken.process.signal#signal/xfsz _sigxfsz)
+(set! chicken.process.signal#signal/usr1 _sigusr1)
+(set! chicken.process.signal#signal/usr2 _sigusr2)
+(set! chicken.process.signal#signal/winch _sigwinch)
+(set! chicken.process.signal#signal/bus _sigbus)
+(set! chicken.process.signal#signal/break 0)
 
-(define signals-list
+(set! chicken.process.signal#signals-list
   (list
-    signal/term signal/kill signal/int signal/hup signal/fpe signal/ill
-    signal/segv signal/abrt signal/trap signal/quit signal/alrm signal/vtalrm
-    signal/prof signal/io signal/urg signal/chld signal/cont signal/stop
-    signal/tstp signal/pipe signal/xcpu signal/xfsz signal/usr1 signal/usr2
-    signal/winch signal/bus))
+   chicken.process.signal#signal/term
+   chicken.process.signal#signal/kill
+   chicken.process.signal#signal/int
+   chicken.process.signal#signal/hup
+   chicken.process.signal#signal/fpe
+   chicken.process.signal#signal/ill
+   chicken.process.signal#signal/segv
+   chicken.process.signal#signal/abrt
+   chicken.process.signal#signal/trap
+   chicken.process.signal#signal/quit
+   chicken.process.signal#signal/alrm
+   chicken.process.signal#signal/vtalrm
+   chicken.process.signal#signal/prof
+   chicken.process.signal#signal/io
+   chicken.process.signal#signal/urg
+   chicken.process.signal#signal/chld
+   chicken.process.signal#signal/cont
+   chicken.process.signal#signal/stop
+   chicken.process.signal#signal/tstp
+   chicken.process.signal#signal/pipe
+   chicken.process.signal#signal/xcpu
+   chicken.process.signal#signal/xfsz
+   chicken.process.signal#signal/usr1
+   chicken.process.signal#signal/usr2
+   chicken.process.signal#signal/winch
+   chicken.process.signal#signal/bus))
 
-(define set-signal-mask!
+(set! chicken.process.signal#set-signal-mask!
   (lambda (sigs)
     (##sys#check-list sigs 'set-signal-mask!)
     (##core#inline "C_sigemptyset" 0)
@@ -548,36 +569,39 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
     (when (fx< (##core#inline "C_sigprocmask_set" 0) 0)
       (posix-error #:process-error 'set-signal-mask! "cannot set signal mask") )))
 
-(define signal-mask
+(define chicken.process.signal#signal-mask
   (getter-with-setter
    (lambda ()
      (##core#inline "C_sigprocmask_get" 0)
-     (let loop ([sigs signals-list] [mask '()])
+     (let loop ((sigs chicken.process.signal#signals-list) (mask '()))
        (if (null? sigs)
 	   mask
 	   (let ([sig (car sigs)])
 	     (loop (cdr sigs)
 		   (if (##core#inline "C_sigismember" sig) (cons sig mask) mask)) ) ) ) )
-   set-signal-mask!))
+   chicken.process.signal#set-signal-mask!))
 
-(define (signal-masked? sig)
-  (##sys#check-fixnum sig 'signal-masked?)
-  (##core#inline "C_sigprocmask_get" 0)
-  (##core#inline "C_sigismember" sig) )
+(set! chicken.process.signal#signal-masked?
+  (lambda (sig)
+    (##sys#check-fixnum sig 'signal-masked?)
+    (##core#inline "C_sigprocmask_get" 0)
+    (##core#inline "C_sigismember" sig)) )
 
-(define (signal-mask! sig)
-  (##sys#check-fixnum sig 'signal-mask!)
-  (##core#inline "C_sigemptyset" 0)
-  (##core#inline "C_sigaddset" sig)
-  (when (fx< (##core#inline "C_sigprocmask_block" 0) 0)
-    (posix-error #:process-error 'signal-mask! "cannot block signal") ))
+(set! chicken.process.signal#signal-mask!
+  (lambda (sig)
+    (##sys#check-fixnum sig 'signal-mask!)
+    (##core#inline "C_sigemptyset" 0)
+    (##core#inline "C_sigaddset" sig)
+    (when (fx< (##core#inline "C_sigprocmask_block" 0) 0)
+      (posix-error #:process-error 'signal-mask! "cannot block signal") )))
 
-(define (signal-unmask! sig)
-  (##sys#check-fixnum sig 'signal-unmask!)
-  (##core#inline "C_sigemptyset" 0)
-  (##core#inline "C_sigaddset" sig)
-  (when (fx< (##core#inline "C_sigprocmask_unblock" 0) 0)
-    (posix-error #:process-error 'signal-unmask! "cannot unblock signal") ) )
+(set! chicken.process.signal#signal-unmask!
+  (lambda (sig)
+    (##sys#check-fixnum sig 'signal-unmask!)
+    (##core#inline "C_sigemptyset" 0)
+    (##core#inline "C_sigaddset" sig)
+    (when (fx< (##core#inline "C_sigprocmask_unblock" 0) 0)
+      (posix-error #:process-error 'signal-unmask! "cannot unblock signal") )) )
 
 
 ;;; Getting group- and user-information:
@@ -1043,7 +1067,8 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; Other things:
 
-(define set-alarm! (foreign-lambda int "C_alarm" int))
+(set! chicken.process.signal#set-alarm!
+  (foreign-lambda int "C_alarm" int))
 
 
 ;;; Process handling:
