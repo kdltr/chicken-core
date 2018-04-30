@@ -1923,6 +1923,25 @@
 (chicken.process-context#set-environment-variable! (#(procedure #:clean #:enforce) chicken.process-context#set-environment-variable! (string string) undefined))
 (chicken.process-context#unset-environment-variable! (#(procedure #:clean #:enforce) chicken.process-context#unset-environment-variable! (string) undefined))
 
+;; process-context.posix
+
+(chicken.process-context.posix#change-directory* (#(procedure #:clean #:enforce) chicken.process-context.posix#change-directory* (fixnum) fixnum))
+(chicken.process-context.posix#create-session (#(procedure #:clean) chicken.process-context.posix#create-session () fixnum))
+
+(chicken.process-context.posix#current-effective-group-id (#(procedure #:clean) chicken.process-context.posix#current-effective-group-id () fixnum))
+(chicken.process-context.posix#current-effective-user-id (#(procedure #:clean) chicken.process-context.posix#current-effective-user-id () fixnum))
+(chicken.process-context.posix#current-effective-user-name (#(procedure #:clean) chicken.process-context.posix#current-effective-user-name () string))
+(chicken.process-context.posix#current-group-id (#(procedure #:clean) chicken.process-context.posix#current-group-id () fixnum))
+(chicken.process-context.posix#current-process-id (#(procedure #:clean) chicken.process-context.posix#current-process-id () fixnum))
+(chicken.process-context.posix#current-user-id (#(procedure #:clean) chicken.process-context.posix#current-user-id () fixnum))
+(chicken.process-context.posix#current-user-name (#(procedure #:clean) chicken.process-context.posix#current-user-name () string))
+(chicken.process-context.posix#parent-process-id (#(procedure #:clean) chicken.process-context.posix#parent-process-id () fixnum))
+
+(chicken.process-context.posix#process-group-id (#(procedure #:clean #:enforce) chicken.process-context.posix#process-group-id () fixnum))
+(chicken.process-context.posix#set-root-directory! (#(procedure #:clean #:enforce) chicken.process-context.posix#set-root-directory! (string) undefined))
+(chicken.process-context.posix#user-information (#(procedure #:clean #:enforce) chicken.process-context.posix#user-information ((or string fixnum) #!optional *) *))
+
+
 ;; file.posix
 
 (chicken.file.posix#create-fifo (#(procedure #:clean #:enforce) chicken.file.posix#create-fifo (string #!optional fixnum) undefined))
@@ -2032,24 +2051,6 @@
 (chicken.time.posix#local-timezone-abbreviation (#(procedure #:clean) chicken.time.posix#local-timezone-abbreviation () string))
 (chicken.time.posix#string->time (#(procedure #:clean #:enforce) chicken.time.posix#string->time (string #!optional string) (vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum)))
 (chicken.time.posix#time->string (#(procedure #:clean #:enforce) chicken.time.posix#time->string ((vector fixnum fixnum fixnum fixnum fixnum fixnum fixnum fixnum boolean fixnum) #!optional string) string))
-
-;; posix
-
-(chicken.posix#change-directory* (#(procedure #:clean #:enforce) chicken.posix#change-directory* (fixnum) fixnum))
-(chicken.posix#create-session (#(procedure #:clean) chicken.posix#create-session () fixnum))
-
-(chicken.posix#current-effective-group-id (#(procedure #:clean) chicken.posix#current-effective-group-id () fixnum))
-(chicken.posix#current-effective-user-id (#(procedure #:clean) chicken.posix#current-effective-user-id () fixnum))
-(chicken.posix#current-effective-user-name (#(procedure #:clean) chicken.posix#current-effective-user-name () string))
-(chicken.posix#current-group-id (#(procedure #:clean) chicken.posix#current-group-id () fixnum))
-(chicken.posix#current-process-id (#(procedure #:clean) chicken.posix#current-process-id () fixnum))
-(chicken.posix#current-user-id (#(procedure #:clean) chicken.posix#current-user-id () fixnum))
-(chicken.posix#current-user-name (#(procedure #:clean) chicken.posix#current-user-name () string))
-(chicken.posix#parent-process-id (#(procedure #:clean) chicken.posix#parent-process-id () fixnum))
-
-(chicken.posix#process-group-id (#(procedure #:clean #:enforce) chicken.posix#process-group-id () fixnum))
-(chicken.posix#set-root-directory! (#(procedure #:clean #:enforce) chicken.posix#set-root-directory! (string) undefined))
-(chicken.posix#user-information (#(procedure #:clean #:enforce) chicken.posix#user-information ((or string fixnum) #!optional *) *))
 
 ;; process
 

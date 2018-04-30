@@ -317,16 +317,36 @@
 ) ; chicken.process.signal
 
 
-;; This module really does nothing.  It is used to keep all the posix
-;; stuff in one place, in a clean namespace.  The included file will
-;; set! values from the modules defined above.
-(module chicken.posix
-  (change-directory* create-session
+(module chicken.process-context.posix
+  (change-directory* set-root-directory!
    current-effective-group-id current-effective-user-id
-   current-effective-user-name current-group-id current-process-id
-   current-user-id current-user-name
-   parent-process-id process-group-id
-   set-root-directory!)
+   current-group-id current-process-id current-user-id
+   parent-process-id current-user-name
+   current-effective-user-name create-session
+   process-group-id user-information)
+
+(import scheme)
+
+(define change-directory*)
+(define set-root-directory!)
+(define current-effective-group-id)
+(define current-effective-user-id)
+(define current-group-id)
+(define current-process-id)
+(define current-user-id)
+(define parent-process-id)
+(define current-user-name)
+(define current-effective-user-name)
+(define create-session)
+(define process-group-id)
+(define user-information)
+) ; chicken.process-context.posix
+
+
+;; This module really exports nothing.  It is used to keep all the
+;; posix stuff in one place, in a clean namespace.  The included file
+;; will set! values from the modules defined above.
+(module chicken.posix ()
 
 (import scheme
 	chicken.base
@@ -392,29 +412,3 @@
 (define errno/wouldblock _ewouldblock)
 (define errno/xdev _exdev)
 ) ; chicken.errno
-
-
-(module chicken.process-context.posix
-  (change-directory* set-root-directory!
-   current-effective-group-id current-effective-user-id
-   current-group-id current-process-id current-user-id
-   parent-process-id current-user-name
-   current-effective-user-name create-session
-   process-group-id user-information)
-
-(import scheme)
-
-(define change-directory* chicken.posix#change-directory*)
-(define set-root-directory! chicken.posix#set-root-directory!)
-(define current-effective-group-id chicken.posix#current-effective-group-id)
-(define current-effective-user-id chicken.posix#current-effective-user-id)
-(define current-group-id chicken.posix#current-group-id)
-(define current-process-id chicken.posix#current-process-id)
-(define current-user-id chicken.posix#current-user-id)
-(define parent-process-id chicken.posix#parent-process-id)
-(define current-user-name chicken.posix#current-user-name)
-(define current-effective-user-name chicken.posix#current-effective-user-name)
-(define create-session chicken.posix#create-session)
-(define process-group-id chicken.posix#process-group-id)
-(define user-information chicken.posix#user-information)
-) ; chicken.process-context.posix

@@ -612,7 +612,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
    (lambda (id)
      (when (fx< (##core#inline "C_setuid" id) 0)
        (##sys#update-errno)
-       (##sys#error 'set-user-id! "cannot set user ID" id) ) )
+       (##sys#error 'current-user-id!-setter "cannot set user ID" id) ) )
    "(current-user-id)"))
 
 (define current-effective-user-id
@@ -631,7 +631,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
    (lambda (id)
     (when (fx< (##core#inline "C_setgid" id) 0)
       (##sys#update-errno)
-      (##sys#error 'set-user-id! "cannot set group ID" id) ) )
+      (##sys#error 'current-group-id!-setter "cannot set group ID" id) ) )
    "(current-group-id)") )
 
 (define current-effective-group-id
@@ -709,11 +709,11 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
          (##sys#error 'process-group-id "cannot retrieve process group ID" pid) )
        a))
    (lambda (pid pgid)
-     (##sys#check-fixnum pid 'set-process-group-id!)
-     (##sys#check-fixnum pgid 'set-process-group-id!)
+     (##sys#check-fixnum pid 'process-group)
+     (##sys#check-fixnum pgid 'process-group)
      (when (fx< (##core#inline "C_setpgid" pid pgid) 0)
        (##sys#update-errno)
-       (##sys#error 'set-process-group-id! "cannot set process group ID" pid pgid) ) )
+       (##sys#error 'process-group "cannot set process group ID" pid pgid) ) )
    "(process-group-id pid)"))
 
 

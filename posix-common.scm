@@ -499,16 +499,19 @@ EOF
 
 ;;; Set or get current directory by file descriptor:
 
-(define (change-directory* fd)
-  (##sys#check-fixnum fd 'change-directory*)
-  (unless (fx= 0 (##core#inline "C_fchdir" fd))
-    (posix-error #:file-error 'change-directory* "cannot change current directory" fd))
-  fd)
+(set! chicken.process-context.posix#change-directory*
+  (lambda (fd)
+    (##sys#check-fixnum fd 'change-directory*)
+    (unless (fx= 0 (##core#inline "C_fchdir" fd))
+      (posix-error #:file-error 'change-directory* "cannot change current directory" fd))
+    fd))
 
 (set! ##sys#change-directory-hook
   (let ((cd ##sys#change-directory-hook))
     (lambda (dir)
-      ((if (fixnum? dir) change-directory* cd) dir))))
+      ((if (fixnum? dir)
+	   chicken.process-context.posix#change-directory*
+	   cd) dir))))
 
 ;;; umask
 
