@@ -6,6 +6,8 @@
         (chicken process-context)
         (chicken string))
 
+(include "programs-path.scm")
+
 (define (realpath x)
   (normalize-pathname (make-pathname (current-directory) x)))
 
@@ -13,7 +15,7 @@
   (system* (string-intersperse (cons (realpath x) args))))
 
 (define (csc . args)
-  (apply run "../csc" "-v" "-I.." "-compiler" (realpath "../chicken") "-libdir" ".." args))
+  (apply run csc-path "-v" "-I.." "-compiler" (realpath chicken-path) "-libdir" ".." args))
 
 (csc "null.scm" "-t")
 (assert (file-exists? "null.c"))

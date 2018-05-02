@@ -6,6 +6,8 @@
         (chicken process-context)
         (chicken memory representation))
 
+(include "programs-path.scm")
+
 (define-syntax assert-error
   (syntax-rules ()
     ((_ expr) 
@@ -39,13 +41,13 @@
 (assert-error (process-execute "false" '("123\x00456") '("foo\x00bar" "blabla") '("lalala" "qux\x00mooh")))
 
 (receive (in out pid)
-    (process "../csi" '("-n" "-I" ".." "-e"
+    (process csi-path '("-n" "-I" ".." "-e"
                         "(write 'err (current-error-port)) (write 'ok)"))
   (assert (equal? 'ok (read in)))
   (newline (current-error-port)))
 
 (receive (in out pid err)
-    (process* "../csi" '("-n" "-I" ".." "-e"
+    (process* csi-path '("-n" "-I" ".." "-e"
                          "(write 'err (current-error-port)) (write 'ok)"))
   (assert (equal? 'ok (read in)))
   (assert (equal? 'err (read err))))

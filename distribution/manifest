@@ -225,6 +225,7 @@ tests/test-queue.scm
 tests/functor-tests.scm
 tests/square-functor.scm
 tests/use-square-functor.scm
+tests/programs-path.scm
 tests/pp-test.scm
 tests/finalizer-error-test.scm
 tests/reverser/tags/1.0/reverser.meta

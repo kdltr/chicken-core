@@ -33,10 +33,10 @@ case `uname` in
 		DIFF_OPTS=-bu ;;
 esac
 
-CHICKEN=${TEST_DIR}/../chicken
-CHICKEN_PROFILE=${TEST_DIR}/../chicken-profile
-CHICKEN_INSTALL=${TEST_DIR}/../chicken-install
-CHICKEN_UNINSTALL=${TEST_DIR}/../chicken-uninstall
+CHICKEN=${TEST_DIR}/../${PROGRAM_PREFIX}chicken${PROGRAM_SUFFIX}
+CHICKEN_PROFILE=${TEST_DIR}/../${PROGRAM_PREFIX}chicken-profile${PROGRAM_SUFFIX}
+CHICKEN_INSTALL=${TEST_DIR}/../${PROGRAM_PREFIX}chicken-install${PROGRAM_SUFFIX}
+CHICKEN_UNINSTALL=${TEST_DIR}/../${PROGRAM_PREFIX}chicken-uninstall${PROGRAM_SUFFIX}
 CHICKEN_INSTALL_REPOSITORY=${TEST_DIR}/test-repository
 CHICKEN_REPOSITORY_PATH="${TEST_DIR}/..${PATH_SEP}${CHICKEN_INSTALL_REPOSITORY}"
 
@@ -45,10 +45,10 @@ export CHICKEN_INSTALL_REPOSITORY CHICKEN_REPOSITORY_PATH
 TYPESDB=../types.db
 COMPILE_OPTIONS="-v -compiler ${CHICKEN} -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.. -libdir ${TEST_DIR}/.. -rpath ${TEST_DIR}/.."
 
-compile="../csc ${COMPILE_OPTIONS} -o a.out -types ${TYPESDB} -ignore-repository"
-compile_r="../csc ${COMPILE_OPTIONS} -o a.out"
-compile_s="../csc ${COMPILE_OPTIONS} -s -types ${TYPESDB} -ignore-repository"
-interpret="../csi -n -include-path ${TEST_DIR}/.."
+compile="../${PROGRAM_PREFIX}csc${PROGRAM_SUFFIX} ${COMPILE_OPTIONS} -o a.out -types ${TYPESDB} -ignore-repository"
+compile_r="../${PROGRAM_PREFIX}csc${PROGRAM_SUFFIX} ${COMPILE_OPTIONS} -o a.out"
+compile_s="../${PROGRAM_PREFIX}csc${PROGRAM_SUFFIX} ${COMPILE_OPTIONS} -s -types ${TYPESDB} -ignore-repository"
+interpret="../${PROGRAM_PREFIX}csi${PROGRAM_SUFFIX} -n -include-path ${TEST_DIR}/.."
 time=time
 
 # Check for a "time" command, since some systems don't ship with a
@@ -399,7 +399,7 @@ $interpret -bnq test-glob.scm
 echo "======================================== compiler/nursery stress test ..."
 for s in 100000 120000 200000 250000 300000 350000 400000 450000 500000; do
     echo "  $s"
-    ../chicken -ignore-repository ../port.scm -:s$s -output-file tmp.c -include-path ${TEST_DIR}/..
+    ${CHICKEN} -ignore-repository ../port.scm -:s$s -output-file tmp.c -include-path ${TEST_DIR}/..
 done
 
 echo "======================================== heap literal stress test ..."

@@ -5,8 +5,8 @@ setlocal enableextensions
 
 set TEST_DIR=%cd%
 
-set CHICKEN=..\chicken
-set CHICKEN_PROFILE=..\chicken-profile
+set CHICKEN=..\%PROGRAM_PREFIX%chicken%PROGRAM_SUFFIX%
+set CHICKEN_PROFILE=..\%PROGRAM_PREFIX%chicken-profile%PROGRAM_SUFFIX%
 set CHICKEN_INSTALL_REPOSITORY=%TEST_DIR%\test-repository
 set CHICKEN_REPOSITORY_PATH=%TEST_DIR%\..;%CHICKEN_INSTALL_REPOSITORY%
 set PATH=%TEST_DIR%\..;%PATH%
@@ -17,10 +17,10 @@ set FCBUFSIZE=500
 set TYPESDB=..\types.db
 set COMPILE_OPTIONS=-v -compiler %CHICKEN% -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
 
-set compile=..\csc %COMPILE_OPTIONS% -o a.out -types %TYPESDB% -ignore-repository
-set compile_r=..\csc %COMPILE_OPTIONS% -o a.out
-set compile_s=..\csc %COMPILE_OPTIONS% -s -types %TYPESDB% -ignore-repository
-set interpret=..\csi -n -include-path %TEST_DIR%/..
+set compile=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -o a.out -types %TYPESDB% -ignore-repository
+set compile_r=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -o a.out
+set compile_s=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -s -types %TYPESDB% -ignore-repository
+set interpret=..\%PROGRAM_PREFIX%csi%PROGRAM_SUFFIX% -n -include-path %TEST_DIR%/..
 
 del /f /q /s *.exe *.so *.o *.import.* ..\foo.import.* %CHICKEN_INSTALL_REPOSITORY%
 rmdir /q /s %CHICKEN_INSTALL_REPOSITORY%
@@ -507,7 +507,7 @@ if errorlevel 1 exit /b 1
 echo ======================================== compiler/nursery stress test ...
 for %%s in (100000 120000 200000 250000 300000 350000 400000 450000 500000) do (
   echo %%s
-  ..\chicken -ignore-repository ..\port.scm -:s%%s -output-file tmp.c -include-path %TEST_DIR%/..
+  %CHICKEN% -ignore-repository ..\port.scm -:s%%s -output-file tmp.c -include-path %TEST_DIR%/..
   if errorlevel 1 exit /b 1
 )
 

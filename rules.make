@@ -960,7 +960,10 @@ testclean:
 
 # run tests
 
-.PHONY: check 
+.PHONY: check
+
+export PROGRAM_PREFIX
+export PROGRAM_SUFFIX
 
 check: $(TARGETS)
 ifndef WINDOWS_SHELL
