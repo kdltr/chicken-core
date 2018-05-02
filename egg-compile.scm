@@ -769,6 +769,7 @@ EOF
 set PATH=~a;%PATH%
 set CHICKEN_CC=~a
 set CHICKEN_CXX=~a
+
 EOF
              default-bindir default-cc default-cxx))))
 
