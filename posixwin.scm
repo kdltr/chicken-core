@@ -863,12 +863,13 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 (define-foreign-variable _username c-string "C_username")
 
-(define (current-user-name)
-  (if (##core#inline "C_get_user_name")
-      _username
-      (begin
-	(##sys#update-errno)
-	(##sys#error 'current-user-name "cannot retrieve current user-name") ) ) )
+(set! chicken.process-context.posix#current-user-name
+  (lambda ()
+    (if (##core#inline "C_get_user_name")
+        _username
+        (begin
+          (##sys#update-errno)
+          (##sys#error 'current-user-name "cannot retrieve current user-name") ) ) ) )
 
 
 ;;; unimplemented stuff:
@@ -882,6 +883,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (set!-unimplemented chicken.process-context.posix#current-effective-user-name)
 (set!-unimplemented chicken.process-context.posix#current-group-id)
 (set!-unimplemented chicken.process-context.posix#current-user-id)
+(set!-unimplemented chicken.process-context.posix#user-information)
 (set!-unimplemented chicken.file.posix#file-control)
 (set!-unimplemented chicken.file.posix#file-link)
 (set!-unimplemented chicken.file.posix#file-lock)

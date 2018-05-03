@@ -600,8 +600,6 @@ EOF
 
 ;;; Processes
 
-(define current-process-id (foreign-lambda int "C_getpid"))
-
 (set! chicken.process#process-sleep
   (lambda (n)
     (##sys#check-fixnum n 'process-sleep)

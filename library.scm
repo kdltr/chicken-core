@@ -5930,7 +5930,8 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
    program-name executable-pathname
    change-directory current-directory
    get-environment-variable get-environment-variables
-   set-environment-variable! unset-environment-variable!)
+   set-environment-variable! unset-environment-variable!
+   current-process-id)
 
 (import scheme)
 (import chicken.base chicken.fixnum chicken.foreign)
@@ -6049,6 +6050,9 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
    (lambda (x)
      (##sys#check-list x 'command-line-arguments)
      x) ) )
+
+(define current-process-id
+  (foreign-lambda int "C_getpid"))
 
 ) ; chicken.process-context
 

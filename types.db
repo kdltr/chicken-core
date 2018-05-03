@@ -1922,6 +1922,7 @@
 (chicken.process-context#program-name (#(procedure #:clean #:enforce) chicken.process-context#program-name (#!optional string) string))
 (chicken.process-context#set-environment-variable! (#(procedure #:clean #:enforce) chicken.process-context#set-environment-variable! (string string) undefined))
 (chicken.process-context#unset-environment-variable! (#(procedure #:clean #:enforce) chicken.process-context#unset-environment-variable! (string) undefined))
+(chicken.process-context#current-process-id (#(procedure #:clean) chicken.process-context#current-process-id () fixnum))
 
 ;; process-context.posix
 
@@ -1932,7 +1933,6 @@
 (chicken.process-context.posix#current-effective-user-id (#(procedure #:clean) chicken.process-context.posix#current-effective-user-id () fixnum))
 (chicken.process-context.posix#current-effective-user-name (#(procedure #:clean) chicken.process-context.posix#current-effective-user-name () string))
 (chicken.process-context.posix#current-group-id (#(procedure #:clean) chicken.process-context.posix#current-group-id () fixnum))
-(chicken.process-context.posix#current-process-id (#(procedure #:clean) chicken.process-context.posix#current-process-id () fixnum))
 (chicken.process-context.posix#current-user-id (#(procedure #:clean) chicken.process-context.posix#current-user-id () fixnum))
 (chicken.process-context.posix#current-user-name (#(procedure #:clean) chicken.process-context.posix#current-user-name () string))
 (chicken.process-context.posix#parent-process-id (#(procedure #:clean) chicken.process-context.posix#parent-process-id () fixnum))

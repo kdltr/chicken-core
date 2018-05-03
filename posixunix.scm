@@ -606,7 +606,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; Getting group- and user-information:
 
-(define current-user-id
+(set! chicken.process-context.posix#current-user-id
   (getter-with-setter
    (foreign-lambda int "C_getuid")
    (lambda (id)
@@ -615,7 +615,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
        (##sys#error 'current-user-id!-setter "cannot set user ID" id) ) )
    "(current-user-id)"))
 
-(define current-effective-user-id
+(set! chicken.process-context.posix#current-effective-user-id
   (getter-with-setter
    (foreign-lambda int "C_geteuid")
    (lambda (id)
@@ -625,7 +625,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	 'effective-user-id!-setter "cannot set effective user ID" id) ) )
    "(current-effective-user-id)"))
 
-(define current-group-id
+(set! chicken.process-context.posix#current-group-id
   (getter-with-setter
    (foreign-lambda int "C_getgid")
    (lambda (id)
@@ -634,7 +634,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
       (##sys#error 'current-group-id!-setter "cannot set group ID" id) ) )
    "(current-group-id)") )
 
-(define current-effective-group-id
+(set! chicken.process-context.posix#current-effective-group-id
   (getter-with-setter 
    (foreign-lambda int "C_getegid")
    (lambda (id)
@@ -652,27 +652,32 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (define-foreign-variable _user-dir c-string "C_user->pw_dir")
 (define-foreign-variable _user-shell c-string "C_user->pw_shell")
 
-(define (user-information user #!optional as-vector)
-  (let ([r (if (fixnum? user)
-               (##core#inline "C_getpwuid" user)
-               (begin
-                 (##sys#check-string user 'user-information)
-                 (##core#inline "C_getpwnam" (##sys#make-c-string user 'user-information)) ) ) ] )
-    (and r
-         ((if as-vector vector list)
-          _user-name
-          _user-passwd
-          _user-uid
-          _user-gid
-          _user-gecos
-          _user-dir
-          _user-shell) ) ) )
+(set! chicken.process-context.posix#user-information
+  (lambda (user #!optional as-vector)
+    (let ([r (if (fixnum? user)
+		 (##core#inline "C_getpwuid" user)
+		 (begin
+		   (##sys#check-string user 'user-information)
+		   (##core#inline "C_getpwnam" (##sys#make-c-string user 'user-information)) ) ) ] )
+      (and r
+	   ((if as-vector vector list)
+	    _user-name
+	    _user-passwd
+	    _user-uid
+	    _user-gid
+	    _user-gecos
+	    _user-dir
+	    _user-shell) ) )) )
 
-(define (current-user-name)
-  (car (user-information (current-user-id))) )
+(set! chicken.process-context.posix#current-user-name
+  (lambda ()
+    (car (chicken.process-context.posix#user-information
+	  (chicken.process-context.posix#current-user-id)))) )
 
-(define (current-effective-user-name)
-  (car (user-information (current-effective-user-id))) )
+(set! chicken.process-context.posix#current-effective-user-name
+  (lambda ()
+    (car (chicken.process-context.posix#user-information
+	  (chicken.process-context.posix#current-effective-user-id)))) )
 
 (define chown
   (lambda (loc f uid gid)
@@ -692,14 +697,15 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
       (when (fx< r 0)
 	(posix-error #:file-error loc "cannot change file owner" f uid gid) )) ) )
 
-(define (create-session)
-  (let ([a (##core#inline "C_setsid" #f)])
-    (when (fx< a 0)
-      (##sys#update-errno)
-      (##sys#error 'create-session "cannot create session") )
-    a) )
+(set! chicken.process-context.posix#create-session
+  (lambda ()
+   (let ([a (##core#inline "C_setsid" #f)])
+     (when (fx< a 0)
+	   (##sys#update-errno)
+	   (##sys#error 'create-session "cannot create session") )
+     a)) )
 
-(define process-group-id
+(set! chicken.process-context.posix#process-group-id
   (getter-with-setter
    (lambda (pid)
      (##sys#check-fixnum pid 'process-group-id)
@@ -1120,7 +1126,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 		(##core#inline "C_WTERMSIG" _wait-status))
 	       (else (##core#inline "C_WSTOPSIG" _wait-status)) ) )) ) )
 
-(define parent-process-id (foreign-lambda int "C_getppid"))
+(set! chicken.process-context.posix#parent-process-id (foreign-lambda int "C_getppid"))
 
 (set! chicken.process#process-signal
   (lambda (id . sig)
@@ -1276,7 +1282,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 
 ;;; chroot:
 
-(define set-root-directory!
+(set! chicken.process-context.posix#set-root-directory!
   (let ([chroot (foreign-lambda int "chroot" c-string)])
     (lambda (dir)
       (##sys#check-string dir 'set-root-directory!)
