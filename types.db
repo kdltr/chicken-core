@@ -682,6 +682,7 @@
 (##sys#vector->list (forall (a) (#(procedure #:clean #:enforce) ##sys#vector->list ((vector-of a)) (list-of a))))
 (scheme#list->vector (forall (a) (#(procedure #:clean #:enforce) scheme#list->vector ((list-of a)) (vector-of a))))
 (##sys#list->vector (forall (a) (#(procedure #:clean #:enforce) ##sys#list->vector ((list-of a)) (vector-of a))))
+(scheme#vector-fill! (#(procedure #:enforce) scheme#vector-fill! (vector *) undefined))
 
 (scheme#procedure? (#(procedure #:pure #:predicate procedure) scheme#procedure? (*) boolean))
 
@@ -869,7 +870,6 @@
 
 (chicken.base#subvector (forall (a) (#(procedure #:clean #:enforce) chicken.base#subvector ((vector-of a) fixnum #!optional fixnum) (vector-of a))))
 (chicken.base#vector-copy! (#(procedure #:enforce) chicken.base#vector-copy! (vector vector #!optional fixnum) undefined))
-(chicken.base#vector-fill! (#(procedure #:enforce) chicken.base#vector-fill! (vector *) undefined))
 (chicken.base#vector-resize
  (forall (a b) (#(procedure #:clean #:enforce) chicken.base#vector-resize ((vector-of a) fixnum #!optional b)
 		(vector-of (or a b)))))
@@ -1071,7 +1071,7 @@
 		((fixnum) (##core#inline "C_i_fixnum_length" #(1)))
 		((*) (##core#inline "C_i_integer_length" #(1))))
 
-(chicken-bitwise#arithmetic-shift
+(chicken.bitwise#arithmetic-shift
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#arithmetic-shift (integer fixnum) integer)
 		((* *) (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 5) #(1) #(2))))
 
@@ -1743,7 +1743,6 @@
 	(((or pointer locative procedure port)) (let ((#(tmp) #(1))) '#t)))
 
 (chicken.memory#make-pointer-vector (#(procedure #:clean #:enforce) chicken.memory#make-pointer-vector (fixnum #!optional (or pointer false)) pointer-vector))
-(chicken.memory#make-record-instance (#(procedure #:clean) chicken.memory#make-record-instance (symbol #!rest) *))
 (chicken.memory#pointer-vector (#(procedure #:clean #:enforce) chicken.memory#pointer-vector (#!rest pointer-vector) boolean))
 (chicken.memory#pointer-vector? (#(procedure #:pure #:predicate pointer-vector) chicken.memory#pointer-vector? (*) boolean))
 (chicken.memory#pointer-vector-ref (#(procedure #:clean #:enforce) chicken.memory#pointer-vector-ref (pointer-vector fixnum) (or pointer false)))
@@ -1806,6 +1805,7 @@
 (chicken.memory.representation#procedure-data (#(procedure #:clean #:enforce) chicken.memory.representation#procedure-data (procedure) *))
 (chicken.memory.representation#record->vector (#(procedure #:clean) chicken.memory.representation#record->vector (*) vector))
 
+(chicken.memory.representation#make-record-instance (#(procedure #:clean) chicken.memory.representation#make-record-instance (symbol #!rest) *))
 (chicken.memory.representation#record-instance? (#(procedure #:clean) chicken.memory.representation#record-instance? (* #!optional symbol) boolean)
 		  ((* symbol) (##sys#structure? #(1) #(2)))
 		  ((*) (let ((#(tmp) #(1)))
