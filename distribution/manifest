@@ -238,6 +238,7 @@ tests/user-pass-tests.scm
 tests/version-tests.scm
 tests/messages-test.scm
 tests/messages.expected
+tests/types-db-consistency.scm
 tweaks.scm
 Makefile
 Makefile.android
