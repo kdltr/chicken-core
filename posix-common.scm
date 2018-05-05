@@ -281,19 +281,22 @@ EOF
 (set! chicken.file.posix#file-owner
   (getter-with-setter
    (lambda (f) (stat f #f #t 'file-owner) _stat_st_uid)
-   chicken.file.posix#set-file-owner!) )
+   chicken.file.posix#set-file-owner!
+   "(chicken.file.posix#file-owner f)") )
 
 (set! chicken.file.posix#file-group
   (getter-with-setter
    (lambda (f) (stat f #f #t 'file-group) _stat_st_gid)
-   chicken.file.posix#set-file-group!) )
+   chicken.file.posix#set-file-group!
+   "(chicken.file.posix#file-group f)") )
 
 (set! chicken.file.posix#file-permissions
   (getter-with-setter
    (lambda (f)
      (stat f #f #t 'file-permissions)
      (foreign-value "C_stat_perm" unsigned-int))
-   chicken.file.posix#set-file-permissions! ))
+   chicken.file.posix#set-file-permissions!
+   "(chicken.file.posix#file-permissions f)"))
 
 (set! chicken.file.posix#file-type
   (lambda (file #!optional link (err #t))
@@ -377,7 +380,7 @@ EOF
 	 (posix-error #:file-error 'file-position "cannot retrieve file position of port" port) )
        pos) )
    chicken.file.posix#set-file-position! ; doesn't accept WHENCE
-   "(file-position port)"))
+   "(chicken.file.posix#file-position port)"))
 
 
 ;;; Using file-descriptors:
@@ -531,7 +534,7 @@ EOF
    (lambda (um)
      (##sys#check-fixnum um 'file-creation-mode)
      (##core#inline "C_umask" um))
-   "(file-creation-mode mode)"))
+   "(chicken.file.posix#file-creation-mode mode)"))
 
 
 ;;; Time related things:
@@ -601,7 +604,8 @@ EOF
    (lambda (sig)
      (##sys#check-fixnum sig 'signal-handler)
      (##sys#slot ##sys#signal-vector sig) )
-   chicken.process.signal#set-signal-handler!))
+   chicken.process.signal#set-signal-handler!
+   "(chicken.process.signal#signal-handler sig)"))
 
 
 ;;; Processes

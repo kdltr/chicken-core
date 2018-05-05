@@ -5964,7 +5964,8 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 	   #:file-error
 	   'current-directory "cannot retrieve current directory"))))
    (lambda (dir)
-     (##sys#change-directory-hook dir))))
+     (##sys#change-directory-hook dir))
+   "(chicken.process-context#current-directory)"))
 
 
 ;;; Environment access:
@@ -6320,7 +6321,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
      (if (null? lst)
 	 (##core#inline "C_i_unpersist_symbol" sym)
 	 (##core#inline "C_i_persist_symbol" sym)))
-   "(symbol-plist sym)"))
+   "(chicken.plist#symbol-plist sym)"))
 
 (define (get-properties sym props)
   (##sys#check-symbol sym 'get-properties)

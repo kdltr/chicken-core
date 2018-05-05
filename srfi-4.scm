@@ -252,7 +252,7 @@ EOF
        (check-range i 0 len 'u8vector-ref)
        (##core#inline "C_u_i_u8vector_ref" x i)))
    u8vector-set!
-   "(u8vector-ref v i)"))
+   "(chicken.srfi-4#u8vector-ref v i)"))
 
 (define s8vector-ref
   (getter-with-setter
@@ -262,7 +262,7 @@ EOF
        (check-range i 0 len 's8vector-ref)
        (##core#inline "C_u_i_s8vector_ref" x i)))
    s8vector-set!
-   "(s8vector-ref v i)"))
+   "(chicken.srfi-4#s8vector-ref v i)"))
 
 (define u16vector-ref
   (getter-with-setter
@@ -272,7 +272,7 @@ EOF
        (check-range i 0 len 'u16vector-ref)
        (##core#inline "C_u_i_u16vector_ref" x i)))
    u16vector-set!
-   "(u16vector-ref v i)"))
+   "(chicken.srfi-4#u16vector-ref v i)"))
 
 (define s16vector-ref
   (getter-with-setter
@@ -282,7 +282,7 @@ EOF
        (check-range i 0 len 's16vector-ref)
        (##core#inline "C_u_i_s16vector_ref" x i)))
    s16vector-set!
-   "(s16vector-ref v i)"))
+   "(chicken.srfi-4#s16vector-ref v i)"))
    
 (define u32vector-ref
   (getter-with-setter
@@ -292,7 +292,7 @@ EOF
        (check-range i 0 len 'u32vector-ref)
        (##core#inline_allocate ("C_a_u_i_u32vector_ref" 6) x i)))
    u32vector-set!
-   "(u32vector-ref v i)"))
+   "(chicken.srfi-4#u32vector-ref v i)"))
 
 (define s32vector-ref
   (getter-with-setter
@@ -302,7 +302,7 @@ EOF
        (check-range i 0 len 's32vector-ref)
        (##core#inline_allocate ("C_a_u_i_s32vector_ref" 6) x i)))
    s32vector-set!
-   "(s32vector-ref v i)"))
+   "(chicken.srfi-4#s32vector-ref v i)"))
 
 (define u64vector-ref
   (getter-with-setter
@@ -312,7 +312,7 @@ EOF
        (check-range i 0 len 'u64vector-ref)
        (##core#inline_allocate ("C_a_u_i_u64vector_ref" 7) x i)))
    u64vector-set!
-   "(u64vector-ref v i)"))
+   "(chicken.srfi-4#u64vector-ref v i)"))
 
 (define s64vector-ref
   (getter-with-setter
@@ -322,7 +322,7 @@ EOF
        (check-range i 0 len 's64vector-ref)
        (##core#inline_allocate ("C_a_u_i_s64vector_ref" 7) x i)))
    s64vector-set!
-   "(s64vector-ref v i)"))
+   "(chicken.srfi-4#s64vector-ref v i)"))
 
 (define f32vector-ref
   (getter-with-setter
@@ -332,7 +332,7 @@ EOF
        (check-range i 0 len 'f32vector-ref)
        (##core#inline_allocate ("C_a_u_i_f32vector_ref" 4) x i)))
    f32vector-set!
-   "(f32vector-ref v i)"))
+   "(chicken.srfi-4#f32vector-ref v i)"))
 
 (define f64vector-ref
   (getter-with-setter
@@ -342,7 +342,7 @@ EOF
        (check-range i 0 len 'f64vector-ref)
        (##core#inline_allocate ("C_a_u_i_f64vector_ref" 4) x i)))
    f64vector-set!
-   "(f64vector-ref v i)"))
+   "(chicken.srfi-4#f64vector-ref v i)"))
 
 
 ;;; Basic constructors:

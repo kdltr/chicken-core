@@ -579,7 +579,8 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	   (let ([sig (car sigs)])
 	     (loop (cdr sigs)
 		   (if (##core#inline "C_sigismember" sig) (cons sig mask) mask)) ) ) ) )
-   chicken.process.signal#set-signal-mask!))
+   chicken.process.signal#set-signal-mask!
+   "(chicken.process.signal#signal-mask)"))
 
 (set! chicken.process.signal#signal-masked?
   (lambda (sig)
@@ -613,7 +614,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
      (when (fx< (##core#inline "C_setuid" id) 0)
        (##sys#update-errno)
        (##sys#error 'current-user-id!-setter "cannot set user ID" id) ) )
-   "(current-user-id)"))
+   "(chicken.process-context.posix#current-user-id)"))
 
 (set! chicken.process-context.posix#current-effective-user-id
   (getter-with-setter
@@ -623,7 +624,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
       (##sys#update-errno)
       (##sys#error 
 	 'effective-user-id!-setter "cannot set effective user ID" id) ) )
-   "(current-effective-user-id)"))
+   "(chicken.process-context.posix#current-effective-user-id)"))
 
 (set! chicken.process-context.posix#current-group-id
   (getter-with-setter
@@ -632,7 +633,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
     (when (fx< (##core#inline "C_setgid" id) 0)
       (##sys#update-errno)
       (##sys#error 'current-group-id!-setter "cannot set group ID" id) ) )
-   "(current-group-id)") )
+   "(chicken.process-context.posix#current-group-id)") )
 
 (set! chicken.process-context.posix#current-effective-group-id
   (getter-with-setter 
@@ -642,7 +643,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
       (##sys#update-errno)
       (##sys#error 
 	 'effective-group-id!-setter "cannot set effective group ID" id) ) )
-   "(current-effective-group-id)") )
+   "(chicken.process-context.posix#current-effective-group-id)") )
 
 (define-foreign-variable _user-name nonnull-c-string "C_user->pw_name")
 (define-foreign-variable _user-passwd nonnull-c-string "C_user->pw_passwd")
@@ -720,7 +721,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
      (when (fx< (##core#inline "C_setpgid" pid pgid) 0)
        (##sys#update-errno)
        (##sys#error 'process-group "cannot set process group ID" pid pgid) ) )
-   "(process-group-id pid)"))
+   "(chicken.process-context.posix#process-group-id pid)"))
 
 
 ;;; Hard and symbolic links:

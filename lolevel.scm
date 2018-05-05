@@ -277,61 +277,61 @@ EOF
   (getter-with-setter
    (lambda (p) (##core#inline "C_u_i_pointer_u8_ref" p))
    pointer-u8-set!
-   "(pointer-u8-ref p)"))
+   "(chicken.memory#pointer-u8-ref p)"))
 
 (define pointer-s8-ref
   (getter-with-setter
    (lambda (p) (##core#inline "C_u_i_pointer_s8_ref" p))
    pointer-s8-set!
-   "(pointer-s8-ref p)"))
+   "(chicken.memory#pointer-s8-ref p)"))
 
 (define pointer-u16-ref
   (getter-with-setter
    (lambda (p) (##core#inline "C_u_i_pointer_u16_ref" p))
    pointer-u16-set!
-   "(pointer-u16-ref p)"))
+   "(chicken.memory#pointer-u16-ref p)"))
 
 (define pointer-s16-ref
   (getter-with-setter
    (lambda (p) (##core#inline "C_u_i_pointer_s16_ref" p))
    pointer-s16-set!
-   "(pointer-s16-ref p)"))
+   "(chicken.memory#pointer-s16-ref p)"))
 
 (define pointer-u32-ref
   (getter-with-setter
    (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_u32_ref" 6) p)) ;XXX hardcoded size
    pointer-u32-set!
-   "(pointer-u32-ref p)"))
+   "(chicken.memory#pointer-u32-ref p)"))
 
 (define pointer-s32-ref
   (getter-with-setter
    (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_s32_ref" 6) p)) ;XXX hardcoded size
    pointer-s32-set!
-   "(pointer-s32-ref p)"))
+   "(chicken.memory#pointer-s32-ref p)"))
 
 (define pointer-u64-ref
   (getter-with-setter
    (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_u64_ref" 7) p)) ;XXX hardcoded size
    pointer-u64-set!
-   "(pointer-u64-ref p)"))
+   "(chicken.memory#pointer-u64-ref p)"))
 
 (define pointer-s64-ref
   (getter-with-setter
    (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_s64_ref" 7) p)) ;XXX hardcoded size
    pointer-s64-set!
-   "(pointer-s64-ref p)"))
+   "(chicken.memory#pointer-s64-ref p)"))
 
 (define pointer-f32-ref
   (getter-with-setter
    (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_f32_ref" 4) p)) ;XXX hardcoded size
    pointer-f32-set!
-   "(pointer-f32-ref p)"))
+   "(chicken.memory#pointer-f32-ref p)"))
 
 (define pointer-f64-ref
   (getter-with-setter
    (lambda (p) (##core#inline_allocate ("C_a_u_i_pointer_f64_ref" 4) p)) ;XXX hardcoded size
    pointer-f64-set!
-   "(pointer-f64-ref p)"))
+   "(chicken.memory#pointer-f64-ref p)"))
 
 
 ;;; pointer vectors
@@ -397,7 +397,7 @@ EOF
      (##sys#check-range i 0 (##sys#slot pv 1)) ; len
      (pv-buf-ref (##sys#slot pv 2) i))	; buf
    pointer-vector-set!
-   "(pointer-vector-ref pv i)"))
+   "(chicken.memory#pointer-vector-ref pv i)"))
 
 (define (pointer-vector-length pv)
   (##sys#check-structure pv 'pointer-vector 'pointer-vector-length)
@@ -472,7 +472,7 @@ EOF
 
 (define block-ref 
   (getter-with-setter
-   ##sys#block-ref ##sys#block-set! "(block-ref x i)"))
+   ##sys#block-ref ##sys#block-set! "(chicken.memory.representation#block-ref x i)"))
 
 (define (number-of-slots x)
   (##sys#check-generic-vector x 'number-of-slots)
@@ -525,7 +525,7 @@ EOF
      (##sys#check-range i 0 (fx- (##sys#size x) 1) 'record-instance-slot)
      (##sys#slot x (fx+ i 1)) )
    record-instance-slot-set!
-   "(record-instance-slot x i)"))
+   "(chicken.memory.representation#record-instance-slot x i)"))
 
 (define (record->vector x)
   (##sys#check-generic-structure x 'record->vector)
@@ -594,7 +594,7 @@ EOF
    (lambda (loc)
      (##core#inline_allocate ("C_a_i_locative_ref" 6) loc))
    locative-set!
-   "(locative-ref loc)"))
+   "(chicken.locative#locative-ref loc)"))
 
 (define (locative->object x)
   (##core#inline "C_i_locative_to_object" x))
