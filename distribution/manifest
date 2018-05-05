@@ -377,6 +377,7 @@ scripts/chicken-flymake
 scripts/chicken-flymake.bat
 scripts/csc-trans
 scripts/compile-all
+scripts/compare-documentation-exports.scm
 scripts/reconstruct-egg-name.scm
 scripts/mini-salmonella.scm
 scripts/make-wrapper.scm
