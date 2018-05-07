@@ -289,7 +289,7 @@
         ((inline-file)
          (set! ifile (or (null? (cdr info)) (arg info 1 name?))))
         ((custom-build)
-         (set! cbuild (arg info 1 string?)))
+         (set! cbuild (->string (arg info 1 name?))))
         ((csc-options) 
          (set! opts (append opts (cdr info))))
         ((link-options)
@@ -479,7 +479,9 @@
            " -D compiling-static-extension"
            " -C -I" srcdir (arglist opts) 
            " " src " -o " out " : "
-           src " " (quotearg eggfile) #;(arglist dependencies))))
+           src " " (quotearg eggfile) " "
+           (if custom (quotearg cmd) "") " "
+           (filelist srcdir dependencies))))
 
 (define ((compile-dynamic-extension name #!key mode dependencies mode
                                     source (options '()) (link-options '()) 
@@ -512,7 +514,9 @@
            " -D compiling-extension -J -s"
            " -setup-mode -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
-           src " " (quotearg eggfile) #;(arglist dependencies))))
+           src " " (quotearg eggfile) " "
+           (if custom (quotearg cmd) "") " "
+           (filelist srcdir dependencies))))
 
 (define ((compile-import-library name #!key dependencies mode
                                  (options '()) (link-options '())
@@ -534,7 +538,7 @@
            (if (eq? mode 'host) " -host" "")
            " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
-           src #;(arglist dependencies))))
+           src (filelist srcdir dependencies))))
 
 (define ((compile-dynamic-program name #!key dependencies source mode
                                      (options '()) (link-options '())
@@ -559,7 +563,9 @@
            (if (eq? mode 'host) " -host" "")
            " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
-           src " " (quotearg eggfile) #;(arglist dependencies))))
+           src " " (quotearg eggfile) " "
+           (if custom (quotearg cmd) "") " "
+           (filelist srcdir dependencies))))
 
 (define ((compile-static-program name #!key dependencies source
                                     (options '()) (link-options '())
@@ -584,7 +590,9 @@
            " -static -setup-mode -I " srcdir " -C -I" 
            srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
-           src " " (quotearg eggfile) #;(arglist dependencies))))
+           src " " (quotearg eggfile) " "
+           (if custom (quotearg cmd) "") " "
+           (filelist srcdir dependencies))))
 
 (define ((compile-generated-file name #!key dependencies source custom) 
          srcdir platform)
@@ -595,8 +603,8 @@
     (when custom
       (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform)
-           " " out " " cmd " : "
-           #;(arglist dependencies))))
+           " " out " " cmd " : " cmd " "
+           (filelist srcdir dependencies))))
 
 
 ;; installation operations
@@ -860,6 +868,9 @@ EOF
 
 (define (arglist lst)
   (apply conc (map (lambda (x) (conc " " (quotearg x))) lst)))
+
+(define (filelist dir lst)
+  (arglist (map (cut prefix dir <>) lst)))
 
 (define (shell-variable var platform)
   (case platform
