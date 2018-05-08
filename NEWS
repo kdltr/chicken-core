@@ -67,7 +67,7 @@
     a single bidirectional port.
   - New `input-port-open?` and `output-port-open?` procedures have been
     added for testing whether a port is open in a specific direction.
-  - An `include-relative` form has been added to the chicken module.
+  - An `include-relative` form has been added to the (chicken base) module.
     This works like `load-relative` but for textual inclusion.
   - Keywords are now always written in "portable" style by WRITE, so
     that the reader's keyword style doesn't need to match the writer's.
@@ -137,12 +137,13 @@
     `-prefix`.
   - Added new "-from-list" option to chicken-install.
   - Eggs can now be installed and located in multiple directories,
-    using the `CHICKEN_REPOSITORY_PATH` + `CHICKEN_INSTALL_REPOSITORY`
+    using the `CHICKEN_REPOSITORY_PATH` + 
+    `CHICKEN_INSTALL_REPOSITORY`
     environment variables.
   - Static compilation of eggs is now fully supported and static
     versions of compiled eggs are available by default.
-  - In a statically built chicken, the egg-tools ("chicken-install", "-status",
-    "-uninstall") are still available, but only support static compilation
+  - In a statically built chicken, the egg-tools ("chicken-install", "...-status",
+    "...-uninstall") are still available, but only support static compilation
     of eggs.
 
 - Foreign function interface
