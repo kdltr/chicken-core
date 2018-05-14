@@ -311,3 +311,8 @@
   (define (append-result-type-nowarn2) (add1 (list-ref l2 1))))
 (let ((l3 (append (the (list-of fixnum) '(1 2)) '(x y))))
   (define (append-result-type-nowarn3) (add1 (list-ref l3 1))))
+
+;; Check the trail is restored from the combined typeenv
+(compiler-typecase (list 2 'a)
+  ((forall (x) (list x x)) 1)
+  (else #t))

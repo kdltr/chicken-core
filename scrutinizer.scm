@@ -850,27 +850,26 @@
 		 ((##core#typecase)
 		  (let* ((ts (walk (first subs) e loc #f #f flow ctags))
 			 (trail0 trail)
-			 (typeenv (type-typeenv (car ts))))
+			 (typeenv0 (type-typeenv (car ts))))
 		    ;; first exp is always a variable so ts must be of length 1
 		    (let loop ((types (cdr params)) (subs (cdr subs)))
-		      (cond ((null? types)
-			     (quit-compiling
-			      "~a~ano clause applies in `compiler-typecase' for expression of type `~a':~a"
-			      (location-name loc)
-			      (node-source-prefix n)
-			      (type-name (car ts))
-			      (string-intersperse
-			       (map (lambda (t) (sprintf "\n    ~a" (type-name t)))
-				    (cdr params)) "")))
-			    ((match-types (car types) (car ts) 
-					  (append (type-typeenv (car types)) typeenv)
-					  #t)
-			     ;; drops exp
-			     (mutate-node! n (car subs))
-			     (walk n e loc dest tail flow ctags))
-			    (else
-			     (trail-restore trail0 typeenv)
-			     (loop (cdr types) (cdr subs)))))))
+		      (if (null? types)
+			  (quit-compiling
+			   "~a~ano clause applies in `compiler-typecase' for expression of type `~a':~a"
+			   (location-name loc)
+			   (node-source-prefix n)
+			   (type-name (car ts))
+			   (string-intersperse
+			    (map (lambda (t) (sprintf "\n    ~a" (type-name t)))
+				 (cdr params)) ""))
+			  (let ((typeenv (append (type-typeenv (car types)) typeenv0)))
+			    (if (match-types (car types) (car ts) typeenv #t)
+				(begin ; drops exp
+				  (mutate-node! n (car subs))
+				  (walk n e loc dest tail flow ctags))
+				(begin
+				  (trail-restore trail0 typeenv)
+				  (loop (cdr types) (cdr subs)))))))))
 		 ((##core#switch ##core#cond)
 		  (bomb "scrutinize: unexpected node class" class))
 		 (else
