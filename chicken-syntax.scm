@@ -504,7 +504,7 @@
 	  ;; value expressions (see first example in #1336).
 	  ,(map ##sys#list saveds saveds)
 	  (##core#let
-	   ((,convert? (##core#the (##core#quote boolean) #t #t))) ; Convert only first time extent is entered!
+	   ((,convert? (##core#the boolean #t #t))) ; Convert only first time extent is entered!
 	   (##sys#dynamic-wind
 	    (##core#lambda ()
 	      (##core#let
