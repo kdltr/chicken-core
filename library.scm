@@ -1044,7 +1044,6 @@ EOF
 (define ##sys#ensure-heap-reserve (##core#primitive "C_ensure_heap_reserve"))
 (define ##sys#symbol-table-info (##core#primitive "C_get_symbol_table_info"))
 (define ##sys#memory-info (##core#primitive "C_get_memory_info"))
-(define ##sys#decode-seconds (##core#primitive "C_decode_seconds"))
 
 (define (##sys#start-timer)
   (##sys#gc #t)
@@ -5931,7 +5930,8 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
    program-name executable-pathname
    change-directory current-directory
    get-environment-variable get-environment-variables
-   set-environment-variable! unset-environment-variable!)
+   set-environment-variable! unset-environment-variable!
+   current-process-id)
 
 (import scheme)
 (import chicken.base chicken.fixnum chicken.foreign)
@@ -6050,6 +6050,9 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
    (lambda (x)
      (##sys#check-list x 'command-line-arguments)
      x) ) )
+
+(define current-process-id
+  (foreign-lambda int "C_getpid"))
 
 ) ; chicken.process-context
 

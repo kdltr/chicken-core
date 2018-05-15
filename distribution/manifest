@@ -238,6 +238,7 @@ tests/user-pass-tests.scm
 tests/version-tests.scm
 tests/messages-test.scm
 tests/messages.expected
+tests/types-db-consistency.scm
 tweaks.scm
 Makefile
 Makefile.android
@@ -376,6 +377,7 @@ scripts/chicken-flymake
 scripts/chicken-flymake.bat
 scripts/csc-trans
 scripts/compile-all
+scripts/compare-documentation-exports.scm
 scripts/reconstruct-egg-name.scm
 scripts/mini-salmonella.scm
 scripts/make-wrapper.scm

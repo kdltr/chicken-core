@@ -107,7 +107,8 @@ EOF
 
 (define cache-directory
   (or (get-environment-variable "CHICKEN_EGG_CACHE")
-      (make-pathname (or (probe-dir (get-environment-variable "HOME"))
-                         (probe-dir (get-environment-variable "USERPROFILE"))
-                         (current-directory))
-                     ".chicken-install/cache")))
+      (make-pathname (list (or (probe-dir (get-environment-variable "HOME"))
+                               (probe-dir (get-environment-variable "USERPROFILE"))
+                               (current-directory))
+                           ".chicken-install")
+                     "cache")))

@@ -712,18 +712,11 @@
 
 ;;; evaluate in the macro-expansion/compile-time environment
 (define (##sys#eval/meta form)
-  (let ((oldcm (##sys#current-module))
-	(oldme (##sys#macro-environment))
-	(oldce (##sys#current-environment))
-	(mme (##sys#meta-macro-environment))
-	(cme (##sys#current-meta-environment))
-	(aee (##sys#active-eval-environment)))
+  (parameterize ((##sys#current-module #f)
+		 (##sys#macro-environment (##sys#meta-macro-environment))
+		 (##sys#current-environment (##sys#current-meta-environment)))
     (dynamic-wind
-	(lambda () 
-	  (##sys#current-module #f)
-	  (##sys#macro-environment mme)
-	  (##sys#current-environment cme)
-	  (##sys#active-eval-environment ##sys#current-meta-environment))
+	void
 	(lambda ()
 	  ((compile-to-closure
 	    form
@@ -732,12 +725,13 @@
 	    #t)				; toplevel.
 	   '()) )
 	(lambda ()
-	  (##sys#active-eval-environment aee)
-	  (##sys#current-module oldcm)
+	  ;; Just before restoring the parameters, update "meta"
+	  ;; environments to receive a copy of the current
+	  ;; environments one level "down".  We don't support more
+	  ;; than two evaluation phase levels currently.  XXX: Should
+	  ;; we change this to a "stack" of environments?
 	  (##sys#current-meta-environment (##sys#current-environment))
-	  (##sys#current-environment oldce)
-	  (##sys#meta-macro-environment (##sys#macro-environment))
-	  (##sys#macro-environment oldme)))))
+	  (##sys#meta-macro-environment (##sys#macro-environment))))))
 
 (define eval-handler
   (make-parameter

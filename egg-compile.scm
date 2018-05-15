@@ -120,7 +120,7 @@
 
 ;;; compile an egg-information tree into abstract build/install operations
 
-(define (compile-egg-info info platform mode)
+(define (compile-egg-info eggfile info platform mode)
   (let ((exts '())
         (prgs '())
         (data '())
@@ -142,6 +142,7 @@
         (tfile #f)
         (ptfile #f)
         (ifile #f)
+        (eggfile (locate-egg-file eggfile))
         (objext (object-extension platform))
         (exeext (executable-extension platform)))
     (define (check-target t lst)
@@ -189,7 +190,7 @@
                 (cons (list target dependencies: deps source: src options: opts
                             link-options: lopts linkage: link custom: cbuild
                             mode: mode types-file: tfile inline-file: ifile
-                            predefined-types: ptfile
+                            predefined-types: ptfile eggfile: eggfile
                             modules: (or mods (list rtarget))
                             output-file: rtarget)
                     exts)))))
@@ -268,7 +269,7 @@
 	      (set! prgs
 		(cons (list target dependencies: deps source: src options: opts
 			    link-options: lopts linkage: link custom: cbuild
-			    mode: mode output-file: rtarget)
+			    mode: mode output-file: rtarget eggfile: eggfile)
 		      prgs)))))
         (else (compile-common info compile-component))))
     (define (compile-extension/program info)
@@ -442,7 +443,7 @@
 
 (define ((compile-static-extension name #!key mode dependencies
                                    source (options '())
-                                   predefined-types
+                                   predefined-types eggfile
                                    custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix srcdir custom))
@@ -478,11 +479,11 @@
            " -D compiling-static-extension"
            " -C -I" srcdir (arglist opts) 
            " " src " -o " out " : "
-           src #;(arglist dependencies))))
+           src " " (quotearg eggfile) #;(arglist dependencies))))
 
 (define ((compile-dynamic-extension name #!key mode dependencies mode
                                     source (options '()) (link-options '()) 
-                                    predefined-types
+                                    predefined-types eggfile
                                     custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix srcdir custom))
@@ -511,7 +512,7 @@
            " -D compiling-extension -J -s"
            " -setup-mode -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
-           src #;(arglist dependencies))))
+           src " " (quotearg eggfile) #;(arglist dependencies))))
 
 (define ((compile-import-library name #!key dependencies mode
                                  (options '()) (link-options '())
@@ -537,7 +538,7 @@
 
 (define ((compile-dynamic-program name #!key dependencies source mode
                                      (options '()) (link-options '())
-                                     custom)
+                                     custom eggfile)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
@@ -558,11 +559,11 @@
            (if (eq? mode 'host) " -host" "")
            " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
-           src #;(arglist dependencies))))
+           src " " (quotearg eggfile) #;(arglist dependencies))))
 
 (define ((compile-static-program name #!key dependencies source
                                     (options '()) (link-options '())
-                                    custom mode)
+                                    custom mode eggfile)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
@@ -583,7 +584,7 @@
            " -static -setup-mode -I " srcdir " -C -I" 
            srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
-           src #;(arglist dependencies))))
+           src " " (quotearg eggfile) #;(arglist dependencies))))
 
 (define ((compile-generated-file name #!key dependencies source custom) 
          srcdir platform)
@@ -768,6 +769,7 @@ EOF
 set PATH=~a;%PATH%
 set CHICKEN_CC=~a
 set CHICKEN_CXX=~a
+
 EOF
              default-bindir default-cc default-cxx))))
 

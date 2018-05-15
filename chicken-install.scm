@@ -800,7 +800,10 @@
         (when (or host-extension 
                   (and (not target-extension)
                        (not host-extension)))
-          (let-values (((build install info) (compile-egg-info info platform 'host)))
+          (let-values (((build install info) (compile-egg-info eggfile 
+                                                               info
+                                                               platform
+                                                               'host)))
             (check-installed-files name info)                         
             (let ((bscript (make-pathname dir name 
                                           (build-script-extension 'host platform)))
@@ -826,7 +829,10 @@
                                  (not (test-egg egg platform)))
                         (exit 2)))))))
         (when target-extension
-          (let-values (((build install info) (compile-egg-info info platform 'target)))
+          (let-values (((build install info) (compile-egg-info eggfile
+                                                               info
+                                                               platform
+                                                               'target)))
             (let ((bscript (make-pathname dir name 
                                           (build-script-extension 'target platform)))
                   (iscript (make-pathname dir name 

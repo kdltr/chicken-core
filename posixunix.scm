@@ -282,26 +282,6 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
   return utime(filename, &tb);
 }
 
-static C_word C_i_fifo_p(C_word name) 
-{
-  struct stat buf;
-  int res;
-
-  res = stat(C_c_string(name), &buf);
-
-  if(res != 0) {
-#ifdef __CYGWIN__
-    return C_SCHEME_FALSE;
-#else
-    if(errno == ENOENT) return C_fix(0);
-    else return C_fix(res);
-#endif
-  }
-
-  if((buf.st_mode & S_IFMT) == S_IFIFO) return C_SCHEME_TRUE;
-  else return C_SCHEME_FALSE;
-}
-
 <#
 
 ;; Faster versions of common operations
@@ -316,92 +296,44 @@ static C_word C_i_fifo_p(C_word name)
 
 ;;; Lo-level I/O:
 
-(define-foreign-variable _pipe_buf int "PIPE_BUF")
-
-(define pipe/buf _pipe_buf)
-
 (define-foreign-variable _f_dupfd int "F_DUPFD")
 (define-foreign-variable _f_getfd int "F_GETFD")
 (define-foreign-variable _f_setfd int "F_SETFD")
 (define-foreign-variable _f_getfl int "F_GETFL")
 (define-foreign-variable _f_setfl int "F_SETFL")
 
-(define fcntl/dupfd _f_dupfd)
-(define fcntl/getfd _f_getfd)
-(define fcntl/setfd _f_setfd)
-(define fcntl/getfl _f_getfl)
-(define fcntl/setfl _f_setfl)
+(set! chicken.file.posix#fcntl/dupfd _f_dupfd)
+(set! chicken.file.posix#fcntl/getfd _f_getfd)
+(set! chicken.file.posix#fcntl/setfd _f_setfd)
+(set! chicken.file.posix#fcntl/getfl _f_getfl)
+(set! chicken.file.posix#fcntl/setfl _f_setfl)
 
-(define-foreign-variable _o_rdonly int "O_RDONLY")
-(define-foreign-variable _o_wronly int "O_WRONLY")
-(define-foreign-variable _o_rdwr int "O_RDWR")
-(define-foreign-variable _o_creat int "O_CREAT")
-(define-foreign-variable _o_append int "O_APPEND")
-(define-foreign-variable _o_excl int "O_EXCL")
-(define-foreign-variable _o_noctty int "O_NOCTTY")
 (define-foreign-variable _o_nonblock int "O_NONBLOCK")
-(define-foreign-variable _o_trunc int "O_TRUNC")
+(define-foreign-variable _o_noctty int "O_NOCTTY")
 (define-foreign-variable _o_fsync int "O_FSYNC")
-(define-foreign-variable _o_binary int "O_BINARY")
-(define-foreign-variable _o_text int "O_TEXT")
-
-(define open/rdonly _o_rdonly)
-(define open/wronly _o_wronly)
-(define open/rdwr _o_rdwr)
-(define open/read _o_rdonly)
-(define open/write _o_wronly)
-(define open/creat _o_creat)
-(define open/append _o_append)
-(define open/excl _o_excl)
-(define open/noctty _o_noctty)
-(define open/nonblock _o_nonblock)
-(define open/trunc _o_trunc)
-(define open/sync _o_fsync)
-(define open/fsync _o_fsync)
-(define open/binary _o_binary)
-(define open/text _o_text)
+(define-foreign-variable _o_sync int "O_SYNC")
+(set! chicken.file.posix#open/nonblock _o_nonblock)
+(set! chicken.file.posix#open/noctty _o_noctty)
+(set! chicken.file.posix#open/fsync _o_fsync)
+(set! chicken.file.posix#open/sync _o_sync)
 
 ;; Windows-only definitions
-(define open/noinherit 0)
-(define spawn/overlay 0)
-(define spawn/wait 0)
-(define spawn/nowait 0)
-(define spawn/nowaito 0)
-(define spawn/detach 0)
+(set! chicken.file.posix#open/noinherit 0)
 
-(define-foreign-variable _s_irusr int "S_IRUSR")
-(define-foreign-variable _s_iwusr int "S_IWUSR")
-(define-foreign-variable _s_ixusr int "S_IXUSR")
-(define-foreign-variable _s_irgrp int "S_IRGRP")
-(define-foreign-variable _s_iwgrp int "S_IWGRP")
-(define-foreign-variable _s_ixgrp int "S_IXGRP")
-(define-foreign-variable _s_iroth int "S_IROTH")
-(define-foreign-variable _s_iwoth int "S_IWOTH")
-(define-foreign-variable _s_ixoth int "S_IXOTH")
-(define-foreign-variable _s_irwxu int "S_IRWXU")
-(define-foreign-variable _s_irwxg int "S_IRWXG")
-(define-foreign-variable _s_irwxo int "S_IRWXO")
+(set! chicken.process#spawn/overlay 0)
+(set! chicken.process#spawn/wait 0)
+(set! chicken.process#spawn/nowait 0)
+(set! chicken.process#spawn/nowaito 0)
+(set! chicken.process#spawn/detach 0)
+
 (define-foreign-variable _s_isuid int "S_ISUID")
 (define-foreign-variable _s_isgid int "S_ISGID")
 (define-foreign-variable _s_isvtx int "S_ISVTX")
+(set! chicken.file.posix#perm/isvtx _s_isvtx)
+(set! chicken.file.posix#perm/isuid _s_isuid)
+(set! chicken.file.posix#perm/isgid _s_isgid)
 
-(define perm/irusr _s_irusr)
-(define perm/iwusr _s_iwusr)
-(define perm/ixusr _s_ixusr)
-(define perm/irgrp _s_irgrp)
-(define perm/iwgrp _s_iwgrp)
-(define perm/ixgrp _s_ixgrp)
-(define perm/iroth _s_iroth)
-(define perm/iwoth _s_iwoth)
-(define perm/ixoth _s_ixoth)
-(define perm/irwxu _s_irwxu)
-(define perm/irwxg _s_irwxg)
-(define perm/irwxo _s_irwxo)
-(define perm/isvtx _s_isvtx)
-(define perm/isuid _s_isuid)
-(define perm/isgid _s_isgid)
-
-(define file-control
+(set! chicken.file.posix#file-control
   (let ([fcntl (foreign-lambda int fcntl int int long)])
     (lambda (fd cmd #!optional (arg 0))
       (##sys#check-fixnum fd 'file-control)
@@ -411,8 +343,8 @@ static C_word C_i_fifo_p(C_word name)
             (posix-error #:file-error 'file-control "cannot control file" fd cmd)
             res ) ) ) ) )
 
-(define file-open
-  (let ([defmode (bitwise-ior _s_irwxu (bitwise-ior _s_irgrp _s_iroth))] )
+(set! chicken.file.posix#file-open
+  (let ((defmode (bitwise-ior _s_irwxu (bitwise-ior _s_irgrp _s_iroth))) )
     (lambda (filename flags . mode)
       (let ([mode (if (pair? mode) (car mode) defmode)])
         (##sys#check-string filename 'file-open)
@@ -423,7 +355,7 @@ static C_word C_i_fifo_p(C_word name)
             (posix-error #:file-error 'file-open "cannot open file" filename flags mode) )
           fd) ) ) ) )
 
-(define file-close
+(set! chicken.file.posix#file-close
   (lambda (fd)
     (##sys#check-fixnum fd 'file-close)
     (let loop ()
@@ -433,7 +365,7 @@ static C_word C_i_fifo_p(C_word name)
 	  (else
 	   (posix-error #:file-error 'file-close "cannot close file" fd)))))))
 
-(define file-read
+(set! chicken.file.posix#file-read
   (lambda (fd size . buffer)
     (##sys#check-fixnum fd 'file-read)
     (##sys#check-fixnum size 'file-read)
@@ -445,7 +377,7 @@ static C_word C_i_fifo_p(C_word name)
 	  (posix-error #:file-error 'file-read "cannot read from file" fd size) )
 	(list buf n) ) ) ) )
 
-(define file-write
+(set! chicken.file.posix#file-write
   (lambda (fd buffer . size)
     (##sys#check-fixnum fd 'file-write)
     (unless (and (##core#inline "C_blockp" buffer) (##core#inline "C_byteblockp" buffer))
@@ -457,7 +389,7 @@ static C_word C_i_fifo_p(C_word name)
           (posix-error #:file-error 'file-write "cannot write to file" fd size) )
         n) ) ) )
 
-(define file-mkstemp
+(set! chicken.file.posix#file-mkstemp
   (lambda (template)
     (##sys#check-string template 'file-mkstemp)
     (let* ([buf (##sys#make-c-string template 'file-mkstemp)]
@@ -470,156 +402,72 @@ static C_word C_i_fifo_p(C_word name)
 
 ;;; I/O multiplexing:
 
-(define (file-select fdsr fdsw . timeout)
-  (let* ((tm (if (pair? timeout) (car timeout) #f))
-	 (fdsrl (cond ((not fdsr) '())
-		      ((fixnum? fdsr) (list fdsr))
-		      (else (##sys#check-list fdsr 'file-select)
-			    fdsr)))
-	 (fdswl (cond ((not fdsw) '())
-		      ((fixnum? fdsw) (list fdsw))
-		      (else (##sys#check-list fdsw 'file-select)
-			    fdsw)))
-	 (nfdsr (##sys#length fdsrl))
-	 (nfdsw (##sys#length fdswl))
-	 (nfds (fx+ nfdsr nfdsw))
-	 (fds-blob (##sys#make-blob
-		    (fx* nfds (foreign-value "sizeof(struct pollfd)" int)))))
-    (when tm (##sys#check-exact-integer tm))
-    (do ((i 0 (fx+ i 1))
-	 (fdsrl fdsrl (cdr fdsrl)))
-	((null? fdsrl))
-      ((foreign-lambda* void ((int i) (int fd) (scheme-pointer p))
-	 "struct pollfd *fds = p;"
-	 "fds[i].fd = fd; fds[i].events = POLLIN;") i (car fdsrl) fds-blob))
-    (do ((i nfdsr (fx+ i 1))
-	 (fdswl fdswl (cdr fdswl)))
-	((null? fdswl))
-      ((foreign-lambda* void ((int i) (int fd) (scheme-pointer p))
-	 "struct pollfd *fds = p;"
-	 "fds[i].fd = fd; fds[i].events = POLLOUT;") i (car fdswl) fds-blob))
-    (let ((n ((foreign-lambda int "poll" scheme-pointer int int)
-	      fds-blob nfds (if tm (* (max 0 tm) 1000) -1))))
-      (cond ((fx< n 0)
-	     (posix-error #:file-error 'file-select "failed" fdsr fdsw) )
-	    ((fx= n 0) (values (if (pair? fdsr) '() #f) (if (pair? fdsw) '() #f)))
-	    (else
-	     (let ((rl (let lp ((i 0) (res '()) (fds fdsrl))
-			 (cond ((null? fds) (##sys#fast-reverse res))
-			       (((foreign-lambda* bool ((int i) (scheme-pointer p))
-				   "struct pollfd *fds = p;"
-				   "C_return(fds[i].revents & (POLLIN|POLLERR|POLLHUP|POLLNVAL));")
-				 i fds-blob)
-				(lp (fx+ i 1) (cons (car fds) res) (cdr fds)))
-			       (else (lp (fx+ i 1) res (cdr fds))))))
-		   (wl (let lp ((i nfdsr) (res '()) (fds fdswl))
-			 (cond ((null? fds) (##sys#fast-reverse res))
-			       (((foreign-lambda* bool ((int i) (scheme-pointer p))
-				   "struct pollfd *fds = p;"
-				   "C_return(fds[i].revents & (POLLOUT|POLLERR|POLLHUP|POLLNVAL));")
-				 i fds-blob)
-				(lp (fx+ i 1) (cons (car fds) res) (cdr fds)))
-			       (else (lp (fx+ i 1) res (cdr fds)))))))
-	       (values
-		(and fdsr (if (fixnum? fdsr) (and (memq fdsr rl) fdsr) rl))
-		(and fdsw (if (fixnum? fdsw) (and (memq fdsw wl) fdsw) wl)))))))))
+(set! chicken.file.posix#file-select
+  (lambda (fdsr fdsw . timeout)
+    (let* ((tm (if (pair? timeout) (car timeout) #f))
+	   (fdsrl (cond ((not fdsr) '())
+			((fixnum? fdsr) (list fdsr))
+			(else (##sys#check-list fdsr 'file-select)
+			      fdsr)))
+	   (fdswl (cond ((not fdsw) '())
+			((fixnum? fdsw) (list fdsw))
+			(else (##sys#check-list fdsw 'file-select)
+			      fdsw)))
+	   (nfdsr (##sys#length fdsrl))
+	   (nfdsw (##sys#length fdswl))
+	   (nfds (fx+ nfdsr nfdsw))
+	   (fds-blob (##sys#make-blob
+		      (fx* nfds (foreign-value "sizeof(struct pollfd)" int)))))
+      (when tm (##sys#check-exact-integer tm))
+      (do ((i 0 (fx+ i 1))
+	   (fdsrl fdsrl (cdr fdsrl)))
+	  ((null? fdsrl))
+	((foreign-lambda* void ((int i) (int fd) (scheme-pointer p))
+	   "struct pollfd *fds = p;"
+	   "fds[i].fd = fd; fds[i].events = POLLIN;") i (car fdsrl) fds-blob))
+      (do ((i nfdsr (fx+ i 1))
+	   (fdswl fdswl (cdr fdswl)))
+	  ((null? fdswl))
+	((foreign-lambda* void ((int i) (int fd) (scheme-pointer p))
+	   "struct pollfd *fds = p;"
+	   "fds[i].fd = fd; fds[i].events = POLLOUT;") i (car fdswl) fds-blob))
+      (let ((n ((foreign-lambda int "poll" scheme-pointer int int)
+		fds-blob nfds (if tm (* (max 0 tm) 1000) -1))))
+	(cond ((fx< n 0)
+	       (posix-error #:file-error 'file-select "failed" fdsr fdsw) )
+	      ((fx= n 0) (values (if (pair? fdsr) '() #f) (if (pair? fdsw) '() #f)))
+	      (else
+	       (let ((rl (let lp ((i 0) (res '()) (fds fdsrl))
+			   (cond ((null? fds) (##sys#fast-reverse res))
+				 (((foreign-lambda* bool ((int i) (scheme-pointer p))
+				     "struct pollfd *fds = p;"
+				     "C_return(fds[i].revents & (POLLIN|POLLERR|POLLHUP|POLLNVAL));")
+				   i fds-blob)
+				  (lp (fx+ i 1) (cons (car fds) res) (cdr fds)))
+				 (else (lp (fx+ i 1) res (cdr fds))))))
+		     (wl (let lp ((i nfdsr) (res '()) (fds fdswl))
+			   (cond ((null? fds) (##sys#fast-reverse res))
+				 (((foreign-lambda* bool ((int i) (scheme-pointer p))
+				     "struct pollfd *fds = p;"
+				     "C_return(fds[i].revents & (POLLOUT|POLLERR|POLLHUP|POLLNVAL));")
+				   i fds-blob)
+				  (lp (fx+ i 1) (cons (car fds) res) (cdr fds)))
+				 (else (lp (fx+ i 1) res (cdr fds)))))))
+		 (values
+		  (and fdsr (if (fixnum? fdsr) (and (memq fdsr rl) fdsr) rl))
+		  (and fdsw (if (fixnum? fdsw) (and (memq fdsw wl) fdsw) wl))))))))))
 
 
-;;; Pipes:
-
-(define open-input-pipe)
-(define open-output-pipe)
-(define close-input-pipe)
-(define close-output-pipe)
-
-(let ()
-  (define (mode arg) (if (pair? arg) (##sys#slot arg 0) '###text))
-  (define (badmode m) (##sys#error "illegal input/output mode specifier" m))
-  (define (check loc cmd inp r)
-    (if (##sys#null-pointer? r)
-	(posix-error #:file-error loc "cannot open pipe" cmd)
-	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(pipe)" 'stream)))
-	  (##core#inline "C_set_file_ptr" port r)
-	  port) ) )
-  (set! open-input-pipe
-    (lambda (cmd . m)
-      (##sys#check-string cmd 'open-input-pipe)
-      (let ([m (mode m)])
-	(check
-	 'open-input-pipe
-	 cmd #t
-	 (case m
-	   ((#:text) (##core#inline_allocate ("open_text_input_pipe" 2) (##sys#make-c-string cmd 'open-input-pipe)))
-	   ((#:binary) (##core#inline_allocate ("open_binary_input_pipe" 2) (##sys#make-c-string cmd 'open-input-pipe)))
-	   (else (badmode m)) ) ) ) ) )
-  (set! open-output-pipe
-    (lambda (cmd . m)
-      (##sys#check-string cmd 'open-output-pipe)
-      (let ((m (mode m)))
-	(check
-	 'open-output-pipe
-	 cmd #f
-	 (case m
-	   ((#:text) (##core#inline_allocate ("open_text_output_pipe" 2) (##sys#make-c-string cmd 'open-output-pipe)))
-	   ((#:binary) (##core#inline_allocate ("open_binary_output_pipe" 2) (##sys#make-c-string cmd 'open-output-pipe)))
-	   (else (badmode m)) ) ) ) ) )
-  (set! close-input-pipe
-    (lambda (port)
-      (##sys#check-input-port port #t 'close-input-pipe)
-      (let ((r (##core#inline "close_pipe" port)))
-	(when (eq? -1 r)
-	  (posix-error #:file-error 'close-input-pipe "error while closing pipe" port))
-	r) ) )
-  (set! close-output-pipe
-    (lambda (port)
-      (##sys#check-output-port port #t 'close-output-pipe)
-      (let ((r (##core#inline "close_pipe" port)))
-	(when (eq? -1 r) 
-	  (posix-error #:file-error 'close-output-pipe "error while closing pipe" port))
-	r) ) ))
-
-(define call-with-input-pipe
-  (lambda (cmd proc . mode)
-    (let ([p (apply open-input-pipe cmd mode)])
-      (##sys#call-with-values
-       (lambda () (proc p))
-       (lambda results
-	 (close-input-pipe p)
-	 (apply values results) ) ) ) ) )
-
-(define call-with-output-pipe
-  (lambda (cmd proc . mode)
-    (let ([p (apply open-output-pipe cmd mode)])
-      (##sys#call-with-values
-       (lambda () (proc p))
-       (lambda results
-	 (close-output-pipe p)
-	 (apply values results) ) ) ) ) )
-
-(define with-input-from-pipe
-  (lambda (cmd thunk . mode)
-    (let ([p (apply open-input-pipe cmd mode)])
-      (fluid-let ((##sys#standard-input p))
-	(##sys#call-with-values thunk
-				(lambda results
-				  (close-input-pipe p)
-				  (apply values results) ) ) ) ) ) )
-(define with-output-to-pipe
-  (lambda (cmd thunk . mode)
-    (let ([p (apply open-output-pipe cmd mode)])
-      (fluid-let ((##sys#standard-output p))
-	(##sys#call-with-values thunk
-				(lambda results
-				  (close-output-pipe p)
-				  (apply values results) ) ) ) ) ) )
+;;; Pipe primitive:
 
 (define-foreign-variable _pipefd0 int "C_pipefds[ 0 ]")
 (define-foreign-variable _pipefd1 int "C_pipefds[ 1 ]")
 
-(define (create-pipe #!optional mode)
-  (when (fx< (##core#inline "C_pipe" #f) 0)
-    (posix-error #:file-error 'create-pipe "cannot create pipe") )
-  (values _pipefd0 _pipefd1)  )
+(set! chicken.process#create-pipe
+  (lambda (#!optional mode)
+   (when (fx< (##core#inline "C_pipe" #f) 0)
+     (posix-error #:file-error 'create-pipe "cannot create pipe") )
+   (values _pipefd0 _pipefd1))  )
 
 
 ;;; Signal processing:
@@ -652,43 +500,64 @@ static C_word C_i_fifo_p(C_word name)
 (define-foreign-variable _sigxfsz int "SIGXFSZ")
 (define-foreign-variable _sigwinch int "SIGWINCH")
 
-(define signal/term _sigterm)
-(define signal/kill _sigkill)
-(define signal/int _sigint)
-(define signal/hup _sighup)
-(define signal/fpe _sigfpe)
-(define signal/ill _sigill)
-(define signal/segv _sigsegv)
-(define signal/abrt _sigabrt)
-(define signal/trap _sigtrap)
-(define signal/quit _sigquit)
-(define signal/alrm _sigalrm)
-(define signal/vtalrm _sigvtalrm)
-(define signal/prof _sigprof)
-(define signal/io _sigio)
-(define signal/urg _sigurg)
-(define signal/chld _sigchld)
-(define signal/cont _sigcont)
-(define signal/stop _sigstop)
-(define signal/tstp _sigtstp)
-(define signal/pipe _sigpipe)
-(define signal/xcpu _sigxcpu)
-(define signal/xfsz _sigxfsz)
-(define signal/usr1 _sigusr1)
-(define signal/usr2 _sigusr2)
-(define signal/winch _sigwinch)
-(define signal/bus _sigbus)
-(define signal/break 0)
+(set! chicken.process.signal#signal/term _sigterm)
+(set! chicken.process.signal#signal/kill _sigkill)
+(set! chicken.process.signal#signal/int _sigint)
+(set! chicken.process.signal#signal/hup _sighup)
+(set! chicken.process.signal#signal/fpe _sigfpe)
+(set! chicken.process.signal#signal/ill _sigill)
+(set! chicken.process.signal#signal/segv _sigsegv)
+(set! chicken.process.signal#signal/abrt _sigabrt)
+(set! chicken.process.signal#signal/trap _sigtrap)
+(set! chicken.process.signal#signal/quit _sigquit)
+(set! chicken.process.signal#signal/alrm _sigalrm)
+(set! chicken.process.signal#signal/vtalrm _sigvtalrm)
+(set! chicken.process.signal#signal/prof _sigprof)
+(set! chicken.process.signal#signal/io _sigio)
+(set! chicken.process.signal#signal/urg _sigurg)
+(set! chicken.process.signal#signal/chld _sigchld)
+(set! chicken.process.signal#signal/cont _sigcont)
+(set! chicken.process.signal#signal/stop _sigstop)
+(set! chicken.process.signal#signal/tstp _sigtstp)
+(set! chicken.process.signal#signal/pipe _sigpipe)
+(set! chicken.process.signal#signal/xcpu _sigxcpu)
+(set! chicken.process.signal#signal/xfsz _sigxfsz)
+(set! chicken.process.signal#signal/usr1 _sigusr1)
+(set! chicken.process.signal#signal/usr2 _sigusr2)
+(set! chicken.process.signal#signal/winch _sigwinch)
+(set! chicken.process.signal#signal/bus _sigbus)
+(set! chicken.process.signal#signal/break 0)
 
-(define signals-list
+(set! chicken.process.signal#signals-list
   (list
-    signal/term signal/kill signal/int signal/hup signal/fpe signal/ill
-    signal/segv signal/abrt signal/trap signal/quit signal/alrm signal/vtalrm
-    signal/prof signal/io signal/urg signal/chld signal/cont signal/stop
-    signal/tstp signal/pipe signal/xcpu signal/xfsz signal/usr1 signal/usr2
-    signal/winch signal/bus))
+   chicken.process.signal#signal/term
+   chicken.process.signal#signal/kill
+   chicken.process.signal#signal/int
+   chicken.process.signal#signal/hup
+   chicken.process.signal#signal/fpe
+   chicken.process.signal#signal/ill
+   chicken.process.signal#signal/segv
+   chicken.process.signal#signal/abrt
+   chicken.process.signal#signal/trap
+   chicken.process.signal#signal/quit
+   chicken.process.signal#signal/alrm
+   chicken.process.signal#signal/vtalrm
+   chicken.process.signal#signal/prof
+   chicken.process.signal#signal/io
+   chicken.process.signal#signal/urg
+   chicken.process.signal#signal/chld
+   chicken.process.signal#signal/cont
+   chicken.process.signal#signal/stop
+   chicken.process.signal#signal/tstp
+   chicken.process.signal#signal/pipe
+   chicken.process.signal#signal/xcpu
+   chicken.process.signal#signal/xfsz
+   chicken.process.signal#signal/usr1
+   chicken.process.signal#signal/usr2
+   chicken.process.signal#signal/winch
+   chicken.process.signal#signal/bus))
 
-(define set-signal-mask!
+(set! chicken.process.signal#set-signal-mask!
   (lambda (sigs)
     (##sys#check-list sigs 'set-signal-mask!)
     (##core#inline "C_sigemptyset" 0)
@@ -700,50 +569,53 @@ static C_word C_i_fifo_p(C_word name)
     (when (fx< (##core#inline "C_sigprocmask_set" 0) 0)
       (posix-error #:process-error 'set-signal-mask! "cannot set signal mask") )))
 
-(define signal-mask
+(define chicken.process.signal#signal-mask
   (getter-with-setter
    (lambda ()
      (##core#inline "C_sigprocmask_get" 0)
-     (let loop ([sigs signals-list] [mask '()])
+     (let loop ((sigs chicken.process.signal#signals-list) (mask '()))
        (if (null? sigs)
 	   mask
 	   (let ([sig (car sigs)])
 	     (loop (cdr sigs)
 		   (if (##core#inline "C_sigismember" sig) (cons sig mask) mask)) ) ) ) )
-   set-signal-mask!))
+   chicken.process.signal#set-signal-mask!))
 
-(define (signal-masked? sig)
-  (##sys#check-fixnum sig 'signal-masked?)
-  (##core#inline "C_sigprocmask_get" 0)
-  (##core#inline "C_sigismember" sig) )
+(set! chicken.process.signal#signal-masked?
+  (lambda (sig)
+    (##sys#check-fixnum sig 'signal-masked?)
+    (##core#inline "C_sigprocmask_get" 0)
+    (##core#inline "C_sigismember" sig)) )
 
-(define (signal-mask! sig)
-  (##sys#check-fixnum sig 'signal-mask!)
-  (##core#inline "C_sigemptyset" 0)
-  (##core#inline "C_sigaddset" sig)
-  (when (fx< (##core#inline "C_sigprocmask_block" 0) 0)
-    (posix-error #:process-error 'signal-mask! "cannot block signal") ))
+(set! chicken.process.signal#signal-mask!
+  (lambda (sig)
+    (##sys#check-fixnum sig 'signal-mask!)
+    (##core#inline "C_sigemptyset" 0)
+    (##core#inline "C_sigaddset" sig)
+    (when (fx< (##core#inline "C_sigprocmask_block" 0) 0)
+      (posix-error #:process-error 'signal-mask! "cannot block signal") )))
 
-(define (signal-unmask! sig)
-  (##sys#check-fixnum sig 'signal-unmask!)
-  (##core#inline "C_sigemptyset" 0)
-  (##core#inline "C_sigaddset" sig)
-  (when (fx< (##core#inline "C_sigprocmask_unblock" 0) 0)
-    (posix-error #:process-error 'signal-unmask! "cannot unblock signal") ) )
+(set! chicken.process.signal#signal-unmask!
+  (lambda (sig)
+    (##sys#check-fixnum sig 'signal-unmask!)
+    (##core#inline "C_sigemptyset" 0)
+    (##core#inline "C_sigaddset" sig)
+    (when (fx< (##core#inline "C_sigprocmask_unblock" 0) 0)
+      (posix-error #:process-error 'signal-unmask! "cannot unblock signal") )) )
 
 
 ;;; Getting group- and user-information:
 
-(define current-user-id
+(set! chicken.process-context.posix#current-user-id
   (getter-with-setter
    (foreign-lambda int "C_getuid")
    (lambda (id)
      (when (fx< (##core#inline "C_setuid" id) 0)
        (##sys#update-errno)
-       (##sys#error 'set-user-id! "cannot set user ID" id) ) )
+       (##sys#error 'current-user-id!-setter "cannot set user ID" id) ) )
    "(current-user-id)"))
 
-(define current-effective-user-id
+(set! chicken.process-context.posix#current-effective-user-id
   (getter-with-setter
    (foreign-lambda int "C_geteuid")
    (lambda (id)
@@ -753,16 +625,16 @@ static C_word C_i_fifo_p(C_word name)
 	 'effective-user-id!-setter "cannot set effective user ID" id) ) )
    "(current-effective-user-id)"))
 
-(define current-group-id
+(set! chicken.process-context.posix#current-group-id
   (getter-with-setter
    (foreign-lambda int "C_getgid")
    (lambda (id)
     (when (fx< (##core#inline "C_setgid" id) 0)
       (##sys#update-errno)
-      (##sys#error 'set-user-id! "cannot set group ID" id) ) )
+      (##sys#error 'current-group-id!-setter "cannot set group ID" id) ) )
    "(current-group-id)") )
 
-(define current-effective-group-id
+(set! chicken.process-context.posix#current-effective-group-id
   (getter-with-setter 
    (foreign-lambda int "C_getegid")
    (lambda (id)
@@ -780,27 +652,32 @@ static C_word C_i_fifo_p(C_word name)
 (define-foreign-variable _user-dir c-string "C_user->pw_dir")
 (define-foreign-variable _user-shell c-string "C_user->pw_shell")
 
-(define (user-information user #!optional as-vector)
-  (let ([r (if (fixnum? user)
-               (##core#inline "C_getpwuid" user)
-               (begin
-                 (##sys#check-string user 'user-information)
-                 (##core#inline "C_getpwnam" (##sys#make-c-string user 'user-information)) ) ) ] )
-    (and r
-         ((if as-vector vector list)
-          _user-name
-          _user-passwd
-          _user-uid
-          _user-gid
-          _user-gecos
-          _user-dir
-          _user-shell) ) ) )
+(set! chicken.process-context.posix#user-information
+  (lambda (user #!optional as-vector)
+    (let ([r (if (fixnum? user)
+		 (##core#inline "C_getpwuid" user)
+		 (begin
+		   (##sys#check-string user 'user-information)
+		   (##core#inline "C_getpwnam" (##sys#make-c-string user 'user-information)) ) ) ] )
+      (and r
+	   ((if as-vector vector list)
+	    _user-name
+	    _user-passwd
+	    _user-uid
+	    _user-gid
+	    _user-gecos
+	    _user-dir
+	    _user-shell) ) )) )
 
-(define (current-user-name)
-  (car (user-information (current-user-id))) )
+(set! chicken.process-context.posix#current-user-name
+  (lambda ()
+    (car (chicken.process-context.posix#user-information
+	  (chicken.process-context.posix#current-user-id)))) )
 
-(define (current-effective-user-name)
-  (car (user-information (current-effective-user-id))) )
+(set! chicken.process-context.posix#current-effective-user-name
+  (lambda ()
+    (car (chicken.process-context.posix#user-information
+	  (chicken.process-context.posix#current-effective-user-id)))) )
 
 (define chown
   (lambda (loc f uid gid)
@@ -808,7 +685,7 @@ static C_word C_i_fifo_p(C_word name)
     (##sys#check-fixnum gid loc)
     (let ((r (cond
 	      ((port? f)
-	       (##core#inline "C_fchown" (port->fileno f) uid gid))
+	       (##core#inline "C_fchown" (chicken.file.posix#port->fileno f) uid gid))
 	      ((fixnum? f)
 	       (##core#inline "C_fchown" f uid gid))
 	      ((string? f)
@@ -820,14 +697,15 @@ static C_word C_i_fifo_p(C_word name)
       (when (fx< r 0)
 	(posix-error #:file-error loc "cannot change file owner" f uid gid) )) ) )
 
-(define (create-session)
-  (let ([a (##core#inline "C_setsid" #f)])
-    (when (fx< a 0)
-      (##sys#update-errno)
-      (##sys#error 'create-session "cannot create session") )
-    a) )
+(set! chicken.process-context.posix#create-session
+  (lambda ()
+   (let ([a (##core#inline "C_setsid" #f)])
+     (when (fx< a 0)
+	   (##sys#update-errno)
+	   (##sys#error 'create-session "cannot create session") )
+     a)) )
 
-(define process-group-id
+(set! chicken.process-context.posix#process-group-id
   (getter-with-setter
    (lambda (pid)
      (##sys#check-fixnum pid 'process-group-id)
@@ -837,17 +715,17 @@ static C_word C_i_fifo_p(C_word name)
          (##sys#error 'process-group-id "cannot retrieve process group ID" pid) )
        a))
    (lambda (pid pgid)
-     (##sys#check-fixnum pid 'set-process-group-id!)
-     (##sys#check-fixnum pgid 'set-process-group-id!)
+     (##sys#check-fixnum pid 'process-group)
+     (##sys#check-fixnum pgid 'process-group)
      (when (fx< (##core#inline "C_setpgid" pid pgid) 0)
        (##sys#update-errno)
-       (##sys#error 'set-process-group-id! "cannot set process group ID" pid pgid) ) )
+       (##sys#error 'process-group "cannot set process group ID" pid pgid) ) )
    "(process-group-id pid)"))
 
 
 ;;; Hard and symbolic links:
 
-(define create-symbolic-link
+(set! chicken.file.posix#create-symbolic-link
   (lambda (old new)
     (##sys#check-string old 'create-symbolic-link)
     (##sys#check-string new 'create-symbolic-link)
@@ -870,27 +748,28 @@ static C_word C_i_fifo_p(C_word name)
             (posix-error #:file-error location "cannot read symbolic link" fname)
             (substring buf 0 len))))))
 
-(define (read-symbolic-link fname #!optional canonicalize)
-  (##sys#check-string fname 'read-symbolic-link)
-  (if canonicalize
-      (receive (base-origin base-directory directory-components) (decompose-directory fname)
-	(let loop ((components directory-components)
-		   (result (string-append (or base-origin "") (or base-directory ""))))
-	  (if (null? components)
-	      result
-	      (let ((pathname (make-pathname result (car components))))
-		(if (##sys#file-exists? pathname #f #f 'read-symbolic-link)
-		    (loop (cdr components)
-			  (if (symbolic-link? pathname)
-			      (let ((target (##sys#read-symbolic-link pathname 'read-symbolic-link)))
-				(if (absolute-pathname? target)
-				    target
-				    (make-pathname result target)))
-			      pathname))
-		    (##sys#signal-hook #:file-error 'read-symbolic-link "could not canonicalize path with symbolic links, component does not exist" pathname))))))
-      (##sys#read-symbolic-link fname 'read-symbolic-link)))
+(set! chicken.file.posix#read-symbolic-link
+  (lambda (fname #!optional canonicalize)
+    (##sys#check-string fname 'read-symbolic-link)
+    (if canonicalize
+	(receive (base-origin base-directory directory-components) (decompose-directory fname)
+	  (let loop ((components directory-components)
+		     (result (string-append (or base-origin "") (or base-directory ""))))
+	    (if (null? components)
+		result
+		(let ((pathname (make-pathname result (car components))))
+		  (if (##sys#file-exists? pathname #f #f 'read-symbolic-link)
+		      (loop (cdr components)
+			    (if (chicken.file.posix#symbolic-link? pathname)
+				(let ((target (##sys#read-symbolic-link pathname 'read-symbolic-link)))
+				  (if (absolute-pathname? target)
+				      target
+				      (make-pathname result target)))
+				pathname))
+		      (##sys#signal-hook #:file-error 'read-symbolic-link "could not canonicalize path with symbolic links, component does not exist" pathname))))))
+	(##sys#read-symbolic-link fname 'read-symbolic-link))))
 
-(define file-link
+(set! chicken.file.posix#file-link
   (let ([link (foreign-lambda int "link" c-string c-string)])
     (lambda (old new)
       (##sys#check-string old 'file-link)
@@ -1085,7 +964,7 @@ static C_word C_i_fifo_p(C_word name)
 
 ;;; Other file operations:
 
-(define file-truncate
+(set! chicken.file.posix#file-truncate
   (lambda (fname off)
     (##sys#check-exact-integer off 'file-truncate)
     (when (fx< (cond [(string? fname) (##core#inline "C_truncate" (##sys#make-c-string fname 'file-truncate) off)]
@@ -1101,10 +980,6 @@ static C_word C_i_fifo_p(C_word name)
 (define-foreign-variable _f_rdlck int "F_RDLCK")
 (define-foreign-variable _f_unlck int "F_UNLCK")
 
-(define file-lock)
-(define file-lock/blocking)
-(define file-test-lock)
-
 (let ()
   (define (setup port args loc)
     (let-optionals* args ([start 0]
@@ -1118,7 +993,7 @@ static C_word C_i_fifo_p(C_word name)
       (##sys#make-structure 'lock port start len) ) )
   (define (err msg lock loc)
     (posix-error #:file-error loc msg (##sys#slot lock 1) (##sys#slot lock 2) (##sys#slot lock 3)) )
-  (set! file-lock
+  (set! chicken.file.posix#file-lock
     (lambda (port . args)
       (let loop ()
 	(let ((lock (setup port args 'file-lock)))
@@ -1127,7 +1002,7 @@ static C_word C_i_fifo_p(C_word name)
 		((fx= _errno _eintr) (##sys#dispatch-interrupt loop))
 		(else (err "cannot lock file" lock 'file-lock)))
 	      lock)))))
-  (set! file-lock/blocking
+  (set! chicken.file.posix#file-lock/blocking
     (lambda (port . args)
       (let loop ()
 	(let ((lock (setup port args 'file-lock/blocking)))
@@ -1136,25 +1011,27 @@ static C_word C_i_fifo_p(C_word name)
 		((fx= _errno _eintr) (##sys#dispatch-interrupt loop))
 		(else (err "cannot lock file" lock 'file-lock/blocking)))
 	      lock)))))
-  (set! file-test-lock
+  (set! chicken.file.posix#file-test-lock
     (lambda (port . args)
       (let ([lock (setup port args 'file-test-lock)])
         (cond [(##core#inline "C_flock_test" port) => (lambda (c) (and (not (fx= c 0)) c))]
               [else (err "cannot unlock file" lock 'file-test-lock)] ) ) ) ) )
 
-(define file-unlock
+(set! chicken.file.posix#file-unlock
   (lambda (lock)
     (##sys#check-structure lock 'lock 'file-unlock)
     (##core#inline "C_flock_setup" _f_unlck (##sys#slot lock 2) (##sys#slot lock 3))
     (when (fx< (##core#inline "C_flock_lock" (##sys#slot lock 1)) 0)
       (cond
-	((fx= _errno _eintr) (##sys#dispatch-interrupt (lambda () (file-unlock lock))))
-	(else (posix-error #:file-error 'file-unlock "cannot unlock file" lock))))))
+       ((fx= _errno _eintr)
+	(##sys#dispatch-interrupt
+	 (lambda () (chicken.file.posix#file-unlock lock))))
+       (else (posix-error #:file-error 'file-unlock "cannot unlock file" lock))))))
 
 
 ;;; FIFOs:
 
-(define create-fifo
+(set! chicken.file.posix#create-fifo
   (lambda (fname . mode)
     (##sys#check-string fname 'create-fifo)
     (let ([mode (if (pair? mode) (car mode) (fxior _s_irwxu (fxior _s_irwxg _s_irwxo)))])
@@ -1162,24 +1039,10 @@ static C_word C_i_fifo_p(C_word name)
       (when (fx< (##core#inline "C_mkfifo" (##sys#make-c-string fname 'create-fifo) mode) 0)
       (posix-error #:file-error 'create-fifo "cannot create FIFO" fname mode) ) ) ) )
 
-(define fifo?
-  (lambda (filename)
-    (##sys#check-string filename 'fifo?)
-    (case (##core#inline 
-	   "C_i_fifo_p"
-	   (##sys#make-c-string filename 'fifo?))
-      ((#t) #t)
-      ((#f) #f)
-      ((0) (##sys#signal-hook #:file-error 'fifo? "file does not exist" filename) )
-      (else
-       (posix-error 
-	#:file-error 'fifo?
-	"system error while trying to access file" filename) ) ) ) )
-
 
 ;;; Time related things:
 
-(define string->time
+(set! chicken.time.posix#string->time
   (let ((strptime (foreign-lambda scheme-object "C_strptime" scheme-object scheme-object scheme-object scheme-pointer))
         (tm-size (foreign-value "sizeof(struct tm)" int)))
     (lambda (tim #!optional (fmt "%a %b %e %H:%M:%S %Z %Y"))
@@ -1187,7 +1050,7 @@ static C_word C_i_fifo_p(C_word name)
       (##sys#check-string fmt 'string->time)
       (strptime (##sys#make-c-string tim 'string->time) (##sys#make-c-string fmt) (make-vector 10 #f) (##sys#make-string tm-size #\nul)) ) ) )
 
-(define utc-time->seconds
+(set! chicken.time.posix#utc-time->seconds
   (let ((tm-size (foreign-value "sizeof(struct tm)" int)))
     (lambda (tm)
       (check-time-vector 'utc-time->seconds tm)
@@ -1196,7 +1059,7 @@ static C_word C_i_fifo_p(C_word name)
             (##sys#error 'utc-time->seconds "cannot convert time vector to seconds" tm)
             t)))))
 
-(define local-timezone-abbreviation
+(set! chicken.time.posix#local-timezone-abbreviation
   (foreign-lambda* c-string ()
    "\n#if !defined(__CYGWIN__) && !defined(__SVR4) && !defined(__uClinux__) && !defined(__hpux__) && !defined(_AIX)\n"
    "time_t clock = time(NULL);"
@@ -1210,12 +1073,13 @@ static C_word C_i_fifo_p(C_word name)
 
 ;;; Other things:
 
-(define set-alarm! (foreign-lambda int "C_alarm" int))
+(set! chicken.process.signal#set-alarm!
+  (foreign-lambda int "C_alarm" int))
 
 
 ;;; Process handling:
 
-(define process-fork
+(set! chicken.process#process-fork
   (let ((fork (foreign-lambda int "C_fork")))
     (lambda (#!optional thunk killothers)
       ;; flush all stdio streams before fork
@@ -1234,61 +1098,64 @@ static C_word C_i_fifo_p(C_word name)
 		  (exit 0)))))
 	    pid)))))
 
-(define (process-execute filename #!optional (arglist '()) envlist exactf)
-  (call-with-exec-args
-   'process-execute filename (lambda (x) x) arglist envlist
-   (lambda (prg argbuf envbuf)
-     (let ((r (if envbuf
-		  (##core#inline "C_u_i_execve" prg argbuf envbuf)
-		  (##core#inline "C_u_i_execvp" prg argbuf))))
-       (when (fx= r -1)
-	 (posix-error #:process-error 'process-execute "cannot execute process" filename))))))
+(set! chicken.process#process-execute
+  (lambda (filename #!optional (arglist '()) envlist exactf)
+    (call-with-exec-args
+     'process-execute filename (lambda (x) x) arglist envlist
+     (lambda (prg argbuf envbuf)
+       (let ((r (if envbuf
+		    (##core#inline "C_u_i_execve" prg argbuf envbuf)
+		    (##core#inline "C_u_i_execvp" prg argbuf))))
+	 (when (fx= r -1)
+	   (posix-error #:process-error 'process-execute "cannot execute process" filename)))))))
 
 (define-foreign-variable _wnohang int "WNOHANG")
 (define-foreign-variable _wait-status int "C_wait_status")
 
-(define (##sys#process-wait pid nohang)
-  (let* ([res (##core#inline "C_waitpid" pid (if nohang _wnohang 0))]
-	 [norm (##core#inline "C_WIFEXITED" _wait-status)] )
+(define (process-wait-impl pid nohang)
+  (let* ((res (##core#inline "C_waitpid" pid (if nohang _wnohang 0)))
+	 (norm (##core#inline "C_WIFEXITED" _wait-status)) )
     (if (and (fx= res -1) (fx= _errno _eintr))
 	(##sys#dispatch-interrupt
-         (lambda () (##sys#process-wait pid nohang)))
+         (lambda () (process-wait-impl pid nohang)))
 	(values
 	 res
 	 norm
-	 (cond [norm (##core#inline "C_WEXITSTATUS" _wait-status)]
-	       [(##core#inline "C_WIFSIGNALED" _wait-status)
-		(##core#inline "C_WTERMSIG" _wait-status)]
-	       [else (##core#inline "C_WSTOPSIG" _wait-status)] ) )) ) )
+	 (cond (norm (##core#inline "C_WEXITSTATUS" _wait-status))
+	       ((##core#inline "C_WIFSIGNALED" _wait-status)
+		(##core#inline "C_WTERMSIG" _wait-status))
+	       (else (##core#inline "C_WSTOPSIG" _wait-status)) ) )) ) )
 
-(define parent-process-id (foreign-lambda int "C_getppid"))
+(set! chicken.process-context.posix#parent-process-id (foreign-lambda int "C_getppid"))
 
-(define process-signal
+(set! chicken.process#process-signal
   (lambda (id . sig)
-    (let ([sig (if (pair? sig) (car sig) _sigterm)])
+    (let ((sig (if (pair? sig) (car sig) _sigterm)))
       (##sys#check-fixnum id 'process-signal)
       (##sys#check-fixnum sig 'process-signal)
-      (let ([r (##core#inline "C_kill" id sig)])
+      (let ((r (##core#inline "C_kill" id sig)))
       (when (fx= r -1) (posix-error #:process-error 'process-signal "could not send signal to process" id sig) ) ) ) ) )
 
-(define (##sys#shell-command)
+(define (shell-command loc)
   (or (get-environment-variable "SHELL") "/bin/sh") )
 
-(define (##sys#shell-command-arguments cmdlin)
+(define (shell-command-arguments cmdlin)
   (list "-c" cmdlin) )
 
-(define process-run
+(set! chicken.process#process-run
   (lambda (f . args)
-    (let ([args (if (pair? args) (car args) #f)]
-	  [pid (process-fork)] )
-      (cond [(not (eq? 0 pid)) pid]
-	    [args (process-execute f args)]
-	    [else
-	     (process-execute (##sys#shell-command) (##sys#shell-command-arguments f)) ] ) ) ) )
+    (let ((args (if (pair? args) (car args) #f))
+	  (pid (chicken.process#process-fork)) )
+      (cond ((not (eq? 0 pid)) pid)
+	    (args (chicken.process#process-execute f args))
+	    (else
+	     (chicken.process#process-execute
+	      (shell-command 'process-run)
+	      (shell-command-arguments f)) ) ) ) ) )
 
 ;;; Run subprocess connected with pipes:
 
-;; ##sys#process
+;; process-impl
 ; loc            caller procedure symbol
 ; cmd            pathname or commandline
 ; args           string-list or '()
@@ -1305,57 +1172,56 @@ static C_word C_i_fifo_p(C_word name)
 
 ;FIXME process-execute, process-fork don't show parent caller
 
-(define ##sys#process
-  (let (
-      [replace-fd
-        (lambda (loc fd stdfd)
-          (unless (fx= stdfd fd)
-            (duplicate-fileno fd stdfd)
-            (file-close fd) ) )] )
-    (let (
-        [make-on-close
-          (lambda (loc pid clsvec idx idxa idxb)
-            (lambda ()
-              (vector-set! clsvec idx #t)
-              (when (and (vector-ref clsvec idxa) (vector-ref clsvec idxb))
-                (receive [_ flg cod] (##sys#process-wait pid #f)
-                  (unless flg
-                    (##sys#signal-hook #:process-error loc
-                      "abnormal process exit" pid cod)) ) ) ) )]
-        [needed-pipe
-          (lambda (loc port)
-            (and port
-                 (receive [i o] (create-pipe) (cons i o))) )]
+(define process-impl
+  (let ((replace-fd
+	 (lambda (loc fd stdfd)
+	   (unless (fx= stdfd fd)
+	     (chicken.file.posix#duplicate-fileno fd stdfd)
+	     (chicken.file.posix#file-close fd) ) )) )
+    (let ((make-on-close
+	   (lambda (loc pid clsvec idx idxa idxb)
+	     (lambda ()
+	       (vector-set! clsvec idx #t)
+	       (when (and (vector-ref clsvec idxa) (vector-ref clsvec idxb))
+		 (receive (_ flg cod) (process-wait-impl pid #f)
+		   (unless flg
+		     (##sys#signal-hook #:process-error loc
+					"abnormal process exit" pid cod)) ) ) ) ))
+	  (needed-pipe
+	   (lambda (loc port)
+	     (and port
+		  (receive (i o) (chicken.process#create-pipe)
+		    (cons i o))) ))
         [connect-parent
           (lambda (loc pipe port fd)
             (and port
                  (let ([usefd (car pipe)] [clsfd (cdr pipe)])
-                   (file-close clsfd)
+                   (chicken.file.posix#file-close clsfd)
                    usefd) ) )]
         [connect-child
           (lambda (loc pipe port stdfd)
             (when port
               (let ([usefd (car pipe)] [clsfd (cdr pipe)])
-                (file-close clsfd)
+                (chicken.file.posix#file-close clsfd)
                 (replace-fd loc usefd stdfd)) ) )] )
       (let (
-          [spawn
-            (let ([swapped-ends
-                    (lambda (pipe)
-                      (and pipe
-                           (cons (cdr pipe) (car pipe)) ) )])
-              (lambda (loc cmd args env stdoutf stdinf stderrf)
-                (let ([ipipe (needed-pipe loc stdinf)]
-                      [opipe (needed-pipe loc stdoutf)]
-                      [epipe (needed-pipe loc stderrf)])
-                  (values
-                    ipipe (swapped-ends opipe) epipe
-                    (process-fork
-                      (lambda ()
-                        (connect-child loc opipe stdinf fileno/stdin)
-                        (connect-child loc (swapped-ends ipipe) stdoutf fileno/stdout)
-                        (connect-child loc (swapped-ends epipe) stderrf fileno/stderr)
-                        (process-execute cmd args env)))) ) ) )]
+          (spawn
+	   (let ([swapped-ends
+		  (lambda (pipe)
+		    (and pipe
+			 (cons (cdr pipe) (car pipe)) ) )])
+	     (lambda (loc cmd args env stdoutf stdinf stderrf)
+	       (let ([ipipe (needed-pipe loc stdinf)]
+		     [opipe (needed-pipe loc stdoutf)]
+		     [epipe (needed-pipe loc stderrf)])
+		 (values
+		  ipipe (swapped-ends opipe) epipe
+		  (chicken.process#process-fork
+		   (lambda ()
+		     (connect-child loc opipe stdinf chicken.file.posix#fileno/stdin)
+		     (connect-child loc (swapped-ends ipipe) stdoutf chicken.file.posix#fileno/stdout)
+		     (connect-child loc (swapped-ends epipe) stderrf chicken.file.posix#fileno/stderr)
+		     (chicken.process#process-execute cmd args env)))) ) ) ))
           [input-port
             (lambda (loc pid cmd pipe stdf stdfd on-close)
               (and-let* ([fd (connect-parent loc pipe stdf stdfd)])
@@ -1370,43 +1236,44 @@ static C_word C_i_fifo_p(C_word name)
             ;When shared assume already "closed", since only created ports
             ;should be explicitly closed, and when one is closed we want
             ;to wait.
-            (let ([clsvec (vector (not stdinf) (not stdoutf) (not stderrf))])
+            (let ((clsvec (vector (not stdinf) (not stdoutf) (not stderrf))))
               (values
-                (input-port loc pid cmd inpipe stdinf fileno/stdin
-                  (make-on-close loc pid clsvec 0 1 2))
-                (output-port loc pid cmd outpipe stdoutf fileno/stdout
-                  (make-on-close loc pid clsvec 1 0 2))
-                pid
-                (input-port loc pid cmd errpipe stderrf fileno/stderr
-                  (make-on-close loc pid clsvec 2 0 1)) ) ) ) ) ) ) ) )
+	       (input-port loc pid cmd inpipe stdinf
+			   chicken.file.posix#fileno/stdin
+			   (make-on-close loc pid clsvec 0 1 2))
+	       (output-port loc pid cmd outpipe stdoutf
+			    chicken.file.posix#fileno/stdout
+			    (make-on-close loc pid clsvec 1 0 2))
+	       pid
+	       (input-port loc pid cmd errpipe stderrf
+			   chicken.file.posix#fileno/stderr
+			   (make-on-close loc pid clsvec 2 0 1)) ) ) ) ) ) ) ) )
 
 ;;; Run subprocess connected with pipes:
 
-(define process)
-(define process*)
-
+;; TODO: See if this can be moved to posix-common
 (let ((%process
         (lambda (loc err? cmd args env k)
-          (let ([chkstrlst
-                 (lambda (lst)
-                   (##sys#check-list lst loc)
-                   (for-each (cut ##sys#check-string <> loc) lst) )])
+          (let ((chkstrlst
+		 (lambda (lst)
+		   (##sys#check-list lst loc)
+		   (for-each (cut ##sys#check-string <> loc) lst) )))
             (##sys#check-string cmd loc)
             (if args
                 (chkstrlst args)
                 (begin
-                  (set! args (##sys#shell-command-arguments cmd))
-                  (set! cmd (##sys#shell-command)) ) )
+                  (set! args (shell-command-arguments cmd))
+                  (set! cmd (shell-command loc)) ) )
 	    (when env (check-environment-list env loc))
 	    (##sys#call-with-values
-	     (lambda () (##sys#process loc cmd args env #t #t err?))
+	     (lambda () (process-impl loc cmd args env #t #t err?))
 	     k)))))
-  (set! process
+  (set! chicken.process#process
     (lambda (cmd #!optional args env exactf)
       (%process 
        'process #f cmd args env
        (lambda (i o p e) (values i o p)))))
-  (set! process*
+  (set! chicken.process#process*
     (lambda (cmd #!optional args env exactf)
       (%process
        'process* #t cmd args env
@@ -1415,7 +1282,7 @@ static C_word C_i_fifo_p(C_word name)
 
 ;;; chroot:
 
-(define set-root-directory!
+(set! chicken.process-context.posix#set-root-directory!
   (let ([chroot (foreign-lambda int "chroot" c-string)])
     (lambda (dir)
       (##sys#check-string dir 'set-root-directory!)
@@ -1424,4 +1291,4 @@ static C_word C_i_fifo_p(C_word name)
 
 ;;; unimplemented stuff:
 
-(define-unimplemented process-spawn)
+(set!-unimplemented chicken.process#process-spawn)

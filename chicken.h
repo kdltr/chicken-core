@@ -2405,7 +2405,9 @@ inline static C_word C_num_to_int(C_word x)
   if(x & C_FIXNUM_BIT) {
     return C_unfix(x);
   } else {
+#if DEBUGBUILD /* removes a warning with clang */
     C_CHECKp(x,C_bignump(C_VAL1(x)),0);
+#endif
     if (C_bignum_negativep(x)) return -(C_word)C_bignum_digits(x)[0];
     else return (C_word)C_bignum_digits(x)[0];  /* should never be larger */
   }

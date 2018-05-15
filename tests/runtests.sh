@@ -63,6 +63,9 @@ rm -fr *.exe *.so *.o *.import.* a.out ../foo.import.* test-repository
 mkdir -p test-repository
 cp $TYPESDB test-repository/types.db
 
+echo "======================================== types.db consistency ..."
+$interpret -s types-db-consistency.scm ${TYPESDB}
+
 echo "======================================== version tests ..."
 $compile version-tests.scm
 ./a.out

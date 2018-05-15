@@ -76,8 +76,8 @@
   (exit 64) )
 
 (define arguments (command-line-arguments))
-(define host-mode (member "-host" arguments))
 (define cross-chicken (feature? #:cross-chicken))
+(define host-mode (or (not cross-chicken) (member "-host" arguments)))
 
 (define (back-slash->forward-slash path)
   (if windows-shell
@@ -287,9 +287,9 @@
 ;;; Locate object files for linking:
 
 (define (repo-path)
-  (if (and cross-chicken (not host-mode))
-      (destination-repository 'target)
-      (repository-path)))
+  (if host-mode
+      (repository-path)
+      (destination-repository 'target)))
 
 (define (find-object-file name)
   (let ((o (make-pathname #f name object-extension)))
@@ -773,8 +773,12 @@ EOF
 		      [(and (> (string-length arg) 1)
 			    (char=? #\- (string-ref arg 0)) )
 		       (cond [(char=? #\L (string-ref arg 1))
+			      (when (char-whitespace? (string-ref arg 2))
+				    (error "bad -L argument, <DIR> starts with whitespace" arg))
  			      (set! link-options (append link-options (list arg))) ]
  			     [(char=? #\I (string-ref arg 1))
+			      (when (char-whitespace? (string-ref arg 2))
+				    (error "bad -I argument: <DIR> starts with whitespace" arg))
  			      (set! compile-options (append compile-options (list arg))) ]
 			     [(char=? #\D (string-ref arg 1))
 			      (t-options "-feature" (substring arg 2)) ]
@@ -939,7 +943,7 @@ EOF
 	      (list (string-append link-output-flag (quotewrap target-filename))
 		    (linker-options)
 		    (linker-libraries) ) ) ) ) )
-    (when (and osx (or (not cross-chicken) host-mode))
+    (when (and osx host-mode)
       (command
        (string-append
 	POSTINSTALL_PROGRAM " -change " (libchicken) ".dylib "

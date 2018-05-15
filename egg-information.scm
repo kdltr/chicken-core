@@ -26,11 +26,16 @@
 
 ;;; load egg-info from file and perform validation
 
-(define (load-egg-info fname)
+(define (locate-egg-file fname)
   (let ((fname* (make-pathname (make-pathname (pathname-directory fname)
                                               "chicken")
-                               (pathname-file fname) (pathname-extension fname))))
-    (with-input-from-file (if (file-exists? fname*) fname* fname) read)))
+                               (pathname-file fname) 
+                               (pathname-extension fname))))
+    (if (file-exists? fname*) fname* fname)))
+
+(define (load-egg-info fname)
+  (let ((fname (locate-egg-file fname)))
+    (with-input-from-file fname read)))
 
 
 ;;; lookup specific toplevel properties of egg-information

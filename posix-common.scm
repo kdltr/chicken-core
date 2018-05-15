@@ -98,9 +98,16 @@ EOF
 
 (define-syntax define-unimplemented
   (syntax-rules ()
-    [(_ ?name)
+    ((_ ?name)
      (define (?name . _)
-       (error '?name (##core#immutable '"this function is not available on this platform")) ) ] ) )
+       (error '?name (##core#immutable '"this function is not available on this platform")) ) ) ) )
+
+(define-syntax set!-unimplemented
+  (syntax-rules ()
+    ((_ ?name)
+     (set! ?name
+       (lambda _
+	 (error '?name (##core#immutable '"this function is not available on this platform"))) ) ) ) )
 
 
 ;;; Error codes:
@@ -195,7 +202,7 @@ EOF
 
 (define (stat file link err loc)
   (let ((r (cond ((fixnum? file) (##core#inline "C_u_i_fstat" file))
-                 ((port? file) (##core#inline "C_u_i_fstat" (port->fileno file)))
+                 ((port? file) (##core#inline "C_u_i_fstat" (chicken.file.posix#port->fileno file)))
                  ((string? file)
                   (let ((path (##sys#make-c-string file loc)))
 		    (if link
@@ -210,102 +217,125 @@ EOF
 	    #f)
 	#t)))
 
-(define (file-stat f #!optional link)
-  (stat f link #t 'file-stat)
-  (vector _stat_st_ino _stat_st_mode _stat_st_nlink
-          _stat_st_uid _stat_st_gid _stat_st_size
-          _stat_st_atime _stat_st_ctime _stat_st_mtime
-          _stat_st_dev _stat_st_rdev
-          _stat_st_blksize _stat_st_blocks) )
+(set! chicken.file.posix#file-stat
+  (lambda (f #!optional link)
+    (stat f link #t 'file-stat)
+    (vector _stat_st_ino _stat_st_mode _stat_st_nlink
+	    _stat_st_uid _stat_st_gid _stat_st_size
+	    _stat_st_atime _stat_st_ctime _stat_st_mtime
+	    _stat_st_dev _stat_st_rdev
+	    _stat_st_blksize _stat_st_blocks) ) )
 
-(define (set-file-permissions! f p)
-  (##sys#check-fixnum p 'set-file-permissions!)
-  (let ((r (cond ((fixnum? f) (##core#inline "C_fchmod" f p))
-		 ((port? f) (##core#inline "C_fchmod" (port->fileno f) p))
-		 ((string? f)
-		  (##core#inline "C_chmod"
-				 (##sys#make-c-string f 'set-file-permissions!) p))
-		 (else
-		  (##sys#signal-hook
-		   #:type-error 'file-permissions
-		   "bad argument type - not a fixnum, port or string" f)) ) ) )
-    (when (fx< r 0)
-      (posix-error #:file-error 'set-file-permissions! "cannot change file permissions" f p) ) ))
-
-(define (file-modification-time f) (stat f #f #t 'file-modification-time) _stat_st_mtime)
-(define (file-access-time f) (stat f #f #t 'file-access-time) _stat_st_atime)
-(define (file-change-time f) (stat f #f #t 'file-change-time) _stat_st_ctime)
-
-(define (set-file-times! f . rest)
-  (let-optionals* rest ((atime (current-seconds)) (mtime atime))
-    (when atime (##sys#check-exact-integer atime 'set-file-times!))
-    (when mtime (##sys#check-exact-integer mtime 'set-file-times!))
-    (let ((r ((foreign-lambda int "set_file_mtime"
-		c-string scheme-object scheme-object)
-	      f atime mtime)))
+(set! chicken.file.posix#set-file-permissions!
+  (lambda (f p)
+    (##sys#check-fixnum p 'set-file-permissions!)
+    (let ((r (cond ((fixnum? f) (##core#inline "C_fchmod" f p))
+		   ((port? f) (##core#inline "C_fchmod" (chicken.file.posix#port->fileno f) p))
+		   ((string? f)
+		    (##core#inline "C_chmod"
+				   (##sys#make-c-string f 'set-file-permissions!) p))
+		   (else
+		    (##sys#signal-hook
+		     #:type-error 'file-permissions
+		     "bad argument type - not a fixnum, port or string" f)) ) ) )
       (when (fx< r 0)
-	(apply posix-error
-	       #:file-error
-	       'set-file-times! "cannot set file times" f rest)))))
+	(posix-error #:file-error 'set-file-permissions! "cannot change file permissions" f p) ) )))
 
-(define (file-size f) (stat f #f #t 'file-size) _stat_st_size)
+(set! chicken.file.posix#file-modification-time
+  (lambda (f)
+    (stat f #f #t 'file-modification-time)
+    _stat_st_mtime))
+(set! chicken.file.posix#file-access-time
+  (lambda (f)
+    (stat f #f #t 'file-access-time)
+    _stat_st_atime))
+(set! chicken.file.posix#file-change-time
+  (lambda (f)
+    (stat f #f #t 'file-change-time)
+    _stat_st_ctime))
 
-(define (set-file-owner! f uid)
-  (chown 'set-file-owner! f uid -1))
+(set! chicken.file.posix#set-file-times!
+  (lambda (f . rest)
+    (let-optionals* rest ((atime (current-seconds)) (mtime atime))
+      (when atime (##sys#check-exact-integer atime 'set-file-times!))
+      (when mtime (##sys#check-exact-integer mtime 'set-file-times!))
+      (let ((r ((foreign-lambda int "set_file_mtime"
+		  c-string scheme-object scheme-object)
+		f atime mtime)))
+	(when (fx< r 0)
+	  (apply posix-error
+		 #:file-error
+		 'set-file-times! "cannot set file times" f rest))))))
 
-(define (set-file-group! f gid)
-  (chown 'set-file-group! f -1 gid))
+(set! chicken.file.posix#file-size
+  (lambda (f) (stat f #f #t 'file-size) _stat_st_size))
 
-(define file-owner
+(set! chicken.file.posix#set-file-owner!
+  (lambda (f uid)
+    (chown 'set-file-owner! f uid -1)))
+
+(set! chicken.file.posix#set-file-group!
+  (lambda (f gid)
+    (chown 'set-file-group! f -1 gid)))
+
+(set! chicken.file.posix#file-owner
   (getter-with-setter
    (lambda (f) (stat f #f #t 'file-owner) _stat_st_uid)
-   set-file-owner!) )
+   chicken.file.posix#set-file-owner!) )
 
-(define file-group
+(set! chicken.file.posix#file-group
   (getter-with-setter
    (lambda (f) (stat f #f #t 'file-group) _stat_st_gid)
-   set-file-group!) )
+   chicken.file.posix#set-file-group!) )
 
-(define file-permissions
+(set! chicken.file.posix#file-permissions
   (getter-with-setter
    (lambda (f)
      (stat f #f #t 'file-permissions)
      (foreign-value "C_stat_perm" unsigned-int))
-   set-file-permissions! ))
+   chicken.file.posix#set-file-permissions! ))
 
-(define (file-type file #!optional link (err #t))
-  (and (stat file link err 'file-type)
-       (let ((res (foreign-value "C_stat_type" unsigned-int)))
-	 (cond
-	   ((fx= res S_IFREG) 'regular-file)
-	   ((fx= res S_IFLNK) 'symbolic-link)
-	   ((fx= res S_IFDIR) 'directory)
-	   ((fx= res S_IFCHR) 'character-device)
-	   ((fx= res S_IFBLK) 'block-device)
-	   ((fx= res S_IFIFO) 'fifo)
-	   ((fx= res S_IFSOCK) 'socket)
-	   (else 'regular-file)))))
+(set! chicken.file.posix#file-type
+  (lambda (file #!optional link (err #t))
+    (and (stat file link err 'file-type)
+	 (let ((res (foreign-value "C_stat_type" unsigned-int)))
+	   (cond
+	    ((fx= res S_IFREG) 'regular-file)
+	    ((fx= res S_IFLNK) 'symbolic-link)
+	    ((fx= res S_IFDIR) 'directory)
+	    ((fx= res S_IFCHR) 'character-device)
+	    ((fx= res S_IFBLK) 'block-device)
+	    ((fx= res S_IFIFO) 'fifo)
+	    ((fx= res S_IFSOCK) 'socket)
+	    (else 'regular-file))))))
 
-(define (regular-file? file)
-  (eq? 'regular-file (file-type file #f #f)))
+(set! chicken.file.posix#regular-file?
+  (lambda (file)
+    (eq? 'regular-file (chicken.file.posix#file-type file #f #f))))
 
-(define (symbolic-link? file)
-  (eq? 'symbolic-link (file-type file #t #f)))
+(set! chicken.file.posix#symbolic-link?
+  (lambda (file)
+    (eq? 'symbolic-link (chicken.file.posix#file-type file #t #f))))
 
-(define (block-device? file)
-  (eq? 'block-device (file-type file #f #f)))
+(set! chicken.file.posix#block-device?
+  (lambda (file)
+    (eq? 'block-device (chicken.file.posix#file-type file #f #f))))
 
-(define (character-device? file)
-  (eq? 'character-device (file-type file #f #f)))
+(set! chicken.file.posix#character-device?
+  (lambda (file)
+    (eq? 'character-device (chicken.file.posix#file-type file #f #f))))
 
-(define (fifo? file)
-  (eq? 'fifo (file-type file #f #f)))
+(set! chicken.file.posix#fifo?
+  (lambda (file)
+    (eq? 'fifo (chicken.file.posix#file-type file #f #f))))
 
-(define (socket? file)
-  (eq? 'socket (file-type file #f #f)))
+(set! chicken.file.posix#socket?
+  (lambda (file)
+    (eq? 'socket (chicken.file.posix#file-type file #f #f))))
 
-(define (directory? file)
-  (eq? 'directory (file-type file #f #f)))
+(set! chicken.file.posix#directory?
+  (lambda (file)
+    (eq? 'directory (chicken.file.posix#file-type file #f #f))))
 
 
 ;;; File position access:
@@ -314,11 +344,11 @@ EOF
 (define-foreign-variable _seek_cur int "SEEK_CUR")
 (define-foreign-variable _seek_end int "SEEK_END")
 
-(define seek/set _seek_set)
-(define seek/end _seek_end)
-(define seek/cur _seek_cur)
+(set! chicken.file.posix#seek/set _seek_set)
+(set! chicken.file.posix#seek/end _seek_end)
+(set! chicken.file.posix#seek/cur _seek_cur)
 
-(define set-file-position!
+(set! chicken.file.posix#set-file-position!
   (lambda (port pos . whence)
     (let ((whence (if (pair? whence) (car whence) _seek_set)))
       (##sys#check-fixnum pos 'set-file-position!)
@@ -332,7 +362,7 @@ EOF
 		     (##sys#signal-hook #:type-error 'set-file-position! "invalid file" port)) )
 	(posix-error #:file-error 'set-file-position! "cannot set file position" port pos) ) ) ) )
 
-(define file-position
+(set! chicken.file.posix#file-position
   (getter-with-setter
    (lambda (port)
      (let ((pos (cond ((port? port)
@@ -346,7 +376,7 @@ EOF
        (when (< pos 0)
 	 (posix-error #:file-error 'file-position "cannot retrieve file position of port" port) )
        pos) )
-   set-file-position!		; doesn't accept WHENCE
+   chicken.file.posix#set-file-position! ; doesn't accept WHENCE
    "(file-position port)"))
 
 
@@ -356,12 +386,61 @@ EOF
 (define-foreign-variable _stdout_fileno int "STDOUT_FILENO")
 (define-foreign-variable _stderr_fileno int "STDERR_FILENO")
 
-(define fileno/stdin _stdin_fileno)
-(define fileno/stdout _stdout_fileno)
-(define fileno/stderr _stderr_fileno)
+(set! chicken.file.posix#fileno/stdin _stdin_fileno)
+(set! chicken.file.posix#fileno/stdout _stdout_fileno)
+(set! chicken.file.posix#fileno/stderr _stderr_fileno)
 
-(define open-input-file*)
-(define open-output-file*)
+(define-foreign-variable _o_rdonly int "O_RDONLY")
+(define-foreign-variable _o_wronly int "O_WRONLY")
+(define-foreign-variable _o_rdwr int "O_RDWR")
+(define-foreign-variable _o_creat int "O_CREAT")
+(define-foreign-variable _o_append int "O_APPEND")
+(define-foreign-variable _o_excl int "O_EXCL")
+(define-foreign-variable _o_trunc int "O_TRUNC")
+(define-foreign-variable _o_binary int "O_BINARY")
+(define-foreign-variable _o_text int "O_TEXT")
+
+(set! chicken.file.posix#open/rdonly _o_rdonly)
+(set! chicken.file.posix#open/wronly _o_wronly)
+(set! chicken.file.posix#open/rdwr _o_rdwr)
+(set! chicken.file.posix#open/read _o_rdonly)
+(set! chicken.file.posix#open/write _o_wronly)
+(set! chicken.file.posix#open/creat _o_creat)
+(set! chicken.file.posix#open/append _o_append)
+(set! chicken.file.posix#open/excl _o_excl)
+(set! chicken.file.posix#open/trunc _o_trunc)
+(set! chicken.file.posix#open/binary _o_binary)
+(set! chicken.file.posix#open/text _o_text)
+
+;; open/noinherit is platform-specific
+
+(define-foreign-variable _s_irusr int "S_IREAD")
+(define-foreign-variable _s_iwusr int "S_IWRITE")
+(define-foreign-variable _s_ixusr int "S_IEXEC")
+(define-foreign-variable _s_irgrp int "S_IREAD")
+(define-foreign-variable _s_iwgrp int "S_IWRITE")
+(define-foreign-variable _s_ixgrp int "S_IEXEC")
+(define-foreign-variable _s_iroth int "S_IREAD")
+(define-foreign-variable _s_iwoth int "S_IWRITE")
+(define-foreign-variable _s_ixoth int "S_IEXEC")
+(define-foreign-variable _s_irwxu int "S_IREAD | S_IWRITE | S_IEXEC")
+(define-foreign-variable _s_irwxg int "S_IREAD | S_IWRITE | S_IEXEC")
+(define-foreign-variable _s_irwxo int "S_IREAD | S_IWRITE | S_IEXEC")
+
+(set! chicken.file.posix#perm/irusr _s_irusr)
+(set! chicken.file.posix#perm/iwusr _s_iwusr)
+(set! chicken.file.posix#perm/ixusr _s_ixusr)
+(set! chicken.file.posix#perm/irgrp _s_irgrp)
+(set! chicken.file.posix#perm/iwgrp _s_iwgrp)
+(set! chicken.file.posix#perm/ixgrp _s_ixgrp)
+(set! chicken.file.posix#perm/iroth _s_iroth)
+(set! chicken.file.posix#perm/iwoth _s_iwoth)
+(set! chicken.file.posix#perm/ixoth _s_ixoth)
+(set! chicken.file.posix#perm/irwxu _s_irwxu)
+(set! chicken.file.posix#perm/irwxg _s_irwxg)
+(set! chicken.file.posix#perm/irwxo _s_irwxo)
+
+;; perm/isvtx, perm/isuid and perm/isgid are platform-specific
 
 (let ()
   (define (mode inp m loc)
@@ -380,34 +459,34 @@ EOF
         (let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(fdport)" 'stream)))
           (##core#inline "C_set_file_ptr" port r)
           port) ) )
-  (set! open-input-file*
+  (set! chicken.file.posix#open-input-file*
     (lambda (fd . m)
       (##sys#check-fixnum fd 'open-input-file*)
       (check 'open-input-file* fd #t (##core#inline_allocate ("C_fdopen" 2) fd (mode #t m 'open-input-file*))) ) )
-  (set! open-output-file*
+  (set! chicken.file.posix#open-output-file*
     (lambda (fd . m)
       (##sys#check-fixnum fd 'open-output-file*)
       (check 'open-output-file* fd #f (##core#inline_allocate ("C_fdopen" 2) fd (mode #f m 'open-output-file*)) ) ) ) )
 
-(define port->fileno
+(set! chicken.file.posix#port->fileno
   (lambda (port)
     (##sys#check-open-port port 'port->fileno)
-    (cond [(eq? 'socket (##sys#slot port 7))
+    (cond ((eq? 'socket (##sys#slot port 7))
 	   ;; Extract socket-FD from the port's "data" object - this is identical
 	   ;; to "##sys#tcp-port->fileno" in the tcp unit (tcp.scm). We code it in
 	   ;; this low-level manner to avoid depend on code defined there.
 	   ;; Peter agrees with that. I think. Have a nice day.
-	   (##sys#slot (##sys#port-data port) 0) ]
-          [(not (zero? (##sys#peek-unsigned-integer port 0)))
+	   (##sys#slot (##sys#port-data port) 0) )
+          ((not (zero? (##sys#peek-unsigned-integer port 0)))
            (let ([fd (##core#inline "C_port_fileno" port)])
              (when (fx< fd 0)
                (posix-error #:file-error 'port->fileno "cannot access file-descriptor of port" port) )
-             fd) ]
-          [else (posix-error #:type-error 'port->fileno "port has no attached file" port)] ) ) )
+             fd) )
+          (else (posix-error #:type-error 'port->fileno "port has no attached file" port)) ) ) )
 
-(define duplicate-fileno
+(set! chicken.file.posix#duplicate-fileno
   (lambda (old . new)
-    (##sys#check-fixnum old duplicate-fileno)
+    (##sys#check-fixnum old 'duplicate-fileno)
     (let ([fd (if (null? new)
                   (##core#inline "C_dup" old)
                   (let ([n (car new)])
@@ -420,20 +499,23 @@ EOF
 
 ;;; Set or get current directory by file descriptor:
 
-(define (change-directory* fd)
-  (##sys#check-fixnum fd 'change-directory*)
-  (unless (fx= 0 (##core#inline "C_fchdir" fd))
-    (posix-error #:file-error 'change-directory* "cannot change current directory" fd))
-  fd)
+(set! chicken.process-context.posix#change-directory*
+  (lambda (fd)
+    (##sys#check-fixnum fd 'change-directory*)
+    (unless (fx= 0 (##core#inline "C_fchdir" fd))
+      (posix-error #:file-error 'change-directory* "cannot change current directory" fd))
+    fd))
 
 (set! ##sys#change-directory-hook
   (let ((cd ##sys#change-directory-hook))
     (lambda (dir)
-      ((if (fixnum? dir) change-directory* cd) dir))))
+      ((if (fixnum? dir)
+	   chicken.process-context.posix#change-directory*
+	   cd) dir))))
 
 ;;; umask
 
-(define file-creation-mode
+(set! chicken.file.posix#file-creation-mode
   (getter-with-setter
    (lambda (#!optional um)
      (when um (##sys#check-fixnum um 'file-creation-mode))
@@ -448,20 +530,24 @@ EOF
 
 ;;; Time related things:
 
+(define decode-seconds (##core#primitive "C_decode_seconds"))
+
 (define (check-time-vector loc tm)
   (##sys#check-vector tm loc)
   (when (fx< (##sys#size tm) 10)
     (##sys#error loc "time vector too short" tm) ) )
 
-(define (seconds->local-time #!optional (secs (current-seconds)))
-  (##sys#check-exact-integer secs 'seconds->local-time)
-  (##sys#decode-seconds secs #f) )
+(set! chicken.time.posix#seconds->local-time
+  (lambda (#!optional (secs (current-seconds)))
+    (##sys#check-exact-integer secs 'seconds->local-time)
+    (decode-seconds secs #f) ))
 
-(define (seconds->utc-time #!optional (secs (current-seconds)))
-  (##sys#check-exact-integer secs 'seconds->utc-time)
-  (##sys#decode-seconds secs #t) )
+(set! chicken.time.posix#seconds->utc-time
+  (lambda (#!optional (secs (current-seconds)))
+    (##sys#check-exact-integer secs 'seconds->utc-time)
+    (decode-seconds secs #t) ) )
 
-(define seconds->string
+(set! chicken.time.posix#seconds->string
   (let ([ctime (foreign-lambda c-string "C_ctime" integer)])
     (lambda (#!optional (secs (current-seconds)))
       (##sys#check-exact-integer secs 'seconds->string)
@@ -470,7 +556,7 @@ EOF
             (##sys#substring str 0 (fx- (##sys#size str) 1))
             (##sys#error 'seconds->string "cannot convert seconds to string" secs) ) ) ) ) )
 
-(define local-time->seconds
+(set! chicken.time.posix#local-time->seconds
   (let ((tm-size (foreign-value "sizeof(struct tm)" int)))
     (lambda (tm)
       (check-time-vector 'local-time->seconds tm)
@@ -479,7 +565,7 @@ EOF
             (##sys#error 'local-time->seconds "cannot convert time vector to seconds" tm)
             t)))))
 
-(define time->string
+(set! chicken.time.posix#time->string
   (let ((asctime (foreign-lambda c-string "C_asctime" scheme-object scheme-pointer))
         (strftime (foreign-lambda c-string "C_strftime" scheme-object scheme-object scheme-pointer))
         (tm-size (foreign-value "sizeof(struct tm)" int)))
@@ -498,33 +584,33 @@ EOF
 
 ;;; Signals
 
-(define (set-signal-handler! sig proc)
-  (##sys#check-fixnum sig 'set-signal-handler!)
-  (##core#inline "C_establish_signal_handler" sig (and proc sig))
-  (vector-set! ##sys#signal-vector sig proc) )
+(set! chicken.process.signal#set-signal-handler!
+  (lambda (sig proc)
+    (##sys#check-fixnum sig 'set-signal-handler!)
+    (##core#inline "C_establish_signal_handler" sig (and proc sig))
+    (vector-set! ##sys#signal-vector sig proc) ) )
 
-(define signal-handler
+(set! chicken.process.signal#signal-handler
   (getter-with-setter
    (lambda (sig)
      (##sys#check-fixnum sig 'signal-handler)
      (##sys#slot ##sys#signal-vector sig) )
-   set-signal-handler!))
+   chicken.process.signal#set-signal-handler!))
 
 
 ;;; Processes
 
-(define current-process-id (foreign-lambda int "C_getpid"))
+(set! chicken.process#process-sleep
+  (lambda (n)
+    (##sys#check-fixnum n 'process-sleep)
+    (##core#inline "C_i_process_sleep" n)))
 
-(define (process-sleep n)
-  (##sys#check-fixnum n 'process-sleep)
-  (##core#inline "C_i_process_sleep" n))
-
-(define process-wait
+(set! chicken.process#process-wait
   (lambda args
-    (let-optionals* args ([pid #f] [nohang #f])
-      (let ([pid (or pid -1)])
+    (let-optionals* args ((pid #f) (nohang #f))
+      (let ((pid (or pid -1)))
         (##sys#check-fixnum pid 'process-wait)
-        (receive [epid enorm ecode] (##sys#process-wait pid nohang)
+        (receive (epid enorm ecode) (process-wait-impl pid nohang)
           (if (fx= epid -1)
               (posix-error #:process-error 'process-wait "waiting for child process failed" pid)
               (values epid enorm ecode) ) ) ) ) ) )
@@ -604,3 +690,90 @@ EOF
 	       nop loc)))
 
 	  (proc (##sys#make-c-string filename loc) argbuf envbuf))))))
+
+;; Pipes:
+
+(define-foreign-variable _pipe_buf int "PIPE_BUF")
+(set! chicken.process#pipe/buf _pipe_buf)
+
+(let ()
+  (define (mode arg) (if (pair? arg) (##sys#slot arg 0) '###text))
+  (define (badmode m) (##sys#error "illegal input/output mode specifier" m))
+  (define (check loc cmd inp r)
+    (if (##sys#null-pointer? r)
+	(posix-error #:file-error loc "cannot open pipe" cmd)
+	(let ((port (##sys#make-port (if inp 1 2) ##sys#stream-port-class "(pipe)" 'stream)))
+	  (##core#inline "C_set_file_ptr" port r)
+	  port) ) )
+  (set! chicken.process#open-input-pipe
+    (lambda (cmd . m)
+      (##sys#check-string cmd 'open-input-pipe)
+      (let ([m (mode m)])
+	(check
+	 'open-input-pipe
+	 cmd #t
+	 (case m
+	   ((#:text) (##core#inline_allocate ("open_text_input_pipe" 2) (##sys#make-c-string cmd 'open-input-pipe)))
+	   ((#:binary) (##core#inline_allocate ("open_binary_input_pipe" 2) (##sys#make-c-string cmd 'open-input-pipe)))
+	   (else (badmode m)) ) ) ) ) )
+  (set! chicken.process#open-output-pipe
+    (lambda (cmd . m)
+      (##sys#check-string cmd 'open-output-pipe)
+      (let ((m (mode m)))
+	(check
+	 'open-output-pipe
+	 cmd #f
+	 (case m
+	   ((#:text) (##core#inline_allocate ("open_text_output_pipe" 2) (##sys#make-c-string cmd 'open-output-pipe)))
+	   ((#:binary) (##core#inline_allocate ("open_binary_output_pipe" 2) (##sys#make-c-string cmd 'open-output-pipe)))
+	   (else (badmode m)) ) ) ) ) )
+  (set! chicken.process#close-input-pipe
+    (lambda (port)
+      (##sys#check-input-port port #t 'close-input-pipe)
+      (let ((r (##core#inline "close_pipe" port)))
+	(when (eq? -1 r)
+	  (posix-error #:file-error 'close-input-pipe "error while closing pipe" port))
+	r) ) )
+  (set! chicken.process#close-output-pipe
+    (lambda (port)
+      (##sys#check-output-port port #t 'close-output-pipe)
+      (let ((r (##core#inline "close_pipe" port)))
+	(when (eq? -1 r)
+	  (posix-error #:file-error 'close-output-pipe "error while closing pipe" port))
+	r) ) ))
+
+(set! chicken.process#with-input-from-pipe
+  (lambda (cmd thunk . mode)
+    (let ((p (apply chicken.process#open-input-pipe cmd mode)))
+      (fluid-let ((##sys#standard-input p))
+	(call-with-values thunk
+	  (lambda results
+	    (chicken.process#close-input-pipe p)
+	    (apply values results) ) ) ) ) ) )
+
+(set! chicken.process#call-with-output-pipe
+  (lambda (cmd proc . mode)
+    (let ((p (apply chicken.process#open-output-pipe cmd mode)))
+      (call-with-values
+       (lambda () (proc p))
+       (lambda results
+	 (chicken.process#close-output-pipe p)
+	 (apply values results) ) ) ) ) )
+
+(set! chicken.process#call-with-input-pipe
+  (lambda (cmd proc . mode)
+    (let ([p (apply chicken.process#open-input-pipe cmd mode)])
+      (call-with-values
+       (lambda () (proc p))
+       (lambda results
+	 (chicken.process#close-input-pipe p)
+	 (apply values results) ) ) ) ) )
+
+(set! chicken.process#with-output-to-pipe
+  (lambda (cmd thunk . mode)
+    (let ((p (apply chicken.process#open-output-pipe cmd mode)))
+      (fluid-let ((##sys#standard-output p))
+	(call-with-values thunk
+	  (lambda results
+	    (chicken.process#close-output-pipe p)
+	    (apply values results) ) ) ) ) ) )

@@ -27,6 +27,10 @@ rmdir /q /s %CHICKEN_INSTALL_REPOSITORY%
 mkdir %CHICKEN_INSTALL_REPOSITORY%
 copy %TYPESDB% %CHICKEN_INSTALL_REPOSITORY%
 
+echo "======================================== types.db consistency ..."
+%interpret% -s types-db-consistency.scm %TYPESDB%
+if errorlevel 1 exit /b 1
+
 echo ======================================== version tests ...
 %compile% version-tests.scm
 if errorlevel 1 exit /b 1

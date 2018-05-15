@@ -111,19 +111,14 @@ The following environment variables change the behaviour of
 .It Ev CSI_OPTIONS
 When set to a string of command-line options, then the options are
 passed implicitly to every direct or indirect invocation of
-.Nm
+.Nm . Note that runtime options of the form
+.Sq \&-: Ns Aq OPTIONS
+cannot be passed using this method.
 .It Ev CHICKEN_INCLUDE_PATH
 Contains one or more pathnames where the interpreter should also look
 for include files, separated by
 .Sq \&;
 characters.
-.br
-Note that runtime options of the form
-.Sq \&-
-.Sq \&:
-.Sq \&.
-.Sq \&.\&.
-can not be passed using this method.
 .El
 .Sh EXIT STATUS
 .Ex -std
