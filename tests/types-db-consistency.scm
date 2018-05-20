@@ -7,6 +7,8 @@
   (chicken read-syntax)
   (chicken irregex)
   (chicken memory)
+  (chicken port)
+  (chicken process-context)
   (chicken process-context posix)
   (chicken tcp)
   srfi-4)
