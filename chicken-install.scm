@@ -167,6 +167,8 @@
     (license #t #f #f)
     (version #t #f #f ,egg-version?)
     (dependencies #t #f #f ,list?)
+    (source-dependencies #f #f #f ,list?)
+    (component-dependencies #f #f #f ,list?)
     (test-dependencies #t #f #f ,list?)
     (build-dependencies #t #f #f ,list?)
     (components #t #t #f)
@@ -204,16 +206,18 @@
               ((assq (car item) egg-info-items) =>
                (lambda (a)
                  (apply (lambda (_ toplevel nested named #!optional validator)
-                          (when (and top? (not toplevel))
-                            (error "egg information item not allowed at toplevel" 
-                                   item))
-                          (when (and named
-                                     (or (null? (cdr item))
-                                         (not (symbol? (cadr item)))))
-                            (error "unnamed egg information item" item))
-                          (when (and validator
-                                     (not (validator (cdr item))))
-                            (error "egg information item has invalid structure" item))
+                          (cond ((and top? (not toplevel))
+                                 (error "egg information item not allowed at toplevel" 
+                                        item))
+                                ((and toplevel (not top?))
+                                 (error "egg information item only allowed at toplevel" item))
+                                ((and named
+                                      (or (null? (cdr item))
+                                          (not (symbol? (cadr item)))))
+                                 (error "unnamed egg information item" item))
+                                ((and validator
+                                      (not (validator (cdr item))))
+                                 (error "egg information item has invalid structure" item)))
                           (when nested
                             (validate (if named (cddr item) (cdr item)) #f)))
                         a)))

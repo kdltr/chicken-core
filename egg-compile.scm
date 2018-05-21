@@ -135,7 +135,8 @@
         (oname #f)
         (link '())
         (dest #f)
-        (deps '())
+        (sdeps '())
+        (cdeps '())
         (lopts '())
         (opts '())
         (mods #f)
@@ -156,7 +157,8 @@
       (case (car info)
         ((extension)
           (fluid-let ((target (check-target (cadr info) exts))
-                      (deps '())
+                      (cdeps '())
+                      (sdeps '())
                       (src #f)
                       (cbuild #f)
                       (link default-extension-linkage)
@@ -187,11 +189,12 @@
                     '())
                 (import-libraries mods dest rtarget mode))
               (set! exts
-                (cons (list target dependencies: deps source: src options: opts
+                (cons (list target dependencies: cdeps source: src options: opts
                             link-options: lopts linkage: link custom: cbuild
                             mode: mode types-file: tfile inline-file: ifile
                             predefined-types: ptfile eggfile: eggfile
                             modules: (or mods (list rtarget))
+                            source-dependencies: sdeps
                             output-file: rtarget)
                     exts)))))
         ((data)
@@ -213,12 +216,12 @@
           (fluid-let ((target (check-target (cadr info) data))
                       (src #f)
                       (cbuild #f)
-                      (deps '()))
+                      (cdeps '()))
             (for-each compile-extension/program (cddr info))
             (unless cbuild
               (error "generated source files need a custom build step" target))
             (set! genfiles
-              (cons (list target dependencies: deps source: src custom: cbuild)
+              (cons (list target dependencies: cdeps source: src custom: cbuild)
                     genfiles))))
         ((c-include)
           (fluid-let ((target (check-target (cadr info) cinc))
@@ -237,7 +240,7 @@
                     cinc))))            
         ((scheme-include)
           (fluid-let ((target (check-target (cadr info) scminc))
-                      (dest #f))
+                      (dest #f)
                       (files '()))
             (for-each compile-data/include (cddr info))
             (let* ((dest (or dest
@@ -249,10 +252,11 @@
             (set! scminc 
               (cons (list target dependencies: '() files: files 
                           destination: dest mode: mode) 
-                    scminc)))          
+                    scminc))))     
         ((program)
           (fluid-let ((target (check-target (cadr info) prgs))
-                      (deps '())
+                      (cdeps '())
+                      (sdeps '())
                       (cbuild #f)
                       (src #f)
                       (link default-program-linkage)
@@ -267,9 +271,13 @@
                   (rtarget (or oname target)))
               (addfiles (list (conc dest "/" rtarget exeext)))
 	      (set! prgs
-		(cons (list target dependencies: deps source: src options: opts
-			    link-options: lopts linkage: link custom: cbuild
-			    mode: mode output-file: rtarget eggfile: eggfile)
+		(cons (list target dependencies: cdeps 
+                            source: src options: opts
+			    link-options: lopts linkage: link 
+                            custom: cbuild
+			    mode: mode output-file: rtarget 
+                            source-dependencies: sdeps
+                            eggfile: eggfile)
 		      prgs)))))
         (else (compile-common info compile-component))))
     (define (compile-extension/program info)
@@ -300,8 +308,10 @@
          (set! oname (->string (arg info 1 name?))))
         ((modules)
          (set! mods (map ->string (cdr info))))
-        ((dependencies)
-         (set! deps (append deps (map ->dep (cdr info)))))
+        ((component-dependencies)
+         (set! cdeps (append cdeps (map ->dep (cdr info)))))
+        ((source-dependencies)
+         (set! sdeps (append sdeps (map ->dep (cdr info)))))
         (else (compile-common info compile-extension/program))))
     (define (compile-common info walk)
       (case (car info)
@@ -441,7 +451,8 @@
 
 ;;; shell code generation - build operations
 
-(define ((compile-static-extension name #!key mode dependencies
+(define ((compile-static-extension name #!key mode 
+                                   source-dependencies
                                    source (options '())
                                    predefined-types eggfile
                                    custom types-file inline-file)
@@ -481,11 +492,12 @@
            " " src " -o " out " : "
            src " " (quotearg eggfile) " "
            (if custom (quotearg cmd) "") " "
-           (filelist srcdir dependencies))))
+           (filelist srcdir source-dependencies))))
 
-(define ((compile-dynamic-extension name #!key mode dependencies mode
+(define ((compile-dynamic-extension name #!key mode mode
                                     source (options '()) (link-options '()) 
                                     predefined-types eggfile
+                                    source-dependencies
                                     custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix srcdir custom))
@@ -516,9 +528,10 @@
            (arglist link-options) " " src " -o " out " : "
            src " " (quotearg eggfile) " "
            (if custom (quotearg cmd) "") " "
-           (filelist srcdir dependencies))))
+           (filelist srcdir source-dependencies))))
 
-(define ((compile-import-library name #!key dependencies mode
+(define ((compile-import-library name #!key mode
+                                 source-dependencies
                                  (options '()) (link-options '())
                                  custom)
          srcdir platform)
@@ -538,11 +551,12 @@
            (if (eq? mode 'host) " -host" "")
            " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
-           src (filelist srcdir dependencies))))
+           src (filelist srcdir source-dependencies))))
 
-(define ((compile-dynamic-program name #!key dependencies source mode
-                                     (options '()) (link-options '())
-                                     custom eggfile)
+(define ((compile-dynamic-program name #!key source mode
+                                  (options '()) (link-options '())
+                                  source-dependencies
+                                  custom eggfile)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
@@ -565,11 +579,12 @@
            (arglist link-options) " " src " -o " out " : "
            src " " (quotearg eggfile) " "
            (if custom (quotearg cmd) "") " "
-           (filelist srcdir dependencies))))
+           (filelist srcdir source-dependencies))))
 
-(define ((compile-static-program name #!key dependencies source
-                                    (options '()) (link-options '())
-                                    custom mode eggfile)
+(define ((compile-static-program name #!key source
+                                 (options '()) (link-options '())
+                                 source-dependencies
+                                 custom mode eggfile)
          srcdir platform)
   (let* ((cmd (or (and custom (prefix srcdir custom))
                   default-csc))
@@ -592,9 +607,10 @@
            (arglist link-options) " " src " -o " out " : "
            src " " (quotearg eggfile) " "
            (if custom (quotearg cmd) "") " "
-           (filelist srcdir dependencies))))
+           (filelist srcdir source-dependencies))))
 
-(define ((compile-generated-file name #!key dependencies source custom) 
+(define ((compile-generated-file name #!key source 
+                                 custom source-dependencies) 
          srcdir platform)
   (let* ((cmd (prefix srcdir custom))
          (sname (prefix srcdir name))
@@ -604,7 +620,7 @@
       (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform)
            " " out " " cmd " : " cmd " "
-           (filelist srcdir dependencies))))
+           (filelist srcdir source-dependencies))))
 
 
 ;; installation operations
