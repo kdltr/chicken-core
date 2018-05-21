@@ -320,7 +320,7 @@
 (module chicken.process-context.posix
   (change-directory* set-root-directory!
    current-effective-group-id current-effective-user-id
-   current-group-id current-user-id
+   current-process-id current-group-id current-user-id
    parent-process-id current-user-name
    current-effective-user-name create-session
    process-group-id user-information)
@@ -333,6 +333,7 @@
 (define current-effective-user-id)
 (define current-group-id)
 (define current-user-id)
+(define current-process-id)
 (define parent-process-id)
 (define current-user-name)
 (define current-effective-user-name)

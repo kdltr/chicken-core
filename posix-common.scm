@@ -497,6 +497,12 @@ EOF
       fd) ) )
 
 
+;;; Access process ID:
+
+(set! chicken.process-context.posix#current-process-id
+  (foreign-lambda int "C_getpid"))
+
+
 ;;; Set or get current directory by file descriptor:
 
 (set! chicken.process-context.posix#change-directory*
