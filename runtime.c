@@ -116,6 +116,8 @@ static C_TLS int timezone;
 /* Include winsock2 to get select() for check_fd_ready() */
 # include <winsock2.h>
 # include <windows.h>
+/* Needed for ERROR_OPERATION_ABORTED */
+# include <winerror.h>
 #endif
 
 /* For image_info retrieval */
