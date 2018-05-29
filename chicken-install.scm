@@ -1042,6 +1042,8 @@ usage: chicken-install [OPTION ...] [NAME[:VERSION] ...]
        -from-list FILENAME      install eggs from list obtained by `chicken-status -list'
   -v   -verbose                 be verbose
        -cached                  only install from cache
+       -defaults FILENAME       use FILENAME as defaults instead of the installed `setup.defaults'
+                                file
 
 chicken-install recognizes the SUDO, http_proxy and proxy_auth environment variables, if set.
 
