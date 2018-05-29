@@ -1,3 +1,10 @@
+5.0.1
+
+- Type system
+  - It is now possible to quote free variables in type declarations,
+     which acts as shorthand for `forall' (thanks to "megane")
+
+
 5.0.0
 
 - Runtime system

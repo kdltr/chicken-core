@@ -161,6 +161,16 @@ or {{:}} should follow the syntax given below:
 
 (*) Note: no type-variables are bound inside {{(not TYPE)}}.
 
+You can use a shorthand {{'SYMBOL}} for introducing free variables in
+{{forall}} types, for example:
+
+  ('a -> 'a) is translated to (forall (a) (a -> a))
+
+If a {{forall}} already exists, quotes around the free variables
+introduced by it will be stripped:
+
+  (forall (a) ('a -> a)) is translated to (forall (a) (a -> a))
+
 Note that type-variables in {{forall}} types may be given "constraint" types, i.e.
 
   (: sort (forall (e (s (or (vector-of e) (list-of e))))
