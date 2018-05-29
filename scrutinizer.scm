@@ -138,6 +138,15 @@
     s64vector f32vector f64vector thread queue environment time
     continuation lock mmap condition hash-table tcp-listener))
 
+(define-constant type-expansions
+  '((pair . (pair * *))
+    (list . (list-of *))
+    (vector . (vector-of *))
+    (boolean . (or true false))
+    (integer . (or fixnum bignum))
+    (number . (or fixnum float bignum ratnum cplxnum))
+    (procedure . (procedure (#!rest *) . *))))
+
 (define-inline (struct-type? t)
   (and (pair? t) (eq? (car t) 'struct)))
 
@@ -1042,18 +1051,8 @@
 	  ((eq? t2 'undefined) #f)
 	  ((eq? t1 'noreturn))
 	  ((eq? t2 'noreturn))
-	  ((eq? t1 'boolean) (match1 '(or true false) t2))
-	  ((eq? t2 'boolean) (match1 t1 '(or true false)))
-	  ((eq? t1 'integer) (match1 '(or fixnum bignum) t2))
-	  ((eq? t2 'integer) (match1 t1 '(or fixnum bignum)))
-	  ((eq? t1 'number) (match1 '(or fixnum float bignum ratnum cplxnum) t2))
-	  ((eq? t2 'number) (match1 t1 '(or fixnum float bignum ratnum cplxnum)))
-	  ((eq? t1 'pair) (match1 '(pair * *) t2))
-	  ((eq? t2 'pair) (match1 t1 '(pair * *)))
-	  ((eq? t1 'list) (match1 '(list-of *) t2))
-	  ((eq? t2 'list) (match1 t1 '(list-of *)))
-	  ((eq? t1 'vector) (match1 '(vector-of *) t2))
-	  ((eq? t2 'vector) (match1 t1 '(vector-of *)))
+	  ((maybe-expand-type t1) => (cut match1 <> t2))
+	  ((maybe-expand-type t2) => (cut match1 t1 <>))
 	  ((and (pair? t1) (eq? 'not (car t1)))
 	   (fluid-let ((all (not all)))
 	     (let* ((trail0 trail)
@@ -1356,17 +1355,9 @@
       (dd "simplify: ~a -> ~a" t t2)
       t2)))
 
-(define (expand-type t)
-  (case t
-    ((pair) '(pair * *))
-    ((list) '(list-of *))
-    ((vector) '(vector-of *))
-    ((boolean) '(or true false))
-    ((integer) '(or fixnum bignum))
-    ((number) '(or fixnum float bignum ratnum cplxnum))
-    ((procedure) '(procedure (#!rest *) . *))
-    (else t)))
-
+(define (maybe-expand-type t)
+  (and (symbol? t)
+       (alist-ref t type-expansions eq?)))
 
 ;;; Merging types
 
@@ -1432,10 +1423,8 @@
   (define (refine t1 t2 te)
     (let loop ((t1 t1) (t2 t2))
       (cond
-	((and (symbol? t1) (memq t1 '(pair list vector boolean integer number)))
-	 (loop (expand-type t1) t2))
-	((and (symbol? t2) (memq t2 '(pair list vector boolean integer number)))
-	 (loop t1 (expand-type t2)))
+       ((maybe-expand-type t1) => (cut loop <> t2))
+       ((maybe-expand-type t2) => (cut loop t1 <>))
 	((and (pair? t1) (memq (car t1) '(forall refine)))
 	 (let ((t1* (loop (third t1) t2)))
 	   (and t1* (list (car t1) (second t1) t1*))))
