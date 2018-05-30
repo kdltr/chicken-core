@@ -782,20 +782,26 @@
 #!/bin/sh~%
 set -e
 PATH="~a":$PATH
-CHICKEN_CC="~a"
-CHICKEN_CXX="~a"
+export CHICKEN_CC="~a"
+export CHICKEN_CXX="~a"
+export CHICKEN_CSC="~a"
+export CHICKEN_CSI="~a"
 
 EOF
-             default-bindir default-cc default-cxx))
+             default-bindir default-cc default-cxx default-csc
+             default-csi))
     ((windows)
      (printf #<<EOF
 @echo off~%
 set PATH=~a;%PATH%
 set CHICKEN_CC=~a
 set CHICKEN_CXX=~a
+set CHICKEN_CSC=~a
+set CHICKEN_CSI=~a
 
 EOF
-             default-bindir default-cc default-cxx))))
+             default-bindir default-cc default-cxx default-csc
+             default-csi))))
 
 (define ((build-suffix mode name info) platform)
   (case platform
