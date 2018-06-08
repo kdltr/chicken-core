@@ -557,9 +557,6 @@ EOF
 	     (when show-libs (print* (linker-libraries) #\space))
 	     (newline)
 	     (exit) )
-	   (when (pair? linked-extensions)
-	     (set! object-files ; add objects from linked extensions
-	       (append (filter-map find-object-file linked-extensions) object-files)))
 	   (cond ((null? scheme-files)
 		  (when (and (null? c-files)
 			     (null? object-files))
@@ -578,6 +575,9 @@ EOF
 	   (unless translate-only 
 	     (run-compilation)
 	     (unless compile-only
+	       (when (pair? linked-extensions)
+		 (set! object-files ; add objects from linked extensions
+		   (append (filter-map find-object-file linked-extensions) object-files)))
 	       (when (member target-filename scheme-files)
 		 (fprintf (current-error-port)
                           "Warning: output file will overwrite source file `~A' - renaming source to `~A.old'~%"
