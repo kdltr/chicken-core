@@ -1272,14 +1272,8 @@
   (for-each (cut ##sys#check-symbol <> 'provided?) ids)
   (every ##sys#provided? ids))
 
-(define (find-static-extension id)
-  (let ((p (##sys#canonicalize-extension-path id #f)))
-    (find-file (##sys#string-append p object-file-extension)
-	       (repository-path))))
-
 ;; Export for internal use in csc, modules and batch-driver:
 (define chicken.load#find-file find-file)
-(define chicken.load#find-static-extension find-static-extension)
 (define chicken.load#find-dynamic-extension find-dynamic-extension)
 
 ;;
