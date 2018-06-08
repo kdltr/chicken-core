@@ -923,13 +923,6 @@
 (define-constant hppa-load-library-extension ".sl")
 (define-constant default-load-library-extension ".so")
 (define-constant source-file-extension ".scm")
-(define-constant windows-object-file-extension ".obj")
-(define-constant unix-object-file-extension ".o")
-(define-constant loadable-file-extension ".so")
-
-(define object-file-extension
-  (cond ((eq? (software-type) 'windows) windows-object-file-extension)
-	(else unix-object-file-extension)))
 
 (define load-library-extension
   (cond ((eq? (software-type) 'windows) windows-load-library-extension)
