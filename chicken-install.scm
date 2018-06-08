@@ -696,9 +696,8 @@
 (define (ext-version x)
   (cond ((or (eq? x 'chicken) (equal? x "chicken"))
          (chicken-version))
-        ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
-                (sf (chicken.load#find-file
-                     (make-pathname #f ep +egg-info-extension+)
+        ((let* ((sf (chicken.load#find-file
+                     (make-pathname #f (->string x) +egg-info-extension+)
                      (repo-path))))
            (and sf
                 (file-exists? sf)

@@ -1173,36 +1173,6 @@
 
 ;;; Extensions:
 
-(define ##sys#canonicalize-extension-path
-  (let ([string-append string-append])
-    (lambda (id loc)
-      (define (err) (##sys#error loc "invalid extension path" id))
-      (define (sep? c) (or (char=? #\\ c) (char=? #\/ c)))
-      (let ([p (cond [(string? id) id]
-		     [(symbol? id) (##sys#symbol->string id)]
-		     [(list? id) 
-		      (let loop ([id id])
-			(if (null? id)
-			    ""
-			    (string-append 
-			     (let ([id0 (##sys#slot id 0)])
-			       (cond [(symbol? id0) (##sys#symbol->string id0)]
-				     [(string? id0) id0]
-				     [else (err)] ) )
-			     (if (null? (##sys#slot id 1))
-				 ""
-				 "/")
-			     (loop (##sys#slot id 1)) ) ) ) ] ) ] )
-	(let check ([p p])
-	  (let ([n (##sys#size p)])
-	    (cond [(fx= 0 n) (err)]
-		  [(sep? (string-ref p 0))
-		   (check (##sys#substring p 1 n)) ]
-		  [(sep? (string-ref p (fx- n 1)))
-		   (check (##sys#substring p 0 (fx- n 1))) ]
-		  [else p] ) ) ) ) ) ) )
-
-
 (define ##sys#setup-mode #f)
 
 (define (file-exists? name) ; defined here to avoid file unit dependency
@@ -1217,11 +1187,11 @@
 
 (define find-dynamic-extension
   (let ((string-append string-append))
-    (lambda (path inc?)
-      (let ((p  (##sys#canonicalize-extension-path path #f))
-	    (rp (repository-path)))
+    (lambda (id inc?)
+      (let ((rp (repository-path))
+	    (basename (if (symbol? id) (symbol->string id) id)))
 	(define (check path)
-	  (let ((p0 (string-append path "/" p)))
+	  (let ((p0 (string-append path "/" basename)))
 	    (or (and rp
 		     (not ##sys#dload-disabled)
 		     (feature? #:dload)
