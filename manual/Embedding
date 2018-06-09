@@ -55,7 +55,7 @@ compiled Scheme program. If the runtime system was not initialized before,
 then {{CHICKEN_initialize}} is called with default sizes.
 {{toplevel}} is the toplevel entry-point procedure, you usually pass {{C_toplevel}} here.
 The result value is the continuation that can be used to re-invoke the Scheme code from the
-point after it called {{return-to-host}} (see below).
+point after it called [[Module (chicken gc)#return-to-host|{{return-to-host}}]].
 
 If you just need a Scheme interpreter, you can also pass {{CHICKEN_default_toplevel}} as
 the toplevel procedure, which just uses the default library units.
@@ -63,19 +63,6 @@ the toplevel procedure, which just uses the default library units.
 Once {{CHICKEN_run}} has been called, Scheme code is executing until all toplevel
 expressions have been evaluated or until {{return-to-host}} is called inside the
 Scheme program.
-
-=== return-to-host
-
-<procedure>(return-to-host)</procedure>
-
-Exits the Scheme code and returns to the invoking context that called {{CHICKEN_run}}
-or {{CHICKEN_continue}}.
-
-After {{return-to-host}} has been executed and once {{CHICKEN_run}} returns,
-you can invoke callbacks which have been defined with {{define-external}}.
-
-The {{eval}} library unit also provides boilerplate callbacks, that simplify invoking Scheme
-code embedded in a C or C++ application:
 
 === CHICKEN_eval
 
@@ -160,6 +147,7 @@ An example:
 
  % cat x.scm
  ;;; x.scm
+ (import (chicken platform) (chicken foreign))
  
  (define (bar x) (gc) (* x x))
  
@@ -234,7 +222,7 @@ or gc-roots.
 Another example:
 
  % cat x.scm
- (require-extension srfi-18)
+ (import (chicken platform) srfi-18) ;; Needs the srfi-18 egg
  
  (define m (make-mutex))
  
@@ -342,4 +330,4 @@ Sets the value of the global variable referenced by the GC root {{global}} to {{
 ---
 Previous: [[Foreign type specifiers]]
 
-Next: [[Callbacks]]
+Next: [[C interface]]

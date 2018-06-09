@@ -1,0 +1,118 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken pathname)
+
+This module provides procedures for manipulating paths.  If you want
+to operate on the files and directories which the paths represent, see
+[[Module (chicken file)]].
+
+=== absolute-pathname?
+
+<procedure>(absolute-pathname? PATHNAME)</procedure>
+
+Returns {{#t}} if the string {{PATHNAME}} names an absolute
+pathname, and returns {{#f}} otherwise.
+
+=== decompose-pathname
+
+<procedure>(decompose-pathname PATHNAME)</procedure>
+
+Returns three values: the directory-, filename- and extension-components
+of the file named by the string {{PATHNAME}}.
+For any component that is not contained in {{PATHNAME}}, {{#f}} is returned.
+
+=== make-pathname
+=== make-absolute-pathname
+
+<procedure>(make-pathname DIRECTORY FILENAME [EXTENSION])</procedure><br>
+<procedure>(make-absolute-pathname DIRECTORY FILENAME [EXTENSION])</procedure>
+
+Returns a string that names the file with the
+components {{DIRECTORY, FILENAME}} and (optionally)
+{{EXTENSION}} with {{SEPARATOR}} being the directory separation indicator
+(usually {{/}} on UNIX systems and {{\}} on Windows, defaulting to whatever
+platform this is running on). 
+{{DIRECTORY}} can be {{#f}} (meaning no
+directory component), a string or a list of strings. {{FILENAME}}
+and {{EXTENSION}} should be strings or {{#f}}.
+{{make-absolute-pathname}} returns always an absolute pathname.
+
+=== pathname-directory
+=== pathname-file
+=== pathname-extension
+
+<procedure>(pathname-directory PATHNAME)</procedure><br>
+<procedure>(pathname-file PATHNAME)</procedure><br>
+<procedure>(pathname-extension PATHNAME)</procedure>
+
+Accessors for the components of {{PATHNAME}}. If the pathname does
+not contain the accessed component, then {{#f}} is returned.
+
+=== pathname-replace-directory
+=== pathname-replace-file
+=== pathname-replace-extension
+
+<procedure>(pathname-replace-directory PATHNAME DIRECTORY)</procedure><br>
+<procedure>(pathname-replace-file PATHNAME FILENAME)</procedure><br>
+<procedure>(pathname-replace-extension PATHNAME EXTENSION)</procedure>
+
+Return a new pathname with the specified component of {{PATHNAME}}
+replaced by a new value.
+
+=== pathname-strip-directory
+=== pathname-strip-extension
+
+<procedure>(pathname-strip-directory PATHNAME)</procedure><br>
+<procedure>(pathname-strip-extension PATHNAME)</procedure>
+
+Return a new pathname with the specified component of {{PATHNAME}}
+stripped.
+
+=== normalize-pathname
+
+<procedure>(normalize-pathname PATHNAME [PLATFORM])</procedure>
+
+Performs a simple "normalization" on the {{PATHNAME}}, suitably for
+{{PLATFORM}}, which should be one of the symbols {{windows}}
+or {{unix}} and defaults to on whatever platform is currently
+in use. All relative path elements and duplicate separators are processed 
+and removed.  If {{NAME}} ends with
+a {{/}} or is empty, the appropriate slash is appended to the tail.
+
+No directories or files are actually tested for existence; this 
+procedure only canonicalises path syntax.
+
+=== directory-null?
+
+<procedure>(directory-null? DIRECTORY)</procedure>
+
+Does the {{DIRECTORY}} consist only of path separators and the period?
+
+{{DIRECTORY}} may be a string or a list of strings.
+
+=== decompose-directory
+
+<procedure>(decompose-directory DIRECTORY)</procedure>
+
+Returns 3 values: the {{base-origin}}, {{base-directory}}, and the
+{{directory-elements}} for the {{DIRECTORY}}.
+
+; {{base-origin}} : a {{string}} or {{#f}}. The drive, if any.
+; {{base-directory}} : a {{string}} or {{#f}}. A directory-separator when {{DIRECTORY}} is an {{absolute-pathname}}.
+; {{directory-elements}} : a {{list-of string}} or {{#f}}. The non-directory-separator bits.
+
+{{DIRECTORY}} is a {{string}}.
+
+* On Windows {{(decompose-directory "c:foo/bar")}} => {{"c:" #f ("foo" "bar")}}
+
+=== Windows specific notes
+
+Use of UTF8 encoded strings for pathnames is not supported. Windows
+uses a 16-bit UNICODE encoding with special system calls for
+wide-character support.  Only single-byte string encoding can be used.
+
+---
+Previous: [[Module (chicken module)]]
+
+Next: [[Module (chicken platform)]]

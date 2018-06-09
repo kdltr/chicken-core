@@ -1,0 +1,266 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken port)
+
+This module contains various extended port definitions.
+
+=== Port attributes
+
+==== port-name
+
+<procedure>(port-name [PORT])</procedure>
+
+Fetch filename from {{PORT}}. This returns the filename that was used to open
+this file. Returns a special tag string, enclosed into parentheses for
+non-file ports. {{PORT}} defaults to the value of {{(current-input-port)}}.
+
+
+==== port-position
+
+<procedure>(port-position [PORT])</procedure>
+
+Returns the current position of {{PORT}} as two values: row and column number. 
+If the port does not support such an operation an error is signaled. This
+procedure is currently only available for input ports. {{PORT}} defaults to the
+value of {{(current-input-port)}}.
+
+
+==== set-port-name!
+
+<procedure>(set-port-name! PORT STRING)</procedure>
+
+Sets the name of {{PORT}} to {{STRING}}.
+
+
+=== Setting the file buffering mode
+
+==== set-buffering-mode!
+
+<procedure>(set-buffering-mode! PORT MODE [BUFSIZE])</procedure>
+
+Sets the buffering-mode for the file associated with {{PORT}} to
+{{MODE}}, which should be one of the keywords {{#:full}},
+{{#:line}} or {{#:none}}. If {{BUFSIZE}} is specified it
+determines the size of the buffer to be used (if any).
+
+
+=== Terminal ports
+
+==== terminal-name
+
+<procedure>(terminal-name PORT)</procedure>
+
+Returns the name of the terminal that is connected to {{PORT}}.
+
+On Windows, this procedure always raises an exception.
+
+==== terminal-port?
+
+<procedure>(terminal-port? PORT)</procedure>
+
+Returns {{#t}} if {{PORT}} is connected to a terminal and
+{{#f}} otherwise.
+
+
+==== terminal-size
+
+<procedure>(terminal-size PORT)</procedure>
+
+Returns two values, the number of columns and rows of the terminal
+that is connected to {{PORT}} or {{0}}, {{0}} if the terminal size can
+not be obtained.
+
+On Windows, this procedure always raises an exception.
+
+
+=== Input/output port extensions
+
+==== with-output-to-port
+
+<procedure>(with-output-to-port PORT THUNK)</procedure>
+
+Call procedure {{THUNK}} with the current output-port temporarily
+bound to {{PORT}}.
+
+==== make-input-port
+
+<procedure>(make-input-port READ-CHAR CHAR-READY? CLOSE [PEEK-CHAR [READ-STRING! [READ-LINE]]])</procedure>
+
+Returns a custom input port. Common operations on this port are
+handled by the given parameters, which should be procedures of no
+arguments.  The following arguments are all different kinds of reader
+procedures:
+
+* {{READ-CHAR}} is the most fundamental reader, and must always be
+present.  It is a thunk which is called when the next character is
+to be read and it should return a character or {{#!eof}}.
+* {{CHAR-READY?}} is a thunk which is called when {{char-ready?}}
+is called on this port and should return {{#t}} or {{#f}}.
+* {{CLOSE}} is a thunk which is called when the port is closed.
+* {{PEEK-CHAR}} is a thunk which is called when {{peek-char}} is
+called on this port and should return a character or {{#!eof}}. If it
+is not provided or {{#f}}, {{READ-CHAR}} will be used instead and the
+created port object handles peeking automatically (by calling {{READ}}
+and buffering the character).
+* {{READ-STRING!}} is called when {{read-string!}} is called (or the
+higher-level non-mutating {{read-string}}).  It will be invoked with 4
+arguments: the port created by {{make-input-port}}, the number of
+bytes to read, a string (or sometimes a blob) to read into (which may be
+assumed to be big enough to hold the data) and the offset into the
+buffer at which to put the data to read.  It should return the number
+of bytes that have successfully been read, which should always be
+equal to the requested bytes unless EOF was hit, in which case it can
+be less.  If this procedure is not provided or {{#f}}, the buffer will
+be filled by repeated reads to {{READ-CHAR}}.
+* {{READ-LINE}} is called when {{read-line}} is called.  It will be
+invoked with two arguments: the port created by {{make-input-port}}
+and the maximum number of characters to read (or {{#f}}).  If this
+procedure is not provided or {{#f}}, the buffer will be filled by
+repeated reads to {{READ-CHAR}}.
+
+All the optional procedures except for {{PEEK-CHAR}} are responsible
+for updating the port's position, which currently can only be done via
+low-level slot accessors like {{##sys#setslot}}; slot 4 is the row
+number (ie, the line) and slot 5 is the column number (ie, the
+character on the line).  If the port's positions are not updated,
+{{port-position}} won't work.
+
+
+==== make-output-port
+
+<procedure>(make-output-port WRITE CLOSE [FLUSH])</procedure>
+
+Returns a custom output port. Common operations on this port are handled
+by the given parameters, which should be procedures.  {{WRITE}} is
+called when output is sent to the port and receives a single argument,
+a string.  {{CLOSE}} is called when the port is closed and should
+be a procedure of no arguments. {{FLUSH}} (if provided) is called
+for flushing the output port.
+
+
+==== with-error-output-to-port
+
+<procedure>(with-error-output-to-port PORT THUNK)</procedure>
+
+Call procedure {{THUNK}} with the current error output-port
+temporarily bound to {{PORT}}.
+
+
+==== with-input-from-port
+
+<procedure>(with-input-from-port PORT THUNK)</procedure>
+
+Call procedure {{THUNK}} with the current input-port temporarily
+bound to {{PORT}}.
+
+
+=== String-port extensions
+
+==== call-with-input-string
+
+<procedure>(call-with-input-string STRING PROC)</procedure>
+
+Calls the procedure {{PROC}} with a single argument that is a
+string-input-port with the contents of {{STRING}}.
+
+
+==== call-with-output-string
+
+<procedure>(call-with-output-string PROC)</procedure>
+
+Calls the procedure {{PROC}} with a single argument that is a
+string-output-port.  Returns the accumulated output-string.
+
+
+==== with-input-from-string
+
+<procedure>(with-input-from-string STRING THUNK)</procedure>
+
+Call procedure {{THUNK}} with the current input-port temporarily
+bound to an input-string-port with the contents of {{STRING}}.
+
+
+==== with-output-to-string
+
+<procedure>(with-output-to-string THUNK)</procedure>
+
+Call procedure {{THUNK}} with the current output-port temporarily
+bound to a string-output-port and return the accumulated output string.
+
+==== with-error-output-to-string
+
+<procedure>(with-error-output-to-string THUNK)</procedure>
+
+Call procedure {{THUNK}} with the current error output-port
+temporarily bound to a string-output-port and return the accumulated
+output string.
+
+
+=== Port iterators
+
+==== port-for-each
+
+<procedure>(port-for-each FN THUNK)</procedure>
+
+Apply {{FN}} to successive results of calling the zero argument procedure {{THUNK}} (typically {{read}}) until it returns {{#!eof}}, discarding the results.
+
+==== port-map
+
+<procedure>(port-map FN THUNK)</procedure>
+
+Apply {{FN}} to successive results of calling the zero argument procedure {{THUNK}} (typically {{read}}) until it returns {{#!eof}}, returning a list of the collected results.
+
+==== port-fold
+
+<procedure>(port-fold FN ACC THUNK)</procedure>
+
+Apply {{FN}} to successive results of calling the zero argument procedure {{THUNK}}, (typically {{read}}) passing the {{ACC}} value as the second argument. The {{FN}} result becomes the new {{ACC}} value. When {{THUNK}} returns {{#!eof}}, the last {{FN}} result is returned.
+
+==== copy-port
+
+<procedure>(copy-port FROM TO [READ [WRITE]])</procedure>
+
+Reads all remaining data from port {{FROM}} using the reader procedure
+{{READ}} and writes it to port {{TO}} using the writer procedure
+{{WRITE}}. {{READ}} defaults to {{read-char}} and {{WRITE}} to
+{{write-char}}. Note that this procedure does not check {{FROM}} and
+{{TO}} for being ports, so the reader and writer procedures may
+perform arbitrary operations as long as they can be invoked
+as {{(READ FROM)}} and {{(WRITE X TO)}}, respectively.
+{{copy-port}} returns an undefined value.
+
+{{copy-port}} was introduced in CHICKEN 4.6.0.
+
+=== Funky ports
+
+==== make-bidirectional-port
+
+<procedure>(make-bidirectional-port INPUT-PORT OUTPUT-PORT)</procedure>
+
+Returns a joint input/output port that proxies port operations to the
+given {{INPUT-PORT}} and {{OUTPUT-PORT}}, respectively. This port
+satisfies both {{input-port?}} and {{output-port?}}, and its two
+directions may be closed independently.
+
+==== make-broadcast-port
+
+<procedure>(make-broadcast-port PORT ...)</procedure>
+
+Returns a custom output port that emits everything written into it to
+the ports given as {{PORT ...}}. Closing the broadcast port does not close
+any of the argument ports.
+
+==== make-concatenated-port
+
+<procedure>(make-concatenated-port PORT1 PORT2 ...)</procedure>
+
+Returns a custom input port that reads its input from {{PORT1}}, until it
+is empty, then from {{PORT2}} and so on. Closing the concatenated port
+does not close any of the argument ports.
+
+
+---
+Previous: [[Module (chicken plist)]]
+
+Next: [[Module (chicken pretty-print)]]

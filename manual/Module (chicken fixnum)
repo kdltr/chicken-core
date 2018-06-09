@@ -1,0 +1,85 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken fixnum)
+
+Because CHICKEN supports a full numeric tower, operations can
+sometimes incur a substantial overhead to simply detect the type of numbers
+you're passing in.  When you know you're definitely dealing only with
+fixnums, you can choose to use fixnum-specific operations to avoid
+this overhead.
+
+This is purely a performance hack.  You might want to consider adding
+[[Types|type annotations]] instead, this often gives the same
+performance boost without having to rewrite all numeric operators in
+your code.
+
+
+=== Arithmetic fixnum operations
+
+<procedure>(fx+ N1 N2)</procedure>
+<procedure>(fx- N1 N2)</procedure>
+<procedure>(fx* N1 N2)</procedure>
+<procedure>(fx/ N1 N2)</procedure>
+<procedure>(fxmod N1 N2)</procedure>
+<procedure>(fxrem N1 N2)</procedure>
+<procedure>(fxneg N)</procedure>
+<procedure>(fxmin N1 N2)</procedure>
+<procedure>(fxmax N1 N2)</procedure>
+<procedure>(fxand N1 N2)</procedure>
+<procedure>(fxior N1 N2)</procedure>
+<procedure>(fxxor N1 N2)</procedure>
+<procedure>(fxnot N)</procedure>
+<procedure>(fxshl N1 N2)</procedure>
+<procedure>(fxshr N1 N2)</procedure>
+<procedure>(fxgcd N1 N2)</procedure>
+
+{{fx+}} and friends are arithmetic fixnum operations.  These procedures do not
+check their arguments, so non-fixnum parameters will result in incorrect
+results. {{fxneg}} negates its argument.
+
+On division by zero, {{fx/}}, {{fxmod}} and {{fxrem}} signal a
+condition of kind {{(exn arithmetic)}}.
+
+{{fxshl}} and {{fxshr}} perform arithmetic shift left and right,
+respectively.
+
+=== Overflow-aware fixnum operations
+
+<procedure>(fx+? N1 N2)</procedure>
+<procedure>(fx-? N1 N2)</procedure>
+<procedure>(fx*? N1 N2)</procedure>
+<procedure>(fx/? N1 N2)</procedure>
+
+These procedures behave similarly to their standard counterparts with
+the exception that {{#f}} is returned if an argument is not a fixnum
+or the result of the operation overflows.
+
+Chaining of such procedures is well-defined and causes the overflow
+error to be propagated.
+
+=== Fixnum comparison and predicates
+
+<procedure>(fxodd? N)</procedure>
+<procedure>(fxeven? N)</procedure>
+<procedure>(fx= N1 N2)</procedure>
+<procedure>(fx> N1 N2)</procedure>
+<procedure>(fx< N1 N2)</procedure>
+<procedure>(fx>= N1 N2)</procedure>
+<procedure>(fx<= N1 N2)</procedure>
+
+Comparison of fixnums and predicates on them.
+
+=== Fixnum limits
+
+<constant>most-positive-fixnum</constant><br>
+<constant>most-negative-fixnum</constant><br>
+<constant>fixnum-bits</constant><br>
+<constant>fixnum-precision</constant><br>
+
+Platform-specific fixnum limits.
+
+---
+Previous: [[Module (chicken file posix)]]
+
+Next: [[Module (chicken flonum)]]

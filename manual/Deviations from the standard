@@ -1,6 +1,6 @@
 [[tags: manual]]
 
-== Confirmed deviations
+== Confirmed deviations from R5RS
 
 Identifiers are by default case-sensitive (see [[Using the compiler]]).
 
@@ -24,7 +24,7 @@ read/write invariance for inexact numbers.
 
 === Environments and non-standard syntax
 
-In addition to the standard bindings {{scheme-report-environment}} and
+In addition to the standard bindings, {{scheme-report-environment}} and
 {{null-environment}} contain additional non-standard bindings for the
 following syntactic forms: {{import}}, {{require-extension}},
 {{require-library}}, {{begin-for-syntax}}, {{export}}, {{module}},
@@ -96,6 +96,6 @@ The {{transcript-on}} and {{transcript-off}} procedures are
 not implemented.  R5RS does not require them.
 
 ---
-Previous: [[The R5RS standard]]
+Previous: [[Using the compiler]]
 
 Next: [[Extensions to the standard]]

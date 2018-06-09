@@ -19,7 +19,7 @@ writing and running small CHICKEN programs.
 === Scheme
 
 Scheme is a member of the Lisp family of languages, of which Common
-Lisp and Emacs Lisp are the other two widely-known members. As with
+Lisp, Emacs Lisp and Clojure are other widely-known members. As with
 Lisp dialects, Scheme features
 
 * a wide variety of programming paradigms, including imperative, functional, and object-oriented
@@ -29,7 +29,9 @@ Lisp dialects, Scheme features
 In contrast to Common Lisp, Scheme is very minimal, and tries to
 include only those features absolutely necessary in programming. In
 contrast to Emacs Lisp, Scheme is not anchored into a single program
-(Emacs), and has a more modern language design.
+(Emacs), and has a more modern and elegant language design. In contrast
+to Clojure, Scheme provides only a very minimal set of concepts but allows
+them to be used in very general ways with few restrictions.
 
 Scheme is defined in a document called ''The Revised^5 Report on the
 Algorithmic Language Scheme'', or ''R5RS'' for short. (Yes, it really
@@ -37,8 +39,13 @@ has been revised five times, so an expanded version of its name would
 be ''The Revised Revised Revised Revised Revised Report''.)  A newer
 report, ''R6RS'', was 
 released in 2007, but this report has attracted considerable
-controversy, and not all Scheme implementations will be made compliant
-with it. CHICKEN essentially complies with R5RS. 
+controversy, and a number of Scheme implementations have chosen
+not to be compliant
+with it. Yet another report was released in 2013 ("R7RS"), that was
+less ambitious than R6RS and more minimal. 
+
+CHICKEN fully complies with R5RS and, by using a separately available
+extension also with the "R7RS small" language. 
 
 Even though Scheme is consciously minimalist, it is recognized that a
 language must be more than a minimal core in order to be
@@ -52,18 +59,12 @@ A good starting point for Scheme knowledge is
 [[http://www.schemers.org]]. There you will find the defining reports,
 FAQs, lists of useful books and other resources, and the SRFIs. 
 
-The CHICKEN community is at present developing tutorials for
-programmers who are new to Scheme but experienced with Python, Ruby,
-or other languages. These can be found on the CHICKEN wiki. 
-
 === CHICKEN
 
-CHICKEN is an implementation of Scheme that has many advantages.
-
 CHICKEN Scheme combines an optimising compiler with a reasonably fast
-interpreter.  It supports almost all of R5RS and the important SRFIs.
+interpreter.  It supports almost all of R7RS and the important SRFIs.
 The compiler generates portable C code that supports tail recursion,
-first-class continuations, and lightweight threads, and the interface to
+first-class continuations and lightweight threads, and the interface to
 and from C libraries is flexible, efficient, and easy to use.  There are
 hundreds of contributed CHICKEN libraries that make the programmer's
 task easier.  The interpreter allows interactive use, fast prototyping,
@@ -78,18 +79,18 @@ and participates actively.
 
 CHICKEN includes 
 
-* a Scheme interpreter that supports almost all of  R5RS Scheme, with
+* a Scheme interpreter that supports all of R5(7)RS Scheme, with
   only a few relatively minor omissions, and with many extensions
 * a compatible compiler whose target is C, thus making porting to new
   machines and architectures relatively straightforward
-** the C support allows Scheme code to include `embedded' C code,
-  thus making it relatively easy to invoke host OS or library
+* the C support allows Scheme code to include `embedded' C code,
+  thus making it easyto invoke host OS or library
   functions
 * a framework for language extensions, library modules that broaden
   the functionality of the system
 
 This package is distributed under the '''BSD license''' and as such is free
-to use and modify.
+to use and modify as long as the original authors are acknowledged.
 
 Scheme cognoscenti will appreciate the method of compilation and the
 design of the runtime-system, which follow closely Henry Baker's
@@ -97,26 +98,24 @@ design of the runtime-system, which follow closely Henry Baker's
 CONS Its Arguments, Part II: Cheney on the M.T.A.]] paper and expose a
 number of interesting properties.
 
-* Consing (creation of data on the heap) is relatively inexpensive,
-  because a generational garbage collection scheme is used, in which
-  short-lived data structures are reclaimed extremely quickly.
+* Consing (creation of data on the heap) is inexpensive,
+  because a generational garbage collection scheme is used in combination
+  with allocating on the C stack, in which short-lived data structures are reclaimed 
+  extremely quickly.
 
-* Moreover, {{call-with-current-continuation}} is practically for free
-  and CHICKEN does not suffer under any performance penalties if
+* Moreover, {{call-with-current-continuation}} involves only minimal
+  overhead and CHICKEN does not suffer under any performance penalties if
   first-class continuations are used in complex ways.
 
-The generated C code is fully tail-recursive.
+The generated C code fully supports tail-call optimization (TCO).
 
 Some of the features supported by CHICKEN:
 
-* SRFIs 0, 1, 2, 4, 6, 8-18, 23, 26, 28, 30, 31, 39, 46, 55, 61, 62, 69, 85, 88 and 98.
 * Lightweight threads based on first-class continuations
 * Record structures
 * Extended comment- and string-literal syntaxes
 * Libraries for regular expressions, string handling
 * UNIX system calls and extended data structures
-* Create interpreted or compiled shell scripts written in Scheme for
-  UNIX or Windows 
 * Compiled C files can be easily distributed
 * Allows the creation of fully self-contained statically linked executables
 * On systems that support it, compiled code can be loaded dynamically
@@ -124,14 +123,13 @@ Some of the features supported by CHICKEN:
 
 CHICKEN has been used in many environments ranging from embedded
 systems through desktop machines to large-scale server deployments.  
-The number of language extensions, or '''eggs''', is constantly growing.
+The number of language extensions, or '''eggs''', is constantly growing:
 
 * extended language features
 * development tools, such as documentation generators, debugging, and
   automated testing libraries
 * interfaces to other languages such as Java, Python, and Objective-C
-* interfaces to database systems, GUIs, and other large-scale
-  libraries, 
+* interfaces to database systems, GUIs, and other libraries, 
 * network applications, such as servers and clients for ftp,
   smtp/pop3, irc, and http  
 * web servers and related tools, including URL parsing, HTML
@@ -142,11 +140,11 @@ This chapter provides you with an overview of the entire system, with
 enough information to get started writing and running small Scheme
 programs.
 
-=== CHICKEN repositories, websites, and community
+=== CHICKEN repositories, websites and community
 
 The master CHICKEN website is
 [[http://www.call-cc.org]]. Here you can find
-basic information about CHICKEN, downloads, and pointers to other key
+basic information about CHICKEN, downloads and pointers to other key
 resources. 
 
 The CHICKEN wiki ([[http://wiki.call-cc.org]]) contains the most
@@ -154,7 +152,8 @@ current version of the User's manual, along with various tutorials and
 other useful documents. The list of eggs is at
 [[http://wiki.call-cc.org/egg-index|http://wiki.call-cc.org/egg-index]].
 
-A very useful search facility for questions about CHICKEN is found at
+A very useful search facility for questions about procedures and syntax
+available for CHICKEN can be found at
 [[http://api.call-cc.org]]. The CHICKEN issue tracker is at
 [[http://bugs.call-cc.org]].
 
@@ -185,25 +184,23 @@ can pretty much ignore the C compiler once you have installed it.)
   installed as part of the basic operating system, or should be
   available through the package management system (e.g., APT,
   Synaptic, RPM, or Yum, depending upon your Linux distribution).
-* On Macintosh OS X, you will need the XCode tools, which were shipped
-  on the OS X DVD with older versions of the operating system, and are 
-  installable from the App Store with recent versions of the operating
-  system.
+* On Macintosh OS X, you will need the XCode tools, which are 
+  installable from the App Store.
 * On Windows, you have three choices:
-** Cygwin ([[http://sourceware.org/cygwin/]]) provides a relatively
+* Cygwin ([[http://sourceware.org/cygwin/]]) provides a relatively
   full-featured Unix environment for Windows.  CHICKEN works
   substantially the same in Cygwin and Unix. 
-** The GNU Compiler Collection has been ported to Windows, in the
+* The GNU Compiler Collection has been ported to Windows, in the
   MinGW system ([[http://mingw.sourceforge.net]]). Unlike Cygwin,
   executables produced with MinGW do not need the Cygwin DLLs in order
   to run.   MSYS is a companion package to MinGW; it provides a minimum
   Unix-style development/build environment, again ported from free
   software.
-*** You can build CHICKEN either with MinGW alone or with MinGW plus 
+* You can build CHICKEN either with MinGW alone or with MinGW plus 
   MSYS. Both approaches produce a CHICKEN built against the mingw headers 
   and libraries.
   The only difference is the environment where you actually run make.
-  {{Makefile.mingw}} is can be used in {{cmd.exe}} with the version of make
+  {{Makefile.mingw}} can be used in {{cmd.exe}} with the version of make
   that comes with mingw.  {{Makefile.mingw-msys}} 
   uses unix commands such as {{cp}} and {{rm}}.  The end product is the
   same.
@@ -220,60 +217,15 @@ for information about how to obtain them.
 
 The simplest development environment is a text editor and terminal
 window (Windows: Command Prompt, OSX: Terminal, Linux/Unix: xterm) for
-using the interpreter and/or calling the compiler.  If you install one
+using the interpreter and/or invoking the compiler.  If you install one
 of the line editing extensions (e.g., [[/egg/readline|readline]],
-[[/egg/parley|parley]], [[/egg/linenoise|linenoise]], you have some
+[[/egg/parley|parley]], [[/egg/linenoise|linenoise]]), you have some
 useful command line editing features in the interpreter (e.g., Emacs
 or vi-compatible line editing, customization).
 
-You will need a text editor that knows Scheme; it's just too painful
-with editors that don't do parenthesis matching and proper
-indentation. Some editors allow you to execute Scheme code directly in
-the editor. This makes programming very interactive: you can type in a
-function and then try it right away. This feature is very highly
-recommended. 
-
-As programmers have very specific tastes about editors, the editors
-listed here are shown in alphabetic order. We aren't about to tell you
-which editor to use, and there may be editors not shown here that
-might satisfy your needs. We would be very interested in reports of
-other editors that have been used with CHICKEN, especially those that
-support interactive evaluation of forms during editing. Pointers to
-these (and to any editor customization files appropriate) should be
-put on the CHICKEN wiki, and will likely be added to future editions
-of this manual. (We have had a request for editors that support
-proportional fonts, in particular.) 
-
-* Emacs ([[http://www.gnu.org/software/emacs]]) is an
-extensible, customizable, self-documenting editor available for
-Linux/Unix, Macintosh, and Windows systems; See
-[[http://wiki.call-cc.org/emacs|http://wiki.call-cc.org/emacs]]
-for more information about the available options.
-
-* SciTE ([[http://scintilla.sourceforge.net/SciTE.html]]), 
-unlike Emacs or Vim, follows typical graphical UI design conventions
-and control-key mappings, and for simple tasks is as familiar and
-easy to use as Notepad, KEdit, TeachText etc.  However it has many
-programming features such as multiple open files, syntax
-highlighting for a large number of languages (including Lisps),
-matching of brackets, ability to fold sections of code based on the
-matched brackets, column selections, comment/uncomment, and the
-ability to run commands in the same directory as the current file
-(such as make, grep, etc.)  SciTE is written with the GTK toolkit
-and is portable to any GTK platform, including Windows, Linux and
-MacOS.  It uses the Scintilla text-editing component, which lends
-itself well to embedding within other IDEs and graphical toolkits.
-It does not have any other Scheme-specific features, but being
-open-source and modular, features like auto-formatting of
-S-expressions could be added.  The syntax highlighting can be
-configured to use different fonts for different types of syntax,
-including proportional fonts. 
-
-* Vim ([[http://www.vim.org]]) is a highly configurable text
-editor built to enable efficient and fast text editing. It is an
-improved version of the vi editor distributed with most UNIX systems.
-Vim comes with generic Lisp (and therefore Scheme) editing capabilities
-out of the box. See [[/Vim]] for a few tips on using Vim with CHICKEN.
+It will be helpful to use a text editor that knows Scheme; it can be painful
+with editors that don't do parenthesis matching and automatic
+indentation. 
 
 In the rest of this chapter, we'll assume that you are using an editor
 of your choice and a regular terminal window for executing your
@@ -283,16 +235,13 @@ CHICKEN code.
 
 To invoke the CHICKEN interpreter, you use the {{csi}} command. 
 
-
  $ csi
- 
  CHICKEN
- (c) 2008-2016, The CHICKEN Team
+ (c) 2008-2018, The CHICKEN Team
  (c) 2000-2007, Felix L. Winkelmann
- Version 4.11.0 (rev ce980c4)
- linux-unix-gnu-x86-64 [ 64bit manyargs dload ptables ]
- compiled 2016-05-28 on yves.more-magic.net (Linux)
- 
+ Version 5.0.0 (rev 6653dce)
+ linux-unix-gnu-x86-64 [ 64bit dload ptables ]
+
  #;1>
 
 This brings up a brief banner, and then the prompt. You can use this
@@ -344,9 +293,9 @@ Next create the scheme code in a file called ''quickrep.scm'' with the
 following little program:
 
 <enscript highlight=scheme>
-
-(import irregex) ; irregex, the regular expression library, is one of the
-                 ; libraries included with CHICKEN.
+;; irregex, the regular expression library, is one of the
+;; libraries included with CHICKEN.
+(import (chicken irregex))
 
 (define (process-line line re rplc) 
   (irregex-replace/all re line rplc))
@@ -391,6 +340,8 @@ There are several reasons you might want to compile your code.
 * You might want to deploy an application onto machines where the
   users aren't expected to have CHICKEN installed: compiled
   applications can be self-contained. 
+* Compiled code can access external libraries written in lower-level
+  languages that follow the C calling convention.
 
 The CHICKEN compiler is provided as the command {{chicken}}, but in
 almost all cases, you will want to use the {{csc}} command
@@ -402,16 +353,11 @@ C# compiler. There are a number of ways of sorting this out, of which
 the simplest is to rename one of the two tools, and/or to 
 organize your {{PATH}} according to the task at hand.)
 
-Compiled code can be intermixed with interpreted code on systems that
-support dynamic loading, which includes modern versions of *BSD,
-Linux, Mac OS X, Solaris, and Windows.
-
 We can compile our factorial function, producing a file named
-{{fact.so}} (''shared object'' in Linux-ese, the same file type is
-used in OS X and Windows, rather than {{dylib}} or {{dll}},
-respectively).
+{{fact.so}} (''shared object'' in Linux-ese, the same file extension is
+used in Windows, rather than {{dll}})
 
- chicken$ csc -dynamic fact.scm
+ chicken$ csc -shared fact.scm
  chicken$ csi -quiet
  #;1> (load "fact.so")
  ; loading fact.so ...
@@ -423,6 +369,8 @@ executable. Here's a program that tells you whether its argument is a
 palindrome. 
 
 <enscript highlight=scheme>
+(import (chicken process-context)) ; for "command-line-arguments"
+
 (define (palindrome? x)
   (define (check left right)
     (if (>= left right)
@@ -430,6 +378,7 @@ palindrome.
         (and (char=? (string-ref x left) (string-ref x right))
              (check (add1 left) (sub1 right)))))
   (check 0 (sub1 (string-length x))))
+
 (let ((arg (car (command-line-arguments))))
   (display 
    (string-append arg 
@@ -460,6 +409,7 @@ involve separated namespaces; namespaces can be implemented by
 <enscript highlight=scheme>
 ;;; Library pal-proc.scm
 (declare (unit pal-proc))
+
 (define (palindrome? x)
   (define (check left right)
     (if (>= left right)
@@ -475,6 +425,9 @@ module.
 <enscript highlight=scheme>
 ;;; Client pal-user.scm
 (declare (uses pal-proc))
+
+(import (chicken process-context))
+
 (let ((arg (car (command-line-arguments))))
   (display 
    (string-append arg 
@@ -493,34 +446,23 @@ into one command.)
  $ ./pal-separate level
  level is a palindrome
 
+The "unit" mechanism is relatively low-level and requires some 
+familiarity with underlying mechanism used to manage compilation
+units. See [[Units and linking model]] for more information.
+
 === Installing an egg
 
 Installing eggs is quite straightforward on systems that support
-dynamic loading (again, that would include *BSD, Linux, Mac OS X,
+dynamic loading (that would include *BSD, Linux, Mac OS X,
 Solaris, and Windows).  The command {{chicken-install}} will fetch an
 egg from the master CHICKEN repository, and install it on your local
 system.
 
 In this example, we install the {{uri-common}} egg, for parsing
-Uniform Resource Identifiers. The installation produces a lot of
-output, which we have edited for space.
+Uniform Resource Identifiers. 
 
  $ chicken-install uri-common
  
- retrieving ...
- resolving alias `kitten-technologies' to: http://chicken.kitten-technologies.co.uk/henrietta.cgi
- connecting to host "chicken.kitten-technologies.co.uk", port 80 ...
- requesting "/henrietta.cgi?name=uri-common&mode=default" ...
- reading response ...
- [...]
- /usr/bin/csc -feature compiling-extension -setup-mode    -s -O2 uri-common.scm -j uri-common
- /usr/bin/csc -feature compiling-extension -setup-mode    -s -O2 uri-common.import.scm
- cp -r uri-common.so /usr/lib/chicken/5/uri-common.so
- chmod a+r /usr/lib/chicken/5/uri-common.so
- cp -r uri-common.import.so /usr/lib/chicken/5/uri-common.import.so
- chmod a+r /usr/lib/chicken/5/uri-common.import.so
- chmod a+r /usr/lib/chicken/5/uri-common.setup-info
-
 {{chicken-install}} connects to a mirror of the egg repository and
 retrieves the egg contents.  If the egg has any uninstalled
 dependencies, it recursively installs them.  Then it builds the egg
@@ -530,7 +472,7 @@ local CHICKEN repository.
 Now we can use our new egg. 
 
  #;1> (import uri-common)
- ; loading /usr/lib/chicken/5/uri-common.import.so ...
+ ; loading /usr/lib/chicken/9/uri-common.import.so ...
  ; [... other loaded files omitted for clarity ...]
  
  #;2> (uri-host (uri-reference "http://www.foobar.org/blah"))
@@ -540,7 +482,7 @@ Now we can use our new egg.
 
 Because CHICKEN compiles to C, and because a foreign function
 interface is built into the compiler, interfacing to a C library is
-quite straightforward. This means that nearly any facility available
+quite straightforward. This means that any facility available
 on the host system is accessible from CHICKEN, with more or less
 work. 
 
@@ -566,6 +508,8 @@ real example would take far too much space here.)
 Now we can call this function from CHICKEN. 
 
  ;;; fib-user.scm
+ (import (chicken foreign) (chicken format))
+
  #>
    extern int fib(int n);
  <# 
@@ -593,4 +537,4 @@ using the [[/egg/bind|bind egg]].
 
 Back to [[The User's Manual]]
 
-Next: [[Basic mode of operation]]
+Next: [[Using the interpreter]]

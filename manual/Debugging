@@ -9,7 +9,7 @@ This document describes "Feathers", a debugger for compiled CHICKEN programs.
 
 "Feathers" is a [[Tcl/Tk|http://tcl.tk]] script, installed together with
 all other components of the CHICKEN system. To use the debugger, Tcl/Tk version
-8.5 must be installed.
+8.5 or later must be installed.
 
 Once the debugger is started, it waits for a client program to connect to
 it. You can also run a program explicitly by pressing the {{F1}} key and

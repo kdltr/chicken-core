@@ -81,6 +81,7 @@ You should now have these files on {{~/target}}:
 
  |-- bin
  |   |-- chicken
+ |   |-- chicken-bug
  |   |-- chicken-install
  |   |-- chicken-profile
  |   |-- chicken-status
@@ -224,11 +225,11 @@ Sometimes an extension will only be compilable for the target platform
 case you will have to work around the problem that the host-compiler
 still may need compile-time information from the target-only
 extension, like the import library of modules. One option is to copy
-the import-library into the repository of the host compiler:
+the import-library source file into the repository of the host compiler:
 
  # optionally, you can compile the import library:
  # ~/cross-chicken/arm-csc -O3 -d0 -s target-only-extension.import.scm
- cp target-only-extension.import.scm ~/cross-chicken/lib/chicken/6
+ cp target-only-extension.import.scm ~/cross-chicken/lib/chicken/9
 
 === Final notes
 
@@ -241,5 +242,6 @@ extensions.
 
 
 ----
-Previous: [[Extensions]]
-Next: [[Data representation]]
+Previous: [[Deployment]]
+
+Next: [[Bugs and limitations]]

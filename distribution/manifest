@@ -430,7 +430,6 @@ manual-html/Unit srfi-4.html
 manual-html/Unit tcp.html
 manual-html/Using the compiler.html
 manual-html/Using the interpreter.html
-manual-html/faq.html
 manual-html/chicken.png
 manual-html/index.html
 manual-html/manual.css

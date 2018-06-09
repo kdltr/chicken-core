@@ -160,6 +160,6 @@ For more information see the header file {{chicken.h}}.
 
 
 ---
-Previous: [[Cross development]]
+Previous: [[C interface]]
 
-Next: [[Bugs and limitations]]
+Next: [[Modules]]

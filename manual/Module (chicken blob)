@@ -1,0 +1,55 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken blob)
+
+This module contains procedures for dealing with "blobs".  Blobs are
+unstructured byte arrays (basically "binary strings"). You can't do
+much with them, but they allow conversion to and from
+[[Module srfi-4|SRFI-4 number vectors]] which define how to access a
+blob's byte contents.
+
+=== make-blob
+
+<procedure>(make-blob SIZE)</procedure>
+
+Returns a blob object of {{SIZE}} bytes, aligned on an 8-byte boundary,
+uninitialized.
+
+=== blob?
+
+<procedure>(blob? X)</procedure>
+
+Returns {{#t}} if {{X}} is a blob object, or
+{{#f}} otherwise.
+
+=== blob-size
+
+<procedure>(blob-size BLOB)</procedure>
+
+Returns the number of bytes in {{BLOB}}.
+
+=== blob->string
+
+<procedure>(blob->string BLOB)</procedure>
+
+Returns a string with the contents of {{BLOB}}.
+
+=== string->blob
+
+<procedure>(string->blob STRING)</procedure>
+
+Returns a blob with the contents of {{STRING}}.
+
+=== blob=?
+
+<procedure>(blob=? BLOB1 BLOB2)</procedure>
+
+Returns {{#t}} if the two argument blobs are of the same
+size and have the same content.
+
+
+---
+Previous: [[Module (chicken bitwise)]]
+
+Next: [[Module (chicken condition)]]

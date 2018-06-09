@@ -1,0 +1,74 @@
+[[tags: manual]]
+[[toc:]]
+
+== Units and the linking model
+
+Compiling Scheme code to standalone executables or dynamically
+loadable files is the most common and simplest way of using CHICKEN.
+The extension system handles straightforward cases of static linking 
+of modules in a mostly transparent way, which is usually sufficient
+for normal situations.
+
+But for more advanced uses like static linking, creating dynamic 
+libraries or embedding compiled code into other (usually C/C++ based)
+applications it is helpful to understand the internal model CHICKEN
+uses to organize compiled code and separate compilation units.
+
+Every compiled Scheme file (from here on called a ''compilation unit'')
+consists of a ''toplevel'' C function holding the compiled toplevel
+expressions in the order in which they appear in the source file. Scheme
+functions ({{lambda}}s) are compiled 1-to-1 into additional C functions,
+including the intermediate lambda-functions that are the result of the CPS
+conversion that is done by the compiler.
+
+The toplevel C function of a compilation unit is comparable to the
+{{main}} function in C programs, and for standalone executables
+the startup code inside the runtime system will eventually call this
+toplevel function. Dynamically loaded compiled code is structured
+in the same way, with a toplevel function that is dynamically looked
+up in the loaded binary and invoked to execute the expressions from
+the loaded code. Statically linked compilation units are treated similarly,
+there also exists a toplevel function which is called at some stage in the
+startup process to execute the forms of the file.
+
+For standalone executables and dynamically loaded code the toplevel
+function has a fixed, predefined name ({{C_toplevel}}). For static
+linking or for using multiple toplevels in a shared library that combines
+multiple compilation units (like {{libchicken}}, for example), non-internal 
+function names have to be different to be properly
+distinguished, so we assign a unique ''unit'' name to each compilation unit that
+is intended to be linked with other compilation units.
+
+To set the name of a compilation unit, use
+
+<enscript highlight=scheme>
+(declare (unit UNITNAME))
+</enscript>
+
+''Invocation'' of a unit (actually running the toplevel code contained in it) is done
+automatically for standalone programs and dynamically loaded compiled code,
+but must be done explicitly for uniquely named units that are part of a larger
+library or when doing static linking. To do so, use
+
+<enscript highlight=scheme>
+(declare (uses UNITNAME))
+</enscript>
+
+Invocation takes place at the start of the current compilation unit, so the
+toplevel of any ''used'' units is executed before the toplevel of the compilation
+unit that is ''using'' one. Invocation can also be done explicitly by using
+{{load-library}} (from the {{(chicken load)}}) module,
+which takes the name of a unit to be invoked as an
+argument.
+
+Note that this model of using code from other compilation units does not
+address syntax definitions, it's for running pure, fully expanded and compiled
+code. Syntax and modules are handled at a higher level, using import 
+libraries, which are compiled or interpreted separate files setting up module
+information to allow the compiler to properly resolve module namespaces 
+and imports. 
+
+----
+Previous: [[Egg specification format]]
+
+Next: [[Deployment]]

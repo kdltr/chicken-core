@@ -1,0 +1,62 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken keyword)
+
+Keywords are special symbols prefixed with {{#:}} that evaluate to
+themselves. Procedures can use keywords to accept optional named
+parameters in addition to normal required parameters. Assignment to
+and binding of keyword symbols is not allowed.
+
+The parameter {{keyword-style}} and the compiler/interpreter option
+{{-keyword-style}} can be used to allow an additional keyword syntax,
+either compatible to Common LISP, or to DSSSL.  As long as this
+parameter is set to {{#:suffix}}, CHICKEN conforms to
+[[http://srfi.schemers.org/srfi-88/srfi-88.html|SRFI-88]].
+
+
+==== get-keyword
+
+<procedure>(get-keyword KEYWORD ARGLIST [THUNK])</procedure>
+
+Returns the argument from {{ARGLIST}} specified under the keyword
+{{KEYWORD}}. If the keyword is not found, then the zero-argument
+procedure {{THUNK}} is invoked and the result value is returned. If
+{{THUNK}} is not given, {{#f}} is returned.
+
+<enscript highlight=scheme>
+(define (increase x . args)
+  (+ x (get-keyword #:amount args (lambda () 1))) )
+(increase 123)                                      ==> 124
+(increase 123 #:amount 10)                          ==> 133
+</enscript>
+
+Note: the {{KEYWORD}} may actually be any kind of object.
+
+
+==== keyword?
+
+<procedure>(keyword? X)</procedure>
+
+Returns {{#t}} if {{X}} is a keyword symbol, or {{#f}}
+otherwise.
+
+
+==== keyword->string
+
+<procedure>(keyword->string KEYWORD)</procedure>
+
+Transforms {{KEYWORD}} into a string.
+
+
+==== string->keyword
+
+<procedure>(string->keyword STRING)</procedure>
+
+Returns a keyword with the name {{STRING}}.
+
+
+---
+Previous: [[Module (chicken irregex)]]
+
+Next: [[Module (chicken load)]]

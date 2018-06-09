@@ -41,6 +41,9 @@ Type information for all core library units is available by default.
 User-defined global variables can be declared to have a type using
 the {{(declare (type ...))}} or {{:}} syntax.
 
+All syntax described hereafter is exported from the {{(chicken type)}}
+module.
+
 
 ===== :
 
@@ -234,15 +237,15 @@ code that refers to the definitions in a compiled file. The following
 compiler options allow saving type-declarations to a file and consulting
 the type declarations retained in this manner:
 
-{{-emit-type-file FILENAME}} writes the type-information for all declared
+{{-emit-types-file FILENAME}} writes the type-information for all declared
 definitions in an internal format to {{FILENAME}}.
 
-{{-consult-type-file FILENAME}} loads and registers the type-information
+{{-consult-types-file FILENAME}} loads and registers the type-information
 in {{FILENAME}} which should be a file generated though a previous use
-of {{-emit-type-file}}.
+of {{-emit-types-file}}.
 
-If library code is used with {{require-extension}} or {{(declare (unit
-...))}}  and a {{.types}} file of the same name exists in the
+If library code is used with {{import}}
+and a {{.types}} file of the same name exists in the
 extension repository path, then it is automatically consulted. This
 allows code using these libraries to take advantage of type-information
 for library definitions.

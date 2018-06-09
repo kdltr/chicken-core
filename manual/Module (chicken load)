@@ -1,0 +1,132 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken load)
+
+This module contains various procedures for loading code.  Note that
+the main procedure for loading code, {{load}}, is part of
+[[Module scheme]]; the {{chicken load}} module only contains
+''extensions'' to the standard.
+
+=== A note on loading of shared extension libraries
+
+The functionality of loading shared objects into the runtime is only
+available on platforms that support dynamic loading of compiled
+code. Currently Linux, BSD, Solaris, Windows (with Cygwin) and HP/UX
+are supported.  Loading source files works everywhere.
+
+=== load-relative
+
+<procedure>(load-relative FILE [EVALPROC])</procedure>
+
+Similar to {{load}}, but loads {{FILE}} relative to the path
+of the currently loaded file.
+
+=== load-noisily
+
+<procedure>(load-noisily FILE #!key EVALUATOR TIME PRINTER)</procedure>
+
+As {{load}} but the result(s) of each evaluated toplevel-expression
+is written to standard output. If {{EVALUATOR}} is given and not {{#f}},
+then each expression is evaluated by calling this argument with the read
+expression as argument. If {{TIME}} is given and not false, then
+the execution time of each expression is shown (as with the {{time}} macro).
+If {{PRINTER}} is given and not false, then each expression is
+printed before evaluation by applying the expression to the value of this
+argument, which should be a one-argument procedure.
+
+See also the [[#load-verbose|load-verbose]] parameter.
+
+=== load-library
+
+<procedure>(load-library UNIT [LIBRARYFILE])</procedure>
+
+On platforms that support dynamic loading, {{load-library}} loads
+the compiled library unit {{UNIT}} (which should be a symbol). If the
+string {{LIBRARYFILE}} is given, then the given shared library will
+be loaded and the toplevel code of the specified unit will be executed.
+If no {{LIBRARYFILE}} argument is given, then the libraries given in the
+parameter {{dynamic-load-libraries}} are searched for the required unit.
+If the unit is not found, an error is signaled.
+
+Note that {{LIBRARYFILE}} is considered relative to the {{dlopen(3)}}
+search path by default. In order to use a file relative to the current
+working directory, a relative or absolute pathname must be used, i.e.
+{{LIBRARYFILE}} must contain at least one slash ({{"/"}}).
+
+=== require
+
+<procedure>(require ID ...)</procedure>
+
+If any of the named extension libraries {{ID}} are not already loaded
+into the system, then {{require}} will look up the location of the
+shared extension library and load it.  If {{ID}} names a library-unit
+of the base system, then it is loaded via {{load-library}}. If no
+extension library is available for the given ID, then an attempt is
+made to load the file {{ID.so}} or {{ID.scm}} (in that order) from one
+of the following locations:
+
+* the current directory
+* the current repository path (see {{repository-path}})
+
+Each {{ID}} should be a symbol.
+
+
+=== provide
+
+<procedure>(provide ID ...)</procedure>
+
+Registers the extension IDs {{ID ...}} as loaded. This is mainly
+intended to provide aliases for certain library identifiers.
+
+
+=== provided?
+
+procedure: (provided? ID ...)
+
+Returns {{#t}} if extension with the IDs {{ID ...}} are currently
+loaded, or {{#f}} otherwise.
+
+
+=== Tuning how code is loaded
+
+==== dynamic-load-libraries
+
+<parameter>(dynamic-load-libraries)</parameter>
+
+A list of strings containing shared libraries that should be checked
+for explicitly loaded library units (this facility is not available on
+all platforms). See {{load-library}}.
+
+
+==== load-verbose
+
+<parameter>(load-verbose)</parameter>
+
+A boolean indicating whether loading of source files, compiled code
+(if available) and compiled libraries should display a message.
+
+
+==== set-dynamic-load-mode!
+
+<procedure>(set-dynamic-load-mode! MODELIST)</procedure>
+
+On systems that support dynamic loading of compiled code via the
+{{dlopen(3)}} interface (for example Linux and Solaris), some options
+can be specified to fine-tune the behaviour of the dynamic
+linker. {{MODE}} should be a list of symbols (or a single symbol)
+taken from the following set:
+
+; {{local}} : If {{local}} is given, then any C/C++ symbols defined in the dynamically loaded file are not available for subsequently loaded files and libraries. Use this if you have linked foreign code into your dynamically loadable file and if you don't want to export them (for example because you want to load another file that defines the same symbols).
+; {{global}} : The default is {{global}}, which means all C/C++ symbols are available to code loaded at a later stage.
+; {{now}} : If {{now}} is specified, all symbols are resolved immediately.
+; {{lazy}} : Unresolved symbols are resolved as code from the file is executed. This is the default. 
+
+Note that this procedure does not control the way Scheme variables are handled -
+this facility is mainly of interest when accessing foreign code.
+
+
+---
+Previous: [[Module (chicken keyword)]]
+
+Next: [[Module (chicken locative)]]

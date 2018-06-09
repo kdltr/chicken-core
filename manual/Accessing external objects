@@ -2,200 +2,21 @@
 
 [[toc:]]
 
-== Accessing external objects
+== Accessing externally defined data
 
-=== foreign-code
-
-<macro>(foreign-code STRING ...)</macro>
-
-Executes the embedded C/C++ code {{STRING ...}}, which should
-be a sequence of C statements, which are executed and return an unspecified result.
-
-<enscript highlight=scheme>
-(foreign-code "doSomeInitStuff();")     =>  #<unspecified>
-</enscript>
-
-Code wrapped inside {{foreign-code}} may not invoke callbacks into Scheme.
-
-
-=== foreign-value
-
-<macro>(foreign-value CODE TYPE)</macro>
-
-Evaluates the embedded C/C++ expression {{CODE}} (which may be a string or symbol), returning a value of type given
-in the foreign-type specifier {{TYPE}}.
-
-<enscript highlight=scheme>
-(print (foreign-value "my_version_string" c-string))
-</enscript>
-
-
-=== foreign-declare
-
-<macro>(foreign-declare STRING ...)</macro>
-
-Include given strings verbatim into header of generated file.
-
-
-=== define-foreign-type
-
-<macro>(define-foreign-type NAME TYPE [ARGCONVERT [RETCONVERT]])</macro>
-
-Defines an alias for {{TYPE}} with the name {{NAME}} (a symbol).
-{{TYPE}} may be a type-specifier or a string naming a C type. The
-namespace of foreign type specifiers is separate from the normal
-Scheme namespace.  The optional arguments {{ARGCONVERT}} and
-{{RETCONVERT}} should evaluate to procedures that map argument- and
-result-values to a value that can be transformed to {{TYPE}}:
-
-<enscript highlight=scheme>
-(define-foreign-type char-vector 
-  nonnull-c-string
-  (compose list->string vector->list)
-  (compose list->vector string->list) )
-
-(define strlen
-  (foreign-lambda int "strlen" char-vector) )
-
-(strlen '#(#\a #\b #\c))                      ==> 3
-
-(define memset
-  (foreign-lambda char-vector "memset" char-vector char int) )
-
-(memset '#(#_ #_ #_) #\X 3)                ==> #(#\X #\X #\X)
-</enscript>
-
-Foreign type-definitions are only visible in the compilation-unit in which
-they are defined, so use {{include}} to use the same definitions
-in multiple files.
-
-
-=== foreign-type-size
-
-<macro>(foreign-type-size TYPE)</macro>
-
-Returns the size of the storage required to hold values of the
-given foreign type {{TYPE}}. This is basically equivalent to
-
-<enscript highlight=scheme>
-(foreign-value "sizeof(TYPE)" size_t)
-</enscript>
-
-but also handles user-defined types and allows "TYPE" to be a string,
-which will be given literally to the {{sizeof}} operator.
-
-
-=== define-foreign-variable
-
-<macro>(define-foreign-variable NAME TYPE [STRING])</macro>
-
-Defines a foreign variable of name {{NAME}} (a symbol). {{STRING}}
-should be the real name of a foreign variable or parameterless
-macro. If {{STRING}} is not given, then the variable name {{NAME}}
-will be converted to a string and used instead. All references and
-assignments (via {{set!}}) are modified to correctly convert values
-between Scheme and C representation. This foreign variable can only be
-accessed in the current compilation unit, but the name can be
-lexically shadowed.  Note that {{STRING}} can name an arbitrary C
-expression. If no assignments are performed, then {{STRING}} doesn't
-even have to specify an lvalue.
-See that {{define-foreign-variable}} will not generate C declarations
-or memory allocation code; use it to include references to variables
-in external C code. To actually create Scheme variables visible from C,
-use {{define-external}} (see the Manual section on
-[[/man/4/Callbacks|Callbacks]]).
-For example, the following code:
-<enscript lang="scheme">
-(import foreign)
-(define-foreign-variable x double "var_x")
-(print x)
-</enscript>
-will not work, because a reference to {{var_x}} will be inserted in the C code,
-but no declaration will be included (this can be easily verified by translating
-the program into C with {{csc -t program.scm}}). Changing the second line to
-{{(define-external x double 0.5)}} will work (and the value 0.5 will be printed).
-=== foreign-lambda
-
-<macro>(foreign-lambda RETURNTYPE NAME ARGTYPE ...)</macro>
-
-Represents a
-binding to an external routine. This form can be used in the position
-of an ordinary {{lambda}} expression. {{NAME}} specifies the
-name of the external procedure and should be a string or a symbol.
-
-
-=== foreign-lambda*
-
-<macro>(foreign-lambda* RETURNTYPE ((ARGTYPE VARIABLE) ...) STRING ...)</macro>
-
-Similar to {{foreign-lambda}}, but instead of generating code to
-call an external function, the body of the C procedure is directly given
-in {{STRING ...}}:
-
-<enscript highlight=scheme>
-(define my-strlen
-  (foreign-lambda* int ((c-string str))
-    "int n = 0;
-     while(*(str++)) ++n;
-     C_return(n);") )
-
-(my-strlen "one two three")             ==> 13
-</enscript>
-
-For obscure technical reasons you should use the {{C_return}} macro instead of the normal {{return}} statement
-to return a result from the foreign lambda body as some cleanup code has to be run before execution
-commences in the calling code.
-
-=== foreign-safe-lambda
-
-<macro>(foreign-safe-lambda RETURNTYPE NAME ARGTYPE ...)</macro>
-
-This is similar to {{foreign-lambda}}, but also allows the called
-function to call Scheme functions. See [[Callbacks]].
-
-
-=== foreign-safe-lambda*
-
-<macro>(foreign-safe-lambda* RETURNTYPE ((ARGTYPE VARIABLE)...) STRING ...)</macro>
-
-This is similar to {{foreign-lambda*}}, but also allows the called
-function to call Scheme functions and allocate Scheme data-objects. See [[Callbacks]].
-
-
-
-=== foreign-primitive
-
-<macro>(foreign-primitive [RETURNTYPE] ((ARGTYPE VARIABLE) ...) STRING ...)</macro>
-
-This is also similar to {{foreign-lambda*}} but the code will be
-executed in a ''primitive'' CPS context, which means it will not
-actually return, but call its continuation on exit. This means that code
-inside this form may allocate Scheme data on the C stack (the
-''nursery'') with {{C_alloc}} (see below). You can return multiple
-values inside the body of the {{foreign-primitive}} form by using
-the following C code:
-
-<enscript highlight=scheme>
-C_word av[N + 2] = { C_SCHEME_UNDEFINED, C_k, X1, ... };
-C_values(N + 2, av);
-</enscript>
-
-where {{N}} is the number of values to be returned, and {{X1, ...}}
-are the results, which should be Scheme data objects. When returning
-multiple values, the return-type should be omitted.  Of course, if you
-have to dynamically compute the values, you do not have to use C's
-array initialization syntax, but you can just assign them one by one.
-
-Returning just a single value can still be done via the {{C_return(...)}} macro.
+For a list of the special forms that allow definition of Scheme procedures
+that access native C/C++ code, consult the documentation on the
+[[Module (chicken foreign)|(chicken foreign)]] module. The remainder
+of this chapter merely explains a few special cases.
 
 == Returning large objects or chunks of memory to Scheme
 
 When you call a C function which needs to return quantities of data, several issues arise:
-* the size of the nursery is limited, so C_alloc can cause stack overflow
+* the size of the nursery is limited, so {{C_alloc}} can cause stack overflow
 * if you malloc in C, and intend to leave it there, and directly access parts of that data from Scheme, you will need C accessor functions to pinpoint the parts you need and return them as Scheme objects; you will also need a finalizer if you intend for this data to be garbage-collected
 * building up lists or other complex Scheme structures from individual pairs, or putting non-immediate objects into vectors, is cumbersome in C
 
-So some would advise you to just return a pointer to Scheme, use memcpy or any other function(s) which you need to get the data into CHICKEN-managed memory and into the desired kind of data structure, then free the C data.  For this example, we are trying to return an array of doubles into an f64vector; we can accomplish that by adding a specialized copy function to the C library being integrated:
+So some would advise you to just return a pointer to Scheme, use memcpy or any other function(s) which you need to get the data into CHICKEN-managed memory and into the desired kind of data structure, then free the C data.  For this example, we are trying to return an array of doubles into an {{f64vector}}; we can accomplish that by adding a specialized copy function to the C library being integrated:
 
 <enscript highlight=C>
 void CopyResults(double* vector) {
@@ -215,7 +36,7 @@ and the "egg" which calls the C functions can be implemented like this:
 
 <enscript highlight=scheme>
 (module memcpy-demo (input->output)
-    (import chicken scheme foreign srfi-4)
+    (import (chicken base) scheme (chicken foreign) srfi-4)
 
     (define CopyResults (foreign-lambda void "CopyResults" f64vector))
 

@@ -6,64 +6,6 @@
 CHICKEN provides an interpreter named {{csi}} for evaluating Scheme programs
 and expressions interactively.
 
-=== Interpreter command line format
-
-{{csi {FILENAME|OPTION}}}
-
-where {{FILENAME}} specifies a file with Scheme source-code.  If the
-extension of the source file is {{.scm}}, it may be omitted. The
-runtime options described in [[Using the compiler#Compiler command line format|Compiler command line format]] are also available
-for the interpreter.  If the environment variable {{CSI_OPTIONS}}
-is set to a list of options, then these options are additionally passed
-to every direct or indirect invocation of {{csi}}. Please note that
-runtime options (like {{-:...}}) can not be passed using this method.
-The options recognized by the interpreter are:
-
-; -- : Ignore everything on the command-line following this marker. Runtime options ({{-:...}}) are still recognized.
-
-; -i  -case-insensitive : Enables the reader to read symbols case insensitive. The default is to read case sensitive (in violation of R5RS).  This option registers the {{case-insensitive}} feature identifier.
-
-; -b  -batch : Quit the interpreter after processing all command line options.
-
-; -e  -eval EXPRESSIONS : Evaluate {{EXPRESSIONS}}. This option implies {{-batch}}, {{-no-init}} and {{-quiet}}, so no startup message will be printed and the interpreter exits after processing all {{-eval}} options and/or loading files given on the command-line.
-
-; -p  -print EXPRESSIONS : Evaluate {{EXPRESSIONS}} and print the results of each expression using {{print}}. Implies {{-batch}}, {{-no-init}} and {{-quiet}}.
-
-; -P  -pretty-print EXPRESSIONS : Evaluate {{EXPRESSIONS}} and print the results of each expression using {{pretty-print}}. Implies {{-batch}}, {{-no-init}} and {{-quiet}}.
-
-; -D  -feature SYMBOL : Registers {{SYMBOL}} to be a valid feature identifier for {{cond-expand}} and {{feature?}}.
-
-; -h  -help : Write a summary of the available command line options to standard output and exit.
-
-; -I  -include-path PATHNAME : Specifies an alternative search-path for files included via the {{include}} special form. This option may be given multiple times. If the environment variable {{CHICKEN_INCLUDE_PATH}} is set, it should contain a list of alternative include pathnames separated by {{;}}.
-
-; -K  -keyword-style STYLE : Enables alternative keyword syntax, where {{STYLE}} may be either {{prefix}} (as in Common Lisp) or {{suffix}} (as in DSSSL). Any other value is ignored.
-
-; -n  -no-init : Do not load initialization-file. If this option is not given and the file {{$HOME/.csirc}} exists, then it is loaded before the read-eval-print loop commences.
-
-;     -no-parentheses-synonyms : Disables list delimiter synonyms, [..] and {...} for (...).
-
-;     -no-symbol-escape : Disables support for escaped symbols, the |...| form.
-
-; -w  -no-warnings : Disables any warnings that might be issued by the reader or evaluated code.
-
-; -q  -quiet : Do not print a startup message. Also disables generation of call-trace information for interpreted code.
-
-;     -r5rs-syntax : Disables the CHICKEN extensions to R5RS syntax. Does not disable [[Non-standard read syntax|non-standard read syntax]].
-
-; -s  -script PATHNAME : This is equivalent to {{-batch -quiet -no-init PATHNAME}}. Arguments following {{PATHNAME}} are available by using  {{command-line-arguments}} and are not processed as interpreter options. Extra options in the environment variable {{CSI_OPTIONS}} are ignored.
-
-; -sx PATHNAME : The same as {{-s PATHNAME}} but prints each expression to {{(current-error-port)}} before it is evaluated.
-
-; -ss PATHNAME : The same as {{-s PATHNAME}} but invokes the procedure {{main}} with the value of {{(command-line-arguments)}} as its single argument. If the main procedure returns an integer result, then the interpreter is terminated, returning the integer as the status code back to the invoking process. Any other result terminates the interpreter with a zero exit status.
-
-; -setup-mode : When locating extensions, search the current directory first. By default, extensions are located first in the ''extension repository'', where {{chicken-install}} stores compiled extensions and their associated metadata.
-
-; -R  -require-extension NAME : Equivalent to evaluating {{(require-extension NAME)}}.
-
-; -v  -version : Write the banner with version information to standard output and exit.
-
-
 === Writing Scheme scripts
 
 Since UNIX shells use the {{#!}} notation for starting scripts,
@@ -84,7 +26,7 @@ The easiest way is to use the {{-script}} option like this:
 
 The parameter {{command-line-arguments}} is set to a list of the
 parameters that were passed to the Scheme script.  Scripts can be compiled
-to standalone executables (don't forget to declare used library units).
+to standalone executables.
 
 CHICKEN supports writing shell scripts in Scheme for other platforms as well,
 using a slightly different approach. The first example would look like
@@ -189,19 +131,7 @@ The toplevel loop understands a number of special commands:
 ; ,x EXP : Pretty-print macroexpanded expression {{EXP}} (the expression is not evaluated).
 
 You can define your own toplevel commands using the {{toplevel-command}}
-procedure:
-
-
-=== toplevel-command
-
-<procedure>(toplevel-command SYMBOL PROC [HELPSTRING])</procedure>
-
-Defines or redefines a toplevel interpreter command which can be invoked by entering
-{{,SYMBOL}}. {{PROC}} will be invoked when the command is entered and may
-read any required argument via {{read}} (or {{read-line}}). If the optional
-argument {{HELPSTRING}} is given, it will be listed by the {{,?}} command.
-
-This procedure is provided by the {{(chicken csi)}} module.
+procedure (see [[Module (chicken csi)]]).
 
 
 === Getting error information
@@ -245,7 +175,8 @@ variable lookup done internally by the interpreter.
 
 The {{,e}} command runs the editor given by:
 
-* The parameter {{editor-command}} which should return a string naming
+* The parameter {{editor-command}} in the {{(chicken csi)}} module should 
+  return a string naming
   an external editor and defaults to {{#f}}, which means no editor is currently
   selected (so the following alternatives are tried).
 
@@ -253,44 +184,26 @@ The {{,e}} command runs the editor given by:
 
 * If the environment variable {{EMACS}} is set, the editor chosen is {{emacsclient}}.
 
-* As a truly last resort, {{vi}} is used.
+* In a desparate attempt to find an editor, {{vi}} is used.
 
 === History access
 
-The interpreter toplevel accepts the special object {{#[INDEX]}} which
+The interpreter toplevel accepts the special object {{#INDEX}} which
 returns the result of entry number {{INDEX}} in the history list. If
 the expression for that entry resulted in multiple values, the first
 result (or an unspecified value for no values) is returned. If no
 {{INDEX}} is given (and if a whitespace or closing paranthesis
 character follows the {{#}}, then the result of the last expression is
-returned.  Note that the value returned is implicitly quoted.
+returned.  Note that the value that {{#INDEX}} stands for is an expression,
+not a literal, and so is implicitly quoted, so
 
-=== set-describer!
+ #;1> 123
+ 123
+ #;2> '(1 2 #)
 
-<procedure>(set-describer! TAG PROC)</procedure>
+will not return the result you expected.
 
-Sets a custom description handler that invokes {{PROC}} when the
-{{,d}} command is invoked with a record-type object that has the type
-{{TAG}} (a symbol). {{PROC}} is called with two arguments: the object
-to be described and an output-port. It should write a possibly useful
-textual description of the object to the passed output-port. For
-example:
-
- #;1> (define-record-type point (make-point x y) point?
-        (x point-x)
-        (y point-y))
- #;2> (set-describer! 'point 
-        (lambda (pt o)
-          (with-output-to-port o
-            (lambda ()
-              (print "a point with x=" (point-x pt) " and y=" (point-y pt))))))
- #;3> ,d (make-point 1 2)
- a point with x=1 and y=2
-
-This procedure is provided by the {{(chicken csi)}} module.
-
-
-=== Auto-completion and edition
+=== Auto-completion and editing
 
 On platforms that support it, it is possible to get auto-completion of
 symbols, history (over different {{csi}} sessions) and a more
@@ -304,7 +217,66 @@ instead. It should work on almost any system but is not as
 feature-rich as readline (e.g. it lacks reverse-i-search and
 auto-completion).
 
----
-Previous: [[Using the compiler]]
 
-Next: [[Supported language]]
+=== csi command line format
+
+{{csi {FILENAME|OPTION}}}
+
+where {{FILENAME}} specifies a file with Scheme source-code.  If the
+extension of the source file is {{.scm}}, it may be omitted. The
+runtime options described in [[Using the compiler#Compiler command line format|Compiler command line format]] are also available
+for the interpreter.  If the environment variable {{CSI_OPTIONS}}
+is set to a list of options, then these options are additionally passed
+to every direct or indirect invocation of {{csi}}. Please note that
+runtime options (like {{-:...}}) can not be passed using this method.
+The options recognized by the interpreter are:
+
+; -- : Ignore everything on the command-line following this marker. Runtime options ({{-:...}}) are still recognized.
+
+; -i  -case-insensitive : Enables the reader to read symbols case insensitive. The default is to read case sensitive (in violation of R5RS).  This option registers the {{case-insensitive}} feature identifier.
+
+; -b  -batch : Quit the interpreter after processing all command line options.
+
+; -e  -eval EXPRESSIONS : Evaluate {{EXPRESSIONS}}. This option implies {{-batch}}, {{-no-init}} and {{-quiet}}, so no startup message will be printed and the interpreter exits after processing all {{-eval}} options and/or loading files given on the command-line.
+
+; -p  -print EXPRESSIONS : Evaluate {{EXPRESSIONS}} and print the results of each expression using {{print}}. Implies {{-batch}}, {{-no-init}} and {{-quiet}}.
+
+; -P  -pretty-print EXPRESSIONS : Evaluate {{EXPRESSIONS}} and print the results of each expression using {{pretty-print}}. Implies {{-batch}}, {{-no-init}} and {{-quiet}}.
+
+; -D  -feature SYMBOL : Registers {{SYMBOL}} to be a valid feature identifier for {{cond-expand}} and {{feature?}}.
+
+; -h  -help : Write a summary of the available command line options to standard output and exit.
+
+; -I  -include-path PATHNAME : Specifies an alternative search-path for files included via the {{include}} special form. This option may be given multiple times. If the environment variable {{CHICKEN_INCLUDE_PATH}} is set, it should contain a list of alternative include pathnames separated by {{:}} (UNIX) or {{;}} (Windows).
+
+; -K  -keyword-style STYLE : Enables alternative keyword syntax, where {{STYLE}} may be either {{prefix}} (as in Common Lisp) or {{suffix}} (as in DSSSL). Any other value is ignored.
+
+; -n  -no-init : Do not load initialization-file. If this option is not given and the file {{$HOME/.csirc}} exists, then it is loaded before the read-eval-print loop commences.
+
+;     -no-parentheses-synonyms : Disables list delimiter synonyms, [..] and {...} for (...).
+
+;     -no-symbol-escape : Disables support for escaped symbols, the |...| form.
+
+; -w  -no-warnings : Disables any warnings that might be issued by the reader or evaluated code.
+
+; -q  -quiet : Do not print a startup message. Also disables generation of call-trace information for interpreted code.
+
+;     -r5rs-syntax : Disables the CHICKEN extensions to R5RS syntax. Does not disable non-standard read syntax.
+
+; -s  -script PATHNAME : This is equivalent to {{-batch -quiet -no-init PATHNAME}}. Arguments following {{PATHNAME}} are available by using  {{command-line-arguments}} and are not processed as interpreter options. Extra options in the environment variable {{CSI_OPTIONS}} are ignored.
+
+; -sx PATHNAME : The same as {{-s PATHNAME}} but prints each expression to {{(current-error-port)}} before it is evaluated.
+
+; -ss PATHNAME : The same as {{-s PATHNAME}} but invokes the procedure {{main}} with the value of {{(command-line-arguments)}} as its single argument. If the main procedure returns an integer result, then the interpreter is terminated, returning the integer as the status code back to the invoking process. Any other result terminates the interpreter with a zero exit status.
+
+; -setup-mode : When locating extensions, search the current directory first. By default, extensions are located first in the ''extension repository'', where {{chicken-install}} stores compiled extensions and their associated metadata.
+
+; -R  -require-extension NAME : Equivalent to evaluating {{(require-extension NAME)}}.
+
+; -v  -version : Write the banner with version information to standard output and exit.
+
+
+---
+Previous: [[Getting started]]
+
+Next: [[Using the compiler]]

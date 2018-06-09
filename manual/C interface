@@ -43,7 +43,7 @@ Is {{x}} a truthy value, i.e. anything except {{C_SCHEME_FALSE}}?
  [C macro] int C_immediatep(C_word x)
 
 Is {{x}} an immediate object?
-(see [[#constructors-for-immediate-scheme-objects|below]] for a definition)
+(see below for a definition)
 
 ===== C_fitsinfixnump
 
@@ -1606,6 +1606,6 @@ The C version of {{(not (pair? x))}}.
 
 
 ---
-Previous: [[Other support procedures]]
+Previous: [[Embedding]]
 
-Next: [[Extensions]]
+Next: [[Data representation]]

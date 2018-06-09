@@ -1,0 +1,79 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken gc)
+
+This module provides some control over the garbage collector.
+
+=== gc
+
+<procedure>(gc [FLAG])</procedure>
+
+Invokes a garbage-collection and returns the number of free bytes in the heap.
+The flag specifies whether a minor ({{#f}}) or major ({{#t}}) GC is to be
+triggered. If no argument is given, {{#t}} is assumed. An explicit {{#t}}
+argument will cause all pending finalizers to be executed.
+
+=== current-gc-milliseconds
+
+<procedure>(current-gc-milliseconds)</procedure>
+
+Returns the number of milliseconds spent in major garbage collections since
+the last call of {{current-gc-milliseconds}} and returns an exact
+integer.
+
+=== memory-statistics
+
+<procedure>(memory-statistics)</procedure>
+
+Performs a major garbage collection and returns a three element vector
+containing the total heap size in bytes, the number of bytes currently
+used and the size of the nursery (the first heap generation). Note
+that the actual heap is actually twice the size given in the heap size,
+because CHICKEN uses a copying semi-space collector.
+
+
+=== set-finalizer!
+
+<procedure>(set-finalizer! X PROC)</procedure>
+
+Registers a procedure of one argument {{PROC}}, that will be
+called as soon as the non-immediate data object {{X}} is about to
+be garbage-collected (with that object as its argument). Note that
+the finalizer will '''not''' be called while interrupts are disabled.
+This procedure returns {{X}}.
+
+Finalizers are invoked asynchronously, in the thread that happens
+to be currently running. Finalizers for data that has become garbage
+are called on normal program exit. Finalizers are not run on
+abnormal program exit. A normal program exit does not run finalizers
+that are still reachable from global data. 
+
+Multiple finalizers can be registered for the same object. The order
+in which the finalizers run is undefined. Execution of finalizers
+may be nested.
+
+
+=== force-finalizers
+
+<parameter>(force-finalizers)</parameter>
+
+If true, force and execute all pending finalizers before exiting the
+program (either explicitly by {{exit}} or implicitly when the last
+toplevel expression has been executed). Default is {{#t}}.
+
+
+=== set-gc-report!
+
+<procedure>(set-gc-report! FLAG)</procedure>
+
+Print statistics after every GC, depending on {{FLAG}}. A value of
+{{#t}} shows statistics after every major GC. A true value different
+from {{#t}} shows statistics after every minor GC. {{#f}}
+switches statistics off.
+
+
+---
+Previous: [[Module (chicken format)]]
+
+Next: [[Module (chicken io)]]

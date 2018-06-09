@@ -1,0 +1,39 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken bitwise)
+
+Binary integer operations are provided by the {{(chicken bitwise)}}
+module.
+
+=== Binary integer operations
+
+<procedure>(bitwise-and N1 ...)</procedure>
+<procedure>(bitwise-ior N1 ...)</procedure>
+<procedure>(bitwise-xor N1 ...)</procedure>
+<procedure>(bitwise-not N)</procedure>
+<procedure>(arithmetic-shift N1 N2)</procedure>
+
+Binary integer operations. {{arithmetic-shift}} shifts the argument {{N1}} by
+{{N2}} bits to the left. If {{N2}} is negative, then {{N1}} is shifted to the
+right. These operations only accept exact integers.
+
+==== bit->boolean
+
+<procedure>(bit->boolean N INDEX)</procedure>
+
+Returns {{#t}} if the bit at the position {{INDEX}} in the integer
+{{N}} is set, or {{#f}} otherwise. The rightmost/least-significant bit
+is bit 0.
+
+==== integer-length
+
+<procedure>(integer-length N)</procedure>
+
+Returns the number of bits needed to represent the exact integer N in
+2's complement notation.
+
+---
+Previous: [[Module (chicken base)]]
+
+Next: [[Module (chicken blob)]]
