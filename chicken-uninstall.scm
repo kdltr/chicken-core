@@ -156,6 +156,7 @@ EOF
     (let loop ((args args) (pats '()))
       (cond ((null? args)
              (when (null? pats) (usage 1))
+             (validate-environment)
              (uninstall (reverse pats) mtch))
             (else
               (let ((arg (car args)))

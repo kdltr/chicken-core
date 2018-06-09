@@ -1062,7 +1062,9 @@ EOF
         (rx (irregex "([^:]+):(.+)")))
     (let loop ((args args))
       (if (null? args)
-          (perform-actions (reverse eggs))
+          (begin
+            (validate-environment)
+            (perform-actions (reverse eggs)))
           (let ((arg (car args)))
             (cond ((member arg '("-h" "-help" "--help"))
                    (usage 0))

@@ -96,6 +96,11 @@ EOF
 (define +status-file+ "STATUS")
 (define +egg-extension+ "egg")
 
+(define (validate-environment)
+  (let ((var (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")))
+    (unless (or (not var) (absolute-pathname? var))
+      (error "CHICKEN_INSTALL_REPOSITORY must be an absolute pathname" var))))
+
 (define (destination-repository mode #!optional run)
   (if (eq? 'target mode)
       (if run target-run-repo target-repo)
