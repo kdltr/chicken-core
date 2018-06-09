@@ -388,24 +388,73 @@ manual-html/Acknowledgements.html
 manual-html/Basic mode of operation.html
 manual-html/Bibliography.html
 manual-html/Bugs and limitations.html
-manual-html/C interface.html
 manual-html/Callbacks.html
-manual-html/Debugging.html
-manual-html/Exceptions.html
+manual-html/C interface.html
 manual-html/Cross development.html
 manual-html/Data representation.html
+manual-html/Debugging.html
 manual-html/Declarations.html
 manual-html/Deployment.html
 manual-html/Deviations from the standard.html
+manual-html/Egg specification format.html
 manual-html/Embedding.html
+manual-html/Exceptions.html
 manual-html/Extensions.html
 manual-html/Extensions to the standard.html
+manual-html/Extension tools.html
 manual-html/Foreign type specifiers.html
 manual-html/Getting started.html
+manual-html/Included modules.html
 manual-html/Interface to external functions and variables.html
 manual-html/Locations.html
-manual-html/Modules.html
 manual-html/Macros.html
+manual-html/manual.css
+manual-html/Module (chicken base).html
+manual-html/Module (chicken bitwise).html
+manual-html/Module (chicken blob).html
+manual-html/Module (chicken condition).html
+manual-html/Module (chicken continuation).html
+manual-html/Module (chicken csi).html
+manual-html/Module (chicken errno).html
+manual-html/Module (chicken eval).html
+manual-html/Module (chicken file).html
+manual-html/Module (chicken file posix).html
+manual-html/Module (chicken fixnum).html
+manual-html/Module (chicken flonum).html
+manual-html/Module (chicken foreign).html
+manual-html/Module (chicken format).html
+manual-html/Module (chicken gc).html
+manual-html/Module (chicken io).html
+manual-html/Module (chicken irregex).html
+manual-html/Module (chicken keyword).html
+manual-html/Module (chicken load).html
+manual-html/Module (chicken locative).html
+manual-html/Module (chicken memory).html
+manual-html/Module (chicken memory representation).html
+manual-html/Module (chicken module).html
+manual-html/Module (chicken pathname).html
+manual-html/Module (chicken platform).html
+manual-html/Module (chicken plist).html
+manual-html/Module (chicken port).html
+manual-html/Module (chicken pretty-print).html
+manual-html/Module (chicken process-context).html
+manual-html/Module (chicken process-context posix).html
+manual-html/Module (chicken process).html
+manual-html/Module (chicken process signal).html
+manual-html/Module (chicken random).html
+manual-html/Module (chicken read-syntax).html
+manual-html/Module (chicken repl).html
+manual-html/Module (chicken sort).html
+manual-html/Module (chicken string).html
+manual-html/Module (chicken syntax).html
+manual-html/Module (chicken tcp).html
+manual-html/Module (chicken time).html
+manual-html/Module (chicken time posix).html
+manual-html/Module r4rs.html
+manual-html/Module r5rs.html
+manual-html/Module scheme.html
+manual-html/Modules.html
+manual-html/Module srfi-4.html
 manual-html/Non-standard macros and special forms.html
 manual-html/Non-standard read syntax.html
 manual-html/Other support procedures.html
@@ -420,16 +469,15 @@ manual-html/Unit eval.html
 manual-html/Unit expand.html
 manual-html/Unit extras.html
 manual-html/Unit files.html
+manual-html/Unit irregex.html
 manual-html/Unit library.html
 manual-html/Unit lolevel.html
 manual-html/Unit ports.html
 manual-html/Unit posix.html
-manual-html/Unit irregex.html
+manual-html/Unit read-syntax.html
 manual-html/Unit repl.html
+manual-html/Units and linking model.html
 manual-html/Unit srfi-4.html
 manual-html/Unit tcp.html
 manual-html/Using the compiler.html
 manual-html/Using the interpreter.html
-manual-html/chicken.png
-manual-html/index.html
-manual-html/manual.css
