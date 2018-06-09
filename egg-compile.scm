@@ -216,12 +216,14 @@
           (fluid-let ((target (check-target (cadr info) data))
                       (src #f)
                       (cbuild #f)
+                      (sdeps '())
                       (cdeps '()))
             (for-each compile-extension/program (cddr info))
             (unless cbuild
               (error "generated source files need a custom build step" target))
             (set! genfiles
-              (cons (list target dependencies: cdeps source: src custom: cbuild)
+              (cons (list target dependencies: cdeps source: src 
+                          custom: cbuild source-dependencies: sdeps)
                     genfiles))))
         ((c-include)
           (fluid-let ((target (check-target (cadr info) cinc))
@@ -609,8 +611,8 @@
            (if custom (quotearg cmd) "") " "
            (filelist srcdir source-dependencies))))
 
-(define ((compile-generated-file name #!key source 
-                                 custom source-dependencies) 
+(define ((compile-generated-file name #!key source custom
+                                 source-dependencies) 
          srcdir platform)
   (let* ((cmd (prefix srcdir custom))
          (sname (prefix srcdir name))
