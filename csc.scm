@@ -107,6 +107,7 @@
 (define executable-extension "")
 (define compile-output-flag "-o ")
 (define shared-library-extension ##sys#load-dynamic-extension)
+(define static-object-extension (##sys#string-append "static." object-extension))
 (define default-translation-optimization-options '())
 (define pic-options (if (or mingw cygwin) '("-DPIC") '("-fPIC" "-DPIC")))
 (define generate-manifest #f)
@@ -148,7 +149,7 @@
     -analyze-only -keep-shadowed-macros -inline-global -ignore-repository
     -no-symbol-escape -no-parentheses-synonyms -r5rs-syntax
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
-    -emit-all-import-libraries -setup-mode -no-elevation -no-module-registration
+    -emit-all-import-libraries -no-elevation -no-module-registration
     -no-procedure-checks-for-usual-bindings
     -specialize -strict-types -clustering -lfa2 -debug-info
     -no-procedure-checks-for-toplevel-bindings))
@@ -292,11 +293,14 @@
       (destination-repository 'target)))
 
 (define (find-object-file name)
-  (let ((o (make-pathname #f name object-extension)))
+  (let ((o (make-pathname #f name object-extension))
+	;; In setup mode, objects in build dir may also end with "static.o"
+	(static-o (make-pathname #f name static-object-extension)))
     (or (file-exists? o)
+	(and (eq? ##sys#setup-mode #t)
+	     (file-exists? static-o))
 	(and (not ignore-repository)
-	     (chicken.load#find-file o (repo-path)))
-	(stop "could not find linked extension: ~a" name))))
+	     (chicken.load#find-file o (repo-path))))))
 
 
 ;;; Display usage information:
@@ -553,7 +557,7 @@ EOF
 	     (exit) )
 	   (when (pair? linked-extensions)
 	     (set! object-files ; add objects from linked extensions
-	       (append object-files (map find-object-file linked-extensions))))
+	       (append (filter-map find-object-file linked-extensions) object-files)))
 	   (cond ((null? scheme-files)
 		  (when (and (null? c-files)
 			     (null? object-files))
@@ -659,6 +663,9 @@ EOF
 		(use-private-repository))
 	       ((-ignore-repository)
 		(set! ignore-repository #t)
+		(t-options arg))
+	       ((-setup-mode)
+		(set! ##sys#setup-mode #t)
 		(t-options arg))
 	       ((-no-elevation)
 		(set! generate-manifest #t))
@@ -965,18 +972,23 @@ EOF
                 transient-link-files)))))
 
 (define (collect-linked-objects ofiles gen-ofiles)
-  (define (locate lst)
-    (map (lambda (ofile)
-	   (chicken.load#find-file ofile (repo-path)))
-	 lst))
+  (define (locate-link-file o)
+    (let* ((p (pathname-strip-extension o))
+	   ;; Also strip "static.o" extension when in setup mode:
+	   (f (if ##sys#setup-mode (string-chomp p ".static") p)))
+      (file-exists? (make-pathname #f f "link"))))
+  (define (locate-objects libs)
+    (map (lambda (id)
+	   (or (find-object-file id)
+	       (stop "could not find linked extension: ~A" id)))
+	 (map ->string libs)))
   (let loop ((os ofiles) (os2 ofiles))
     (cond ((null? os)
            (delete-duplicates (reverse os2) string=?))
           ((or static (not (member (car os) gen-ofiles)))
-           (let* ((o (car os))
-                  (lfile (pathname-replace-extension o "link"))
-                  (newos (if (file-exists? lfile)
-                             (locate (with-input-from-file lfile read))
+           (let* ((lfile (locate-link-file (car os)))
+                  (newos (if lfile
+                             (locate-objects (with-input-from-file lfile read))
                              '())))
              (loop (append newos (cdr os)) (append newos os2))))
           (else (loop (cdr os) (cons (car os) os2))))))

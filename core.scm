@@ -1766,10 +1766,8 @@
 
 ;;; Register statically linked extension
 
-(define (register-static-extension id path)
-  (set! linked-static-extensions
-    (cons (pathname-strip-directory path)
-          linked-static-extensions)))
+(define (register-static-extension id)
+  (set! linked-static-extensions (cons id linked-static-extensions)))
 
 
 ;;; Create entry procedure:

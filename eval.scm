@@ -1327,7 +1327,7 @@
 	   (values `(##sys#load-library (##core#quote ,id)) #f)))
       ((and compiling? static? (find-static-extension id)) =>
        (lambda (path)
-	 (mark-static id path)
+	 (mark-static id)
 	 (values `(##core#declare (uses ,id)) 'static)))
       (else
        (values `(chicken.load#load-extension
