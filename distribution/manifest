@@ -385,10 +385,8 @@ scripts/make-wrapper.scm
 scripts/makedist.scm
 manual-html/Accessing external objects.html
 manual-html/Acknowledgements.html
-manual-html/Basic mode of operation.html
 manual-html/Bibliography.html
 manual-html/Bugs and limitations.html
-manual-html/Callbacks.html
 manual-html/C interface.html
 manual-html/Cross development.html
 manual-html/Data representation.html
@@ -398,7 +396,6 @@ manual-html/Deployment.html
 manual-html/Deviations from the standard.html
 manual-html/Egg specification format.html
 manual-html/Embedding.html
-manual-html/Exceptions.html
 manual-html/Extensions.html
 manual-html/Extensions to the standard.html
 manual-html/Extension tools.html
@@ -406,8 +403,6 @@ manual-html/Foreign type specifiers.html
 manual-html/Getting started.html
 manual-html/Included modules.html
 manual-html/Interface to external functions and variables.html
-manual-html/Locations.html
-manual-html/Macros.html
 manual-html/manual.css
 manual-html/Module (chicken base).html
 manual-html/Module (chicken bitwise).html
@@ -455,29 +450,8 @@ manual-html/Module r5rs.html
 manual-html/Module scheme.html
 manual-html/Modules.html
 manual-html/Module srfi-4.html
-manual-html/Non-standard macros and special forms.html
-manual-html/Non-standard read syntax.html
-manual-html/Other support procedures.html
-manual-html/Parameters.html
-manual-html/Supported language.html
-manual-html/The R5RS standard.html
 manual-html/The User's Manual.html
 manual-html/Types.html
-manual-html/Unit continuation.html
-manual-html/Unit data-structures.html
-manual-html/Unit eval.html
-manual-html/Unit expand.html
-manual-html/Unit extras.html
-manual-html/Unit files.html
-manual-html/Unit irregex.html
-manual-html/Unit library.html
-manual-html/Unit lolevel.html
-manual-html/Unit ports.html
-manual-html/Unit posix.html
-manual-html/Unit read-syntax.html
-manual-html/Unit repl.html
 manual-html/Units and linking model.html
-manual-html/Unit srfi-4.html
-manual-html/Unit tcp.html
 manual-html/Using the compiler.html
 manual-html/Using the interpreter.html
