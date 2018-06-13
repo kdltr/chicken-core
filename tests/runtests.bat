@@ -22,7 +22,7 @@ set compile_r=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -o a.out
 set compile_s=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -s -types %TYPESDB% -ignore-repository
 set interpret=..\%PROGRAM_PREFIX%csi%PROGRAM_SUFFIX% -n -include-path %TEST_DIR%/..
 
-del /f /q /s *.exe *.so *.o *.import.* ..\foo.import.* %CHICKEN_INSTALL_REPOSITORY%
+del /f /q /s *.exe *.so *.o *.out *.import.* ..\foo.import.* %CHICKEN_INSTALL_REPOSITORY%
 rmdir /q /s %CHICKEN_INSTALL_REPOSITORY%
 mkdir %CHICKEN_INSTALL_REPOSITORY%
 copy %TYPESDB% %CHICKEN_INSTALL_REPOSITORY%

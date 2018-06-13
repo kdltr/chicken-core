@@ -511,18 +511,20 @@
 			     (##sys#append (reverse exps) (list (expand body)))))
 			(let ((x2 (##sys#expand-0 x se cs?)))
 			  (if (eq? x x2)
-			      ;; Modules must be registered before we
-			      ;; can continue with other forms, so
-			      ;; hand back control to the compiler
+			      ;; Modules and includes must be processed before
+			      ;; we can continue with other forms, so hand
+			      ;; control back to the compiler
 			      (if (and (pair? x)
 				       (symbol? (car x))
-				       (comp '##core#module (car x)))
+				       (or (comp '##core#module (car x))
+					   (comp '##core#include (car x))))
 				  `(##core#begin
 				    ,@(reverse exps)
-				    ,x
-				    ,@(if (null? rest)
-					  '()
-					  `((##core#let () ,@rest))))
+				    ,@(if (comp '##core#module (car x))
+					  (if (null? rest)
+					      `(,x)
+					      `(,x (##core#let () ,@rest)))
+					  `((##core#include ,@(cdr x) ,rest))))
 				  (loop rest (cons x exps)))
 			      (loop2 (cons x2 rest)) )) ))) ))
 	  ;; We saw defines.  Translate to letrec, and let compiler

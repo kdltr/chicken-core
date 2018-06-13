@@ -519,7 +519,13 @@
 			   (cadr x)
 			   (caddr x)
 			   (lambda (forms)
-			     (compile `(##core#begin ,@forms) e #f tf cntr tl?))))
+			     (compile
+			      (if (pair? (cdddr x)) ; body?
+				  (##sys#canonicalize-body
+				   (append forms (cadddr x))
+				   (##sys#current-environment))
+				  `(##core#begin ,@forms))
+			      e #f tf cntr tl?))))
 
 			 ((##core#let-module-alias)
 			  (##sys#with-module-aliases

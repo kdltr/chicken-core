@@ -111,7 +111,7 @@
 ; (##core#set! <variable> <exp>)
 ; (##core#ensure-toplevel-definition <variable>)
 ; (##core#begin <exp> ...)
-; (##core#include <string> <string> | #f)
+; (##core#include <string> <string> | #f [<body>])
 ; (##core#loop-lambda <llist> <body>)
 ; (##core#undefined)
 ; (##core#primitive <name>)
@@ -951,7 +951,13 @@
 			   (cadr x)
 			   (caddr x)
 			   (lambda (forms)
-			     (walk `(##core#begin ,@forms) e dest ldest h ln tl?)))))
+			     (walk (if (pair? (cdddr x)) ; body?
+				       (canonicalize-body/ln
+					ln
+					(append forms (cadddr x))
+					compiler-syntax-enabled)
+				       `(##core#begin ,@forms))
+				   e dest ldest h ln tl?)))))
 
 		       ((##core#let-module-alias)
 			(##sys#with-module-aliases

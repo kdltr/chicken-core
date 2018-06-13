@@ -1239,6 +1239,22 @@ other-eval
   (assert (eq? req 1)))
 
 
+;; Includes should be spliced into the surrounding body context:
+
+(begin-for-syntax
+  (with-output-to-file "x.out" (cut pp '(define x 2))))
+
+(let ()
+  (define x 1)
+  (include "x.out")
+  (t 2 x))
+
+(let ()
+  (define x 1)
+  (let ()
+    (include "x.out"))
+  (t 1 x))
+
 ;; letrec vs. letrec*
 
 ;;XXX this fails - the optimizer substitutes "foo" for it's known constant value

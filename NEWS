@@ -120,6 +120,9 @@
     predicates no longer return #t for records with the same tag
     defined in another module. This tag is now also available under
     an identifier that matches the record type name (fixes #1342).
+  - `include` now splices included expressions in the context in which
+    the inclusion appears and does not treat the expressions as toplevel
+    expressions by default.
 
 - Eggs management
   - Egg-installation and building has been completely overhauled.
