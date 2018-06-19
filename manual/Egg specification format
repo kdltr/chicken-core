@@ -330,6 +330,14 @@ locations, which are:
 Specifies source files for this component and only applies
 to components of type {{data}}, {{c-include}} and {{scheme-include}}.
 
+==== modules
+
+[egg property] (modules NAME ...)
+
+Specifies modules that the component (usually an extension) contains.
+{{chicken-install}} will compile and install all import libraries for the given modules.
+If this property is not given, then it is assumed that the extension has a single
+module of the same name as the component.
 
 ---
 
