@@ -468,7 +468,7 @@
                        (try-download name (resolve-location (car srvs))
                                      version: version 
                                      destination: tmpdir
-                                     tests: run-tests 
+                                     tests: #t ;; Always fetch tests, otherwise cached eggs can't be tested later
                                      proxy-host: proxy-host
                                      proxy-port: proxy-port 
                                      proxy-user-pass: proxy-user-pass)
