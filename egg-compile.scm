@@ -448,9 +448,9 @@
           (map (lambda (cinc) (apply install-c-include cinc)) cinc)
           (map (lambda (scminc) (apply install-data scminc)) scminc))
         ;; augmented egg-info
-        (cons* `(installed-files ,@ifiles)
-               `(version ,version)
-               info)))))
+        (append `((installed-files ,@ifiles))
+                (if version `((version ,version)) '())
+                info)))))
 
 
 ;;; shell code generation - build operations
