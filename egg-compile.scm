@@ -120,7 +120,7 @@
 
 ;;; compile an egg-information tree into abstract build/install operations
 
-(define (compile-egg-info eggfile info platform mode)
+(define (compile-egg-info eggfile info version platform mode)
   (let ((exts '())
         (prgs '())
         (data '())
@@ -448,7 +448,9 @@
           (map (lambda (cinc) (apply install-c-include cinc)) cinc)
           (map (lambda (scminc) (apply install-data scminc)) scminc))
         ;; augmented egg-info
-        (cons `(installed-files ,@ifiles) info)))))
+        (cons* `(installed-files ,@ifiles)
+               `(version ,version)
+               info)))))
 
 
 ;;; shell code generation - build operations

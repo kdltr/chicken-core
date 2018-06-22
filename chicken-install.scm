@@ -800,12 +800,16 @@
       (let* ((name (car egg))
              (dir (cadr egg))
              (eggfile (make-pathname dir name +egg-extension+))
-             (info (load-egg-info eggfile)))
+             (info (load-egg-info eggfile))
+             (vfile (make-pathname dir +version-file+))
+             (ver (and (file-exists? vfile)
+                       (with-input-from-file vfile read))))
         (when (or host-extension 
                   (and (not target-extension)
                        (not host-extension)))
           (let-values (((build install info) (compile-egg-info eggfile 
                                                                info
+                                                               ver
                                                                platform
                                                                'host)))
             (check-installed-files name info)                         
@@ -835,6 +839,7 @@
         (when target-extension
           (let-values (((build install info) (compile-egg-info eggfile
                                                                info
+                                                               ver
                                                                platform
                                                                'target)))
             (let ((bscript (make-pathname dir name 
