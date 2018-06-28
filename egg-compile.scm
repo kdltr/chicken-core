@@ -223,7 +223,8 @@
               (error "generated source files need a custom build step" target))
             (set! genfiles
               (cons (list target dependencies: cdeps source: src 
-                          custom: cbuild source-dependencies: sdeps)
+                          custom: cbuild source-dependencies: sdeps
+                          eggfile: eggfile)
                     genfiles))))
         ((c-include)
           (fluid-let ((target (check-target (cadr info) cinc))
@@ -461,7 +462,7 @@
                                    predefined-types eggfile
                                    custom types-file inline-file)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix srcdir custom))
+  (let* ((cmd (or (custom-cmd custom srcdir platform)
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
@@ -504,7 +505,7 @@
                                     source-dependencies
                                     custom types-file inline-file)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix srcdir custom))
+  (let* ((cmd (or (custom-cmd custom srcdir platform)
                   default-csc))
          (sname (prefix srcdir name))
          (opts (append (if (null? options)
@@ -539,7 +540,7 @@
                                  (options '()) (link-options '())
                                  custom)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix srcdir custom))
+  (let* ((cmd (or (custom-cmd custom srcdir platform)
                   default-csc))
          (sname (prefix srcdir name))
          (opts (if (null? options) 
@@ -555,6 +556,7 @@
            (if (eq? mode 'host) " -host" "")
            " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
+           (if custom (quotearg cmd) "") " "
            src (filelist srcdir source-dependencies))))
 
 (define ((compile-dynamic-program name #!key source mode
@@ -562,7 +564,7 @@
                                   source-dependencies
                                   custom eggfile)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix srcdir custom))
+  (let* ((cmd (or (custom-cmd custom srcdir platform)
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
@@ -590,7 +592,7 @@
                                  source-dependencies
                                  custom mode eggfile)
          srcdir platform)
-  (let* ((cmd (or (and custom (prefix srcdir custom))
+  (let* ((cmd (or (custom-cmd custom srcdir platform)
                   default-csc))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
@@ -614,16 +616,17 @@
            (filelist srcdir source-dependencies))))
 
 (define ((compile-generated-file name #!key source custom
-                                 source-dependencies) 
+                                 source-dependencies eggfile) 
          srcdir platform)
-  (let* ((cmd (prefix srcdir custom))
+  (let* ((cmd (custom-cmd custom srcdir platform))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (out (quotearg (or ssname sname))))
-    (when custom
-      (prepare-custom-command cmd platform))
+    (prepare-custom-command cmd platform)
     (print "\n" (slashify default-builder platform)
-           " " out " " cmd " : " cmd " "
+           " " out " " cmd " : " 
+           (quotearg cmd) " "
+           (quotearg eggfile) " "
            (filelist srcdir source-dependencies))))
 
 
@@ -906,3 +909,9 @@ EOF
 (define (prepare-custom-command cmd platform)
   (unless (eq? 'windows platform)
     (print "chmod +x " (quotearg cmd))))
+
+(define (custom-cmd custom srcdir platform)
+  (and custom (prefix srcdir 
+                      (case platform
+                        ((windows) (conc custom ".bat"))
+                        (else custom)))))
