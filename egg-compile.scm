@@ -497,7 +497,8 @@
            " " src " -o " out " : "
            src " " (quotearg eggfile) " "
            (if custom (quotearg cmd) "") " "
-           (filelist srcdir source-dependencies))))
+           (filelist srcdir source-dependencies))
+    (print-end-command platform)))
 
 (define ((compile-dynamic-extension name #!key mode mode
                                     source (options '()) (link-options '()) 
@@ -533,7 +534,8 @@
            (arglist link-options) " " src " -o " out " : "
            src " " (quotearg eggfile) " "
            (if custom (quotearg cmd) "") " "
-           (filelist srcdir source-dependencies))))
+           (filelist srcdir source-dependencies))
+    (print-end-command platform)))
 
 (define ((compile-import-library name #!key mode
                                  source-dependencies
@@ -557,7 +559,8 @@
            " -I " srcdir " -C -I" srcdir (arglist opts)
            (arglist link-options) " " src " -o " out " : "
            (if custom (quotearg cmd) "") " "
-           src (filelist srcdir source-dependencies))))
+           src (filelist srcdir source-dependencies))
+    (print-end-command platform)))
 
 (define ((compile-dynamic-program name #!key source mode
                                   (options '()) (link-options '())
@@ -585,7 +588,8 @@
            (arglist link-options) " " src " -o " out " : "
            src " " (quotearg eggfile) " "
            (if custom (quotearg cmd) "") " "
-           (filelist srcdir source-dependencies))))
+           (filelist srcdir source-dependencies))
+    (print-end-command platform)))
 
 (define ((compile-static-program name #!key source
                                  (options '()) (link-options '())
@@ -613,7 +617,8 @@
            (arglist link-options) " " src " -o " out " : "
            src " " (quotearg eggfile) " "
            (if custom (quotearg cmd) "") " "
-           (filelist srcdir source-dependencies))))
+           (filelist srcdir source-dependencies))
+    (print-end-command platform)))
 
 (define ((compile-generated-file name #!key source custom
                                  source-dependencies eggfile) 
@@ -627,7 +632,8 @@
            " " out " " cmd " : " 
            (quotearg cmd) " "
            (quotearg eggfile) " "
-           (filelist srcdir source-dependencies))))
+           (filelist srcdir source-dependencies))
+    (print-end-command platform)))
 
 
 ;; installation operations
@@ -654,7 +660,8 @@
            (quotearg (slashify (conc dest "/" 
                                      output-file
                                      +link-file-extension+)
-                               platform)))))
+                               platform)))
+    (print-end-command platform)))
 
 (define ((install-dynamic-extension name #!key mode (ext ".so")
                                     output-file)
@@ -672,7 +679,8 @@
     (print "\n" mkdir " " ddir dfile)
     (when (eq? platform 'unix)
       (print dcmd " " ddir destf))
-    (print cmd " " out " " ddir destf)))
+    (print cmd " " out " " ddir destf)
+    (print-end-command platform)))
 
 (define ((install-import-library name #!key mode)
          srcdir platform)
@@ -692,7 +700,8 @@
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
           (quotearg (slashify (conc dest "/" name ".import.scm")
-                              platform)))))
+                              platform)))
+    (print-end-command platform)))
 
 (define ((install-types-file name #!key mode types-file)
          srcdir platform)
@@ -705,7 +714,8 @@
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
           (quotearg (slashify (conc dest "/" types-file ".types") 
-                              platform)))))
+                              platform)))
+    (print-end-command platform)))
 
 (define ((install-inline-file name #!key mode inline-file) 
          srcdir platform)
@@ -718,7 +728,8 @@
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
           (quotearg (slashify (conc dest "/" inline-file ".inline")
-                              platform)))))
+                              platform)))
+    (print-end-command platform)))
 
 (define ((install-program name #!key mode output-file) srcdir platform)
   (let* ((cmd (install-executable-command platform))
@@ -737,7 +748,8 @@
     (print "\n" mkdir " " ddir dfile)
     (when (eq? platform 'unix)
       (print dcmd " " ddir destf))
-    (print cmd " " out " " ddir destf)))
+    (print cmd " " out " " ddir destf)
+    (print-end-command platform)))
 
 (define ((install-data name #!key files destination mode) 
          srcdir platform)
@@ -754,10 +766,12 @@
     (let-values (((ds fs) (partition directory? sfiles)))
       (for-each
        (lambda (d)
-         (print dcmd " " (quotearg d) " " ddir dfile))
+         (print dcmd " " (quotearg d) " " ddir dfile)
+	 (print-end-command platform))
        ds)
       (when (pair? fs)
-        (print fcmd (arglist fs) " " ddir dfile)))))
+        (print fcmd (arglist fs) " " ddir dfile)
+	(print-end-command platform)))))
 
 (define ((install-c-include name #!key deps files destination mode) 
          srcdir platform)
@@ -769,7 +783,8 @@
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
-    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir dfile)))
+    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir dfile)
+    (print-end-command platform)))
 
 
 ;;; Generate shell or batch commands from abstract build/install operations
@@ -922,3 +937,7 @@ EOF
                       (case platform
                         ((windows) (conc custom ".bat"))
                         (else custom)))))
+
+(define (print-end-command platform)
+  (case platform
+    ((windows) (print "if errorlevel 1 exit /b 1"))))
