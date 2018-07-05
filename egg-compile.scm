@@ -741,16 +741,23 @@
 
 (define ((install-data name #!key files destination mode) 
          srcdir platform)
-  (let* ((cmd (install-file-command platform))
+  (let* ((fcmd (install-file-command platform))
+         (dcmd (copy-directory-command platform))
          (mkdir (mkdir-command platform))
+         (sfiles (map (cut prefix srcdir <>) files))
          (dest (or destination (if (eq? mode 'target)
                                    default-sharedir 
                                    (override-prefix "/share" host-sharedir))))
          (dfile (quotearg (slashify dest platform)))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
-    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir 
-           dfile)))
+    (let-values (((ds fs) (partition directory? sfiles)))
+      (for-each
+       (lambda (d)
+         (print dcmd " " (quotearg d) " " ddir dfile))
+       ds)
+      (when (pair? fs)
+        (print fcmd (arglist fs) " " ddir dfile)))))
 
 (define ((install-c-include name #!key deps files destination mode) 
          srcdir platform)
