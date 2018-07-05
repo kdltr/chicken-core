@@ -111,20 +111,17 @@
          files)
        (delete-installed-file ifile)))
 
-(define (delete-file-command platform)
-  (case platform
-    ((unix) "rm -f ")
-    ((windows) "del /q /s ")))
-
 (define (delete-installed-file fname)
   (cond ((not (file-exists? fname))
          (warning "file does not exist" fname))
         ((and sudo-uninstall (eq? 'unix default-platform))
-         (let ((r (system (string-append "sudo " (delete-file-command 'unix) 
-                                         "\"" fname "\""))))
+         (let ((r (system (string-append "sudo rm -f -r " (qs fname)))))
            (unless (zero? r)
              (warning "deleting file failed" fname))))
-        (else (delete-file fname))))
+        ((directory-exists? fname)
+         (delete-directory fname #t))
+        (else
+         (delete-file fname))))
 
 (define (uninstall pats mtch)
   (let ((eggs (gather-eggs pats mtch)))
