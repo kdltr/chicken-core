@@ -1085,7 +1085,7 @@ EOF
     (cpu-time current-milliseconds current-seconds)
 
 (import scheme)
-(import (only (chicken module) reexport))
+(import (only chicken.module reexport))
 
 (define (current-milliseconds)
   (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f))
@@ -6272,7 +6272,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
   (get get-properties put! remprop! symbol-plist)
 
 (import scheme)
-(import (only (chicken base) getter-with-setter))
+(import (only chicken.base getter-with-setter))
 (import chicken.internal.syntax)
 
 (define (put! sym prop val)
@@ -6408,7 +6408,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (import scheme)
 (import chicken.fixnum chicken.foreign chicken.keyword chicken.process-context)
 (import chicken.internal.syntax)
-(import (only (chicken base) make-parameter))
+(import (only chicken.base make-parameter))
 
 (define software-type
   (let ((sym (string->symbol ((##core#primitive "C_software_type")))))
