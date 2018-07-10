@@ -176,6 +176,7 @@
 				    u)
 				   (##sys#flush-output ##sys#standard-error)))
 				((or (memq (caar vars) u)
+				     (##core#inline "C_u_i_namespaced_symbolp" (caar vars))
 				     (##sys#symbol-has-toplevel-binding? (caar vars)))
 				 (loop (cdr vars) u))
 				(else (loop (cdr vars) (cons (car vars) u)))) 9))
