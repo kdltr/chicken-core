@@ -916,9 +916,10 @@
 	(##core#require library)))))
 
 (define-constant core-units
-  '(chicken-syntax chicken-ffi-syntax continuation data-structures eval
-    expand extras file files internal irregex library lolevel pathname
-    port posix srfi-4 tcp repl read-syntax))
+  '(chicken-syntax chicken-ffi-syntax continuation data-structures
+    debugger-client eval eval-modules expand extras file internal
+    irregex library lolevel pathname port posix profiler read-syntax
+    repl scheduler srfi-4 tcp))
 
 (define-constant cygwin-default-dynamic-load-libraries '("cygchicken-0"))
 (define-constant macosx-load-library-extension ".dylib")
