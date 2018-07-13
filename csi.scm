@@ -127,7 +127,7 @@ EOF
         -no-symbol-escape         disables support for escaped symbols
         -r5rs-syntax              disables the CHICKEN extensions to
                                    R5RS syntax
-    -s  -script PATHNAME          use interpreter for shell scripts
+    -s  -script PATHNAME          use csi as interpreter for Scheme scripts
         -ss PATHNAME              shell script with `main' procedure
         -sx PATHNAME              same as `-s', but print each expression
                                    as it is evaluated
