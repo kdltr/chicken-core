@@ -803,7 +803,7 @@
 			   (cons (cdr x) (loop (cdr xps)))) ; currently not used
 			  ((eq? #:interface (car x))
 			   (if (and (pair? (cdr x)) (symbol? (cadr x)))
-			       (iface (cadr x))
+			       (append (iface (cadr x)) (loop (cdr xps)))
 			       (err "invalid interface specification" x exps)))
 			  (else
 			   (let loop2 ((lst x))
