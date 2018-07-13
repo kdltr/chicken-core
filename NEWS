@@ -107,6 +107,8 @@
     in favor of "import" and "import-for-syntax" to reduce confusion.
   - Module imports are now lexically scoped: identifiers provided by
     an (import ...) inside (let ...) won't be visible outside that let.
+  - Modules implementing an interface can now correctly export extra
+    identifiers (bug reported by Martin Schneeweis, fix by "megane").
 
 - Syntax expander
   - Removed support for (define-syntax (foo e r c) ...), which was

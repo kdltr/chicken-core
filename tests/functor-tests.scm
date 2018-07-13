@@ -236,6 +236,25 @@
  '#(99))
 
 
+;; Module implementing functor plus more exports did not expose the
+;; additional exports (pointed out by Martin Schneeweis, patch
+;; suggested by megane)
+
+(define-interface iface-a (some-a))
+
+(module iface-a-plus-extra ((interface: iface-a) extra-a)
+  (import scheme (chicken base))
+  (define extra-a 'extra-a)
+  (define some-a 'some-a))
+
+(test-equal
+ "Functor with extra exports"
+ (module m6 ()
+   (import iface-a-plus-extra scheme)
+   (list extra-a some-a))
+ '(extra-a some-a))
+
+
 ;;
 
 (test-end)
