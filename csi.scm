@@ -128,7 +128,7 @@ EOF
         -r5rs-syntax              disables the CHICKEN extensions to
                                    R5RS syntax
     -s  -script PATHNAME          use csi as interpreter for Scheme scripts
-        -ss PATHNAME              shell script with `main' procedure
+        -ss PATHNAME              same as `-s', but invoke `main' procedure
         -sx PATHNAME              same as `-s', but print each expression
                                    as it is evaluated
         -setup-mode               prefer the current directory when locating extensions
