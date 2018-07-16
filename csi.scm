@@ -144,20 +144,6 @@ EOF
   (print +banner+ (chicken-version #t) "\n"))
 
 
-;;; Reader for REPL history:
-
-(set! ##sys#user-read-hook
-  (let ((old-hook ##sys#user-read-hook))
-    (lambda (char port)
-      (cond [(or (char=? #\) char) (char-whitespace? char))
-	     `',(history-ref (fx- history-count 1)) ]
-	    [else (old-hook char port)] ) ) ) )
-
-(set! ##sys#sharp-number-hook
-  (lambda (port n)
-    `',(history-ref n) ) )
-
-
 ;;; Chop terminating separator from pathname:
 
 (define (dirseparator? c)
@@ -207,7 +193,8 @@ EOF
 				   (loop (##sys#slot ps 1)) ) ) ) ) ) ] ) ) ) ) ) )
 				   
 
-;;; REPL customization:
+
+;;; REPL history references:
 
 (define history-list (make-vector 32))
 (define history-count 1)
@@ -244,6 +231,18 @@ EOF
 	(vector-ref history-list i) 
 	(##sys#error "history entry index out of range" index) ) ) )
 
+;;; Reader hooks for REPL history:
+
+(define (register-repl-history!)
+  (set! ##sys#user-read-hook
+    (let ((old-hook ##sys#user-read-hook))
+      (lambda (char port)
+	(cond ((or (char=? #\) char) (char-whitespace? char))
+	       `',(history-ref (fx- history-count 1)))
+	      (else (old-hook char port))))))
+  (set! ##sys#sharp-number-hook
+    (lambda (port n) `',(history-ref n))))
+
 (repl-prompt
  (let ((sprintf sprintf))
    (lambda ()
@@ -253,6 +252,9 @@ EOF
 	     (sprintf "~a:" (##sys#module-name m))
 	     ""))
        history-count))))
+
+
+;;; Other REPL customizations:
 
 (define (tty-input?)
   (or (##core#inline "C_i_tty_forcedp")
@@ -1083,7 +1085,8 @@ EOF
 	(set! ##sys#notices-enabled #f))
       (do ([args args (cdr args)])
 	  ((null? args)
-	   (unless batch 
+	   (unless batch
+	     (register-repl-history!)
 	     (repl csi-eval)
 	     (##sys#write-char-0 #\newline ##sys#standard-output) ) )
 	(let* ((arg (car args)))
