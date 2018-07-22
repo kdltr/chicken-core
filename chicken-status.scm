@@ -29,7 +29,6 @@
 	  (chicken base)
 	  (chicken condition)
 	  (chicken file)
-	  (chicken file posix)
 	  (chicken fixnum)
 	  (chicken foreign)
 	  (chicken format)
@@ -128,7 +127,7 @@
 			    list-width #t #\.))))
 
   (define (list-cached-eggs)
-    (when (directory? cache-directory)
+    (when (directory-exists? cache-directory)
       (for-each
        (lambda (egg)
 	 (list-egg-info egg (make-pathname cache-directory egg)
