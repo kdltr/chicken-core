@@ -118,7 +118,7 @@ static volatile int interrupted = 0;
 static int dbg_info_count = 0;
 
 
-static C_word debug_event_hook(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc, int cln);
+static C_word debug_event_hook(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc);
 
 
 void
@@ -238,7 +238,7 @@ enable_debug_info(int n, int f)
     C_DEBUG_INFO *dinfo;
 
     for(dip = dbg_info_list; dip != NULL; dip = dip->next) {
-        for(dinfo = dip->info; dinfo->loc != NULL; ++dinfo) {
+        for(dinfo = dip->info; dinfo->event; ++dinfo) {
             if(i++ == n) {
                 dinfo->enabled = f;
                 return;
@@ -251,7 +251,7 @@ enable_debug_info(int n, int f)
 
 
 static void
-send_string(char *str)
+send_string(C_char *str)
 {
   /* fprintf(stderr, "<SENT: %s>\n", str); */
   C_fflush(stderr);
@@ -260,9 +260,18 @@ send_string(char *str)
     terminate("write failed");
 }
 
+static void
+send_string_value(C_char *str) {
+  if (str == 0 || *str == 0)
+    send_string(" #f");
+  else {
+    C_snprintf(rw_buffer, sizeof(rw_buffer), " \"%s\"", str);
+    send_string(rw_buffer);
+  }
+}
 
 static void
-send_value(C_word x)
+send_scheme_value(C_word x)
 {
   if((x & C_FIXNUM_BIT) != 0)
     C_snprintf(rw_buffer, sizeof(rw_buffer), " %ld", (long)C_unfix(x));
@@ -276,7 +285,7 @@ send_value(C_word x)
 
 
 static void
-send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
+send_event(int event, C_char *loc, C_char *val, C_char *cloc)
 {
   int n;
   int reply, mask;
@@ -288,9 +297,12 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
   void **stats;
 
   for(;;) {
-    n = C_snprintf(rw_buffer, sizeof(rw_buffer), "(%d \"%s\" \"%s\" \"%s:%d\")\n",
-            event, loc, val, cloc, cln);
+    C_snprintf(rw_buffer, sizeof(rw_buffer), "(%d", event);
     send_string(rw_buffer);
+    send_string_value(loc);
+    send_string_value(val);
+    send_string_value(cloc);
+    send_string(")\n");
 
     if(socket_read() < 0) terminate("read failed");
 
@@ -336,11 +348,13 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       str = C_strdup(str);
 
       for(dip = unseen_dbg_info_list; dip != NULL; dip = dip->next) {
-          for(dinfo = dip->info; dinfo->loc != NULL; ++dinfo) {
+          for(dinfo = dip->info; dinfo->event; ++dinfo) {
               if(*str == '\0' || strstr(dinfo->val, str)) {
-                  C_snprintf(rw_buffer, sizeof(rw_buffer), "(* %d %d \"%s\" \"%s\")\n",
-                      dbg_info_count++, dinfo->event, dinfo->loc, dinfo->val);
+                  C_snprintf(rw_buffer, sizeof(rw_buffer), "(* %d %d", dbg_info_count++, dinfo->event);
                   send_string(rw_buffer);
+                  send_string_value(dinfo->loc);
+                  send_string_value(dinfo->val);
+                  send_string(")\n");
               }
 
               ++n;
@@ -373,7 +387,7 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       send_string("(*");
 
       for(n = 0; n < current_c; ++n)
-        send_value(current_av[ n ]);
+        send_scheme_value(current_av[ n ]);
 
       send_string(")\n");
       break;
@@ -410,7 +424,7 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
       send_string(rw_buffer);
 
       for(mask = C_header_size(x); n < mask; ++n)
-        send_value(C_block_item(x, n));
+        send_scheme_value(C_block_item(x, n));
 
       send_string(")\n");
       break;
@@ -426,7 +440,7 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc, int cln)
         send_string("(* UNKNOWN)\n");
       else {
         send_string("(*");
-        send_value(C_symbol_value(x));
+        send_scheme_value(C_symbol_value(x));
         send_string(")\n");
       }
 
@@ -542,7 +556,7 @@ connect_to_debugger()
     return C_SCHEME_FALSE;                     /* failed to connect */
 
   C_snprintf(info, sizeof(info), "%s:%d:%d", C_main_argv[ 0 ], getpid(), C_DEBUG_PROTOCOL_VERSION);
-  send_event(C_DEBUG_CONNECT, info, "", "", 0);
+  send_event(C_DEBUG_CONNECT, info, NULL, NULL);
 #ifndef _WIN32
   C_signal(SIGUSR2, interrupt_signal_handler);
 #endif
@@ -551,15 +565,14 @@ connect_to_debugger()
 
 
 static C_word
-debug_event_hook(C_DEBUG_INFO *cell, C_word c, C_word *av, char *cloc, int cln)
+debug_event_hook(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc)
 {
   if(socket_fd != 0) {
     if(cell->enabled || interrupted || ((1 << cell->event) & event_mask) != 0 ) {
-      /* fprintf(stderr, "event: %s:%d\n", cloc, cln); */
+      /* fprintf(stderr, "event: %s\n", cloc); */
       current_c = c;
       current_av = av;
-      send_event(interrupted ? C_DEBUG_INTERRUPTED : cell->event, cell->loc,
-        cell->val, cloc, cln);
+      send_event(interrupted ? C_DEBUG_INTERRUPTED : cell->event, cell->loc, cell->val, cloc);
       interrupted = 0;
     }
   }

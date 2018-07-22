@@ -342,7 +342,7 @@ C_TLS void (*C_gc_trace_hook)(C_word *var, int mode);
 C_TLS void (*C_panic_hook)(C_char *msg) = NULL;
 C_TLS void (*C_pre_gc_hook)(int mode) = NULL;
 C_TLS void (*C_post_gc_hook)(int mode, C_long ms) = NULL;
-C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc, int cln) = NULL;
+C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc) = NULL;
 
 C_TLS int
   C_gui_mode = 0,

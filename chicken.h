@@ -784,6 +784,9 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 #define CHICKEN_default_toplevel       ((void *)C_default_5fstub_toplevel)
 
+#define C__STR1(x)                 #x
+#define C__STR2(x)                 C__STR1(x)
+
 #define C_align4(n)                (((n) + 3) & ~3)
 #define C_align8(n)                (((n) + 7) & ~7)
 #define C_align16(n)               (((n) + 15) & ~15)
@@ -826,10 +829,9 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
  */
 # define C_VAL1(x)                 C__PREV_TMPST.n1
 # define C_VAL2(x)                 C__PREV_TMPST.n2
-# define C__STR(x)                 #x
 # define C__CHECK_panic(a,s,f,l)                                       \
   ((a) ? (void)0 :                                                     \
-   C_panic_hook(C_text("Low-level type assertion " s " failed at " f ":" C__STR(l))))
+   C_panic_hook(C_text("Low-level type assertion " s " failed at " f ":" C__STR1(l))))
 # define C__CHECK_core(v,a,s,x)                                         \
   ({ struct {                                                           \
       typeof(v) n1;                                                     \
@@ -1643,16 +1645,16 @@ typedef struct C_DEBUG_INFO {
   C_char *val;
 } C_DEBUG_INFO;
 
-#define C_DEBUG_CALL                0
-#define C_DEBUG_GLOBAL_ASSIGN       1
-#define C_DEBUG_GC                  2
-#define C_DEBUG_ENTRY               3
-#define C_DEBUG_SIGNAL              4
-#define C_DEBUG_CONNECT             5
-#define C_DEBUG_LISTEN              6
-#define C_DEBUG_INTERRUPTED         7
+#define C_DEBUG_CALL                1
+#define C_DEBUG_GLOBAL_ASSIGN       2
+#define C_DEBUG_GC                  3
+#define C_DEBUG_ENTRY               4
+#define C_DEBUG_SIGNAL              5
+#define C_DEBUG_CONNECT             6
+#define C_DEBUG_LISTEN              7
+#define C_DEBUG_INTERRUPTED         8
 
-#define C_debugger(cell, c, av)     (C_debugger_hook != NULL ? C_debugger_hook(cell, c, av, C_text(__FILE__), __LINE__) : C_SCHEME_UNDEFINED)
+#define C_debugger(cell, c, av)     (C_debugger_hook != NULL ? C_debugger_hook(cell, c, av, C_text(__FILE__ ":" C__STR2(__LINE__))) : C_SCHEME_UNDEFINED)
 
 /* Variables: */
 
@@ -1687,7 +1689,7 @@ C_varextern C_TLS void *C_restart_trampoline;
 C_varextern C_TLS void (*C_pre_gc_hook)(int mode);
 C_varextern C_TLS void (*C_post_gc_hook)(int mode, C_long ms);
 C_varextern C_TLS void (*C_panic_hook)(C_char *msg);
-C_varextern C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, char *cloc, int cln);
+C_varextern C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, char *cloc);
 
 C_varextern C_TLS int
   C_abort_on_thread_exceptions,

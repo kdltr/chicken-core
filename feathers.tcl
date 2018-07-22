@@ -30,16 +30,15 @@ set version 0
 set protocol_version 0
 set debugger_port 9999
 
-set events(0) call
-set events(1) assign
-set events(2) gc
-set events(3) entry
-set events(4) signal
-set events(5) connect
-set events(6) listen
-set events(7) interrupted
+set events(1) call
+set events(2) assign
+set events(3) gc
+set events(4) entry
+set events(5) signal
+set events(6) connect
+set events(7) listen
+set events(8) interrupted
 
-set reply(UNUSED) 0
 set reply(SETMASK) 1
 set reply(TERMINATE) 2
 set reply(CONTINUE) 3
@@ -82,8 +81,8 @@ set typecode(43) TAGGED_POINTER
 set typecode(77) LAMBDA_INFO
 set typecode(15) BUCKET
 
-set EXEC_EVENT_MASK 16; # signal
-set STEP_EVENT_MASK 27; # call, entry, assign, signal
+set EXEC_EVENT_MASK 32; # signal
+set STEP_EVENT_MASK 54; # call, entry, assign, signal
 
 set membar_height 50
 set value_cutoff_limit 200; # must be lower than limit in dbg-stub.c
@@ -784,8 +783,10 @@ proc ProcessInput {} {
 
 
 proc ProcessLine {line} {
-    if {[regexp {^\((\d+)\s+"([^"]*)"\s+"([^"]*)"\s+"([^"]*)"\)$} $line _ evt loc val \
-        cloc]} {
+    if {[regexp {^\((\d+)\s+([^\s]*)\s+([^\s]*)\s+([^)]*)\)$} $line _ evt loc val cloc]} {
+        set val [ProcessString $val]
+        set loc [ProcessString $loc]
+        set cloc [ProcessString $cloc]
         ProcessEvent $evt $loc $val $cloc
     } elseif {[regexp {^\(\*\s*(.*)\)$} $line _ data]} {
         ProcessData $data
@@ -1479,6 +1480,15 @@ proc InsertDebugInfo {index event args} {
     return 0
 }
 
+proc ProcessString {str} {
+    if {$str == "#f"} {
+        return ""
+    } elseif {[regexp {^"(.*)"$} $str _ strip]} {
+        return $strip
+    } else {
+        return $str
+    }
+}
 
 proc FetchEventListReply {} {
     global file_list reply_queue data_queue
@@ -1489,8 +1499,9 @@ proc FetchEventListReply {} {
 
 
 proc EventInfoData {data} {
-    if {[regexp {(\d+)\s+(\d+)\s+"([^"]*)"\s+"([^"]*)"$} $data _ index event \
-        loc val]} {
+    if {[regexp {(\d+)\s+(\d+)\s+([^\s]*)\s+(.*)$} $data _ index event loc val]} {
+        set loc [ProcessString $loc]
+        set val [ProcessString $val]
         InsertDebugInfo $index $event $loc $val
     } else {
         UpdateHeader "invalid event data: $data"

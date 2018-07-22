@@ -787,7 +787,7 @@
 					       (walk
 						(if emit-debug-info
 						    `(##core#begin
-						      (##core#debug-event "C_DEBUG_ENTRY" ',dest)
+						      (##core#debug-event C_DEBUG_ENTRY ',dest)
 						      ,body0)
 						    body0)
 						(append aliases e) #f #f dest ln #f))))
@@ -1121,7 +1121,7 @@
 				   (when emit-debug-info
 				     (set! val
 				       `(let ((,var ,val))
-					  (##core#debug-event "C_DEBUG_GLOBAL_ASSIGN" ',var)
+					  (##core#debug-event C_DEBUG_GLOBAL_ASSIGN ',var)
 					  ,var)))
 				   ;; We use `var0` instead of `var` because the {macro,current}-environment
 				   ;; are keyed by the raw and unqualified name
@@ -1144,7 +1144,7 @@
 
 			((##core#debug-event)
 			 `(##core#debug-event
-			   ,(unquotify (cadr x))
+			   ,(cadr x)
 			   ,ln ; this arg is added - from this phase on ##core#debug-event has an additional argument!
 			   ,@(map (lambda (arg)
 				    (unquotify (walk arg e #f #f h ln tl?)))
@@ -2500,7 +2500,7 @@
 						     (not (llist-match? llist (cdr subs))))
 					    (quit-compiling
 					     "~a: procedure `~a' called with wrong number of arguments"
-					     (source-info->line name)
+					     (source-info->string name)
 					     (if (pair? name) (cadr name) name)))
 					  (register-direct-call! id)
 					  (when custom (register-customizable! varname id))
@@ -2770,11 +2770,12 @@
 	   (walk-var (first params) e e-count #f) )
 
 	  ((##core#direct_call)
-	   (let* ((name (second params))
-		  (name-str (source-info->string name))
+	   (let* ((source-info (second params))
 		  (demand (fourth params)))
-	     (if (and emit-debug-info name)
-		 (let ((info (list dbg-index 'C_DEBUG_CALL "" name-str)))
+	     (if (and emit-debug-info source-info)
+		 (let ((info (list dbg-index 'C_DEBUG_CALL
+				   (source-info->line source-info)
+				   (source-info->name source-info))))
 		   (set! params (cons dbg-index params))
 		   (set! debug-info (cons info debug-info))
 		   (set! dbg-index (add1 dbg-index)))
@@ -2937,13 +2938,14 @@
 	  ((##core#call)
 	   (let* ((len (length (cdr subs)))
 		  (p2 (pair? (cdr params)))
-		  (name (and p2 (second params)))
-		  (name-str (source-info->string name)))
+		  (source-info (and p2 (second params))))
 	     (set! signatures (lset-adjoin/eq? signatures len))
 	     (when (and (>= (length params) 3) (eq? here (third params)))
 	       (set! looping (add1 looping)) )
-               (if (and emit-debug-info name)
-                 (let ((info (list dbg-index 'C_DEBUG_CALL "" name-str)))
+               (if (and emit-debug-info source-info)
+                 (let ((info (list dbg-index 'C_DEBUG_CALL
+				   (source-info->line source-info)
+				   (source-info->name source-info))))
                    (set! params (cons dbg-index params))
                    (set! debug-info (cons info debug-info))
                    (set! dbg-index (add1 dbg-index)))

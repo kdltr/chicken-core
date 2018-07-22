@@ -962,7 +962,9 @@
      (gen #t "{" (second info) ",0,")
      (for-each
       (lambda (x)
-	(gen "C_text(\"" (backslashify (->string x)) "\"),"))
+	(if (not x)
+	    (gen "NULL,")
+	    (gen "C_text(\"" (backslashify (->string x)) "\"),")))
       (cddr info))
      (gen "},"))
    (sort dbg-info-table (lambda (i1 i2) (< (car i1) (car i2)))))
