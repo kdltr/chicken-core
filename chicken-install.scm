@@ -501,7 +501,8 @@
   (let ((cmd (quote-all
                (string-append
                  (copy-directory-command platform)
-                 " " (quotearg (make-pathname from "*")) " " (quotearg to))
+                 " " (quotearg (slashify (make-pathname from "*") platform))
+                 " " (quotearg (slashify to platform)))
                platform)))
     (d "~a~%" cmd)
     (system cmd)))
