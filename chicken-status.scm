@@ -27,6 +27,7 @@
 
   (import (scheme)
 	  (chicken base)
+	  (chicken condition)
 	  (chicken file)
 	  (chicken file posix)
 	  (chicken fixnum)
@@ -53,7 +54,7 @@
       (lambda ()
 	(let ((cop (current-output-port)))
 	  (if (terminal-port? cop)
-	      (let ((w (nth-value 1 (terminal-size cop))))
+	      (let ((w (handle-exceptions exn 0 (nth-value 1 (terminal-size cop)))))
 		(if (zero? w)
 		    default-width
 		    (min default-width w)))
