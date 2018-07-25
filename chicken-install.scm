@@ -458,7 +458,7 @@
   (let loop ((locs default-locations))
     (cond ((null? locs)
            (let ((tmpdir (create-temporary-directory)))
-             (let loop ((srvs default-servers))
+             (let loop ((srvs (map resolve-location default-servers)))
                (if (null? srvs) 
                    (if lax
                        (print "no connection to server or egg not found remotely - will use cached version")
@@ -469,7 +469,7 @@
                    (begin
                      (d "trying server ~a ...~%" (car srvs)) 
                      (receive (dir ver)
-                       (try-download name (resolve-location (car srvs))
+                       (try-download name (car srvs)
                                      version: version 
                                      destination: tmpdir
                                      tests: #t ;; Always fetch tests, otherwise cached eggs can't be tested later
@@ -514,7 +514,7 @@
 (define (check-remote-version name version lversion cached)
   (let loop ((locs default-locations))
     (cond ((null? locs)
-           (let loop ((srvs default-servers))
+           (let loop ((srvs (map resolve-location default-servers)))
              (and (pair? srvs)
                   (let ((versions (try-list-versions name (car srvs))))
                     (or (and versions
