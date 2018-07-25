@@ -396,7 +396,6 @@
 (define (locate-egg name version)
   (let* ((cached (make-pathname cache-directory name))
          (now (current-seconds))
-         (timestamp (make-pathname cached +timestamp-file+))
          (status (make-pathname cached +status-file+))
          (eggfile (make-pathname cached name +egg-extension+)))
     (define (fetch lax)
@@ -421,22 +420,17 @@
                  (else (fetch #f)))))
     (let* ((info (validate-egg-info (load-egg-info eggfile)))
            (vfile (make-pathname cached +version-file+))
+           (tfile (make-pathname cached +timestamp-file+))
            (lversion (or (get-egg-property info 'version)
                          (and (file-exists? vfile)
                               (with-input-from-file vfile read)))))
       (cond ((and (not cached-only)
-                  (if (file-exists? timestamp)
-                      (and (> (- now (with-input-from-file
-                                       timestamp read))
-                              +one-hour+)
-                           (not (check-remote-version name
-                                                      version
-                                                      lversion
-                                                      cached)))
-                      (not (check-remote-version name
-                                                 version
-                                                 lversion
-                                                 cached))))
+                  (or (and (string? version)
+                           (not (equal? version lversion)))
+                      (and (or (not (file-exists? tfile))
+                               (> (- now (with-input-from-file tfile read))
+                                  +one-hour+))
+                           (not (check-remote-version name lversion cached)))))
              (d "version of ~a out of date~%" name)
              (fetch #t)
              (let* ((info (validate-egg-info (load-egg-info eggfile))) ; new egg info (fetched)
@@ -511,14 +505,14 @@
     (d "~a~%" cmd)
     (system cmd)))
   
-(define (check-remote-version name version lversion cached)
+(define (check-remote-version name lversion cached)
   (let loop ((locs default-locations))
     (cond ((null? locs)
            (let loop ((srvs (map resolve-location default-servers)))
              (and (pair? srvs)
                   (let ((versions (try-list-versions name (car srvs))))
                     (or (and versions
-                             (any (cut version>=? <> version) versions))
+                             (every (cut version>=? lversion <>) versions))
                         (loop (cdr srvs)))))))
           ((probe-dir (make-pathname (car locs) name)) =>
            (lambda (dir)
