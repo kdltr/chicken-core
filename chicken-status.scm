@@ -69,15 +69,12 @@
   (define (grep rx lst)
     (filter (cut irregex-search rx <>) lst))
 
-  (define (read-info egg #!optional (dir (repo-path))
-                     (ext +egg-info-extension+))
-    (load-egg-info
-     (or (chicken.load#find-file (make-pathname #f egg ext) dir)
-         (error "egg not found" egg))))
+  (define (read-info egg #!optional (dir (repo-path)) (ext +egg-info-extension+))
+    (let ((f (chicken.load#find-file (make-pathname #f egg ext) dir)))
+      (and f (load-egg-info f))))
 
-  (define (filter-eggs patterns mtch)
-    (let* ((eggs (gather-eggs))
-           (names (cond ((null? patterns) eggs)
+  (define (filter-egg-names eggs patterns mtch)
+    (let* ((names (cond ((null? patterns) eggs)
                         (mtch
                          (concatenate
                            (map (lambda (pat)
@@ -113,9 +110,9 @@
 
   (define (list-egg-info egg dir ext)
     (let ((version
-	    (cond ((get-egg-property (read-info egg dir ext)
-				     'version))
-		  ((file-exists? (make-pathname dir +version-file+))
+	    (cond ((let ((info (read-info egg dir ext)))
+		     (and info (get-egg-property info 'version))))
+		  ((file-exists? (make-pathname (list dir egg) +version-file+))
 		   => (lambda (fname)
 			(with-input-from-file fname read)))
 		  (else "unknown"))))
@@ -125,13 +122,12 @@
 					   (->string version))
 			    list-width #t #\.))))
 
-  (define (list-cached-eggs)
+  (define (list-cached-eggs pats mtch)
     (when (directory-exists? cache-directory)
       (for-each
        (lambda (egg)
-	 (list-egg-info egg (make-pathname cache-directory egg)
-			+egg-extension+))
-       (sort (directory cache-directory) string<?))))
+	 (list-egg-info egg cache-directory +egg-extension+))
+       (sort (filter-egg-names (directory cache-directory) pats mtch) string<?))))
 
   (define (gather-components lst mode)
     (append-map (cut gather-components-rec <> mode) lst))
@@ -224,16 +220,13 @@ EOF
                    (with-output-to-port (current-error-port)
                      (cut print "-components cannot be used with -list."))
                    (exit 1))
-                  (cached (list-cached-eggs))
-                  (else
-                   (let ((eggs (filter-eggs pats mtch)))
-                     (if (null? eggs)
-                         (display "(none)\n" (current-error-port))
-                         ((cond (dump dump-installed-versions)
-                                (files list-installed-files)
-                                (comps list-installed-components)
-                                (else list-installed-eggs))
-                          eggs)))))
+		  (cached (list-cached-eggs pats mtch))
+		  (else
+		   ((cond (dump dump-installed-versions)
+			  (files list-installed-files)
+			  (comps list-installed-components)
+			  (else list-installed-eggs))
+		    (filter-egg-names (gather-eggs) pats mtch))))
             (let ((arg (car args)))
               (cond ((member arg '("-help" "-h" "--help"))
                      (usage 0))
