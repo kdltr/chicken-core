@@ -192,6 +192,7 @@
     (program #f #t #t)
     (data #f #t #t)
     (modules #f #f #f)
+    (component-options #t #f #f)
     (c-include #f #f #t)
     (scheme-include #f #f #t)))
 
