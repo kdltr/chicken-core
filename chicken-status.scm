@@ -115,8 +115,7 @@
     (let ((version
 	    (cond ((get-egg-property (read-info egg dir ext)
 				     'version))
-		  ((file-exists? (make-pathname (list dir egg)
-						+version-file+))
+		  ((file-exists? (make-pathname dir +version-file+))
 		   => (lambda (fname)
 			(with-input-from-file fname read)))
 		  (else "unknown"))))
