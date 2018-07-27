@@ -462,7 +462,10 @@
                (if (null? srvs) 
                    (if lax
                        (print "no connection to server or egg not found remotely - will use cached version")
-                       (error "extension or version not found" name))
+                       (begin
+                         (delete-directory dest)
+                         (delete-directory tmpdir)
+                         (error "extension or version not found" name)))
                    (begin
                      (d "trying server ~a ...~%" (car srvs)) 
                      (receive (dir ver)
@@ -588,6 +591,7 @@
                 (let-values (((dir ver) (locate-egg name version)))
                   (when (or (not dir)
                             (null? (directory dir)))
+                    (when dir (delete-directory dir))
                     (error "extension or version not found" name))
                   (d retrieve-only "~a located at ~a~%" egg dir)
                   (set! canonical-eggs
@@ -971,7 +975,8 @@
           (lambda ()
             (for-each (lambda (x) (write x) (newline)) db)))
         (unless quiet (print "installing " +module-db+ " ..."))
-        (copy-file dbfile (make-pathname (install-path) +module-db+) #t))))
+        (copy-file dbfile (make-pathname (install-path) +module-db+) #t)
+        (delete-file dbfile))))
 
 
 ;; purge cache for given (or all) eggs
