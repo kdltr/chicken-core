@@ -153,8 +153,8 @@
 
 (define read-string/port
   (lambda (n p)
-    (cond ((eof-object? (##sys#peek-char-0 p))
-	   (if (eq? n 0) "" #!eof))
+    (cond ((eq? n 0) "") ; Don't attempt to peek (fd might not be ready)
+	  ((eof-object? (##sys#peek-char-0 p)) #!eof)
           (n (let* ((str (##sys#make-string n))
 		    (n2 (read-string!/port n str p 0)))
 	       (if (eq? n n2)
