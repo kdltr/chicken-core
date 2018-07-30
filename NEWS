@@ -84,6 +84,10 @@
   - file-{read,write,execute}-access will now raise an exception when
     the file doesn't exist or some other non-access related problem is
     detected (fixes #1386, thanks to Vasilij Schneidermann).
+  - `change-file-mode` was renamed to set-file-permissions! and SRFI-17
+    generalized set! support has been added for `file-permissions`.
+    This procedure now also accepts a file descriptor or a port.
+  - `file-permissions` now returns one value: the permission integer.
   - `read-file` has been renamed to `read-list`.
   - The procedures for random numbers have been reimplemented;
     access to system-specific entropy is available, together with a reasonably
