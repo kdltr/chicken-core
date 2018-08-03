@@ -262,14 +262,10 @@
 					 (and-let* ((a (assq var (##sys#current-environment)))
 						    ((symbol? (cdr a))))
 					   (##sys#notice "assignment to imported value binding" var)))
-				       (let ((var
-					      (cond ((assq x (##sys#current-environment)) j) ;XXX this looks wrong
-						    ((not static)
-						     (##sys#alias-global-hook j #t cntr))
-						    (else #f))))
-					 (if (not var) ; static
-					     (lambda (v)
-					       (##sys#error 'eval "environment is not mutable" evalenv var)) ;XXX var?
+				       (if static
+					   (lambda (v)
+					     (##sys#error 'eval "environment is not mutable" evalenv var)) ;XXX var?
+					   (let ((var (##sys#alias-global-hook j #t cntr)))
 					     (lambda (v)
 					       (let ((result (##core#app val v)))
 						 (##core#inline "C_i_persist_symbol" var)
