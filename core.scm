@@ -517,7 +517,7 @@
 
   (define (lookup id)
     (cond ((find-id id (##sys#current-environment)))
-	  ((##sys#get id '##core#macro-alias))
+	  ((##sys#get id '##core#macro-alias) symbol? => values)
 	  (else id)))
 
   (define (macro-alias var)

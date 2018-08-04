@@ -92,7 +92,7 @@
 
       (define (rename var)
 	(cond ((find-id var (##sys#current-environment)))
-	      ((##sys#get var '##core#macro-alias))
+	      ((##sys#get var '##core#macro-alias) symbol? => values)
 	      (else var)))
 
       (define (lookup var0 e)
