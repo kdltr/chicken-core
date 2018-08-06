@@ -50,6 +50,9 @@
 (define force-uninstall #f)
 (define sudo-uninstall #f)
 
+(define sudo-program (or (get-environment-variable "SUDO")
+                         "sudo"))
+
 (define (repo-path)
   (destination-repository
     (if (and cross-chicken (not host-extensions))
@@ -115,7 +118,7 @@
   (cond ((not (file-exists? fname))
          (warning "file does not exist" fname))
         ((and sudo-uninstall (eq? 'unix default-platform))
-         (let ((r (system (string-append "sudo rm -f -r " (qs fname)))))
+         (let ((r (system (string-append sudo-program " rm -f -r -- " (qs fname)))))
            (unless (zero? r)
              (warning "deleting file failed" fname))))
         ((directory-exists? fname)
