@@ -1285,3 +1285,30 @@ other-eval
 (t 1 (letrec* ((foo 1)
 	       (bar foo))
        bar))
+
+
+;; This would crash in nasty ways (see #1493, reported by megane)
+(module self-redefinition (foo)
+  (import scheme (chicken base))
+
+  (define-syntax foo
+    (ir-macro-transformer
+     (lambda (e i c)
+       (apply
+	(lambda (name)
+	  `(begin
+	     (define-syntax ,(strip-syntax name)
+	       (syntax-rules () ((_ . _) 'new)))
+	     'old))
+	(cdr e))))))
+
+(import (rename self-redefinition (foo imported-foo)))
+(import (rename self-redefinition (foo reimported-foo)))
+
+(t 'old (imported-foo imported-foo))
+(t 'new (imported-foo imported-foo))
+
+;; Like any normal redefinition, the underlying exported identifier
+;; changes, and any other imports are simply aliases.
+;;(t 'old (reimported-foo reimported-foo))
+(t 'new (reimported-foo reimported-foo))
