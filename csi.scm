@@ -56,6 +56,7 @@ EOF
 	chicken.io
 	chicken.keyword
 	chicken.load
+	chicken.pathname
 	chicken.platform
 	chicken.port
 	chicken.pretty-print
@@ -72,7 +73,7 @@ EOF
 
 ;;; Parameters:
 
-(define-constant init-file ".csirc")
+(define-constant init-file "csirc")
 
 (set! ##sys#repl-print-length-limit 2048)
 (set! ##sys#features (cons #:csi ##sys#features))
@@ -1012,11 +1013,16 @@ EOF
 			  (cons (cadr p) (loop (cddr p)))) ) ]
 		[else '()] ) ) )
       (define (loadinit)
-	(and-let* ((home (get-environment-variable "HOME"))
-		   ((not (string=? home ""))))
-	  (let ((fn (string-append (chop-separator home) "/" init-file)))
-	    (when (file-exists? fn)
-		  (load fn) ) ) ) )
+        (let* ((sys-dir (system-config-directory))
+               (cfg-fn (and sys-dir (make-pathname (list sys-dir "chicken")
+                                                   init-file)))
+               (home (get-environment-variable "HOME"))
+               (home-fn (and home (not (string=? home ""))
+                             (make-pathname home (string-append "." init-file)))))
+          (cond ((and cfg-fn (file-exists? cfg-fn))
+                 (load cfg-fn))
+                ((and home-fn (file-exists? home-fn))
+                 (load home-fn) ) ) ) )
       (define (evalstring str #!optional (rec (lambda _ (void))))
 	(let ((in (open-input-string str)))
 	  (do ([x (read in) (read in)])

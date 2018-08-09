@@ -288,8 +288,12 @@
 ;; load defaults file ("setup.defaults")
 
 (define (load-defaults)
-  (let ((deff (or user-defaults
-                  (make-pathname host-sharedir +defaults-file+))))
+  (let* ((cfg-dir (system-config-directory))
+         (user-file (and cfg-dir (make-pathname (list cfg-dir "chicken")
+                                                +defaults-file+)))
+         (deff (or user-defaults
+                   (and (file-exists? user-file) user-file)
+                   (make-pathname host-sharedir +defaults-file+))))
       (define (broken x)
 	(error "invalid entry in defaults file" deff x))
       (cond ((not (file-exists? deff)) '())

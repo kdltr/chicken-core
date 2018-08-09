@@ -110,13 +110,11 @@ EOF
       (or (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
           host-repo)))
 
-(define (probe-dir dir)
+(define (probe-dir dir)           
   (and dir (directory-exists? dir) dir))
 
 (define cache-directory
   (or (get-environment-variable "CHICKEN_EGG_CACHE")
-      (make-pathname (list (or (probe-dir (get-environment-variable "HOME"))
-                               (probe-dir (get-environment-variable "USERPROFILE"))
-                               (current-directory))
-                           ".chicken-install")
-                     "cache")))
+      (make-pathname (or (system-cache-directory)
+                         (current-directory))
+                     "chicken-install")))

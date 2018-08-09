@@ -4,8 +4,21 @@
   - It is now possible to quote free variables in type declarations,
      which acts as shorthand for `forall' (thanks to "megane")
 
+- Tools
+  - csi now uses (system-config-directory) to find csirc and falls back to
+    $HOME/.csirc when needed.
+  - chicken-install now uses (system-config-directory) to find a user
+    defined setup.defaults file ; it also uses (system-cache-directory)
+    for its egg cache directory when the CHICKEN_EGG_CACHE environment
+    variable is not defined.
+
 - Egg specifications
   - Allows "cond-expand" and "error" forms in egg specification files.
+
+- Core libraries
+  - Add the system-config-directory and config-cache-directory procedures
+    in the chicken.platform module. These procedures follow the XDG
+    specification and also give sensible results on Windows.
 
 
 5.0.0

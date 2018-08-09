@@ -1357,6 +1357,8 @@
 (chicken.platform#repository-path (#(procedure #:clean) chicken.platform#repository-path (#!optional *) *))
 (chicken.platform#installation-repository (#(procedure #:clean) chicken.platform#installation-repository (#!optional *) *))
 (chicken.platform#return-to-host (procedure chicken.platform#return-to-host () . *))
+(chicken.platform#system-config-directory (#(procedure #:clean) chicken.platform#system-config-directory () (or string false)))
+(chicken.platform#system-cache-directory (#(procedure #:clean) chicken.platform#system-cache-directory () (or string false)))
 
 ;; plist
 

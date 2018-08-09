@@ -120,6 +120,17 @@ for include files, separated by
 .Sq \&;
 characters.
 .El
+.Sh FILES
+.Bl -tag -width 4n
+.It Pa $XDG_CONFIG_HOME/chicken/csirc
+Scheme file loaded on startup. (
+.Ev $XDG_CONFIG_HOME
+defaults to
+.Pa $HOME/.config
+)
+.It Pa $HOME/.csirc
+Scheme file loaded on startup if the previous one doesn’t exists.
+.El
 .Sh EXIT STATUS
 .Ex -std
 .Sh SEE ALSO

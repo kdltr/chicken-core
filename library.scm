@@ -6403,6 +6403,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
      repository-path installation-repository
      register-feature! unregister-feature!
      software-type software-version return-to-host
+     system-config-directory system-cache-directory
      )
 
 (import scheme)
@@ -6599,5 +6600,20 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 
 (define return-to-host
   (##core#primitive "C_return_to_host"))
+
+(define (system-config-directory)
+  (or (get-environment-variable "XDG_CONFIG_HOME")
+      (if ##sys#windows-platform
+          (get-environment-variable "APPDATA")
+          (let ((home (get-environment-variable "HOME")))
+            (and home (string-append home "/.config"))))))
+
+(define (system-cache-directory)
+  (or (get-environment-variable "XDG_CACHE_HOME")
+      (if ##sys#windows-platform
+          (or (get-environment-variable "LOCALAPPDATA")
+              (get-environment-variable "APPDATA"))
+          (let ((home (get-environment-variable "HOME")))
+            (and home (string-append home "/.cache"))))))
 
 ) ; chicken.platform

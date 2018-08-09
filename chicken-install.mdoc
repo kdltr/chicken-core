@@ -120,6 +120,23 @@ The command to execute when using
 flag in command. If not provided, defaults to
 .Xr sudo 8 .
 .El
+.Sh FILES
+.Bl -tag -width 4n
+.It Pa $XDG_CONFIG_HOME/chicken/setup.defaults
+User specific setup.defaults file. (
+.Ev $XDG_CONFIG_HOME
+defaults to
+.Pa $HOME/.config
+)
+.It Pa $prefix/share/chicken/setup.default
+System-wide setup.defaults file.
+.It Pa $XDG_CACHE_HOME/chicken-install/
+Default directory for cached eggs. (
+.Ev $XDG_CACHE_HOME
+defaults to
+.Pa $HOME/.cache
+)
+.El
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES

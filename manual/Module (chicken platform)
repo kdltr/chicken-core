@@ -60,6 +60,27 @@ Contains the name of the directory where extensions are installed
 linked at runtime.)
 
 
+=== system-config-directory
+
+<procedure>(system-config-directory</procedure>
+
+Returns the location of the directory for configuration files.  This
+obeys the XDG specification, so when the {{XDG_CONFIG_HOME}}
+environment variable is set, its value is used.  When it's not set, it
+will default to {{$HOME/.config}} on UNIX and {{$APPDATA}} on Windows.
+
+
+=== system-cache-directory
+
+<procedure>(system-cache-directory)</procedure>
+
+Returns the location of the directory for caches.  This obeys the XDG
+specification, so when the {{XDG_CACHE_HOME}} environment variable is
+set, its value is used.  When it's not set, it will default to
+{{$HOME/.cache}} on UNIX and {{$LOCALAPPDATA}} or {{$APPDATA}} on
+Windows.
+
+
 === Machine information
 
 These procedures return information about the type of CPU/architecture

@@ -81,6 +81,17 @@ package library path selected during configuration
 .It Ev CHICKEN_REPOSITORY_PATH
 One or more directories holding extension libraries. Defaults to the
 installation repository.
+.It Ev CHICKEN_EGG_CACHE
+Location where eggs are retrieved and built.
+.El
+.Sh FILES
+.Bl -tag -width 4n
+.It Pa $XDG_CACHE_HOME/chicken-install/
+Default directory for cached eggs. (
+.Ev $XDG_CACHE_HOME
+defaults to
+.Pa $HOME/.cache
+)
 .El
 .Sh EXIT STATUS
 .Ex -std
