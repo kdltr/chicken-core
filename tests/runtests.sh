@@ -4,7 +4,6 @@
 # - Note: this needs a proper shell, so it will not work with plain mingw
 #   (just the compiler and the Windows shell, without MSYS)
 
-
 set -e
 if test -z "$MSYSTEM"; then
     TEST_DIR=`pwd`
@@ -62,6 +61,16 @@ set -e
 rm -fr *.exe *.so *.o *.out *.import.* ../foo.import.* test-repository
 mkdir -p test-repository
 cp $TYPESDB test-repository/types.db
+
+echo "======================================== repository search path ..."
+export -p >./old-environment
+unset CHICKEN_REPOSITORY_PATH
+$interpret -s repository-path-default.scm
+. ./old-environment
+$compile_s sample-module.scm -j sample-module
+cp sample-module.so $CHICKEN_INSTALL_REPOSITORY
+cp sample-module.import.scm $CHICKEN_INSTALL_REPOSITORY
+$interpret -s repository-path.scm "${TEST_DIR}/.." "${TEST_DIR}/test-repository"
 
 echo "======================================== types.db consistency ..."
 $interpret -s types-db-consistency.scm ${TYPESDB}

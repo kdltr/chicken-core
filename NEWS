@@ -102,6 +102,9 @@
   - `process`, `process*` and `process-execute` now expect lists of the form
     (("NAME" . "VALUE") ...) instead of the previous (("NAME=VALUE") ...)
     as their environment argument.
+  - `repository-path` is now a parameter containing a list of strings instead
+    of a string, as the search path for libraries can now contain multiple
+    directories.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This

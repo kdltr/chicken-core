@@ -1212,40 +1212,15 @@
 
 (define ##sys#setup-mode #f)
 
-(define path-list-separator
-  (if ##sys#windows-platform #\; #\:))
-
-(define ##sys#split-path
-  (let ((cache '(#f)))
-    (lambda (path)
-      (cond ((not path) '())
-            ((equal? path (car cache))
-             (cdr cache))
-            (else
-              (let* ((len (string-length path))
-                     (lst (let loop ((start 0) (pos 0))
-                            (cond ((fx>= pos len)
-                                   (if (fx= pos start)
-                                       '()
-                                       (list (substring path start pos))))
-                                  ((char=? (string-ref path pos) 
-                                           path-list-separator)
-                                   (cons (substring path start pos)
-                                         (loop (fx+ pos 1)
-                                               (fx+ pos 1))))
-                                  (else 
-                                    (loop start (fx+ pos 1)))))))
-                (set! cache (cons path lst))
-                lst))))))
-
 (define (file-exists? name) ; defined here to avoid file unit dependency
   (and (##sys#file-exists? name #t #f #f) name))
 
 (define (find-file name search-path)
-  (let loop ((p (##sys#split-path search-path)))
-    (cond ((null? p) #f)
-	  ((file-exists? (string-append (car p) "/" name)))
-	  (else (loop (cdr p))))))
+  (cond ((not search-path) #f)
+        ((null? search-path) #f)
+        ((string? search-path) (find-file name (list search-path)))
+        ((file-exists? (string-append (car search-path) "/" name)))
+        (else (find-file name (cdr search-path)))))
 
 (define find-dynamic-extension
   (let ((string-append string-append))
@@ -1261,7 +1236,7 @@
 		(file-exists? (##sys#string-append p0 source-file-extension)))))
 	(let loop ((paths (##sys#append
 			   (if ##sys#setup-mode '(".") '())
-			   (if rp (##sys#split-path rp) '())
+			   (or rp '())
 			   (if inc? ##sys#include-pathnames '())
 			   (if ##sys#setup-mode '() '("."))) ))
 	  (and (pair? paths)
@@ -1364,11 +1339,8 @@
       (or (test (make-relative-pathname source fname))
 	  (let loop ((paths (if repo
 				(##sys#append 
-				 ##sys#include-pathnames 
-				 (let ((rp (repository-path)))
-				   (if rp
-				       (##sys#split-path rp)
-				       '())))
+				 ##sys#include-pathnames
+				 (or (repository-path) '()) )
 				##sys#include-pathnames) ) )
 	    (cond ((eq? paths '()) #f)
 		  ((test (string-append (##sys#slot paths 0)

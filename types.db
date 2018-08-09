@@ -1339,6 +1339,7 @@
 (chicken.load#provided? (#(procedure #:clean #:enforce) chicken.load#provided? (#!rest symbol) boolean))
 (chicken.load#require (#(procedure #:clean) chicken.load#require (#!rest symbol) undefined))
 (chicken.load#set-dynamic-load-mode! (#(procedure #:clean #:enforce) chicken.load#set-dynamic-load-mode! ((or symbol (list-of symbol))) undefined))
+(chicken.load#find-file (#(procedure #:clean) chicken.load#find-file (string (or (list-of string) string)) (or string false)))
 
 ;; platform
 

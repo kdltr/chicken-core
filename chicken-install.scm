@@ -112,7 +112,7 @@
 
 (define (repo-path)
   (if (and cross-chicken (not host-extension))
-      (destination-repository 'target)
+      (##sys#split-path (destination-repository 'target))
       (repository-path)))
 
 (define (install-path)

@@ -6472,11 +6472,47 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 
 (define (chicken-home) installation-home)
 
+(define path-list-separator
+  (if ##sys#windows-platform #\; #\:))
+
+(define ##sys#split-path
+  (let ((cache '(#f)))
+    (lambda (path)
+      (cond ((not path) '())
+            ((equal? path (car cache))
+             (cdr cache))
+            (else
+              (let* ((len (string-length path))
+                     (lst (let loop ((start 0) (pos 0))
+                            (cond ((fx>= pos len)
+                                   (if (fx= pos start)
+                                       '()
+                                       (list (substring path start pos))))
+                                  ((char=? (string-ref path pos)
+                                           path-list-separator)
+                                   (cons (substring path start pos)
+                                         (loop (fx+ pos 1)
+                                               (fx+ pos 1))))
+                                  (else
+                                    (loop start (fx+ pos 1)))))))
+                (set! cache (cons path lst))
+                lst))))))
+
 (define repository-path
   (make-parameter
-   (or (foreign-value "C_private_repository_path()" c-string)
-       (get-environment-variable "CHICKEN_REPOSITORY_PATH")
-       install-egg-home)))
+   (cond ((foreign-value "C_private_repository_path()" c-string)
+           => list)
+         ((get-environment-variable "CHICKEN_REPOSITORY_PATH")
+           => ##sys#split-path)
+         (install-egg-home
+           => list)
+         (else #f))
+   (lambda (new)
+     (and new
+          (begin
+            (##sys#check-list new 'repository-path)
+            (for-each (lambda (p) (##sys#check-string p 'repository-path)) new)
+            new)))))
 
 (define installation-repository
   (make-parameter

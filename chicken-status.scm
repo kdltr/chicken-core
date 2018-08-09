@@ -63,7 +63,7 @@
 
   (define (repo-path)
     (if (and cross-chicken (not host-extensions))
-	(destination-repository 'target)
+	(##sys#split-path (destination-repository 'target))
 	(repository-path)))
 
   (define (grep rx lst)
@@ -93,7 +93,7 @@
         (lambda (dir)
           (map pathname-file 
             (glob (make-pathname dir "*" +egg-info-extension+))))
-        (##sys#split-path (repo-path)))
+        (repo-path))
       equal?))
 
   (define (format-string str cols #!optional right (padc #\space))
@@ -112,7 +112,14 @@
     (let ((version
 	    (cond ((let ((info (read-info egg dir ext)))
 		     (and info (get-egg-property info 'version))))
-		  ((file-exists? (make-pathname (list dir egg) +version-file+))
+		  ((and (string? dir)
+			(file-exists? (make-pathname (list dir egg) +version-file+)))
+		   => (lambda (fname)
+			(with-input-from-file fname read)))
+		  ((chicken.load#find-file +version-file+
+					   (map (lambda (d)
+						  (make-pathname d egg))
+						dir))
 		   => (lambda (fname)
 			(with-input-from-file fname read)))
 		  (else "unknown"))))
