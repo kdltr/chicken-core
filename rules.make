@@ -905,10 +905,10 @@ dist: distfiles html
 # Jim's `manual-labor' must be installed (just run "chicken-install manual-labor")
 html:
 	$(MAKEDIR_COMMAND) $(MAKEDIR_COMMAND_OPTIONS) $(SRCDIR)manual-html
-	#manual-labor $(SRCDIR)manual $(SRCDIR)manual-html
-	#$(COPY_COMMAND) $(SRCDIR)chicken.png manual-html
-	#$(COPY_COMMAND) $(SRCDIR)manual.css manual-html
-	#$(COPY_COMMAND) $(SRCDIR)index.html manual-html
+	manual-labor $(SRCDIR)manual $(SRCDIR)manual-html
+	$(COPY_COMMAND) $(SRCDIR)chicken.png manual-html
+	$(COPY_COMMAND) $(SRCDIR)manual.css manual-html
+	$(COPY_COMMAND) $(SRCDIR)index.html manual-html
 
 # cleaning up
 
