@@ -227,6 +227,9 @@ tests/square-functor.scm
 tests/use-square-functor.scm
 tests/programs-path.scm
 tests/pp-test.scm
+tests/repository-path.scm
+tests/repository-path-default.scm
+tests/sample-module.scm
 tests/finalizer-error-test.scm
 tests/reverser/tags/1.0/reverser.egg
 tests/reverser/tags/1.0/reverser.scm
