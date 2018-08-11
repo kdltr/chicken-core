@@ -228,13 +228,10 @@ tests/use-square-functor.scm
 tests/programs-path.scm
 tests/pp-test.scm
 tests/finalizer-error-test.scm
-tests/reverser/tags/1.0/reverser.meta
-tests/reverser/tags/1.0/reverser.setup
+tests/reverser/tags/1.0/reverser.egg
 tests/reverser/tags/1.0/reverser.scm
-tests/reverser/tags/1.1/reverser.meta
-tests/reverser/tags/1.1/reverser.setup
+tests/reverser/tags/1.1/reverser.egg
 tests/reverser/tags/1.1/reverser.scm
-tests/rev-app.scm
 tests/user-pass-tests.scm
 tests/version-tests.scm
 tests/messages-test.scm
