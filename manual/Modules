@@ -4,38 +4,43 @@
 
 === Modules
 
-To allow some control over visible bindings and to organize code at
-the global level, a simple module system is available. A ''module''
+To allow control over visible bindings and to organize code in namespaces,
+a module system is available. A ''module''
 defines a set of toplevel expressions that are initially evaluated in
 an empty syntactical environment. By ''importing'' other modules,
-exported value- and macro-bindings are made visible inside the
+exported value- and syntax-bindings are made visible inside the
 environment of the module that imports them.
 
 Note that modules are purely syntactical - they do not change the
 control flow or delay the execution of the contained toplevel
 forms. The body of a module is executed at load-time, when code is
-loaded or accessed via the {{uses}} declaration, just like normal
-toplevel expressions. Exported macro-definitions are compiled as
+loaded or imported, just like normal
+toplevel expressions. Exported syntax-definitions are compiled as
 well, and can be accessed in interpreted or compiled code by loading
 and importing the compiled file that contains the module.
 
-Imported toplevel bindings can be assigned (with {{set!}}), any modifications
+Imported toplevel bindings are mutable and can be assigned 
+(with {{set!}}), any modifications
 to these will change the global value and will be visible to other
 modules that export or import the same toplevel binding.
 
-A module is initially empty (has no visible bindings). You must at least
+A module is initially empty (has no visible bindings with the exception
+of  {{import}} and {{cond-expand}}). You must at least
 import the {{scheme}} module to do anything useful. To access any
-of the non-standard macros and procedures, import the {{chicken}}
-module.
+of the non-standard macros and procedures, import the {{(chicken base)}}
+module. 
 
 CHICKEN's module system has the following features:
 
 * Separation of compile/expansion-time and run-time code is provided, which allows cross compilation
-* Module-generating code is only created, when needed
 * Supports batch-compilation of separate compilation units
-* No separate "identifier" type is used, all identifiers appearing in code and processed in expansions are symbols
-* The module system is fully optional
+* Imports can be lexically scoped
 * Parameterized modules are supported
+
+At toplevel and outside of a module, the initially available bindings
+are everything that is exported from the [[Module scheme|scheme]],
+[[Module (chicken base)|(chicken base)]] and 
+[[Module (chicken syntax)|(chicken syntax)]] modules.
 
 
 ==== module
@@ -43,12 +48,15 @@ CHICKEN's module system has the following features:
 <macro>(module NAME (EXPORT ...) BODY ...)</macro>
 <macro>(module NAME (EXPORT ...) FILENAME)</macro>
 <macro>(module NAME * BODY ...)</macro>
-<macro>(module NAME1 = NAME2 [BODY ...])</macro>
 <macro>(module NAME = (FUNCTORNAME MODULENAME1 ...))</macro>
+<macro>(module NAME = FUNCTORNAME BODY ...)</macro>
 
-Defines a module with the name {{NAME}}, a set of exported bindings
-and a contained sequence of toplevel expressions that are evaluated in
-an empty syntactical environment. 
+Defines a module with the name {{NAME}}, a set of exported bindings and
+a contained sequence of toplevel expressions that are evaluated in an
+empty syntactical environment.
+
+{{NAME}} and {{FUNCTORNAME}} should be symbols or lists of symbols and
+integers, where {{(foo bar baz)}} is equivalent to {{foo.bar.baz}}.
 
 {{(EXPORT ...)}} should be an export-specification which holds a list
 of identifiers to be exported from the module and which should be
@@ -59,7 +67,7 @@ environment. {{EXPORT}} may have any of the following forms:
 
 {{(IDENTIFIER1 ...)}} or {{(syntax: IDENTIFIER1 ...)}} exports
 {{IDENTIFIER1}} (which should name a macro) and also arranges for the
-remaining identifiers in the list to be visible in the expansion of
+remaining identifiers in the list to be visible as value bindings in the expansion of
 the macro (this is a hint to the module expander to export bindings
 referenced by syntax-definitions which make use of them, but which
 would normally be internal to the module - which gives more
@@ -79,20 +87,17 @@ like {{(include FILENAME)}}.
 {{(module NAME = (FUNCTORNAME MODULENAME1 ...))}} instantiates
 a ''functor'' (see below for information about functors).
 
-The syntax {{(module NAME1 = NAME2)}} defines an alias {{NAME1}} for
-the module {{NAME2}}, so {{NAME1}} can be used in place of {{NAME2}}
-in all forms that accept module names. Module aliases defined inside a
-module are local to that module. If followed by a module body, then
-this is a special form of ''functor instantiation''.
+{{(module NAME = FUNCTORNAME BODY ...)}} is a special form of
+''functor instantiation'' where the {{BODY}} implements a module
+satisfying a single functor argument to {{FUNCTORNAME}}.
 
 Nested modules, modules not at toplevel (i.e. local modules) or
-mutually recursive modules are not supported. As an exception
-module alias definitions are allowed inside a module definition.
+mutually recursive modules are not supported.
 
-When compiled, the module information, including exported macros
+When compiled, the module information, including exported syntax
 is stored in the generated binary and available when loading
 it into interpreted or compiled code. Note that this is different
-to normal macros (outside of module declarations), which are normally
+to normal syntax (outside of module declarations), which are normally
 not exported from compiled code.
 
 Note that the module system is only a device for controlling the
@@ -129,19 +134,9 @@ Importing a module does not load or link it - this is a separate
 operation from importing its bindings.
 
 {{IMPORT}} may be a module name or an ''import specifier'', where a
-module name is either a symbol or a list of the form {{(srfi N)}}.
+module name is either a symbol or a list of symbols and integers.
 An {{IMPORT}} defines a set of bindings that are to be made visible
 in the current scope.
-
-Note that the imported bindings are only visible in the next toplevel
-expression (regardless of whether the import appears inside or outside
-a module):
-
-  (begin
-    (import m1)
-    ...)              ; imports not visible here
-  
-  ...                ; imports visible here
 
 ===== only
 
@@ -227,72 +222,26 @@ a separate file is generated that only contains syntactical information
 (including macros) for a module. {{import}} will automatically find and
 load an import library for a currently unknown module, if the import-
 library is either in the extension repository or the current include
-path. Import libraries may also be explicitly loaded into the
-compiler by using the {{-extend}} compiler option. Interpreted code
+path. Interpreted code
 can simply load the import library to make the module-definition
-available. Macro-support definitions defined with {{define-for-syntax}}
+available. Syntax-support definitions defined with {{define-for-syntax}}
 and expansion-time expressions of the form {{(begin-for-syntax ...)}}
 will be added to import libraries to make them available for exported
-macros. Note that these definitions will ruthlessly pollute the 
+syntax. Note that these definitions will ruthlessly pollute the 
 toplevel namespace and so they should be used sparingly.
-
-
-=== Using modules as evaluation environments
-
-==== module-environment
-
-<procedure>(module-environment MODULENAME)</procedure>
-
-Locates the module with the name {{MODULENAME}} and returns an
-environment that can be passed as the second argument to {{eval}}. The
-evaluated expressions have only access to the bindings that are
-visible inside the module. Note that the environment is not mutable.
-
-If the module is not registered in the current process, {{module-environment}}
-will try to locate meta-information about the module by loading any
-existing import library with the name {{MODULENAME.import.[scm|so]}},
-if possible.
-
-In compiled modules, only exported bindings will be visible to interactively entered code. In interpreted modules all bindings are visible.
 
 
 === Predefined modules
 
 Import libraries for the following modules are initially
-available:
+available outside of a module:
 
  [module] scheme
- [module] r4rs
- [module] r5rs
+ [module] (chicken base)
+ [module] (chicken syntax)
 
-Exports the definitions given in R4RS or R5RS. {{r5rs}} is a module alias
-for {{scheme}}.
-
- [module] chicken
-
-Everything from the {{library}}, {{eval}} and {{expand}} library units.
-
- [module] extras
- [module] data-structures
- [module] ports
- [module] lolevel
- [module] posix
- [module] regex
- [module] srfi-1
- [module] srfi-4
- [module] srfi-13
- [module] srfi-14
- [module] srfi-18
- [module] srfi-69
- [module] tcp
- [module] utils
-
-Modules exporting the bindings from the respective library units.
-
- [module] foreign
-
-Exports all macros and procedures that are used to access foreign
-C/C++ code.
+Every other module needs to be imported explicitly to have access to
+its exported identifiers.
 
 
 === Examples of using modules
@@ -342,14 +291,6 @@ and used in an identical manner:
   Hello, world !
   #;3> (greet "you")
   Hello, you !
-
-If you are depending on external libraries inside your module, follow the general rule of {{(import chicken scheme) (use anything-else)}} like so:
-
- (module test (hello greet)
-   (import chicken scheme)
-   (use posix)
-   (use srfi-4)
-   ...)
 
 If you want to keep macro-definitions in a separate file, use import
 libraries:
@@ -419,7 +360,11 @@ We can easily instantiate the functor for other inputs:
 <enscript highlight=scheme>
 (module stars (multiply)
   (import scheme)
-  (use srfi-1)
+  (define (list-tabulate n f)
+    (let loop ((i 0))
+      (if (= i n)
+          '()
+          (cons (f i) (loop (+ i 1))))))
   (define (multiply x y) 
     (list-tabulate x (lambda _ (list-tabulate y (lambda _ '*))))))
 
@@ -493,8 +438,16 @@ also loads the run-time part of a module).
 Note that functor-instantiation creates a complete copy of the
 functor body.
 
+=== current-module
+
+<macro>(current-module)</macro>
+
+This will expand to a symbol which matches the current module's name
+when used inside a module.  If not inside a module (i.e., at
+toplevel), this expands to {{#f}}.
+
 
 ---
-Previous: [[Macros]]
+Previous: [[Interface to external functions and variables]]
 
 Next: [[Types]]

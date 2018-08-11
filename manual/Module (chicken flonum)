@@ -1,0 +1,117 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken flonum)
+
+Because CHICKEN supports a full numeric tower, operations can
+sometimes incur a subtantial overhead to simply detect the type of numbers
+you're passing in.  When you know you're definitely dealing only with
+flonums, you can choose to use flonum-specific operations to avoid
+this overhead.
+
+This is purely a performance hack.  You might want to consider adding
+[[Types|type annotations]] instead, this often gives the same
+performance boost without having to rewrite all numeric operators in
+your code.
+
+=== Arithmetic floating-point operations
+
+<procedure>(fp+ X Y)</procedure>
+<procedure>(fp- X Y)</procedure>
+<procedure>(fp* X Y)</procedure>
+<procedure>(fp/ X Y)</procedure>
+<procedure>(fpgcd X Y)</procedure>
+<procedure>(fpneg X)</procedure>
+<procedure>(fpmin X Y)</procedure>
+<procedure>(fpmax X Y)</procedure>
+<procedure>(fp= X Y)</procedure>
+<procedure>(fp> X Y)</procedure>
+<procedure>(fp< X Y)</procedure>
+<procedure>(fp>= X Y)</procedure>
+<procedure>(fp<= X Y)</procedure>
+<procedure>(fpfloor X)</procedure>
+<procedure>(fpceiling X)</procedure>
+<procedure>(fptruncate X)</procedure>
+<procedure>(fpround X)</procedure>
+<procedure>(fpsin X)</procedure>
+<procedure>(fpcos X)</procedure>
+<procedure>(fptan X)</procedure>
+<procedure>(fpasin X)</procedure>
+<procedure>(fpacos X)</procedure>
+<procedure>(fpatan X)</procedure>
+<procedure>(fpatan2 X Y)</procedure>
+<procedure>(fplog X)</procedure>
+<procedure>(fpexp X)</procedure>
+<procedure>(fpexpt X Y)</procedure>
+<procedure>(fpsqrt X)</procedure>
+<procedure>(fpabs X)</procedure>
+<procedure>(fpinteger? X)</procedure>
+
+Arithmetic floating-point operations.
+
+In safe mode, these procedures throw a type error when given non-float
+arguments. In unsafe mode, these procedures do not check their
+arguments. A non-flonum argument in unsafe mode can crash the
+application.
+
+Note: {{fpround}} uses the rounding mode that your C library
+implements, which is usually different from R5RS.
+
+== Flonum limits
+
+<constant>maximum-flonum</constant><br>
+<constant>minimum-flonum</constant><br>
+<constant>flonum-radix</constant><br>
+<constant>flonum-epsilon</constant><br>
+<constant>flonum-precision</constant><br>
+<constant>flonum-decimal-precision</constant><br>
+<constant>flonum-maximum-exponent</constant><br>
+<constant>flonum-minimum-exponent</constant><br>
+<constant>flonum-maximum-decimal-exponent</constant><br>
+<constant>flonum-minimum-decimal-exponent</constant><br>
+
+Platform-specific flonum limits.
+
+<procedure>(flonum-print-precision [PRECISION])</procedure>
+
+Gets and sets the number of significant digits printed for a floating-point
+number. {{PRECISION}} must be a positive {{fixnum}}.  Returns
+the setting that was previously in effect.
+
+The default print precision is 15 on nearly all systems, and 7
+on the rare system on which the {{double}} type is only single-precision.
+
+'''Note:''' To ensure read/write invariance for ''all'' floating-point
+numbers, you must increase print precision from 15 to 17 (or from 7 to
+9).  For example:
+
+ > (define a (expt 2 -53))
+ > (define b (+ a (* 2 (expt 10 -32))))
+ > (eqv? a b)
+ #f
+ > (flonum-print-precision 15)
+ > (cons a b)
+ (1.11022302462516e-16 .
+  1.11022302462516e-16)            ;; same printed representation
+ > (flonum-print-precision 17)
+ > (cons a b)
+ (1.1102230246251565e-16 .
+  1.1102230246251568e-16)          ;; differs in last place
+
+On the downside, this will result in unnecessarily precise
+representations of many numbers:
+
+ > (flonum-print-precision 17)
+ > 0.1
+ 0.10000000000000001
+
+The maximum number of decimal digits required to uniquely represent
+all floating-point numbers of a certain precision is given by the
+formula {{ceil(1+N*log10(2))}}, where N is the number of bits of
+precision; for double-precision, {{N=53}}.
+
+
+---
+Previous: [[Module (chicken fixnum)]]
+
+Next: [[Module (chicken foreign)]]

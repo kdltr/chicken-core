@@ -4,19 +4,17 @@
 
 The macros in this section, such as {{define-foreign-type}} and {{define-external}}, are available in the {{foreign}} import library.  To access them:
 
- (import foreign)
+ (import (chicken foreign))
 
 Note: Using the foreign library directly from the interpreter or the REPL will not work.
 
 * [[Accessing external objects]]
 * [[Foreign type specifiers]]  
 * [[Embedding]]                
-* [[Callbacks]]                   
-* [[Locations]]                   
-* [[Other support procedures]]    
-* [[C interface]]                 
+* [[C interface]]        
+* [[Data representation]]         
 
 ---
-Previous: [[Debugging]]
+Previous: [[Included modules]]
 
-Next: [[Extensions]]
+Next: [[Modules]]

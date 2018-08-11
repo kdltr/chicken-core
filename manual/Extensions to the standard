@@ -2,7 +2,7 @@
 
 [[toc:]]
 
-== Extensions to the standard
+== Extensions to the R5RS standard
 
 === Identifiers
 
@@ -13,115 +13,12 @@ Identifiers may contain special characters if delimited with
 
 The brackets {{[ ... ]}} and the braces {{ { ... } }} are
 provided as an alternative syntax for {{( ... )}}.  A number of reader
-extensions is provided. See [[Non-standard read syntax]].
+extensions is provided. 
 
-=== Non-standard macros
-
-Numerous non-standard macros are provided. See 
-[[Non-standard macros and special forms]] for more information.
-
-=== Extended DSSSL style lambda lists
-
-Extended DSSSL style lambda lists are supported. DSSSL parameter lists are defined by the following grammar:
-
- <parameter-list> ==> <required-parameter>*
-                      [#!optional <optional-parameter>*]
-                      [#!rest <rest-parameter>]
-                      [#!key <keyword-parameter>*]
- <required-parameter> ==> <ident>
- <optional-parameter> ==> <ident>
-                          | (<ident> <initializer>)
- <rest-parameter> ==> <ident>
- <keyword-parameter> ==> <ident>
-                         | (<ident> <initializer>)
- <initializer> ==> <expr>
-
-When a procedure is applied to a list of arguments, the parameters and arguments are processed from left to right as follows:
-
-* Required-parameters are bound to successive arguments starting with the first argument. It shall be an error if there are fewer arguments than required-parameters.
-* Next, the optional-parameters are bound with the remaining arguments. If there are fewer arguments than optional-parameters, then the remaining optional-parameters are bound to the result of the evaluation of their corresponding <initializer>, if one was specified, otherwise {{#f}}. The corresponding <initializer> is evaluated in an environment in which all previous parameters have been bound.
-* If there is a rest-parameter, then it is bound to a list containing all the remaining arguments left over after the argument bindings with required-parameters and optional-parameters have been made. 
-* If {{#!key}} was specified in the parameter-list, there should be an even number of remaining arguments. These are interpreted as a series of pairs, where the first member of each pair is a keyword specifying the parameter name, and the second member is the corresponding value. If the same keyword occurs more than once in the list of arguments, then the corresponding value of the first keyword is the binding value. If there is no argument for a particular keyword-parameter, then the variable is bound to the result of evaluating <initializer>, if one was specified, otherwise {{#f}}. The corresponding <initializer> is evaluated in an environment in which all previous parameters have been bound. 
-
-Needing a special mention is the close relationship between the rest-parameter and possible keyword-parameters.  Declaring a rest-parameter binds up all remaining arguments in a list, as described above. These same remaining arguments are also used for attempted matches with declared keyword-parameters, as described above, in which case a matching keyword-parameter binds to the corresponding value argument at the same time that both the keyword and value arguments are added to the rest parameter list.
-Note that for efficiency reasons, the keyword-parameter matching does nothing more than simply attempt to match with pairs that may exist in the remaining arguments.  Extra arguments that don't match are simply unused and forgotten if no rest-parameter has been declared.  Because of this, the caller of a procedure containing one or more keyword-parameters cannot rely on any kind of system error to report wrong keywords being passed in.
-
-It shall be an error for an {{<ident>}} to appear more than once in a parameter-list.
-
-If there is no rest-parameter and no keyword-parameters in the parameter-list, then it shall be an error for any extra arguments to be passed to the procedure.
-
-
-Example:
-
- ((lambda x x) 3 4 5 6)       => (3 4 5 6)
- ((lambda (x y #!rest z) z)
-  3 4 5 6)                    => (5 6)
- ((lambda (x y #!optional z #!rest r #!key i (j 1)) 
-     (list x y z i: i j: j))
-  3 4 5 i: 6 i: 7)            => (3 4 5 i: 6 j: 1)
-
-=== {{set!}}
-
-{{set!}} for unbound toplevel variables is allowed. {{set! (PROCEDURE ...) ...)}}
-is supported, as CHICKEN implements [[http://srfi.schemers.org/srfi-17/srfi-17.html|SRFI-17]].
-
-=== {{cond}}
-
-The {{cond}} form supports [[http://srfi.schemers.org/srfi-61|SRFI-61]].
-
-=== {{begin}}
-
-{{(begin)}} is allowed in non-toplevel contexts and evaluates
-to an unspecified value.
-
-=== Delayed expressions
-
-Delayed expressions may return multiple values.
-
-=== Internal definitions
-
-CHICKEN extends standard semantics by allowing internal definitions
-everywhere, and not only at the beginning of a body. A set of internal definitions
-is equivalent to a {{letrec}} form enclosing all following expressions
-in the body:
-
- (let ((foo 123))
-   (bar)
-   (define foo 456)
-   (baz foo) )
-
-expands into
-
- (let ((foo 123))
-   (bar)
-   (letrec ((foo 456))
-     (baz foo) ) )
-
-Local sequences of {{define-syntax}} forms are translated into equivalent 
-{{letrec-syntax}} forms that enclose the following forms as the body of
-the expression.
-
-=== Curried definitions
-
-{{define}} with a single argument is allowed and initializes the toplevel or local binding
-to an unspecified value. CHICKEN supports ''curried'' definitions, where the variable name
-may also be a list specifying a name and a nested lambda list. So
-
- (define ((make-adder x) y) (+ x y))
-
-is equivalent to
-
- (define (make-adder x) (lambda (y) (+ x y)))
-
-=== Non-standard procedures
+=== Non-standard procedures and syntax
 
 CHICKEN provides numerous non-standard procedures. See the manual
-sections on library units for more information.
-
-=== Special IEEE floating-point numbers
-
-The special IEEE floating-point numbers ''+nan'', ''+inf'' and ''-inf''
-are supported, as is negative zero.
+sections on the included library modules ([[Included modules]]) for more information.
 
 === User defined character names
 
@@ -145,55 +42,187 @@ backspace, ''\t'' TAB, ''\v'' vertical TAB, ''\a'' alarm, ''\f'' formfeed,
 ''\uXXXX'' (and ''\UXXXXXXXX'') a unicode character with the code {{XXXX}}.
 The latter is encoded in UTF-8 format.
 
-The third argument to {{substring}} is optional and defaults to the length
-of the string.
+== Non-standard read syntax
 
-=== Number/String conversions
+=== Escapes in symbols
 
-The optional "base" argument to {{string->number}} and {{number->string}}
-may be any integral value from 2 to 36.
+{{| ... |}} may be used to escape a sequence of characters when reading a symbol.
+{{\X}} escapes a single character in a symbols name:
 
-=== {{force}}
+  (symbol->string '|abc def|)       =>   "abc def"
+  (symbol->string '|abc||def|)      =>   "abcdef"
+  (symbol->string '|abc|xyz|def|)   =>   "abcxyzdef"
+  (symbol->string '|abc\|def|)      =>   "abc|def"
+  (symbol->string 'abc\ def)        =>   "abc def"
 
-{{force}} called with an argument that is not a promise returns
-that object unchanged.  Captured continuations can be safely invoked
-inside before- and after-thunks of a {{dynamic-wind}} form and
-execute in the outer dynamic context of the {{dynamic-wind}} form.
+=== Multiline Block Comment
 
-'''Implicit''' non-multival continuations accept multiple values by discarding all
-but the first result. Zero values result in the continuation receiving an
-unspecified value. Note that this slight relaxation of the behaviour of
-returning mulitple values to non-multival continuations does not apply to
-explicit continuations (created with {{call-with-current-continuation}}).
+<read>#|</read>
 
-=== {{eval}}
+ #| ... |# 
 
-The second argument to {{eval}} is optional and
-defaults to the value of {{(interaction-environment)}}.
-{{scheme-report-environment}} and {{null-environment}} accept
-an optional 2nd parameter: if not {{#f}} (which is the default),
-toplevel bindings to standard procedures are mutable and new toplevel
-bindings may be introduced.
+A multiline ''block'' comment. May be nested. Implements [[http://srfi.schemers.org/srfi-30/srfi-30.html|SRFI-30]].
 
-=== Optional arguments for port-related procedures
+=== Expression Comment
 
-If the procedures {{current-input-port}} and
-{{current-output-port}} are called with an argument (which should
-be a port), then that argument is selected as the new current input- and
-output-port, respectively.  The procedures {{open-input-file}},
-{{open-output-file}}, {{with-input-from-file}},
-{{with-output-to-file}}, {{call-with-input-file}} and
-{{call-with-output-file}} accept an optional second (or third)
-argument which should be one or more keywords, if supplied. These
-arguments specify the mode in which the file is opened. Possible
-values are the keywords {{#:text}}, {{#:binary}} or
-{{#:append}}.
+<read>#;</read>
 
-=== {{exit}}
+ #;EXPRESSION
 
-The {{exit}} procedure exits a program right away and does ''not'' invoke pending {{dynamic-wind}} thunks.
+Treats {{EXPRESSION}} as a comment.  That is, the comment runs through the whole S-expression, regardless of newlines, which saves you from having to comment out every line, or add a newline in the middle of your parens to make the commenting of the last line work, or other things like that. Implements [[http://srfi.schemers.org/srfi-62/srfi-62.html|SRFI-62]].
+
+=== External Representation
+
+<read>#,</read>
+
+ #,(CONSTRUCTORNAME DATUM ...)
+
+Allows user-defined extension of external representations. (For more information see the documentation for
+[[http://srfi.schemers.org/srfi-10/srfi-10.html|SRFI-10]])
+
+=== Location Expression
+
+<read> #$EXPRESSION</read>
+
+An abbreviation for {{(location EXPRESSION)}}.
+
+=== Blob literals
+
+<read>#${</read>
+
+  #${ HEX ... }
+
+Syntax for literal "blobs" (byte-sequences). Expects hexadecimal digits and ignores
+any whitespace characters:
+
+  #;1> ,d '#${deadbee f}
+  blob of size 4:
+     0: de ad be ef                                     ....
+
+=== Keyword
+
+<read>#:</read>
+
+ #:SYMBOL
+ SYMBOL:
+ :SYMBOL
+
+Syntax for keywords. Keywords are symbols that evaluate to themselves, and as such don't have to be quoted.  Either {{SYMBOL:}} or {{:SYMBOL}} is accepted, depending on the setting of the {{keyword-style}} parameter, but never both.  {{#:SYMBOL}} is always accepted.
+
+=== Multiline String Constant
+
+<read>#<<</read>
+
+ #<<TAG
+
+Specifies a multiline string constant. Anything up to a line equal to {{TAG}} (or end of file) will be returned as a single string:
+
+ (define msg #<<END
+  "Hello, world!", she said.
+ END
+ )
+
+is equivalent to
+
+ (define msg "\"Hello, world!\", she said.")
+
+=== Multiline String Constant with Embedded Expressions
+
+<read>#<#</read>
+
+ #<#TAG
+
+Similar to {{#<<}}, but allows substitution of embedded Scheme expressions prefixed with {{#}} and optionally enclosed in curly brackets. Two consecutive {{#}}s are translated to a single {{#}}:
+
+ (define three 3)
+ (display #<#EOF
+ This is a simple string with an embedded `##' character
+ and substituted expressions: (+ three 99) ==> #(+ three 99)
+ (three is "#{three}")
+ EOF
+ )
+
+prints
+
+ This is a simple string with an embedded `#' character
+ and substituted expressions: (+ three 99) ==> 102
+ (three is "3")
+
+=== Foreign Declare
+
+<read>#></read>
+
+ #> ... <#
+
+Abbreviation for {{(foreign-declare " ... ")}}.
+
+=== String escape sequences
+
+String-literals may contain the following escape sequences:
+
+<table style="margin-top: 1em; max-width: 40em">
+<tr><th>Escape sequence</th><th>Character</th></tr>
+<tr><td>{{\n}}</td><td>line feed / newline</td></tr>
+<tr><td>{{\t}}</td><td>tab</td></tr>
+<tr><td>{{\r}}</td><td>carriage return</td></tr>
+<tr><td>{{\b}}</td><td>backspace</td></tr>
+<tr><td>{{\a}}</td><td>bell</td></tr>
+<tr><td>{{\v}}</td><td>vertical tab</td></tr>
+<tr><td>{{\f}}</td><td>form feed</td></tr>
+<tr><td>{{\x}}''XX''</td><td>hexadecimal 8-bit character code</td></tr>
+<tr><td>{{\u}}''XXXX''</td><td>hexadecimal 16-bit Unicode character code</td></tr>
+<tr><td>{{\U}}''XXXXXXXX''</td><td>hexadecimal 32-bit Unicode character code</td></tr>
+<tr><td>{{\}}''OOO''</td><td>octal 8-bit character code</td></tr>
+<tr><td>{{\|}}   {{\"}}    {{\\}}    {{\'}}</td><td>the escaped character</td></tr>
+</table>
+
+
+=== Bang
+
+<read>#!</read>
+
+ #!... 
+
+Interpretation depends on the directly following characters. Only the following are recognized. Any other case results in a read error.
+
+; Line Comment : If followed by whitespace or a slash, then everything up the end of the current line is ignored
+
+; Eof Object : If followed by the character sequence {{eof}}, then the (self-evaluating) end-of-file object is returned
+
+; DSSSL Formal Parameter List Annotation : If followed by any of the character sequences {{optional}}, {{rest}} or {{key}}, then a symbol with the same name (and prefixed with {{#!}}) is returned
+
+; Read Mark Invocation : If a ''read mark'' with the same name as the token is registered, then its procedure is called and the result of the read-mark procedure will be returned
+
+=== Case Sensitive Expression
+
+<read>#cs</read>
+
+ #cs...
+
+Read the next expression in case-sensitive mode (regardless of the current global setting).
+
+=== Case Insensitive Expression
+
+<read>#ci</read>
+
+ #ci...
+
+Read the next expression in case-insensitive mode (regardless of the current global setting).
+
+=== Conditional Expansion
+
+<read>#+</read>
+
+ #+FEATURE EXPR
+
+Rewrites to
+
+ (cond-expand (FEATURE EXPR) (else))
+
+and performs the feature test at macroexpansion time.  Therefore, it may not
+work as expected when used within a macro form.
 
 ---
 Previous: [[Deviations from the standard]]
 
-Next: [[Non-standard read syntax]]
+Next: [[Included modules]]

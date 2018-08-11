@@ -12,7 +12,7 @@
 ;; inline func unrecognizable for canonicalizer.
 
 (module m1 (f1)
-  (import scheme chicken)
+  (import scheme (chicken base))
   (define-inline (bar x) (cons x '(foo)))
   (define-syntax s1
     (syntax-rules ()
@@ -39,5 +39,38 @@
 (define v (vector 1 2 3))
 (test-equal "unmarked primitive exports" (vector-fill! 99 v) '#(99 99 99))
 
+(module m3 (op)
+  (import scheme)
+  (define op -))
+
+(module m4 (op)
+  (import scheme)
+  (define op +))
+
+;; Lexically scoped import, see #1437
+
+(import m4)
+(test-equal "lexically scoped import uses imported module"
+	    3 (let () (import m3) (op 5 2)))
+
+(test-equal "After leaving scope, fall back to old import" 7 (op 5 2))
+
+(eval '(import m4))
+(test-equal "Interpreted code behaves identically on lexical import"
+	    3 (eval '(let () (import m3) (op 5 2))))
+
+(test-equal "Interpreted code behaves identically after leaving scope"
+	    7 (eval '(op 5 2)))
+
+;; This was the remaining bug: imports would be evaluated during
+;; macro expansion, mutating ##sys#current-environment, but the
+;; code walker would keep the old syntax environment.
+(begin
+  (import m3)
+  (test-equal "In begin, imports are seen immediately" 3 (op 5 2)))
+
+(test-equal "begin splices; imports still active afterwards" 3 (op 5 2))
 
 (test-end "modules")
+
+(test-exit)

@@ -1,7 +1,8 @@
 ;;;: test-irregex.scm
 
 
-(use extras irregex)
+(import (only chicken.string string-split string-intersperse)
+        chicken.format chicken.io chicken.irregex chicken.port)
 
 (include "test.scm")
 
@@ -58,7 +59,7 @@
 	 splt)
 	(warning "invalid regex test line" line))))
 
-(test-begin)
+(test-begin "basic irregex tests")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; basic irregex
@@ -510,7 +511,7 @@
 
 ;;; UTF-8 tests
 
-(test-begin)
+(test-begin "utf-8 tests")
 
 (test-assert (irregex-search "(?u:<..>)" "<漢字>"))
 (test-assert (irregex-search "(?u:<.*>)" "<漢字>"))
@@ -542,3 +543,4 @@
 
 (test-end)
 
+(test-exit)

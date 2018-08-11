@@ -1,6 +1,6 @@
 ;;;; tweaks.scm - Some inline-routines and declarations for the compiler 
 ;
-; Copyright (c) 2008-2017, The CHICKEN Team
+; Copyright (c) 2008-2018, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -38,8 +38,8 @@
      (no-argc-checks)))
   (else))
 
-(define-inline (node? x) (##sys#structure? x 'node))
-(define-inline (make-node c p s) (##sys#make-structure 'node c p s))
+(define-inline (node? x) (##sys#structure? x 'chicken.compiler.support#node))
+(define-inline (make-node c p s) (##sys#make-structure 'chicken.compiler.support#node c p s))
 
 (cond-expand
   ((not debugbuild)
@@ -49,6 +49,9 @@
   (else))
 
 (define-inline (intrinsic? sym) (##sys#get sym '##compiler#intrinsic))
+
+(define-inline (namespaced-symbol? sym)
+  (##core#inline "C_u_i_namespaced_symbolp" sym))
 
 (define-inline (mark-variable var mark #!optional (val #t))
   (##sys#put! var mark val) )

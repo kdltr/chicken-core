@@ -1,6 +1,6 @@
 ;;;; csc.scm - Driver program for the CHICKEN compiler - felix -*- Scheme -*-
 ;
-; Copyright (c) 2008-2017, The CHICKEN Team
+; Copyright (c) 2008-2018, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -25,51 +25,47 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 
 
-(declare
-  (block)
-  (uses posix data-structures ports srfi-1 srfi-13 utils files extras))
+(module main ()
 
-(define-foreign-variable INSTALL_BIN_HOME c-string "C_INSTALL_BIN_HOME")
-(define-foreign-variable INSTALL_CC c-string "C_INSTALL_CC")
-(define-foreign-variable INSTALL_CXX c-string "C_INSTALL_CXX")
-(define-foreign-variable INSTALL_RC_COMPILER c-string "C_INSTALL_RC_COMPILER")
-(define-foreign-variable TARGET_CC c-string "C_TARGET_CC")
-(define-foreign-variable TARGET_CXX c-string "C_TARGET_CXX")
-(define-foreign-variable TARGET_RC_COMPILER c-string "C_TARGET_RC_COMPILER")
-(define-foreign-variable TARGET_CFLAGS c-string "C_TARGET_CFLAGS")
-(define-foreign-variable INSTALL_CFLAGS c-string "C_INSTALL_CFLAGS")
-(define-foreign-variable TARGET_LDFLAGS c-string "C_TARGET_LDFLAGS")
-(define-foreign-variable TARGET_FEATURES c-string "C_TARGET_FEATURES")
-(define-foreign-variable INSTALL_LDFLAGS c-string "C_INSTALL_LDFLAGS")
-(define-foreign-variable INSTALL_MORE_LIBS c-string "C_INSTALL_MORE_LIBS")
-(define-foreign-variable INSTALL_MORE_STATIC_LIBS c-string "C_INSTALL_MORE_STATIC_LIBS")
-(define-foreign-variable INSTALL_SHARE_HOME c-string "C_INSTALL_SHARE_HOME")
-(define-foreign-variable INSTALL_LIB_HOME c-string "C_INSTALL_LIB_HOME")
-(define-foreign-variable INSTALL_LIB_NAME c-string "C_INSTALL_LIB_NAME")
-(define-foreign-variable INSTALL_INCLUDE_HOME c-string "C_INSTALL_INCLUDE_HOME")
-(define-foreign-variable INSTALL_STATIC_LIB_HOME c-string "C_INSTALL_STATIC_LIB_HOME")
-(define-foreign-variable TARGET_MORE_LIBS c-string "C_TARGET_MORE_LIBS")
-(define-foreign-variable TARGET_MORE_STATIC_LIBS c-string "C_TARGET_MORE_STATIC_LIBS")
-(define-foreign-variable TARGET_BIN_HOME c-string "C_TARGET_BIN_HOME")
-(define-foreign-variable TARGET_SHARE_HOME c-string "C_TARGET_SHARE_HOME")
-(define-foreign-variable TARGET_LIB_HOME c-string "C_TARGET_LIB_HOME")
-(define-foreign-variable TARGET_LIB_NAME c-string "C_TARGET_LIB_NAME")
-(define-foreign-variable TARGET_INCLUDE_HOME c-string "C_TARGET_INCLUDE_HOME")
-(define-foreign-variable TARGET_STATIC_LIB_HOME c-string "C_TARGET_STATIC_LIB_HOME")
-(define-foreign-variable TARGET_RUN_LIB_HOME c-string "C_TARGET_RUN_LIB_HOME")
-(define-foreign-variable CHICKEN_PROGRAM c-string "C_CHICKEN_PROGRAM")
-(define-foreign-variable CSC_PROGRAM c-string "C_CSC_PROGRAM")
-(define-foreign-variable WINDOWS_SHELL bool "C_WINDOWS_SHELL")
-(define-foreign-variable BINARY_VERSION int "C_BINARY_VERSION")
+(import scheme
+	chicken.base
+	chicken.file
+	chicken.fixnum
+	chicken.foreign
+	chicken.format
+	chicken.io
+	chicken.pathname
+	chicken.platform
+	chicken.process
+	chicken.process-context
+	chicken.string)
+
+(include "egg-environment.scm")
+(include "mini-srfi-1.scm")
+
+(define-foreign-variable windows-shell bool "C_WINDOWS_SHELL")
 (define-foreign-variable POSTINSTALL_PROGRAM c-string "C_INSTALL_POSTINSTALL_PROGRAM")
+(define-foreign-variable INSTALL_LIB_NAME c-string "C_INSTALL_LIB_NAME")
+(define-foreign-variable TARGET_LIB_NAME c-string "C_TARGET_LIB_NAME")
+(define host-libs (foreign-value "C_INSTALL_MORE_LIBS" c-string))
+(define-foreign-variable TARGET_MORE_STATIC_LIBS c-string "C_TARGET_MORE_STATIC_LIBS")
+(define-foreign-variable INSTALL_MORE_STATIC_LIBS c-string "C_INSTALL_MORE_STATIC_LIBS")
+(define TARGET_CC default-cc)
+(define-foreign-variable CHICKEN_PROGRAM c-string "C_CHICKEN_PROGRAM")
+(define-foreign-variable TARGET_FEATURES c-string "C_TARGET_FEATURES")
+(define-foreign-variable TARGET_RUN_LIB_HOME c-string "C_TARGET_RUN_LIB_HOME")
+(define-foreign-variable TARGET_RC_COMPILER c-string "C_TARGET_RC_COMPILER")
+(define-foreign-variable INSTALL_RC_COMPILER c-string "C_INSTALL_RC_COMPILER")
+(define-foreign-variable TARGET_LDFLAGS c-string "C_TARGET_LDFLAGS")
+(define-foreign-variable INSTALL_LDFLAGS c-string "C_INSTALL_LDFLAGS")
+(define-foreign-variable CSC_PROGRAM c-string "C_CSC_PROGRAM")
 
-(define windows-shell WINDOWS_SHELL)
 
 ;;; Parameters:
 
-(define mingw (eq? (build-platform) 'mingw32))
+(define mingw (eq? (software-version) 'mingw32))
 (define osx (eq? (software-version) 'macosx))
-(define cygwin (eq? (build-platform) 'cygwin))
+(define cygwin (eq? (software-version) 'cygwin))
 (define aix (eq? (build-platform) 'aix))
 
 (define elf
@@ -79,15 +75,9 @@
   (fprintf (current-error-port) "~a: ~?~%" CSC_PROGRAM msg args)
   (exit 64) )
 
-(define chicken-prefix (get-environment-variable "CHICKEN_PREFIX"))
 (define arguments (command-line-arguments))
-(define host-mode (member "-host" arguments))
-(define cross-chicken (##sys#fudge 39))
-
-(define (prefix str dir default)
-  (if chicken-prefix
-      (make-pathname (list chicken-prefix dir) str)
-      default) )
+(define cross-chicken (feature? #:cross-chicken))
+(define host-mode (or (not cross-chicken) (member "-host" arguments)))
 
 (define (back-slash->forward-slash path)
   (if windows-shell
@@ -101,44 +91,53 @@
   (qs (normalize-pathname str)))
 
 (define home
-  (prefix "" "share" (if host-mode INSTALL_SHARE_HOME TARGET_SHARE_HOME)))
+  (if host-mode host-sharedir default-sharedir))
 
 (define translator
-  (quotewrap
-   (prefix "chicken" "bin"
-	   (make-pathname
-	    INSTALL_BIN_HOME
-	    CHICKEN_PROGRAM))))
+  (quotewrap (make-pathname host-bindir CHICKEN_PROGRAM)))
 
-(define compiler (quotewrap (if host-mode INSTALL_CC TARGET_CC)))
-(define c++-compiler (quotewrap (if host-mode INSTALL_CXX TARGET_CXX)))
+(define compiler (quotewrap (if host-mode host-cc default-cc)))
+(define c++-compiler (quotewrap (if host-mode host-cxx default-cxx)))
 (define rc-compiler (quotewrap (if host-mode INSTALL_RC_COMPILER TARGET_RC_COMPILER)))
-(define linker (quotewrap (if host-mode INSTALL_CC TARGET_CC)))
-(define c++-linker (quotewrap (if host-mode INSTALL_CXX TARGET_CXX)))
+(define linker (quotewrap (if host-mode host-cc default-cc)))
+(define c++-linker (quotewrap (if host-mode host-cxx default-cxx)))
 (define object-extension "o")
 (define library-extension "a")
 (define link-output-flag "-o ")
 (define executable-extension "")
 (define compile-output-flag "-o ")
-(define nonstatic-compilation-options '())
 (define shared-library-extension ##sys#load-dynamic-extension)
+(define static-object-extension (##sys#string-append "static." object-extension))
 (define default-translation-optimization-options '())
 (define pic-options (if (or mingw cygwin) '("-DPIC") '("-fPIC" "-DPIC")))
 (define generate-manifest #f)
 
-(define libchicken (string-append "lib" INSTALL_LIB_NAME))
-(define dynamic-libchicken
+(define (libchicken)
+  (string-append "lib"
+                 (if (not host-mode)
+                     TARGET_LIB_NAME
+                     INSTALL_LIB_NAME)))
+
+(define (dynamic-libchicken)
   (if cygwin
-      (string-append "cyg" INSTALL_LIB_NAME "-0")
-      libchicken))
+      (string-append "cyg" INSTALL_LIB_NAME "-0")  ; XXX not target
+      (libchicken)))
 
-(define default-library
-  (string-append libchicken "." library-extension))
+(define (default-library)
+  (make-pathname library-dir (libchicken) library-extension))
 
-(define default-compilation-optimization-options (string-split (if host-mode INSTALL_CFLAGS TARGET_CFLAGS)))
-(define best-compilation-optimization-options default-compilation-optimization-options)
-(define default-linking-optimization-options (string-split (if host-mode INSTALL_LDFLAGS TARGET_LDFLAGS)))
-(define best-linking-optimization-options default-linking-optimization-options)
+(define default-compilation-optimization-options
+  (string-split (if host-mode host-cflags default-cflags)))
+
+(define best-compilation-optimization-options 
+  default-compilation-optimization-options)
+
+(define default-linking-optimization-options
+  (string-split (if host-mode INSTALL_LDFLAGS TARGET_LDFLAGS)))
+
+(define best-linking-optimization-options
+  default-linking-optimization-options)
+
 (define extra-features (if host-mode '() (string-split TARGET_FEATURES)))
 
 (define-constant simple-options
@@ -147,30 +146,29 @@
     -check-syntax -case-insensitive -shared -compile-syntax -no-lambda-info
     -dynamic -disable-stack-overflow-checks -local
     -emit-external-prototypes-first -inline -release 
-    -scrutinize				; OBSOLETE
     -analyze-only -keep-shadowed-macros -inline-global -ignore-repository
     -no-symbol-escape -no-parentheses-synonyms -r5rs-syntax
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
-    -emit-all-import-libraries -setup-mode -no-elevation -no-module-registration
-    -no-procedure-checks-for-usual-bindings -module
+    -emit-all-import-libraries -no-elevation -no-module-registration
+    -no-procedure-checks-for-usual-bindings
     -specialize -strict-types -clustering -lfa2 -debug-info
     -no-procedure-checks-for-toplevel-bindings))
 
 (define-constant complex-options
   '(-debug -heap-size -nursery -stack-size -compiler -unit -uses -keyword-style
-    -optimize-level -include-path -database-size -extend -prelude -postlude -prologue -epilogue 
+    -optimize-level -include-path -database-size -extend -prelude -postlude -prologue -epilogue -emit-link-file
     -inline-limit -profile-name
-    -emit-inline-file -types -emit-type-file
-    -feature -debug-level 
-    -consult-inline-file
+    -emit-inline-file -consult-inline-file
+    -emit-types-file -consult-types-file
+    -feature -debug-level
     -emit-import-library
+    -module -link
     -no-feature))
 
 (define-constant shortcuts
   '((-h "-help")
     (-s "-shared")
-    (-S "-scrutinize")			; OBSOLETE
-    (-M "-module")
+    (-m "-module")
     (|-P| "-check-syntax")
     (-f "-fixnum-arithmetic")
     (|-D| "-feature")
@@ -178,11 +176,12 @@
     (|-K| "-keyword-style")
     (|-X| "-extend")
     (|-J| "-emit-all-import-libraries")
+    (|-N| "-no-module-registration")
     (-x "-explicit-use")
     (-u "-unsafe")
     (-j "-emit-import-library")
-    (-n "-emit-inline-file")		; DEPRECATED
-    (-b "-block") ) )
+    (-b "-block")
+    (-types "-consult-types-file")))
 
 (define short-options
   (string->list "PHhsfiENxubvwAOeWkctgSJM") )
@@ -197,6 +196,8 @@
 (define generated-rc-files '())
 (define object-files '())
 (define generated-object-files '())
+(define transient-link-files '())
+(define linked-extensions '())
 (define cpp-mode #f)
 (define objc-mode #f)
 (define embedded #f)
@@ -206,9 +207,12 @@
 (define show-libs #f)
 (define dry-run #f)
 (define gui #f)
-(define deploy #f)
 (define deployed #f)
 (define rpath #f)
+(define ignore-repository #f)
+
+(define library-dir
+  (if host-mode host-libdir default-libdir))
 
 (define extra-libraries
   (if host-mode
@@ -216,29 +220,18 @@
       TARGET_MORE_STATIC_LIBS))
 
 (define extra-shared-libraries 
-  (if host-mode 
-      INSTALL_MORE_LIBS
-      TARGET_MORE_LIBS))
+  (if host-mode host-libs default-libs))
 
-(define default-library-files 
-  (list
-   (prefix default-library "lib"
-	   (string-append
-	    (if host-mode INSTALL_LIB_HOME TARGET_LIB_HOME)
-	    (string-append "/" default-library)))) )
-
-(define default-shared-library-files 
+(define (default-library-files)
   (list (string-append "-l" (if host-mode INSTALL_LIB_NAME TARGET_LIB_NAME))))
 
-(define library-files default-library-files)
-(define shared-library-files default-shared-library-files)
+(define (library-files) (list (default-library)))
+(define (shared-library-files) (default-library-files))
 
 (define translate-options '())
 
 (define include-dir
-  (let ((id (prefix ""
-                    (make-pathname "include" "chicken")
-		    (if host-mode INSTALL_INCLUDE_HOME TARGET_INCLUDE_HOME))))
+  (let ((id (if host-mode host-incdir default-incdir)))
     (and (not (member id '("/usr/include" "")))
 	 id) ) )
 
@@ -257,12 +250,6 @@
 (define compilation-optimization-options default-compilation-optimization-options)
 (define linking-optimization-options default-linking-optimization-options)
 
-(define library-dir
-  (prefix "" "lib"
-         (if host-mode
-             INSTALL_LIB_HOME
-             TARGET_LIB_HOME)) )
-
 (define link-options '())
 
 (define (builtin-link-options)
@@ -273,11 +260,9 @@
 	   (conc " -Wl,-R"
 		 (if deployed
 		     "\\$ORIGIN"
-		     (quotewrap
-		      (prefix "" "lib"
-			      (if host-mode
-				  INSTALL_LIB_HOME
-				  TARGET_RUN_LIB_HOME)))))))
+		     (quotewrap (if host-mode
+                                    host-libdir
+		   		    TARGET_RUN_LIB_HOME))))))
 	 (aix
 	  (list (conc "-Wl,-R\"" library-dir "\"")))
 	 (else
@@ -298,8 +283,24 @@
 (define to-stdout #f)
 (define shared #f)
 (define static #f)
-(define static-libs #f)
-(define required-extensions '())
+
+
+;;; Locate object files for linking:
+
+(define (repo-path)
+  (if host-mode
+      (repository-path)
+      (destination-repository 'target)))
+
+(define (find-object-file name)
+  (let ((o (make-pathname #f name object-extension))
+	;; In setup mode, objects in build dir may also end with "static.o"
+	(static-o (make-pathname #f name static-object-extension)))
+    (or (file-exists? o)
+	(and (eq? ##sys#setup-mode #t)
+	     (file-exists? static-o))
+	(and (not ignore-repository)
+	     (chicken.load#find-file o (repo-path))))))
 
 
 ;;; Display usage information:
@@ -307,7 +308,7 @@
 (define (usage)
   (let ((csc CSC_PROGRAM))
     (print #<#EOF
-Usage: #{csc} FILENAME | OPTION ...
+Usage: #{csc} [OPTION ...] [FILENAME ...]
 
   `#{csc}' is a driver program for the CHICKEN compiler. Files given on the
   command line are translated, compiled or linked as needed.
@@ -358,7 +359,7 @@ Usage: #{csc} FILENAME | OPTION ...
     -J -emit-all-import-libraries  emit import-libraries for all defined modules
     -no-module-registration        do not generate module registration code
     -no-compiler-syntax            disable expansion of compiler-macros
-    -M -module                     wrap compiled code into implicit module
+    -m -module NAME                wrap compiled code in a module
 
   Translation options:
 
@@ -380,7 +381,7 @@ Usage: #{csc} FILENAME | OPTION ...
                                     append mode
     -profile-name FILENAME         name of the generated profile information
                                     file
-    -types FILENAME                load additional type database
+    -consult-types-file FILENAME   load additional type database
 
   Optimization options:
 
@@ -399,10 +400,10 @@ Usage: #{csc} FILENAME | OPTION ...
     -inline-limit LIMIT            set inlining threshold
     -inline-global                 enable cross-module inlining
     -specialize                    perform type-based specialization of primitive calls
-    -oi -emit-inline-file FILENAME  generate file with globally inlinable
+    -oi -emit-inline-file FILENAME generate file with globally inlinable
                                     procedures (implies -inline -local)
     -consult-inline-file FILENAME  explicitly load inline file
-    -ot  -emit-type-file FILENAME  write type-declaration information into file
+    -ot  -emit-types-file FILENAME write type-declaration information into file
     -no-argc-checks                disable argument count checks
     -no-bound-checks               disable bound variable checks
     -no-procedure-checks           disable procedure call checks
@@ -434,11 +435,13 @@ Usage: #{csc} FILENAME | OPTION ...
     -e  -embedded                  compile as embedded
                                     (don't generate `main()')
     -gui                           compile as GUI application
+    -link NAME                     link extension with compiled executable
+                                    (implies -uses)
     -R  -require-extension NAME    require extension and import in compiled
                                     code
     -dll -library                  compile multiple units into a dynamic
                                     library
-    -deploy                        deploy self-contained application bundle
+    -libdir DIRECTORY              override directory for runtime library
 
   Options to other passes:
 
@@ -454,12 +457,8 @@ Usage: #{csc} FILENAME | OPTION ...
     -cc COMPILER                   select other C compiler than the default
     -cxx COMPILER                  select other C++ compiler than the default
     -ld COMPILER                   select other linker than the default 
-    -lLIBNAME                      link with given library
-                                    (`libLIBNAME' on UNIX,
-                                     `LIBNAME.lib' on Windows)
-    -static-libs                   link with static CHICKEN libraries
-    -static                        generate completely statically linked
-                                    executable
+    -static                        link with static CHICKEN libraries and
+                                    extensions (if possible)
     -F<DIR>                        pass \"-F<DIR>\" to C compiler
                                     (add framework header path on Mac OS X)
     -framework NAME                passed to linker on Mac OS X
@@ -535,10 +534,14 @@ EOF
     (set! shared #t) )
 
   (define (use-private-repository)
-    (set! compile-options (cons "-DC_PRIVATE_REPOSITORY" compile-options))
-    (when osx
-      ;; needed for C_path_to_executable (see chicken.h):
-      (set! link-options (cons "-framework CoreFoundation" link-options))))
+    (set! compile-options (cons "-DC_PRIVATE_REPOSITORY" compile-options)))
+
+  (define (generate-target-filename source-filename)
+    (pathname-replace-extension
+     source-filename
+     (cond (shared shared-library-extension)
+	   (compile-only object-extension)
+	   (else executable-extension))))
 
   (let loop ((args args))
     (cond [(null? args)
@@ -552,32 +555,30 @@ EOF
 	     (when show-libs (print* (linker-libraries) #\space))
 	     (newline)
 	     (exit) )
-	   (cond [(null? scheme-files)
-		  (when (and (null? c-files) 
+	   (when (pair? linked-extensions)
+	     (set! object-files ; add objects from linked extensions
+	       (append (filter-map find-object-file linked-extensions) object-files)))
+	   (cond ((null? scheme-files)
+		  (when (and (null? c-files)
 			     (null? object-files))
 		    (stop "no source files specified") )
-		  (let ((f0 (last (if (null? c-files) object-files c-files))))
-		    (unless target-filename
-		      (set! target-filename 
-			(if shared
-			    (pathname-replace-extension f0 shared-library-extension)
-			    (pathname-replace-extension f0 executable-extension) ) ) ) ) ]
-		 [else
+		  (unless target-filename
+		    (set! target-filename
+		      (generate-target-filename
+		       (last (if (null? c-files) object-files c-files))))))
+		 (else
 		  (when (and shared (not embedded))
 		    (set! translate-options (cons "-dynamic" translate-options)) )
 		  (unless target-filename
 		    (set! target-filename
-		      (if shared
-			  (pathname-replace-extension (first scheme-files) shared-library-extension)
-			  (pathname-replace-extension (first scheme-files) executable-extension) ) ) )
-		  (run-translation) ] )
-	   (when (and deploy (not shared))
-	     (use-private-repository))
+		      (generate-target-filename (first scheme-files))))
+		  (run-translation)))
 	   (unless translate-only 
 	     (run-compilation)
 	     (unless compile-only
 	       (when (member target-filename scheme-files)
-		 (printf "Warning: output file will overwrite source file `~A' - renaming source to `~A.old'~%"
+		 (fprintf (current-error-port)
+                          "Warning: output file will overwrite source file `~A' - renaming source to `~A.old'~%"
 			 target-filename target-filename)
 		 (command 
 		  (sprintf
@@ -598,21 +599,16 @@ EOF
 		(print (chicken-version))
 		(exit) ]
 	       [(-version)
-		(system (sprintf translator " -version"))
-		(exit) ]
+		(system (sprintf "~a ~a" translator " -version"))
+		(exit)]
 	       [(-c++) 
 		(set! cpp-mode #t)
 		(when osx (set! compile-options (cons "-no-cpp-precomp" compile-options))) ]
 	       [(-objc) 
 		(set! objc-mode #t) ]
-	       [(-static) 
-		(set! translate-options
-		  (cons* "-feature" "chicken-compile-static" translate-options))
-		(set! static #t) ]
-	       [(-static-libs) 
-		(set! translate-options
-		  (cons* "-feature" "chicken-compile-static" translate-options))
-		(set! static-libs #t) ]
+	       [(-static)
+		(set! translate-options (cons "-static" translate-options))
+		(set! static #t)]
 	       [(-cflags)
 		(set! inquiry-only #t) 
 		(set! show-cflags #t) ]
@@ -649,13 +645,28 @@ EOF
 	       [(-e -embedded)
 		(set! embedded #t)
 		(set! compile-options (cons "-DC_EMBEDDED" compile-options)) ]
+	       [(-link)
+		(check s rest)
+		(t-options "-uses" (car rest))
+		(set! linked-extensions
+		  (append linked-extensions (string-split (car rest) ", ")))
+		(set! rest (cdr rest))]
+               ((-libdir)
+                (check s rest)
+                (set! library-dir (car rest))
+                (set! rest (cdr rest)))
 	       [(-require-extension -R)
 		(check s rest)
-		(set! required-extensions (append required-extensions (list (car rest))))
 		(t-options "-require-extension" (car rest))
 		(set! rest (cdr rest)) ]
 	       ((-private-repository)
 		(use-private-repository))
+	       ((-ignore-repository)
+		(set! ignore-repository #t)
+		(t-options arg))
+	       ((-setup-mode)
+		(set! ##sys#setup-mode #t)
+		(t-options arg))
 	       ((-no-elevation)
 		(set! generate-manifest #t))
 	       [(-gui)
@@ -664,15 +675,12 @@ EOF
 		(when mingw
 		  (set! object-files 
 		    (cons (make-pathname 
-			   INSTALL_SHARE_HOME "chicken.rc"
+			   host-sharedir "chicken.rc"
 			   object-extension) 
 			  object-files))
 		  (set! link-options
 		    (cons* "-lkernel32" "-luser32" "-lgdi32" "-mwindows"
 			   link-options)))]
-	       ((-deploy)
-		(set! deploy #t)
-		(set! deployed #t))
 	       ((-deployed)
 		(set! deployed #t))
 	       [(-framework)
@@ -746,7 +754,7 @@ EOF
 		(set! rest (cdr rest)))
 	       ((-ot) 
 		(check s rest)
-		(t-options "-emit-type-file" (car rest))
+		(t-options "-emit-types-file" (car rest))
 		(set! rest (cdr rest)))
 	       [(-) 
 		(set! scheme-files (append scheme-files '("-")))
@@ -771,11 +779,13 @@ EOF
 		       (t-options arg) ]
 		      [(and (> (string-length arg) 1)
 			    (char=? #\- (string-ref arg 0)) )
-		       (cond [(char=? #\l (string-ref arg 1))
-			      (set! link-options (append link-options (list arg))) ]
- 			     [(char=? #\L (string-ref arg 1))
+		       (cond [(char=? #\L (string-ref arg 1))
+			      (when (char-whitespace? (string-ref arg 2))
+				    (error "bad -L argument, <DIR> starts with whitespace" arg))
  			      (set! link-options (append link-options (list arg))) ]
  			     [(char=? #\I (string-ref arg 1))
+			      (when (char-whitespace? (string-ref arg 2))
+				    (error "bad -I argument: <DIR> starts with whitespace" arg))
  			      (set! compile-options (append compile-options (list arg))) ]
 			     [(char=? #\D (string-ref arg 1))
 			      (t-options "-feature" (substring arg 2)) ]
@@ -786,7 +796,7 @@ EOF
 			      (set! link-options (append link-options (list arg))) ]
 			     [(> (string-length arg) 2)
  			      (let ([opts (cdr (string->list arg))])
- 				(if (null? (lset-difference char=? opts short-options))
+				(if (null? (lset-difference/eq? opts short-options))
  				    (set! rest
  				      (append (map (lambda (o) (string-append "-" (string o))) opts) rest) )
  				    (stop "invalid option `~A'" arg) ) ) ]
@@ -841,18 +851,28 @@ EOF
 		 (if to-stdout 
 		     '("-to-stdout")
 		     `("-output-file" ,(quotewrap fc)) )
-		 (if (##sys#fudge 13)
+		 (if (##sys#debug-mode?)
 		     '("-:d")
 		     '())
 		 (map quote-option
 		      (append 
 		       extra-features
 		       translate-options 
+                       (if (and static
+                                (not (member "-emit-link-file"
+                                             translate-options)))
+                           (list "-emit-link-file"
+                                 (pathname-replace-extension fc "link"))
+                           '())
 		       (cond (cpp-mode '("-feature" "chicken-scheme-to-c++"))
 			     (objc-mode '("-feature" "chicken-scheme-to-objc"))
 			     (else '()))
 		       translation-optimization-options)) ) )
 	 " ") )
+       (when (and static compile-only)
+         (set! transient-link-files 
+           (cons (pathname-replace-extension f "link")
+                 transient-link-files)))
        (set! c-files (append (list fc) c-files))
        (set! generated-c-files (append (list fc) generated-c-files))))
    scheme-files))
@@ -864,7 +884,11 @@ EOF
   (let ((ofiles '()))
     (for-each
      (lambda (f)
-       (let ((fo (pathname-replace-extension f object-extension)))
+       (let ((fo (if (and compile-only
+                          target-filename
+                          (= 1 (length c-files)))
+                     target-filename
+                     (pathname-replace-extension f object-extension))))
 	 (when (member fo object-files)
 	   (stop "object file generated from `~a' will overwrite explicitly given object file `~a'"
 		 f fo))
@@ -873,7 +897,7 @@ EOF
 	   (list (cond (cpp-mode c++-compiler)
 		       (else compiler) )
 		 (quotewrap f)
-		 (string-append compile-output-flag (quotewrap fo)) 
+		 (string-append compile-output-flag (quotewrap fo))
 		 compile-only-flag
 		 (if (and cpp-mode (string=? "g++" c++-compiler))
 		     "-Wno-write-strings"
@@ -905,7 +929,6 @@ EOF
   (string-intersperse
    (map quote-option
 	(append
-	 (if (or static static-libs) '() nonstatic-compilation-options)
 	 compilation-optimization-options
 	 compile-options) ) ) )
 
@@ -913,26 +936,11 @@ EOF
 ;;; Link object files and libraries:
 
 (define (run-linking)
+  (set! object-files
+    (collect-linked-objects object-files generated-object-files))
   (let* ((files (map quotewrap object-files))
 	 (target (quotewrap target-filename))
 	 (targetdir #f))
-    (when deploy
-      (set! targetdir (pathname-strip-extension target-filename))
-      (when (and osx gui)
-	(set! targetdir (make-pathname #f targetdir "app"))
-	(command (sprintf "mkdir -p ~a" (quotewrap (make-pathname targetdir "Contents/MacOS"))))
-	(command (sprintf "mkdir -p ~a" (quotewrap (make-pathname targetdir "Contents/Resources")))))
-      (set! target-filename
-	(make-pathname
-	 targetdir
-	 (if (and osx gui)
-	     (string-append "Contents/MacOS/" (pathname-file target-filename))
-	     (pathname-file target-filename))))
-      (set! target (quotewrap target-filename))
-      (unless (directory-exists? targetdir)
-	(when verbose
-	  (print "mkdir " targetdir))
-	(create-directory targetdir)))
     (command
      (string-intersperse 
       (cons* (cond (cpp-mode c++-linker)
@@ -942,58 +950,48 @@ EOF
 	      (list (string-append link-output-flag (quotewrap target-filename))
 		    (linker-options)
 		    (linker-libraries) ) ) ) ) )
-    (when (and osx (or (not cross-chicken) host-mode))
+    (when (and osx host-mode)
       (command
        (string-append
-	POSTINSTALL_PROGRAM " -change " libchicken ".dylib "
+	POSTINSTALL_PROGRAM " -change " (libchicken) ".dylib "
 	(quotewrap 
-	 (let ((lib (string-append libchicken ".dylib")))
+	 (let ((lib (string-append (libchicken) ".dylib")))
 	   (if deployed
 	       (make-pathname "@executable_path" lib)
-	       (make-pathname
-		(lib-path)
-		lib))))
+	       (make-pathname (if host-mode
+                                  host-libdir
+                                  TARGET_RUN_LIB_HOME)
+                       lib))))
 	" " 
 	target) )
-      (when (and gui (not deploy))
+      (when gui
 	(rez target)))
-    (when (and deploy (not (or static static-libs)))
-      (copy-libraries 
-       (if (and osx gui)
-	   (make-pathname targetdir "Contents/MacOS")
-	   targetdir))
-      (when (and osx gui)
-	(create-mac-bundle
-	 (pathname-file target-filename)
-	 targetdir)))
-    (unless keep-files (for-each $delete-file generated-object-files)) ) )
+    (unless keep-files 
+      (for-each $delete-file
+        (append generated-object-files
+                transient-link-files)))))
 
-(define (lib-path)
-  (prefix "" 
-	  "lib"
-	  (if host-mode
-	      INSTALL_LIB_HOME
-	      TARGET_RUN_LIB_HOME)))
-
-(define (target-lib-path)
-  (or (get-environment-variable "TARGET_LIB_PATH")
-      (let ((tdir TARGET_LIB_HOME))
-	(if (and (not (string=? tdir ""))
-		 cross-chicken
-		 (not host-mode))
-	    tdir
-	    (lib-path)))))
-
-(define (copy-libraries targetdir)
-  (let ((lib (make-pathname
-	      (target-lib-path) 
-	      dynamic-libchicken
-	      (cond (osx "dylib")
-		    ((or mingw cygwin) "dll")
-		    (else (string-append
-                           "so."
-                           (number->string BINARY_VERSION)))))))
-    (copy-files lib targetdir)))
+(define (collect-linked-objects ofiles gen-ofiles)
+  (define (locate-link-file o)
+    (let* ((p (pathname-strip-extension o))
+	   ;; Also strip "static.o" extension when in setup mode:
+	   (f (if ##sys#setup-mode (string-chomp p ".static") p)))
+      (file-exists? (make-pathname #f f "link"))))
+  (define (locate-objects libs)
+    (map (lambda (id)
+	   (or (find-object-file id)
+	       (stop "could not find linked extension: ~A" id)))
+	 (map ->string libs)))
+  (let loop ((os ofiles) (os2 ofiles))
+    (cond ((null? os)
+           (delete-duplicates (reverse os2) string=?))
+          ((or static (not (member (car os) gen-ofiles)))
+           (let* ((lfile (locate-link-file (car os)))
+                  (newos (if lfile
+                             (locate-objects (with-input-from-file lfile read))
+                             '())))
+             (loop (append newos (cdr os)) (append newos os2))))
+          (else (loop (cdr os) (cons (car os) os2))))))
 
 (define (copy-files from to)
   (command
@@ -1005,18 +1003,16 @@ EOF
      ((if windows-shell quotewrap-no-slash-trans quotewrap) to))))
 
 (define (linker-options)
-  (string-append
-   (string-intersperse
-    (append linking-optimization-options link-options))
-   (if (and static (not mingw) (not osx)) " -static" "") ) )
+  (string-intersperse
+    (append linking-optimization-options link-options)))
 
 (define (linker-libraries)
   (string-intersperse
    (append
-    (if (or static static-libs)
-        library-files
-        shared-library-files)
-    (if (or static static-libs)
+    (if static
+        (library-files)
+        (shared-library-files))
+    (if static
         (list extra-libraries)
         (list extra-shared-libraries)))))
 
@@ -1039,6 +1035,16 @@ EOF
     (if q 
 	(string-append "\"" (string-translate* s '(("\"" . "\\\""))) "\"")
 	s) ) )
+
+;; Simpler replacement for SRFI-13's string-any
+(define (string-any criteria s)
+  (let ((end (string-length s)))
+    (let lp ((i 0))
+      (let ((c (string-ref s i))
+            (i1 (+ i 1)))
+        (if (= i1 end) (criteria c)
+            (or (criteria c)
+                (lp i1)))))))
 
 (define (quote-option x)
   (cond ((string-any (cut char=? #\" <>) x) x)
@@ -1082,40 +1088,6 @@ EOF
      (quotewrap file)
      (quotewrap (make-pathname home "mac.r")))))
 
-(define (create-mac-bundle prg dname)
-  (let* ((d0 (make-pathname dname "Contents"))
-	 (d (make-pathname dname "Contents/MacOS"))
-	 (d2 (make-pathname dname "Contents/Resources")))
-    (let ((icons (make-pathname d2 "CHICKEN.icns")))
-      (unless (file-exists? icons)
-	(copy-files 
-	 (make-pathname home "chicken/CHICKEN.icns") 
-	 d2)))
-    (let ((pl (make-pathname d0 "Info.plist")))
-      (unless (file-exists? pl)
-	(when verbose (print "generating " pl))
-	(with-output-to-file pl
-	  (cut print #<#EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
-<plist version="0.9">
-<dict>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleIconFile</key>
-	<string>CHICKEN.icns</string>
-        <key>CFBundleGetInfoString</key>
-	<string>Created by CHICKEN</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleExecutable</key>
-	<string>#{prg}</string>
-</dict>
-</plist>
-EOF
-)))
-      d)))
-
 (define (create-win-manifest prg rcfname)
   (when verbose (print "generating " rcfname))
   (with-output-to-file rcfname
@@ -1145,3 +1117,5 @@ EOF
  (append 
   (string-split (or (get-environment-variable "CSC_OPTIONS") "")) 
   arguments))
+
+)

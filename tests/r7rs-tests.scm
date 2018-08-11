@@ -1,5 +1,8 @@
 ;; R7RS Tests
 
+(import (only (chicken port) with-input-from-string with-output-to-string)
+	(chicken condition))
+
 ;; Copied from R4RS tests
 (define cur-section '())
 

@@ -1,8 +1,8 @@
 ;;;; reader-tests.scm
 
-
-(use utils)
-
+(import (only chicken.io read-line read-string)
+        (only chicken.port with-input-from-string with-output-to-string)
+        (only chicken.read-syntax set-read-syntax! set-sharp-read-syntax!))
 
 (set-sharp-read-syntax! #\& (lambda (p) (read p) (values)))
 (set-sharp-read-syntax! #\^ (lambda (p) (read p)))
@@ -22,4 +22,4 @@
 !! bye
 
 (assert (string=? output "hi\nfoo\nbaz\nbye\n"))
-(assert (string=? "   ." (with-input-from-string "\x20\u0020\U00000020\056" read-all)))
+(assert (string=? "   ." (with-input-from-string "\x20\u0020\U00000020\056" read-string)))

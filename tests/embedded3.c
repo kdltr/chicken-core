@@ -4,7 +4,11 @@
 #include <assert.h>
  
 #ifdef C_SIXTY_FOUR
-# define UWORD_FORMAT_STRING           "0x%016lx"
+# ifdef C_LLP
+#  define UWORD_FORMAT_STRING           "0x%016llx"
+# else
+#  define UWORD_FORMAT_STRING           "0x%016lx"
+# endif
 #else
 # define UWORD_FORMAT_STRING           "0x%08x"
 #endif

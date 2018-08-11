@@ -1,0 +1,398 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken memory)
+
+The procedures from this module operate directly on memory, at a very
+low level.  This makes them unsafe, unlike most other Scheme
+procedures.  '''Use at your own risk.'''
+
+=== Foreign pointers
+
+The abstract class of ''pointer'' is divided into 2 categories: 
+
+; ''pointer object'' : is a regular or [[#Tagged pointers|tagged]] foreign pointer object.
+
+; ''pointer-like object'' : is a closure, port, [[#Locatives|locative]], or a pointer object.
+
+Note that Locatives, while technically pointers, are not considered a ''pointer
+object'', but a ''pointer-like object''. The distinction is artificial.
+
+
+==== address->pointer
+
+<procedure>(address->pointer ADDRESS)</procedure>
+
+Creates a new foreign pointer object initialized to point to the address
+given in the integer {{ADDRESS}}.
+
+
+==== allocate
+
+<procedure>(allocate BYTES)</procedure>
+
+Returns a foreign pointer object to a freshly allocated region of static
+memory.
+
+This procedure could be defined as follows:
+
+<enscript highlight=scheme>
+(define allocate (foreign-lambda c-pointer "malloc" integer))
+</enscript>
+
+
+==== free
+
+<procedure>(free POINTER)</procedure>
+
+Frees the memory pointed to by {{POINTER}}.
+
+This procedure could be defined as follows:
+
+<enscript highlight=scheme>
+(define free (foreign-lambda void "free" c-pointer))
+</enscript>
+
+
+==== object->pointer
+
+<procedure>(object->pointer X)</procedure>
+
+Returns a foreign pointer object pointing to the Scheme object X, which should
+be a non-immediate object. ("foreign" here is a bit of a misnomer.)
+
+Note that data in the garbage collected heap moves during garbage collection.
+
+
+==== pointer->object
+
+<procedure>(pointer->object POINTER)</procedure>
+
+Returns the Scheme object pointed to by the pointer object {{POINTER}}.
+
+Whether the {{POINTER}} actually points to a Scheme object is not guaranteed. Use
+at your own risk.
+
+==== pointer?
+
+<procedure>(pointer? X)</procedure>
+
+Returns {{#t}} if {{X}} is a pointer object, or {{#f}} otherwise.
+
+
+==== pointer-like?
+
+<procedure>(pointer-like? X)</procedure>
+
+Returns {{#t}} if {{X}} is a pointer-like object, or {{#f}} otherwise.
+
+
+==== pointer=?
+
+<procedure>(pointer=? POINTER*1 POINTER*2)</procedure>
+
+Returns {{#t}} if the pointer-like objects {{POINTER*1}} and {{POINTER*2}} point
+to the same address, or {{#f}} otherwise.
+
+
+==== pointer->address
+
+<procedure>(pointer->address POINTER*)</procedure>
+
+Returns the address, to which the pointer-like object {{POINTER*}} points.
+
+
+==== pointer+
+
+<procedure>(pointer+ POINTER* N)</procedure>
+
+Returns a new foreign pointer object representing the pointer-like object
+{{POINTER*}} address value increased by the byte-offset {{N}}.
+
+Use of anything other than a pointer object as an argument is questionable.
+
+
+==== align-to-word
+
+<procedure>(align-to-word POINTER*-OR-INT)</procedure>
+
+Accepts either a pointer-like object or an integer as the argument and returns
+a new foreign pointer or integer aligned to the native word size of the host
+platform.
+
+Use of anything other than an integer or pointer object as an argument is
+questionable.
+
+
+=== SRFI-4 Foreign pointers
+
+These procedures actually accept a pointer-like object as the {{POINTER}} argument.
+However, as usual, use of anything other than a pointer object is questionable.
+
+
+==== pointer-u8-ref
+
+<procedure>(pointer-u8-ref POINTER)</procedure>
+
+Returns the unsigned byte at the address designated by {{POINTER}}.
+
+
+==== pointer-s8-ref
+
+<procedure>(pointer-s8-ref POINTER)</procedure>
+
+Returns the signed byte at the address designated by {{POINTER}}.
+
+
+==== pointer-u16-ref
+
+<procedure>(pointer-u16-ref POINTER)</procedure>
+
+Returns the unsigned 16-bit integer at the address designated by {{POINTER}}.
+
+
+==== pointer-s16-ref
+
+<procedure>(pointer-s16-ref POINTER)</procedure>
+
+Returns the signed 16-bit integer at the address designated by {{POINTER}}.
+
+
+==== pointer-u32-ref
+
+<procedure>(pointer-u32-ref POINTER)</procedure>
+
+Returns the unsigned 32-bit integer at the address designated by {{POINTER}}.
+
+
+==== pointer-s32-ref
+
+<procedure>(pointer-s32-ref POINTER)</procedure>
+
+Returns the signed 32-bit integer at the address designated by {{POINTER}}.
+
+==== pointer-u64-ref
+
+<procedure>(pointer-u64-ref POINTER)</procedure>
+
+Returns the unsigned 64-bit integer at the address designated by {{POINTER}}.
+
+
+==== pointer-s64-ref
+
+<procedure>(pointer-s64-ref POINTER)</procedure>
+
+Returns the signed 64-bit integer at the address designated by {{POINTER}}.
+
+
+==== pointer-f32-ref
+
+<procedure>(pointer-f32-ref POINTER)</procedure>
+
+Returns the 32-bit float at the address designated by {{POINTER}}.
+
+
+==== pointer-f64-ref
+
+<procedure>(pointer-f64-ref POINTER)</procedure>
+
+Returns the 64-bit double at the address designated by {{POINTER}}.
+
+
+==== pointer-u8-set!
+
+<procedure>(pointer-u8-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-u8-ref POINTER) N)</procedure>
+
+Stores the unsigned byte {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-s8-set!
+
+<procedure>(pointer-s8-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-s8-ref POINTER) N)</procedure>
+
+Stores the signed byte {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-u16-set!
+
+<procedure>(pointer-u16-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-u16-ref POINTER) N)</procedure>
+
+Stores the unsigned 16-bit integer {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-s16-set!
+
+<procedure>(pointer-s16-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-s16-ref POINTER) N)</procedure>
+
+Stores the signed 16-bit integer {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-u32-set!
+
+<procedure>(pointer-u32-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-u32-ref POINTER) N)</procedure>
+
+Stores the unsigned 32-bit integer {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-s32-set!
+
+<procedure>(pointer-s32-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-s32-ref POINTER) N)</procedure>
+
+Stores the 32-bit integer {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-u64-set!
+
+<procedure>(pointer-u64-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-u64-ref POINTER) N)</procedure>
+
+Stores the unsigned 64-bit integer {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-s64-set!
+
+<procedure>(pointer-s64-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-s64-ref POINTER) N)</procedure>
+
+Stores the 64-bit integer {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-f32-set!
+
+<procedure>(pointer-f32-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-f32-ref POINTER) N)</procedure>
+
+Stores the 32-bit floating-point number {{N}} at the address designated by {{POINTER}}.
+
+
+==== pointer-f64-set!
+
+<procedure>(pointer-f64-set! POINTER N)</procedure><br>
+<procedure>(set! (pointer-f64-ref POINTER) N)</procedure>
+
+Stores the 64-bit floating-point number {{N}} at the address designated by {{POINTER}}.
+
+
+
+=== Tagged pointers
+
+''Tagged'' pointers are foreign pointer objects with an extra tag object.
+
+
+==== tag-pointer
+
+<procedure>(tag-pointer POINTER* TAG)</procedure>
+
+Creates a new tagged foreign pointer object from the pointer-like object
+{{POINTER*}} with the tag {{TAG}}, which may an arbitrary Scheme object.
+
+Use of anything other than a pointer object is questionable.
+
+==== tagged-pointer?
+
+<procedure>(tagged-pointer? X [TAG])</procedure>
+
+Returns {{#t}} if {{X}} is a tagged foreign pointer object, or {{#f}} otherwise.
+
+Further, returns {{#t}} when {{X}} has the optional tag {{TAG}} (using an
+{{equal?}} comparison), or {{#f}} otherwise.
+
+
+==== pointer-tag
+
+<procedure>(pointer-tag POINTER*)</procedure>
+
+If {{POINTER}} is a tagged foreign pointer object, its tag is returned. If {{POINTER*}}
+is any other kind of pointer-like object {{#f}} is returned. Otherwise an
+error is signalled.
+
+
+=== Pointer vectors
+
+''Pointer vectors'' are specialized and space-efficient vectors for
+foreign pointer objects. All procedures defined below that accept
+a pointer object allow {{#f}} as an alternative representation of
+the {{NULL}}-pointer.
+
+
+==== make-pointer-vector 
+
+<procedure>(make-pointer-vector LENGTH [INIT])</procedure>
+
+Creates a pointer-vector of the given length and optionally initializes each
+element to {{INIT}}, which should be a pointer or {{#f}}, which represents the
+{{NULL}} pointer.
+
+==== pointer-vector?
+
+<procedure>(pointer-vector? X)</procedure>
+
+Returns {{#t}} if {{X}} is a pointer-vector or {{#f}} otherwise.
+
+==== pointer-vector
+
+<procedure>(pointer-vector POINTER ...)</procedure>
+
+Returns a pointer-vector from the given pointer arguments.
+
+==== pointer-vector-length
+
+<procedure>(pointer-vector-length POINTERVECTOR)</procedure>
+
+Returns the length of the given pointer-vector.
+
+==== pointer-vector-ref
+
+<procedure>(pointer-vector-ref POINTERVECTOR INDEX)</procedure>
+
+Returns the pointer at {{INDEX}} in the given pointer-vector or
+{{#f}} if the element is a {{NULL}}- pointer.
+
+==== pointer-vector-set!
+
+<procedure>(pointer-vector-set! POINTERVECTOR INDEX POINTER)</procedure>
+
+Sets the element at the position {{INDEX}} in the given pointer-vector to
+{{POINTER}}. The alternative syntax
+
+  (set! (pointer-vector-ref POINTERVECTOR INDEX) POINTER)
+
+is also allowed.
+
+==== pointer-vector-fill!
+
+<procedure>(pointer-vector-fill! POINTERVECTOR POINTER)</procedure>
+
+Set every element in the {{POINTERVECTOR}} to {{POINTER}}.
+
+
+=== Moving memory
+
+==== move-memory!
+
+<procedure>(move-memory! FROM TO [BYTES [FROM-OFFSET [TO-OFFSET]]])</procedure>
+
+Copies {{BYTES}} bytes of memory from {{FROM}} to {{TO}}. {{FROM}} and {{TO}}
+may be strings, blobs, [[Unit srfi-4|SRFI-4 number-vectors]], memory
+mapped files, foreign pointers (as obtained from a call to {{foreign-lambda}},
+for example), tagged-pointers or locatives. if {{BYTES}} is not given and the
+size of the source or destination operand is known then the maximal number of
+bytes will be copied. Moving memory to the storage returned by locatives will
+cause havoc, if the locative refers to containers of non-immediate data, like
+vectors or pairs.
+
+The additional fourth and fifth argument specify starting offsets (in bytes)
+for the source and destination arguments.
+
+Signals an error if any of the above constraints is violated.
+
+---
+Previous: [[Module (chicken locative)]]
+
+Next: [[Module (chicken memory representation)]]

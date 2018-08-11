@@ -1,0 +1,103 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken process-context)
+
+This module provides access to the current process context.
+
+=== Information about the program's invocation
+
+==== argc+argv
+
+<procedure>(argc+argv)</procedure>
+
+Returns two values: an integer and a foreign-pointer object
+representing the {{argc}} and {{argv}} arguments passed to the current
+process.
+
+==== argv
+
+<procedure>(argv)</procedure>
+
+Return a list of all supplied command-line arguments. The first item in
+the list is a string containing the name of the executing program. The
+other items are the arguments passed to the application. It depends on
+the host-shell whether arguments are expanded ('globbed') or not.
+
+=== command-line-arguments
+
+<parameter>(command-line-arguments)</parameter>
+
+Contains the list of arguments passed to this program, with the name of
+the program and any runtime options (all options starting with {{-:}})
+removed.
+
+==== executable-pathname
+
+<procedure>(executable-pathname)</procedure>
+
+Returns a full pathname of the currently-running executable, or {{#f}}
+if it couldn't be determined. When evaluating code in the interpreter,
+this will be a path to {{csi}}.
+
+=== program-name
+
+<parameter>(program-name)</parameter>
+
+The name of the currently executing program. This is equivalent to
+{{(car (argv))}} for compiled programs or the filename following the
+{{-script}} option in interpreted scripts.
+
+
+=== Access to environment variables
+
+==== get-environment-variables
+
+<procedure>(get-environment-variables)</procedure>
+
+Returns a association list of the environment variables and their
+current values (see also [[http://srfi.schemers.org/srfi-98/|SRFI-98]]).
+
+==== get-environment-variable
+
+<procedure>(get-environment-variable STRING)</procedure><br>
+
+Returns the value of the environment variable {{STRING}} or
+{{#f}} if that variable is not defined. See also [[http://srfi.schemers.org/srfi-98/|SRFI-98]].
+
+==== set-environment-variable!
+
+<procedure>(set-environment-variable! VARIABLE VALUE)</procedure>
+
+Sets the environment variable named {{VARIABLE}} to
+{{VALUE}}. Both arguments should be strings. If the variable is
+not defined in the environment, a new definition is created.
+
+==== unset-environment-variable!
+
+<procedure>(unset-environment-variable! VARIABLE)</procedure>
+
+Removes the definition of the environment variable {{VARIABLE}} from
+the environment of the current process. If the variable is not defined,
+nothing happens.
+
+
+=== Process filesystem context
+
+==== change-directory
+
+<procedure>(change-directory NAME)</procedure>
+<procedure>(set! (current-directory) NAME)</procedure>
+
+Changes the current working directory to {{NAME}}.
+
+==== current-directory
+
+<procedure>(current-directory)</procedure>
+
+Returns the name of the current working directory.
+
+---
+Previous: [[Module (chicken process signal)]]
+
+Next: [[Module (chicken process-context posix)]]

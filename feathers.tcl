@@ -2,7 +2,7 @@
 #
 # a graphical debugger for compiled CHICKEN programs
 #
-# Copyright (c) 2015-2017, The CHICKEN Team
+# Copyright (c) 2015-2018, The CHICKEN Team
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -700,7 +700,17 @@ proc RunProcess {{prg ""}} {
 
     if {$program_name == ""} return
 
-    lappend search_path [file dirname [lindex $program_name 0]]
+    set args [lassign $program_name prgfname]
+    set prgfname [file normalize $prgfname]
+
+    if {![file exists $prgfname]} {
+        .t configure -state normal
+        .t insert end "Could not start program:\n\nfile `$prgfname' does not exist"
+        .t see end
+        .t configure -state disabled
+    }
+
+    lappend search_path [file dirname $prgfname]
     set reply_queue {}
     set data_queue {}
     set bp_queue {}
@@ -728,8 +738,11 @@ proc RunProcess {{prg ""}} {
         .data.t delete [.data.t children $arguments_item_id]
     }
 
-    if {[catch {eval exec $program_name <@ stdin >@ stdout 2>@ stderr &} result]} {
+    if {[catch {eval exec $prgfname {*}$args <@ stdin >@ stdout 2>@ stderr &} result]} {
+        .t configure -state normal
         .t insert end "Could not start program:\n\n$result"
+        .t see end
+        .t configure -state disabled
     } else {
         set process_id $result
     }
@@ -1886,8 +1899,6 @@ if {$program_name != ""} {
 # - setting breakpoints on yet unregistered (i.e. dynamically loaded) files
 #   is not possible - a file must be registered first
 # - check whether "listening" check works
-# - backport to chicken4
-#   - feature ("dbg-client")
 # - when retrieved data is wrong, clear queues
 # - must watched globals be mangled, when qualified? (GET_GLOBAL)
 # - dview: monospace font (needs tags, it seems)

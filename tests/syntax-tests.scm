@@ -1,8 +1,7 @@
 ;;;; syntax-tests.scm - various macro tests
 
-
-(use extras)
-
+(import-for-syntax chicken.pretty-print)
+(import chicken.gc chicken.pretty-print chicken.port)
 
 (define-syntax t
   (syntax-rules ()
@@ -265,10 +264,23 @@
 ;; and not documented, but shouldn't be messed with by the expander
 
 (t "foo#bar" (symbol->string 'foo#bar))
-(t "#%void" (symbol->string '#%void))
-
 (t "foo#bar" (symbol->string (strip-syntax 'foo#bar)))
-(t "#%void" (symbol->string (strip-syntax '#%void)))
+
+(t "#!rest" (symbol->string '#!rest))
+(t "#!rest" (symbol->string '|#!rest|))
+(t "#!rest" (symbol->string (strip-syntax '#!rest)))
+
+;; Read-write invariance of "special" symbols
+
+(t '#!rest (with-input-from-string "#!rest" read))
+(t '#!rest (with-input-from-string "|#!rest|" read))
+(t "#!rest" (with-output-to-string (lambda () (write '#!rest))))
+(t "foo#bar" (with-output-to-string (lambda () (write 'foo#bar))))
+
+;; These used to be treated specially, but now they just trigger an
+;; "invalid sharp-sign read syntax" error.
+(t "|#%foo|" (with-output-to-string (lambda () (write '|#%foo|))))
+(f (with-input-from-string "#%foo" read))
 
 ;;; alternative ellipsis test (SRFI-46)
 
@@ -489,7 +501,7 @@
 ;;; incorrect lookup for keyword variables in DSSSL llists
 
 (module broken-keyword-var ()
-  (import scheme (only chicken assert))
+  (import scheme (chicken base))
   ((lambda (#!key string) (assert (not string))))) ; refered to R5RS `string'
 
 ;;; Missing check for keyword and optional variable types in DSSSL llists
@@ -517,7 +529,7 @@
 (define x 99)
 
 (module primitive-assign ()
-  (import scheme (only chicken assert setter))
+  (import scheme (chicken base))
   (let ((x 100)) (set! x 20) (assert (= x 20)))
   (set! setter 123))
 
@@ -529,11 +541,11 @@
 ;;; (reported by Jack Trades)
 
 (module prefixed-self-reference1 (a b c)
-  (import scheme (prefix chicken c:))
+  (import scheme (prefix chicken.base c:))
   (c:define-values (a b c) (values 1 2 3)) )
 
 (module prefixed-self-reference2 ()
-  (import scheme (prefix chicken c:))
+  (import scheme (prefix (chicken base) c:) (prefix (chicken condition) c:))
   (c:define-values (a b c) (values 1 2 3))
   (c:print "ok")
   (c:condition-case 
@@ -541,7 +553,8 @@
    (ex () (c:print "caught"))))
 
 (module prefixed-self-reference3 (a)
-  (import (prefix scheme s.) (prefix chicken c.))
+  ;; TODO: Switch this around when plain "chicken" has been removed
+  (import (prefix scheme s.) (prefix (chicken condition) c.))
   (s.define (a x y)
 	    (c.condition-case (s.+ x y) ((exn) "not numbers")))
   )
@@ -564,7 +577,7 @@
   (s:define bar 99))
 
 (module m0002 ()
-  (import scheme m0001 extras)
+  (import scheme m0001 chicken.pretty-print)
   (pp (foo bar)))
 
 
@@ -719,9 +732,13 @@
       (1 ==> (lambda (x) x))
       (else 'yep))))
 
+;; Undefined value (but no compiler error) on empty `else' clauses
+(t (void) (cond (else)))
+(t (void) (case 1 (else)))
+
 ;; Literal quotation of a symbol, injected or not, should always result in that symbol
 (module ir-se-test (run)
-  (import chicken scheme)
+  (import scheme chicken.base)
   (define-syntax run
     (ir-macro-transformer
      (lambda (e i c)
@@ -774,8 +791,8 @@
 ;;; redefining definition forms (disabled, since we can not catch this error easily)
 
 #|
-(module m0a () (import chicken) (reexport (only scheme define)))
-(module m0b () (import chicken) (reexport (only scheme define-syntax)))
+(module m0a () (import chicken.module) (reexport (only scheme define)))
+(module m0b () (import chicken.module) (reexport (only scheme define-syntax)))
 
 (module m1 ()
 (import (prefix scheme s:) (prefix m0b m:))
@@ -784,6 +801,27 @@
 )
 |#
 
+;;; Definitions in expression contexts are rejected (#1309)
+
+(f (eval '(+ 1 2 (begin (define x 3) x) 4)))
+(f (eval '(+ 1 2 (begin (define-values (x y) (values 3 4)) x) 4)))
+(f (eval '(display (define x 1))))
+;; Some tests for nested but valid definition expressions:
+(t 2 (eval '(begin (define x 1) 2)))
+(t 2 (eval '(module _ () (import scheme) (define x 1) 2)))
+(t 1 (eval '(let ()
+	      (define-record-type foo (make-foo bar) foo? (bar foo-bar))
+	      (foo-bar (make-foo 1)))))
+
+;; Nested begins inside definitions were not treated correctly
+(t 3 (eval '(let () (begin 1 (begin 2 (define internal-def 3) internal-def)))))
+;; Macros that expand to "define" should not cause a letrec barrier
+(t 1 (eval '(let-syntax ((my-define (syntax-rules ()
+				      ((_ var val) (define var val)))))
+	      (let () (define (run-it) foo) (my-define foo 1) (run-it)))))
+;; Begin should not cause a letrec barrier
+(t 1 (eval '(let () (define (run-it) foo) (begin (define foo 1) (run-it)))))
+(f (eval '(let () internal-def)))
 
 ;;; renaming of keyword argument (#277)
 
@@ -879,16 +917,6 @@
 (import (prefix rfoo f:))
 (f:rbar 1)
 
-;;; Internal hash-prefixed names shouldn't work within modules
-
-(module one (always-one)
-  (import scheme)
-  (define (always-one) 1))
-
-(f (eval '(module two ()
-            (import scheme)
-            (define (always-two) (+ (one#always-one) 1)))))
-
 ;;; SRFI-2 (and-let*)
 
 (t 1 (and-let* ((a 1)) a))
@@ -901,6 +929,42 @@
 (t #f (and-let* (((= 4 5)) ((error "not reached 1"))) (error "not reached 2")))
 (t 'foo (and-let* (((= 4 4)) (a 'foo)) a))
 (t #f (and-let* ((a #f) ((error "not reached 1"))) (error "not reached 2")))
+
+(t  (and-let* () 1) 1)
+(t  (and-let* () 1 2) 2)
+(t  (and-let* () ) #t)
+
+(t (let ((x #f)) (and-let* (x))) #f)
+(t (let ((x 1)) (and-let* (x))) 1)
+(t (and-let* ((x #f)) ) #f)
+(t (and-let* ((x 1)) ) 1)
+(f (eval '(and-let* ( #f (x 1))) ))
+(t (and-let* ( (#f) (x 1)) ) #f)
+(f (eval '(and-let* (2 (x 1))) ))
+(t (and-let* ( (2) (x 1)) ) 1)
+(t (and-let* ( (x 1) (2)) ) 2)
+(t (let ((x #f)) (and-let* (x) x)) #f)
+(t (let ((x "")) (and-let* (x) x)) "")
+(t (let ((x "")) (and-let* (x)  )) "")
+(t (let ((x 1)) (and-let* (x) (+ x 1))) 2)
+(t (let ((x #f)) (and-let* (x) (+ x 1))) #f)
+(t (let ((x 1)) (and-let* (((positive? x))) (+ x 1))) 2)
+(t (let ((x 1)) (and-let* (((positive? x))) )) #t)
+(t (let ((x 0)) (and-let* (((positive? x))) (+ x 1))) #f)
+(t (let ((x 1)) (and-let* (((positive? x)) (x (+ x 1))) (+ x 1)))  3)
+; The uniqueness of the bindings isn't enforced
+(t (let ((x 1)) (and-let* (((positive? x)) (x (+ x 1)) (x (+ x 1))) (+ x 1))) 4)
+
+(t (let ((x 1)) (and-let* (x ((positive? x))) (+ x 1))) 2)
+(t (let ((x 1)) (and-let* ( ((begin x)) ((positive? x))) (+ x 1))) 2)
+(t (let ((x 0)) (and-let* (x ((positive? x))) (+ x 1))) #f)
+(t (let ((x #f)) (and-let* (x ((positive? x))) (+ x 1))) #f)
+(t (let ((x #f)) (and-let* ( ((begin x)) ((positive? x))) (+ x 1))) #f)
+
+(t  (let ((x 1)) (and-let* (x (y (- x 1)) ((positive? y))) (/ x y))) #f)
+(t  (let ((x 0)) (and-let* (x (y (- x 1)) ((positive? y))) (/ x y))) #f)
+(t  (let ((x #f)) (and-let* (x (y (- x 1)) ((positive? y))) (/ x y))) #f)
+(t  (let ((x 3)) (and-let* (x (y (- x 1)) ((positive? y))) (/ x y))) 3/2)
 
 ;;; SRFI-26
 
@@ -1060,7 +1124,7 @@
 ;; an identifier to something imported for the runtime environment
 
 (module foonumbers (+)
-  (import (except scheme +) (only chicken error))
+  (import (except scheme +) (only (chicken base) error))
   (define (+ . _) (error "failed.")))
 
 (import foonumbers)
@@ -1073,17 +1137,22 @@
 (foo 3)
 
 
-;; #578: "use" with import-specifier has no effect for internal modules on csi's top-level
+;; #578: import with specifier has no effect for internal modules on csi's top-level
 
-(use (prefix srfi-1 list-))
-take
+(import srfi-4)
+(import (prefix srfi-4 other-))
+u8vector
+other-u8vector
+
+(import (prefix scheme other-))
+eval
+other-eval
 
 
-;; #805: case-lambda is unhygienic (as well as ensure, see 4706afb4 and bc5cc698)
+;; #805: case-lambda is unhygienic (see 4706afb4 and bc5cc698)
 (module case-lambda-and-ensure-hygiene ()
-  (import (prefix chicken c/) (prefix scheme s/))
-  (c/case-lambda ((a) a))
-  (c/ensure s/even? 2))
+  (import (prefix (chicken base) c/) (prefix scheme s/))
+  (c/case-lambda ((a) a)))
 
 
 ;; #816: compiler-syntax should obey hygiene in its rewrites
@@ -1094,7 +1163,7 @@ take
 ;; #852: renamed macros should not be returned as first-class
 ;;       objects in the interpreter
 (module renamed-macros (renamed-macro-not-firstclassed)
-  (import chicken scheme)
+  (import scheme chicken.base)
   (define-syntax renamed-macro-not-firstclassed
     (er-macro-transformer
      (lambda (e r c)
@@ -1107,7 +1176,7 @@ take
 ;;       strip-syntax can still access the original symbol.
 (module rename-builtins
  (strip-syntax-on-*)
- (import chicken scheme)
+ (import scheme chicken.base)
  (define-syntax strip-syntax-on-*
    (ir-macro-transformer
     (lambda (e r c) '(quote *)))))
@@ -1170,6 +1239,22 @@ take
   (assert (eq? req 1)))
 
 
+;; Includes should be spliced into the surrounding body context:
+
+(begin-for-syntax
+  (with-output-to-file "x.out" (cut pp '(define x 2))))
+
+(let ()
+  (define x 1)
+  (include "x.out")
+  (t 2 x))
+
+(let ()
+  (define x 1)
+  (let ()
+    (include "x.out"))
+  (t 1 x))
+
 ;; letrec vs. letrec*
 
 ;;XXX this fails - the optimizer substitutes "foo" for it's known constant value
@@ -1200,3 +1285,30 @@ take
 (t 1 (letrec* ((foo 1)
 	       (bar foo))
        bar))
+
+
+;; This would crash in nasty ways (see #1493, reported by megane)
+(module self-redefinition (foo)
+  (import scheme (chicken base))
+
+  (define-syntax foo
+    (ir-macro-transformer
+     (lambda (e i c)
+       (apply
+	(lambda (name)
+	  `(begin
+	     (define-syntax ,(strip-syntax name)
+	       (syntax-rules () ((_ . _) 'new)))
+	     'old))
+	(cdr e))))))
+
+(import (rename self-redefinition (foo imported-foo)))
+(import (rename self-redefinition (foo reimported-foo)))
+
+(t 'old (imported-foo imported-foo))
+(t 'new (imported-foo imported-foo))
+
+;; Like any normal redefinition, the underlying exported identifier
+;; changes, and any other imports are simply aliases.
+;;(t 'old (reimported-foo reimported-foo))
+(t 'new (reimported-foo reimported-foo))

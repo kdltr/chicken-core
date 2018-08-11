@@ -1,3 +1,5 @@
+(import (chicken load))
+
 (load-relative "test.scm")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -116,3 +118,4 @@
 
 (test-end "match")
 
+(test-exit)

@@ -1,0 +1,26 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken pretty-print)
+
+This module has some procedures for pretty printing s-expressions.
+
+=== pretty-print
+
+<procedure>(pretty-print EXP [PORT])</procedure><br>
+<procedure>(pp EXP [PORT])</procedure>
+
+Print expression nicely formatted. {{PORT}} defaults to the value
+of {{(current-output-port)}}.
+
+=== pretty-print-width
+
+<parameter>pretty-print-width</parameter>
+
+Specifies the maximal line-width for pretty printing, after which line
+wrap will occur.
+
+---
+Previous: [[Module (chicken port)]]
+
+Next: [[Module (chicken process)]]

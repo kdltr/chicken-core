@@ -1,3 +1,4 @@
+(import (chicken condition))
 
 (define condition1 (make-property-condition 'exn 'message "foo" 'arguments '("bar") 'location 'test))
 (define condition2 (make-property-condition 'sam 'age 23 'partner "max"))
@@ -26,7 +27,8 @@
 ;testing condition conversion
 
 (assert (equal? (condition->list condition1)
-		'((exn (location test) (arguments ("bar")) (message "foo")))))
+		'((exn message "foo" arguments ("bar") location test))))
 
 (assert (equal? (condition->list condition3)
-		'((exn (location test) (arguments ("bar")) (message "foo")) (sam (partner "max") (age 23)))))
+		'((exn message "foo" arguments ("bar") location test)
+		  (sam age 23 partner "max"))))

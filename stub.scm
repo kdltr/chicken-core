@@ -1,6 +1,6 @@
 ;;;; stub.scm
 ;
-; Copyright (c) 2008-2017, The CHICKEN Team
+; Copyright (c) 2008-2018, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -27,7 +27,9 @@
 
 (declare
   (unit default_stub)
-  (uses library eval data-structures ports extras)
+  (uses library eval data-structures port extras)
   (not safe) )
+
+(import chicken.platform)
 
 (let loop () (return-to-host) (loop))

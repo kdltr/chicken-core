@@ -11,6 +11,14 @@ all) cases an associated command-line option exists. When in conflict,
 declarations override command-line options. When multiple declarations
 conflict, the one appearing textually last overrides any previous one.
 
+Declarations can be used to improve performance and to give entities
+like procedures are variables special properties that can result in
+better performing code. Most of these declarations subtly change the
+semantics of standard Scheme code with respect to the declared
+entities, so care must be taken when using them.
+
+Declarations are always ignored in {{csi}} (the interpreter) or in evaluated code.
+
 
 === declare
 
@@ -60,14 +68,6 @@ also more efficient. {{(declare (hide))}} is equivalent to {{(declare (block))}}
 Declares that the given identifiers are always bound to procedure values.
 
 
-=== check-c-syntax
-
- [declaration specifier] (check-c-syntax)
- [declaration specifier] (not check-c-syntax)
-
-Enables or disables syntax-checking of embedded C/C++ code fragments. Checking C syntax is the default.
-
-
 === enforce-argument-types
 
  [declaration-specifier] (enforce-argument-types IDENTIFIER ...)
@@ -97,7 +97,6 @@ option to the compiler.
 === disable-interrupts
 
  [declaration specifier] (disable-interrupts)
- [declaration specifier] (not interrupts-enabled)
 
 Disable timer-interrupts checks in the compiled program. Threads can
 not be preempted in main- or library-units that contain this declaration.
@@ -152,13 +151,6 @@ Enabling global inlining implies {{(declare (inline))}}.
  [declaration specifier] (inline-limit THRESHOLD)
 
 Sets the maximum size of procedures which may potentially be inlined. The default threshold is {{20}}.
-
-
-=== interrupts-enabled
-
- [declaration specifier] (interrupts-enabled)
-
-Enable timer-interrupts checks in the compiled program (the default).
 
 
 === keep-shadowed-macros
@@ -372,4 +364,4 @@ knows about them.
 ---
 Previous: [[Types]]
 
-Next: [[Parameters]]
+Next: [[Extensions]]

@@ -1,0 +1,44 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken eval)
+
+This module provides a handful of hooks that allow more fine-grained
+control over how the standard procedure {{eval}} behaves.
+
+=== Custom eval handlers
+
+==== eval-handler
+
+<parameter>(eval-handler)</parameter>
+
+A procedure of one or two arguments. When {{eval}} is invoked, it
+calls the value of this parameter with the same arguments. The default
+behavior is to evaluate the argument expression and to ignore the
+second parameter.
+
+
+=== Using modules as evaluation environments
+
+==== module-environment
+
+<procedure>(module-environment MODULENAME)</procedure>
+
+Locates the module with the name {{MODULENAME}} and returns an
+environment that can be passed as the second argument to {{eval}}. The
+evaluated expressions have only access to the bindings that are
+visible inside the module. Note that the environment is not mutable.
+
+If the module is not registered in the current process,
+{{module-environment}} will try to locate meta-information about the
+module by loading any existing import library with the name
+{{MODULENAME.import.[scm|so]}}, if possible.
+
+In compiled modules, only exported bindings will be visible to
+interactively entered code. In interpreted modules all bindings are
+visible.
+
+---
+Previous: [[Module (chicken errno)]]
+
+Next: [[Module (chicken file)]]

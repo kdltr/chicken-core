@@ -1,6 +1,6 @@
 [[tags: manual]]
 
-== Confirmed deviations
+== Confirmed deviations from R5RS
 
 Identifiers are by default case-sensitive (see [[Using the compiler]]).
 
@@ -14,25 +14,17 @@ is 1000.  This is an implementation restriction that is unlikely
 to be lifted.
 
 
-=== {{numerator}}, {{denominator}} and {{rationalize}}
-
-The {{numerator}} and {{denominator}} procedures cannot be
-applied to inexact numbers, and the procedure {{rationalize}} is not
-implemented at all.
-
-
 === Numeric string-conversion considerations
 
-The runtime system uses the numerical string-conversion
-routines of the underlying C library and so does only understand
-standard (C-library) syntax for floating-point constants.  Consequently,
-the procedures {{string->number}}, {{read}}, {{write}}, and {{display}} do not obey
-read/write invariance to inexact numbers.
+In some cases the runtime system uses the numerical string-conversion
+routines of the underlying C library.  Consequently, the procedures
+{{string->number}}, {{read}}, {{write}}, and {{display}} do not obey
+read/write invariance for inexact numbers.
 
 
 === Environments and non-standard syntax
 
-In addition to the standard bindings {{scheme-report-environment}} and
+In addition to the standard bindings, {{scheme-report-environment}} and
 {{null-environment}} contain additional non-standard bindings for the
 following syntactic forms: {{import}}, {{require-extension}},
 {{require-library}}, {{begin-for-syntax}}, {{export}}, {{module}},
@@ -98,24 +90,12 @@ data other than pairs, strings and vectors.  However, R5RS does not
 dictate the treatment of data types that are not specified by R5RS
 
 
-=== No built-in support for bignums
-
-There is no built-in support for exact rationals, complex
-numbers or extended-precision integers (bignums). The routines
-{{complex?}}, {{real?}} and {{rational?}} are identical to
-the standard procedure {{number?}}. The procedures {{make-rectangular}}
-and {{make-polar}} are not implemented. Fixnums are limited to
-2^<nowiki><sup>30</sup></nowiki> (or 2^<nowiki><sup>62</sup></nowiki>
-on 64-bit hardware).  Support for the full numeric tower is available
-as a separate package (see the {{numbers}} package).
-
-
 === {{transcript-on}} and {{transcript-off}} are not implemented
 
 The {{transcript-on}} and {{transcript-off}} procedures are
 not implemented.  R5RS does not require them.
 
 ---
-Previous: [[The R5RS standard]]
+Previous: [[Using the compiler]]
 
 Next: [[Extensions to the standard]]

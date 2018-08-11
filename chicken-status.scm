@@ -1,6 +1,6 @@
 ;;;; chicken-status.scm
 ;
-; Copyright (c) 2008-2017, The CHICKEN Team
+; Copyright (c) 2008-2018, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -23,62 +23,78 @@
 ; OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 ; POSSIBILITY OF SUCH DAMAGE.
 
-
-(require-library setup-api srfi-1 posix data-structures utils ports irregex files)
-
-
 (module main ()
-  
-  (import scheme chicken foreign)
-  (import srfi-1 posix data-structures utils ports irregex
-	  files setup-api extras)
 
-  (define-foreign-variable C_TARGET_LIB_HOME c-string)
-  (define-foreign-variable C_BINARY_VERSION int)
-  (define-foreign-variable C_TARGET_PREFIX c-string)
+  (import (scheme)
+	  (chicken base)
+	  (chicken condition)
+	  (chicken file)
+	  (chicken fixnum)
+	  (chicken foreign)
+	  (chicken format)
+	  (chicken irregex)
+	  (chicken port)
+	  (chicken pathname)
+	  (chicken platform)
+	  (chicken pretty-print)
+	  (chicken process-context)
+	  (chicken sort)
+	  (only (chicken string) ->string))
 
-  (define *cross-chicken* (feature? #:cross-chicken))
-  (define *host-extensions* *cross-chicken*)
-  (define *target-extensions* *cross-chicken*)
-  (define *prefix* #f)
-  (define *deploy* #f)
+  (include "mini-srfi-1.scm")
+  (include "egg-environment.scm")
+  (include "egg-information.scm")
+
+  (define host-extensions #t)
+  (define target-extensions #t)
+
+  (define get-terminal-width
+    (let ((default-width 79))	     ; Standard default terminal width
+      (lambda ()
+	(let ((cop (current-output-port)))
+	  (if (terminal-port? cop)
+	      (let ((w (handle-exceptions exn 0 (nth-value 1 (terminal-size cop)))))
+		(if (zero? w)
+		    default-width
+		    (min default-width w)))
+	      default-width)))))
+
+  (define list-width (quotient (- (get-terminal-width) 2) 2))
 
   (define (repo-path)
-    (if *deploy*
-	*prefix*
-	(if (and *cross-chicken* (not *host-extensions*))
-	    (make-pathname C_TARGET_LIB_HOME (sprintf "chicken/~a" C_BINARY_VERSION))
-	    (if *prefix*
-		(make-pathname
-		 *prefix*
-		 (sprintf "lib/chicken/~a" (##sys#fudge 42)))
-		(repository-path)))))
+    (if (and cross-chicken (not host-extensions))
+	(##sys#split-path (destination-repository 'target))
+	(repository-path)))
 
   (define (grep rx lst)
     (filter (cut irregex-search rx <>) lst))
 
-  (define (gather-extensions patterns)
-    (let ((extensions (gather-all-extensions)))
-      (delete-duplicates
-       (concatenate (map (cut grep <> extensions) patterns))
-       string=?)))
+  (define (read-info egg #!optional (dir (repo-path)) (ext +egg-info-extension+))
+    (let ((f (chicken.load#find-file (make-pathname #f egg ext) dir)))
+      (and f (load-egg-info f))))
 
-  (define (gather-eggs patterns)
-    (define (egg-name extension)
-      (and-let* ((egg (assq 'egg-name (read-info extension (repo-path)))))
-        (cadr egg)))
-    (let loop ((eggs '())
-               (extensions (gather-extensions patterns)))
-      (if (null? extensions)
-          eggs
-          (let ((egg (egg-name (car extensions))))
-            (loop (if (and egg (not (member egg eggs)))
-                      (cons egg eggs)
-                      eggs)
-                  (cdr extensions))))))
+  (define (filter-egg-names eggs patterns mtch)
+    (let* ((names (cond ((null? patterns) eggs)
+                        (mtch
+                         (concatenate
+                           (map (lambda (pat)
+                                  (grep (irregex (glob->sre pat)) eggs))
+                             patterns)))
+                        (else 
+                          (filter 
+                            (lambda (egg)
+                              (any (cut string=? <> egg) patterns))
+                            eggs)))))
+      (delete-duplicates names string=?)))
 
-  (define (gather-all-extensions)
-    (map pathname-file (glob (make-pathname (repo-path) "*" "setup-info"))))
+  (define (gather-eggs)
+    (delete-duplicates
+      (append-map
+        (lambda (dir)
+          (map pathname-file 
+            (glob (make-pathname dir "*" +egg-info-extension+))))
+        (repo-path))
+      equal?))
 
   (define (format-string str cols #!optional right (padc #\space))
     (let* ((len (string-length str))
@@ -87,163 +103,174 @@
 	  (string-append pad str)
 	  (string-append str pad) ) ) )
 
-  (define get-terminal-width
-    (let ((default-width 80))	     ; Standard default terminal width
-      (lambda ()
-	(let ((cop (current-output-port)))
-	  (if (terminal-port? cop)
-	      (let ((w (nth-value 1 (terminal-size cop))))
-		(if (zero? w) 
-		    default-width 
-		    (min default-width w)))
-	      default-width)))))
+  (define (list-installed-eggs eggs #!optional (dir (repo-path))
+			       (ext +egg-info-extension+))
+    (for-each (cut list-egg-info <> dir ext)
+      (sort eggs string<?)))
 
-  (define (list-installed-extensions extensions)
+  (define (list-egg-info egg dir ext)
+    (let ((version
+	    (cond ((let ((info (read-info egg dir ext)))
+		     (and info (get-egg-property info 'version))))
+		  ((and (string? dir)
+			(file-exists? (make-pathname (list dir egg) +version-file+)))
+		   => (lambda (fname)
+			(with-input-from-file fname read)))
+		  ((chicken.load#find-file +version-file+
+					   (map (lambda (d)
+						  (make-pathname d egg))
+						dir))
+		   => (lambda (fname)
+			(with-input-from-file fname read)))
+		  (else "unknown"))))
+      (print (format-string (string-append egg " ")
+			    list-width #f #\.)
+	     (format-string (string-append " version: "
+					   (->string version))
+			    list-width #t #\.))))
+
+  (define (list-cached-eggs pats mtch)
+    (when (directory-exists? cache-directory)
+      (for-each
+       (lambda (egg)
+	 (list-egg-info egg cache-directory +egg-extension+))
+       (sort (filter-egg-names (directory cache-directory) pats mtch) string<?))))
+
+  (define (gather-components lst mode)
+    (append-map (cut gather-components-rec <> mode) lst))
+
+  (define (gather-components-rec info mode)
+    (case (car info)
+      ((host) 
+       (if host-extensions (gather-components (cdr info) 'host) '()))
+      ((target) 
+       (if target-extensions (gather-components (cdr info) 'target) '()))
+      ((extension) (list (list 'extension mode (cadr info))))
+      ((data) (list (list 'data mode (cadr info))))
+      ((generated-source-file) (list (list 'generated-source-file mode (cadr info))))
+      ((c-include) (list (list 'c-include mode (cadr info))))
+      ((scheme-include) (list (list 'scheme-include mode (cadr info))))
+      ((program) (list (list 'program mode (cadr info))))))
+
+  (define (list-installed-components eggs)
     (let ((w (quotient (- (get-terminal-width) 2) 2)))
       (for-each
-       (lambda (extension)
-	 (let ((version (assq 'version (read-info extension (repo-path)))))
-	   (if version
-	       (print
-		(format-string (string-append extension " ") w #f #\.)
-		(format-string 
-		 (string-append " version: " (->string (cadr version)))
-		 w #t #\.))
-	       (print extension))))
-       (sort extensions string<?))))
+        (lambda (egg)
+          (let* ((info (read-info egg))
+                 (version (get-egg-property info 'version))
+                 (comps (get-egg-property* info 'components)))
+            (if version
+                (print (format-string (string-append egg " ") w #f #\.)
+                       (format-string (string-append " version: "
+                                                     (->string version))
+                                      w #t #\.))
+                (print egg))
+            (when comps
+              (let ((lst (gather-components comps #f)))
+                (for-each
+                  (lambda (comp)
+                    (print "  " (format-string (->string (car comp)) 32)
+                           "  " (format-string (->string (caddr comp)) 32)
+                           (case (cadr comp)
+                             ((host) " (host)")
+                             ((target) " (target)")
+                             (else ""))))
+                  lst)))))
+        eggs)))
 
-  (define (list-installed-eggs eggs)
-    (for-each print eggs))
-
-  (define (list-installed-files extensions)
+  (define (list-installed-files eggs)
     (for-each
      print
      (sort
       (append-map
-       (lambda (extension)
-	 (let ((files (assq 'files (read-info extension (repo-path)))))
-	   (if files
-	       (cdr files)
-	       '())))
-       extensions)
+       (lambda (egg)
+	 (get-egg-property* (read-info egg) 'installed-files))
+       eggs)
       string<?)))
 
-  (define (dump-installed-versions)
+  (define (dump-installed-versions eggs)
     (for-each
-     (lambda (extension)
-       (let ((version (assq 'version (read-info extension (repo-path)))))
-	 (pp (list (string->symbol extension) (->string (and version (cadr version)))))))
-     (gather-all-extensions)))
+     (lambda (egg)
+       (let ((version (get-egg-property (read-info egg) 'version)))
+	 (pp (cons (string->symbol egg)
+                   (if version (list version) '())))))
+     eggs))
 
   (define (usage code)
     (print #<<EOF
-usage: chicken-status [OPTION | PATTERN] ...
+usage: chicken-status [OPTION ...] [NAME ...]
 
   -h   -help                    show this message
        -version                 show version and exit
+  -c   -components              list installed components
+       -cached                  list eggs in cache
   -f   -files                   list installed files
-       -exact                   treat PATTERN as exact match (not a pattern)
-       -host                    when cross-compiling, show status of host extensions only
-       -target                  when cross-compiling, show status of target extensions only
-  -p   -prefix PREFIX           change installation prefix to PREFIX
-       -deploy                  prefix is a deployment directory
        -list                    dump installed extensions and their versions in "override" format
-  -e   -eggs                    list installed eggs
+       -match                   treat NAME as glob pattern
+       -host                    when cross-compiling, only show host extensions
+       -target                  when cross-compiling, only show target extensions
 EOF
 );|
     (exit code))
 
-  (define *short-options* '(#\h #\f #\p))
+  (define short-options '(#\h #\f #\c #\a))
 
   (define (main args)
     (let ((files #f)
-          (eggs #f)
-	  (dump #f)
-	  (exact #f))
+          (comps #f)
+          (dump #f)
+          (cached #f)
+          (mtch #f))
       (let loop ((args args) (pats '()))
-	(if (null? args)
-            (cond
-	     ((and eggs (or dump files))
-	      (with-output-to-port (current-error-port)
-		(cut print "-eggs cannot be used with -list."))
-	      (exit 1))
-	     ((and *deploy* (not *prefix*))
-	      (with-output-to-port (current-error-port)
-		(cut print "`-deploy' only makes sense in combination with `-prefix DIRECTORY`"))
-	      (exit 1))
-	     (else
-	      (let ((status
-		     (lambda ()
-		       (let* ((patterns
-			       (map
-				irregex
-				(cond ((null? pats) '(".*"))
-				      (exact (map (lambda (p)
-						    (string-append "^" (irregex-quote p) "$"))
-						  pats))
-				      (else (map ##sys#glob->regexp pats)))))
-			      (eggs/exts ((if eggs gather-eggs gather-extensions) patterns)))
-			 (if (null? eggs/exts)
-			     (display "(none)\n" (current-error-port))
-			     ((cond (eggs list-installed-eggs)
-				    (files list-installed-files)
-				    (else list-installed-extensions))
-			      eggs/exts))))))
-		(cond (dump (dump-installed-versions))
-		      ((and *host-extensions* *target-extensions*)
-		       (print "host at " (repo-path) ":\n")
-		       (status)
-		       (fluid-let ((*host-extensions* #f))
-			 (print "\ntarget at " (repo-path) ":\n")
-			 (status)))
-		      (else (status))))))
-	    (let ((arg (car args)))
-	      (cond ((or (string=? arg "-help") 
-			 (string=? arg "-h")
-			 (string=? arg "--help"))
-		     (usage 0))
+        (if (null? args)
+            (cond ((and comps (or dump files))
+                   (with-output-to-port (current-error-port)
+                     (cut print "-components cannot be used with -list."))
+                   (exit 1))
+		  (cached (list-cached-eggs pats mtch))
+		  (else
+		   ((cond (dump dump-installed-versions)
+			  (files list-installed-files)
+			  (comps list-installed-components)
+			  (else list-installed-eggs))
+		    (filter-egg-names (gather-eggs) pats mtch))))
+            (let ((arg (car args)))
+              (cond ((member arg '("-help" "-h" "--help"))
+                     (usage 0))
 		    ((string=? arg "-host")
-		     (set! *target-extensions* #f)
+		     (set! target-extensions #f)
 		     (loop (cdr args) pats))
 		    ((string=? arg "-target")
-		     (set! *host-extensions* #f)
+		     (set! host-extensions #f)
 		     (loop (cdr args) pats))
-		    ((string=? "-deploy" arg)
-		     (set! *deploy* #t)
-		     (loop (cdr args) pats))
-		    ((or (string=? arg "-p") (string=? arg "-prefix"))
-		     (unless (pair? (cdr args)) (usage 1))
-		     (set! *prefix*
-		       (let ((p (cadr args)))
-			 (if (absolute-pathname? p)
-			     p
-			     (normalize-pathname
-			      (make-pathname (current-directory) p) ) ) ) )
-		     (loop (cddr args) pats))
-		    ((string=? arg "-exact")
-		     (set! exact #t)
-		     (loop (cdr args) pats))
+                    ((string=? arg "-match")
+                     (set! mtch #t)
+                     (loop (cdr args) pats))
+                    ((string=? arg "-cached")
+                     (set! cached #t)
+                     (loop (cdr args) pats))
 		    ((string=? arg "-list")
 		     (set! dump #t)
 		     (loop (cdr args) pats))
 		    ((or (string=? arg "-f") (string=? arg "-files"))
 		     (set! files #t)
 		     (loop (cdr args) pats))
-		    ((or (string=? arg "-e") (string=? arg "-eggs"))
-		     (set! eggs #t)
+		    ((or (string=? arg "-c") (string=? arg "-components"))
+		     (set! comps #t)
 		     (loop (cdr args) pats))
 		    ((string=? arg "-version")
 		     (print (chicken-version))
 		     (exit 0))
-		    ((and (positive? (string-length arg))
-			  (char=? #\- (string-ref arg 0)))
-		     (if (> (string-length arg) 2)
-			 (let ((sos (string->list (substring arg 1))))
-			   (if (every (cut memq <> *short-options*) sos)
-			       (loop (append (map (cut string #\- <>) sos) (cdr args)) pats)
-			       (usage 1)))
-			 (usage 1)))
-		    (else (loop (cdr args) (cons arg pats)))))))))
+                    ((and (positive? (string-length arg))
+                          (char=? #\- (string-ref arg 0)))
+                     (if (> (string-length arg) 2)
+                         (let ((sos (string->list (substring arg 1))))
+                           (if (every (cut memq <> short-options) sos)
+                               (loop (append (map (cut string #\- <>) sos)
+                                             (cdr args)) pats)
+                               (usage 1)))
+                         (usage 1)))
+                    (else (loop (cdr args) (cons arg pats)))))))))
 
   (main (command-line-arguments))
   

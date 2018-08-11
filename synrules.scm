@@ -40,7 +40,6 @@
 ;     ((or e1 e ...) (let ((temp e1))
 ;		       (if temp temp (or e ...))))))
 
-
 (##sys#extend-macro-environment
  'syntax-rules
  '()
@@ -55,10 +54,39 @@
 	(set! ellipsis subkeywords)
 	(set! subkeywords (car rules))
 	(set! rules (cdr rules)))
-      (##sys#process-syntax-rules ellipsis rules subkeywords r c)))))
+      (chicken.internal.syntax-rules#process-syntax-rules
+       ellipsis rules subkeywords r c)))))
 
 
-(define (##sys#process-syntax-rules ellipsis rules subkeywords r c)
+;; Runtime internal support module exclusively for syntax-rules
+(module chicken.internal.syntax-rules
+    (drop-right take-right syntax-rules-mismatch)
+
+(import scheme)
+
+(define (syntax-rules-mismatch input)
+  (##sys#syntax-error-hook "no rule matches form" input))
+
+(define (drop-right input temp)
+  ;;XXX use unsafe accessors
+  (let loop ((len (length input))
+	     (input input))
+    (cond
+     ((> len temp)
+      (cons (car input)
+	    (loop (- len 1) (cdr input))))
+     (else '()))))
+
+(define (take-right input temp)
+  ;;XXX use unsafe accessors
+  (let loop ((len (length input))
+	     (input input))
+    (cond
+     ((> len temp)
+      (loop (- len 1) (cdr input)))
+     (else input))))
+
+(define (process-syntax-rules ellipsis rules subkeywords r c)
 
   (define %append '##sys#append)
   (define %apply '##sys#apply)
@@ -99,6 +127,10 @@
   (define %temp (r 'temp))
   (define %syntax-error '##sys#syntax-error-hook)
   (define %ellipsis (r ellipsis))
+  (define %take-right (r 'chicken.internal.syntax-rules#take-right))
+  (define %drop-right (r 'chicken.internal.syntax-rules#drop-right))
+  (define %syntax-rules-mismatch
+    (r 'chicken.internal.syntax-rules#syntax-rules-mismatch))
 
   (define (ellipsis? x)
     (c x %ellipsis))
@@ -106,10 +138,9 @@
   (define (make-transformer rules)
     `(##sys#er-transformer
       (,%lambda (,%input ,%rename ,%compare)
-		(,%let ((,%tail (,%cdr ,%input)))
-		       (,%cond ,@(map process-rule rules)
-			       (,%else 
-				(##sys#syntax-rules-mismatch ,%input)))))))
+	(,%let ((,%tail (,%cdr ,%input)))
+	  (,%cond ,@(map process-rule rules)
+		  (,%else (,%syntax-rules-mismatch ,%input)))))))
 
   (define (process-rule rule)
     (if (and (pair? rule)
@@ -176,7 +207,7 @@
            (let* ((tail-length (length (cddr pattern)))
                   (%match (if (zero? tail-length) ; Simple segment?
                               path  ; No list traversing overhead at runtime!
-                              `(##sys#drop-right ,path ,tail-length))))
+                              `(,%drop-right ,path ,tail-length))))
              (append
               (process-pattern (car pattern)
                                %temp
@@ -187,7 +218,7 @@
                                       `(,%map1 (,%lambda (,%temp) ,x) ,%match))))
                                #f)
               (process-pattern (cddr pattern)
-                               `(##sys#take-right ,path ,tail-length) mapit #t))))
+                               `(,%take-right ,path ,tail-length) mapit #t))))
 	  ((pair? pattern)
 	   (append (process-pattern (car pattern) `(,%car ,path) mapit #f)
 		   (process-pattern (cdr pattern) `(,%cdr ,path) mapit #f)))
@@ -312,3 +343,5 @@
 	  pattern)))
 
   (make-transformer rules))
+
+) ; chicken.internal.syntax-rules

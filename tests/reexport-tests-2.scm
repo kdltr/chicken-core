@@ -1,5 +1,5 @@
 ;;; export of syntax referring to reexported syntax binding
-(use reexport-m4)
+(import reexport-m4)
 (print (baz))
 
 ;;; reexport of renamed syntax

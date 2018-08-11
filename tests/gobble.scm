@@ -8,7 +8,7 @@
   (let loop ((k 0))
     (when (< k n)
       (let ((x (make-string 1000)))
-	(when (and (zero? (modulo k 100000)) (##sys#fudge 13))
+	(when (and (zero? (modulo k 100000)) (##sys#debug-mode?))
 	  (print* "."))
 	(loop (+ k 1000))))))
 

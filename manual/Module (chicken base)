@@ -1,0 +1,1453 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken base)
+
+Core procedures and macros, acting as basic extensions to the R5RS
+standard and other essential features.
+
+This module is used by default, unless a program is compiled with
+the {{-explicit-use}} option.
+
+=== Numeric predicates
+
+These allow you to make a more precise differentiation between number
+types and their properties, not provided by R5RS.
+
+==== fixnum?
+
+<procedure>(fixnum? X)</procedure>
+
+Returns {{#t}} if {{X}} is a fixnum, or {{#f}} otherwise.
+
+==== flonum?
+
+<procedure>(flonum? X)</procedure>
+
+Returns {{#t}} if {{X}} is a flonum, or {{#f}} otherwise.
+
+==== bignum?
+
+<procedure>(bignum? X)</procedure>
+
+Returns {{#t}} if {{X}} is a bignum (integer larger than fits in a
+fixnum), or {{#f}} otherwise.
+
+==== exact-integer?
+
+<procedure>(exact-integer? X)</procedure>
+
+Returns {{#t}} if {{X}} is an exact integer (i.e., a fixnum or a
+bignum), or {{#f}} otherwise.
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+==== cplxnum?
+
+<procedure>(cplxnum? X)</procedure>
+
+Returns {{#t}} if {{X}} is a true complex number (it has an imaginary
+component), or {{#f}} otherwise.
+
+Please note that {{complex?}} will always return {{#t}} for any number
+type supported by CHICKEN, so you can use this predicate if you want
+to know the representational type of a number.
+
+==== ratnum?
+
+<procedure>(ratnum? X)</procedure>
+
+Returns {{#t}} if {{X}} is a true rational number (it is a fraction
+with a denominator that's not 1), or {{#f}} otherwise.
+
+Please note that {{rational?}} will always return {{#t}} for any
+number type supported by CHICKEN except complex numbers and non-finite
+flonums, so you can use this predicate if you want to know the
+representational type of a number.
+
+==== nan?
+
+<procedure>(nan? N)</procedure>
+
+Returns {{#t}} if {{N}} is not a number (a IEEE flonum NaN-value).  If
+{{N}} is a complex number, it's considered nan if it has a real or
+imaginary component that's nan.
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme inexact)}} library.
+
+==== finite?
+
+<procedure>(infinite? N)</procedure>
+
+Returns {{#t}} if {{N}} is negative or positive infinity, and {{#f}}
+otherwise.  If {{N}} is a complex number, it's considered infinite if
+it has a real or imaginary component that's infinite.
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme inexact)}} library.
+
+==== finite?
+
+<procedure>(finite? N)</procedure>
+
+Returns {{#t}} if {{N}} represents a finite number and {{#f}}
+otherwise.  Positive and negative infinity as well as NaNs are not
+considered finite.  If {{N}} is a complex number, it's considered
+finite if both the real and imaginary components are finite.
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme inexact)}} library.
+
+==== equal=?
+
+<procedure>(equal=? X y)</procedure>
+
+Similar to the standard procedure {{equal?}}, but compares numbers
+using the {{=}} operator, so {{equal=?}} allows structural comparison
+in combination with comparison of numerical data by value.
+
+
+=== Arithmetic
+
+==== add1/sub1
+
+<procedure>(add1 N)</procedure>
+<procedure>(sub1 N)</procedure>
+
+Adds/subtracts 1 from {{N}}.
+
+
+==== exact-integer-sqrt
+
+<procedure>(exact-integer-sqrt K)</procedure>
+
+Returns two values {{s}} and {{r}}, where {{s^2 + r = K}} and {{K < (s+1)^2}}.
+In other words, {{s}} is the closest square root we can find that's equal to or
+smaller than {{K}}, and {{r}} is the rest if {{K}} isn't a neat square of two numbers.
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+==== exact-integer-nth-root
+
+<procedure>(exact-integer-nth-root K N)</procedure>
+
+Like {{exact-integer-sqrt}}, but with any base value.  Calculates
+{{\sqrt[N]{K}}}, the {{N}}th root of {{K}} and returns two values
+{{s}} and {{r}} where {{s^N + r = K}} and {{K < (s+1)^N}}.
+
+
+==== Division with quotient and remainder
+
+<procedure>(quotient&remainder X Y)</procedure>
+<procedure>(quotient&modulo X Y)</procedure>
+
+Returns two values: the quotient and the remainder (or modulo) of
+{{X}} divided by {{Y}}.  Could be defined as {{(values (quotient X Y)
+(remainder X Y))}}, but is much more efficient when dividing very
+large numbers.
+
+==== signum
+
+<procedure>(signum N)</procedure>
+
+For real numbers, returns {{1}} if {{N}} is positive, {{-1}} if {{N}}
+is negative or {{0}} if {{N}} is zero. {{signum}} is exactness
+preserving.
+
+For complex numbers, returns a complex number of the same angle but
+with magnitude 1.
+
+
+=== Lazy evaluation
+
+==== delay-force
+
+<macro>(delay-force <expression>)</macro><br>
+
+The expression {{(delay-force expression)}} is conceptually similar to
+{{(delay (force expression))}}, with the difference that forcing the
+result of {{delay-force}} will in effect result in a tail call to
+{{(force expression)}}, while forcing the result of
+{{(delay (force expression))}} might not.
+
+Thus iterative lazy algorithms that might result in a long series of
+chains of delay and force can be rewritten using delay-force to
+prevent consuming unbounded space during evaluation.
+
+This special form is compatible with the definition from the R7RS
+{{(scheme lazy)}} library.
+
+See the description of force under
+[[Module scheme#control-features|Control features]] in the "scheme"
+module documentation for a more complete description of delayed
+evaluation.
+
+For more information regarding the unbounded build-up of space, see
+the [[http://srfi.schemers.org/srfi-45/srfi-45.html|SRFI-45]]
+rationale.
+
+==== make-promise
+
+<procedure>(make-promise obj)</procedure>
+
+The make-promise procedure returns a promise which, when forced, will
+return {{obj}} . It is similar to {{delay}}, but does not delay its
+argument: it is a procedure rather than syntax. If {{obj}} is already
+a promise, it is returned.
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme lazy)}} library.
+
+
+==== promise?
+
+<procedure>(promise? X)</procedure>
+
+Returns {{#t}} if {{X}} is a promise returned by {{delay}}, or
+{{#f}} otherwise.
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme lazy)}} library.
+
+
+=== Input/Output
+
+==== current-error-port
+
+<procedure>(current-error-port [PORT])</procedure>
+
+Returns default error output port. If {{PORT}} is given, then that
+port is selected as the new current error output port.
+
+Note that the default error output port is not buffered. Use
+[[Module (chicken port)#set-buffering-mode!|{{set-buffering-mode!}}]]
+if you need a different behaviour.
+
+==== print
+
+<procedure>(print [EXP1 ...])</procedure>
+
+Outputs the optional arguments {{EXP1 ...}} using {{display}} and
+writes a newline character to the port that is the value of
+{{(current-output-port)}}. Returns {{(void)}}.
+
+==== print*
+
+<procedure>(print* [EXP1 ...])</procedure>
+
+Similar to {{print}}, but does not output a terminating newline
+character and performs a {{flush-output}} after writing its arguments.
+
+
+=== Interrupts and error-handling
+
+==== enable-warnings
+
+<procedure>(enable-warnings [BOOL])</procedure>
+
+Enables or disables warnings, depending on wether {{BOOL}} is true or
+false.  If called with no arguments, this procedure returns {{#t}} if
+warnings are currently enabled, or {{#f}} otherwise. Note that this is
+not a parameter.  The current state (whether warnings are enabled or
+disabled) is global and not thread-local.
+
+
+==== error
+
+<procedure>(error [LOCATION] [STRING] EXP ...)</procedure>
+
+Prints error message, writes all extra arguments to the value of
+{{(current-error-port)}} and invokes the current
+exception-handler. This conforms to
+[[http://srfi.schemers.org/srfi-23/srfi-23.html|SRFI-23]].  If
+{{LOCATION}} is given and a symbol, it specifies the ''location'' (the
+name of the procedure) where the error occurred.
+
+
+
+==== get-call-chain
+
+<procedure>(get-call-chain [START [THREAD]])</procedure>
+
+Returns a list with the call history. Backtrace information is only
+generated in code compiled without {{-no-trace}} and evaluated code.
+If the optional argument {{START}} is given, the backtrace starts at
+this offset, i.e. when {{START}} is 1, the next to last trace-entry is
+printed, and so on. If the optional argument {{THREAD}} is given, then
+the call-chain will only be constructed for calls performed by this
+thread.
+
+
+
+==== print-call-chain
+
+<procedure>(print-call-chain [PORT [START [THREAD [HEADER]]]])</procedure>
+
+Prints a backtrace of the procedure call history to {{PORT}}, which
+defaults to {{(current-output-port)}}. The output is prefixed by the
+{{HEADER}}, which defaults to {{"\n\tCall history:\n"}}.
+
+
+==== procedure-information
+
+<procedure>(procedure-information PROC)</procedure>
+
+Returns an s-expression with debug information for the procedure
+{{PROC}}, or {{#f}}, if {{PROC}} has no associated debug information.
+
+
+==== warning
+
+<procedure>(warning STRING EXP ...)</procedure>
+
+Displays a warning message (if warnings are enabled with
+{{enable-warnings}}) and continues execution.
+
+
+=== Lists
+
+==== alist-ref
+
+<procedure>(alist-ref KEY ALIST [TEST [DEFAULT]])</procedure>
+
+Looks up {{KEY}} in {{ALIST}} using {{TEST}} as the comparison function (or {{eqv?}} if
+no test was given) and returns the cdr of the found pair, or {{DEFAULT}} (which defaults to {{#f}}).
+
+
+==== alist-update
+
+<procedure>(alist-update KEY VALUE ALIST [TEST])</procedure>
+<procedure>(alist-update! KEY VALUE ALIST [TEST])</procedure>
+
+If the list {{ALIST}} contains a pair of the form {{(KEY . X)}}, then this procedure
+replaces {{X}} with {{VALUE}} and returns {{ALIST}}. If {{ALIST}} contains no such item, then
+{{alist-update}} returns {{((KEY . VALUE) . ALIST)}}. The optional argument
+{{TEST}} specifies the comparison procedure to search a matching pair in {{ALIST}}
+and defaults to {{eqv?}}. {{alist-update!}} is the destructive version of {{alist-update}}.
+
+
+==== atom?
+
+<procedure>(atom? X)</procedure>
+
+Returns {{#t}} if {{X}} is not a pair.
+
+
+==== butlast
+
+<procedure>(butlast LIST)</procedure>
+
+Returns a fresh list with all elements but the last of {{LIST}}.
+
+
+==== chop
+
+<procedure>(chop LIST N)</procedure>
+
+Returns a new list of sublists, where each sublist contains {{N}}
+elements of {{LIST}}. If {{LIST}} has a length that is not
+a multiple of {{N}}, then the last sublist contains the remaining
+elements.
+
+<enscript highlight=scheme>
+(chop '(1 2 3 4 5 6) 2) ==> ((1 2) (3 4) (5 6))
+(chop '(a b c d) 3)     ==> ((a b c) (d))
+</enscript>
+
+
+==== compress
+
+<procedure>(compress BLIST LIST)</procedure>
+
+Returns a new list with elements taken from {{LIST}} with
+corresponding true values in the list {{BLIST}}.
+
+<enscript highlight=scheme>
+(define nums '(99 100 110 401 1234))
+(compress (map odd? nums) nums)      ==> (99 401)
+</enscript>
+
+
+==== flatten
+
+<procedure>(flatten LIST1 ...)</procedure>
+
+Returns {{LIST1 ...}} concatenated together, with nested lists
+removed (flattened).
+
+
+==== foldl
+
+<procedure>(foldl PROCEDURE INIT LIST)</procedure>
+
+Applies {{PROCEDURE}} to the elements from {{LIST}}, beginning from
+the left:
+
+<enscript hightlight=scheme>
+(foldl + 0 '(1 2 3))    ==>    (+ (+ (+ 0 1) 2) 3)
+</enscript>
+
+Note that the order of arguments taken by {{PROCEDURE}} is different
+from the {{SRFI-1}} {{fold}} procedure, but matches the more natural
+order used in Haskell and Objective Caml.
+
+
+==== foldr
+
+<procedure>(foldr PROCEDURE INIT LIST)</procedure>
+
+Applies {{PROCEDURE}} to the elements from {{LIST}}, beginning from
+the right:
+
+<enscript hightlight=scheme>
+(foldr + 0 '(1 2 3))    ==>    (+ 1 (+ 2 (+ 3 0)))
+</enscript>
+
+
+==== intersperse
+
+<procedure>(intersperse LIST X)</procedure>
+
+Returns a new list with {{X}} placed between each element.
+
+
+==== join
+
+<procedure>(join LISTOFLISTS [LIST])</procedure>
+
+Concatenates the lists in {{LISTOFLISTS}} with {{LIST}} placed
+between each sublist. {{LIST}} defaults to the empty list.
+
+<enscript highlight=scheme>
+(join '((a b) (c d) (e)) '(x y)) ==> (a b x y c d x y e)
+(join '((p q) () (r (s) t)) '(-))  ==> (p q - - r (s) t)
+</enscript>
+
+{{join}} could be implemented as follows:
+
+<enscript highlight=scheme>
+(define (join lstoflsts #!optional (lst '()))
+  (apply append (intersperse lstoflists lst)) )
+</enscript>
+
+
+==== rassoc
+
+<procedure>(rassoc KEY LIST [TEST])</procedure>
+
+Similar to {{assoc}}, but compares {{KEY}} with the {{cdr}} of each pair in {{LIST}} using
+{{TEST}} as the comparison procedures (which defaults to {{eqv?}}.
+
+
+==== tail?
+
+<procedure>(tail? X LIST)</procedure>
+
+Returns true if {{X}} is one of the tails (cdr's) of {{LIST}}.
+
+
+=== Vectors
+
+==== vector-copy!
+
+<procedure>(vector-copy! VECTOR1 VECTOR2 [COUNT])</procedure>
+
+Copies contents of {{VECTOR1}} into {{VECTOR2}}. If the
+argument {{COUNT}} is given, it specifies the maximal number of
+elements to be copied. If not given, the minimum of the lengths of the
+argument vectors is copied.
+
+Exceptions: {{(exn bounds)}}
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+==== vector-resize
+
+<procedure>(vector-resize VECTOR N [INIT])</procedure>
+
+Creates and returns a new vector with the contents of {{VECTOR}} and
+length {{N}}. If {{N}} is greater than the original length of
+{{VECTOR}}, then all additional items are initialized to {{INIT}}. If
+{{INIT}} is not specified, the contents are initialized to some
+unspecified value.
+
+
+==== subvector
+
+<procedure>(subvector VECTOR FROM [TO])</procedure>
+
+Returns a new vector with elements taken from {{VECTOR}} in the
+given range. {{TO}} defaults to {{(vector-length VECTOR)}}.
+
+{{subvector}} was introduced in CHICKEN 4.7.3.
+
+
+=== Combinators
+
+
+==== constantly
+
+<procedure>(constantly X ...)</procedure>
+
+Returns a procedure that always returns the values {{X ...}} regardless of the number and value of its arguments.
+
+<enscript highlight=scheme>
+(constantly X) <=> (lambda args X)
+</enscript>
+
+
+==== complement
+
+<procedure>(complement PROC)</procedure>
+
+Returns a procedure that returns the boolean inverse of {{PROC}}.
+
+<enscript highlight=scheme>
+(complement PROC) <=> (lambda (x) (not (PROC x)))
+</enscript>
+
+
+==== compose
+
+<procedure>(compose PROC1 PROC2 ...)</procedure>
+
+Returns a procedure that represents the composition of the
+argument-procedures {{PROC1 PROC2 ...}}.
+
+<enscript highlight=scheme>
+(compose F G) <=> (lambda args
+                      (call-with-values
+                         (lambda () (apply G args))
+                         F))
+</enscript>
+
+{{(compose)}} is equivalent to {{values}}.
+
+
+==== conjoin
+
+<procedure>(conjoin PRED ...)</procedure>
+
+Returns a procedure that returns {{#t}} if its argument satisfies the
+predicates {{PRED ...}}.
+<enscript highlight=scheme>
+((conjoin odd? positive?) 33)   ==>  #t
+((conjoin odd? positive?) -33)  ==>  #f
+</enscript>
+
+
+==== disjoin
+
+<procedure>(disjoin PRED ...)</procedure>
+
+Returns a procedure that returns {{#t}} if its argument satisfies any
+predicate {{PRED ...}}.
+<enscript highlight=scheme>
+((disjoin odd? positive?) 32)    ==>  #t
+((disjoin odd? positive?) -32)   ==>  #f
+</enscript>
+
+
+==== each
+
+<procedure>(each PROC ...)</procedure>
+
+Returns a procedure that applies {{PROC ...}} to its arguments, and returns the result(s)
+of the last procedure application. For example
+
+<enscript highlight=scheme>
+(each pp eval)
+</enscript>
+
+is equivalent to
+
+<enscript highlight=scheme>
+(lambda args 
+  (apply pp args)
+  (apply eval args) )
+</enscript>
+
+{{(each PROC)}} is equivalent to {{PROC}} and {{(each)}} is equivalent to
+{{void}}.
+
+
+==== flip
+
+<procedure>(flip PROC)</procedure>
+
+Returns a two-argument procedure that calls {{PROC}} with its
+arguments swapped:
+<enscript highlight=scheme>
+(flip PROC) <=> (lambda (x y) (PROC y x))
+</enscript>
+
+
+==== identity
+
+<procedure>(identity X)</procedure>
+
+Returns its sole argument {{X}}.
+
+
+==== list-of?
+
+<procedure>(list-of? PRED)</procedure>
+
+Returns a procedure of one argument that returns {{#t}} when
+applied to a list of elements that all satisfy the predicate procedure
+{{PRED}}, or {{#f}} otherwise.
+
+<enscript highlight=scheme>
+((list-of? even?) '(1 2 3))   ==> #f
+((list-of? number?) '(1 2 3)) ==> #t
+</enscript>
+
+
+==== o
+
+<procedure>(o PROC ...)</procedure>
+
+A single value version of {{compose}} (slightly faster). {{(o)}} is equivalent
+to {{identity}}.
+
+
+=== User-defined named characters
+
+==== char-name
+
+<procedure>(char-name SYMBOL-OR-CHAR [CHAR])</procedure>
+
+This procedure can be used to inquire about character names or to
+define new ones. With a single argument the behavior is as follows:
+If {{SYMBOL-OR-CHAR}} is a symbol, then {{char-name}} returns
+the character with this name, or {{#f}} if no character is defined
+under this name. If {{SYMBOL-OR-CHAR}} is a character, then the
+name of the character is returned as a symbol, or {{#f}} if the
+character has no associated name.
+
+If the optional argument {{CHAR}} is provided, then
+{{SYMBOL-OR-CHAR}} should be a symbol that will be the new name of
+the given character. If multiple names designate the same character,
+then the {{write}} will use the character name that was defined last.
+
+<enscript highlight=scheme>
+(char-name 'space)                  ==> #\space
+(char-name #\space)                 ==> space
+(char-name 'bell)                   ==> #f
+(char-name (integer->char 7))       ==> #f
+(char-name 'bell (integer->char 7))
+(char-name 'bell)                   ==> #\bell
+(char->integer (char-name 'bell))   ==> 7
+</enscript>
+
+
+=== The unspecified value
+
+==== void
+
+<procedure>(void ARGUMENT ...)</procedure>
+
+Ignores {{ARGUMENT ...}} and returns an unspecified value.
+
+
+=== Continuations
+
+==== call/cc
+
+<procedure>(call/cc PROCEDURE)</procedure>
+
+An alias for {{call-with-current-continuation}}.
+
+This procedure is compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+=== Symbols
+
+==== Symbol utilities
+
+===== symbol-append
+
+<procedure>(symbol-append SYMBOL1 ...)</procedure>
+
+Creates a new symbol from the concatenated names of the argument symbols
+{{(SYMBOL1 ...)}}.
+
+==== Uninterned symbols ("gensyms")
+
+Symbols may be "interned" or "uninterned". Interned symbols are
+registered in a global table, and when read back from a port are
+identical to a symbol written before:
+
+<enscript highlight=scheme>
+(define sym 'foo)
+
+(eq? sym (with-input-from-string
+            (with-output-to-string 
+              (lambda () (write sym)))
+	    read))
+
+  => #t
+</enscript>
+
+Uninterned symbols on the other hand are not globally registered and so
+multiple symbols with the same name may coexist:
+
+<enscript highlight=scheme>
+(define sym (gensym 'foo))   ; sym is a uninterned symbol like "foo42"
+
+(eq? sym (with-input-from-string    ; the symbol read will be an interned symbol
+            (with-output-to-string 
+              (lambda () (write sym)))
+	    read))
+
+  => #f
+
+(eq? (string->uninterned-symbol "foo") (string->uninterned-symbol "foo"))
+
+  => #f
+</enscript>
+
+Use uninterned symbols if you need to generate unique values that
+can be compared quickly, for example as keys into a hash-table
+or association list. Note that uninterned symbols lose their
+uniqueness property when written to a file and read back in, as
+in the example above.
+
+===== gensym
+
+<procedure>(gensym [STRING-OR-SYMBOL])</procedure>
+
+Returns a newly created uninterned symbol. If an argument is provided,
+the new symbol is prefixed with that argument.
+
+
+===== string->uninterned-symbol
+
+<procedure>(string->uninterned-symbol STRING)</procedure>
+
+Returns a newly created, unique symbol with the name {{STRING}}.
+
+
+=== Setters
+
+SRFI-17 is fully implemented. For more information see:
+[[http://srfi.schemers.org/srfi-17/srfi-17.html|SRFI-17]].
+
+==== setter
+
+<procedure>(setter PROCEDURE)</procedure>
+
+Returns the setter-procedure of {{PROCEDURE}}, or signals an error if
+{{PROCEDURE}} has no associated setter-procedure.
+
+Note that {{(set! (setter PROC) ...)}} for a procedure that has no
+associated setter procedure yet is a very slow operation (the old
+procedure is replaced by a modified copy, which involves a garbage
+collection).
+
+
+==== getter-with-setter
+
+<procedure>(getter-with-setter GETTER SETTER)</procedure>
+
+Returns a copy of the procedure {{GETTER}} with the associated setter
+procedure {{SETTER}}. Contrary to the SRFI specification, the setter
+of the returned procedure may be changed.
+
+
+=== Binding forms for optional arguments
+
+==== optional
+
+<macro>(optional ARGS DEFAULT)</macro>
+
+Use this form for procedures that take a single optional argument. If
+{{ARGS}} is the empty list {{DEFAULT}} is evaluated and
+returned, otherwise the first element of the list {{ARGS}}. It is
+an error if {{ARGS}} contains more than one value.
+
+<enscript highlight=scheme>
+(define (incr x . i) (+ x (optional i 1)))
+(incr 10)                                   ==> 11
+(incr 12 5)                                 ==> 17
+</enscript>
+
+
+==== case-lambda
+
+<macro>(case-lambda (LAMBDA-LIST1 EXP1 ...) ...)</macro>
+
+Expands into a lambda that invokes the body following the first
+matching lambda-list.
+
+<enscript highlight=scheme>
+(define plus
+  (case-lambda 
+    (() 0)
+    ((x) x)
+    ((x y) (+ x y))
+    ((x y z) (+ (+ x y) z))
+    (args (apply + args))))
+
+(plus)                      ==> 0
+(plus 1)                    ==> 1
+(plus 1 2 3)                ==> 6
+</enscript>
+
+For more information see the documentation for
+[[http://srfi.schemers.org/srfi-16/srfi-16.html|SRFI-16]]
+
+This special form is also compatible with the definition from the R7RS
+{{(scheme case-lambda)}} library.
+
+==== let-optionals
+
+<macro> (let-optionals ARGS ((VAR1 DEFAULT1) ...) BODY ...)</macro>
+
+Binding constructs for optional procedure arguments. {{ARGS}} is
+normally a rest-parameter taken from a lambda-list. {{let-optionals}}
+binds {{VAR1 ...}} to available arguments in parallel, or to
+{{DEFAULT1 ...}} if not enough arguments were provided.
+{{let-optionals*}} binds {{VAR1 ...}} sequentially, so every variable
+sees the previous ones. it is an error if any excess arguments are
+provided.
+
+<enscript highlight=scheme>
+(let-optionals '(one two) ((a 1) (b 2) (c 3))
+  (list a b c) )                               ==> (one two 3)
+</enscript>
+
+==== let-optionals*
+
+<macro> (let-optionals* ARGS ((VAR1 DEFAULT1) ... [RESTVAR]) BODY ...)</macro>
+
+Binding constructs for optional procedure arguments. {{ARGS}} is
+normally a rest-parameter taken from a lambda-list. {{let-optionals}}
+binds {{VAR1 ...}} to available arguments in parallel, or to
+{{DEFAULT1 ...}} if not enough arguments were provided.
+{{let-optionals*}} binds {{VAR1 ...}} sequentially, so every variable
+sees the previous ones. If a single variable {{RESTVAR}} is given,
+then it is bound to any remaining arguments, otherwise it is an error
+if any excess arguments are provided.
+
+<enscript highlight=scheme>
+(let-optionals* '(one two) ((a 1) (b 2) (c a))
+  (list a b c) )                               ==> (one two one)
+</enscript>
+
+=== Other binding forms
+
+==== and-let*
+
+<macro>(and-let* (BINDING ...) EXP1 EXP2 ...)</macro>
+
+Bind sequentially and execute body. {{BINDING}} can
+be a list of a variable and an expression, a list with a single
+expression, or a single variable. If the value of an expression
+bound to a variable is {{#f}}, the {{and-let*}} form
+evaluates to {{#f}} (and the subsequent bindings and the body
+are not executed).  Otherwise the next binding is performed. If
+all bindings/expressions evaluate to a true result, the body is
+executed normally and the result of the last expression is the
+result of the {{and-let*}} form. See also the documentation for
+[[http://srfi.schemers.org/srfi-2/srfi-2.html|SRFI-2]].
+
+==== letrec*
+
+<macro>(letrec* ((VARIABLE EXPRESSION) ...) BODY ...)</macro>
+
+Implements R6RS/R7RS {{letrec*}}. {{letrec*}} is similar to {{letrec}}
+but binds the variables sequentially and is to {{letrec}} what
+{{let*}} is to {{let}}.
+
+This special form is compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+==== rec
+
+<macro>(rec NAME EXPRESSION)</macro><br>
+<macro>(rec (NAME VARIABLE ...) BODY ...)</macro>
+
+Allows simple definition of recursive definitions. {{(rec NAME EXPRESSION)}} is
+equivalent to {{(letrec ((NAME EXPRESSION)) NAME)}} and {{(rec (NAME VARIABLE ...) BODY ...)}}
+is the same as {{(letrec ((NAME (lambda (VARIABLE ...) BODY ...))) NAME)}}.
+
+==== cut
+
+<macro>(cut SLOT ...)</macro><br>
+<macro>(cute SLOT ...)</macro>
+
+[[http://srfi.schemers.org/srfi-26/srfi-26.html|Syntactic sugar for specializing parameters]].
+
+==== define-values
+
+<macro>(define-values (NAME ...) VALUEEXP)</macro>
+<macro>(define-values (NAME1 ... NAMEn . NAMEn+1) VALUEEXP)</macro>
+<macro>(define-values NAME VALUEEXP)</macro>
+
+Defines several variables at once, with the result values of expression
+{{VALUEEXP}}, similar to {{set!-values}}.
+
+This special form is compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+==== fluid-let
+
+<macro>(fluid-let ((VAR1 X1) ...) BODY ...)</macro>
+
+Binds the variables {{VAR1 ...}} dynamically to the values {{X1 ...}}
+during execution of {{BODY ...}}.  This implements
+[[http://srfi.schemers.org/srfi-15/srfi-15.html|SRFI-15]].
+
+==== let-values
+
+<macro>(let-values (((NAME ...) VALUEEXP) ...) BODY ...)</macro>
+
+Binds multiple variables to the result values of {{VALUEEXP ...}}.
+All variables are bound simultaneously.  Like {{define-values}}, the
+{{(NAME ...)}} expression can be any basic lambda list (dotted tail
+notation is supported).
+
+This special form implements
+[[http://srfi.schemers.org/srfi-11/srfi-11.html|SRFI-11]], and it is
+also compatible with the definition from the R7RS {{(scheme base)}}
+library.
+
+
+==== let*-values
+
+<macro>(let*-values (((NAME ...) VALUEEXP) ...) BODY ...)</macro>
+
+Binds multiple variables to the result values of {{VALUEEXP ...}}.
+The variables are bound sequentially.  Like {{let-values}}, the
+{{(NAME ...)}} expression can be any basic lambda list (dotted tail
+notation is supported).
+
+This is also part of
+[[http://srfi.schemers.org/srfi-11/srfi-11.html|SRFI-11]] and is also
+compatible with the definition from the R7RS {{(scheme base)}}
+library.
+
+<enscript highlight=scheme>
+(let*-values (((a b) (values 2 3))
+              ((p) (+ a b)) )
+  p)                               ==> 5
+</enscript>
+
+==== letrec-values
+
+<macro>(letrec-values (((NAME ...) VALUEEXP) ...) BODY ...)</macro>
+
+Binds the result values of {{VALUEEXP ...}} to multiple variables at
+once.  All variables are mutually recursive.  Like {{let-values}}, the
+{{(NAME ...)}} expression can be any basic lambda list (dotted tail
+notation is supported).
+
+<enscript highlight=scheme>
+(letrec-values (((odd even)
+                   (values 
+                     (lambda (n) (if (zero? n) #f (even (sub1 n))))
+                     (lambda (n) (if (zero? n) #t (odd (sub1 n)))) ) ) )
+  (odd 17) )                           ==> #t
+</enscript>
+
+
+==== receive
+
+<macro>(receive (NAME ...) VALUEEXP BODY ...)</macro><br>
+<macro>(receive (NAME1 ... NAMEn . NAMEn+1) VALUEEXP BODY ...)</macro><br>
+<macro>(receive NAME VALUEEXP BODY ...)</macro><br>
+<macro>(receive VALUEEXP)</macro>
+
+[[http://srfi.schemers.org/srfi-8/srfi-8.html|SRFI-8]].
+Syntactic sugar for {{call-with-values}}. Binds variables
+to the result values of {{VALUEEXP}} and evaluates {{BODY ...}},
+similar {{define-values}} but lexically scoped.
+
+{{(receive VALUEEXP)}} is equivalent to {{(receive _ VALUEEXP _)}}.
+This shortened form is not described by SRFI-8.
+
+==== set!-values
+
+<macro>(set!-values (NAME ...) VALUEEXP)</macro>
+<macro>(set!-values (NAME1 ... NAMEn . NAMEn+1) VALUEEXP)</macro>
+<macro>(set!-values NAME VALUEEXP)</macro>
+
+Assigns the result values of expression {{VALUEEXP}} to multiple
+variables, similar to {{define-values}}.
+
+==== nth-value
+
+<macro>(nth-value N EXP)</macro>
+
+Returns the {{N}}th value (counting from zero) of the values returned
+by expression {{EXP}}.
+
+
+=== Parameters
+
+Parameters are CHICKEN's form of dynamic variables, except that they are
+procedures rather than actual variables.  A parameter is a procedure of
+zero or one arguments. To retrieve the value of a parameter call the
+parameter-procedure with zero arguments. To change the setting of the
+parameter, call the parameter-procedure with the new value as argument:
+
+<enscript highlight=scheme>
+(define foo (make-parameter 123))
+(foo)                             ==> 123
+(foo 99)
+(foo)                             ==> 99
+</enscript>
+
+Parameters are fully thread-local, each thread of execution
+owns a local copy of a parameters' value.
+
+CHICKEN implements
+[[http://srfi.schemers.org/srfi-39/srfi-39.html|SRFI-39]], which
+is also standardized by R7RS.
+
+
+==== parameterize
+
+<macro>(parameterize ((PARAMETER1 X1) ...) BODY ...)</macro>
+
+Binds the parameters {{PARAMETER1 ...}} dynamically to the values
+{{X1 ...}} during execution of {{BODY ...}}.  (see also:
+{{make-parameter}} in [[Parameters]]). Note that {{PARAMETER}} may
+be any expression that evaluates to a parameter procedure.
+
+This special form is compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+==== make-parameter
+
+<procedure>(make-parameter VALUE [GUARD])</procedure>
+
+Returns a procedure that accepts zero or one argument. Invoking the
+procedure with zero arguments returns {{VALUE}}. Invoking the
+procedure with one argument changes its value to the value of that
+argument and returns the new value (subsequent invocations with zero
+parameters return the new value). {{GUARD}} should be a procedure of a
+single argument. Any new values of the parameter (even the initial
+value) are passed to this procedure. The guard procedure should check
+the value and/or convert it to an appropriate form.
+
+This special form is compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+=== Substitution forms and macros
+
+==== define-constant
+
+<macro>(define-constant NAME CONST)</macro>
+
+Defines a variable with a constant value, evaluated at compile-time.
+Any reference to such a constant should appear textually '''after'''
+its definition. This construct is equivalent to {{define}} when
+evaluated or interpreted.  Constant definitions should only appear at
+toplevel. Note that constants are local to the current compilation
+unit and are not available outside of the source file in which they
+are defined. Names of constants still exist in the Scheme namespace
+and can be lexically shadowed.  If the value is mutable, then the
+compiler is careful to preserve its identity.  {{CONST}} may be any
+constant expression, and may also refer to constants defined via
+{{define-constant}} previously, but it must be possible to
+evaluate the expression at compile-time.
+
+==== define-inline
+
+<macro>(define-inline (NAME VAR ...) BODY ...)</macro><br>
+<macro>(define-inline (NAME VAR ... . VAR) BODY ...)</macro><br>
+<macro>(define-inline NAME EXP)</macro>
+
+Defines an inline procedure. Any occurrence of {{NAME}} will be replaced
+by {{EXP}} or {{(lambda (VAR ... [. VAR]) BODY ...)}}. This is similar
+to a macro, but variable names and scope are handled correctly.
+
+Inline substitutions take place '''after''' macro-expansion, and any
+reference to {{NAME}} should appear textually '''after''' its
+definition. Inline procedures are local to the current compilation unit
+and are not available outside of the source file in which they are
+defined. Names of inline procedures still exist in the Scheme namespace
+and can be lexically shadowed. Inline definitions should only appear at
+the toplevel.
+
+Note that the {{inline-limit}} compiler option does not affect inline
+procedure expansion, and self-referential inline procedures may cause
+the compiler to enter an infinite loop.
+
+In the third form, {{EXP}} must be a lambda expression.
+
+This construct is equivalent to {{define}} when evaluated or
+interpreted.
+
+
+=== Conditional forms
+
+==== select
+
+<macro>(select EXP ((KEY ...) EXP1 ...) ... [(else EXPn ...)])</macro>
+
+This is similar to {{case}}, but the keys are evaluated.
+
+==== unless
+
+<macro>(unless TEST EXP1 EXP2 ...)</macro>
+
+Equivalent to:
+
+<enscript highlight=scheme>
+(if (not TEST) (begin EXP1 EXP2 ...))
+</enscript>
+
+==== when
+
+<macro>(when TEST EXP1 EXP2 ...)</macro>
+
+Equivalent to:
+
+<enscript highlight=scheme>
+(if TEST (begin EXP1 EXP2 ...))
+</enscript>
+
+
+=== Record structures
+
+==== define-record
+
+<macro>(define-record NAME SLOTNAME ...)</macro>
+
+Defines a record type. This defines a number of procedures for
+creating, accessing, and modifying record members.
+
+Call {{make-NAME}} to create an instance
+of the structure (with one initialization-argument for each slot, in
+the listed order).
+
+{{(NAME? STRUCT)}} tests any object for being an instance of this
+structure.
+
+Slots are accessed via {{(NAME-SLOTNAME STRUCT)}}
+and updated using {{(NAME-SLOTNAME-set!}} {{STRUCT}} {{VALUE)}}.
+
+<enscript highlight=scheme>
+(define-record point x y)
+(define p1 (make-point 123 456))
+(point? p1)                      ==> #t
+(point-x p1)                     ==> 123
+(point-y-set! p1 99)
+(point-y p1)                     ==> 99
+</enscript>
+
+===== SRFI-17 setters
+
+{{SLOTNAME}} may alternatively also be of the form
+
+  (setter SLOTNAME)
+
+In this case the slot can be read with {{(NAME-SLOTNAME STRUCT)}} as usual,
+and modified with {{(set! (NAME-SLOTNAME STRUCT) VALUE)}} (the slot-accessor
+has an associated SRFI-17 "setter" procedure) instead of
+the usual {{(NAME-SLOTNAME-set!}} {{STRUCT}} {{VALUE)}}.
+
+
+<enscript highlight=scheme>
+(define-record point (setter x) (setter y))
+(define p1 (make-point 123 456))
+(point? p1)                      ==> #t
+(point-x p1)                     ==> 123
+(set! (point-y p1) 99)
+(point-y p1)                     ==> 99
+</enscript>
+
+==== define-record-type
+
+<macro>(define-record-type NAME (CONSTRUCTOR TAG ...) PREDICATE (FIELD ACCESSOR [MODIFIER]) ...)</macro>
+
+SRFI-9 record types. For more information see the documentation for
+[[http://srfi.schemers.org/srfi-9/srfi-9.html|SRFI-9]].
+
+As an extension the {{MODIFIER}} may have the form
+{{(setter PROCEDURE)}}, which will define a SRFI-17 setter-procedure
+for the given {{PROCEDURE}} that sets the field value.
+Usually {{PROCEDURE}} has the same name is {{ACCESSOR}} (but it
+doesn't have to).
+
+This special form is also compatible with the definition from the R7RS
+{{(scheme base)}} library.
+
+
+==== define-record-printer
+
+<macro>(define-record-printer (NAME RECORDVAR PORTVAR) BODY ...)</macro><br>
+<macro>(define-record-printer NAME PROCEDURE)</macro>
+
+Defines a printing method for record of the type {{NAME}} by
+associating a procedure with the record type. When a record of this
+type is written using {{display, write}} or {{print}}, then
+the procedure is called with two arguments: the record to be printed
+and an output-port.
+
+<enscript highlight=scheme>
+(define-record-type foo (make-foo x y z) foo?
+  (x foo-x)
+  (y foo-y)
+  (z foo-z))
+(define f (make-foo 1 2 3))
+(define-record-printer (foo x out)
+  (fprintf out "#,(foo ~S ~S ~S)"
+           (foo-x x) (foo-y x) (foo-z x)) )
+(define-reader-ctor 'foo make-foo)
+(define s (with-output-to-string
+              (lambda () (write f))))
+s                                   ==> "#,(foo 1 2 3)"
+(equal? f (with-input-from-string
+              s read)))             ==> #t
+</enscript>
+
+=== Other forms
+
+==== include
+
+<macro>(include STRING)</macro>
+
+Include toplevel-expressions from the given source file in the currently
+compiled/interpreted program.  If the included file has the extension
+{{.scm}}, then it may be omitted. The file is searched for in the
+current directory and all directories specified by the {{-include-path}}
+option.
+
+==== include-relative
+
+<macro>(include-relative STRING)</macro>
+
+Works like {{include}}, but the filename is searched for relative to the
+including file rather than the current directory.
+
+
+=== Making extra libraries and extensions available
+
+==== require-extension
+
+<macro>(require-extension ID ...)</macro>
+
+This is equivalent to {{(require-library ID ...)}} but performs an implicit
+{{import}}, if necessary. Since version 4.4.0, {{ID}} may also be an import specification
+(using {{rename}}, {{only}}, {{except}} or {{prefix}}).
+
+To make long matters short - just use {{require-extension}} and it will normally figure everything out for dynamically
+loadable extensions and core library units.
+
+This implementation of {{require-extension}} is compliant with [[http://srfi.schemers.org/srfi-55/srfi-55.html|SRFI-55]]
+(see the [[http://srfi.schemers.org/srfi-55/srfi-55.html|SRFI-55]] document for more information).
+
+
+==== require-library
+
+<macro>(require-library ID ...)</macro>
+
+This form does all the necessary steps to make the libraries or extensions given
+in {{ID ...}} available. It loads syntactic extensions, if needed and generates
+code for loading/linking with core library modules or separately installed
+extensions.
+
+During interpretation/evaluation {{require-library}} performs one of the
+following:
+
+* If {{ID}} names a built-in feature {{chicken srfi-0 srfi-2 srfi-6 srfi-8 srfi-9 srfi-10 srfi-17 srfi-23 srfi-30 srfi-39 srfi-55}}, then nothing is done.
+* If {{ID}} names one of the syntactic extensions {{chicken-syntax chicken-ffi-syntax}}, then this extension will be loaded.
+* If {{ID}} names one of the core library units shipped with CHICKEN, then a {{(load-library 'ID)}} will be performed.
+* If {{ID}} names an installed extension with the {{syntax}} or {{require-at-runtime}} attribute, then the extensions is loaded at compile-time, probably doing a run-time {{(require ...)}} for any run-time requirements.
+* Otherwise, {{(require-library ID)}} is equivalent to {{(require 'ID)}}.
+
+During compilation, one of the following happens instead:
+
+* If {{ID}} names a built-in feature {{chicken srfi-0 srfi-2 srfi-6 srfi-8 srfi-9 srfi-10 srfi-17 srfi-23 srfi-30 srfi-39 srfi-55}}, then nothing is done.
+* If {{ID}} names one of the syntactic extensions {{chicken-syntax chicken-ffi-syntax}}, then this extension will be loaded at compile-time, making the syntactic extensions available in compiled code.
+* If {{ID}} names one of the core library units shipped with CHICKEN, or if the option {{-uses ID}} has been passed to the compiler, then a {{(declare (uses ID))}} is generated.
+* If {{ID}} names an installed extension with the {{syntax}} or {{require-at-runtime}} attribute, then the extension is loaded at compile-time, and code is emitted to {{(require ...)}} any needed run-time requirements.
+* Otherwise {{(require-library ID)}} is equivalent to {{(require 'ID)}}.
+
+{{ID}} should be a pure extension name and should not contain any path prefixes (for example {{dir/lib...}} is illegal).
+
+{{ID}} may also be a list that designates an extension-specifier. Currently the following extension specifiers are
+defined:
+
+* {{(srfi NUMBER ...)}} is required for SRFI-55 compatibility and is fully implemented
+* {{(version ID NUMBER)}} is equivalent to {{ID}}, but checks at compile-time whether the extension named {{ID}} is installed and whether its version is equal or higher than {{NUMBER}}. {{NUMBER}} may be a string or a number, the comparison is done lexicographically (using {{string>=?}}).
+
+=== Process shutdown
+
+==== emergency-exit
+
+<procedure>(emergency-exit [CODE])</procedure>
+
+Exits the current process without flushing any buffered output (using
+the C function {{_exit}}).  Note that the {{exit-handler}} is not called
+when this procedure is invoked. The optional exit status code {{CODE}}
+defaults to {{0}}.
+
+
+==== exit
+
+<procedure>(exit [CODE])</procedure>
+
+Exit the running process and return exit-code, which defaults to 0
+(Invokes {{exit-handler}}).
+
+Note that pending {{dynamic-wind}} thunks are ''not'' invoked when exiting your program in this way.
+
+
+=== exit-handler
+
+<parameter>(exit-handler)</parameter>
+
+A procedure of a single optional argument. When {{exit}} is called,
+then this procedure will be invoked with the exit-code as argument. The
+default behavior is to terminate the program.
+
+Note that this handler is ''not'' invoked when {{emergency-exit}} is
+used.
+
+
+=== implicit-exit-handler
+
+<parameter>(implicit-exit-handler)</parameter>
+
+A procedure of no arguments. When the last toplevel expression of the
+program has executed, then the value of this parameter is called. The
+default behaviour is to invoke all pending finalizers.
+
+
+==== on-exit
+
+<procedure>(on-exit THUNK)</procedure>
+
+Schedules the zero-argument procedures {{THUNK}} to be executed before
+the process exits, either explicitly via {{exit}} or implicitly after
+execution of the last top-level form. Note that finalizers for
+unreferenced finalized data are run before exit procedures.
+
+
+=== System interface
+
+
+==== sleep
+
+<procedure>(sleep SECONDS)</procedure>
+
+Puts the program to sleep for {{SECONDS}}. If the scheduler is loaded
+(for example when srfi-18 is in use) then only the calling thread is put
+to sleep and other threads may continue executing. Otherwise, the whole
+process is put to sleep.
+
+
+=== Ports
+
+==== String ports
+
+===== get-output-string
+
+<procedure>(get-output-string PORT)</procedure>
+
+Returns accumulated output of a port created with
+{{(open-output-string)}}.
+
+
+===== open-input-string
+
+<procedure>(open-input-string STRING)</procedure>
+
+Returns a port for reading from {{STRING}}.
+
+
+===== open-output-string
+
+<procedure>(open-output-string)</procedure>
+
+Returns a port for accumulating output in a string.
+
+
+=== File Input/Output
+
+==== flush-output
+
+<procedure>(flush-output [PORT])</procedure>
+
+Write buffered output to the given output-port. {{PORT}} defaults
+to the value of {{(current-output-port)}}.
+
+=== Port predicates
+
+==== input-port-open?
+
+<procedure>(input-port-open? PORT)</procedure>
+
+Is the given {{PORT}} open for input?
+
+<procedure>(output-port-open? PORT)</procedure>
+
+Is the given {{PORT}} open for output?
+
+==== port-closed?
+
+<procedure>(port-closed? PORT)</procedure>
+
+Is the given {{PORT}} closed (in all directions)?
+
+==== port?
+
+<procedure>(port? X)</procedure>
+
+Returns {{#t}} if {{X}} is a port object or {{#f}}
+otherwise.
+
+
+=== Built-in parameters
+
+Certain behavior of the interpreter and compiled programs can be
+customized via the following built-in parameters:
+
+==== case-sensitive
+
+<parameter>(case-sensitive)</parameter>
+
+If true, then {{read}} reads symbols and identifiers in
+case-sensitive mode and uppercase characters in symbols are printed
+escaped. Defaults to {{#t}}.
+
+
+==== keyword-style
+
+<parameter>(keyword-style)</parameter>
+
+Enables alternative keyword syntax, where {{STYLE}} may be either
+{{#:prefix}} (as in Common Lisp), which recognizes symbols beginning
+with a colon as keywords, or {{#:suffix}} (as in DSSSL), which recognizes
+symbols ending with a colon as keywords.
+Any other value disables the alternative syntaxes.  In the interpreter
+the default is {{#:suffix}}.
+
+
+==== parenthesis-synonyms
+
+<parameter>(parenthesis-synonyms)</parameter>
+
+If true, then the list delimiter synonyms {{#\[}} {{#\]}} and {{#\{}} {{#\}}} are enabled. Defaults to {{#t}}.
+
+
+==== symbol-escape
+
+<parameter>(symbol-escape)</parameter>
+
+If true, then the symbol escape {{#\|}} {{#\|}} is enabled. Defaults to {{#t}}.
+
+
+---
+Previous: [[Module srfi-4]]
+
+Next: [[Module (chicken bitwise)]]

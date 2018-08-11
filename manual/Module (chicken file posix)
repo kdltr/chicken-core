@@ -1,0 +1,643 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken file posix)
+
+This module provides various operations on files and directories that
+are more POSIX-oriented than the generic higher-level operations from
+[[Module (chicken file)]].
+
+Note that the following definitions are not all available on non-UNIX
+systems like Windows. See below for Windows specific notes.
+
+All errors related to failing file-operations will signal a condition
+of kind {{(exn i/o file)}}.
+
+=== Constants
+
+==== File-control Commands
+
+<constant>fcntl/dupfd</constant><br>
+<constant>fcntl/getfd</constant><br>
+<constant>fcntl/setfd</constant><br>
+<constant>fcntl/getfl</constant><br>
+<constant>fcntl/setfl</constant>
+
+Operations used with {{file-control}}.
+
+'''NOTE''': On native Windows builds (all except cygwin), these are
+all defined as zero.  The {{file-control}} procedure to use these with
+is also unimplemented and will raise an error when called.
+
+==== File positions
+
+<constant>seek/cur</constant><br>
+<constant>seek/set</constant><br>
+<constant>seek/end</constant><br>
+
+File positions for {{set-file-position!}}.
+
+==== Standard I/O file-descriptors
+
+<constant>fileno/stdin</constant><br>
+<constant>fileno/stdout</constant><br>
+<constant>fileno/stderr</constant>
+
+Standard I/O file descriptor numbers, used with procedures
+such as {{open-input-file*}} which take file descriptors.
+
+==== Open flags
+
+<constant>open/rdonly</constant><br>
+<constant>open/wronly</constant><br>
+<constant>open/rdwr</constant><br>
+<constant>open/read</constant><br>
+<constant>open/write</constant><br>
+<constant>open/creat</constant><br>
+<constant>open/append</constant><br>
+<constant>open/excl</constant><br>
+<constant>open/noctty</constant><br>
+<constant>open/nonblock</constant><br>
+<constant>open/trunc</constant><br>
+<constant>open/sync</constant><br>
+<constant>open/fsync</constant><br>
+<constant>open/binary</constant><br>
+<constant>open/text</constant>
+
+Open flags used with the {{file-open}} procedure.  {{open/read}} is a
+convenience synonym for {{open/rdonly}}, as is {{open/write}}
+for {{open/wronly}}.
+
+'''NOTE''': On native Windows builds (all except cygwin),
+{{open/noctty}}, {{open/nonblock}}, {{open/fsync}} and {{open/sync}}
+are defined as zero because the corresponding flag doesn't exist.
+This means you can safely add these to any set of flags when opening a
+file or pipe, but it simply won't have an effect.
+
+==== Open flags for create-pipe
+
+<constant>open/noinherit</constant>
+
+This variable is a mode value for {{create-pipe}}. Useful when
+spawning a child process on Windows.  On UNIX it is defined as zero,
+so you can safely pass it there, but it will have no effect.
+
+
+==== Permission bits
+
+<constant>perm/irusr</constant><br>
+<constant>perm/iwusr</constant><br>
+<constant>perm/ixusr</constant><br>
+<constant>perm/irgrp</constant><br>
+<constant>perm/iwgrp</constant><br>
+<constant>perm/ixgrp</constant><br>
+<constant>perm/iroth</constant><br>
+<constant>perm/iwoth</constant><br>
+<constant>perm/ixoth</constant><br>
+<constant>perm/irwxu</constant><br>
+<constant>perm/irwxg</constant><br>
+<constant>perm/irwxo</constant><br>
+<constant>perm/isvtx</constant><br>
+<constant>perm/isuid</constant><br>
+<constant>perm/isgid</constant>
+
+Permission bits used with, for example, {{file-open}}.
+
+'''NOTE''': On native Windows builds (all except cygwin),
+{{perm/isvtx}}, {{perm/isuid}} and {{perm/isgid}} are defined as zero
+because the corresponding permission doesn't exist.  This means you
+can safely add these to any set of flags when opening a file or pipe,
+but it simply won't have an effect.
+
+
+=== Information about files
+
+==== directory?
+
+<procedure>(directory? FILE)</procedure>
+
+Returns {{#t}} if {{FILE}} designates a directory. Otherwise, it returns {{#f}}.
+{{FILE}} may be a pathname, a file-descriptor or a port object.
+
+
+==== file-type
+
+<procedure>(file-type FILE [LINK [ERROR]])</procedure>
+
+Returns the file-type for {{FILE}}, which should be a filename, a file-descriptor
+or a port object. If {{LINK}} is given and true, symbolic-links are
+not followed:
+
+  regular-file
+  directory
+  fifo
+  socket
+  symbolic-link
+  character-device
+  block-device
+
+Note that not all types are supported on every platform.
+If {{ERROR}} is given and false, then {{file-type}} returns {{#f}} if the file does not exist;
+otherwise, it signals an error.
+
+==== character-device?
+==== block-device?
+==== socket?
+
+<procedure>(character-device? FILE)</procedure><br>
+<procedure>(block-device? FILE)</procedure><br>
+<procedure>(socket? FILE)</procedure>
+
+These procedures return {{#t}} if {{FILE}} given is of the
+appropriate type. {{FILE}} may be a filename, a file-descriptor or a port object.
+Note that these operations follow symbolic links. If the file does
+not exist, {{#f}} is returned.
+
+==== file-read-access?
+==== file-write-access?
+==== file-execute-access?
+
+<procedure>(file-read-access? FILENAME)</procedure><br>
+<procedure>(file-write-access? FILENAME)</procedure><br>
+<procedure>(file-execute-access? FILENAME)</procedure>
+
+These procedures return {{#t}} if the current user has read,
+write or execute permissions on the file named {{FILENAME}}.
+
+==== regular-file?
+
+<procedure>(regular-file? FILE)</procedure>
+
+Returns true, if {{FILE}} names a regular file (not a directory, socket, etc.)  This operation follows symbolic links; use either {{symbolic-link?}} or {{file-type}} if you need to test for symlinks. {{FILE}} may refer to a filename, file descriptor or ports object.
+
+
+=== Fifos
+
+==== create-fifo
+
+<procedure>(create-fifo FILENAME [MODE])</procedure>
+
+Creates a FIFO with the name {{FILENAME}} and the permission bits
+{{MODE}}, which defaults to
+
+<enscript highlight=scheme>
+ (+ perm/irwxu perm/irwxg perm/irwxo)
+</enscript>
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== fifo?
+
+<procedure>(fifo? FILE)</procedure>
+
+Returns {{#t}} if {{FILE}} names a FIFO. {{FILE}} may be a filename,
+a port or a file-descriptor.
+
+
+=== Retrieving file attributes
+
+==== file-access-time
+==== file-change-time
+==== file-modification-time
+<procedure>(file-access-time FILE)</procedure><br>
+<procedure>(file-change-time FILE)</procedure><br>
+<procedure>(file-modification-time FILE)</procedure>
+
+Returns time (in seconds) of the last access, inode change or content
+modification of {{FILE}}, respectively. {{FILE}} may be a filename, a
+file-descriptor or a file-backed port. If the file does not exist, an
+error is signaled.
+
+==== set-file-times!
+
+<procedure>(set-file-times! FILE [MTIME [ATIME]])</procedure>
+
+Sets the time of last modification {{MTIME}} and/or time of last
+access {{ATIME}} (in seconds) for {{FILE}}. {{FILE}} may be a
+filename, a file-descriptor or a file-backed port. If the file does
+not exist, an error is signaled.
+
+If neither {{MTIME}} nor {{ATIME}} is supplied, the current time is
+used.  If only {{MTIME}} is supplied, {{ATIME}} will be set to the
+same value.  If an argument is {{#f}}, it will not be changed.
+
+Consequently, if only {{MTIME}} is passed and it is {{#f}}, {{ATIME}}
+is assumed to be {{#f}} as well and neither will be changed.
+
+
+==== file-stat
+
+<procedure>(file-stat FILE [LINK])</procedure>
+
+Returns a 13-element vector with the following contents:
+
+<table>
+<tr><th>index</th>
+    <th>value</th>
+    <th>field</th>
+    <th>notes</th></tr>
+<tr><td>0</td>
+    <td>inode number</td>
+    <td>{{st_ino}}</td>
+    <td></td></tr>
+<tr><td>1</td>
+    <td>mode</td>
+    <td>{{st_mode}}</td>
+    <td>bitfield combining file permissions and file type</td></tr>
+<tr><td>2</td>
+    <td>number of hard links</td>
+    <td>{{st_nlink}}</td>
+    <td></td></tr>
+<tr><td>3</td>
+    <td>UID of owner</td>
+    <td>{{st_uid}}</td>
+    <td>as with {{file-owner}}</td></tr>
+<tr><td>4</td>
+    <td>GID of owner</td>
+    <td>{{st_gid}}</td>
+    <td></td></tr>
+<tr><td>5</td>
+    <td>size</td>
+    <td>{{st_size}}</td>
+    <td>as with {{file-size}}</td></tr>
+<tr><td>6</td>
+    <td>access time</td>
+    <td>{{st_atime}}</td>
+    <td>as with {{file-access-time}}</td></tr>
+<tr><td>7</td>
+    <td>change time</td>
+    <td>{{st_ctime}}</td>
+    <td>as with {{file-change-time}}</td></tr>
+<tr><td>8</td>
+    <td>modification time</td>
+    <td>{{st_mtime}}</td>
+    <td>as with {{file-modification-time}}</td></tr>
+<tr><td>9</td>
+    <td>parent device ID </td>
+    <td>{{st_dev}}</td>
+    <td>ID of device on which this file resides</td></tr>
+<tr><td>10</td>
+    <td>device ID</td>
+    <td>{{st_rdev}}</td>
+    <td>device ID for special files (i.e. the raw major/minor number)</td></tr>
+<tr><td>11</td>
+    <td>block size</td>
+    <td>{{st_blksize}}</td>
+    <td></td></tr>
+<tr><td>12</td>
+    <td>number of blocks allocated</td>
+    <td>{{st_blocks}}</td>
+    <td></td></tr>
+</table>
+
+On Windows systems, the last 4 values are undefined.
+
+By default, symbolic links are followed and
+the status of the referenced file is returned;
+however, if the optional argument {{LINK}} is given and
+not {{#f}}, the status of the link itself is returned.
+
+{{FILE}} may be a filename, port or file-descriptor.
+
+Note that for very large files, the {{file-size}} value may be an
+inexact integer.
+
+==== file-position
+
+<procedure>(file-position FILE)</procedure>
+
+Returns the current file position of {{FILE}}, which should be a
+port or a file-descriptor.
+
+==== file-size
+
+<procedure>(file-size FILE)</procedure>
+
+Returns the size of the file designated by {{FILE}}.  {{FILE}}
+may be a filename, a file-descriptor or a port object.  If the file does not exist,
+an error is signaled. Note that for very large files, {{file-size}} may
+return an inexact integer.
+
+==== file-owner
+
+<procedure>(file-owner FILE)</procedure>
+
+Returns the user-id of {{FILE}} (an exact integer).  {{FILE}} may be a
+filename, a file-descriptor or a port object.
+
+==== set-file-owner!
+
+<procedure>(set-file-owner! FILE UID)</procedure>
+<procedure>(set! (file-owner FILE) UID)</procedure>
+
+Changes the ownership of {{FILE}} to user-id {{UID}} (which should be
+an exact integer) using the {{chown()}} system call.  {{FILE}} may be
+a filename, a file-descriptor or a port object.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== file-group
+
+<procedure>(file-group FILE)</procedure>
+
+Returns the group-id of {{FILE}}.  {{FILE}} may be a filename, a
+file-descriptor or a port object.
+
+==== set-file-group!
+
+<procedure>(set-file-group! FILE GID)</procedure>
+<procedure>(set! (file-group FILE) GID)</procedure>
+
+Changes the group ownership of {{FILE}} to group-id {{GID}} (which
+should be an exact integer) using the {{chgrp()}} system call.
+{{FILE}} may be a filename, a file-descriptor or a port object.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+
+==== file-permissions
+
+<procedure>(file-permissions FILE)</procedure>
+
+Returns the permission bits for {{FILE}}. You can test this value
+by performing bitwise operations on the result and the {{perm/...}}
+values.  {{FILE}} may be a filename, a file-descriptor or a port object.
+
+==== set-file-permissions!
+
+<procedure>(set-file-permissions! FILE MODE)</procedure>
+<procedure>(set! (file-permissions FILE) MODE)</procedure>
+
+Changes the current permission bits for {{FILE}} to {{MODE}} using the
+{{chmod()}} system call.  The {{perm/...}} variables contain the
+various permission bits and can be combinded with the {{bitwise-ior}}
+procedure.  {{FILE}} may be a filename, a file-descriptor or a port
+object, {{MODE}} should be a fixnum.
+
+
+==== file-truncate
+
+<procedure>(file-truncate FILE OFFSET)</procedure>
+
+Truncates the file {{FILE}} to the length {{OFFSET}},
+which should be an integer. If the file-size is smaller or equal to
+{{OFFSET}} then nothing is done.  {{FILE}} should be a filename
+or a file-descriptor.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== set-file-position!
+
+<procedure>(set-file-position! FILE POSITION [WHENCE])</procedure><br>
+<procedure>(set! (file-position FILE) POSITION)</procedure>
+
+Sets the current read/write position of {{FILE}} to
+{{POSITION}}, which should be an exact integer. {{FILE}}
+should be a port or a file-descriptor.  {{WHENCE}} specifies
+how the position is to interpreted and should be one of the values
+{{seek/set, seek/cur}} and {{seek/end}}. It defaults to
+{{seek/set}}.
+
+Exceptions: {{(exn bounds)}}, {{(exn i/o file)}}
+
+
+==== file-creation-mode
+
+<procedure>(file-creation-mode [MODE])</procedure>
+
+Returns the initial file permissions used for newly created files
+(as with {{umask(2)}}).  If {{MODE}} is supplied, the mode is
+changed to this value.  You can set the mode by executing
+
+  (set! (file-creation-mode) MODE)
+
+or
+
+  (file-creation-mode MODE)
+
+where {{MODE}} is a bitwise combination of one or more of
+the {{perm/...}} flags.
+
+
+=== Hard and symbolic links
+
+==== file-link
+
+<procedure>(file-link OLDNAME NEWNAME)</procedure>
+
+Creates a hard link from {{OLDNAME}} to {{NEWNAME}} (both strings).
+
+
+==== symbolic-link?
+
+<procedure>(symbolic-link? FILE)</procedure>
+
+Returns true, if {{FILE}} names a symbolic link. If no such file exists, {{#f}}
+is returned.  This operation does not follow symbolic links itself.
+{{FILE}} could be a filename, file descriptor or port object.
+
+==== create-symbolic-link
+
+<procedure>(create-symbolic-link OLDNAME NEWNAME)</procedure>
+
+Creates a symbolic link with the filename {{NEWNAME}} that points
+to the file named {{OLDNAME}}.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== read-symbolic-link
+
+<procedure>(read-symbolic-link FILENAME [CANONICALIZE])</procedure>
+
+Returns the filename to which the symbolic link {{FILENAME}} points.
+If {{CANONICALIZE}} is given and true, then symbolic links are
+resolved repeatedly until the result is not a link.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+
+=== File descriptors and low-level I/O
+
+==== duplicate-fileno
+
+<procedure>(duplicate-fileno OLD [NEW])</procedure>
+
+If {{NEW}} is given, then the file-descriptor {{NEW}} is opened
+to access the file with the file-descriptor {{OLD}}. Otherwise a
+fresh file-descriptor accessing the same file as {{OLD}} is returned.
+
+==== file-close
+
+<procedure>(file-close FILENO)</procedure>
+
+Closes the input/output file with the file-descriptor {{FILENO}}.
+
+==== file-open
+
+<procedure>(file-open FILENAME FLAGS [MODE])</procedure>
+
+Opens the file specified with the string {{FILENAME}} and open-flags
+{{FLAGS}} using the C function {{open(2)}}. On success a
+file-descriptor for the opened file is returned.
+
+{{FLAGS}} is a bitmask of {{open/...}}
+values '''or'''ed together using {{bitwise-ior}} (or simply added
+together).  You must provide exactly one of the access flags {{open/rdonly}}, {{open/wronly}}, or {{open/rdwr}}.  Additionally, you may provide zero or more creation flags ({{open/creat}}, {{open/excl}}, {{open/trunc}}, and {{open/noctty}}) and status flags (the remaining {{open/...}} values).  For example, to open a possibly new output file for appending:
+
+ (file-open "/tmp/hen.txt" (+ open/wronly open/append open/creat))
+
+The optional {{MODE}} should be a bitmask composed of one
+or more permission values like {{perm/irusr}} and is only relevant
+when a new file is created. The default mode is
+{{perm/irwxu | perm/irgrp | perm/iroth}}.
+
+==== file-mkstemp
+
+<procedure>(file-mkstemp TEMPLATE-FILENAME)</procedure>
+
+Create a file based on the given {{TEMPLATE-FILENAME}}, in which
+the six last characters must be ''XXXXXX''.  These will be replaced
+with a string that makes the filename unique.  The file descriptor of
+the created file and the generated filename is returned.  See the
+{{mkstemp(3)}} manual page for details on how this function
+works.  The template string given is not modified.
+
+Example usage:
+
+<enscript highlight=scheme>
+ (let-values (((fd temp-path) (file-mkstemp "/tmp/mytemporary.XXXXXX")))
+  (let ((temp-port (open-output-file* fd)))
+    (format temp-port "This file is ~A.~%" temp-path)
+    (close-output-port temp-port)))
+</enscript>
+
+==== file-read
+
+<procedure>(file-read FILENO SIZE [BUFFER])</procedure>
+
+Reads {{SIZE}} bytes from the file with the file-descriptor
+{{FILENO}}.  If a string or bytevector is passed in the optional
+argument {{BUFFER}}, then this string will be destructively modified
+to contain the read data. This procedure returns a list with two values:
+the buffer containing the data and the number of bytes read.
+
+==== file-select
+
+<procedure>(file-select READFDLIST WRITEFDLIST [TIMEOUT])</procedure>
+
+Waits until any of the file-descriptors given in the lists
+{{READFDLIST}} and {{WRITEFDLIST}} is ready for input or
+output, respectively. If the optional argument {{TIMEOUT}} is
+given and not false, then it should specify the number of seconds after
+which the wait is to be aborted (the value may be a floating point
+number). This procedure returns two values:
+the lists of file-descriptors ready for input and output, respectively.
+{{READFDLIST}} and '''WRITEFDLIST''' may also by file-descriptors
+instead of lists.  In this case the returned values are booleans
+indicating whether input/output is ready by {{#t}} or {{#f}}
+otherwise.  You can also pass {{#f}} as {{READFDLIST}} or
+{{WRITEFDLIST}} argument, which is equivalent to {{()}}.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== file-write
+
+<procedure>(file-write FILENO BUFFER [SIZE])</procedure>
+
+Writes the contents of the string or bytevector {{BUFFER}} into
+the file with the file-descriptor {{FILENO}}. If the optional
+argument {{SIZE}} is given, then only the specified number of bytes
+are written.
+
+==== file-control
+
+<procedure>(file-control FILENO COMMAND [ARGUMENT])</procedure>
+
+Performs the fcntl operation {{COMMAND}} with the given
+{{FILENO}} and optional {{ARGUMENT}}. The return value is
+meaningful depending on the {{COMMAND}}.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== open-input-file*
+==== open-output-file*
+
+<procedure>(open-input-file* FILENO [OPENMODE])</procedure><br>
+<procedure>(open-output-file* FILENO [OPENMODE])</procedure>
+
+Opens file for the file-descriptor {{FILENO}} for input or output
+and returns a port.  {{FILENO}} should be a positive exact integer.
+{{OPENMODE}} specifies an additional mode for opening the file
+(currently only the keyword {{#:append}} is supported, which opens
+an output-file for appending).
+
+==== port->fileno
+
+<procedure>(port->fileno PORT)</procedure>
+
+If {{PORT}} is a file- or tcp-port, then a file-descriptor is returned for
+this port. Otherwise an error is signaled.
+
+
+=== Record locking
+
+These procedures are all unsupported on native Windows builds (all
+except cygwin).
+
+==== file-lock
+
+<procedure>(file-lock PORT [START [LEN]])</procedure>
+
+Locks the file associated with {{PORT}} for reading or
+writing (according to whether {{PORT}} is an input- or
+output-port). {{START}} specifies the starting position in the
+file to be locked and defaults to 0. {{LEN}} specifies the length
+of the portion to be locked and defaults to {{#t}}, which means
+the complete file. {{file-lock}} returns a ''lock''-object.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== file-lock/blocking
+
+<procedure>(file-lock/blocking PORT [START [LEN]])</procedure>
+
+Similar to {{file-lock}}, but if a lock is held on the file,
+the current process blocks (including all threads) until the lock is released.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== file-test-lock
+
+<procedure>(file-test-lock PORT [START [LEN]])</procedure>
+
+Tests whether the file associated with {{PORT}} is locked for reading
+or writing (according to whether {{PORT}} is an input- or output-port)
+and returns either {{#f}} or the process-id of the locking process.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== file-unlock
+
+<procedure>(file-unlock LOCK)</procedure>
+
+Unlocks the previously locked portion of a file given in {{LOCK}}.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+---
+Previous: [[Module (chicken file)]]
+
+Next: [[Module (chicken fixnum)]]
+

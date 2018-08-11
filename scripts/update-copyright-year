@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# Usage: update-copyright-year [YEAR]
+#
+
+YEAR=${1:-$(date +%Y)}
+PREV=$((YEAR - 1))
+
+git grep -Il '(c) [0-9-]*, The CHICKEN Team' | while read i
+do
+  sed -r "s/\\(c\\) (([0-9]+)-|($PREV))($PREV)?,/(c) \\2\\3-$YEAR,/" "$i" > tmp
+  mv tmp "$i"
+done

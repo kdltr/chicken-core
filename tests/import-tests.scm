@@ -1,8 +1,5 @@
 ;;;; import-tests.scm
 
-
-(require-library (srfi 4))
-
 (module m1 ()
 (import scheme (only srfi-4 u8vector?)) u8vector?)
 
@@ -11,7 +8,7 @@
  (handle-exceptions ex #t
    (eval '
 (module m2 ()
-(import scheme chicken (only (srfi 4) u8vector?))
+(import scheme (only (srfi 4) u8vector?))
 s8vector?)) #f))
 
 (module m3 ()
@@ -19,6 +16,6 @@ s8vector?)) #f))
 u8v?)
 
 (module m4 ()
-(import scheme chicken)
+(import scheme (chicken base))
 (require-extension (prefix (srfi 4) s4:))
 s4:f32vector)

@@ -6,5 +6,11 @@ Henry Baker: ''CONS Should Not CONS Its Arguments, Part II: Cheney on the M.T.A.
 
 ''Revised^5 Report on the Algorithmic Language Scheme'' [[http://www.schemers.org/Documents/Standards/R5RS]]
 
+R. P. Brent, P. Zimmermann: ''Modern Computer Arithmetic'' [[https://members.loria.fr/PZimmermann/mca/pub226.html]]
+
+William D. Clinger: ''Hygienic macros through explicit renaming'', Lisp Pointers. IV(4). December 1991
+[[ftp://ftp.cs.indiana.edu/pub/scheme-repository/doc/prop/exrename.ps.gz]].
+
+
 ---
 Previous: [[Acknowledgements]]
