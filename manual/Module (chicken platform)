@@ -44,13 +44,12 @@ a full version string is returned.
 
 <parameter>repository-path</parameter>
 
-Contains a string naming the paths to the extension repository, which 
-defaults to
-either the value of the environment variable {{CHICKEN_REPOSITORY_PATH}}
-or the default library path
-(usually {{/usr/local/lib/chicken}} on UNIX systems). If multiple
-directories are given, then they should be separated by {{:}}
-(or {{;}} on Windows.)
+Contains a list of strings naming the paths to the extension
+repository, which defaults to the value of the environment variable
+{{CHICKEN_REPOSITORY_PATH}}, split on {{:}} (or {{;}} on Windows).  If
+the environment variable is not set, it will be a list containing the
+default library path (usually {{/usr/local/lib/chicken}} on UNIX
+systems).
 
 ==== installation-repository
 

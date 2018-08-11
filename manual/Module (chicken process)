@@ -159,7 +159,7 @@ its standard error into a separate port).
 * The single parameter version passes the string {{COMMANDLINE}} to the host-system's shell that
 is invoked as a subprocess.
 * The multiple parameter version directly invokes the {{COMMAND}} as a subprocess. The {{ARGUMENT-LIST}}
-is directly passed, as is {{ENVIRONMENT-ALIST}}.
+is directly passed, as is {{ENVIRONMENT-ALIST}}. These arguments have the same form as the ones of {{process-execute}}.
 
 Not using the shell may be preferrable for security reasons.
 
@@ -171,7 +171,7 @@ waiting for it will necessarily block all executing threads.
 ==== process*
 
 <procedure>(process* COMMANDLINE)</procedure><br>
-<procedure>(process* COMMAND ARGUMENT-LIST [ENVIRONMENT-LIST])</procedure>
+<procedure>(process* COMMAND ARGUMENT-LIST [ENVIRONMENT-ALIST])</procedure>
 
 Like {{process}} but returns 4 values: an input port from
 which data written by the sub-process can be read, an output port from
