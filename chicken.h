@@ -3419,9 +3419,7 @@ inline static size_t C_strlcat(char *dst, const char *src, size_t sz)
  *     in a slash, since in this case MinGW's stat() will succeed but return a
  *     non-directory mode in buf.st_mode.
  */
-#ifndef __MINGW32__
-# define C_stat stat
-#else
+#if defined(__MINGW32__)
 inline static int C_stat(const char *path, struct stat *buf)
 {
   size_t len = C_strlen(path);
@@ -3448,6 +3446,29 @@ dircheck:
 
   return 0;
 }
+/*
+ * Haiku's stat() has a similar issue, where it will gladly succeed
+ * when given a path to a filename with a trailing slash.
+ */
+#elif defined(__HAIKU__)
+inline static int C_stat(const char *path, struct stat *buf)
+{
+  size_t len = C_strlen(path);
+  char slash = len && path[len - 1] == '/';
+
+  if(stat(path, buf) != 0) {
+    return -1;
+  }
+
+  if (slash && !S_ISDIR(buf->st_mode)) {
+    errno = ENOTDIR;
+    return -1;
+  }
+
+  return 0;
+}
+#else
+# define C_stat stat
 #endif
 
 /* Safe realpath usage depends on a reliable PATH_MAX. */
