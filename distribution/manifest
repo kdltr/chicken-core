@@ -227,14 +227,14 @@ tests/square-functor.scm
 tests/use-square-functor.scm
 tests/programs-path.scm
 tests/pp-test.scm
+tests/repository-path.scm
+tests/repository-path-default.scm
+tests/sample-module.scm
 tests/finalizer-error-test.scm
-tests/reverser/tags/1.0/reverser.meta
-tests/reverser/tags/1.0/reverser.setup
+tests/reverser/tags/1.0/reverser.egg
 tests/reverser/tags/1.0/reverser.scm
-tests/reverser/tags/1.1/reverser.meta
-tests/reverser/tags/1.1/reverser.setup
+tests/reverser/tags/1.1/reverser.egg
 tests/reverser/tags/1.1/reverser.scm
-tests/rev-app.scm
 tests/user-pass-tests.scm
 tests/version-tests.scm
 tests/messages-test.scm
@@ -351,8 +351,6 @@ chicken.time.import.scm
 chicken.time.import.c
 chicken.time.posix.import.scm
 chicken.time.posix.import.c
-chicken.type.import.scm
-chicken.type.import.c
 srfi-4.import.scm
 srfi-4.import.c
 chicken-status.scm
@@ -379,7 +377,6 @@ scripts/chicken-flymake.bat
 scripts/csc-trans
 scripts/compile-all
 scripts/compare-documentation-exports.scm
-scripts/reconstruct-egg-name.scm
 scripts/mini-salmonella.scm
 scripts/make-wrapper.scm
 scripts/makedist.scm

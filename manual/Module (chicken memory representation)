@@ -218,7 +218,7 @@ structure.
 <procedure>(object-become! ALIST)</procedure>
 
 Changes the identity of the value of the car of each pair in {{ALIST}}
-to the value of the cdr. Both values may not be immediate (i.e. exact
+to the value of the cdr. Neither value may be immediate (i.e. exact
 integers, characters, booleans or the empty list).
 
 <enscript highlight=scheme>

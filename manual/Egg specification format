@@ -16,7 +16,7 @@ A list of valid properties follows.
 
 ==== version
 
-[egg property] (version STRING)
+ [egg property] (version STRING)
 
 Specifies version string for this egg. {{STRING}} should have
 the format {{<MAJOR>.<MINOR>.<PATCHLEVEL>}}, where only the
@@ -29,39 +29,39 @@ local directories (see below) should explicitly specify a version.
 
 ==== synopsis
 
-[egg property] (synopsis STRING)
+ [egg property] (synopsis STRING)
 
 Gives a short description of this egg.
 
 ==== author
 
-[egg property] (author STRING)
+ [egg property] (author STRING)
 
 Names the author or authors of the contained code.
 
 ==== maintainer
 
-[egg property] (maintainer STRING)
+ [egg property] (maintainer STRING)
 
 Names the maintainer of this code, if different from author(s).
 
 ==== category
 
-[egg property] (category NAME)
+ [egg property] (category NAME)
 
 Gives the category under which this egg should be contained.
-See [[/chicken-projects/egg-index-5.html|the egg index]]
+See [[https://wiki.call-cc.org/chicken-projects/egg-index-5.html|the egg index]]
 for a list of currently used categories.
 
 ==== license
 
-[egg property] (license STRING)
+ [egg property] (license STRING)
 
 Names the license under which this code is available.
 
 ==== dependencies
 
-[egg property] (dependencies EGG ...)
+ [egg property] (dependencies EGG ...)
 
 Lists eggs that this egg depends on, and which should be
 built and installed if they do not already exist in the repository.
@@ -72,7 +72,7 @@ a specific version or higher.
 
 ==== test-dependencies
 
-[egg property] (test-dependencies EGG ...)
+ [egg property] (test-dependencies EGG ...)
 
 Lists eggs that are required for this egg to run the tests
 (if tests exist.) This only has an effect if the {{-test}}
@@ -80,7 +80,7 @@ option has been given to {{chicken-install}}.
 
 ==== build-dependencies
 
-[egg property] (build-dependencies EGG ...)
+ [egg property] (build-dependencies EGG ...)
 
 Lists eggs that are build-time dependencies for this egg,
 i.e. there are required to build, but not to run the contained
@@ -88,7 +88,7 @@ code. Currently this is treated identical to {{dependencies}}.
 
 ==== foreign-dependencies
 
-[egg property] (foreign-dependencies NAME ...)
+ [egg property] (foreign-dependencies NAME ...)
 
 Lists external dependencies like native code libraries
 or system-specific packages and is currently only used for
@@ -96,7 +96,7 @@ documentation purposes.
 
 ==== platform
 
-[egg property] (platform PLATFORM)
+ [egg property] (platform PLATFORM)
 
 Specifies for which platform this egg is intended. {{PLATFORM}}
 should be a symbol naming the target platform ({{windows}}, {{linux}}
@@ -107,7 +107,7 @@ egg will abort.
 
 ==== components
 
-[egg property] (components COMPONENT ...)
+ [egg property] (components COMPONENT ...)
 
 Lists components (extensions, programs, include- or data files)
 that this extension installs. See below for information on how
@@ -115,7 +115,7 @@ to specify component-specific information.
 
 ==== host
 
-[egg property] (host PROP ...)
+ [egg property] (host PROP ...)
 
 Recursively process {{PROP ...}}, but only for the host (build)
 platform, in case this is a "cross-chicken", a CHICKEN installation
@@ -123,7 +123,7 @@ intended for cross compilation.
 
 ==== target
 
-[egg property] (target PROP ...)
+ [egg property] (target PROP ...)
 
 Recursively process {{PROP ...}}, but only for the target
 platform, in case this is a "cross-chicken", a CHICKEN installation
@@ -136,11 +136,11 @@ intended for cross compilation.
 Specifies global options for all programs and extensions compiled for this egg.
 {{OPTIONSPEC}} may be {{csc-options}} or {{link-options}} specifications.
 
-==== Components
+=== Components
 
 ==== extension
 
-[egg property] (extension NAME PROP ...)
+ [egg property] (extension NAME PROP ...)
 
 Specifies an extension library component. The properties
 {{PROP...}} are processed recursively and apply only to this
@@ -148,40 +148,40 @@ component.
 
 ==== data
 
-[egg property] (data NAME PROP ...)
+ [egg property] (data NAME PROP ...)
 
 Specifies one or more arbitrary data files.
 
 ==== generated-source-file
 
-[egg property] (generated-source-file NAME PROP ...)
+ [egg property] (generated-source-file NAME PROP ...)
 
 Specifies a file that is generated during the process of building
 the egg.
 
 ==== c-include
 
-[egg property] (c-include NAME PROP ...)
+ [egg property] (c-include NAME PROP ...)
 
 Specifies one or more C include files.
 
 ==== scheme-include
 
-[egg property] (scheme-include NAME PROP ...)
+ [egg property] (scheme-include NAME PROP ...)
 
 Specifies one or more Scheme include files.
 
 ==== program
 
-[egg property] (program NAME PROP ...)
+ [egg property] (program NAME PROP ...)
 
 Specifies an executable program.
 
-==== Component properties
+=== Component properties
 
 ==== host
 
-[egg property] (host PROP ...)
+ [egg property] (host PROP ...)
 
 Process {{PROP ...}} recursively for the current component, but
 apply the properties only to the host (build) part, when using
@@ -189,7 +189,7 @@ a CHICKEN installation intended for cross-compilation.
 
 ==== target
 
-[egg property] (target PROP ...)
+ [egg property] (target PROP ...)
 
 Process {{PROP ...}} recursively for the current component, but
 apply the properties only to the target part, when using
@@ -197,7 +197,7 @@ a CHICKEN installation intended for cross-compilation.
 
 ==== linkage
 
-[egg property] (linkage LINKAGE)
+ [egg property] (linkage LINKAGE)
 
 Define whether the component should be linked dynamically or
 statically. {{LINKAGE}} can be {{static}} or {{dynamic}}. This
@@ -205,7 +205,7 @@ property only makes sense for extension libraries.
 
 ==== types-file
 
-[egg property] (types-file [NAME])
+ [egg property] (types-file [NAME])
 
 Specifies that a "type-database" file should be generated and
 installed for this component. This property is only used for
@@ -218,7 +218,7 @@ for this extension is assumed and installed.
 
 ==== inline-file
 
-[egg property] (inline-file [NAME])
+ [egg property] (inline-file [NAME])
 
 Specifies that an "inline" file should be generated and installed
 for this component. This property is only used for extension
@@ -227,7 +227,7 @@ name of the extensions (with the proper extension).
 
 ==== custom-build
 
-[egg property] (custom-build STRING)
+ [egg property] (custom-build STRING)
 
 Specifies a custom build operation that should be executed instead of
 the default build operations. This property is mandatory for
@@ -252,7 +252,7 @@ are set in the execution environment of the script:
 
 ==== csc-options
 
-[egg property] (csc-options OPTION ...)
+ [egg property] (csc-options OPTION ...)
 
 Specifies additional compiler options for {{csc}} that should be
 used when building this component. If this property is not
@@ -267,7 +267,7 @@ as {{(csc-options "OPT1" "OPT2" ...)}} instead of {{(csc-options "OPT1 OPT2")}}
 
 ==== link-options
 
-[egg property] (link-options OPTION ...)
+ [egg property] (link-options OPTION ...)
 
 Specifies additional link options for {{csc}} that should be
 used when building this component.
@@ -279,7 +279,7 @@ as {{(link-options "OPT1" "OPT2" ...)}} instead of {{(link-options "OPT1 OPT2")}
 
 ==== source
 
-[egg property] (source NAME)
+ [egg property] (source NAME)
 
 Specifies an alternative source file, in case it has a name
 distinct from the component name. By default the source file
@@ -288,7 +288,7 @@ extension added.
 
 ==== install-name
 
-[egg property] (install-name NAME)
+ [egg property] (install-name NAME)
 
 Specifies an alternative installation name of the component,
 if it differs from the actual component name. This property
@@ -298,7 +298,7 @@ build time.
 
 ==== component-dependencies
 
-[egg property] (component-dependencies NAME ...)
+ [egg property] (component-dependencies NAME ...)
 
 Specifies dependencies to other components. {{NAME ...}} must
 be the names of extension, program, scheme-include- or generated source file
@@ -306,7 +306,7 @@ components that should be built before the current component.
 
 ==== source-dependencies
 
-[egg property] (source-dependencies NAME ...)
+ [egg property] (source-dependencies NAME ...)
 
 Specifies dependencies to additional source files. {{NAME ...}} must
 denote filenames of which the program or extension depends.
@@ -315,7 +315,7 @@ and on the egg-specification file.
 
 ==== destination
 
-[egg property] (destination NAME)
+ [egg property] (destination NAME)
 
 Specifies an alternative installation destination for the
 built component and only applies
@@ -332,14 +332,14 @@ locations, which are:
 
 ==== files
 
-[egg property] (files NAME ...)
+ [egg property] (files NAME ...)
 
 Specifies source files for this component and only applies
 to components of type {{data}}, {{c-include}} and {{scheme-include}}.
 
 ==== modules
 
-[egg property] (modules NAME ...)
+ [egg property] (modules NAME ...)
 
 Specifies modules that the component (usually an extension) contains.
 {{chicken-install}} will compile and install all import libraries for the given modules.
