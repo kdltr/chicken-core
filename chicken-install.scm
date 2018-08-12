@@ -1104,7 +1104,7 @@ EOF
                   ((equal? arg "-target")
                    (set! host-extension #f)
                    (loop (cdr args)))
-                  ((equal? arg "-update-db")
+                  ((member arg '("-u" "-update-db"))
                    (set! update-module-db #t)
                    (loop (cdr args)))
                   ((equal? arg "-no-install-deps")
