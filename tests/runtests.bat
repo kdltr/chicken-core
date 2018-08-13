@@ -27,17 +27,20 @@ rmdir /q /s %CHICKEN_INSTALL_REPOSITORY%
 mkdir %CHICKEN_INSTALL_REPOSITORY%
 copy %TYPESDB% %CHICKEN_INSTALL_REPOSITORY%
 
-echo "======================================== repository search path ..."
+echo ======================================== repository search path ...
 setlocal
 set "CHICKEN_REPOSITORY_PATH="
 %interpret% -s repository-path-default.scm
+if errorlevel 1 exit /b 1
 endlocal
 %compile_s% sample-module.scm -j sample-module
+if errorlevel 1 exit /b 1
 copy sample-module.so %CHICKEN_INSTALL_REPOSITORY%
 copy sample-module.import.scm %CHICKEN_INSTALL_REPOSITORY%
-$interpret -s repository-path.scm "%TEST_DIR%\.." "%TEST_DIR%/test-repository"
+%interpret% -s repository-path.scm "%TEST_DIR%\.." "%TEST_DIR%\test-repository"
+if errorlevel 1 exit /b 1
 
-echo "======================================== types.db consistency ..."
+echo ======================================== types.db consistency ...
 %interpret% -s types-db-consistency.scm %TYPESDB%
 if errorlevel 1 exit /b 1
 
