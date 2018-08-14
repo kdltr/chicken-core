@@ -159,6 +159,7 @@ tests/test-glob.scm
 tests/matchable.scm
 tests/module-tests.scm
 tests/module-static-eval-compiled.scm
+tests/module-static-link.scm
 tests/module-tests-2.scm
 tests/multiple-values.scm
 tests/test-finalizers.scm

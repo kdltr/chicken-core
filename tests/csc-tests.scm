@@ -2,6 +2,7 @@
 
 (import (chicken file)
         (chicken pathname)
+        (chicken platform)
         (chicken process)
         (chicken process-context)
         (chicken string))
@@ -20,8 +21,10 @@
 (csc "null.scm" "-t")
 (assert (file-exists? "null.c"))
 
-(csc "null.c" "-c")
-(assert (file-exists? "null.o"))
+(define obj-file (if (eq? (software-type) 'windows) "null.obj" "null.o"))
 
-(csc "null.o")
+(csc "null.c" "-c")
+(assert (file-exists? obj-file))
+
+(csc obj-file)
 (run "null")
