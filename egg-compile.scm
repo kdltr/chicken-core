@@ -69,7 +69,7 @@
 (define (copy-directory-command platform)
   (case platform
     ((unix) "cp -r")
-    ((windows) "xcopy /y /i")))
+    ((windows) "xcopy /y /i /e")))
 
 (define (mkdir-command platform)
   (case platform
