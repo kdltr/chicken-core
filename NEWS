@@ -91,6 +91,8 @@
   - `read-file` has been renamed to `read-list`.
   - `read-all` was dropped, as `read-string` with #f as its NUM argument
      is equivalent.
+  - `read-lines` and `read-all` no longer accept a string naming a file,
+     only ports.
   - The procedures for random numbers have been reimplemented;
     access to system-specific entropy is available, together with a reasonably
     good pseudo random number generator (WELL512).
