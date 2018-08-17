@@ -347,6 +347,8 @@ $interpret -s port-tests.scm
 echo "======================================== fixnum tests ..."
 $compile fixnum-tests.scm
 ./a.out
+$compile -unsafe fixnum-tests.scm
+./a.out
 
 echo "======================================== random number tests ..."
 $interpret -s random-tests.scm

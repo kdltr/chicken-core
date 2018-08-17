@@ -1164,7 +1164,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_u_fixnum_difference(n1, n2)   ((n1) - (n2) + C_FIXNUM_BIT)
 #define C_fixnum_difference(n1, n2)     (C_u_fixnum_difference(n1, n2) | C_FIXNUM_BIT)
 #define C_u_fixnum_divide(n1, n2)       (C_fix(C_unfix(n1) / C_unfix(n2)))
-#define C_u_fixnum_modulo(n1, n2)       (C_fix(C_unfix(n1) % C_unfix(n2)))
 #define C_u_fixnum_and(n1, n2)          ((n1) & (n2))
 #define C_fixnum_and(n1, n2)            (C_u_fixnum_and(n1, n2) | C_FIXNUM_BIT)
 #define C_u_fixnum_or(n1, n2)           ((n1) | (n2))
@@ -2835,15 +2834,21 @@ inline static C_word C_fixnum_divide(C_word x, C_word y)
 }
 
 
+inline static C_word C_u_fixnum_modulo(C_word x, C_word y)
+{
+  y = C_unfix(y);
+  x = C_unfix(x) % y;
+  if ((y < 0 && x > 0) || (y > 0 && x < 0)) x += y;
+  return C_fix(x);
+}
+
+
 inline static C_word C_fixnum_modulo(C_word x, C_word y)
 {
   if(y == C_fix(0)) {
     C_div_by_zero_error(C_text("fxmod"));
   } else {
-    y = C_unfix(y);
-    x = C_unfix(x) % y;
-    if ((y < 0 && x > 0) || (y > 0 && x < 0)) x += y;
-    return C_fix(x);
+    return C_u_fixnum_modulo(x,y);
   }
 }
 

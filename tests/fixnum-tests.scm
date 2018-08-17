@@ -1,7 +1,18 @@
-(import (chicken platform))
+(import (chicken platform)
+	(chicken fixnum))
 
 (define (fxo+ x y) (##core#inline "C_i_o_fixnum_plus" x y))
 (define (fxo- x y) (##core#inline "C_i_o_fixnum_difference" x y))
+
+(define-syntax assert
+  ;; compiling with -unsafe disables the original assert
+  (ir-macro-transformer
+   (lambda (e inj cmp)
+     (apply
+      (lambda (f)
+	`(if (not ,f)
+	     (error "assert" ',f)))
+      (cdr e)))))
 
 (assert (= 4 (fxo+ 2 2)))
 (assert (= -26 (fxo+ 74 -100)))
@@ -21,3 +32,5 @@
  (if (feature? #:64bit)
      (not (fxo- (- #x3fffffffffffffff) 2))
      (not (fxo- (- #x3fffffff) 2))))
+
+(assert (= (modulo -3 4) (fxmod -3 4)))

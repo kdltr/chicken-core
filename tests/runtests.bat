@@ -445,6 +445,10 @@ echo ======================================== fixnum tests ...
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
+%compile% -unsafe fixnum-tests.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
 
 echo"======================================== random number tests ...
 %interpret% -s random-tests.scm
