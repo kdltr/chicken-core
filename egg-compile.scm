@@ -921,7 +921,8 @@ EOF
   (make-pathname dir (->string name)))
 
 (define (quotearg str)
-  (let ((lst (string->list str)))
+  (let* ((str (->string str))
+         (lst (string->list (->string str))))
     (if (any char-whitespace? lst)
         (string-append "\"" str "\"")
         str)))
