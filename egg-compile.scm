@@ -922,7 +922,7 @@ EOF
 
 (define (quotearg str)
   (let* ((str (->string str))
-         (lst (string->list (->string str))))
+         (lst (string->list str)))
     (if (any char-whitespace? lst)
         (string-append "\"" str "\"")
         str)))
