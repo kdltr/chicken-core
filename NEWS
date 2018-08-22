@@ -109,6 +109,9 @@
   - `repository-path` is now a parameter containing a list of strings instead
     of a string, as the search path for libraries can now contain multiple
     directories.
+  - `file-read-access?`, `file-write-access?` and `file-execute-access?` have
+    been renamed `file-readable?`, `file-writable?` and `file-executable?`
+    into the (chicken file) module.
 
 - Module system
   - The compiler has been modularised, for improved namespacing.  This
