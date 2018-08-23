@@ -2132,6 +2132,18 @@
 	(else t)))
 
 
+;;; Drop namespace from module-prefixed symbol:
+
+(define (strip-namespace sym)
+  (let* ((s (symbol->string sym))
+	 (n (string-length s)))
+    (let loop ((i 0))
+      (cond ((eq? i n) sym)
+	    ((eq? (##core#inline "C_subchar" s i) #\#)
+	     (##sys#intern-symbol (##sys#substring s (fx+ i 1) n)))
+	    (else (loop (fx+ i 1)))))))
+
+
 ;;; hardcoded result types for certain primitives
 
 (define-syntax define-special-case
@@ -2151,7 +2163,7 @@
           ;;    "pointer-vector" type.
           (if (eq? 'pointer-vector val)
               '(pointer-vector)
-              `((struct ,val))))
+              `((struct ,(strip-namespace val)))))
 	rtypes)))
 
 (let ()

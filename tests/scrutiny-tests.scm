@@ -144,6 +144,12 @@
   (define-type footype string)
   (the footype "bar"))
 
+;; Record type tags with module namespaces should not warn (#1513)
+(module foo *
+  (import (scheme) (chicken base) (chicken type))
+  (: make-foo (string --> (struct foo)))
+  (define-record foo bar))
+
 (: deprecated-procedure deprecated)
 (define (deprecated-procedure x) (+ x x))
 (deprecated-procedure 1)
