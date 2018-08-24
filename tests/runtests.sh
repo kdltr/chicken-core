@@ -63,10 +63,7 @@ mkdir -p test-repository
 cp $TYPESDB test-repository/types.db
 
 echo "======================================== repository search path ..."
-export -p >./env.out
-unset CHICKEN_REPOSITORY_PATH
-$interpret -s repository-path-default.scm
-. ./env.out
+env -u CHICKEN_REPOSITORY_PATH $interpret -s repository-path-default.scm
 $compile_s sample-module.scm -j sample-module
 cp sample-module.so $CHICKEN_INSTALL_REPOSITORY
 cp sample-module.import.scm $CHICKEN_INSTALL_REPOSITORY
