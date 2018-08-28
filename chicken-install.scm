@@ -80,6 +80,7 @@
 (define retrieve-recursive #f)
 (define do-not-build #f)
 (define no-install #f)
+(define no-install-dependencies #f)
 (define list-versions-only #f)
 (define canonical-eggs '())
 (define requested-eggs '())
@@ -95,7 +96,6 @@
 (define purge-mode #f)
 (define keepfiles #f)
 (define print-repository #f)
-(define no-deps #f)
 (define cached-only #f)
   
 (define platform
@@ -824,7 +824,7 @@
                     (else
                       (print "building " name)
                       (run-script dir bscript platform)
-                      (unless (if (member name requested-eggs) no-install no-deps)
+                      (unless (if (member name requested-eggs) no-install no-install-dependencies)
                         (print "  installing " name)
                         (run-script dir iscript platform sudo: sudo-install))
                       (when (and (member name requested-eggs)
@@ -854,7 +854,7 @@
                     (else
                       (print "building " name " (target)")
                       (run-script dir bscript platform)
-                      (unless (if (member name requested-eggs) no-install no-deps)
+                      (unless (if (member name requested-eggs) no-install no-install-dependencies)
                         (print "  installing " name " (target)")
                         (run-script dir iscript platform)))))))))
     (order-installed-eggs)))
@@ -1027,7 +1027,7 @@ usage: chicken-install [OPTION ...] [NAME[:VERSION] ...]
                                 build & install scripts
        -list-versions           list available versions for given eggs (HTTP transport only)
   -n   -no-install              do not install, just build
-       -no-install-deps         do not install dependencies
+       -no-install-dependencies do not install dependencies
        -purge                   remove cached files for given eggs (or purge cache completely)
        -host                    when cross-compiling, compile extension only for host
        -target                  when cross-compiling, compile extension only for target
@@ -1097,8 +1097,8 @@ EOF
                   ((member arg '("-u" "-update-db"))
                    (set! update-module-db #t)
                    (loop (cdr args)))
-                  ((equal? arg "-no-install-deps")
-                   (set! no-deps #t)
+                  ((equal? arg "-no-install-dependencies")
+                   (set! no-install-dependencies #t)
                    (loop (cdr args)))
                   ((equal? arg "-dry-run")
                    (set! do-not-build #t)
