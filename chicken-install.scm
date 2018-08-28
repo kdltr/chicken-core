@@ -82,7 +82,7 @@
 (define no-install #f)
 (define list-versions-only #f)
 (define canonical-eggs '())
-(define tested-eggs '())
+(define requested-eggs '())
 (define dependencies '())
 (define checked-eggs '())
 (define run-tests #f)
@@ -632,21 +632,15 @@
       canonical-eggs)))
 
 (define (outdated-dependencies egg info)
-  (if no-deps
-      (values '() '())
-      (let ((ds (get-egg-dependencies info)))
-        (for-each
-          (lambda (h) (set! ds (h egg ds)))
-          hacks)
-        (let loop ((deps ds) (missing '()) (upgrade '()))
-          (if (null? deps)
-              (values (reverse missing) (reverse upgrade))
-              (let ((dep (car deps))
-                    (rest (cdr deps)))
-                (let-values (((m u) (check-dependency dep)))
-                  (loop rest
-                        (if m (cons m missing) missing)
-                        (if u (cons u upgrade) upgrade)))))))))
+  (let ((ds (get-egg-dependencies info)))
+    (for-each (lambda (h) (set! ds (h egg ds))) hacks)
+    (let loop ((deps ds) (missing '()) (upgrade '()))
+      (if (null? deps)
+          (values (reverse missing) (reverse upgrade))
+          (let-values (((m u) (check-dependency (car deps))))
+            (loop (cdr deps)
+                  (if m (cons m missing) missing)
+                  (if u (cons u upgrade) upgrade)))))))
 
 (define (get-egg-dependencies info)
   (append (get-egg-property* info 'dependencies '())
@@ -830,10 +824,11 @@
                     (else
                       (print "building " name)
                       (run-script dir bscript platform)
-                      (unless no-install
+                      (unless (if (member name requested-eggs) no-install no-deps)
                         (print "  installing " name)
                         (run-script dir iscript platform sudo: sudo-install))
-                      (when (and (member name tested-eggs)
+                      (when (and (member name requested-eggs)
+                                 run-tests
                                  (not (test-egg egg platform)))
                         (exit 2)))))))
         (when target-extension
@@ -859,7 +854,7 @@
                     (else
                       (print "building " name " (target)")
                       (run-script dir bscript platform)
-                      (unless no-install
+                      (unless (if (member name requested-eggs) no-install no-deps)
                         (print "  installing " name " (target)")
                         (run-script dir iscript platform)))))))))
     (order-installed-eggs)))
@@ -1005,16 +1000,14 @@
                  (map (lambda (fname)
                         (list (pathname-file fname) (current-directory) #f))
                    files))
-               (when run-tests
-                 (set! tested-eggs (map car canonical-eggs)))
+               (set! requested-eggs (map car canonical-eggs))
                (retrieve-eggs '())
                (unless retrieve-only (install-eggs)))))
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
                   (else 
-                    (when run-tests
-                      (set! tested-eggs (map (o car canonical) eggs)))
+                    (set! requested-eggs (map (o car canonical) eggs))
                     (retrieve-eggs eggs)
                     (unless retrieve-only (install-eggs))))))))
   
