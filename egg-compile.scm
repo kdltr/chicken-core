@@ -768,15 +768,12 @@
     (print cmd " " out " " ddir destf)
     (print-end-command platform)))
 
-(define ((install-data name #!key files destination mode) 
-         srcdir platform)
+(define (install-random-files dest files mode srcdir platform)
   (let* ((fcmd (install-file-command platform))
          (dcmd (copy-directory-command platform))
+         (root (string-append srcdir "/"))
          (mkdir (mkdir-command platform))
          (sfiles (map (cut prefix srcdir <>) files))
-         (dest (or destination (if (eq? mode 'target)
-                                   default-sharedir 
-                                   (override-prefix "/share" host-sharedir))))
          (dfile (quotearg (slashify dest platform)))
          (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
                                    platform))))
@@ -784,26 +781,55 @@
     (let-values (((ds fs) (partition directory? sfiles)))
       (for-each
        (lambda (d)
-         (print dcmd " " (quotearg (slashify d platform)) " " ddir dfile)
-	 (print-end-command platform))
+         (let* ((ds (strip-dir-prefix srcdir d))
+                (fdir (pathname-directory ds)))
+           (when fdir
+             (print mkdir " " ddir
+                    (slashify (make-pathname dfile fdir)
+                              platform)))
+           (print dcmd " " (quotearg (slashify d platform))
+                  " " ddir
+                  (if fdir
+                      (slashify (make-pathname dfile fdir)
+                                platform)
+                      dfile))
+           (print-end-command platform)))
        ds)
       (when (pair? fs)
-        (print fcmd (arglist fs) " " ddir dfile)
-	(print-end-command platform)))))
+        (for-each
+          (lambda (f)
+            (let* ((fs (strip-dir-prefix srcdir f))
+                   (fdir (pathname-directory fs)))
+              (when fdir
+                (print mkdir " " ddir
+                       (slashify (make-pathname dfile fdir)
+                                 platform)))
+              (print fcmd " " (quotearg (slashify f platform))
+                     " " ddir
+                     (if fdir
+                         (slashify (make-pathname dfile fdir)
+                                   platform)
+                         dfile)))
+            (print-end-command platform))
+          fs)))))
+
+(define ((install-data name #!key files destination mode)
+         srcdir platform)
+  (install-random-files (or destination
+                            (if (eq? mode 'target)
+                                default-sharedir
+                                (override-prefix "/share"
+                                                 host-sharedir)))
+                        files mode srcdir platform))
 
 (define ((install-c-include name #!key deps files destination mode) 
          srcdir platform)
-  (let* ((cmd (install-file-command platform))
-         (mkdir (mkdir-command platform))
-         (dest (or destination (if (eq? mode 'target) 
-                                   default-incdir 
-                                   (override-prefix "/include" host-incdir))))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform))))
-    (print "\n" mkdir " " ddir dfile)
-    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir dfile)
-    (print-end-command platform)))
+  (install-random-files (or destination
+                            (if (eq? mode 'target)
+                                default-incdir
+                                (override-prefix "/include"
+                                                 host-incdir)))
+                        files mode srcdir platform))
 
 
 ;;; Generate shell or batch commands from abstract build/install operations
@@ -962,3 +988,9 @@ EOF
 (define (print-end-command platform)
   (case platform
     ((windows) (print "if errorlevel 1 exit /b 1"))))
+
+(define (strip-dir-prefix prefix fname)
+  (let* ((plen (string-length prefix))
+         (p1 (substring fname 0 plen)))
+    (assert (string=? prefix p1) "wrong prefix")
+    (substring fname (add1 plen))))

@@ -336,6 +336,8 @@ locations, which are:
 
 Specifies source files for this component and only applies
 to components of type {{data}}, {{c-include}} and {{scheme-include}}.
+Both files and directories may be given and parent directories
+are created as needed.
 
 ==== modules
 
