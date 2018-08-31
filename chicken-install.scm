@@ -42,6 +42,7 @@
 (import (chicken tcp))
 (import (chicken port))
 (import (chicken platform))
+(import (chicken internal))
 (import (chicken io))
 (import (chicken sort))
 (import (chicken time))

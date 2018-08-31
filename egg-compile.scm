@@ -310,7 +310,7 @@
         ((install-name)
          (set! oname (->string (arg info 1 name?))))
         ((modules)
-         (set! mods (map ->string (cdr info))))
+         (set! mods (map library-id (cdr info))))
         ((component-dependencies)
          (set! cdeps (append cdeps (map ->dep (cdr info)))))
         ((source-dependencies)
