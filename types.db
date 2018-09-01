@@ -2058,7 +2058,7 @@
 (chicken.process#process-execute
  (#(procedure #:clean #:enforce) chicken.process#process-execute (string #!optional (list-of string) (list-of (pair string string)) fixnum) noreturn))
 (chicken.process#process-fork (#(procedure #:enforce) chicken.process#process-fork (#!optional (or (procedure () . *) false) *) fixnum))
-(chicken.process#qs (#(procedure #:clean #:enforce) chicken.process#qs (string) string))
+(chicken.process#qs (#(procedure #:clean #:enforce) chicken.process#qs (string #!optional symbol) string))
 (chicken.process#process-run (#(procedure #:clean #:enforce) chicken.process#process-run (string #!optional (list-of string)) fixnum))
 (chicken.process#process-signal (#(procedure #:clean #:enforce) chicken.process#process-signal (fixnum #!optional fixnum) undefined))
 (chicken.process#process-spawn
