@@ -258,12 +258,12 @@
    (cond (elf
 	  (list
 	   (conc "-L" library-dir)
-	   (conc " -Wl,-R"
+	   (conc "-Wl,-R"
 		 (if deployed
-		     "\\$ORIGIN"
-		     (quotewrap (if host-mode
-                                    host-libdir
-		   		    TARGET_RUN_LIB_HOME))))))
+		     "$ORIGIN"
+		     (if host-mode
+			 host-libdir
+			 TARGET_RUN_LIB_HOME)))))
 	 (aix
 	  (list (conc "-Wl,-R\"" library-dir "\"")))
 	 (else
@@ -1005,7 +1005,8 @@ EOF
 
 (define (linker-options)
   (string-intersperse
-    (append linking-optimization-options link-options)))
+   (map quote-option
+	(append linking-optimization-options link-options) ) ) )
 
 (define (linker-libraries)
   (string-intersperse

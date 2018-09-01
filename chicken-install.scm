@@ -498,14 +498,13 @@
 
 (define (copy-egg-sources from to)
   ;;XXX should probably be done manually, instead of calling tool
-  (let ((cmd (quote-all
-               (string-append
-                 (copy-directory-command platform)
-                 " " (quotearg (slashify (make-pathname from "*") platform))
-                 " " (quotearg (slashify to platform)))
-               platform)))
+  (let ((cmd (string-append
+	      (copy-directory-command platform)
+	      ;; Don't quote the globbing character!
+	      " " (make-pathname (qs* from platform #t) "*")
+	      " " (qs* to platform #t))))
     (d "~a~%" cmd)
-    (system cmd)))
+    (system+ cmd platform)))
   
 (define (check-remote-version name lversion cached)
   (let loop ((locs default-locations))
@@ -882,10 +881,13 @@
     (if (and (directory-exists? testdir)
              (file-exists? tscript))
         (let ((old (current-directory))
-              (cmd (string-append default-csi " -s " tscript " " name " " (or version ""))))
+              (cmd (string-append (qs* default-csi platform)
+				  " -s " (qs* tscript platform)
+				  " " (qs* name platform)
+				  " " (or version ""))))
           (change-directory testdir)
 	  (d "running: ~a~%" cmd)
-          (let ((r (system cmd)))
+          (let ((r (system+ cmd platform)))
             (flush-output (current-error-port))
             (cond ((zero? r) 
                    (change-directory old)
@@ -907,21 +909,15 @@
                               (get-environment-variable "DYLD_LIBRARY_PATH"))))
                (if dyld
                    (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
-                                  (qs dyld)
+                                  (qs* dyld platform)
                                   " ")
                    ""))
              "sh " script))
         stop))
 
-(define (write-info name info mode)
-  (d "writing info for egg ~a~%" name info)
-  (let ((infofile (make-pathname name (destination-repository mode))))
-    (when (eq? platform 'unix)
-      (exec (string-append "chmod a+r " (quotearg infofile))))))
-
 (define (exec cmd #!optional (stop #t))
   (d "executing: ~s~%" cmd)
-  (let ((r (system cmd)))
+  (let ((r (system+ cmd platform)))
     (unless (zero? r)
       (if stop
           (error "shell command terminated with nonzero exit code" r cmd)
