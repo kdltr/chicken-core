@@ -106,9 +106,9 @@ If the expression can not be satisfied, then installation of this
 egg will abort.
 les
 
-===== files
+===== distribution-files
 
- [egg property] (files FILE ...)
+ [egg property] (distribution-files FILE ...)
 
 List of files required for the installation of the egg.  This
 form is not handled by chicken-install, but by henrietta-cache to
