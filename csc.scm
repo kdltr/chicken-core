@@ -529,9 +529,10 @@ EOF
     (set! translate-options (cons* "-feature" "chicken-compile-shared" translate-options))
     (set! compile-options (append pic-options '("-DC_SHARED") compile-options))
     (set! link-options
-      (cons (cond
-             (osx (if lib "-dynamiclib" "-bundle -headerpad_max_install_names"))
-             (else "-shared")) link-options))
+      (append
+	(cond
+          (osx (if lib '("-dynamiclib") '("-bundle" "-headerpad_max_install_names")))
+          (else '("-shared"))) link-options))
     (set! shared #t) )
 
   (define (use-private-repository)
