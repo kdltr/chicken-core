@@ -1,0 +1,12 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken type)
+
+The functionality in this module is available by default. See
+[[Types]] for more information.
+
+---
+Previous: [[Module (chicken time posix)]]
+
+Next: [[Interface to external functions and variables]]

@@ -153,17 +153,6 @@ appropriate type. {{FILE}} may be a filename, a file-descriptor or a port object
 Note that these operations follow symbolic links. If the file does
 not exist, {{#f}} is returned.
 
-==== file-read-access?
-==== file-write-access?
-==== file-execute-access?
-
-<procedure>(file-read-access? FILENAME)</procedure><br>
-<procedure>(file-write-access? FILENAME)</procedure><br>
-<procedure>(file-execute-access? FILENAME)</procedure>
-
-These procedures return {{#t}} if the current user has read,
-write or execute permissions on the file named {{FILENAME}}.
-
 ==== regular-file?
 
 <procedure>(regular-file? FILE)</procedure>

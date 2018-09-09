@@ -110,6 +110,17 @@ Renames the file or directory with the pathname {{OLD}} to
 If {{CLOBBER}} is given and not {{#f}}, {{NEW}} will be replaced when
 it already exists, otherwise an error is signaled.
 
+==== file-readable?
+==== file-writable?
+==== file-executable?
+
+<procedure>(file-readable? FILENAME)</procedure><br>
+<procedure>(file-writable? FILENAME)</procedure><br>
+<procedure>(file-executable? FILENAME)</procedure>
+
+These procedures return {{#t}} if the current user has read,
+write or execute permissions on the file named {{FILENAME}}.
+
 
 === Temporary files and directories
 
