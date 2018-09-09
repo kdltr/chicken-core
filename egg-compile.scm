@@ -773,11 +773,11 @@
                 (fdir (pathname-directory ds)))
            (when fdir
              (print mkdir " " ddir
-                    (qs* (make-pathname dfile fdir) platform #t)))
+                    (qs* (make-pathname dest fdir) platform #t)))
            (print dcmd " " (qs* d platform #t)
                   " " ddir
                   (if fdir
-                      (qs* (make-pathname dfile fdir) platform #t)
+                      (qs* (make-pathname dest fdir) platform #t)
                       dfile))
            (print-end-command platform)))
        ds)
@@ -788,11 +788,11 @@
                    (fdir (pathname-directory fs)))
               (when fdir
                 (print mkdir " " ddir
-                       (qs* (make-pathname dfile fdir) platform #t)))
+                       (qs* (make-pathname dest fdir) platform #t)))
               (print fcmd " " (qs* f platform)
                      " " ddir
                      (if fdir
-                         (qs* (make-pathname dfile fdir) platform #t)
+                         (qs* (make-pathname dest fdir) platform #t)
                          dfile)))
             (print-end-command platform))
           fs)))))
