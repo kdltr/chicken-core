@@ -292,19 +292,19 @@
 
 (my-check 
  (begin
-   (let ((f (my-open-output-file "tmp1")))
+   (let ((f (my-open-output-file "tmp1.out")))
      (do-ec (:range n 10) (begin (write n f) (newline f)))
      (close-output-port f))
-   (my-call-with-input-file "tmp1"
+   (my-call-with-input-file "tmp1.out"
     (lambda (port) (list-ec (:port x port read) x)) ))
  => (list-ec (:range n 10) n) )
 
 (my-check 
  (begin
-   (let ((f (my-open-output-file "tmp1")))
+   (let ((f (my-open-output-file "tmp1.out")))
      (do-ec (:range n 10) (begin (write n f) (newline f)))
      (close-output-port f))
-   (my-call-with-input-file "tmp1"                 
+   (my-call-with-input-file "tmp1.out"
      (lambda (port) (list-ec (:port x port) x)) ))
  => (list-ec (:range n 10) n) )
 
@@ -441,19 +441,19 @@
 
 (my-check 
  (begin
-   (let ((f (my-open-output-file "tmp1")))
+   (let ((f (my-open-output-file "tmp1.out")))
      (do-ec (:range n 10) (begin (write n f) (newline f)))
      (close-output-port f))
-   (my-call-with-input-file "tmp1"                 
+   (my-call-with-input-file "tmp1.out"
      (lambda (port) (list-ec (: x port read) x)) ))
  => (list-ec (:range n 10) n) )
     
 (my-check 
  (begin
-   (let ((f (my-open-output-file "tmp1")))
+   (let ((f (my-open-output-file "tmp1.out")))
      (do-ec (:range n 10) (begin (write n f) (newline f)))
      (close-output-port f))
-   (my-call-with-input-file "tmp1"                 
+   (my-call-with-input-file "tmp1.out"
      (lambda (port) (list-ec (: x port) x)) ))
  => (list-ec (:range n 10) n) )
 
@@ -484,10 +484,10 @@
 
 (my-check 
  (begin
-   (let ((f (my-open-output-file "tmp1")))
+   (let ((f (my-open-output-file "tmp1.out")))
      (do-ec (:range n 10) (begin (write n f) (newline f)))
      (close-output-port f))
-   (my-call-with-input-file "tmp1"
+   (my-call-with-input-file "tmp1.out"
      (lambda (port) (list-ec (: x (index i) port) (list x i))) ))
  => '((0 0) (1 1) (2 2) (3 3) (4 4) (5 5) (6 6) (7 7) (8 8) (9 9)) )
 
@@ -629,10 +629,10 @@
 
 (my-check
  (begin
-   (let ((f (my-open-output-file "tmp1")))
+   (let ((f (my-open-output-file "tmp1.out")))
      (do-ec (:range n 10) (begin (write n f) (newline f)))
      (close-output-port f))
-   (read-lines "tmp1") )
+   (read-lines "tmp1.out") )
  => (list-ec (:char-range c #\0 #\9) (string c #\newline)) )
 
 

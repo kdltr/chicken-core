@@ -63,6 +63,7 @@
 
 ;;; Parameters:
 
+(define windows (eq? (software-type) 'windows))
 (define mingw (eq? (software-version) 'mingw32))
 (define osx (eq? (software-version) 'macosx))
 (define cygwin (eq? (software-version) 'cygwin))
@@ -101,7 +102,7 @@
 (define rc-compiler (quotewrap (if host-mode INSTALL_RC_COMPILER TARGET_RC_COMPILER)))
 (define linker (quotewrap (if host-mode host-cc default-cc)))
 (define c++-linker (quotewrap (if host-mode host-cxx default-cxx)))
-(define object-extension "o")
+(define object-extension (if windows "obj" "o"))
 (define library-extension "a")
 (define link-output-flag "-o ")
 (define executable-extension "")
@@ -257,12 +258,12 @@
    (cond (elf
 	  (list
 	   (conc "-L" library-dir)
-	   (conc " -Wl,-R"
+	   (conc "-Wl,-R"
 		 (if deployed
-		     "\\$ORIGIN"
-		     (quotewrap (if host-mode
-                                    host-libdir
-		   		    TARGET_RUN_LIB_HOME))))))
+		     "$ORIGIN"
+		     (if host-mode
+			 host-libdir
+			 TARGET_RUN_LIB_HOME)))))
 	 (aix
 	  (list (conc "-Wl,-R\"" library-dir "\"")))
 	 (else
@@ -528,9 +529,10 @@ EOF
     (set! translate-options (cons* "-feature" "chicken-compile-shared" translate-options))
     (set! compile-options (append pic-options '("-DC_SHARED") compile-options))
     (set! link-options
-      (cons (cond
-             (osx (if lib "-dynamiclib" "-bundle -headerpad_max_install_names"))
-             (else "-shared")) link-options))
+      (append
+	(cond
+          (osx (if lib '("-dynamiclib") '("-bundle" "-headerpad_max_install_names")))
+          (else '("-shared"))) link-options))
     (set! shared #t) )
 
   (define (use-private-repository)
@@ -1004,7 +1006,8 @@ EOF
 
 (define (linker-options)
   (string-intersperse
-    (append linking-optimization-options link-options)))
+   (map quote-option
+	(append linking-optimization-options link-options) ) ) )
 
 (define (linker-libraries)
   (string-intersperse

@@ -69,7 +69,7 @@
 (define (copy-directory-command platform)
   (case platform
     ((unix) "cp -r")
-    ((windows) "xcopy /y /i")))
+    ((windows) "xcopy /y /i /e")))
 
 (define (mkdir-command platform)
   (case platform
@@ -310,7 +310,7 @@
         ((install-name)
          (set! oname (->string (arg info 1 name?))))
         ((modules)
-         (set! mods (map ->string (cdr info))))
+         (set! mods (map library-id (cdr info))))
         ((component-dependencies)
          (set! cdeps (append cdeps (map ->dep (cdr info)))))
         ((source-dependencies)
@@ -469,8 +469,9 @@
                                    predefined-types eggfile
                                    custom types-file inline-file)
          srcdir platform)
-  (let* ((cmd (or (custom-cmd custom srcdir platform)
-                  default-csc))
+  (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
+		       default-csc)
+		   platform))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (opts (append (if (null? options)
@@ -479,32 +480,35 @@
                        (if (and types-file
                                 (not predefined-types))
                            (list "-emit-types-file"
-                                 (quotearg (prefix srcdir (conc types-file ".types"))))
+                                 (qs* (prefix srcdir (conc types-file ".types"))
+				      platform))
                            '())
                        (if inline-file
                            (list "-emit-inline-file"
-                                 (quotearg (prefix srcdir (conc inline-file ".inline"))))
+                                 (qs* (prefix srcdir (conc inline-file ".inline"))
+				      platform))
                            '())))
-         (out (quotearg (target-file (conc sname
-                                           ".static"
-                                           (object-extension platform))
-                                     mode)))
-         (src (quotearg (or ssname (conc sname ".scm")))))
+         (out (qs* (target-file (conc sname
+				      ".static"
+				      (object-extension platform))
+				mode)
+		   platform))
+         (src (qs* (or ssname (conc sname ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
-    (print "\n" (slashify default-builder platform) " " out " " cmd 
+    (print "\n" (qs* default-builder platform #t) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -static -I " srcdir 
            " -emit-link-file "
-           (quotearg (conc sname +link-file-extension+))
+           (qs* (conc sname +link-file-extension+) platform)
            (if (eq? mode 'host) " -host" "")
            " -D compiling-extension -c -unit " name
            " -D compiling-static-extension"
-           " -C -I" srcdir (arglist opts) 
+           " -C -I" srcdir (arglist opts platform) 
            " " src " -o " out " : "
-           src " " (quotearg eggfile) " "
-           (if custom (quotearg cmd) "") " "
-           (filelist srcdir source-dependencies))
+           src " " (qs* eggfile platform) " "
+           (if custom cmd "") " "
+           (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
 (define ((compile-dynamic-extension name #!key mode mode
@@ -513,8 +517,9 @@
                                     source-dependencies
                                     custom types-file inline-file)
          srcdir platform)
-  (let* ((cmd (or (custom-cmd custom srcdir platform)
-                  default-csc))
+  (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
+		       default-csc)
+		   platform))
          (sname (prefix srcdir name))
          (opts (append (if (null? options)
                            default-dynamic-compilation-options
@@ -522,51 +527,49 @@
                        (if (and types-file
                                 (not predefined-types))
                            (list "-emit-types-file"
-                                 (quotearg (prefix srcdir (conc types-file ".types"))))
+                                 (qs* (prefix srcdir (conc types-file ".types"))
+				      platform))
                            '())
                        (if inline-file
                            (list "-emit-inline-file"
-                                 (quotearg (prefix srcdir (conc inline-file ".inline"))))
+                                 (qs* (prefix srcdir (conc inline-file ".inline"))
+				      platform))
                            '())))
          (ssname (and source (prefix srcdir source)))
-         (out (quotearg (target-file (conc sname ".so") mode)))
-         (src (quotearg (or ssname (conc sname ".scm")))))
+         (out (qs* (target-file (conc sname ".so") mode) platform))
+         (src (qs* (or ssname (conc sname ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
-    (print "\n" (slashify default-builder platform) " " out " " cmd 
+    (print "\n" (qs* default-builder platform #t) " " out " " cmd 
            (if keep-generated-files " -k" "")
            (if (eq? mode 'host) " -host" "")
            " -D compiling-extension -J -s"
-           " -setup-mode -I " srcdir " -C -I" srcdir (arglist opts)
-           (arglist link-options) " " src " -o " out " : "
-           src " " (quotearg eggfile) " "
-           (if custom (quotearg cmd) "") " "
-           (filelist srcdir source-dependencies))
+           " -setup-mode -I " srcdir " -C -I" srcdir
+	   (arglist opts platform) (arglist link-options platform)
+	   " " src " -o " out " : " src " " (qs* eggfile platform) " "
+           (if custom cmd "") " "
+           (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
 (define ((compile-import-library name #!key mode
                                  source-dependencies
-                                 (options '()) (link-options '())
-                                 custom)
+                                 (options '()) (link-options '()))
          srcdir platform)
-  (let* ((cmd (or (custom-cmd custom srcdir platform)
-                  default-csc))
+  (let* ((cmd (qs* default-csc platform))
          (sname (prefix srcdir name))
          (opts (if (null? options) 
                    default-import-library-compilation-options
                    options))
-         (out (quotearg (target-file (conc sname ".import.so") mode)))
-         (src (quotearg (conc sname ".import.scm"))))
-    (when custom
-      (prepare-custom-command cmd platform))
-    (print "\n" (slashify default-builder platform) " " out " " cmd 
+         (out (qs* (target-file (conc sname ".import.so") mode)
+		   platform))
+         (src (qs* (conc sname ".import.scm") platform)))
+    (print "\n" (qs* default-builder platform #t) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -s"
            (if (eq? mode 'host) " -host" "")
-           " -I " srcdir " -C -I" srcdir (arglist opts)
-           (arglist link-options) " " src " -o " out " : "
-           (if custom (quotearg cmd) "") " "
-           src (filelist srcdir source-dependencies))
+           " -I " srcdir " -C -I" srcdir (arglist opts platform)
+           (arglist link-options platform) " " src " -o " out " : "
+           src (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
 (define ((compile-dynamic-program name #!key source mode
@@ -574,28 +577,30 @@
                                   source-dependencies
                                   custom eggfile)
          srcdir platform)
-  (let* ((cmd (or (custom-cmd custom srcdir platform)
-                  default-csc))
+  (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
+		       default-csc)
+		   platform))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (opts (if (null? options) 
                    default-dynamic-compilation-options
                    options))
-         (out (quotearg (target-file (conc sname
-                                           (executable-extension platform)) 
-                                     mode)))
-         (src (quotearg (or ssname (conc sname ".scm")))))
+         (out (qs* (target-file (conc sname
+				      (executable-extension platform)) 
+				mode)
+		  platform))
+         (src (qs* (or ssname (conc sname ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
-    (print "\n" (slashify default-builder platform) " " out " " cmd 
+    (print "\n" (qs* default-builder platform #t) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode"
            (if (eq? mode 'host) " -host" "")
-           " -I " srcdir " -C -I" srcdir (arglist opts)
-           (arglist link-options) " " src " -o " out " : "
-           src " " (quotearg eggfile) " "
-           (if custom (quotearg cmd) "") " "
-           (filelist srcdir source-dependencies))
+           " -I " srcdir " -C -I" srcdir (arglist opts platform)
+           (arglist link-options platform) " " src " -o " out " : "
+           src " " (qs* eggfile platform) " "
+           (if custom cmd "") " "
+           (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
 (define ((compile-static-program name #!key source
@@ -603,43 +608,44 @@
                                  source-dependencies
                                  custom mode eggfile)
          srcdir platform)
-  (let* ((cmd (or (custom-cmd custom srcdir platform)
-                  default-csc))
+  (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
+		       default-csc)
+		   platform))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (opts (if (null? options) 
                    default-static-compilation-options
                    options))
-         (out (quotearg (target-file (conc sname
-                                           (executable-extension platform)) 
-                                     mode)))
-         (src (quotearg (or ssname (conc sname ".scm")))))
+         (out (qs* (target-file (conc sname
+				      (executable-extension platform)) 
+				mode)
+		  platform))
+         (src (qs* (or ssname (conc sname ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
-    (print "\n" (slashify default-builder platform) " " out " " cmd 
+    (print "\n" (qs* default-builder platform #t) " " out " " cmd 
            (if keep-generated-files " -k" "")
            (if (eq? mode 'host) " -host" "")
            " -static -setup-mode -I " srcdir " -C -I" 
-           srcdir (arglist opts)
-           (arglist link-options) " " src " -o " out " : "
-           src " " (quotearg eggfile) " "
-           (if custom (quotearg cmd) "") " "
-           (filelist srcdir source-dependencies))
+           srcdir (arglist opts platform)
+           (arglist link-options platform) " " src " -o " out " : "
+           src " " (qs* eggfile platform) " "
+           (if custom cmd "") " "
+           (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
 (define ((compile-generated-file name #!key source custom
                                  source-dependencies eggfile) 
          srcdir platform)
-  (let* ((cmd (custom-cmd custom srcdir platform))
+  (let* ((cmd (qs* (custom-cmd custom srcdir platform) platform))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
-         (out (quotearg (or ssname sname))))
+         (out (qs* (or ssname sname) platform)))
     (prepare-custom-command cmd platform)
-    (print "\n" (slashify default-builder platform)
-           " " out " " cmd " : " 
-           (quotearg cmd) " "
-           (quotearg eggfile) " "
-           (filelist srcdir source-dependencies))
+    (print "\n" (qs* default-builder platform #t)
+           " " out " " cmd " : " cmd " "
+           (qs* eggfile platform) " "
+           (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
 
@@ -651,25 +657,18 @@
          (mkdir (mkdir-command platform))
          (ext (object-extension platform))
          (sname (prefix srcdir name))
-         (out (quotearg (slashify (target-file (conc sname ".static" ext)
-                                     mode) platform)))
-         (outlnk (quotearg (slashify (conc sname +link-file-extension+)
-                                     platform)))
+         (out (qs* (target-file (conc sname ".static" ext) mode)
+		   platform #t))
+         (outlnk (qs* (conc sname +link-file-extension+) platform #t))
          (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform))))
+         (dfile (qs* dest platform #t))
+         (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
-           (quotearg (slashify (conc dest "/" 
-                                     output-file
-                                     ext) 
-                               platform)))
+           (qs* (conc dest "/" output-file ext) platform #t))
     (print cmd " " outlnk " " ddir
-           (quotearg (slashify (conc dest "/" 
-                                     output-file
-                                     +link-file-extension+)
-                               platform)))
+           (qs* (conc dest "/" output-file +link-file-extension+)
+		platform #t))
     (print-end-command platform)))
 
 (define ((install-dynamic-extension name #!key mode (ext ".so")
@@ -679,14 +678,11 @@
          (dcmd (remove-file-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
-         (out (quotearg (slashify (target-file (conc sname ext) mode)
-                                  platform)))
+         (out (qs* (target-file (conc sname ext) mode) platform #t))
          (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform)))
-         (destf (quotearg (slashify (conc dest "/" output-file ext)
-                                    platform))))
+         (dfile (qs* dest platform #t))
+         (ddir (shell-variable "DESTDIR" platform))
+         (destf (qs* (conc dest "/" output-file ext) platform #t)))
     (print "\n" mkdir " " ddir dfile)
     (when (eq? platform 'unix)
       (print dcmd " " ddir destf))
@@ -704,51 +700,42 @@
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
-         (out (quotearg (slashify (target-file (conc sname ".import.scm")
-                                               mode)
-                                  platform)))
+         (out (qs* (target-file (conc sname ".import.scm") mode)
+		   platform #t))
          (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform))))
+         (dfile (qs* dest platform #t))
+         (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
-          (quotearg (slashify (conc dest "/" name ".import.scm")
-                              platform)))
+          (qs* (conc dest "/" name ".import.scm") platform #t))
     (print-end-command platform)))
 
 (define ((install-types-file name #!key mode types-file)
          srcdir platform)
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
-         (out (quotearg (slashify (prefix srcdir
-                                          (conc types-file ".types"))
-                                  platform)))
+         (out (qs* (prefix srcdir (conc types-file ".types"))
+		   platform #t))
          (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform))))
+         (dfile (qs* dest platform #t))
+         (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
-          (quotearg (slashify (conc dest "/" types-file ".types") 
-                              platform)))
+          (qs* (conc dest "/" types-file ".types") platform #t))
     (print-end-command platform)))
 
 (define ((install-inline-file name #!key mode inline-file) 
          srcdir platform)
   (let* ((cmd (install-file-command platform))
          (mkdir (mkdir-command platform))
-         (out (quotearg (slashify (prefix srcdir
-                                          (conc inline-file ".inline"))
-                                  platform)))
+         (out (qs* (prefix srcdir (conc inline-file ".inline"))
+		   platform #t))
          (dest (destination-repository mode))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform))))
+         (dfile (qs* dest platform #t))
+         (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (print cmd " " out " " ddir
-          (quotearg (slashify (conc dest "/" inline-file ".inline")
-                              platform)))
+          (qs* (conc dest "/" inline-file ".inline") platform #t))
     (print-end-command platform)))
 
 (define ((install-program name #!key mode output-file) srcdir platform)
@@ -757,58 +744,76 @@
          (mkdir (mkdir-command platform))
          (ext (executable-extension platform))
          (sname (prefix srcdir name))
-         (out (quotearg (slashify (target-file (conc sname ext) mode)
-                                  platform)))
+         (out (qs* (target-file (conc sname ext) mode) platform #t))
          (dest (if (eq? mode 'target)
                    default-bindir
                    (override-prefix "/bin" host-bindir)))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform)))
-         (destf (quotearg (slashify (conc dest "/" output-file ext) 
-                                    platform))))
+         (dfile (qs* dest platform #t))
+         (ddir (shell-variable "DESTDIR" platform))
+         (destf (qs* (conc dest "/" output-file ext) platform #t)))
     (print "\n" mkdir " " ddir dfile)
     (when (eq? platform 'unix)
       (print dcmd " " ddir destf))
     (print cmd " " out " " ddir destf)
     (print-end-command platform)))
 
-(define ((install-data name #!key files destination mode) 
-         srcdir platform)
+(define (install-random-files dest files mode srcdir platform)
   (let* ((fcmd (install-file-command platform))
          (dcmd (copy-directory-command platform))
+         (root (string-append srcdir "/"))
          (mkdir (mkdir-command platform))
          (sfiles (map (cut prefix srcdir <>) files))
-         (dest (or destination (if (eq? mode 'target)
-                                   default-sharedir 
-                                   (override-prefix "/share" host-sharedir))))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform))))
+         (dfile (qs* dest platform #t))
+         (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (let-values (((ds fs) (partition directory? sfiles)))
       (for-each
        (lambda (d)
-         (print dcmd " " (quotearg (slashify d platform)) " " ddir dfile)
-	 (print-end-command platform))
+         (let* ((ds (strip-dir-prefix srcdir d))
+                (fdir (pathname-directory ds)))
+           (when fdir
+             (print mkdir " " ddir
+                    (qs* (make-pathname dest fdir) platform #t)))
+           (print dcmd " " (qs* d platform #t)
+                  " " ddir
+                  (if fdir
+                      (qs* (make-pathname dest fdir) platform #t)
+                      dfile))
+           (print-end-command platform)))
        ds)
       (when (pair? fs)
-        (print fcmd (arglist fs) " " ddir dfile)
-	(print-end-command platform)))))
+        (for-each
+          (lambda (f)
+            (let* ((fs (strip-dir-prefix srcdir f))
+                   (fdir (pathname-directory fs)))
+              (when fdir
+                (print mkdir " " ddir
+                       (qs* (make-pathname dest fdir) platform #t)))
+              (print fcmd " " (qs* f platform)
+                     " " ddir
+                     (if fdir
+                         (qs* (make-pathname dest fdir) platform #t)
+                         dfile)))
+            (print-end-command platform))
+          fs)))))
+
+(define ((install-data name #!key files destination mode)
+         srcdir platform)
+  (install-random-files (or destination
+                            (if (eq? mode 'target)
+                                default-sharedir
+                                (override-prefix "/share"
+                                                 host-sharedir)))
+                        files mode srcdir platform))
 
 (define ((install-c-include name #!key deps files destination mode) 
          srcdir platform)
-  (let* ((cmd (install-file-command platform))
-         (mkdir (mkdir-command platform))
-         (dest (or destination (if (eq? mode 'target) 
-                                   default-incdir 
-                                   (override-prefix "/include" host-incdir))))
-         (dfile (quotearg (slashify dest platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform))))
-    (print "\n" mkdir " " ddir dfile)
-    (print cmd (arglist (map (cut prefix srcdir <>) files)) " " ddir dfile)
-    (print-end-command platform)))
+  (install-random-files (or destination
+                            (if (eq? mode 'target)
+                                default-incdir
+                                (override-prefix "/include"
+                                                 host-incdir)))
+                        files mode srcdir platform))
 
 
 ;;; Generate shell or batch commands from abstract build/install operations
@@ -818,8 +823,7 @@
     (with-output-to-file dest
       (lambda ()
         (prefix platform)
-        (print (cd-command platform) 
-               " " (quotearg (slashify srcdir platform)))
+        (print (cd-command platform) " " (qs* srcdir platform #t))
         (for-each
           (lambda (cmd) (cmd srcdir platform))
           cmds)
@@ -834,15 +838,16 @@
      (printf #<<EOF
 #!/bin/sh~%
 set -e
-PATH="~a":$PATH
-export CHICKEN_CC="~a"
-export CHICKEN_CXX="~a"
-export CHICKEN_CSC="~a"
-export CHICKEN_CSI="~a"
+PATH=~a:$PATH
+export CHICKEN_CC=~a
+export CHICKEN_CXX=~a
+export CHICKEN_CSC=~a
+export CHICKEN_CSI=~a
 
 EOF
-             default-bindir default-cc default-cxx default-csc
-             default-csi))
+             (qs* default-bindir platform) (qs* default-cc platform)
+	     (qs* default-cxx platform) (qs* default-csc platform)
+	     (qs* default-csi platform)))
     ((windows)
      (printf #<<EOF
 @echo off~%
@@ -853,8 +858,9 @@ set CHICKEN_CSC=~a
 set CHICKEN_CSI=~a
 
 EOF
-             default-bindir default-cc default-cxx default-csc
-             default-csi))))
+             (qs* default-bindir platform) (qs* default-cc platform)
+	     (qs* default-cxx platform) (qs* default-csc platform)
+	     (qs* default-csi platform)))))
 
 (define ((build-suffix mode name info) platform)
   (case platform
@@ -887,11 +893,10 @@ EOF
          (dcmd (remove-file-command platform))
          (mkdir (mkdir-command platform))
          (dir (destination-repository mode))
-         (qdir (quotearg (slashify dir platform)))
-         (dest (quotearg (slashify (make-pathname dir name +egg-info-extension+)
-                                   platform)))
-         (ddir (quotearg (slashify (shell-variable "DESTDIR" platform)
-                                   platform))))
+         (qdir (qs* dir platform #t))
+         (dest (qs* (make-pathname dir name +egg-info-extension+)
+		    platform #t))
+         (ddir (shell-variable "DESTDIR" platform)))
     (case platform
       ((unix)
        (printf #<<EOF
@@ -914,17 +919,16 @@ EOF
                (string-intersperse (string-split infostr "\n") "^\n\n")
                ddir dest)))))
 
-
 ;;; some utilities for mangling + quoting
 
-(define (prefix dir name)
-  (make-pathname dir (->string name)))
-
-(define (quotearg str)
-  (let ((lst (string->list str)))
-    (if (any char-whitespace? lst)
-        (string-append "\"" str "\"")
-        str)))
+;; The qs procedure quotes for mingw32 or other platforms.  We
+;; "normalised" the platform to "windows" in chicken-install, so we
+;; have to undo that here again.  It can also convert slashes to
+;; backslashes on Windows, which is necessary in many cases when
+;; running programs via "cmd".
+(define (qs* arg platform #!optional slashify?)
+  (let ((path (if slashify? (slashify arg platform) arg)))
+    (qs path (if (eq? platform 'windows) 'mingw32 platform))))
 
 (define (slashify str platform)
   (if (eq? platform 'windows)
@@ -932,30 +936,38 @@ EOF
         (map (lambda (c) (if (char=? #\/ c) #\\ c)) (string->list str)))
       str))
 
-(define (quote-all str platform)
-  (if (and (eq? platform 'windows) 
-           (positive? (string-length str))
-           (char=? #\" (string-ref str 0)))
-      (string-append "\"" str "\"")
-      str))
+(define (prefix dir name)
+  (make-pathname dir (->string name)))
+
+;; Workaround for obscure behaviour of "system" on Windows:  If a
+;; string starts with double quotes, you _must_ wrap the whole string
+;; in an extra set of quotes to avoid the outer quotes being stripped.
+;; Don't ask.
+(define (system+ str platform)
+  (system (if (and (eq? platform 'windows) 
+		   (positive? (string-length str))
+		   (char=? #\" (string-ref str 0)))
+	      (string-append "\"" str "\"")
+	      str)))
 
 (define (target-file fname mode)
   (if (eq? mode 'target) (string-append fname ".target") fname))
 
-(define (arglist lst)
-  (apply conc (map (lambda (x) (conc " " (quotearg x))) lst)))
+(define (arglist lst platform)
+  (apply conc (map (lambda (x) (conc " " (qs* x platform))) lst)))
 
-(define (filelist dir lst)
-  (arglist (map (cut prefix dir <>) lst)))
+(define (filelist dir lst platform)
+  (arglist (map (cut prefix dir <>) lst) platform))
 
 (define (shell-variable var platform)
   (case platform
     ((unix) (string-append "${" var "}"))
     ((windows) (string-append "%" var "%"))))
-  
+
+;; NOTE `cmd' must already be quoted for shell
 (define (prepare-custom-command cmd platform)
   (unless (eq? 'windows platform)
-    (print "chmod +x " (quotearg cmd))))
+    (print "chmod +x " cmd)))
 
 (define (custom-cmd custom srcdir platform)
   (and custom (prefix srcdir 
@@ -966,3 +978,9 @@ EOF
 (define (print-end-command platform)
   (case platform
     ((windows) (print "if errorlevel 1 exit /b 1"))))
+
+(define (strip-dir-prefix prefix fname)
+  (let* ((plen (string-length prefix))
+         (p1 (substring fname 0 plen)))
+    (assert (string=? prefix p1) "wrong prefix")
+    (substring fname (add1 plen))))

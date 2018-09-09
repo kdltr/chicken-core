@@ -104,6 +104,18 @@ or {{unix}}) or a boolean combination of platform values, allowed
 are {{(not PLATFORM)}}, {{(or PLATFORM ...)}} and {{(and PLATFORM ...)}}.
 If the expression can not be satisfied, then installation of this
 egg will abort.
+les
+
+===== distribution-files
+
+ [egg property] (distribution-files FILE ...)
+
+List of files required for the installation of the egg.  This
+form is not handled by chicken-install, but by henrietta-cache to
+determine what to cache. If the repository contains additional
+files that are unneeded for the egg to be installed, you can list
+all the required files in this clause to reduce the amount of data
+cached by egg servers.
 
 ==== components
 
@@ -336,6 +348,8 @@ locations, which are:
 
 Specifies source files for this component and only applies
 to components of type {{data}}, {{c-include}} and {{scheme-include}}.
+Both files and directories may be given and parent directories
+are created as needed.
 
 ==== modules
 

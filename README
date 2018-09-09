@@ -546,7 +546,8 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 
 	  - When installing under the mingw-msys platform, PREFIX must be an
 	    absolute path name (i.e. it must include the drive letter) and
-	    must use forward slashes (no backward slashes).
+	    must use forward slashes (no backward slashes), for example
+            "PREFIX=C:/chicken/".
 
 	  - When installing under mingw, with a windows shell
 	    ("cmd.exe"), pass an absolute pathname (including the

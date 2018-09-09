@@ -110,19 +110,11 @@
 
   (define (list-egg-info egg dir ext)
     (let ((version
-	    (cond ((let ((info (read-info egg dir ext)))
-		     (and info (get-egg-property info 'version))))
-		  ((and (string? dir)
-			(file-exists? (make-pathname (list dir egg) +version-file+)))
-		   => (lambda (fname)
-			(with-input-from-file fname read)))
-		  ((chicken.load#find-file +version-file+
-					   (map (lambda (d)
-						  (make-pathname d egg))
-						dir))
-		   => (lambda (fname)
-			(with-input-from-file fname read)))
-		  (else "unknown"))))
+	   (or (let ((info (read-info egg dir ext)))
+		 (and info (get-egg-property info 'version)))
+	       (let ((file (chicken.load#find-file +version-file+ dir)))
+		 (and file (with-input-from-file file read)))
+	       "unknown")))
       (print (format-string (string-append egg " ")
 			    list-width #f #\.)
 	     (format-string (string-append " version: "
@@ -133,7 +125,7 @@
     (when (directory-exists? cache-directory)
       (for-each
        (lambda (egg)
-	 (list-egg-info egg cache-directory +egg-extension+))
+	 (list-egg-info egg (make-pathname cache-directory egg) +egg-extension+))
        (sort (filter-egg-names (directory cache-directory) pats mtch) string<?))))
 
   (define (gather-components lst mode)

@@ -45,7 +45,7 @@ TYPESDB=../types.db
 COMPILE_OPTIONS="-v -compiler ${CHICKEN} -I${TEST_DIR}/.. -L${TEST_DIR}/.. -include-path ${TEST_DIR}/.. -libdir ${TEST_DIR}/.. -rpath ${TEST_DIR}/.."
 
 compile="../${PROGRAM_PREFIX}csc${PROGRAM_SUFFIX} ${COMPILE_OPTIONS} -o a.out -types ${TYPESDB} -ignore-repository"
-compile_r="../${PROGRAM_PREFIX}csc${PROGRAM_SUFFIX} ${COMPILE_OPTIONS} -o a.out"
+compile_r="../${PROGRAM_PREFIX}csc${PROGRAM_SUFFIX} ${COMPILE_OPTIONS}"
 compile_s="../${PROGRAM_PREFIX}csc${PROGRAM_SUFFIX} ${COMPILE_OPTIONS} -s -types ${TYPESDB} -ignore-repository"
 interpret="../${PROGRAM_PREFIX}csi${PROGRAM_SUFFIX} -n -include-path ${TEST_DIR}/.."
 time=time
@@ -58,15 +58,19 @@ $time true >/dev/null 2>/dev/null
 test $? -eq 127 && time=
 set -e
 
-rm -fr *.exe *.so *.o *.out *.import.* ../foo.import.* test-repository
+rm -fr *.exe *.so *.o *.obj *.out *.import.* ../foo.import.* test-repository
 mkdir -p test-repository
 cp $TYPESDB test-repository/types.db
 
 echo "======================================== repository search path ..."
-export -p >./old-environment
-unset CHICKEN_REPOSITORY_PATH
-$interpret -s repository-path-default.scm
-. ./old-environment
+if test -z "$MSYSTEM"; then
+  export -p >./env.out
+  unset CHICKEN_REPOSITORY_PATH
+  $interpret -s repository-path-default.scm
+  . ./env.out
+else
+  env -u CHICKEN_REPOSITORY_PATH $interpret -s repository-path-default.scm
+fi
 $compile_s sample-module.scm -j sample-module
 cp sample-module.so $CHICKEN_INSTALL_REPOSITORY
 cp sample-module.import.scm $CHICKEN_INSTALL_REPOSITORY
@@ -338,11 +342,19 @@ $interpret -bnq ec.so ec-tests.scm
 # $compile ec-tests.scm
 # ./a.out        # takes ages to compile
 
+echo "======================================== module tests (static link) ..."
+$compile_r -static -unit sample-module -J -c sample-module.scm
+mv sample-module.link sample-module.import.scm sample-module.o* "$CHICKEN_INSTALL_REPOSITORY"
+$compile_r -static module-static-link.scm -o a.out
+./a.out
+
 echo "======================================== port tests ..."
 $interpret -s port-tests.scm
 
 echo "======================================== fixnum tests ..."
 $compile fixnum-tests.scm
+./a.out
+$compile -unsafe fixnum-tests.scm
 ./a.out
 
 echo "======================================== random number tests ..."
@@ -474,15 +486,16 @@ $compile -e embedded3.c embedded4.scm
 ./a.out
 
 echo "======================================== linking tests ..."
-$compile_r -unit reverser reverser/tags/1.0/reverser.scm -J -c -o reverser.o
-$compile_r -link reverser linking-tests.scm
+$compile_r -unit reverser reverser/tags/1.0/reverser.scm -J -c
+mv reverser/tags/1.0/reverser.o* ./
+$compile_r -link reverser linking-tests.scm -o a.out
 ./a.out
-$compile_r -link reverser linking-tests.scm -static
+$compile_r -link reverser linking-tests.scm -o a.out -static
 ./a.out
-mv reverser.o reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
-$compile_r -link reverser linking-tests.scm
+mv reverser.o* reverser.import.scm "$CHICKEN_INSTALL_REPOSITORY"
+$compile_r -link reverser linking-tests.scm -o a.out
 ./a.out
-$compile_r -link reverser linking-tests.scm -static
+$compile_r -link reverser linking-tests.scm -o a.out -static
 ./a.out
 
 echo "======================================== private repository test ..."

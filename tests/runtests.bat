@@ -22,22 +22,25 @@ set compile_r=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -o a.out
 set compile_s=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -s -types %TYPESDB% -ignore-repository
 set interpret=..\%PROGRAM_PREFIX%csi%PROGRAM_SUFFIX% -n -include-path %TEST_DIR%/..
 
-del /f /q /s *.exe *.so *.o *.out *.import.* ..\foo.import.* %CHICKEN_INSTALL_REPOSITORY%
+del /f /q /s *.exe *.so *.o *.obj *.out *.import.* ..\foo.import.* %CHICKEN_INSTALL_REPOSITORY%
 rmdir /q /s %CHICKEN_INSTALL_REPOSITORY%
 mkdir %CHICKEN_INSTALL_REPOSITORY%
 copy %TYPESDB% %CHICKEN_INSTALL_REPOSITORY%
 
-echo "======================================== repository search path ..."
+echo ======================================== repository search path ...
 setlocal
 set "CHICKEN_REPOSITORY_PATH="
 %interpret% -s repository-path-default.scm
+if errorlevel 1 exit /b 1
 endlocal
 %compile_s% sample-module.scm -j sample-module
+if errorlevel 1 exit /b 1
 copy sample-module.so %CHICKEN_INSTALL_REPOSITORY%
 copy sample-module.import.scm %CHICKEN_INSTALL_REPOSITORY%
-$interpret -s repository-path.scm "%TEST_DIR%\.." "%TEST_DIR%/test-repository"
+%interpret% -s repository-path.scm "%TEST_DIR%\.." "%TEST_DIR%\test-repository"
+if errorlevel 1 exit /b 1
 
-echo "======================================== types.db consistency ..."
+echo ======================================== types.db consistency ...
 %interpret% -s types-db-consistency.scm %TYPESDB%
 if errorlevel 1 exit /b 1
 
@@ -422,12 +425,27 @@ if errorlevel 1 exit /b 1
 rem %compile% ec-tests.scm
 rem a.out        # takes ages to compile
 
+echo ======================================== module tests (static link) ...
+%compile_r% -static -unit sample-module -J -c sample-module.scm -o sample-module.obj
+if errorlevel 1 exit /b 1
+move sample-module.link %CHICKEN_INSTALL_REPOSITORY%
+move sample-module.import.scm %CHICKEN_INSTALL_REPOSITORY%
+move sample-module.obj %CHICKEN_INSTALL_REPOSITORY%
+%compile_r% -static module-static-link.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+
 echo ======================================== port tests ...
 %interpret% -s port-tests.scm
 if errorlevel 1 exit /b 1
 
 echo ======================================== fixnum tests ...
 %compile% fixnum-tests.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+%compile% -unsafe fixnum-tests.scm
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
@@ -610,7 +628,7 @@ a.out
 if errorlevel 1 exit /b 1
 
 echo ======================================== linking tests ...
-%compile_r% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.o
+%compile_r% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.obj
 %compile_r% -link reverser linking-tests.scm
 if errorlevel 1 exit /b 1
 a.out
@@ -619,7 +637,7 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-move reverser.o %CHICKEN_INSTALL_REPOSITORY%
+move reverser.obj %CHICKEN_INSTALL_REPOSITORY%
 move reverser.import.scm %CHICKEN_INSTALL_REPOSITORY%
 %compile_r% -link reverser linking-tests.scm
 if errorlevel 1 exit /b 1

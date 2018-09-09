@@ -544,26 +544,26 @@ SECTION(6 10 2)
 (#<procedure> #<input port "r4rstest.scm">)  ==> #\(
 (#<procedure> #<input port "r4rstest.scm">)  ==> (define errs (quote ()))
 SECTION(6 10 3)
-(#<procedure> "tmp1" #<procedure>)  ==> #t
-(#<procedure> #<input port "tmp1">)  ==> (define foo (quote (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))))
+(#<procedure> "tmp1.out" #<procedure>)  ==> #t
+(#<procedure> #<input port "tmp1.out">)  ==> (define foo (quote (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))))
 (#<procedure> #!eof)  ==> #t
 (#<procedure> #!eof)  ==> #t
 (input-port? #t)  ==> #t
-(#<procedure> #<input port "tmp1">)  ==> #\;
-(#<procedure> #<input port "tmp1">)  ==> #\;
-(#<procedure> #<input port "tmp1">)  ==> #\;
-(#<procedure> #<input port "tmp1">)  ==> (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))
-(#<procedure> #<input port "tmp1">)  ==> (define foo (quote (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))))
-(#<procedure> #<output port "tmp2">)  ==> #t
-(#<procedure> #<input port "tmp2">)  ==> (define foo (quote (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))))
+(#<procedure> #<input port "tmp1.out">)  ==> #\;
+(#<procedure> #<input port "tmp1.out">)  ==> #\;
+(#<procedure> #<input port "tmp1.out">)  ==> #\;
+(#<procedure> #<input port "tmp1.out">)  ==> (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))
+(#<procedure> #<input port "tmp1.out">)  ==> (define foo (quote (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))))
+(#<procedure> #<output port "tmp2.out">)  ==> #t
+(#<procedure> #<input port "tmp2.out">)  ==> (define foo (quote (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))))
 (#<procedure> #!eof)  ==> #t
 (#<procedure> #!eof)  ==> #t
 (input-port? #t)  ==> #t
-(#<procedure> #<input port "tmp2">)  ==> #\;
-(#<procedure> #<input port "tmp2">)  ==> #\;
-(#<procedure> #<input port "tmp2">)  ==> #\;
-(#<procedure> #<input port "tmp2">)  ==> (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))
-(#<procedure> #<input port "tmp2">)  ==> (define foo (quote (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))))
+(#<procedure> #<input port "tmp2.out">)  ==> #\;
+(#<procedure> #<input port "tmp2.out">)  ==> #\;
+(#<procedure> #<input port "tmp2.out">)  ==> #\;
+(#<procedure> #<input port "tmp2.out">)  ==> (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))
+(#<procedure> #<input port "tmp2.out">)  ==> (define foo (quote (#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c))))
 
 Passed all tests
 
@@ -590,16 +590,16 @@ SECTION(6 5 5)
 (#<procedure> 0 0)  ==> 1
 (#<procedure> 0 1)  ==> 0
 (#<procedure> 1 1)  ==> 0.785398163397448
-(#<procedure> "tmp3" #<procedure>)  ==> #t
-(#<procedure> #<input port "tmp3">)  ==> (define foo (quote (0.25 -3.25)))
+(#<procedure> "tmp3.out" #<procedure>)  ==> #t
+(#<procedure> #<input port "tmp3.out">)  ==> (define foo (quote (0.25 -3.25)))
 (#<procedure> #!eof)  ==> #t
 (#<procedure> #!eof)  ==> #t
 (input-port? #t)  ==> #t
-(#<procedure> #<input port "tmp3">)  ==> #\;
-(#<procedure> #<input port "tmp3">)  ==> #\;
-(#<procedure> #<input port "tmp3">)  ==> #\;
-(#<procedure> #<input port "tmp3">)  ==> (0.25 -3.25)
-(#<procedure> #<input port "tmp3">)  ==> (define foo (quote (0.25 -3.25)))
+(#<procedure> #<input port "tmp3.out">)  ==> #\;
+(#<procedure> #<input port "tmp3.out">)  ==> #\;
+(#<procedure> #<input port "tmp3.out">)  ==> #\;
+(#<procedure> #<input port "tmp3.out">)  ==> (0.25 -3.25)
+(#<procedure> #<input port "tmp3.out">)  ==> (define foo (quote (0.25 -3.25)))
 (pentium-fdiv-bug #t)  ==> #t
 
 Passed all tests

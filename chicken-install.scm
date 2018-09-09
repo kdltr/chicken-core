@@ -42,6 +42,7 @@
 (import (chicken tcp))
 (import (chicken port))
 (import (chicken platform))
+(import (chicken internal))
 (import (chicken io))
 (import (chicken sort))
 (import (chicken time))
@@ -177,6 +178,7 @@
     (installed-files #t #f #f ,list?)
     (maintainer #t #f #f)
     (files #f #f #f ,list?)
+    (distribution-files #t #f #f ,list?) ;; handled by henrietta-cache
     (source #f #f #f)
     (csc-options #f #f #f)
     (link-options #f #f #f)
@@ -496,14 +498,13 @@
 
 (define (copy-egg-sources from to)
   ;;XXX should probably be done manually, instead of calling tool
-  (let ((cmd (quote-all
-               (string-append
-                 (copy-directory-command platform)
-                 " " (quotearg (slashify (make-pathname from "*") platform))
-                 " " (quotearg (slashify to platform)))
-               platform)))
+  (let ((cmd (string-append
+	      (copy-directory-command platform)
+	      ;; Don't quote the globbing character!
+	      " " (make-pathname (qs* from platform #t) "*")
+	      " " (qs* to platform #t))))
     (d "~a~%" cmd)
-    (system cmd)))
+    (system+ cmd platform)))
   
 (define (check-remote-version name lversion cached)
   (let loop ((locs default-locations))
@@ -716,22 +717,21 @@
         (else #f)))
 
 (define (check-platform name info)
-  (define (fail)
-    (error "extension is not targeted for this system" name))
   (unless cross-chicken
     (and-let* ((platform (get-egg-property info 'platform)))
-      (let loop ((p platform))
-        (cond ((symbol? p) 
-               (or (feature? p) (fail)))
-              ((not (list? p))
-               (error "invalid `platform' property" name platform))
-              ((and (eq? 'not (car p)) (pair? (cdr p)))
-               (and (not (loop (cadr p))) (fail)))
-              ((eq? 'and (car p))
-               (and (every loop (cdr p)) (fail)))
-              ((eq? 'or (car p))
-               (and (not (any loop (cdr p))) (fail)))
-              (else (error "invalid `platform' property" name platform)))))))
+      (or (let loop ((p platform))
+	    (cond ((symbol? p)
+		   (feature? p))
+		  ((not (list? p))
+		   (error "invalid `platform' property" name platform))
+		  ((and (eq? 'not (car p)) (pair? (cdr p)))
+		   (not (loop (cadr p))))
+		  ((eq? 'and (car p))
+		   (every loop (cdr p)))
+		  ((eq? 'or (car p))
+		   (any loop (cdr p)))
+		  (else (error "invalid `platform' property" name platform))))
+	  (error "extension is not targeted for this system" name)))))
 
 (define (replace-extension-question e+d+v upgrade)
   (print (string-intersperse
@@ -881,10 +881,13 @@
     (if (and (directory-exists? testdir)
              (file-exists? tscript))
         (let ((old (current-directory))
-              (cmd (string-append default-csi " -s " tscript " " name " " (or version ""))))
+              (cmd (string-append (qs* default-csi platform)
+				  " -s " (qs* tscript platform)
+				  " " (qs* name platform)
+				  " " (or version ""))))
           (change-directory testdir)
 	  (d "running: ~a~%" cmd)
-          (let ((r (system cmd)))
+          (let ((r (system+ cmd platform)))
             (flush-output (current-error-port))
             (cond ((zero? r) 
                    (change-directory old)
@@ -906,21 +909,15 @@
                               (get-environment-variable "DYLD_LIBRARY_PATH"))))
                (if dyld
                    (string-append "/usr/bin/env DYLD_LIBRARY_PATH="
-                                  (qs dyld)
+                                  (qs* dyld platform)
                                   " ")
                    ""))
              "sh " script))
         stop))
 
-(define (write-info name info mode)
-  (d "writing info for egg ~a~%" name info)
-  (let ((infofile (make-pathname name (destination-repository mode))))
-    (when (eq? platform 'unix)
-      (exec (string-append "chmod a+r " (quotearg infofile))))))
-
 (define (exec cmd #!optional (stop #t))
   (d "executing: ~s~%" cmd)
-  (let ((r (system cmd)))
+  (let ((r (system+ cmd platform)))
     (unless (zero? r)
       (if stop
           (error "shell command terminated with nonzero exit code" r cmd)

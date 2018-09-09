@@ -1164,7 +1164,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_u_fixnum_difference(n1, n2)   ((n1) - (n2) + C_FIXNUM_BIT)
 #define C_fixnum_difference(n1, n2)     (C_u_fixnum_difference(n1, n2) | C_FIXNUM_BIT)
 #define C_u_fixnum_divide(n1, n2)       (C_fix(C_unfix(n1) / C_unfix(n2)))
-#define C_u_fixnum_modulo(n1, n2)       (C_fix(C_unfix(n1) % C_unfix(n2)))
 #define C_u_fixnum_and(n1, n2)          ((n1) & (n2))
 #define C_fixnum_and(n1, n2)            (C_u_fixnum_and(n1, n2) | C_FIXNUM_BIT)
 #define C_u_fixnum_or(n1, n2)           ((n1) | (n2))
@@ -2835,15 +2834,21 @@ inline static C_word C_fixnum_divide(C_word x, C_word y)
 }
 
 
+inline static C_word C_u_fixnum_modulo(C_word x, C_word y)
+{
+  y = C_unfix(y);
+  x = C_unfix(x) % y;
+  if ((y < 0 && x > 0) || (y > 0 && x < 0)) x += y;
+  return C_fix(x);
+}
+
+
 inline static C_word C_fixnum_modulo(C_word x, C_word y)
 {
   if(y == C_fix(0)) {
     C_div_by_zero_error(C_text("fxmod"));
   } else {
-    y = C_unfix(y);
-    x = C_unfix(x) % y;
-    if ((y < 0 && x > 0) || (y > 0 && x < 0)) x += y;
-    return C_fix(x);
+    return C_u_fixnum_modulo(x,y);
   }
 }
 
@@ -3419,9 +3424,7 @@ inline static size_t C_strlcat(char *dst, const char *src, size_t sz)
  *     in a slash, since in this case MinGW's stat() will succeed but return a
  *     non-directory mode in buf.st_mode.
  */
-#ifndef __MINGW32__
-# define C_stat stat
-#else
+#if defined(__MINGW32__)
 inline static int C_stat(const char *path, struct stat *buf)
 {
   size_t len = C_strlen(path);
@@ -3448,6 +3451,29 @@ dircheck:
 
   return 0;
 }
+/*
+ * Haiku's stat() has a similar issue, where it will gladly succeed
+ * when given a path to a filename with a trailing slash.
+ */
+#elif defined(__HAIKU__)
+inline static int C_stat(const char *path, struct stat *buf)
+{
+  size_t len = C_strlen(path);
+  char slash = len && path[len - 1] == '/';
+
+  if(stat(path, buf) != 0) {
+    return -1;
+  }
+
+  if (slash && !S_ISDIR(buf->st_mode)) {
+    errno = ENOTDIR;
+    return -1;
+  }
+
+  return 0;
+}
+#else
+# define C_stat stat
 #endif
 
 /* Safe realpath usage depends on a reliable PATH_MAX. */
