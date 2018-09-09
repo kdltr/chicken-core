@@ -507,7 +507,7 @@
            " -C -I" srcdir (arglist opts platform) 
            " " src " -o " out " : "
            src " " (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "") " "
+           (if custom cmd "") " "
            (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
@@ -547,7 +547,7 @@
            " -setup-mode -I " srcdir " -C -I" srcdir
 	   (arglist opts platform) (arglist link-options platform)
 	   " " src " -o " out " : " src " " (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "") " "
+           (if custom cmd "") " "
            (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
@@ -599,7 +599,7 @@
            " -I " srcdir " -C -I" srcdir (arglist opts platform)
            (arglist link-options platform) " " src " -o " out " : "
            src " " (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "") " "
+           (if custom cmd "") " "
            (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
@@ -630,21 +630,20 @@
            srcdir (arglist opts platform)
            (arglist link-options platform) " " src " -o " out " : "
            src " " (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "") " "
+           (if custom cmd "") " "
            (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
 
 (define ((compile-generated-file name #!key source custom
                                  source-dependencies eggfile) 
          srcdir platform)
-  (let* ((cmd (custom-cmd custom srcdir platform))
+  (let* ((cmd (qs* (custom-cmd custom srcdir platform) platform))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (out (qs* (or ssname sname) platform)))
     (prepare-custom-command cmd platform)
     (print "\n" (qs* default-builder platform #t)
-           " " out " " cmd " : " 
-           (qs* cmd platform) " "
+           " " out " " cmd " : " cmd " "
            (qs* eggfile platform) " "
            (filelist srcdir source-dependencies platform))
     (print-end-command platform)))
@@ -964,7 +963,8 @@ EOF
   (case platform
     ((unix) (string-append "${" var "}"))
     ((windows) (string-append "%" var "%"))))
-  
+
+;; NOTE `cmd' must already be quoted for shell
 (define (prepare-custom-command cmd platform)
   (unless (eq? 'windows platform)
     (print "chmod +x " cmd)))
