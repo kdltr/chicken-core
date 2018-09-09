@@ -53,6 +53,7 @@ additional modules through the [[Extensions|eggs]] system.
 * [[Module (chicken tcp)]] : Connecting over the network via TCP
 * [[Module (chicken time)]] : Fetching information about the current time
 * [[Module (chicken time posix)]] : Manipulating POSIX time
+* [[Module (chicken type)]] : Defining and using static typing information
 
 ---
 Previous: [[Extensions to the standard]]

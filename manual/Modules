@@ -130,8 +130,8 @@ The visibility of any imported bindings is limited to the current
 module, if used inside a module-definition, or to the current
 compilation unit, if compiled and used outside of a module.
 
-Importing a module does not load or link it - this is a separate
-operation from importing its bindings.
+Importing a module will also load or link its associated library when
+needed.
 
 {{IMPORT}} may be a module name or an ''import specifier'', where a
 module name is either a symbol or a list of symbols and integers.
@@ -163,6 +163,13 @@ Renames identifiers imported from {{IMPORT}}.
 
 Prefixes all imported identifiers with {{SYMBOL}}.
 
+==== import-syntax
+
+<macro>(import-syntax IMPORT ...)</macro>
+
+Similar to {{import}} but only import syntactic definitions such as
+macros, as well as identifiers, but does not load or link the library
+containing the module.
 
 ==== import-for-syntax
 
@@ -176,6 +183,13 @@ imported into the normal environment because a separate import
 environment for syntax has not been implemented (syntactic bindings
 are kept separate correctly).
 
+==== import-syntax-for-syntax
+
+<macro>(import-syntax-for-syntax IMPORT ...)</macro>
+
+Combination of {{import-syntax}} and {{import-for-syntax}}. Loads
+syntactic definitions and valinside the environment in which macro
+transformers are evaluated but do not load the associated library.
 
 ==== reexport
 

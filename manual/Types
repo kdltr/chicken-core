@@ -326,7 +326,6 @@ type-declarations.
 Note that using threads which modify local state makes all
 type-analysis pointless.
 
-
 ---
 Previous: [[Modules]]
 

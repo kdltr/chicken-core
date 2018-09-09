@@ -104,7 +104,6 @@ or {{unix}}) or a boolean combination of platform values, allowed
 are {{(not PLATFORM)}}, {{(or PLATFORM ...)}} and {{(and PLATFORM ...)}}.
 If the expression can not be satisfied, then installation of this
 egg will abort.
-les
 
 ===== distribution-files
 
