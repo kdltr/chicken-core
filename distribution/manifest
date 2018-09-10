@@ -443,6 +443,7 @@ manual-html/Module (chicken syntax).html
 manual-html/Module (chicken tcp).html
 manual-html/Module (chicken time).html
 manual-html/Module (chicken time posix).html
+manual-html/Module (chicken type).html
 manual-html/Module r4rs.html
 manual-html/Module r5rs.html
 manual-html/Module scheme.html
