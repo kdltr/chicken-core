@@ -498,6 +498,12 @@ A
 (assert (string-ci<? "foo\x00a" "foo\x00B"))
 (assert (string-ci>? "foo\x00b" "foo\x00A"))
 
+;; reported by Nils Holm (#1534)
+;; https://groups.google.com/group/comp.lang.scheme/t/6b8be06b84b39a7
+(assert (not (string-ci<=? "test" "tes")))
+(assert (string-ci>=? "test" "tes"))
+
+
 ;;; getter-with-setter
 
 (define foo
