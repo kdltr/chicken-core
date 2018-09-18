@@ -9,6 +9,10 @@
 (define-syntax test
   (er-macro-transformer
    (lambda (expr rename _)
+     (define extra-fail-info '())
+     (define (add-fail-info msg)
+       (set! extra-fail-info (cons (string-append "  " msg) extra-fail-info))
+       #f)
      (define pass
        (let loop ((e (cadr expr)))
          (case (car e)
@@ -18,25 +22,36 @@
            ((<=)  (and (type<=? (cadr e) (caddr e))
                        (match-types (caddr e) (cadr e))))
            ;; subtype
-           ((<)   (and (type<=? (cadr e) (caddr e))
-                       (match-types (caddr e) (cadr e))
-                       (not (type<=? (caddr e) (cadr e)))))
+           ((<)   (and (or (type<=? (cadr e) (caddr e))
+			   (add-fail-info "<= returned #f"))
+		       (or (match-types (caddr e) (cadr e))
+			   (add-fail-info ">= returned #f"))
+                       (or (not (type<=? (caddr e) (cadr e)))
+			   (add-fail-info "not >= returned #f"))))
            ;; type equality
-           ((=)   (and (type<=? (cadr e) (caddr e))
-                       (type<=? (caddr e) (cadr e))))
+           ((=)   (and (or (type<=? (cadr e) (caddr e))
+			   (add-fail-info "<= failed"))
+                       (or (type<=? (caddr e) (cadr e))
+			   (add-fail-info ">= failed"))))
            ;; fuzzy match (both directions)
            ((?)   (and (match-types (cadr e) (caddr e))
                        (match-types (caddr e) (cadr e))))
            ;; fuzzy non-match (both directions)
-           ((!)   (and (not (match-types (cadr e) (caddr e)))
-                       (not (match-types (caddr e) (cadr e)))))
+           ((!)   (and (or (not (match-types (cadr e) (caddr e)))
+			   (add-fail-info ">= was true"))
+                       (or (not (match-types (caddr e) (cadr e)))
+			   (add-fail-info "<= was true"))))
            ;; strict non-match (both directions)
            ((><)  (and (not (type<=? (cadr e) (caddr e)))
                        (not (type<=? (caddr e) (cadr e)))))
            ;; A refined with B gives C
-           ((~>)  (equal? (refine-types (cadr e) (caddr e))
-                          (cadddr e))))))
+           ((~>)  (let ((t (refine-types (cadr e) (caddr e))))
+		    (or (equal? t (cadddr e))
+			(add-fail-info
+			 (format "Refined to `~a', but expected `~a'" t (cadddr e)) )))))))
      (printf "[~a] ~a~n" (if pass " OK " "FAIL") (cadr expr))
+     (unless pass
+       (for-each print extra-fail-info))
      (when (not pass) (set! success #f))
      (rename '(void)))))
 
