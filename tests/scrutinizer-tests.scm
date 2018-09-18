@@ -304,6 +304,7 @@
 (test (~> (list (refine (a) x))
           (refine (a) (list (refine (b) y)))
           (refine (a) (list (refine (b) y)))))
+(test (~> (or pair null) list list))
 
 (begin-for-syntax
   (when (not success) (exit 1)))
