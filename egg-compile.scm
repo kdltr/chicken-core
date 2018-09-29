@@ -921,7 +921,8 @@ EOF
 ;; backslashes on Windows, which is necessary in many cases when
 ;; running programs via "cmd".
 (define (qs* arg platform #!optional slashify?)
-  (let ((path (if slashify? (slashify arg platform) arg)))
+  (let* ((arg (->string arg))
+	 (path (if slashify? (slashify arg platform) arg)))
     (qs path (if (eq? platform 'windows) 'mingw32 platform))))
 
 (define (slashify str platform)
