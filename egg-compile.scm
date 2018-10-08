@@ -473,7 +473,6 @@
 		       default-csc)
 		   platform))
          (sname (prefix srcdir name))
-         (ssname (and source (prefix srcdir source)))
          (opts (append (if (null? options)
                            default-static-compilation-options
                            options)
@@ -493,7 +492,7 @@
 				      (object-extension platform))
 				mode)
 		   platform))
-         (src (qs* (or ssname (conc sname ".scm")) platform)))
+         (src (qs* (or source (conc name ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
     (print "\n" (qs* default-builder platform #t) " " out " " cmd 
@@ -535,9 +534,8 @@
                                  (qs* (prefix srcdir (conc inline-file ".inline"))
 				      platform))
                            '())))
-         (ssname (and source (prefix srcdir source)))
          (out (qs* (target-file (conc sname ".so") mode) platform))
-         (src (qs* (or ssname (conc sname ".scm")) platform)))
+         (src (qs* (or source (conc name ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
     (print "\n" (qs* default-builder platform #t) " " out " " cmd 
@@ -562,7 +560,7 @@
                    options))
          (out (qs* (target-file (conc sname ".import.so") mode)
 		   platform))
-         (src (qs* (conc sname ".import.scm") platform)))
+         (src (qs* (conc name ".import.scm") platform)))
     (print "\n" (qs* default-builder platform #t) " " out " " cmd 
            (if keep-generated-files " -k" "")
            " -setup-mode -s"
@@ -581,7 +579,6 @@
 		       default-csc)
 		   platform))
          (sname (prefix srcdir name))
-         (ssname (and source (prefix srcdir source)))
          (opts (if (null? options) 
                    default-dynamic-compilation-options
                    options))
@@ -589,7 +586,7 @@
 				      (executable-extension platform)) 
 				mode)
 		  platform))
-         (src (qs* (or ssname (conc sname ".scm")) platform)))
+         (src (qs* (or source (conc name ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
     (print "\n" (qs* default-builder platform #t) " " out " " cmd 
@@ -612,7 +609,6 @@
 		       default-csc)
 		   platform))
          (sname (prefix srcdir name))
-         (ssname (and source (prefix srcdir source)))
          (opts (if (null? options) 
                    default-static-compilation-options
                    options))
@@ -620,7 +616,7 @@
 				      (executable-extension platform)) 
 				mode)
 		  platform))
-         (src (qs* (or ssname (conc sname ".scm")) platform)))
+         (src (qs* (or source (conc name ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
     (print "\n" (qs* default-builder platform #t) " " out " " cmd 
@@ -637,10 +633,8 @@
 (define ((compile-generated-file name #!key source custom
                                  source-dependencies eggfile) 
          srcdir platform)
-  (let* ((cmd (qs* (custom-cmd custom srcdir platform) platform))
-         (sname (prefix srcdir name))
-         (ssname (and source (prefix srcdir source)))
-         (out (qs* (or ssname sname) platform)))
+  (let ((cmd (qs* (custom-cmd custom srcdir platform) platform))
+        (out (qs* (or source name) platform)))
     (prepare-custom-command cmd platform)
     (print "\n" (qs* default-builder platform #t)
            " " out " " cmd " : " cmd " "
@@ -927,7 +921,8 @@ EOF
 ;; backslashes on Windows, which is necessary in many cases when
 ;; running programs via "cmd".
 (define (qs* arg platform #!optional slashify?)
-  (let ((path (if slashify? (slashify arg platform) arg)))
+  (let* ((arg (->string arg))
+	 (path (if slashify? (slashify arg platform) arg)))
     (qs path (if (eq? platform 'windows) 'mingw32 platform))))
 
 (define (slashify str platform)

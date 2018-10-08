@@ -427,7 +427,7 @@ EOF
 	   (let* ((n (##sys#size x))
 		  (words (if (##core#inline "C_byteblockp" x) (##core#inline "C_words" n) n))
 		  (y (##core#inline "C_copy_block" x (##sys#make-vector words))))
-	     (unless (or (##core#inline "C_byteblockp" x) (symbol? x))
+	     (unless (##core#inline "C_byteblockp" x)
 	       (do ((i (if (##core#inline "C_specialp" x) 1 0) (fx+ i 1)))
 		   ((fx>= i n))
 		 (##sys#setslot y i (copy (##sys#slot y i)))))

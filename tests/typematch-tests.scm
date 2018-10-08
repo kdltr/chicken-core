@@ -66,11 +66,12 @@
    (lambda (e _i _c)
      (apply
       (lambda (t x)
-	`(test-equal ',(strip-syntax e)
-	   (compiler-typecase ,x
-	     (,t #t)
-	     (else #f))
-	   #t))
+	;; TODO: test-equal smashes types: change rest of the macros
+	;; to handle this
+	`(let ((res (compiler-typecase ,x
+		      (,t #t)
+		      (else #f))))
+	   (test-equal ',(strip-syntax e) res #t)))
       (cdr e)))))
 
 (define-syntax infer-not
@@ -391,5 +392,10 @@
 
 ;; Always a bignum
 (infer-last (fixnum bignum) #x7fffffffffffffff)
+
+;; Issue #1533
+(let ((a (the (or pair null) (cons 1 '()))))
+  (length a) ; refine (or pair null) with list (= (list-of *))
+  (infer list a))
 
 (test-exit)

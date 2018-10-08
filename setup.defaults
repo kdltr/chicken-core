@@ -28,11 +28,7 @@
 ;
 ; (map (EXTENSIONNAME ... -> OTHEREXTENSIONNAME ...))
 
-(map
- (data-structures 
-  extras files foreign irregex lolevel ports tcp
-  posix irregex srfi-4
-  ->) )
+(map (srfi-4 ->))
 
 
 ;; aliases for servers

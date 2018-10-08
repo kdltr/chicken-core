@@ -96,18 +96,18 @@ as
   (er-macro-transformer
     (lambda (exp rename compare)
       (let ((clauses (cdr exp)))
-	(if (null? clauses)
-	    `(,(rename 'quote) unspecified)
-	    (let* ((first (car clauses))
-		   (rest (cdr clauses))
-		   (test (car first)))
-	      (cond ((and (symbol? test)
-			  (compare test (rename 'else)))
-		     `(,(rename 'begin) ,@(cdr first)))
-		    (else `(,(rename 'if)
-			    ,test
-			     (,(rename 'begin) ,@(cdr first))
-			     (,(r 'cond) ,@rest)))))))))
+        (if (null? clauses)
+            `(,(rename 'quote) unspecified)
+            (let* ((first (car clauses))
+                   (rest (cdr clauses))
+                   (test (car first)))
+              (cond ((and (symbol? test)
+                          (compare test (rename 'else)))
+                     `(,(rename 'begin) ,@(cdr first)))
+                    (else `(,(rename 'if)
+                            ,test
+                             (,(rename 'begin) ,@(cdr first))
+                             (,(r 'cond) ,@rest)))))))))
 
 In this example the identifier {{else}} is renamed before being passed
 to the comparison predicate, so the comparison will be true if and
