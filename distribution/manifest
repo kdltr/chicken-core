@@ -369,6 +369,7 @@ egg-download.scm
 egg-compile.scm
 egg-information.scm
 chicken-do.c
+chicken-do.mdoc
 types.db
 mac.r
 chicken.png
