@@ -87,7 +87,6 @@ chicken-config.h: chicken-defaults.h
 	echo "#define HAVE_ALLOCA 1" >>$@
 	echo "#define HAVE_ALLOCA_H 1" >>$@
 	echo "#define HAVE_ERRNO_H 1" >>$@
-	echo "#define HAVE_MEMMOVE 1" >>$@
 	echo "#define SEARCH_EXE_PATH 1" >>$@
 	echo "#define C_STACK_GROWS_DOWNWARD 1" >>$@
 ifdef GCHOOKS
