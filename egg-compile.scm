@@ -77,14 +77,12 @@
     ((windows) "mkdir")))
 
 (define (install-executable-command platform)
-  (case platform
-    ((unix) "install -m755")
-    ((windows) "copy /y")))
+  (string-append default-install-program " "
+		 default-install-program-executable-flags))
 
 (define (install-file-command platform)
-  (case platform
-    ((unix) "install -m644")
-    ((windows) "copy /y")))
+  (string-append default-install-program " "
+		 default-install-program-data-flags))
 
 (define (remove-file-command platform)
   (case platform
