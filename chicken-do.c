@@ -39,22 +39,33 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-static char *target;
+#define MAX_TARGETS 256
+#define MAX_DEPENDS 1024
+
+static char *targets[ MAX_TARGETS ];
+static char *depends[ MAX_DEPENDS ];
+static struct stat tstats[ MAX_TARGETS ];
+static char **cmd;
+static int opts = 1;
+static int quiet = 0;
 
 
 static void usage(int code)
 {
-  fputs("usage: chicken-do [-q] [-h] TARGET COMMAND ... : DEPENDENCIES ...\n", stderr);
+  fputs("usage: chicken-do [-q] [-h] [--] TARGET ... : DEPENDENCY ... : COMMAND ...\n", stderr);
   exit(code);
 }
 
 
 static void cleanup()
 {
+  char **t;
+
+  for(t = targets; *t != NULL; ++t)
 #ifdef WIN32
-  DeleteFile(target);
+    DeleteFile(*t);
 #else
-  unlink(target);
+    unlink(*t);
 #endif
 }
 
@@ -72,7 +83,7 @@ static int execute(char **argv)
     strcat(cmdline, *(argv++));
     strcat(cmdline, "\" ");
   }
-  
+
   if(!CreateProcess(NULL, cmdline, NULL, NULL, TRUE, 
                     NORMAL_PRIORITY_CLASS, NULL, NULL, &startup_info,
                     &process_info)) {
@@ -132,48 +143,75 @@ static int execute(char **argv)
 
 int main(int argc, char *argv[]) 
 {
-  int i, count, a = 0;
-  char **args = (char **)malloc(sizeof(char *) * argc);
-  struct stat st, sd;
-  int quiet = 0, opts = 1;
+  int i, a = 0;
+  struct stat *st, sd;
+  char **t = targets;
+  char **d = depends;
 
   if(argc < 3) usage(1);
 
-  target = argv[ 1 ];
+  for(i = 1; i < argc; ++i) {
+    if(!strcmp(argv[ i ], ":")) {
+      *t = NULL;
+      break;
+    }
 
-  for(i = 2; i < argc; ++i) {
     if(opts && *argv[ i ] == '-') {
       switch(argv[ i ][ 1 ]) {
       case 'q': quiet = 1; break;
       case 'h': usage(0);
+      case '-': opts = 0; break;
       default: usage(1);
       }
     }
-    else if(!strcmp(argv[ i ], ":")) break;
-    else {
-      args[ a++ ] = argv[ i ];
-      opts = 0;
+    else if(t >= targets + MAX_TARGETS) {
+      fprintf(stderr, "too many targets\n");
+      exit(1);
     }
+    else *(t++) = argv[ i ];
   }
 
   if(i == argc) usage(1);
 
-  args[ a ] = NULL;
+  while(++i < argc) {
+    if(!strcmp(argv[ i ], ":")) {
+      *d = NULL;
+      break;
+    }
 
-  if(stat(target, &st) == -1) {
-    if(errno == ENOENT) goto build;
+    if(d >= depends + MAX_DEPENDS) {
+      fprintf(stderr, "too many dependencies\n");
+      exit(1);
+    }
 
-    fprintf(stderr, "%s: %s\n", target, strerror(errno));
-    exit(1);
+    *(d++) = argv[ i ];
   }
 
-  for(++i; i < argc; ++i) {
-    if(stat(argv[ i ], &sd) == -1) {
-      fprintf(stderr, "%s: %s\n", argv[ i ], strerror(errno));
+  if(i == argc) usage(1);
+
+  cmd = argv + i + 1;
+  st = tstats;
+
+  for(t = targets; *t != NULL; ++t) {
+    if(stat(*t, st++) == -1) {
+      if(errno == ENOENT) goto build;
+
+      fprintf(stderr, "%s: %s\n", *t, strerror(errno));
+      exit(1);
+    }
+  }
+
+  for(d = depends; *d != NULL; ++d) {
+    if(stat(*d, &sd) == -1) {
+      fprintf(stderr, "%s: %s\n", *d, strerror(errno));
       exit(1);
     }      
 
-    if(sd.st_mtime > st.st_mtime) goto build;
+    st = tstats;
+
+    for(t = targets; *t != NULL; ++t) {
+      if(sd.st_mtime > (st++)->st_mtime) goto build;
+    }
   }
 
   return 0;
@@ -182,14 +220,14 @@ build:
   if(!quiet) {
     fputs("  ", stdout);
 
-    for(i = 0; i < a; ++i)
-      printf(" %s", args[ i ]);
+    for(t = cmd; *t != NULL; ++t)
+      printf(" %s", *t);
 
     putchar('\n');
     fflush(stdout);
   }
 
-  int s = execute(args);
+  int s = execute(cmd);
 
   if(s != 0) cleanup();
 
