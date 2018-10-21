@@ -571,7 +571,8 @@ optimizer.c: optimizer.scm mini-srfi-1.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm
 scheduler.c: scheduler.scm \
-		chicken.format.import.scm
+		chicken.format.import.scm \
+		chicken.condition.import.scm
 scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.format.import.scm \
