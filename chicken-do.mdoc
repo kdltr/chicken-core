@@ -35,33 +35,37 @@ not newer than the target
 .Nm
 .Op Fl q
 .Op Fl h
-.Ar TARGET
-.Ar COMMAND ...
+.Op Fl -
+.Ar TARGET ...
 .Cm :
 .Ar DEPENDENCY ...
+.Cm :
+.Ar COMMAND ...
 .Sh DESCRIPTION
-If the file
-.Em TARGET
-does not exist, or if any of the files in
+If the files
+.Em TARGET ...
+do not exist, or if any of the files in
 .Em DEPENDENCY ...
-are newer than
-.Em TARGET ,
-then execute the shell commands in
+are newer than one of the target files, then execute the shell commands in
 .Em COMMAND ... .
 .Pp
-The program accepts following arguments:
+The program accepts the following options:
 .Bl -tag -width Ds
 .It Fl h
 Show usage and exit.
 .It Fl q
 Quiet operation - do not print shell commands when they are executed.
+.It Fl -
+Treat all following tokens as target filenames, even if they begin with a
+.Fl
+character.
 .El
 .Sh EXIT STATUS
 .Ex -std
 .Sh EXAMPLES
 Build a C program from sources:
 .Pp
-.Dl $ chicken-do prg gcc prg.c -o prg \& : prg.c inc.h
+.Dl $ chicken-do prg : prg.c inc.h : gcc prg.c -o prg
 .Sh SEE ALSO
 .Xr chicken 1 ,
 .Xr chicken-status 1 ,

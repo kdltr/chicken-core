@@ -3,8 +3,8 @@
 
 == The r5rs module
 
-This module is simply an alias for the [[scheme]] module.  Please see
-the reference of that module for details on what it provides.
+This module is simply an alias for the [[Module scheme|scheme]] module.
+Please see the reference of that module for details on what it provides.
 
 ---
 Previous: [[Module scheme]]

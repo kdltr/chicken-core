@@ -383,6 +383,7 @@ install-other-files:
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)chicken$(MAN) "$(DESTDIR)$(IMAN1DIR)$(SEP)$(CHICKEN_PROGRAM).1"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)csc$(MAN) "$(DESTDIR)$(IMAN1DIR)$(SEP)$(CSC_PROGRAM).1"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)csi$(MAN) "$(DESTDIR)$(IMAN1DIR)$(SEP)$(CSI_PROGRAM).1"
+	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)chicken-do$(MAN) "$(DESTDIR)$(IMAN1DIR)$(SEP)$(CHICKEN_DO_PROGRAM).1"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)chicken-install$(MAN) "$(DESTDIR)$(IMAN1DIR)$(SEP)$(CHICKEN_INSTALL_PROGRAM).1"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)chicken-uninstall$(MAN) "$(DESTDIR)$(IMAN1DIR)$(SEP)$(CHICKEN_UNINSTALL_PROGRAM).1"
 	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_FILE_OPTIONS) $(SRCDIR)chicken-status$(MAN) "$(DESTDIR)$(IMAN1DIR)$(SEP)$(CHICKEN_STATUS_PROGRAM).1"
@@ -570,7 +571,8 @@ optimizer.c: optimizer.scm mini-srfi-1.scm \
 		chicken.sort.import.scm \
 		chicken.string.import.scm
 scheduler.c: scheduler.scm \
-		chicken.format.import.scm
+		chicken.format.import.scm \
+		chicken.condition.import.scm
 scrutinizer.c: scrutinizer.scm mini-srfi-1.scm \
 		chicken.compiler.support.import.scm \
 		chicken.format.import.scm \

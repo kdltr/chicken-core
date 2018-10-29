@@ -46,8 +46,11 @@ EOF
 
 (define default-cc (foreign-value "C_TARGET_CC" c-string))
 (define default-cxx (foreign-value "C_TARGET_CXX" c-string))
+(define default-install-program (foreign-value "C_TARGET_INSTALL_PROGRAM" c-string))
 (define default-cflags (foreign-value "C_TARGET_CFLAGS" c-string))
 (define default-ldflags (foreign-value "C_TARGET_LDFLAGS" c-string))
+(define default-install-program-executable-flags (foreign-value "C_TARGET_INSTALL_PROGRAM_EXECUTABLE_OPTIONS" c-string))
+(define default-install-program-data-flags (foreign-value "C_TARGET_INSTALL_PROGRAM_FILE_OPTIONS" c-string))
 (define default-libs (foreign-value "C_TARGET_MORE_LIBS" c-string))
 (define default-libdir (foreign-value "C_TARGET_LIB_HOME" c-string))
 (define default-runlibdir (foreign-value "C_TARGET_RUN_LIB_HOME" c-string))
