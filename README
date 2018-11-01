@@ -332,6 +332,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	    |   |-- doc
 	    |   |   |-- LICENSE
 	    |   |   |-- README
+	    |   |   |-- DEPRECATED
 	    |   |   |-- mac.r                         (Macintosh)
 	    |   |   |-- CHICKEN.icns                  (Macintosh)
 	    |   |   |-- manual-html
