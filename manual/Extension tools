@@ -217,7 +217,7 @@ Available options:
 ; {{-k   -keep}} : keep temporary files
 ; {{-s   -sudo}} : use external command to elevate privileges when installing or removing files
 ; {{-no-install-dependencies}} : do not install dependencies
-; {{-r   -retrieve}} : only retrieve egg into current directory, don't install (giving -r more than once implies {{-recursive}})
+; {{-r   -retrieve}} : only retrieve egg into cache directory, don't install (giving {{-r}} more than once implies {{-recursive}})
 ; {{-recursive}} : if {{-retrieve}} is given, retrieve also dependencies
 ; {{-dry-run}} :  do not build or install, just print the locations of the generated build + install scripts
 ; {{-list-versions}} : list available version for an extension (HTTP transport only)
