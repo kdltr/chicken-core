@@ -253,7 +253,7 @@ $(eval $(call declare-program-from-object,$(CSI_STATIC_EXECUTABLE),csi))
 # "chicken-do"
 
 $(CHICKEN_DO_PROGRAM)$(EXE): $(SRCDIR)chicken-do.c
-	$(C_COMPILER) $(C_COMPILER_OPTIONS) $< -o $@
+	$(C_COMPILER) $(C_COMPILER_OPTIONS) $(C_COMPILER_OPTIMIZATION_OPTIONS) $< -o $@
 
 # scripts
 
