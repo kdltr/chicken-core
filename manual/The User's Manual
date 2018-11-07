@@ -6,34 +6,24 @@
 <img id="big-logo" style="float:right; margin-left:1em;" src="http://wiki.call-cc.org/chicken-small.png" alt="Stylized picture of a chicken"/>
 </nowiki>
 
-This is the manual for CHICKEN Scheme, version 4.13.0
+This is the manual for CHICKEN Scheme, version 5.0.0rc4
 
-; [[Getting started]] : What is CHICKEN and how do I use it?
-
-; [[Basic mode of operation]] : Compiling Scheme files.
-
-; [[Using the compiler]] : Explains how to use CHICKEN to compile programs and execute them.
-
-; [[Using the interpreter]] : Invocation and usage of {{csi}}, the CHICKEN interpreter.
-
-; [[Supported language]] : The language implemented by CHICKEN (deviations from the standard and extensions).
-
-; [[Debugging]] : Using "Feathers", the CHICKEN debugger.
-
-; [[Interface to external functions and variables]] : Accessing C and C++ code and data.
-
-; [[Extensions]] : Packaging and installing extension libraries.
-
-; [[Deployment]] : Deploying programs developed with CHICKEN.
-
-; [[Cross development]] : Building software for a different architecture.
-
-; [[Data representation]] : How Scheme data is internally represented.
-
-; [[Bugs and limitations]] : Things that do not work yet.
-
-; [[faq|FAQ]] : A list of Frequently Asked Questions about CHICKEN (and their answers).
-
-; [[Acknowledgements]] : A list of some of the people that have contributed to make CHICKEN what it is.
-
-; [[Bibliography]] : Links to documents that may be of interest.
+* [[Getting started]] : What is CHICKEN and how do I use it?
+* [[Using the interpreter]] : How to use the interactive interpreter, {{csi}}
+* [[Using the compiler]]  : How to use the batch compiler
+* [[Deviations from the standard]] : Where CHICKEN deviates from R5RS
+* [[Extensions to the standard]] : Extensions to R5RS that CHICKEN provides
+* [[Included modules]] : A reference to CHICKEN's core module library
+* [[Interface to external functions and variables]] : Accessing C/C++ code and data
+* [[Modules]] : How CHICKEN manages namespaces
+* [[Types]] : Optionally typed Scheme code
+* [[Declarations]] : Compiler declarations
+* [[Extensions]] : Packaging and installing extension libraries
+* [[Extension tools]] : {{chicken-[un]install}} and {{chicken-status}}
+* [[Egg specification format]] : Format of egg description files
+* [[Units and linking model]] : How Scheme compilation units are mapped to C
+* [[Deployment]] : How to distribute and ship CHICKEN programs and libraries
+* [[Cross development]] : Using CHICKEN to cross-compile for other architectures
+* [[Bugs and limitations]] : Things that do not work yet.
+* [[Acknowledgements]] : A list of some of the people that have contributed to make CHICKEN what it is
+* [[Bibliography]] : Links to documents that may be of interest

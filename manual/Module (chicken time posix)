@@ -1,0 +1,97 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken time posix)
+
+This module provides procedures for conversion between seconds since
+the epoch ("POSIX time"), strings and a 10-element vector type
+containing the distinct time units.
+
+
+=== seconds->local-time
+
+<procedure>(seconds->local-time [SECONDS])</procedure>
+
+Breaks down the time value represented in {{SECONDS}} into a 10
+element vector of the form {{#(seconds minutes hours mday month
+year wday yday dstflag timezone)}}, in the following format:
+
+; seconds (0) : the number of seconds after the minute (0 - 59)
+; minutes (1) : the number of minutes after the hour (0 - 59)
+; hours (2) : the number of hours past midnight (0 - 23)
+; mday (3) : the day of the month (1 - 31)
+; month (4) : the number of months since january (0 - 11)
+; year (5) : the number of years since 1900
+; wday (6) : the number of days since Sunday (0 - 6)
+; yday (7) : the number of days since January 1 (0 - 365)
+; dstflag (8) : a flag that is true if Daylight Saving Time is in effect at the time described.
+; timezone (9) : the difference between UTC and the latest local standard time, in seconds west of UTC.
+
+{{SECONDS}} defaults to
+the value of {{(current-seconds)}}.
+
+=== local-time->seconds
+
+<procedure>(local-time->seconds VECTOR)</procedure>
+
+Converts the ten-element vector {{VECTOR}} representing the time value relative to
+the current timezone into
+the number of seconds since the first of January, 1970 UTC.
+
+=== local-timezone-abbreviation
+
+<procedure>(local-timezone-abbreviation)</procedure>
+
+Returns the abbreviation for the local timezone as a string.
+
+=== seconds->string
+
+<procedure>(seconds->string [SECONDS])</procedure>
+
+Converts the time represented in {{SECONDS}} into a local-time string
+of the form {{"Tue May 21 13:46:22 1991"}}. {{SECONDS}} defaults to
+the value of {{(current-seconds)}}.
+
+=== seconds->utc-time
+
+<procedure>(seconds->utc-time [SECONDS])</procedure>
+
+Similar to {{seconds->local-time}}, but interpretes {{SECONDS}}
+as UTC time. {{SECONDS}} defaults to
+the value of {{(current-seconds)}}.
+
+=== utc-time->seconds
+
+<procedure>(utc-time->seconds VECTOR)</procedure>
+
+Converts the ten-element vector {{VECTOR}} representing the UTC time value into
+the number of seconds since the first of January, 1970 UTC.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+=== time->string
+
+<procedure>(time->string VECTOR [FORMAT])</procedure>
+
+Converts the broken down time represented in the 10 element vector
+{{VECTOR}} into a string of the form represented by the {{FORMAT}}
+string. The default time form produces something like {{"Tue May 21 13:46:22 1991"}}.
+
+The {{FORMAT}} string follows the rules for the C library procedure {{strftime}}. The default {{FORMAT}} string is "%a %b %e %H:%M:%S %Z %Y".
+
+=== string->time
+
+<procedure>(string->time TIME [FORMAT])</procedure>
+
+Converts a string of the form represented by the {{FORMAT}} string
+into the broken down time represented in a 10 element vector. The
+default time form understands something like {{"Tue May 21 13:46:22 1991"}}.
+
+The {{FORMAT}} string follows the rules for the C library procedure {{strptime}}. The default {{FORMAT}} string is "%a %b %e %H:%M:%S %Z %Y".
+
+
+---
+Previous: [[Module (chicken time)]]
+
+Next: [[Module (chicken type)]]

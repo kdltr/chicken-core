@@ -1,0 +1,275 @@
+[[tags: manual]]
+[[toc:]]
+
+== Extension tools
+
+The basic tools to install, uninstall and view "eggs" and the extensions
+are {{chicken-install}}, {{chicken-uninstall}} and {{chicken-status}}.
+
+{{chicken-install}} can be used in two modes: first, as a simple package
+manager that downloads publicly available eggs (and their dependencies, if
+necessary) and compiles the contained extensions, installing them on 
+a user's system.
+
+For development of eggs, {{chicken-install}} can also be invoked
+without arguments, in a directory that contains an egg specification
+file and the associated source code, building all components and
+installing them.
+
+{{chicken-status}} simply lists installed eggs, the contained extensions,
+and optionally the files that where installed with a particular egg.
+
+Below you will find a description of the available command line options
+for all three programs. A specification of the egg description file
+format is [[Egg specification format|here]].
+
+=== Security
+
+When eggs are downloaded and installed one is executing code
+from potentially compromised systems. This applies also when
+{{chicken-install}} executes system tests for required eggs. As
+the code has been retrieved over the network effectively untrusted
+code is going to be evaluated. When {{chicken-install}} is run as
+''root'' the whole system is at the mercy of the build instructions
+(note that this is also the case every time you install software via
+{{sudo make install}}, so this is not specific to the CHICKEN
+egg mechanism).
+
+Security-conscious users should never run {{chicken-install}} as root.
+A simple remedy is to keep the repository inside a user's home
+directory (see the section "Changing repository location" below).
+Alternatively obtain write/execute access to the default location of the repository
+(usually {{/usr/local/lib/chicken}}) to avoid running as
+root. {{chicken-install}} also provides a {{-sudo}} option to perform
+the last installation steps as root user, but do building and other
+.setup script processing as normal. A third solution is to 
+override {{VARDIR}} when building the system
+(for example by passing {{"VARDIR=/foo/bar"}} on the make command line,
+or by modifying {{config.make}}. Eggs will then be installed in
+{{$(VARDIR)/chicken/8}}.
+
+=== Changing the repository location
+
+When CHICKEN is installed a repository for eggs is created and initialized
+in a default location (usually something like {{/usr/local/lib/chicken/9/}}).
+It is possible to keep an egg repository in another location. This can be
+configured at build-time by passing {{VARDIR=<directory>}} to {{make(3)}}
+or by modifying the {{config.make}} configuration file. If you want to
+override this location after chicken is installed, you can create a
+repository directory, set the
+{{CHICKEN_INSTALL_REPOSITORY}} and/or {{CHICKEN_REPOSITORY_PATH}}
+environment variables to the full path of the new reopsitory and copy all files
+from the default repository into the new one.
+
+Note that your binary version can differ from the one given in 
+the examples here, if your
+chicken version is older or newer than the one used in these examples.
+Check your default location for the correct binary-version number.
+
+{{CHICKEN_REPOSITORY_PATH}} is a directory (or a list of directories
+separated by {{:}}/{{;}}) where eggs are to be
+loaded from for all chicken-based programs. {{CHICKEN_INSTALL_REPOSITORY}}
+is the place where eggs will be installed and which the egg-related
+tools like {{chicken-install}}, {{chicken-uninstall}} and
+{{chicken-status}} consult and update. Make sure the paths given in these 
+environment variables are absolute and not relative.
+
+=== Static linking
+
+Static linking of extensions and programs is fully supported and
+should be transparent to the user. Every extension will by
+default be compiled into a dynamically loadable and a statically
+linkable entity. By passing {{-static}} on the {{csc}} command-line,
+eggs that are available in static form will be linked instead of
+the dynamically loadable version. Use the {{linkage}} egg
+description property to select in what modes a component should
+be built.
+
+To identify the necessary object files during linking of 
+extensions, {{csc}}
+creates so-called "link files" and installs them along the
+statically compiled object file in the local egg repository.
+These link files specify what objects should be linked when
+an application is using a static variant of an extension.
+
+
+=== Locations
+
+For experimentation or in-house builds of software it may be
+useful to have private egg repositories in addition to the
+official CHICKEN egg repository. This can be accomplished by
+defining so-called "locations", directories that contain egg
+source-code and description files and which should be scanned
+before trying to retrieve an egg via the network.
+
+The file {{<PREFIX>/share/chicken/setup.defaults}} holds various
+parameters that define where eggs should be downloaded, together
+with more obscure options, and can be used to customize the
+sources where eggs will be retrieved from. Adding a line of 
+the form
+
+{{(location "<PATH>")}}
+
+will add {{<PATH>}} as an additional egg source, where {{<PATH>}}
+should be a directory in the local filesystem that contains
+any number of eggs, one directory for each, including the source code
+and the {{.egg}} files for each egg.
+
+Locations are searched before trying to retrieve from the network.
+Any number of locations may be defined.
+
+
+=== The egg cache
+
+Eggs are downloaded and built in the so called "egg cache", an
+intermediate location used for storing already downloaded source code
+and for providing a temporary location for building the eggs before
+they are installed.
+
+By default the cache is located in the directory
+{{.chicken-install.cache}} is the user's home directory ({{$HOME}} on
+UNIX, or {{%USERPROFILE%}} on Windows. If the respective environment
+variable is not set, then {{/tmp}} or {{/Temp}} is used.
+
+Built extensions and programs remain in the cache, to avoid rebuilding
+already compiled code and multiple downloads of eggs in case the
+installation of an egg fails - the dependencies will be cached after
+the first download and re-download is not needed.
+
+{{chicken-install}} tries to take extreme care to avoid stale binaries,
+but should you be in doubt, simply delete the directory, or run
+{{chicken-install -purge}} to clear the cache or parts of it.
+
+You can override the location of the cache by setting the
+{{CHICKEN_EGG_CACHE}} environment variable.
+
+
+=== Egg installation in detail
+
+==== Retrieval
+
+First the egg names given on the command line (or, if no arguments
+are given, all eggs identified by {{.egg}} files in the current 
+directory, including any in a subdirectory named {{chicken}})
+must be retrieved, either from a local source or from the official
+egg repository. Should the egg exist in the egg cache we check
+whether this cached version is out of date. A cached egg is 
+considered out of date, if a) it is locally available and all cached
+files belonging to the egg do not have newer timestamps than the
+local files, or b) if it is a remotely retrieved egg and no
+newer versions exist on the remote egg server and the last time
+the cache was filled from the remote location is not later than
+one hour. Additionally, if any changes in certain environment
+variables that may influence the compilation of an egg, or if
+the CHICKEN version changed, then retrieval of the egg sources
+is enforced in any case.
+
+If the egg is in the current directory, or in
+a "location" (as described above), the files are copied into
+the cache. If the egg is remotely available, then it is retrieved
+via HTTP from one of the egg servers defined in {{setup.defaults}}.
+
+Once the egg sources are retrieved and stored in the cache,
+their {{.egg}} files are loaded and validated. After this
+any egg dependencies are resolved and located in the cache,
+triggering a recursive retrieval, if necessary.
+
+==== Preparation
+
+Unless the {{-retrieve}} option was given, the eggs intended
+to be built and installed are now scheduled for compilation.
+The egg information from the {{.egg}} files is processed and
+translated into build and install scripts for the current
+platform - if this CHICKEN was configured for cross compilation,
+and no separate host- or target-build was selected, two sets
+of build/install scripts will be generated, one for the host
+system and one for the target.
+
+==== Building and installation
+
+Unless {{-dry-run}} was given on the command-line, the build-
+and install scripts are now executed, ordered by the dependency
+relationships between the full set of eggs that are scheduled
+for compilation. If the {{-test}} option was given and a file named
+{{run.scm}} exists in the {{tests}} subdirectory of the egg
+sources, then this script is executed. Should it terminate with
+an error or a non-zero exit code, the installation is still performed
+and {{chicken-install}} does not abort. Only after all scheduled
+eggs have been installed, {{chicken-install}} will terminate
+with a non-zero exit code.
+
+Note that the build process attempts to minimize re-building
+of already compiled files in the cache, using the {{chicken-do}}
+program. See the manual page for {{chicken-do}} for more details.
+
+From the egg-information in the {{.egg}} file, the set of files
+installed for a particular egg are added to the egg-information
+and stored together with the build-artifacts produced by the
+build scripts.
+
+=== chicken-install reference
+
+Available options:
+
+; {{-h   -help}} : show this message and exit
+; {{-version}} : show version and exit
+; {{-force}} : don't ask, install even if versions don't match
+; {{-k   -keep}} : keep temporary files
+; {{-s   -sudo}} : use external command to elevate privileges when installing or removing files
+; {{-no-install-dependencies}} : do not install dependencies
+; {{-r   -retrieve}} : only retrieve egg into cache directory, don't install (giving {{-r}} more than once implies {{-recursive}})
+; {{-recursive}} : if {{-retrieve}} is given, retrieve also dependencies
+; {{-dry-run}} :  do not build or install, just print the locations of the generated build + install scripts
+; {{-list-versions}} : list available version for an extension (HTTP transport only)
+; {{-n   -no-install}} : do not install, only build the egg.
+; {{-purge}} : remove cached files for given eggs (or purge cache completely)
+; {{-cached}} : install from cache, do not download
+; {{-host}} : when cross-compiling, compile egg for host only
+; {{-target}} : when cross-compiling, compile egg for target only
+; {{-test}} : run included test-cases, if available
+; {{-u   -update-db}} : update export database
+; {{-repository}} : print path to egg repository
+; {{-override FILENAME}} : override versions for installed eggs with information given in {{FILENAME}}, which can be generated by {{-scan}} or by the {{-list}} option of the {{chicken-status}} program
+; {{-from-list FILENAME}} : install eggs given in {{FILENAME}}, in the same format as produced by the {{-list}} option in {{chicken-status}}; this option may be given multiple times
+; {{-v   -verbose}} : be verbose
+; {{ -defaults FILENAME }} :  use {{FILENAME}} as defaults instead of the installed {{setup.defaults}} file
+
+{{chicken-install}} recognizes the {{SUDO}}, {{http_proxy}} and {{proxy_auth}} environment variables, if set.
+
+When running {{chicken-install}} with an argument {{NAME}}, for which
+no associated {{.egg}} file exists, then it will try to download the
+extension via HTTP from the CHICKEN code repository at
+[[http://code.call-cc.org/svn/chicken-eggs/]]. Extensions that are
+required to compile and/or use the requested extension are downloaded
+and installed automatically.
+
+
+=== chicken-uninstall reference
+
+; {{-h   -help}} : show usage information and exit
+; {{-version}} : show version and exit
+; {{-force}} : don't ask, delete whatever matches
+; {{-match}} : treat egg-names as glob patterns
+; {{-s   -sudo}} : use external command to elevate privileges for deleting files
+; {{-host}} : when cross-compiling, remove eggs for host system only
+; {{-target}} : when cross-compiling, remove eggs for target system only
+
+
+=== chicken-status reference
+
+; {{-h   -help}} : show usage information and exit
+; {{-version}} : show version and exit
+; {{-f   -files}} : list installed files
+; {{-match}} : treat egg-names as glob patterns
+; {{-host}} : when cross-compiling, show eggs for host system only
+; {{-target}} : when cross-compiling, show eggs for target system only
+; {{-list}} : list installed egg version in format suitable for {{chicken-install -override}} or {{-from-list}}
+; {{-c   -components}} : list installed components
+; {{-cached}} : list eggs available in the cache directory
+
+
+---
+
+Previous: [[Extensions]]
+
+Next: [[Egg specification format]]

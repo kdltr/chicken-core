@@ -1,6 +1,6 @@
 /* dbg-stub.c - Client-side interface, lowlevel part
 ;
-; Copyright (c) 2008-2017, The CHICKEN Team
+; Copyright (c) 2008-2018, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -75,7 +75,11 @@ static WSADATA wsa;
 
 #ifdef C_SIXTY_FOUR
 # define C_HEADER_BITS_SHIFT      56
-# define UWORD_COUNT_FORMAT_STRING     "%lu"
+# ifdef C_LLP
+#  define UWORD_COUNT_FORMAT_STRING     "%llu"
+# else
+#  define UWORD_COUNT_FORMAT_STRING     "%lu"
+# endif
 #else
 # define C_HEADER_BITS_SHIFT      24
 # define UWORD_COUNT_FORMAT_STRING     "%u"

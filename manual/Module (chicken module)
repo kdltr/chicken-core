@@ -1,0 +1,12 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken module)
+
+The functionality in this module is available by default. See
+[[Modules]] for more information.
+
+---
+Previous: [[Module (chicken memory representation)]]
+
+Next: [[Module (chicken pathname)]]

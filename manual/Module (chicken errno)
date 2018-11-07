@@ -1,0 +1,60 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken errno)
+
+This module provides access to the standard C {{errno}} value.
+
+Be careful, if you're using threads, {{errno}} might be clobbered as
+soon as another thread calls a C function.  To prevent this from
+happening, you can add {{(declare (disable-interrupts))}} at the top
+of your file, or use the {{-disable-interrupts}} compiler option to
+avoid any context switches while a procedure in this file is running.
+
+=== errno
+
+<procedure>(errno)</procedure>
+
+Returns the error code of the last system call.
+
+=== errno constants
+
+<constant>errno/perm</constant><br>
+<constant>errno/noent</constant><br>
+<constant>errno/srch</constant><br>
+<constant>errno/intr</constant><br>
+<constant>errno/io</constant><br>
+<constant>errno/noexec</constant><br>
+<constant>errno/badf</constant><br>
+<constant>errno/child</constant><br>
+<constant>errno/nomem</constant><br>
+<constant>errno/acces</constant><br>
+<constant>errno/fault</constant><br>
+<constant>errno/busy</constant><br>
+<constant>errno/notdir</constant><br>
+<constant>errno/isdir</constant><br>
+<constant>errno/inval</constant><br>
+<constant>errno/mfile</constant><br>
+<constant>errno/nospc</constant><br>
+<constant>errno/spipe</constant><br>
+<constant>errno/pipe</constant><br>
+<constant>errno/again</constant><br>
+<constant>errno/rofs</constant><br>
+<constant>errno/exist</constant><br>
+<constant>errno/wouldblock</constant>
+
+These variables contain error codes as returned by {{errno}}.
+
+''NOTE'': On Windows, {{EWOULDBLOCK}} does not exist.  For
+consistency, {{errno/wouldblock}} does exist, but it is defined as
+zero.
+
+This does mean that in case there is no error, it looks like the
+{{errno/wouldblock}} error is returned.  But you have to check the
+return code of a system call before accessing {{errno}} anyway, so
+this should typically never happen.
+
+---
+Previous: [[Module (chicken continuation)]]
+
+Next: [[Module (chicken eval)]]

@@ -1,0 +1,261 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken memory representation)
+
+The procedures from this module operate on the in-memory
+representation of Scheme objects.  These procedures ''are'' safe, so,
+for example, unlike the procedures from {{(chicken memory)}} these
+procedures ''will'' type-check and range-check their arguments, but
+you still need to know what you're doing because the effects may be
+surprising for the uninitiated.
+
+
+=== Extending procedures with data
+
+
+==== extend-procedure
+
+<procedure>(extend-procedure PROCEDURE X)</procedure>
+
+Returns a copy of the procedure {{PROCEDURE}} which contains an
+additional data slot initialized to {{X}}. If {{PROCEDURE}} is already
+an extended procedure, then its data slot is changed to contain {{X}}
+and the same procedure is returned. Signals an error when
+{{PROCEDURE}} is not a procedure.
+
+
+==== extended-procedure?
+
+<procedure>(extended-procedure? PROCEDURE)</procedure>
+
+Returns {{#t}} if {{PROCEDURE}} is an extended procedure,
+or {{#f}} otherwise.
+
+
+==== procedure-data
+
+<procedure>(procedure-data PROCEDURE)</procedure>
+
+Returns the data object contained in the extended procedure
+{{PROCEDURE}}, or {{#f}} if it is not an extended procedure.
+
+
+==== set-procedure-data!
+
+<procedure>(set-procedure-data! PROCEDURE X)</procedure>
+
+Changes the data object contained in the extended procedure
+{{PROCEDURE}} to {{X}}. Signals an error when {{PROCEDURE}} is not an
+extended procedure.
+
+<enscript highlight=scheme>
+(define foo
+  (letrec ((f (lambda () (procedure-data x)))
+           (x #f) )
+    (set! x (extend-procedure f 123))
+    x) )
+(foo)                                         ==> 123
+(set-procedure-data! foo 'hello)
+(foo)                                         ==> hello
+</enscript>
+
+
+
+=== Low-level data access
+
+These procedures operate with what are known as ''vector-like
+objects''. A ''vector-like object'' is a vector, record structure,
+pair, symbol or keyword: it is an aggregation of other Scheme objects.
+
+Note that strings and blobs are not considered vector-like (they are
+considered to be ''byte vectors'', which are objects of mostly
+unstructured binary data).
+
+
+==== vector-like?
+
+<procedure>(vector-like? X)</procedure>
+
+Returns {{#t}} when {{X}} is a vector-like object, returns {{#f}}
+otherwise.
+
+
+==== block-ref
+
+<procedure>(block-ref VECTOR* INDEX)</procedure>
+
+Returns the contents of the {{INDEX}}th slot of the vector-like object
+{{VECTOR*}}.
+
+
+==== block-set!
+
+<procedure>(block-set! VECTOR* INDEX X)</procedure><br>
+<procedure>(set! (block-ref VECTOR* INDEX) X)</procedure>
+
+Sets the contents of the {{INDEX}}th slot of the vector-like object
+{{VECTOR*}} to the value of {{X}}.
+
+==== number-of-slots
+
+<procedure>(number-of-slots VECTOR*)</procedure>
+
+Returns the number of slots that the vector-like object {{VECTOR*}}
+contains.
+
+
+==== number-of-bytes
+
+<procedure>(number-of-bytes BLOCK)</procedure>
+
+Returns the number of bytes that the object {{BLOCK}}
+contains. {{BLOCK}} may be any non-immediate value.
+
+
+==== object-copy
+
+<procedure>(object-copy X)</procedure>
+
+Copies {{X}} recursively and returns the fresh copy. Objects allocated
+in static memory are copied back into garbage collected storage.
+
+
+=== Record instance
+
+
+==== make-record-instance
+
+<procedure>(make-record-instance SYMBOL ARG1 ...)</procedure>
+
+Returns a new instance of the record type {{SYMBOL}}, with its
+slots initialized to {{ARG1 ...}}.  To illustrate:
+
+<enscript highlight=scheme>
+(define-record-type point (make-point x y) point?
+  (x point-x point-x-set!)
+  (y point-y point-y-set!))
+</enscript>
+
+expands into something quite similar to:
+
+<enscript highlight=scheme>
+(begin
+  (define (make-point x y)
+    (make-record-instance 'point x y) )
+  (define (point? x)
+    (and (record-instance? x)
+         (eq? 'point (block-ref x 0)) ) )
+  (define (point-x p) (block-ref p 1))
+  (define (point-x-set! p x) (block-set! p 1 x))
+  (define (point-y p) (block-ref p 2))
+  (define (point-y-set! p y) (block-set! p 1 y)) )
+</enscript>
+
+
+==== record-instance?
+
+<procedure>(record-instance? X [SYMBOL])</procedure>
+
+Returns {{#t}} if {{X}} is a record structure, or {{#f}} otherwise.
+
+Further, returns {{#t}} if {{X}} is of type {{SYMBOL}}, or {{#f}}
+otherwise.
+
+
+==== record-instance-type
+
+<procedure>(record-instance-type RECORD)</procedure>
+
+Returns type symbol of the record structure {{RECORD}}. Signals an
+error if {{RECORD}} is not a record structure.
+
+
+==== record-instance-length
+
+<procedure>(record-instance-length RECORD)</procedure>
+
+Returns number of slots for the record structure {{RECORD}}. The
+record-instance type is not counted. Signals an error if
+{{RECORD}} is not a record structure.
+
+
+==== record-instance-slot
+
+<procedure>(record-instance-slot RECORD INDEX)</procedure>
+
+Returns the contents of the {{INDEX}}th slot of the record structure
+{{RECORD}}. The slot index range is the open interval {{[0
+record-instance-length)}}. Signals an error if {{RECORD}} is not a record
+structure.
+
+
+==== record-instance-slot-set!
+
+<procedure>(record-instance-slot-set! RECORD INDEX X)</procedure><br>
+<procedure>(set! (record-instance-slot RECORD INDEX) X)</procedure>
+
+Sets the {{INDEX}}th slot of the record structure {{RECORD}} to
+{{X}}. The slot index range is the open interval {{[0
+record-instance-length)}}. Signals an error if {{RECORD}} is not a
+record structure.
+
+
+==== record->vector
+
+<procedure>(record->vector RECORD)</procedure>
+
+Returns a new vector with the type and the elements of the record
+structure {{RECORD}}. Signals an error if {{RECORD}} is not a record
+structure.
+
+
+=== Magic
+
+
+==== object-become!
+
+<procedure>(object-become! ALIST)</procedure>
+
+Changes the identity of the value of the car of each pair in {{ALIST}}
+to the value of the cdr. Neither value may be immediate (i.e. exact
+integers, characters, booleans or the empty list).
+
+<enscript highlight=scheme>
+(define x "i used to be a string")
+(define y '#(and now i am a vector))
+(object-become! (list (cons x y)))
+x                                    ==> #(and now i am a vector)
+y                                    ==> #(and now i am a vector)
+(eq? x y)                            ==> #t
+</enscript>
+
+Note: this operation invokes a major garbage collection.
+
+The effect of using {{object-become!}} on evicted data (see
+{{object-evict}}) is undefined.
+
+
+==== mutate-procedure!
+
+<procedure>(mutate-procedure! OLD PROC)</procedure>
+
+Replaces the procedure {{OLD}} with the result of calling the
+one-argument procedure {{PROC}}. {{PROC}} will receive a copy of
+{{OLD}} that will be identical in behaviour to the result of {{OLD}}:
+
+<enscript highlight=scheme>
+ ;;; Replace arbitrary procedure with tracing one:
+
+ (mutate-procedure! my-proc
+   (lambda (new)
+     (lambda args
+       (printf "~s called with arguments: ~s~%" new args)
+       (apply new args) ) ) )
+</enscript>
+
+
+---
+Previous: [[Module (chicken memory)]]
+
+Next: [[Module (chicken module)]]

@@ -1,0 +1,170 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken string)
+
+This module contains procedures which can perform various useful
+string operations.
+
+=== conc
+
+<procedure>(conc X ...)</procedure>
+
+Returns a string with the string-represenation of all arguments
+concatenated together. {{conc}} could be implemented as
+
+<enscript highlight=scheme>
+(define (conc . args)
+  (apply string-append (map ->string args)) )
+</enscript>
+
+
+
+=== ->string
+
+<procedure>(->string X)</procedure>
+
+Returns a string-representation of {{X}}.
+
+
+=== string-chop
+
+<procedure>(string-chop STRING LENGTH)</procedure>
+
+Returns a list of substrings taken by ''chopping'' {{STRING}} every {{LENGTH}}
+characters:
+
+<enscript highlight=scheme>
+(string-chop "one two three" 4)  ==>  ("one " "two " "thre" "e")
+</enscript>
+
+
+=== string-chomp
+
+<procedure>(string-chomp STRING [SUFFIX])</procedure>
+
+If {{STRING}} ends with {{SUFFIX}}, then this procedure returns a copy
+of its first argument with the suffix removed, otherwise returns
+{{STRING}} unchanged. {{SUFFIX}} defaults to {{"\n"}}.
+
+
+=== string-compare3
+
+<procedure>(string-compare3 STRING1 STRING2)</procedure><br>
+<procedure>(string-compare3-ci STRING1 STRING2)</procedure>
+
+Perform a three-way comparison between the {{STRING1}} and {{STRING2}},
+returning either {{-1}} if {{STRING1}} is lexicographically less
+than {{STRING2}}, {{0}} if it is equal, or {{1}} if it s greater.
+{{string-compare3-ci}} performs a case-insensitive comparison.
+
+
+=== string-intersperse
+
+<procedure>(string-intersperse LIST [STRING])</procedure>
+
+Returns a string that contains all strings in {{LIST}} concatenated
+together.  {{STRING}} is placed between each concatenated string and
+defaults to {{" "}}.
+
+<enscript highlight=scheme>
+(string-intersperse '("one" "two") "three")
+</enscript>
+
+is equivalent to
+
+<enscript highlight=scheme>
+(apply string-append (intersperse '("one" "two") "three"))
+</enscript>
+
+
+=== string-split
+
+<procedure>(string-split STRING [DELIMITER-STRING [KEEPEMPTY]])</procedure>
+
+Split string into substrings delimited by any of the characters given
+in the delimiter string. If no delimiters are specified, a string
+comprising the tab, newline and space characters is assumed. If the
+parameter {{KEEPEMPTY}} is given and not {{#f}}, then empty substrings
+are retained:
+
+<enscript highlight=scheme>
+(string-split "one  two  three") ==> ("one" "two" "three")
+(string-split "foo:bar::baz:" ":" #t) ==> ("foo" "bar" "" "baz" "")
+(string-split "foo:bar:baz,quux,zot" ":," ) ==> ("foo" "bar" "baz" "quux" "zot")
+</enscript>
+
+
+=== string-translate
+
+<procedure>(string-translate STRING FROM [TO])</procedure>
+
+Returns a fresh copy of {{STRING}} with characters matching
+{{FROM}} translated to {{TO}}.  If {{TO}} is omitted, then
+matching characters are removed. {{FROM}} and {{TO}} may be
+a character, a string or a list. If both {{FROM}} and {{TO}}
+are strings, then the character at the same position in {{TO}}
+as the matching character in {{FROM}} is substituted.
+
+
+=== string-translate*
+
+<procedure>(string-translate* STRING SMAP)</procedure>
+
+Substitutes elements of {{STRING}} according to {{SMAP}}.
+{{SMAP}} should be an association-list where each element of the list
+is a pair of the form {{(MATCH . REPLACEMENT)}}. Every occurrence of
+the string {{MATCH}} in {{STRING}} will be replaced by the string
+{{REPLACEMENT}}:
+
+<enscript highlight=scheme>
+(string-translate*
+  "<h1>this is a \"string\"</h1>"
+  '(("<" . "&lt;") (">" . "&gt;") ("\"" . "&quot;")) )
+=>  "&lt;h1&gt;this is a &quot;string&quot;&lt;/h1&gt;"
+</enscript>
+
+
+=== substring=?
+
+<procedure>(substring=? STRING1 STRING2 [START1 [START2 [LENGTH]]])</procedure><br>
+<procedure>(substring-ci=? STRING1 STRING2 [START1 [START2 [LENGTH]]])</procedure>
+
+Returns {{#t}} if the strings {{STRING1}} and {{STRING2}} are equal,
+or {{#f}} otherwise.  The comparison starts at the positions
+{{START1}} and {{START2}} (which default to 0), comparing {{LENGTH}}
+characters (which defaults to the minimum of the remaining length of
+both strings).
+
+
+=== substring-index
+
+<procedure>(substring-index WHICH WHERE [START])</procedure><br>
+<procedure>(substring-index-ci WHICH WHERE [START])</procedure>
+
+Searches for first index in string {{WHERE}} where string
+{{WHICH}} occurs.  If the optional argument {{START}} is given,
+then the search starts at that index.  {{substring-index-ci}}
+is a case-insensitive version of {{substring-index}}.
+
+
+=== reverse-list->string
+
+<procedure>(reverse-list->string LIST)</procedure>
+
+Returns a string with the characters in {{LIST}} in reverse
+order. This is equivalent to {{(list->string (reverse LIST))}}, but
+much more efficient.
+
+
+=== reverse-string-append
+
+<procedure>(reverse-string-append LIST)</procedure>
+
+{{(apply string-append (reverse LIST))}}
+
+
+---
+Previous: [[Module (chicken sort)]]
+
+Next: [[Module (chicken syntax)]]

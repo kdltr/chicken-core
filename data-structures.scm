@@ -1,6 +1,6 @@
 ;;; data-structures.scm - Optional data structures extensions
 ;
-; Copyright (c) 2008-2017, The CHICKEN Team
+; Copyright (c) 2008-2018, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without
@@ -28,243 +28,20 @@
 (declare
  (unit data-structures))
 
-(include "common-declarations.scm")
+(module chicken.string
+  (conc ->string string-chop string-chomp
+   string-compare3 string-compare3-ci
+   reverse-list->string reverse-string-append
+   string-intersperse string-split
+   string-translate string-translate*
+   substring=? substring-ci=?
+   substring-index substring-index-ci)
 
-(register-feature! 'data-structures)
-
-
-
-;;; Combinators:
-
-(define (identity x) x)
-
-(define (conjoin . preds)
-  (lambda (x)
-    (let loop ([preds preds])
-      (or (null? preds)
-	  (and ((##sys#slot preds 0) x)
-	       (loop (##sys#slot preds 1)) ) ) ) ) )
-
-(define (disjoin . preds)
-  (lambda (x)
-    (let loop ([preds preds])
-      (and (not (null? preds))
-	   (or ((##sys#slot preds 0) x)
-	       (loop (##sys#slot preds 1)) ) ) ) ) )
-
-(define (constantly . xs)
-  (if (eq? 1 (length xs))
-      (let ([x (car xs)])
-	(lambda _ x) )
-      (lambda _ (apply values xs)) ) )
-
-(define (flip proc) (lambda (x y) (proc y x)))
-
-(define complement
-  (lambda (p)
-    (lambda args (not (apply p args))) ) )
-
-(define (compose . fns)
-  (define (rec f0 . fns)
-    (if (null? fns)
-	f0
-	(lambda args
-	  (call-with-values
-	      (lambda () (apply (apply rec fns) args))
-	    f0) ) ) )
-  (if (null? fns)
-      values
-      (apply rec fns) ) )
-
-(define (o . fns)
-  (if (null? fns)
-      identity
-      (let loop ((fns fns))
-	(let ((h (##sys#slot fns 0))
-	      (t (##sys#slot fns 1)) )
-	  (if (null? t)
-	      h
-	      (lambda (x) (h ((loop t) x))))))))
-
-(define (list-of? pred)
-  (lambda (lst)
-    (let loop ([lst lst])
-      (cond [(null? lst) #t]
-	    [(not-pair? lst) #f]
-	    [(pred (##sys#slot lst 0)) (loop (##sys#slot lst 1))]
-	    [else #f] ) ) ) )
-
-(define (each . procs)
-  (cond ((null? procs) (lambda _ (void)))
-	((null? (##sys#slot procs 1)) (##sys#slot procs 0))
-	(else
-	 (lambda args
-	   (let loop ((procs procs))
-	     (let ((h (##sys#slot procs 0))
-		   (t (##sys#slot procs 1)) )
-	       (if (null? t)
-		   (apply h args)
-		   (begin
-		     (apply h args)
-		     (loop t) ) ) ) ) ) ) ) )
-
-(define (any? x) #t)
-
-
-;;; List operators:
-
-(define (atom? x) (##core#inline "C_i_not_pair_p" x))
-
-(define (tail? x y)
-  (##sys#check-list y 'tail?)
-  (or (##core#inline "C_eqp" x '())
-      (let loop ((y y))
-	(cond ((##core#inline "C_eqp" y '()) #f)
-	      ((##core#inline "C_eqp" x y) #t)
-	      (else (loop (##sys#slot y 1))) ) ) ) )
-
-(define intersperse 
-  (lambda (lst x)
-    (let loop ((ns lst))
-      (if (##core#inline "C_eqp" ns '())
-	  ns
-	  (let ((tail (cdr ns)))
-	    (if (##core#inline "C_eqp" tail '())
-		ns
-		(cons (##sys#slot ns 0) (cons x (loop tail))) ) ) ) ) ) )
-
-(define (butlast lst)
-  (##sys#check-pair lst 'butlast)
-  (let loop ((lst lst))
-    (let ((next (##sys#slot lst 1)))
-      (if (and (##core#inline "C_blockp" next) (##core#inline "C_pairp" next))
-	  (cons (##sys#slot lst 0) (loop next))
-	  '() ) ) ) )
-
-(define (flatten . lists0)
-  (let loop ([lists lists0] [rest '()])
-    (cond [(null? lists) rest]
-	  [else
-	   (let ([head (##sys#slot lists 0)]
-		 [tail (##sys#slot lists 1)] )
-	     (if (list? head)
-		 (loop head (loop tail rest))
-		 (cons head (loop tail rest)) ) ) ] ) ) )
-
-(define chop
-  (lambda (lst n)
-    (##sys#check-exact n 'chop)
-    (when (fx<= n 0) (##sys#error 'chop "invalid numeric argument" n))
-    (let ([len (length lst)])
-      (let loop ([lst lst] [i len])
-	(cond [(null? lst) '()]
-	      [(fx< i n) (list lst)]
-	      [else
-	       (do ([hd '() (cons (##sys#slot tl 0) hd)]
-		    [tl lst (##sys#slot tl 1)] 
-		    [c n (fx- c 1)] )
-		   ((fx= c 0)
-		    (cons (reverse hd) (loop tl (fx- i n))) ) ) ] ) ) ) ) )
-
-(define (join lsts . lst)
-  (let ([lst (if (pair? lst) (car lst) '())])
-    (##sys#check-list lst 'join)
-    (let loop ([lsts lsts])
-      (cond [(null? lsts) '()]
-	    [(not (pair? lsts))
-	     (##sys#error-not-a-proper-list lsts) ]
-	    [else
-	     (let ([l (##sys#slot lsts 0)]
-		   [r (##sys#slot lsts 1)] )
-	       (if (null? r)
-		   l
-		   (##sys#append l lst (loop r)) ) ) ] ) ) ) )
-
-(define compress
-  (lambda (blst lst)
-    (let ([msg "bad argument type - not a proper list"])
-      (##sys#check-list lst 'compress)
-      (let loop ([blst blst] [lst lst])
-	(cond [(null? blst) '()]
-	      [(not (pair? blst))
-	       (##sys#signal-hook #:type-error 'compress msg blst) ]
-	      [(not (pair? lst))
-	       (##sys#signal-hook #:type-error 'compress msg lst) ]
-	      [(##sys#slot blst 0)
-	       (cons (##sys#slot lst 0) (loop (##sys#slot blst 1) (##sys#slot lst 1)))]
-	      [else (loop (##sys#slot blst 1) (##sys#slot lst 1))] ) ) ) ) )
-
-
-;;; Alists:
-
-(define (alist-update! x y lst #!optional (cmp eqv?))
-  (let* ([aq (cond [(eq? eq? cmp) assq]
-		   [(eq? eqv? cmp) assv]
-		   [(eq? equal? cmp) assoc]
-		   [else 
-		    (lambda (x lst)
-		      (let loop ([lst lst])
-			(and (pair? lst)
-			     (let ([a (##sys#slot lst 0)])
-			       (if (and (pair? a) (cmp x (##sys#slot a 0)))
-				   a
-				   (loop (##sys#slot lst 1)) ) ) ) ) ) ] ) ] 
-	 [item (aq x lst)] )
-    (if item
-	(begin
-	  (##sys#setslot item 1 y)
-	  lst)
-	(cons (cons x y) lst) ) ) )
-
-(define (alist-update k v lst #!optional (cmp eqv?))
-  (let loop ((lst lst))
-    (cond ((null? lst)
-           (list (cons k v)))
-          ((not (pair? lst))
-           (error 'alist-update "bad argument type" lst))
-          (else
-           (let ((a (##sys#slot lst 0)))
-             (cond ((not (pair? a))
-                    (error 'alist-update "bad argument type" a))
-                   ((cmp k (##sys#slot a 0))
-                    (cons (cons k v) (##sys#slot lst 1)))
-                   (else
-                    (cons (cons (##sys#slot a 0) (##sys#slot a 1))
-                          (loop (##sys#slot lst 1))))))))))
-
-(define (alist-ref x lst #!optional (cmp eqv?) (default #f))
-  (let* ((aq (cond ((eq? eq? cmp) assq)
-		   ((eq? eqv? cmp) assv)
-		   ((eq? equal? cmp) assoc)
-		   (else
-		    (lambda (x lst)
-		      (let loop ((lst lst))
-			(cond
-			 ((null? lst) #f)
-			 ((pair? lst)
-			  (let ((a (##sys#slot lst 0)))
-			    (##sys#check-pair a 'alist-ref)
-			    (if (cmp x (##sys#slot a 0))
-				a
-				(loop (##sys#slot lst 1)) ) ))
-			 (else (error 'alist-ref "bad argument type" lst)) )  ) ) ) ) )
-	 (item (aq x lst)) )
-    (if item
-	(##sys#slot item 1)
-	default) ) )
-
-(define (rassoc x lst . tst)
-  (##sys#check-list lst 'rassoc)
-  (let ([tst (if (pair? tst) (car tst) eqv?)])
-    (let loop ([l lst])
-      (and (pair? l)
-	   (let ([a (##sys#slot l 0)])
-	     (##sys#check-pair a 'rassoc)
-	     (if (tst x (##sys#slot a 1))
-		 a
-		 (loop (##sys#slot l 1)) ) ) ) ) ) )
-
-
+(import scheme)
+(import chicken.base)
+(import chicken.condition)
+(import chicken.fixnum)
+(import chicken.foreign)
 
 ; (reverse-string-append l) = (apply string-append (reverse l))
 
@@ -282,6 +59,9 @@
 	    result)))
       (make-string i)))
   (rev-string-append l 0))
+
+(define (reverse-list->string l)
+  (##sys#reverse-list->string l))
 
 ;;; Anything->string conversion:
 
@@ -310,7 +90,7 @@
     (let* ((wherelen (##sys#size where))
 	   (whichlen (##sys#size which))
 	   (end (fx- wherelen whichlen)))
-      (##sys#check-exact start loc)
+      (##sys#check-fixnum start loc)
       (if (and (fx>= start 0)
 	       (fx>= wherelen start))
 	  (if (fx= whichlen 0)
@@ -378,8 +158,8 @@
   (let ((len (or n
 		 (fxmin (fx- (##sys#size s1) start1)
 			(fx- (##sys#size s2) start2) ) ) ) )
-    (##sys#check-exact start1 'substring=?)
-    (##sys#check-exact start2 'substring=?)
+    (##sys#check-fixnum start1 'substring=?)
+    (##sys#check-fixnum start2 'substring=?)
     (##core#inline "C_substring_compare" s1 s2 start1 start2 len) ) )
 
 (define (substring=? s1 s2 #!optional (start1 0) (start2 0) len)
@@ -391,8 +171,8 @@
   (let ((len (or n
 		 (fxmin (fx- (##sys#size s1) start1)
 			(fx- (##sys#size s2) start2) ) ) ) )
-    (##sys#check-exact start1 'substring-ci=?)
-    (##sys#check-exact start2 'substring-ci=?)
+    (##sys#check-fixnum start1 'substring-ci=?)
+    (##sys#check-fixnum start2 'substring-ci=?)
     (##core#inline "C_substring_compare_case_insensitive"
 		   s1 s2 start1 start2 len) ) )
 
@@ -550,7 +330,7 @@
 
 (define (string-chop str len)
   (##sys#check-string str 'string-chop)
-  (##sys#check-exact len 'string-chop)
+  (##sys#check-fixnum len 'string-chop)
   (let ([total (##sys#size str)])
     (let loop ([total total] [pos 0])
       (cond [(fx<= total 0) '()]
@@ -571,7 +351,13 @@
 	(##sys#substring str 0 diff)
 	str) ) )
 
+) ; chicken.string
 
+
+(module chicken.sort
+    (merge merge! sort sort! sorted? topological-sort)
+
+(import scheme chicken.base chicken.condition chicken.fixnum)
 
 ;;; Defines: sorted?, merge, merge!, sort, sort!
 ;;; Author : Richard A. O'Keefe (based on Prolog code by D.H.D.Warren)
@@ -733,13 +519,13 @@
   (define (visit dag node edges path state)
     (case (alist-ref node (car state) pred)
       ((grey)
-       (##sys#abort
+       (abort
         (##sys#make-structure
          'condition
          '(exn runtime cycle)
          `((exn . message) "cycle detected"
            (exn . arguments) ,(list (cons node (reverse path)))
-           (exn . call-chain) ,(##sys#get-call-chain)
+           (exn . call-chain) ,(get-call-chain)
            (exn . location) topological-sort))))
       ((black)
        state)
@@ -767,138 +553,5 @@
                      (cdar dag)
                      '()
                      state)))))
+) ; chicken.sort
 
-
-;;; Binary search:
-
-(define binary-search
-  (lambda (vec proc)
-    (if (pair? vec)
-	(set! vec (list->vector vec))
-	(##sys#check-vector vec 'binary-search) )
-    (let ([len (##sys#size vec)])
-      (and (fx> len 0)
-	   (let loop ([ps 0]
-		      [pe len] )
-	     (let ([p (fx+ ps (##core#inline "C_fixnum_shift_right" (fx- pe ps) 1))])
-	       (let* ([x (##sys#slot vec p)]
-		      [r (proc x)] )
-		 (cond [(fx= r 0) p]
-		       [(fx< r 0) (and (not (fx= pe p)) (loop ps p))]
-		       [else (and (not (fx= ps p)) (loop p pe))] ) ) ) ) ) ) ) )
-
-
-
-; Support for queues
-;
-; Written by Andrew Wilcox (awilcox@astro.psu.edu) on April 1, 1992.
-;
-; This code is in the public domain.
-; 
-; (heavily adapated for use with CHICKEN by felix)
-;
-
-
-; Elements in a queue are stored in a list.  The last pair in the list
-; is stored in the queue type so that datums can be added in constant
-; time.
-
-(define (make-queue) (##sys#make-structure 'queue '() '() 0))
-(define (queue? x) (##sys#structure? x 'queue))
-
-(define (queue-length q)		; thread-safe
-  (##sys#check-structure q 'queue 'queue-length)
-  (##sys#slot q 3))
-
-(define (queue-empty? q)		; thread-safe
-  (##sys#check-structure q 'queue 'queue-empty?)
-  (eq? '() (##sys#slot q 1)) )
-
-(define queue-first			; thread-safe
-  (lambda (q)
-    (##sys#check-structure q 'queue 'queue-first)
-    (let ((first-pair (##sys#slot q 1)))
-      (when (eq? '() first-pair)
-	(##sys#error 'queue-first "queue is empty" q))
-      (##sys#slot first-pair 0) ) ) )
-
-(define queue-last			; thread-safe
-  (lambda (q)
-    (##sys#check-structure q 'queue 'queue-last)
-    (let ((last-pair (##sys#slot q 2)))
-      (when (eq? '() last-pair)
-	(##sys#error 'queue-last "queue is empty" q))
-      (##sys#slot last-pair 0) ) ) )
-
-(define (queue-add! q datum)		; thread-safe
-  (##sys#check-structure q 'queue 'queue-add!)
-  (let ((new-pair (cons datum '())))
-    (cond ((eq? '() (##sys#slot q 1)) (##sys#setslot q 1 new-pair))
-	  (else (##sys#setslot (##sys#slot q 2) 1 new-pair)) )
-    (##sys#setslot q 2 new-pair) 
-    (##sys#setislot q 3 (fx+ (##sys#slot q 3) 1))
-    (##core#undefined) ) )
-
-(define queue-remove!			; thread-safe
-  (lambda (q)
-    (##sys#check-structure q 'queue 'queue-remove!)
-    (let ((first-pair (##sys#slot q 1)))
-      (when (eq? '() first-pair)
-	(##sys#error 'queue-remove! "queue is empty" q) )
-      (let ((first-cdr (##sys#slot first-pair 1)))
-	(##sys#setslot q 1 first-cdr)
-	(if (eq? '() first-cdr)
-	    (##sys#setslot q 2 '()) )
-	(##sys#setislot q 3 (fx- (##sys#slot q 3) 1))
-	(##sys#slot first-pair 0) ) ) ) )
-
-(define (queue->list q)
-  (##sys#check-structure q 'queue 'queue->list)
-  (let loop ((lst (##sys#slot q 1)) (lst2 '()))
-    (if (null? lst)
-	(##sys#fast-reverse lst2)
-	(loop (##sys#slot lst 1) (cons (##sys#slot lst 0) lst2)))))
-
-(define (list->queue lst0)		
-  (##sys#check-list lst0 'list->queue)
-  (##sys#make-structure 
-   'queue lst0
-   (if (eq? lst0 '())
-       '()
-       (do ((lst lst0 (##sys#slot lst 1)))
-	   ((eq? (##sys#slot lst 1) '()) lst)
-	 (if (or (not (##core#inline "C_blockp" lst))
-		 (not (##core#inline "C_pairp" lst)) )
-	     (##sys#error-not-a-proper-list lst0 'list->queue) ) ) )
-   (##sys#length lst0)) )
-
-
-; (queue-push-back! queue item)
-; Pushes an item into the first position of a queue.
-
-(define (queue-push-back! q item)	; thread-safe
-  (##sys#check-structure q 'queue 'queue-push-back!)
-  (let ((newlist (cons item (##sys#slot q 1))))
-    (##sys#setslot q 1 newlist)
-    (if (eq? '() (##sys#slot q 2))
-	(##sys#setslot q 2 newlist))
-    (##sys#setislot q 3 (fx+ (##sys#slot q 3) 1))))
-
-; (queue-push-back-list! queue item-list)
-; Pushes the items in item-list back onto the queue,
-; so that (car item-list) becomes the next removable item.
-
-(define-inline (last-pair lst0)
-  (do ((lst lst0 (##sys#slot lst 1)))
-      ((eq? (##sys#slot lst 1) '()) lst)))
-
-(define (queue-push-back-list! q itemlist)
-  (##sys#check-structure q 'queue 'queue-push-back-list!)
-  (##sys#check-list itemlist 'queue-push-back-list!)
-  (let* ((newlist (append itemlist (##sys#slot q 1)))
-	 (newtail (if (eq? newlist '())
-		       '()
-		       (last-pair newlist))))
-    (##sys#setslot q 1 newlist)
-    (##sys#setslot q 2 newtail)
-    (##sys#setislot q 3 (fx+ (##sys#slot q 3) (##core#inline "C_i_length" itemlist)))))

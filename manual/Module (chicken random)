@@ -1,0 +1,59 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken random)
+
+This module provides access to entropy (as provided by the operating
+system) and a pseudo random number generator.
+
+On UNIX systems entropy is by default obtained from {{/dev/urandom}}.
+On Linux, the {{getrandom(2)}} system call is used instead, if available.
+On OpenBSD it is {{arc4random_buf(3)}}, on Windows {{RtlGenRandom}}.
+
+The pseudo random number generator is an implementation of the
+[[WELL512|https://en.wikipedia.org/wiki/Well_equidistributed_long-period_linear]] algorithm.
+
+==== set-pseudo-random-seed!
+
+<procedure>(set-pseudo-random-seed! SEED [SIZE])</procedure>
+
+Set seed for the PRNG from the at most {{SIZE}} bytes of {{SEED}}.
+which should be a byte vector or a string containing random data.
+If {{SIZE}} is not given, it defaults to the size of {{SEED}}. If {{SIZE}}
+(or the size of {{SEED}}) is below the required size of the random
+state used by the PRNG, then it will necessarily be initialized in a less
+random manner as possible.
+
+
+==== pseudo-random-integer
+
+<procedure>(pseudo-random-integer [RANGE])</procedure>
+
+Returns a uniformly distributed pseudo random integer between 0 and 
+{{RANGE-1}}, which may be a big integer.
+
+
+==== pseudo-random-real
+
+<procedure>(pseudo-random-real)</procedure>
+
+Returns a uniformly distributed pseudo-random inexact number between
+0 and 1.
+
+
+==== random-bytes
+
+<procedure>(random-bytes [BUF [SIZE]])</procedure>
+
+Returns random bytes from the available entropy source. If {{BUF}} is
+given, it should be a string or byte vector which will be filled with up to
+{{SIZE}} random bytes. {{SIZE}} defaults to the size of the {{BUF}}
+argument. If no arguments are given, {{random-bytes}} returns a
+freshly allocated byte vector of sufficient size to be used as a seed
+for {{set-pseudo-random-seed!}}.
+
+
+---
+Previous: [[Module (chicken process-context)]]
+
+Next: [[Module (chicken read-syntax)]]

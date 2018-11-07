@@ -1,85 +1,104 @@
 ;;;; typematch-tests.scm
 
 
-(use srfi-1 lolevel data-structures)
+(import chicken.blob chicken.condition chicken.memory chicken.locative)
 
-
-(define-syntax check
-  (syntax-rules ()
-    ((_ x not-x t)
-     (begin
-       (print "check " 't " " 'x)
-       (compiler-typecase x
-	 (t 'ok))
-       (compiler-typecase not-x
-	 ((not t) 'ok))))))
-
-(define-syntax checkp
-  (syntax-rules ()
-    ((_ p x t)
-     (let ((tmp x))
-       (print "check predicate " 't " " 'p)
-       (if (p tmp)
-	   (compiler-typecase tmp
-	     (t 'ok)))
-       (compiler-typecase (##sys#make-structure 'foo)
-	 ((not t) 'ok))))))
+(include "test.scm")
 
 (define (bar) 42)
 
-(define-syntax type<=
-  (er-macro-transformer
-   (lambda (x r c)
-     (let ((t1 (cadr x))
-	   (t2 (caddr x))
-	   (foo (gensym 'foo)))
-       `(begin
-	  (print ',t1 " = " ',t2)
-	  (: ,foo (-> ,t1))
-	  (define (,foo) (bar))
-	  (compiler-typecase (,foo)
-	    (,t2 'ok)))))))
+(define-syntax subtype
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (t1 t2)
+	`(test-equal ',(strip-syntax e)
+	   (compiler-typecase (the ,t1 1)
+	     (,t2 #t)
+	     (else #f))
+	   #t))
+      (cdr e)))))
 
-(define-syntax type>
-  (er-macro-transformer
-   (lambda (x r c)
-     (let ((t1 (cadr x))
-	   (t2 (caddr x))
-	   (foo (gensym 'foo)))
-       `(begin
-	  (print ',t1 " != " ',t2)
-	  (: ,foo (-> ,t1))
-	  (define (,foo) (bar))
-	  (compiler-typecase (,foo)
-	    (,t2 (bomb))
-	    (else 'ok)))))))
+(define-syntax not-subtype
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (t1 t2)
+	`(test-equal ',(strip-syntax e)
+	   (compiler-typecase (the ,t1 1)
+	     (,t2 #t)
+	     (else #f))
+	   #f))
+      (cdr e)))))
 
-(define-syntax m
-  (er-macro-transformer
-   (lambda (x r c)
-     (let ((t1 (cadr x))
-	   (t2 (caddr x)))
-       `(begin
-	  (type<= ,t1 ,t2)
-	  (type<= ,t2 ,t1))))))
+(define-syntax proper-subtype
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (t1 t2)
+	`(begin
+	   (subtype ,t1 ,t2)
+	   (not-subtype ,t2 ,t1)))
+      (cdr e)))))
 
-(define-syntax mn
-  (er-macro-transformer
-   (lambda (x r c)
-     (let ((t1 (cadr x))
-	   (t2 (caddr x)))
-       `(begin
-	  (type> ,t1 ,t2)
-	  (type> ,t2 ,t1))))))
+(define-syntax compatible
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (t1 t2)
+	`(begin
+	   (subtype ,t1 ,t2)
+	   (subtype ,t2 ,t1)))
+      (cdr e)))))
 
-(define-syntax mx
-  (syntax-rules ()
-    ((_ t x)
-     (begin
-       (print 'x " = " 't)
-       (compiler-typecase
-	x
-	(t 'ok))))))
+(define-syntax incompatible
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (t1 t2)
+	`(begin
+	   (not-subtype ,t1 ,t2)
+	   (not-subtype ,t2 ,t1)))
+      (cdr e)))))
+
+(define-syntax infer
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (t x)
+	;; TODO: test-equal smashes types: change rest of the macros
+	;; to handle this
+	`(let ((res (compiler-typecase ,x
+		      (,t #t)
+		      (else #f))))
+	   (test-equal ',(strip-syntax e) res #t)))
+      (cdr e)))))
+
+(define-syntax infer-not
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (t x)
+	`(test-equal ',(strip-syntax e)
+	   (compiler-typecase ,x
+	     (,t #t)
+	     (else #f))
+	   #f))
+      (cdr e)))))
+
+(define-syntax infer-last
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (types x)
+	`(test-equal ',(strip-syntax e)
+	   (compiler-typecase ,x
+	     ,@(map (lambda (t) `(,t #f)) (cdr (reverse types)))
+	     (,(car (reverse types)) #t)
+	     ;; (else #f)
+	     )
+	   #t))
+      (cdr e)))))
 
 (define-syntax ms
   (er-macro-transformer
@@ -103,32 +122,61 @@
 	  (print "specialize not " ',type)
 	  (,fname2 ,val))))))
 
+(define-syntax check
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (t of-t not-of-t)
+	`(begin
+	   (infer ,t ,of-t)
+	   (infer-not ,t ,not-of-t)))
+      (cdr e)))))
 
-;;;
+(define-syntax checkp
+  (ir-macro-transformer
+   (lambda (e _i _c)
+     (apply
+      (lambda (pred type x)
+	`(begin
+	   (test-equal '(inferred-type-after true (,pred ,x) is ,type)
+	     (let ((tmp (the * ,x)))
+	       (if (,pred tmp)
+		   (compiler-typecase tmp
+		     (,type #t)
+		     (else #f))
+		   #f))
+	     #t)
+	   (test-equal '((,pred ,x) is #t)
+	     (let ((tmp (the * ,x)))
+	       (,pred tmp))
+	     #t)
+	   (infer-not ,type (##sys#make-structure 'foo))))
+      (cdr e)))))
 
-(check 123 1.2 fixnum)
-(check "abc" 1.2 string)
-(check 'abc 1.2 symbol)
-(check #\x 1.2 char)
-(check #t #f true)
-(check #f #t false)
-(check (+ 1 2) 'a number)
-(check '(1) 1.2 (list fixnum))
-(check '(a) 1.2 (list symbol))
-(check (list 1) '(1 . 2) (list fixnum))
-(check '(1 . 2) '() pair)
-(check + 1.2 procedure)
-(check '#(1) 1.2 vector)
-(check '() 1 null)
-(check (current-input-port) 1.2 input-port)
-(check (make-blob 10) 1.2 blob)
-(check (address->pointer 0) 1.2 pointer)
-(check (make-pointer-vector 1) 1.2 pointer-vector)
-(check (make-locative "a") 1.2 locative)
-(check (##sys#make-structure 'promise) 1 (struct promise))
-(check '(1 . 2.3) '(a) (pair fixnum float))
-(check '#(a) 1 (vector symbol))
-(check '("ok") 1 (list string))
+(check fixnum 123 1.2)
+(check string "abc" 1.2)
+(check symbol 'abc 1.2)
+(check char #\x 1.2)
+(check true #t #f)
+(check false #f #t)
+(check integer (+ 1 2) 'a)
+(check (list fixnum) '(1) 1.2)
+(check (list symbol) '(a) 1.2)
+(check (list fixnum) (list 1) '(1 . 2))
+(check pair '(1 . 2) '())
+(check procedure + 1.2)
+(check vector '#(1) 1.2)
+(check null '() 1)
+(check port (current-input-port) 1.2)
+(check input-port (current-input-port) 1.2)
+(check blob (make-blob 10) 1.2)
+(check pointer (address->pointer 0) 1.2)
+(check pointer-vector (make-pointer-vector 1) 1.2)
+(check locative (make-locative "a") 1.2)
+(check (struct promise) (##sys#make-structure 'promise) 1)
+(check (pair fixnum float) '(1 . 2.3) '(a))
+(check (vector symbol) '#(a) 1)
+(check (list string) '("ok") 1)
 
 (ms 123 1.2 fixnum)
 (ms "abc" 1.2 string)
@@ -156,46 +204,62 @@
 
 (define n 1)
 
-(checkp boolean? #t true)
-(checkp boolean? #f false)
-(checkp pair? '(1 . 2) pair)
-(checkp null? '() null)
-(checkp symbol? 'a symbol)
-(checkp number? (+ n) number)
-(checkp number? (+ n) number)
-(checkp exact? '1 fixnum)
-(checkp real? (+ n) number)
-(checkp complex? (+ n) number)
-(checkp inexact? '1.2 float)
-(checkp char? #\a char)
-(checkp string? "a" string)
-(checkp vector? '#() vector)
-(checkp procedure? + procedure)
-(checkp blob? (make-blob 1) blob)
-(checkp condition? (##sys#make-structure 'condition) (struct condition))
-(checkp fixnum? 1 fixnum)
-(checkp flonum? 1.2 float)
-(checkp input-port? (current-input-port) input-port)
-(checkp pointer-vector? (make-pointer-vector 1) pointer-vector)
-(checkp pointer? (address->pointer 1) pointer)
+;; What about these? should they are not predicates currently.
+;; (checkp real? number (+ n))
+;; (checkp exact? fixnum '1)
+(checkp exact? number '1)
+;; (checkp inexact? float '1.2)
+(checkp inexact? number '1.2)
 
-(type<= null list)
-(type<= (list *) list)
-(type<= (vector *) vector)
+(checkp boolean? boolean #f)
+(checkp boolean? boolean #t)
+(checkp pair? pair '(1 . 2))
+(checkp null? null '())
+(checkp symbol? symbol 'a)
+(checkp number? number (+ n))
+(checkp complex? number (+ n))
+(checkp char? char #\a)
+(checkp string? string "a")
+(checkp vector? vector '#())
+(checkp procedure? procedure +)
+(checkp blob? blob (make-blob 1))
+(checkp condition? (struct condition) (##sys#make-structure 'condition))
+(checkp fixnum? fixnum 1)
+(checkp flonum? float 1.2)
+(checkp port? port (current-input-port))
+(checkp input-port? input-port (current-input-port))
+(checkp output-port? output-port (current-output-port))
+(checkp pointer-vector? pointer-vector (make-pointer-vector 1))
+(checkp pointer? pointer (address->pointer 1))
 
-(type> list null)
-(type> list (list *))
-(type> vector (vector *))
+(proper-subtype null list)
+(proper-subtype (list *) list)
+(proper-subtype (vector *) vector)
 
-(mn pair null)
-(mn pair list)
+(define-type x (struct x))
 
-(mn (procedure (*) *) (procedure () *))
-(m (procedure (#!rest) . *) (procedure (*) . *))
-(mn (procedure () *) (procedure () * *))
+(incompatible (refine (b) x) (refine (a) x))
+(incompatible (refine (a b) x) (refine (b c) x))
+(proper-subtype (refine (a) x) x)
+(proper-subtype (refine (a b) x) (refine (a) x))
+(proper-subtype (refine (b a) x) (refine (a) x))
+(proper-subtype (refine (a) false) (refine (a) boolean))
 
-(mx (forall (a) (procedure (#!rest a) a)) +)
-(mx (list fixnum) '(1))
+(incompatible pair null)
+(incompatible pair list)
+
+(incompatible (procedure (*) *) (procedure () *))
+(compatible (procedure (#!rest) . *) (procedure (*) . *))
+(incompatible (procedure () *) (procedure () * *))
+
+(infer (forall (a) (procedure (#!rest a) a)) +)
+(infer (list fixnum) '(1))
+
+
+(infer port (open-input-string "foo"))
+(infer input-port (open-input-string "bar"))
+(infer port (open-output-string))
+(infer output-port (open-output-string))
 
 ;;; pairs
 
@@ -213,12 +277,12 @@
 (define l '(1 2 3))
 (define p '(1 2 . 3))
 
-(mx fixnum (car-alike l))
-(mx fixnum (car-alike p))
-(mx fixnum (cadr-alike l))
-(mx fixnum (cadr-alike p))
-(mx list   (cddr-alike l))
-(mx fixnum (cddr-alike p))
+(infer fixnum (car-alike l))
+(infer fixnum (car-alike p))
+(infer fixnum (cadr-alike l))
+(infer fixnum (cadr-alike p))
+(infer list   (cddr-alike l))
+(infer fixnum (cddr-alike p))
 
 (ms '(1 . 2) '() pair)
 (ms '(1 2) '() pair)
@@ -235,119 +299,85 @@
 (ms '(1 2 3) '(1 2) (pair * (pair * (not null))))
 (ms '(1 2 . 3) '(1 2 3) (pair * (pair * fixnum)))
 
-(m (pair * null) (list *))
-(m (pair * (list *)) (list * *))
-(m (pair * (list fixnum)) (list * fixnum))
-(m (pair fixnum (list *)) (list fixnum *))
-(m (pair fixnum (pair * null)) (list fixnum *))
-(m (pair fixnum (pair fixnum null)) (list fixnum fixnum))
-(m (pair char (list fixnum)) (list char fixnum))
-(m (pair fixnum (list char)) (list fixnum char))
-(m (pair fixnum (list fixnum)) (list fixnum fixnum))
+(compatible (pair * null) (list *))
+(compatible (pair * (list *)) (list * *))
+(compatible (pair * (list fixnum)) (list * fixnum))
+(compatible (pair fixnum (list *)) (list fixnum *))
+(compatible (pair fixnum (pair * null)) (list fixnum *))
+(compatible (pair fixnum (pair fixnum null)) (list fixnum fixnum))
+(compatible (pair char (list fixnum)) (list char fixnum))
+(compatible (pair fixnum (list char)) (list fixnum char))
+(compatible (pair fixnum (list fixnum)) (list fixnum fixnum))
 
-(mn (pair * *) list)
-(mn (pair * list) list)
-(mn (pair fixnum *) (list-of *))
-(mn (pair fixnum *) (list-of fixnum))
-(mn (pair fixnum (list-of *)) (list-of fixnum))
-(mn (pair fixnum (list-of fixnum)) (list-of fixnum))
-(mn (pair char (list-of fixnum)) (list-of fixnum))
-(mn (pair fixnum (list-of char)) (list-of fixnum))
-(mn (pair fixnum (list-of fixnum)) (list-of fixnum))
+(incompatible (pair * *) list)
+(incompatible (pair * list) list)
+(incompatible (pair fixnum *) (list-of *))
+(incompatible (pair fixnum *) (list-of fixnum))
+(incompatible (pair fixnum (list-of *)) (list-of fixnum))
+(incompatible (pair fixnum (list-of fixnum)) (list-of fixnum))
+(incompatible (pair char (list-of fixnum)) (list-of fixnum))
+(incompatible (pair fixnum (list-of char)) (list-of fixnum))
+(incompatible (pair fixnum (list-of fixnum)) (list-of fixnum))
 
 ;;; special cases
 
-(let ((x (##sys#make-structure 'foo)))
-  (mx (struct foo) x))
+(infer (struct foo) (##sys#make-structure 'foo))
 
 (define x 1)
 
-(assert 
- (eq? 'number
-      (compiler-typecase (vector-ref '#(1 2 3.4) x)
-	(fixnum 'fixnum)
-	(float 'float)
-	(number 'number))))
+(infer-last (fixnum float number) (vector-ref '#(1 2 3.4) x))
+(infer-last (true false boolean) (vector-ref '#(#t #f) x))
 
-(assert
- (eq? 'boolean
-      (compiler-typecase (vector-ref '#(#t #f) x)
-	(true 'true)
-	(false 'false)
-	(boolean 'boolean))))
-
-(mx float (vector-ref '#(1 2 3.4) 2))
-(mx fixnum (vector-ref '#(1 2 3.4) 0))
-(mx float (##sys#vector-ref '#(1 2 3.4) 2))
-(mx fixnum (##sys#vector-ref '#(1 2 3.4) 0))
-(mx (vector fixnum float) (vector 1 2.3))
-(mx (list fixnum float) (list 1 2.3))
-(mx (list fixnum float) (list-copy (list 1 2.3)))
-(mx (pair fixnum float) (list-copy (cons 1 2.3)))
-(mx fixnum (list-copy 1))
-(mx fixnum (list-ref (list 1 2.3) 0))
-(mx fixnum (list-ref (cons 1 2.3) 0))
-(mx float (list-ref (list 1 2.3) 1))
-(mx (list fixnum float) (list-tail (list 1 2.3) 0))
-(mx (pair fixnum float) (list-tail (cons 1 2.3) 0))
-(mx (list float) (list-tail (list 1 2.3) 1))
-(mx float (list-tail (cons 1 2.3) 1))
-(mx null  (list-tail (list 1 2.3) 2))
-(mx (list fixnum float) (drop (list 1 2.3) 0))
-(mx (pair fixnum float) (drop (cons 1 2.3) 0))
-(mx (list float) (drop (list 1 2.3) 1))
-(mx float (drop (cons 1 2.3) 1))
-(mx null (drop (list 1 2.3) 2))
-(mx null (take (list 1 2.3) 0))
-(mx null (take (cons 1 2.3) 0))
-(mx (list fixnum) (take (list 1 2.3) 1))
-(mx (list fixnum) (take (cons 1 2.3) 1))
-(mx (list fixnum float) (take (list 1 2.3) 2))
-(mx (list * *) (make-list 2))
-(mx (list string string) (make-list 2 "a"))
-(mx (vector * *) (make-vector 2))
-(mx (vector string string) (make-vector 2 "a"))
-(mx null (reverse '()))
-(mx list (reverse (the list (list 1 "2"))))
-(mx (list string fixnum) (reverse (list 1 "2")))
-(mx (list fixnum string) (reverse (cons "1" (cons 2 '()))))
+(infer (list fixnum float) (list 1 2.3))
+(infer (list fixnum float) (list-tail (list 1 2.3) 0))
+(infer (list fixnum string) (reverse (cons "1" (cons 2 '()))))
+(infer (list float) (list-tail (list 1 2.3) 1))
+(infer (list string fixnum) (reverse (list 1 "2")))
+(infer (pair fixnum float) (list-tail (cons 1 2.3) 0))
+(infer (vector * *) (make-vector 2))
+(infer (vector fixnum float) (vector 1 2.3))
+(infer (vector string string) (make-vector 2 "a"))
+(infer fixnum (##sys#vector-ref '#(1 2 3.4) 0))
+(infer fixnum (list-ref (cons 1 2.3) 0))
+(infer fixnum (list-ref (list 1 2.3) 0))
+(infer fixnum (vector-ref '#(1 2 3.4) 0))
+(infer float (##sys#vector-ref '#(1 2 3.4) 2))
+(infer float (list-ref (list 1 2.3) 1))
+(infer float (list-tail (cons 1 2.3) 1))
+(infer float (vector-ref #(1 2 3.4) 2))
+(infer list (reverse (the list (list 1 "2"))))
+(infer null (list-tail (list 1 2.3) 2))
+(infer null (reverse '()))
 
 (: f1 (forall (a) ((list-of a) -> a)))
 (define (f1 x) (car x))
-(mx fixnum (f1 '(1)))
+(infer fixnum (f1 '(1)))
 
 (: f2 (forall (a) ((list-of a) -> a)))
 (define (f2 x) (car x))
-(assert
- (eq? 'sf
-      (compiler-typecase (f2 (list (if bar 1 'a)))
-	(symbol 's)
-	(fixnum 'f)
-	((or fixnum symbol) 'sf))))
+(infer-last (symbol fixnum (or fixnum symbol))
+	    (f2 (list (if bar 1 'a))))
 
 (: f3 (forall (a) ((list-of a) -> a)))
 (define f3 car)
 (define xxx '(1))
 
-(compiler-typecase (f3 (the (or (vector-of fixnum) (list-of fixnum)) xxx))
-  (fixnum 'ok))
+(infer fixnum (f3 (the (or (vector-of fixnum) (list-of fixnum)) xxx)))
 
-(assert
- (eq? 'ok
-      (compiler-typecase (list 123)
-	((forall (a) (or (vector-of a) (list-of a))) 'ok)
-	(else 'not-ok))))
+(infer (forall (a) (or (vector-of a) (list-of a))) (list 123))
 
 (: f4 (forall (a) ((or fixnum (list-of a)) -> a)))
 (define f4 identity)
+(infer fixnum (f4 '(1)))
+(infer-not fixnum (f4 1))
 
-(compiler-typecase (f4 '(1))
-  (fixnum 'ok))
-
-(assert
- (eq? 'ok (compiler-typecase (f4 1)
-	    (fixnum 'not-ok)
-	    (else 'ok))))
+(infer-last ((not port)
+	     (not input-port)
+	     (not output-port)
+	     input-port
+	     output-port
+	     port)
+	    (the port xxx))
 
 (assert ; clause order is respected
  (compiler-typecase 1
@@ -355,20 +385,17 @@
    (fixnum #f)))
 
 ;; Always a fixnum
-(assert
- (compiler-typecase #x3fffffff
-   (float #f)
-   (fixnum #t)))
+(infer-last (bignum fixnum) #x3fffffff)
 
-;; Is a fixnum on 64-bit, flonum on 32-bit.  The best we can do is to
-;; check for 'number (on 32-bits it will always be a float)
-(assert
- (compiler-typecase #x4fffffff
-   (fixnum #f)
-   (number #t)))
+;; Is a fixnum on 64-bit, bignum on 32-bit, thus type must be 'integer
+(infer-last (bignum fixnum integer) #x4fffffff)
 
-;; Always a flonum
-(assert
- (compiler-typecase #x7fffffffffffffff
-   (fixnum #f)
-   (float #t)))
+;; Always a bignum
+(infer-last (fixnum bignum) #x7fffffffffffffff)
+
+;; Issue #1533
+(let ((a (the (or pair null) (cons 1 '()))))
+  (length a) ; refine (or pair null) with list (= (list-of *))
+  (infer list a))
+
+(test-exit)

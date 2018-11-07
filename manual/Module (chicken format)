@@ -1,0 +1,69 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken format)
+
+This module provides procedures for formatting output to ports and
+strings.
+
+=== The printf family of procedures
+
+==== printf
+==== fprintf
+==== sprintf
+
+<procedure>(fprintf PORT FORMATSTRING [ARG...])</procedure><br>
+<procedure>(printf FORMATSTRING [ARG...])</procedure><br>
+<procedure>(sprintf FORMATSTRING [ARG...])</procedure>
+
+Simple formatted output to a given port ({{fprintf}}), the
+value of {{(current-output-port)}} ({{printf}}), or a string
+({{sprintf}}).  The {{FORMATSTRING}} can contain any sequence
+of characters.  There must be at least as many {{ARG}} arguments given as there are format directives that require an argument in {{FORMATSTRING}}.  Extra {{ARG}} arguments are ignored.  The character `~' prefixes special formatting directives:
+
+<table>
+<tr><td>~%</td><td>
+write newline character
+</td></tr><tr><td> ~N</td><td>
+the same as {{~%}}
+</td></tr><tr><td> ~S</td><td>
+write the next argument
+</td></tr><tr><td> ~A</td><td>
+display the next argument
+</td></tr><tr><td> ~\n</td><td>
+skip all whitespace in the format-string until the next non-whitespace character
+</td></tr><tr><td> ~B</td><td>
+write the next argument as a binary number
+</td></tr><tr><td> ~O</td><td>
+write the next argument as an octal number
+</td></tr><tr><td> ~X</td><td>
+write the next argument as a hexadecimal number
+</td></tr><tr><td> ~C</td><td>
+write the next argument as a character
+</td></tr><tr><td> ~~</td><td>
+display `~'
+</td></tr><tr><td> ~!</td><td>
+flush all pending output
+</td></tr><tr><td> ~?</td><td>
+invoke formatted output routine recursively with the next two arguments as format-string and list of parameters
+</td></tr></table>
+
+
+=== format
+
+<procedure>(format [DESTINATION] FORMATSTRING [ARG...])</procedure>
+
+The parameters {{FORMATSTRING}} and {{ARG...}} are as for {{printf}}.
+
+The optional {{DESTINATION}}, when supplied, performs:
+
+; {{#f}} : {{sprintf}}
+; {{#t}} : {{printf}}
+; {{output-port}} : {{fprintf}}
+; : {{sprintf}}
+
+
+---
+Previous: [[Module (chicken foreign)]]
+
+Next: [[Module (chicken gc)]]

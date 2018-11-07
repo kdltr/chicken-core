@@ -1,0 +1,53 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken csi)
+
+This module provides procedures to access features specific to
+the {{csi}} interactive interpreter.
+
+=== toplevel-command
+
+<procedure>(toplevel-command SYMBOL PROC [HELPSTRING])</procedure>
+
+Defines or redefines a toplevel interpreter command which can be invoked by entering
+{{,SYMBOL}}. {{PROC}} will be invoked when the command is entered and may
+read any required argument via {{read}} (or {{read-line}}). If the optional
+argument {{HELPSTRING}} is given, it will be listed by the {{,?}} command.
+
+
+=== set-describer!
+
+<procedure>(set-describer! TAG PROC)</procedure>
+
+Sets a custom description handler that invokes {{PROC}} when the
+{{,d}} command is invoked with a record-type object that has the type
+{{TAG}} (a symbol). {{PROC}} is called with two arguments: the object
+to be described and an output-port. It should write a possibly useful
+textual description of the object to the passed output-port. For
+example:
+
+ #;1> (define-record-type point (make-point x y) point?
+        (x point-x)
+        (y point-y))
+ #;2> (set-describer! 'point 
+        (lambda (pt o)
+          (with-output-to-port o
+            (lambda ()
+              (print "a point with x=" (point-x pt) " and y=" (point-y pt))))))
+ #;3> ,d (make-point 1 2)
+ a point with x=1 and y=2
+
+
+=== editor-command
+
+<parameter>editor-command</parameter>
+
+Holds the name of an editor that should be used when the toplevel
+command {{,e}} is used.
+
+
+---
+Previous: [[Module (chicken continuation)]]
+
+Next: [[Module (chicken errno)]]

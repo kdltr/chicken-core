@@ -18,9 +18,9 @@
 (let ((bar +))
   (bar 3 'a))				; expected number, got symbol
 
-(pp)					; expected 1 argument, got 0
+(string?)				; expected 1 argument, got 0
 
-(print (cpu-time))			; expected 1 result, got 2
+(print (values 1 2))			; expected 1 result, got 2
 (print (values))			; expected 1 result, got 0
 
 (let ((x 100))
@@ -132,7 +132,7 @@
 
 ;; Checking whether reported line numbers inside modules are correct
 (module foo (blabla)
-  (import chicken scheme)
+  (import scheme)
   (define (blabla)
     (+ 1 'x)))
 
@@ -140,9 +140,15 @@
 ;;
 ;; Custom types defined in modules need to be resolved during canonicalization
 (module bar ()
-  (import chicken scheme)
+  (import scheme chicken.type)
   (define-type footype string)
   (the footype "bar"))
+
+;; Record type tags with module namespaces should not warn (#1513)
+(module foo *
+  (import (scheme) (chicken base) (chicken type))
+  (: make-foo (string --> (struct foo)))
+  (define-record foo bar))
 
 (: deprecated-procedure deprecated)
 (define (deprecated-procedure x) (+ x x))
@@ -182,7 +188,7 @@
 (let ((x _))
   (if (char-or-string? x)
       (symbol? x)   ; should report with x = (or char string)
-      (string? x))) ; should not report
+      (string? x))) ; should report with x = (not (or char string))
 
 (let ((x (the fixnum _)))
   (if (char-or-string? x)
@@ -311,3 +317,8 @@
   (define (append-result-type-nowarn2) (add1 (list-ref l2 1))))
 (let ((l3 (append (the (list-of fixnum) '(1 2)) '(x y))))
   (define (append-result-type-nowarn3) (add1 (list-ref l3 1))))
+
+;; Check the trail is restored from the combined typeenv
+(compiler-typecase (list 2 'a)
+  ((forall (x) (list x x)) 1)
+  (else #t))

@@ -1,6 +1,6 @@
 ;;;; compiler-syntax.scm - compiler syntax used internally
 ;
-; Copyright (c) 2009-2017, The CHICKEN Team
+; Copyright (c) 2009-2018, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -25,11 +25,21 @@
 
 
 (declare 
-  (unit compiler-syntax) )
+  (unit compiler-syntax)
+  (uses extras support compiler))
 
+(module chicken.compiler.compiler-syntax
+    (compiler-syntax-statistics)
 
-(include "compiler-namespace")
+(import scheme
+	chicken.base
+	chicken.compiler.support
+	chicken.compiler.core
+	chicken.fixnum
+	chicken.format)
+
 (include "tweaks.scm")
+(include "mini-srfi-1.scm")
 
 
 ;;; Compiler macros (that operate in the expansion phase)
@@ -42,7 +52,7 @@
       (set! compiler-syntax-statistics
 	(alist-update! name (add1 a) compiler-syntax-statistics)))))
 
-(define (r-c-s names transformer #!optional (se '()))
+(define (r-c-s names transformer se)
   (let ((t (cons (##sys#ensure-transformer
 		  (##sys#er-transformer transformer)
 		  (car names))
@@ -54,13 +64,11 @@
 
 (define-syntax define-internal-compiler-syntax
   (syntax-rules ()
-    ((_ (names . llist) (se ...) . body)
-     (r-c-s 
-      'names (lambda llist . body) 
-      `((se . ,(##sys#primitive-alias 'se)) ...)))))
+    ((_ (names . llist) se . body)
+     (r-c-s 'names (lambda llist . body) se))))
 
-(define-internal-compiler-syntax ((for-each ##sys#for-each #%for-each) x r c)
-  (pair?)
+(define-internal-compiler-syntax ((scheme#for-each ##sys#for-each) x r c)
+  '((pair? . scheme#pair?))
   (let ((%let (r 'let))
 	(%if (r 'if))
 	(%loop (r 'for-each-loop))
@@ -71,7 +79,7 @@
 	(%pair? (r 'pair?))
 	(%lambda (r 'lambda))
 	(lsts (cddr x)))
-    (if (and (memq 'for-each standard-bindings) ; we have to check this because the db (and thus 
+    (if (and (memq 'scheme#for-each standard-bindings) ; we have to check this because the db (and thus 
 	     (> (length+ x) 2))			 ; intrinsic marks) isn't set up yet
 	(let ((vars (map (lambda _ (gensym)) lsts)))
 	  `(,%let ((,%proc ,(cadr x))
@@ -89,8 +97,8 @@
 				 ,@(map (lambda (v) `(##sys#slot ,v 1)) vars) ) )))))
 	x)))
 
-(define-internal-compiler-syntax ((map ##sys#map #%map) x r c)
-  (pair? cons)
+(define-internal-compiler-syntax ((scheme#map ##sys#map) x r c)
+  '((pair? . scheme#pair?) (cons . scheme#cons))
   (let ((%let (r 'let))
 	(%if (r 'if))
 	(%loop (r 'map-loop))
@@ -106,7 +114,7 @@
 	(%and (r 'and))
 	(%pair? (r 'pair?))
 	(lsts (cddr x)))
-    (if (and (memq 'map standard-bindings) ; s.a.
+    (if (and (memq 'scheme#map standard-bindings) ; s.a.
 	     (> (length+ x) 2))
 	(let ((vars (map (lambda _ (gensym)) lsts)))
 	  `(,%let ((,%node (,%cons (##core#undefined) (,%quote ()))))
@@ -131,53 +139,57 @@
 		       (##sys#slot ,%result 1))))))
 	x)))
 
-(define-internal-compiler-syntax ((o #%o) x r c) ()
+(define-internal-compiler-syntax ((chicken.base#o) x r c) '()
   (if (and (fx> (length x) 1)
-	   (memq 'o extended-bindings) ) ; s.a.
+	   (memq 'chicken.base#o extended-bindings)) ; s.a.
       (let ((%tmp (r 'tmp)))
-	`(,(r 'lambda) (,%tmp) ,(fold-right list %tmp (cdr x)))) ;XXX use foldr
+	`(,(r 'lambda) (,%tmp) ,(foldr list %tmp (cdr x))))
       x))
 
-(define-internal-compiler-syntax ((sprintf #%sprintf format #%format) x r c)
-  (display write fprintf number->string write-char open-output-string get-output-string)
+(define-internal-compiler-syntax ((chicken.format#sprintf chicken.format#format) x r c)
+  `((display . scheme#display)
+    (write . scheme#write)
+    (number->string . scheme#number->string)
+    (write-char . scheme#write-char)
+    (open-output-string . chicken.base#open-output-string)
+    (get-output-string . chicken.base#get-output-string))
   (let* ((out (gensym 'out))
-	 (code (compile-format-string 
-		(if (memq (car x) '(sprintf #%sprintf))
-		    'sprintf
-		    'format)
-		out 
-		x
-		(cdr x)
-		r c)))
+	 (code (compile-format-string
+		(if (eq? (car x) 'chicken.format#sprintf) 'sprintf 'format)
+		out x (cdr x) r c)))
     (if code
 	`(,(r 'let) ((,out (,(r 'open-output-string))))
 	  ,code
 	  (,(r 'get-output-string) ,out))
 	x)))
 
-(define-internal-compiler-syntax ((fprintf #%fprintf) x r c) 
-  (display write fprintf number->string write-char open-output-string get-output-string)
+(define-internal-compiler-syntax ((chicken.format#fprintf) x r c)
+  '((display . scheme#display)
+    (write . scheme#write)
+    (number->string . scheme#number->string)
+    (write-char . scheme#write-char)
+    (open-output-string . chicken.base#open-output-string)
+    (get-output-string . chicken.base#get-output-string))
   (if (>= (length x) 3)
-      (let ((code (compile-format-string 
-		   'fprintf (cadr x) 
-		   x (cddr x)
-		   r c)))
+      (let ((code (compile-format-string 'fprintf (cadr x) x (cddr x) r c)))
 	(or code x))
       x))
 
-(define-internal-compiler-syntax ((printf #%printf) x r c)
-  (display write fprintf number->string write-char open-output-string get-output-string)
-  (let ((code (compile-format-string 
-	       'printf '##sys#standard-output
-	       x (cdr x)
-	       r c)))
+(define-internal-compiler-syntax ((chicken.format#printf) x r c)
+  '((display . scheme#display)
+    (write . scheme#write)
+    (number->string . scheme#number->string)
+    (write-char . scheme#write-char)
+    (open-output-string . chicken.base#open-output-string)
+    (get-output-string . chicken.base#get-output-string))
+  (let ((code (compile-format-string 'printf '##sys#standard-output x (cdr x) r c)))
     (or code x)))
 
 (define (compile-format-string func out x args r c)
   (call/cc
    (lambda (return)
      (and (>= (length args) 1)
-	  (memq func extended-bindings)	; s.a.
+	  (memq (symbol-append 'chicken.format# func) extended-bindings) ; s.a.
 	  (or (string? (car args))
 	      (and (list? (car args))
 		   (c (r 'quote) (caar args))
@@ -196,7 +208,6 @@
 		  (index 0)
 		  (len (string-length fstr)) 
 		  (%out (r 'out))
-		  (%fprintf (r 'fprintf))
 		  (%let (r 'let))
 		  (%number->string (r 'number->string)))
 	      (define (fetch)
@@ -214,7 +225,7 @@
 		  (push 
 		   (if (= 1 (length chunk))
 		       `(##sys#write-char-0 ,(car chunk) ,%out)
-		       `(##sys#print ,(reverse-list->string chunk) #f ,%out)))))
+		       `(##sys#print ,(##sys#reverse-list->string chunk) #f ,%out)))))
 	      (define (push exp)
 		(set! code (cons exp code)))
 	      (let loop ((chunk '()))
@@ -250,7 +261,7 @@
 				 ((#\?)
 				  (let* ([fstr (next)]
 					 [lst (next)] )
-				    (push `(##sys#apply ,%fprintf ,%out ,fstr ,lst))))
+				    (push `(##sys#apply chicken.format#fprintf ,%out ,fstr ,lst))))
 				 ((#\~) (push `(##sys#write-char-0 #\~ ,%out)))
 				 ((#\% #\N) (push `(##sys#write-char-0 #\newline ,%out)))
 				 (else
@@ -263,10 +274,10 @@
 			       (loop '()) )
 			     (loop (cons c chunk)))))))))))))
 
-(define-internal-compiler-syntax ((foldr #%foldr) x r c)
-  (pair?)
+(define-internal-compiler-syntax ((chicken.base#foldr) x r c)
+  '((pair? . scheme#pair?))
   (if (and (fx= (length x) 4)
-	   (memq 'foldr extended-bindings) ) ; s.a.
+	   (memq 'chicken.base#foldr extended-bindings) ) ; s.a.
       (let ((f (cadr x))
 	    (z (caddr x))
 	    (lst (cadddr x))
@@ -285,10 +296,10 @@
 			      ,z))))
       x))
 
-(define-internal-compiler-syntax ((foldl #%foldl) x r c) 
-  (pair?)
+(define-internal-compiler-syntax ((chicken.base#foldl) x r c)
+  '((pair? . scheme#pair?))
   (if (and (fx= (length x) 4)
-	   (memq 'foldl extended-bindings) ) ; s.a.
+	   (memq 'chicken.base#foldl extended-bindings) ) ; s.a.
       (let ((f (cadr x))
 	    (z (caddr x))
 	    (lst (cadddr x))
@@ -310,3 +321,4 @@
 			       (,f ,zvar (##sys#slot ,lstvar 0)))
 			      ,zvar))))
       x))
+)

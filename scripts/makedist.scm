@@ -1,7 +1,18 @@
 ;;;; makedist.scm - Make distribution tarballs
 
 
-(use srfi-69 irregex srfi-1 setup-api)
+(import (chicken file)
+        (chicken fixnum)
+        (chicken format)
+        (chicken io)
+        (chicken irregex)
+        (chicken pathname)
+        (chicken platform)
+        (chicken process)
+        (chicken process-context)
+        (chicken string))
+
+(include "mini-srfi-1.scm")
 
 (define *release* #f)
 (define *help* #f)
@@ -11,14 +22,11 @@
 (define *platform* 
   (let ((sv (symbol->string (software-version))))
     (cond ((irregex-match ".*bsd" sv) "bsd")
-	  (else
-	   (case (build-platform)
-	     ((mingw32) 
-	      (if (equal? (get-environment-variable "MSYSTEM") "MINGW32")
-		  "mingw-msys"
-		  "mingw32"))
-	     ((msvc) "msvc")
-	     (else sv))))))
+	  ((string=? sv "mingw32")
+	   (if (equal? (get-environment-variable "MSYSTEM") "MINGW32")
+	       "mingw-msys"
+	       "mingw32"))
+	  (else sv))))
 
 (define *make* 
   (cond ((string=? "bsd" *platform*) "gmake")
@@ -41,12 +49,18 @@
 	    (list fs) ) )
    equal?) )
 
+(define (run . args)
+  (let ((cmd (apply format args)))
+    (display cmd (current-error-port))
+    (newline (current-error-port))
+    (system* cmd)))
+
 (define (release full?)
-  (let* ((files (read-lines "distribution/manifest"))
+  (let* ((files (with-input-from-file "distribution/manifest" read-lines))
 	 (distname (conc "chicken-" BUILDVERSION)) 
 	 (distfiles (map (cut prefix distname <>) files)) 
 	 (tgz (conc distname ".tar.gz")))
-    (run (rm -fr ,distname ,tgz))
+    (run "rm -fr ~a ~a" distname tgz)
     (create-directory distname)
     (for-each
      (lambda (d)
@@ -59,14 +73,14 @@
 	   (foldl (lambda (missing f)
 		    (cond
 		     ((file-exists? f)
-		      (run (cp -p ,(qs f) ,(qs (make-pathname distname f))))
+		      (run "cp -p ~a ~a" (qs f) (qs (make-pathname distname f)))
 		      missing)
 		     (else (cons f missing))))
 		  '() files)))
       (unless (null? missing)
 	(warning "files missing" missing) ) )
-    (run (tar cfz ,(conc distname ".tar.gz") ,distname))
-    (run (rm -fr ,distname)) ) )
+    (run "tar cfz ~a ~a" (conc distname ".tar.gz") distname)
+    (run "rm -fr ~a" distname)))
 
 (define (usage)
   (print "usage: makedist [-release] [-make PROGRAM] [--platform=PLATFORM] MAKEOPTION ...")
@@ -90,6 +104,6 @@
 		 (loop (cddr args)))
 		(else (cons arg (loop (cdr args)))))))))
 
-(run (,*make* -f ,(conc "Makefile." *platform*) distfiles ,@*makeargs*))
+(run "~a -f Makefile.~a distfiles ~a" *make* *platform* (string-intersperse *makeargs*))
 
 (release *release*)

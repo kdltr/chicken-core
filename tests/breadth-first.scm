@@ -5,11 +5,10 @@
 
 
 (functor (breadth-first (Q QUEUE)) (search)
-  (import scheme chicken Q)
-  (use srfi-1)
+  (import scheme (chicken base) Q)
   
   (define (enqlist q xs)
-    (fold (lambda (x q) (enqueue q x)) q xs))
+    (foldl (lambda (q x) (enqueue q x)) q xs))
 
   (define (search next x)
     (define (bfs q)

@@ -12,7 +12,6 @@
 (define-key scheme-mode-map "\C-c\C-c" 'scheme-compile-definition)
 
 (define-key scheme-mode-map "\C-c\C-d" 'chicken-doc)
-(define-key scheme-mode-map "\C-c\C-t" 'chicken-trace)
 (define-key scheme-mode-map "\C-c\C-g" 'scheme-grep-current-word)
 (define-key inferior-scheme-mode-map "\C-c\C-g" 'scheme-grep-current-word)
 (define-key inferior-scheme-mode-map "\C-c\C-d" 'chicken-doc)
@@ -150,7 +149,6 @@
 	(dotimes 1)
 	(compiler-typecase 1)
 	(ecase 1)
-	(use 0)
 	(require-extension 0)
 	(import 0)
 	(handle-exceptions 2)

@@ -1,0 +1,74 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken locative)
+
+A ''locative'' is an object that points to an element of a containing object,
+much like a ''pointer'' in low-level, imperative programming languages like ''C''. The element can
+be accessed and changed indirectly, by performing access or change operations
+on the locative. The container object can be computed by calling the
+{{locative->object}} procedure.
+
+Locatives may be passed to foreign procedures that expect pointer arguments.
+
+The following procedures are provided by the {{(chicken locative)}}
+module.
+
+=== make-locative
+
+<procedure>(make-locative OBJ [INDEX])</procedure>
+
+Creates a locative that refers to the element of the non-immediate object
+{{OBJ}} at position {{INDEX}}. {{OBJ}} may be a vector, pair, string, blob,
+SRFI-4 number-vector, or record structure. {{INDEX}} should be a fixnum.
+{{INDEX}} defaults to 0.
+
+
+=== make-weak-locative
+
+<procedure>(make-weak-locative OBJ [INDEX])</procedure>
+
+Creates a ''weak'' locative. Even though the locative refers to an element of a container object,
+the container object will still be reclaimed by garbage collection if no other references
+to it exist.
+
+
+=== locative?
+
+<procedure>(locative? X)</procedure>
+
+Returns {{#t}} if {{X}} is a locative, or {{#f}} otherwise.
+
+
+=== locative-ref
+
+<procedure>(locative-ref LOC)</procedure>
+
+Returns the element to which the locative {{LOC}} refers. If the containing
+object has been reclaimed by garbage collection, an error is signalled.
+
+ (locative-ref (make-locative "abc" 1)) ==> #\b
+
+=== locative-set!
+
+<procedure>(locative-set! LOC X)</procedure><br>
+<procedure>(set! (locative-ref LOC) X)</procedure>
+
+Changes the element to which the locative {{LOC}} refers to {{X}}.
+If the containing
+object has been reclaimed by garbage collection, an error is signalled.
+
+
+=== locative->object
+
+<procedure>(locative->object LOC)</procedure>
+
+Returns the object that contains the element referred to by {{LOC}} or
+{{#f}} if the container has been reclaimed by garbage collection.
+
+ (locative->object (make-locative "abc" 1)) ==> "abc"
+
+---
+Previous: [[Module (chicken load)]]
+
+Next: [[Module (chicken memory)]]

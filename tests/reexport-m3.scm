@@ -2,7 +2,7 @@
 (module
  reexport-m3
  ((foo bar))
- (import chicken scheme)
+ (import scheme chicken.base)
  (define (bar) 1)
  (define-syntax foo
    (ir-macro-transformer

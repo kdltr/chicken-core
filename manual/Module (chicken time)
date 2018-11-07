@@ -1,0 +1,53 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken time)
+
+This module provides a few basic procedures for measuring time.
+For representation and manipulation of calendar time, see
+[[Module (chicken time posix)]].
+
+=== Retrieving timestamp information
+
+==== cpu-time
+
+<procedure>(cpu-time)</procedure>
+
+Returns the used CPU time of the current process in milliseconds as
+two values: the time spent in user code, and the time spent in system
+code. On platforms where user and system time can not be differentiated,
+system time will be always be 0.
+
+
+==== current-milliseconds
+
+<procedure>(current-milliseconds)</procedure>
+
+Returns the number of milliseconds since process- or machine startup.
+
+
+==== current-seconds
+
+<procedure>(current-seconds)</procedure>
+
+Returns the number of seconds since midnight, Jan. 1, 1970.
+
+
+=== Benchmarking macros
+
+==== time
+
+<macro>(time EXP1 ...)</macro>
+
+Performs a major garbage collection, evaluates {{EXP1 ...}} and prints
+elapsed CPU time and some values about GC use, like time spent in
+major GCs, number of minor and major GCs. The output is sent to the
+port that is the current value of {{(current-error-port)}}. Nested
+invocations of this form will give incorrect results for all output
+but the innermost.
+
+
+---
+Previous: [[Module (chicken tcp)]]
+
+Next: [[Module (chicken time posix)]]

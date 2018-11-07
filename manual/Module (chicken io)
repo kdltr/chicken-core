@@ -1,0 +1,93 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken io)
+
+This module provides various Input/Output extensions.
+
+=== read-list
+
+<procedure>(read-list [PORT [READER [MAX]]])</procedure>
+
+Call {{READER}} up to {{MAX}} times and collect its output in a list. If {{MAX}} is {{#f}}, read until end of file.
+
+The reader is called with one argument: {{PORT}}.
+
+{{READER}} defaults to {{read}}, {{MAX}} to {{#f}} and {{PORT}} to {{current-input-port}}, so if you call it with no arguments, it will read all remaining s-expressions from the current input port.
+
+
+=== read-buffered
+
+<procedure>(read-buffered [PORT])</procedure>
+
+Reads any remaining data buffered after previous read operations on
+{{PORT}}. If no remaining data is currently buffered, an empty string
+is returned. This procedure will never block. Currently only useful
+for string-, process- and tcp ports.
+
+=== read-byte
+=== write-byte
+
+<procedure>(read-byte [PORT])</procedure><br>
+<procedure>(write-byte BYTE [PORT])</procedure>
+
+Read/write a byte to the port given in {{PORT}}, which default to the values
+of {{(current-input-port)}} and {{(current-output-port)}}, respectively.
+
+
+=== read-line
+=== write-line
+
+<procedure>(read-line [PORT [LIMIT]])</procedure><br>
+<procedure>(write-line STRING [PORT])</procedure>
+
+Line-input and -output. {{PORT}} defaults to the value of
+{{(current-input-port)}} and {{(current-output-port)}},
+respectively. If the optional argument {{LIMIT}} is given and
+not {{#f}}, then {{read-line}} reads at most {{LIMIT}}
+characters per line. {{read-line}} returns a string without the terminating newline and {{write-line}} adds a terminating newline  before outputting.
+
+
+=== read-lines
+
+<procedure>(read-lines [PORT [MAX]])</procedure>
+
+Read {{MAX}} or fewer lines from {{PORT}}. {{PORT}} defaults to the
+value of {{(current-input-port)}}. Returns a list of strings, each
+string representing a line read, not including any line separation
+character(s).
+
+
+=== read-string
+=== read-string!
+=== write-string
+
+<procedure>(read-string [NUM [PORT]])</procedure><br>
+<procedure>(read-string! NUM STRING [PORT [START]])</procedure><br>
+<procedure>(write-string STRING [NUM [PORT]])</procedure>
+
+Read or write {{NUM}} characters from/to {{PORT}}, which defaults to the
+value of {{(current-input-port)}} or {{(current-output-port)}}, respectively. 
+
+If {{NUM}} is {{#f}} or not given, then all data up to the end-of-file is
+read, or, in the case of {{write-string}} the whole string is written. If no
+more input is available, {{read-string}} returns {{#!eof}}.
+
+{{read-string!}} reads destructively into the given {{STRING}} argument, but
+never more characters than would fit into {{STRING}}. If {{START}} is given,
+then the read characters are stored starting at that position.
+{{read-string!}} returns the actual number of characters read.
+
+
+=== read-token
+
+<procedure>(read-token PREDICATE [PORT])</procedure>
+
+Reads characters from {{PORT}} (which defaults to the value of {{(current-input-port)}})
+and calls the procedure {{PREDICATE}} with each character until {{PREDICATE}} returns
+false. Returns a string with the accumulated characters.
+
+---
+Previous: [[Module (chicken gc)]]
+
+Next: [[Module (chicken irregex)]]

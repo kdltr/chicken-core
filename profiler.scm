@@ -1,6 +1,6 @@
 ;;;; profiler.scm - Support code for profiling applications
 ;
-; Copyright (c) 2008-2017, The CHICKEN Team
+; Copyright (c) 2008-2018, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -31,6 +31,8 @@
   (unsafe)
   (disable-interrupts))
 
+(import chicken.base chicken.fixnum scheme)
+
 (include "common-declarations.scm")
 
 (define-foreign-variable profile-id int "C_getpid()")
@@ -58,13 +60,13 @@
 	(if (string? filename)
 	    filename
 	    (string-append "PROFILE." (number->string profile-id))))
-      (let ([oldeh (##sys#exit-handler)]
-	    [oldieh (##sys#implicit-exit-handler)] )
-	(##sys#exit-handler
+      (let ((oldeh (exit-handler))
+	    (oldieh (implicit-exit-handler)))
+	(exit-handler
 	 (lambda args
 	   (##sys#finish-profile)
 	   (apply oldeh args) ) )
-	(##sys#implicit-exit-handler
+	(implicit-exit-handler
 	 (lambda ()
 	   (##sys#finish-profile)
 	   (oldieh) ) ) ) )
@@ -79,7 +81,8 @@
 
 ;;; Entry and exit into/out of profiled lambda:
 
-(define cpu-ms (foreign-lambda double "C_cpu_milliseconds"))
+;; XXX TODO: Should be changed to unsigned-integer64 after bootstrapping
+(define cpu-ms (foreign-lambda unsigned-integer "C_cpu_milliseconds"))
 
 (define ##sys#profile-entry 
   (let ((maxfix most-positive-fixnum))
@@ -110,8 +113,8 @@
       (let ((t (##sys#slot vec it)))
 	(##sys#setslot
 	 vec it 
-	 (fp+ (if (eq? t 0) 0.0 t)
-	      (fp- (cpu-ms) (##sys#slot vec it0))))))))
+	 (+ (if (eq? t 0) 0 t)
+	    (- (cpu-ms) (##sys#slot vec it0))))))))
 
 
 ;;; Generate profile:
@@ -121,7 +124,7 @@
 	[write-char write-char]
 	[write write] )
     (lambda ()
-      (when (##sys#fudge 13)
+      (when (##sys#debug-mode?)
 	(##sys#print "[debug] writing profile...\n" #f ##sys#standard-error) )
       (apply
        with-output-to-file ##sys#profile-name

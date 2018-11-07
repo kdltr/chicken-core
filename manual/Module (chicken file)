@@ -1,0 +1,202 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken file)
+
+This module provides various generic operations on files and
+directories.  For more specific operations, see also
+[[Module (chicken file posix)]].
+
+All errors related to failing file-operations will signal a condition
+of kind {{(exn i/o file)}}.
+
+=== Basic file operations
+
+==== create-directory
+
+<procedure>(create-directory NAME #!optional PARENTS?)</procedure>
+
+Creates a directory with the pathname {{NAME}}.  If the {{PARENTS?}} argument
+is given and not false, any nonexistent parent directories are also created.
+
+Notice that if {{NAME}} exists, {{create-directory}} won't try to create it
+and will return {{NAME}} (i.e., it won't raise an error when given a {{NAME}}
+that already exists).
+
+==== copy-file
+
+<procedure>(copy-file ORIGFILE NEWFILE #!optional CLOBBER BLOCKSIZE)</procedure>
+
+Copies {{ORIGFILE}} (a string denoting some filename) to {{NEWFILE}},
+{{BLOCKSIZE}} bytes at a time.  {{BLOCKSIZE}} defaults to 1024, and
+must be a positive integer.  Returns the number of bytes copied on
+success, or errors on failure.  {{CLOBBER}} determines the behaviour
+of {{file-copy}} when {{NEWFILE}} is already extant.  When set to
+{{#f}} (default), an error is signaled.  When set to any other value,
+{{NEWFILE}} is overwritten.  {{file-copy}} will work across
+filesystems and devices and is not platform-dependent.
+
+==== move-file
+
+<procedure>(move-file ORIGFILE NEWFILE #!optional CLOBBER BLOCKSIZE)</procedure>
+
+Moves {{ORIGFILE}} (a string denoting some filename) to {{NEWFILE}},
+with the same semantics as {{copy-file}}, above.  {{move-file}} is
+safe across filesystems and devices (unlike {{rename-file}}).  It is
+possible for an error to be signaled despite partial success if
+{{NEWFILE}} could be created and fully written but removing
+{{ORIGFILE}} fails.
+
+If {{CLOBBER}} is given and not {{#f}}, {{NEWFILE}} will be replaced
+when it already exists, otherwise an error is signaled.
+
+The {{BLOCKSIZE}} argument indicates the block size to use when
+copying the file a block at a time.  It must be a positive integer,
+and it defaults to 1024.
+
+==== delete-file
+
+<procedure>(delete-file STRING)</procedure>
+
+Deletes the file with the pathname {{STRING}}. If the file does
+not exist, an error is signaled.
+
+==== delete-file*
+
+<procedure>(delete-file* STRING)</procedure>
+
+If the file with pathname {{STRING}} exists, it is deleted and {{#t}}
+is returned.  If the file does not exist, nothing happens and {{#f}}
+is returned.
+
+==== delete-directory
+
+<procedure>(delete-directory NAME [RECURSIVE])</procedure>
+
+Deletes the directory with the pathname {{NAME}}. If {{RECURSIVE}} is
+not given or false, then the directory has to be empty.
+
+==== directory
+
+<procedure>(directory [PATHNAME [SHOW-DOTFILES?]])</procedure>
+
+Returns a list with all files that are contained in the directory with the name {{PATHNAME}}
+(which defaults to the value of {{(current-directory)}}).
+Files beginning with {{.}} are included only if {{SHOW-DOTFILES?}} is given and not {{#f}}.
+
+==== directory-exists?
+
+<procedure>(directory-exists? STRING)</procedure>
+
+Returns {{STRING}} if a directory with the given pathname exists, or
+{{#f}} otherwise.
+
+
+==== file-exists?
+
+<procedure>(file-exists? STRING)</procedure>
+
+Returns {{STRING}} if a file or directory with the given pathname exists, or
+{{#f}} otherwise.
+
+
+==== rename-file
+
+<procedure>(rename-file OLD NEW #!optional CLOBBER)</procedure>
+
+Renames the file or directory with the pathname {{OLD}} to
+{{NEW}}. If the operation does not succeed, an error is signaled.
+
+If {{CLOBBER}} is given and not {{#f}}, {{NEW}} will be replaced when
+it already exists, otherwise an error is signaled.
+
+==== file-readable?
+==== file-writable?
+==== file-executable?
+
+<procedure>(file-readable? FILENAME)</procedure><br>
+<procedure>(file-writable? FILENAME)</procedure><br>
+<procedure>(file-executable? FILENAME)</procedure>
+
+These procedures return {{#t}} if the current user has read,
+write or execute permissions on the file named {{FILENAME}}.
+
+
+=== Temporary files and directories
+
+==== create-temporary-file
+
+<procedure>(create-temporary-file [EXTENSION])</procedure>
+
+Creates an empty temporary file and returns its pathname. If
+{{EXTENSION}} is not given, then {{.tmp}} is used. If the
+environment variable {{TMPDIR, TEMP}} or {{TMP}} is set,
+then the pathname names a file in that directory. If none of
+the environment variables is given the location of the
+temporary file defaults to {{/tmp}} if it exists or the 
+current-directory
+
+
+==== create-temporary-directory
+
+<procedure>(create-temporary-directory)</procedure>
+
+Creates an empty temporary directory and returns its pathname. If the
+environment variable {{TMPDIR, TEMP}} or {{TMP}} is set, then the
+temporary directory is created at that location.
+
+
+=== Finding files
+
+==== find-files
+
+<procedure>(find-files DIRECTORY #!key test action seed limit dotfiles follow-symlinks)</procedure>
+
+Recursively traverses the contents of {{DIRECTORY}} (which should be a
+string) and invokes the procedure {{action}} for all files in which
+the procedure {{test}} is true.
+
+{{test}} may be a procedure of one argument or an irregex object,
+regex string or SRE expression that will be matched with a full
+pathname using {{irregex-match}}. {{test}} defaults to {{(constantly
+#t)}}.
+
+
+{{action}} should be a procedure of two arguments: the currently
+encountered file and the result of the previous invocation of
+{{action}}, or, if this is the first invocation, the value of
+{{seed}}. {{action}} defaults to {{cons}}, {{seed}} defaults to {{()}}.
+
+{{limit}} should be a procedure of one argument that is called for
+each nested directory and which should return true, if that directory
+is to be traversed recursively. {{limit}} may also be an exact integer
+that gives the maximum recursion depth. For example, a depth of {{0}}
+means that only files in the top-level, specified directory are to be
+traversed. In this case, all nested directories are ignored.
+{{limit}} may also be {{#f}} (the default), which is equivalent to
+{{(constantly #t)}}.
+
+If {{dotfiles}} is given and true, then files starting with a "{{.}}"
+character will not be ignored (but note that "{{.}}" and "{{..}}"  are
+always ignored). if {{follow-symlinks}} is given and true, then the
+traversal of a symbolic link that points to a directory will
+recursively traverse the latter. By default, symbolic links are not
+followed.
+
+Note that {{action}} is called with the full pathname of each file,
+including the directory prefix.
+
+
+==== glob
+
+<procedure>(glob PATTERN1 ...)</procedure>
+
+Returns a list of the pathnames of all existing files matching
+{{PATTERN1 ...}}, which should be strings containing the usual
+file-patterns (with {{*}} matching zero or more characters and
+{{?}} matching zero or one character).
+
+---
+Previous: [[Module (chicken eval)]]
+
+Next: [[Module (chicken file posix)]]

@@ -1,0 +1,18 @@
+Deprecated functions and variables
+==================================
+
+
+5.0.0
+
+- "bit->boolean" has been introduced temporarily to avoid users
+  having to figure out why "bit-set?" uses a different argument
+  order than the procedure with the same name that is specified in
+  SRFI-33 and SRFI-60. This procedure will be replaced by the proper
+  "bit-set?" in one of the next versions, together with a C level
+  macro or function.
+
+  See also: 45489c1b3d9fb20bacc91fa393ce7330dd61d22f
+
+  "bit->boolean" expands into "C_u_i_bit_to_bool", "C_i_bit_to_bool"
+  or "C_i_fixnum_bit_to_bool", which are all deprecated as well,
+  but might be re-used in a future version of "bit-set?".

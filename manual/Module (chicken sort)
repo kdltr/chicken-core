@@ -1,0 +1,72 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken sort)
+
+This module contains several procedures which deal with sorting of
+''sequences'' (i.e., lists and vectors).
+
+=== merge
+
+<procedure>(merge LIST1 LIST2 LESS?)</procedure><br>
+<procedure>(merge! LIST1 LIST2 LESS?)</procedure>
+
+Joins two lists in sorted order. {{merge!}} is the destructive
+version of merge. {{LESS?  }} should be a procedure of two arguments,
+that returns true if the first argument is to be ordered before the
+second argument.
+
+
+=== sort
+
+<procedure>(sort SEQUENCE LESS?)</procedure><br>
+<procedure>(sort! SEQUENCE LESS?)</procedure>
+
+Sort {{SEQUENCE}}, which should be a list or a vector. {{sort!}}
+is the destructive version of sort.
+
+
+=== sorted?
+
+<procedure>(sorted? SEQUENCE LESS?)</procedure>
+
+Returns true if the list or vector {{SEQUENCE}} is already sorted.
+
+=== topological-sort
+
+<procedure>(topological-sort DAG PRED)</procedure>
+
+Sorts the directed acyclic graph dag {{DAG}} so that for every edge from vertex
+u to v, u will come before v in the resulting list of vertices.
+
+{{DAG}} is a list of sublists. The car of each sublist is a
+vertex. The cdr is the adjacency list of that vertex, i.e. a list of
+all vertices to which there exists an edge from the car vertex.
+{{pred}} is procedure of two arguments that should compare vertices
+for equality.
+
+Time complexity: O (|V| + |E|)
+
+<enscript highlight=scheme>
+(topological-sort
+       '((shirt tie belt)
+         (tie jacket)
+         (belt jacket)
+         (watch)
+         (pants shoes belt)
+         (undershorts pants shoes)
+         (socks shoes))
+       eq?)
+
+=>
+
+(socks undershorts pants shoes watch shirt belt tie jacket)
+</enscript>
+
+If a cycle is detected during the sorting process, an exception of the
+condition kinds {{(exn runtime cycle)}} is thrown.
+
+---
+Previous: [[Module (chicken repl)]]
+
+Next: [[Module (chicken string)]]

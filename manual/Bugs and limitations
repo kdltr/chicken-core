@@ -8,9 +8,22 @@
 
 * {{port-position}} currently works only for input ports.
 
-* Leaf routine optimization can theoretically result in code that thrashes, if tight loops perform excessively many mutations.
+* Leaf routine optimization can theoretically result in code that thrashes, if tight loops perform excessively many mutations. In practice this doesn't happen.
+
+* Due to the header representation of block objects, the maximum size
+of a bytevector-like object (strings, blobs, srfi-4 vectors etc) is
+2^24 bytes or 16MiB.  On 64-bit machines the limit is less relevant,
+at 2^56 bytes, or 65536 TiB (64 PiB).
+
+* Like above, the maximum size of vector-like objects is 2^24 slots on
+32 bit machines and 2^56 slots on 64-bit machines.
+
+* Bignums are represented by bytevector objects instead of vector-like
+objects due to the need to treat digits as opaque data.  This limits
+bignums to a maximum value of 2^(2^27) on 32-bit machines and 2^(2^59)
+on 64-bit machines.
 
 ---
-Previous: [[Data representation]]
+Previous: [[Cross development]]
 
-Next: [[faq|FAQ]]
+Next: [[Acknowledgements]]

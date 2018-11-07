@@ -1,0 +1,61 @@
+[[tags: manual]]
+[[toc:]]
+
+== Included modules
+
+The CHICKEN system comes shipped with several modules.  This section
+of the manual provides a reference guide to all the modules that are
+part of a standard installation.  On top of these, you can install
+additional modules through the [[Extensions|eggs]] system.
+
+* [[Module scheme]] : Standard Scheme procedures and syntax
+* [[Module r5rs]] : Standard Scheme procedures and syntax (alias for scheme)
+* [[Module r4rs]] : Standard procedures and syntax of an old Scheme report
+* [[Module srfi-4]] : Homogeneous numeric vector datatypes
+* [[Module (chicken base)]] : Core procedures and macros
+* [[Module (chicken bitwise)]] : Bitwise manipulation on integers
+* [[Module (chicken blob)]] : Unstructured byte data
+* [[Module (chicken condition)]] : Raising and handling of exceptions, manipulation of condition objects
+* [[Module (chicken continuation)]] : Feeley's "a better API for continuations"
+* [[Module (chicken csi)]] : Features specific to {{csi}}
+* [[Module (chicken errno)]] : Accessing the C "errno" variable
+* [[Module (chicken eval)]] : Evaluation hooks
+* [[Module (chicken file)]] : High-level API for file system manipulations
+* [[Module (chicken file posix)]] : POSIX-specific file manipulations
+* [[Module (chicken fixnum)]] : Operations on "fixnums" (small integers)
+* [[Module (chicken flonum)]] : Operations on "flonums" (floating-point numbers)
+* [[Module (chicken foreign)]] : Accessing C and C++ code and data
+* [[Module (chicken format)]] : String formatting procedures
+* [[Module (chicken gc)]] : Interacting with the garbage collector
+* [[Module (chicken io)]] : Reading and writing to files and other ports
+* [[Module (chicken irregex)]] : Regular expressions
+* [[Module (chicken keyword)]] : Operations on keyword objects
+* [[Module (chicken load)]] : Loading code from files
+* [[Module (chicken locative)]] : Accessing pointer-like location objects
+* [[Module (chicken memory)]] : Low-level memory operations
+* [[Module (chicken memory representation)]] : Low-level operations on the memory representation of Scheme objects
+* [[Module (chicken module)]] : Defining modules
+* [[Module (chicken pathname)]] : Manipulating path names
+* [[Module (chicken platform)]] : Information about the platform your code is running on
+* [[Module (chicken plist)]] : Symbol property lists
+* [[Module (chicken port)]] : Manipulating port objects
+* [[Module (chicken pretty-print)]] : Pretty-printing s-expressions
+* [[Module (chicken process)]] : Starting subprocesses and communicating with them
+* [[Module (chicken process signal)]] : Sending and receiving POSIX process signals
+* [[Module (chicken process-context)]] : Accessing the context (arguments, environment etc) of the current process
+* [[Module (chicken process-context posix)]] : POSIX-specific context access
+* [[Module (chicken random)]] : Generating pseudo-random number
+* [[Module (chicken read-syntax)]] : Creating syntactic extensions to the reader
+* [[Module (chicken repl)]] : Creating a Read-Eval-Print Loop
+* [[Module (chicken sort)]] : Sorting lists and vectors
+* [[Module (chicken string)]] : String operations
+* [[Module (chicken syntax)]] : Creating syntactic extensions (macros)
+* [[Module (chicken tcp)]] : Connecting over the network via TCP
+* [[Module (chicken time)]] : Fetching information about the current time
+* [[Module (chicken time posix)]] : Manipulating POSIX time
+* [[Module (chicken type)]] : Defining and using static typing information
+
+---
+Previous: [[Extensions to the standard]]
+
+Next: [[Interface to external functions and variables]]

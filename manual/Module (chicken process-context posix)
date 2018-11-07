@@ -1,0 +1,150 @@
+[[tags: manual]]
+[[toc:]]
+
+== Module (chicken process-context posix)
+
+This module provides access to POSIX-specific procedures which deal
+with the current process context.
+
+=== Process filesystem context
+
+==== change-directory*
+
+<procedure>(change-directory* FD)</procedure>
+<procedure>(set! (current-directory) FD)</procedure>
+
+Changes the current working directory to the one represented by the
+file-descriptor {{FD}}, which should be an exact integer.
+
+'''NOTE''': Windows does not allow {{{open}}} on directories, so while
+technically it is supported, in practice you cannot use this procedure
+on native Windows builds (on cygwin it works because cygwin emulates
+this).
+
+==== set-root-directory!
+
+<procedure>(set-root-directory! STRING)</procedure>
+
+Sets the root directory for the current process to the path given in
+{{STRING}} (using the {{chroot}} function).  If the current process
+has no root permissions, the operation will fail.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+
+=== Retrieving user & group information
+
+==== current-user-id
+
+<procedure>(current-user-id)</procedure>
+ [setter] (set! (current-user-id) UID)
+
+Get or set the real user-id of the current process. The procedure corresponds to the getuid and setuid C functions.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== current-user-name
+
+<procedure>(current-user-name)</procedure>
+
+Get the login name corresponding to the real user-id of the current
+process from the system password database.
+
+On Windows, there's no user-id and no distinction between real and
+effective user, but this procedure ''will'' return the username
+associated with the current process, so it is safe to use.
+
+
+==== current-effective-user-id
+
+<procedure>(current-effective-user-id)</procedure>
+ [setter] (set! (current-effective-user-id) UID)
+
+Get or set the effective user-id of the current process.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== current-effective-user-name
+
+<procedure>(current-effective-user-name)</procedure>
+
+Get the login name corresponding to the effective user-id of the
+current process from the system password database.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== current-group-id
+
+<procedure>(current-group-id)</procedure>
+ [setter] (set! (current-group-id) GID)
+
+Get or set the real group-id of the current process.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== current-effective-group-id
+
+<procedure>(current-effective-group-id)</procedure>
+ [setter] (set! (current-effective-group-id) GID)
+
+Get or set the effective group-id of the current process.
+ID can be found, then {{#f}} is returned.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+
+=== Process identity
+
+==== current-process-id
+
+<procedure>(current-process-id)</procedure>
+
+Returns the process ID of the current process.
+
+==== parent-process-id
+
+<procedure>(parent-process-id)</procedure>
+
+Returns the process ID of the parent of the current process.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== process-group-id
+
+<procedure>(process-group-id PID)</procedure>
+ [setter] (set! (process-group-id PID) PGID)
+
+Get or set the process group ID of the process specified by {{PID}}.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+==== user-information
+
+<procedure>(user-information USER [AS-VECTOR])</procedure>
+
+If {{USER}} specifes a valid username (as a string) or user ID, then
+the user database is consulted and a list of 7 values are returned:
+the user-name, the encrypted password, the user ID, the group ID, a
+user-specific string, the home directory and the default shell. When
+{{AS-VECTOR}} is {{#t}} a vector of 7 elements is returned instead of
+a list. If no user with this name or id then {{#f}} is returned.
+
+Note: on Android systems, the user-specific string is always {{""}},
+since {{pw_gecos}} is not available in the C {{passwd}} struct on that
+platform.
+
+'''NOTE''': On native Windows builds (all except cygwin), this
+procedure is unimplemented and will raise an error.
+
+---
+Previous: [[Module (chicken process-context)]]
+
+Next: [[Module (chicken random)]]

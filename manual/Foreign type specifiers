@@ -196,17 +196,21 @@ value will raise an exception.
 <type>u8vector</type><br>
 <type>u16vector</type><br>
 <type>u32vector</type><br>
+<type>u64vector</type><br>
 <type>s8vector</type><br>
 <type>s16vector</type><br>
 <type>s32vector</type><br>
+<type>s64vector</type><br>
 <type>f32vector</type><br>
 <type>f64vector</type><br>
 <type>nonnull-u8vector </type><br>
 <type>nonnull-u16vector </type><br>
 <type>nonnull-u32vector </type><br>
+<type>nonnull-u64vector </type><br>
 <type>nonnull-s8vector </type><br>
 <type>nonnull-s16vector</type><br>
 <type>nonnull-s32vector</type><br>
+<type>nonnull-s64vector</type><br>
 <type>nonnull-f32vector</type><br>
 <type>nonnull-f64vector</type><br>
 
@@ -380,6 +384,8 @@ The foreign type {{TYPE}} with an additional {{const}} qualifier.
 <tr><td>{{[nonnull-]s16vector}}</td><td>{{short *}}</td></tr>
 <tr><td>{{[nonnull-]u32vector}}</td><td>{{uint32_t *}}</td></tr>
 <tr><td>{{[nonnull-]s32vector}}</td><td>{{int32_t *}}</td></tr>
+<tr><td>{{[nonnull-]u64vector}}</td><td>{{uint64_t *}}</td></tr>
+<tr><td>{{[nonnull-]s64vector}}</td><td>{{int64_t *}}</td></tr>
 <tr><td>{{[nonnull-]f32vector}}</td><td>{{float *}}</td></tr>
 <tr><td>{{[nonnull-]f64vector}}</td><td>{{double *}}</td></tr>
 <tr><td>{{[nonnull-]c-string}}</td><td>{{char *}}</td></tr>
