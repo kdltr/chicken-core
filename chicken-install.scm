@@ -1020,7 +1020,7 @@ usage: chicken-install [OPTION ...] [NAME[:VERSION] ...]
        -force                   don't ask, install even if versions don't match
   -k   -keep                    keep temporary files
   -s   -sudo                    use external command to elevate privileges for filesystem operations
-  -r   -retrieve                only retrieve egg into current directory, don't install (giving -r
+  -r   -retrieve                only retrieve egg into cache directory, don't install (giving `-r'
                                 more than once implies `-recursive')
        -recursive               if `-retrieve' is given, retrieve also dependencies
        -dry-run                 do not build or install, just print the locations of the generated
