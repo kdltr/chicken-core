@@ -147,6 +147,28 @@ intended for cross compilation.
 Specifies global options for all programs and extensions compiled for this egg.
 {{OPTIONSPEC}} may be {{csc-options}} or {{link-options}} specifications.
 
+==== cond-expand
+
+[egg property] (cond-expand CLAUSE ...)
+
+Conditionally expand egg specification forms, depending on system 
+features. Each {{CLAUSE}} should be of the form 
+{{(TEST PROPERTY)}} where {{TEST}} is a feature identifier or a 
+conditional form, in the same syntax as used in the {{cond-expand}}
+syntactic form.
+
+In addition to normal system-wide feature identifiers, feature identifiers
+given via the {{-feature}} option to {{chicken-install}} are visible in
+the tests. Also, the features {{target}}, {{host}}, {{dynamic}} and
+{{static}} are visible, depending on surrounding egg specification
+forms for constraining mode and linkage.
+
+==== error
+
+[egg property] (error STRING ARG ...)
+
+Signal an error and abort processing. Mostly useful inside {{cond-expand}} forms.
+
 === Components
 
 ==== extension
@@ -260,7 +282,6 @@ are set in the execution environment of the script:
 * {{CHICKEN_CSC}}: path to {{csc}}
 * {{CHICKEN_CSI}}: path to {{csi}}
 
-
 ==== csc-options
 
  [egg property] (csc-options OPTION ...)
@@ -358,6 +379,19 @@ Specifies modules that the component (usually an extension) contains.
 {{chicken-install}} will compile and install all import libraries for the given modules.
 If this property is not given, then it is assumed that the extension has a single
 module of the same name as the component.
+
+==== cond-expand
+
+ [egg property] (cond-expand CLAUSE ...)
+
+Similar to the toplevel {{cond-expand}} clause and may appear inside
+component specifications.
+
+==== error
+
+ [egg property] (error STRING ARG ...)
+
+Similar to the toplevel {{error}} form, may appear inside component specifications.
 
 ---
 

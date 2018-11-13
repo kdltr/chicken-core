@@ -116,6 +116,25 @@
       (list (implib rtarget))))
 
 
+;;; check condition in conditional clause
+
+(define (check-condition tst mode link)
+  (define (fail x)
+    (error "invalid conditional expression in `cond-expand' clause"
+           x))
+  (let walk ((x tst))
+    (cond ((and (list? x) (pair? x))
+           (cond ((and (eq? (car x) 'not) (= 2 (length x)))
+                  (not (walk (cadr x))))
+                 ((eq? 'and (car x)) (every walk (cdr x)))
+                 ((eq? 'or (car x)) (any walk (cdr x)))
+                 (else (fail x))))
+          ((memq x '(dynamic static)) (memq x link))
+          ((memq x '(target host)) (memq x mode))
+          ((symbol? x) (feature? x))
+          (else (fail x)))))
+
+
 ;;; compile an egg-information tree into abstract build/install operations
 
 (define (compile-egg-info eggfile info version platform mode)
@@ -321,7 +340,11 @@
            (for-each walk (cdr info))))
         ((host)
          (when (eq? mode 'host)
-           (for-each walk (cdr info))))))
+           (for-each walk (cdr info))))
+        ((error)
+         (apply error (cdr info)))
+        ((cond-expand)
+         (compile-cond-expand info walk))))
     (define (compile-data/include info)
       (case (car info)
         ((destination)
@@ -334,6 +357,15 @@
         ((csc-options) (set! opts (append opts (cdr info))))
         ((link-options) (set! lopts (append lopts (cdr info))))
         (else (error "invalid option specification" info))))
+    (define (compile-cond-expand info walk)
+      (let loop ((clauses (cdr info)))
+        (cond ((null? clauses)
+               (error "no matching clause in `cond-expand' form" 
+                      info))
+              ((or (eq? 'else (caar clauses))
+                   (check-condition (caar clauses) mode link))
+               (for-each walk (cdar clauses)))
+              (else (loop (cdr clauses))))))
     (define (->dep x)
       (if (name? x) x (error "invalid dependency" x)))
     (define (compile info)

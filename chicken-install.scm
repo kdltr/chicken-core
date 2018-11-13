@@ -195,6 +195,8 @@
     (data #f #t #t)
     (modules #f #f #f)
     (component-options #t #f #f)
+    (cond-expand * #t #f)
+    (error * #f #f)
     (c-include #f #f #t)
     (scheme-include #f #f #t)))
 
@@ -208,11 +210,15 @@
                (error "invalid egg information item" item))
               ((assq (car item) egg-info-items) =>
                (lambda (a)
-                 (apply (lambda (_ toplevel nested named #!optional validator)
-                          (cond ((and top? (not toplevel))
+                 (apply (lambda (name toplevel nested named #!optional validator)
+                          (cond ((and top? 
+                                      (not (eq? toplevel '*))
+                                      (not toplevel))
                                  (error "egg information item not allowed at toplevel" 
                                         item))
-                                ((and toplevel (not top?))
+                                ((and (not (eq? toplevel '*))
+                                      toplevel
+                                      (not top?))
                                  (error "egg information item only allowed at toplevel" item))
                                 ((and named
                                       (or (null? (cdr item))
@@ -222,7 +228,16 @@
                                       (not (validator (cdr item))))
                                  (error "egg information item has invalid structure" item)))
                           (when nested
-                            (validate (if named (cddr item) (cdr item)) #f)))
+                            (cond (named (validate (cddr item) #f))
+                                  ((eq? name 'cond-expand)
+                                   (for-each
+                                     (lambda (clause)
+                                       (unless (and (list? clause)
+                                                    (>= (length clause) 1))
+                                         (error "invalid syntax in `cond-expand' clause" clause))
+                                       (validate (cdr clause) top?))
+                                     (cdr item)))
+                                  (else (validate (cdr item) #f)))))
                         a)))
               (else (error "unknown egg information item" item))))
       info))
@@ -232,7 +247,7 @@
 
 ;; utilities
 
-;; Simpler replacement for SRFI-13's string-suffix?
+;; Simpler replacement for SRFI-13's "string-suffix?"
 (define (string-suffix? suffix s)
   (let ((len-s (string-length s))
         (len-suffix (string-length suffix)))
@@ -1037,6 +1052,7 @@ usage: chicken-install [OPTION ...] [NAME[:VERSION] ...]
        -from-list FILENAME      install eggs from list obtained by `chicken-status -list'
   -v   -verbose                 be verbose
        -cached                  only install from cache
+  -D   -feature NAME            define build feature
        -defaults FILENAME       use FILENAME as defaults instead of the installed `setup.defaults'
                                 file
 
@@ -1075,6 +1091,9 @@ EOF
                   ((equal? arg "-version")
                    (print (chicken-version))
                    (exit 0))
+                  ((member arg '("-D" "-feature"))
+                   (register-feature! (cadr args))
+                   (loop (cddr args)))
                   ((equal? arg "-recursive")
                    (set! retrieve-recursive #t)
                    (loop (cdr args)))
