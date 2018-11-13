@@ -363,7 +363,8 @@
                          (assq dep cinc)
                          (assq dep scminc)
                          (assq dep genfiles)
-                         (error "unknown component dependency" dep name))))
+                         (assq dep prgs)
+                         (error "unknown component dependency" dep))))
               deps))
     ;; collect information
     (for-each compile info)
