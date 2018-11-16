@@ -44,7 +44,7 @@ Note: in toplevel procedure `r-cond-test-always-false':
 
 (if #f 1 (##core#undefined))
 
-Note: in toplevel procedure `r-type-mismatch-in-the':
+Warning: in toplevel procedure `r-type-mismatch-in-the':
   expression returns a result of type `fixnum' but is declared to return `symbol', which is not compatible
 
 Warning: in toplevel procedure `r-zero-values-for-the':
@@ -53,7 +53,7 @@ Warning: in toplevel procedure `r-zero-values-for-the':
 Warning: in toplevel procedure `r-too-many-values-for-the':
   expression returns 2 values but is declared to have a single result
 
-Note: in toplevel procedure `r-too-many-values-for-the':
+Warning: in toplevel procedure `r-too-many-values-for-the':
   expression returns a result of type `fixnum' but is declared to return `symbol', which is not compatible
 
 Warning: in toplevel procedure `r-toplevel-var-assignment-type-mismatch':
@@ -155,7 +155,7 @@ Note: in local procedure `r-cond-test-always-false',
 
 (if #f 1 (##core#undefined))
 
-Note: in local procedure `r-type-mismatch-in-the',
+Warning: in local procedure `r-type-mismatch-in-the',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
   expression returns a result of type `fixnum' but is declared to return `symbol', which is not compatible
@@ -170,7 +170,7 @@ Warning: in local procedure `r-too-many-values-for-the',
   in toplevel procedure `m#toplevel-foo':
   expression returns 2 values but is declared to have a single result
 
-Note: in local procedure `r-too-many-values-for-the',
+Warning: in local procedure `r-too-many-values-for-the',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
   expression returns a result of type `fixnum' but is declared to return `symbol', which is not compatible
