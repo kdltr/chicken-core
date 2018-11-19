@@ -55,7 +55,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `bar' has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -65,9 +65,9 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#string?)
 
-  Procedure `scheme#string?' is called with 0 arguments but 1 argument is expected.
+  Procedure `string?' is called with 0 arguments but 1 argument is expected.
 
-  The procedure's type is
+  Procedure `string?', imported from `scheme', has type
 
     (procedure scheme#string? (*) boolean)
 
@@ -97,7 +97,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#+ 'a 'b)
 
-  Argument #1 to procedure `scheme#+' has invalid type
+  Argument #1 to procedure `+' has invalid type
 
     symbol
 
@@ -105,7 +105,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `+', imported from `scheme', has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -115,7 +115,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#+ 'a 'b)
 
-  Argument #2 to procedure `scheme#+' has invalid type
+  Argument #2 to procedure `+' has invalid type
 
     symbol
 
@@ -123,7 +123,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `+', imported from `scheme', has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -176,7 +176,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#string-append x "abc")
 
-  Argument #1 to procedure `scheme#string-append' has invalid type
+  Argument #1 to procedure `string-append' has invalid type
 
     number
 
@@ -184,7 +184,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     string
 
-  The procedure's type is
+  Procedure `string-append', imported from `scheme', has type
 
     (procedure scheme#string-append (#!rest string) string)
 
@@ -202,7 +202,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     string
 
-  The procedure's type is
+  Procedure `foo3' has type
 
     (procedure foo3 (string) string)
 
@@ -212,7 +212,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#+ x 1)
 
-  Argument #1 to procedure `scheme#+' has invalid type
+  Argument #1 to procedure `+' has invalid type
 
     string
 
@@ -220,7 +220,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `+', imported from `scheme', has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -230,7 +230,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#+ x 3)
 
-  Argument #1 to procedure `scheme#+' has invalid type
+  Argument #1 to procedure `+' has invalid type
 
     string
 
@@ -238,7 +238,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `+', imported from `scheme', has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -248,7 +248,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#+ x 3)
 
-  Argument #1 to procedure `scheme#+' has invalid type
+  Argument #1 to procedure `+' has invalid type
 
     string
 
@@ -256,7 +256,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `+', imported from `scheme', has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -266,7 +266,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#+ x 1)
 
-  Argument #1 to procedure `scheme#+' has invalid type
+  Argument #1 to procedure `+' has invalid type
 
     string
 
@@ -274,7 +274,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `+', imported from `scheme', has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -292,7 +292,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     string
 
-  The procedure's type is
+  Procedure `foo9' has type
 
     (procedure foo9 (string) symbol)
 
@@ -302,7 +302,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#+ x 1)
 
-  Argument #1 to procedure `scheme#+' has invalid type
+  Argument #1 to procedure `+' has invalid type
 
     string
 
@@ -310,7 +310,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `+', imported from `scheme', has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -336,7 +336,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#string-append (the pair (scheme#substring x 0 10)))
 
-  Argument #1 to procedure `scheme#string-append' has invalid type
+  Argument #1 to procedure `string-append' has invalid type
 
     pair
 
@@ -344,7 +344,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     string
 
-  The procedure's type is
+  Procedure `string-append', imported from `scheme', has type
 
     (procedure scheme#string-append (#!rest string) string)
 
@@ -376,7 +376,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#* x y)
 
-  Argument #1 to procedure `scheme#*' has invalid type
+  Argument #1 to procedure `*' has invalid type
 
     string
 
@@ -384,7 +384,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `*', imported from `scheme', has type
 
     (procedure scheme#* (#!rest number) number)
 
@@ -394,7 +394,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#+ 1 'x)
 
-  Argument #2 to procedure `scheme#+' has invalid type
+  Argument #2 to procedure `+' has invalid type
 
     symbol
 
@@ -402,7 +402,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `+', imported from `scheme', has type
 
     (procedure scheme#+ (#!rest number) number)
 
@@ -426,7 +426,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (list-of number)
 
-  The procedure's type is
+  Procedure `apply1' has type
 
     (forall
       (a143 b144)
@@ -446,7 +446,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (list-of number)
 
-  The procedure's type is
+  Procedure `apply1' has type
 
     (forall
       (a143 b144)
@@ -460,7 +460,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `chicken.base#fixnum?' is a predicate for
+  Procedure `fixnum?', imported from `chicken.base', is a predicate for
 
     fixnum
 
@@ -476,7 +476,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#symbol?' is a predicate for
+  Procedure `symbol?', imported from `scheme', is a predicate for
 
     symbol
 
@@ -492,7 +492,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#string?' is a predicate for
+  Procedure `string?', imported from `scheme', is a predicate for
 
     string
 
@@ -524,7 +524,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#symbol?' is a predicate for
+  Procedure `symbol?', imported from `scheme', is a predicate for
 
     symbol
 
@@ -540,7 +540,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#string?' is a predicate for
+  Procedure `string?', imported from `scheme', is a predicate for
 
     string
 
@@ -556,7 +556,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#symbol?' is a predicate for
+  Procedure `symbol?', imported from `scheme', is a predicate for
 
     symbol
 
@@ -572,7 +572,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#string?' is a predicate for
+  Procedure `string?', imported from `scheme', is a predicate for
 
     string
 
@@ -588,7 +588,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#symbol?' is a predicate for
+  Procedure `symbol?', imported from `scheme', is a predicate for
 
     symbol
 
@@ -604,7 +604,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#string?' is a predicate for
+  Procedure `string?', imported from `scheme', is a predicate for
 
     string
 
@@ -626,7 +626,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     pair
 
-  The procedure's type is
+  Procedure `f' has type
 
     (procedure (pair) *)
 
@@ -644,7 +644,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     null
 
-  The procedure's type is
+  Procedure `f' has type
 
     (procedure (null) *)
 
@@ -662,7 +662,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     list
 
-  The procedure's type is
+  Procedure `f' has type
 
     (procedure (list) *)
 
@@ -681,7 +681,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#vector-ref v1 'bad)
 
-  Argument #2 to procedure `scheme#vector-ref' has invalid type
+  Argument #2 to procedure `vector-ref' has invalid type
 
     symbol
 
@@ -689,7 +689,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  The procedure's type is
+  Procedure `vector-ref', imported from `scheme', has type
 
     (forall (a384) (procedure scheme#vector-ref ((vector-of a384) fixnum) a384))
 
@@ -708,7 +708,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#vector-set! v1 'bad 'whatever)
 
-  Argument #2 to procedure `scheme#vector-set!' has invalid type
+  Argument #2 to procedure `vector-set!' has invalid type
 
     symbol
 
@@ -716,7 +716,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  The procedure's type is
+  Procedure `vector-set!', imported from `scheme', has type
 
     (procedure scheme#vector-set! (vector fixnum *) undefined)
 
@@ -741,7 +741,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#list-ref l1 'bad)
 
-  Argument #2 to procedure `scheme#list-ref' has invalid type
+  Argument #2 to procedure `list-ref' has invalid type
 
     symbol
 
@@ -749,7 +749,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  The procedure's type is
+  Procedure `list-ref', imported from `scheme', has type
 
     (forall (a366) (procedure scheme#list-ref ((list-of a366) fixnum) a366))
 
@@ -759,7 +759,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#list-ref l1 'bad)
 
-  Argument #2 to procedure `scheme#list-ref' has invalid type
+  Argument #2 to procedure `list-ref' has invalid type
 
     symbol
 
@@ -767,7 +767,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  The procedure's type is
+  Procedure `list-ref', imported from `scheme', has type
 
     (forall (a366) (procedure scheme#list-ref ((list-of a366) fixnum) a366))
 
@@ -777,7 +777,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#list-ref l2 'bad)
 
-  Argument #2 to procedure `scheme#list-ref' has invalid type
+  Argument #2 to procedure `list-ref' has invalid type
 
     symbol
 
@@ -785,7 +785,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  The procedure's type is
+  Procedure `list-ref', imported from `scheme', has type
 
     (forall (a366) (procedure scheme#list-ref ((list-of a366) fixnum) a366))
 
@@ -795,7 +795,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#list-ref l2 'bad)
 
-  Argument #2 to procedure `scheme#list-ref' has invalid type
+  Argument #2 to procedure `list-ref' has invalid type
 
     symbol
 
@@ -803,7 +803,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  The procedure's type is
+  Procedure `list-ref', imported from `scheme', has type
 
     (forall (a366) (procedure scheme#list-ref ((list-of a366) fixnum) a366))
 
@@ -813,7 +813,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (chicken.base#add1 (scheme#list-ref l1 1))
 
-  Argument #1 to procedure `chicken.base#add1' has invalid type
+  Argument #1 to procedure `add1' has invalid type
 
     symbol
 
@@ -821,7 +821,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `add1', imported from `chicken.base', has type
 
     (procedure chicken.base#add1 (number) number)
 
@@ -831,7 +831,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (chicken.base#add1 (scheme#list-ref l2 1))
 
-  Argument #1 to procedure `chicken.base#add1' has invalid type
+  Argument #1 to procedure `add1' has invalid type
 
     symbol
 
@@ -839,7 +839,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `add1', imported from `chicken.base', has type
 
     (procedure chicken.base#add1 (number) number)
 
@@ -849,7 +849,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (chicken.base#add1 (scheme#list-ref l3 1))
 
-  Argument #1 to procedure `chicken.base#add1' has invalid type
+  Argument #1 to procedure `add1' has invalid type
 
     symbol
 
@@ -857,7 +857,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `add1', imported from `chicken.base', has type
 
     (procedure chicken.base#add1 (number) number)
 
@@ -867,7 +867,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (chicken.base#add1 (scheme#list-ref l1 1))
 
-  Argument #1 to procedure `chicken.base#add1' has invalid type
+  Argument #1 to procedure `add1' has invalid type
 
     symbol
 
@@ -875,7 +875,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `add1', imported from `chicken.base', has type
 
     (procedure chicken.base#add1 (number) number)
 
@@ -885,7 +885,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (chicken.base#add1 (scheme#list-ref l3 3))
 
-  Argument #1 to procedure `chicken.base#add1' has invalid type
+  Argument #1 to procedure `add1' has invalid type
 
     symbol
 
@@ -893,7 +893,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  The procedure's type is
+  Procedure `add1', imported from `chicken.base', has type
 
     (procedure chicken.base#add1 (number) number)
 

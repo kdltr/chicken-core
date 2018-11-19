@@ -11,9 +11,9 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#cons '())
 
-  Procedure `scheme#cons' is called with 1 argument but 2 arguments is expected.
+  Procedure `cons' is called with 1 argument but 2 arguments is expected.
 
-  The procedure's type is
+  Procedure `cons', imported from `scheme', has type
 
     (forall (aXXX bXXX) (procedure scheme#cons (aXXX bXXX) (pair aXXX bXXX)))
 
@@ -23,7 +23,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#length 'symbol)
 
-  Argument #1 to procedure `scheme#length' has invalid type
+  Argument #1 to procedure `length' has invalid type
 
     symbol
 
@@ -31,7 +31,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     list
 
-  The procedure's type is
+  Procedure `length', imported from `scheme', has type
 
     (procedure scheme#length (list) fixnum)
 
@@ -82,7 +82,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `scheme#list?' is a predicate for
+  Procedure `list?', imported from `scheme', is a predicate for
 
     list
 
@@ -98,7 +98,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#symbol?' is a predicate for
+  Procedure `symbol?', imported from `scheme', is a predicate for
 
     symbol
 
@@ -255,9 +255,9 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#cons '())
 
-  Procedure `scheme#cons' is called with 1 argument but 2 arguments is expected.
+  Procedure `cons' is called with 1 argument but 2 arguments is expected.
 
-  The procedure's type is
+  Procedure `cons', imported from `scheme', has type
 
     (forall (aXXX bXXX) (procedure scheme#cons (aXXX bXXX) (pair aXXX bXXX)))
 
@@ -269,7 +269,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#length 'symbol)
 
-  Argument #1 to procedure `scheme#length' has invalid type
+  Argument #1 to procedure `length' has invalid type
 
     symbol
 
@@ -277,7 +277,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     list
 
-  The procedure's type is
+  Procedure `length', imported from `scheme', has type
 
     (procedure scheme#length (list) fixnum)
 
@@ -340,7 +340,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `scheme#list?' is a predicate for
+  Procedure `list?', imported from `scheme', is a predicate for
 
     list
 
@@ -358,7 +358,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#symbol?' is a predicate for
+  Procedure `symbol?', imported from `scheme', is a predicate for
 
     symbol
 
@@ -535,7 +535,7 @@ Error: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Tested expression in `compiler-typecase' does not match any case.
 
-  The expression has this type
+  The expression has type
 
     fixnum
 

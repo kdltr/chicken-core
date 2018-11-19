@@ -2468,6 +2468,12 @@
 	    (rec (cdr loc)
 		 (cons (sprintf "In `~a', a local procedure" (lname (car loc))) msgs))))))
 
+(define (variable-from-module sym)
+  (let ((r (string-split (symbol->string sym) "#" #t)))
+    (if (= (length r) 2)
+	(sprintf "`~a', imported from `~a'," (second r) (first r))
+	(sprintf "`~a'" sym))))
+
 (define (report2 report-f location-node-candidates loc msg . args)
   (define (file-location)
     (any (lambda (n) (and (not (string=? "" (node-source-prefix n)))
@@ -2520,13 +2526,14 @@
     "~%~%"
     "Procedure `~a' is called with ~a argument~a but ~a argument~a is expected."
     "~%~%"
-    "The procedure's type is"
+    "Procedure ~a has type"
     "~%~%"
     "~a")
    (pp-fragment node)
-   pname
+   (strip-namespace pname)
    argc (multiples argc)
    exp-count (multiples exp-count)
+   (variable-from-module pname)
    (type->pp-string ptype)))
 
 (define (r-proc-call-argument-type-mismatch loc node pname i xptype atype ptype)
@@ -2547,14 +2554,15 @@
     "~%~%"
     "~a"
     "~%~%"
-    "The procedure's type is"
+    "Procedure ~a has type"
     "~%~%"
     "~a")
    (pp-fragment node)
    i
-   pname
+   (strip-namespace pname)
    (type->pp-string atype)
    (type->pp-string xptype)
+   (variable-from-module pname)
    (type->pp-string ptype)))
 
 (define (r-pred-call-always-true loc node pname pred-type atype)
@@ -2569,7 +2577,7 @@
     "~%~%"
     "Predicate call will always return true."
     "~%~%"
-    "Procedure `~a' is a predicate for"
+    "Procedure ~a is a predicate for"
     "~%~%"
     "~a"
     "~%~%"
@@ -2577,7 +2585,7 @@
     "~%~%"
     "~a")
    (pp-fragment node)
-   pname
+   (variable-from-module pname)
    (type->pp-string pred-type)
    (type->pp-string atype)))
 
@@ -2592,7 +2600,7 @@
     "~%~%"
     "Predicate call will always return false."
     "~%~%"
-    "Procedure `~a' is a predicate for"
+    "Procedure ~a is a predicate for"
     "~%~%"
     "~a"
     "~%~%"
@@ -2600,7 +2608,7 @@
     "~%~%"
     "~a")
    (pp-fragment node)
-   pname
+   (variable-from-module pname)
    (type->pp-string pred-type)
    (type->pp-string atype)))
 
@@ -2703,7 +2711,7 @@
     "~%~%"
     "  Tested expression in `compiler-typecase' does not match any case."
     "~%~%"
-    "  The expression has this type"
+    "  The expression has type"
     "~%~%"
     "~a"
     "~%~%"

@@ -9,7 +9,7 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `scheme#string?' is a predicate for
+  Procedure `string?', imported from `scheme', is a predicate for
 
     string
 
@@ -35,7 +35,7 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `scheme#string?' is a predicate for
+  Procedure `string?', imported from `scheme', is a predicate for
 
     string
 
@@ -59,7 +59,7 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `scheme#input-port?' is a predicate for
+  Procedure `input-port?', imported from `scheme', is a predicate for
 
     input-port
 
@@ -85,7 +85,7 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `scheme#output-port?' is a predicate for
+  Procedure `output-port?', imported from `scheme', is a predicate for
 
     output-port
 
