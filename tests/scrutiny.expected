@@ -67,7 +67,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `string?' is called with 0 arguments but 1 argument is expected.
 
-  Procedure `string?', imported from `scheme', has type
+  Procedure `string?' from module `scheme' has type
 
     (* -> boolean)
 
@@ -105,7 +105,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `+', imported from `scheme', has type
+  Procedure `+' from module `scheme' has type
 
     (#!rest number -> number)
 
@@ -123,7 +123,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `+', imported from `scheme', has type
+  Procedure `+' from module `scheme' has type
 
     (#!rest number -> number)
 
@@ -184,7 +184,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     string
 
-  Procedure `string-append', imported from `scheme', has type
+  Procedure `string-append' from module `scheme' has type
 
     (#!rest string -> string)
 
@@ -220,7 +220,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `+', imported from `scheme', has type
+  Procedure `+' from module `scheme' has type
 
     (#!rest number -> number)
 
@@ -238,7 +238,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `+', imported from `scheme', has type
+  Procedure `+' from module `scheme' has type
 
     (#!rest number -> number)
 
@@ -256,7 +256,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `+', imported from `scheme', has type
+  Procedure `+' from module `scheme' has type
 
     (#!rest number -> number)
 
@@ -274,7 +274,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `+', imported from `scheme', has type
+  Procedure `+' from module `scheme' has type
 
     (#!rest number -> number)
 
@@ -310,7 +310,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `+', imported from `scheme', has type
+  Procedure `+' from module `scheme' has type
 
     (#!rest number -> number)
 
@@ -344,7 +344,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     string
 
-  Procedure `string-append', imported from `scheme', has type
+  Procedure `string-append' from module `scheme' has type
 
     (#!rest string -> string)
 
@@ -384,7 +384,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `*', imported from `scheme', has type
+  Procedure `*' from module `scheme' has type
 
     (#!rest number -> number)
 
@@ -402,15 +402,27 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `+', imported from `scheme', has type
+  Procedure `+' from module `scheme' has type
 
     (#!rest number -> number)
 
-Warning: At toplevel
-  use of deprecated `deprecated-procedure'
+Warning: Type mismatch
+  At toplevel
+  In expression
 
-Warning: At toplevel
-  use of deprecated `another-deprecated-procedure' - consider `replacement-procedure'
+    deprecated-procedure
+
+  Use of deprecated identifier `deprecated-procedure'.
+
+Warning: Type mismatch
+  At toplevel
+  In expression
+
+    another-deprecated-procedure
+
+  Use of deprecated identifier `another-deprecated-procedure'.
+
+  The suggested alternative is `replacement-procedure'.
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -456,7 +468,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `fixnum?', imported from `chicken.base', is a predicate for
+  Procedure `fixnum?' from module `chicken.base' is a predicate for
 
     fixnum
 
@@ -472,7 +484,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `symbol?', imported from `scheme', is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for
 
     symbol
 
@@ -488,7 +500,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `string?', imported from `scheme', is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for
 
     string
 
@@ -520,7 +532,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `symbol?', imported from `scheme', is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for
 
     symbol
 
@@ -536,7 +548,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `string?', imported from `scheme', is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for
 
     string
 
@@ -552,7 +564,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `symbol?', imported from `scheme', is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for
 
     symbol
 
@@ -568,7 +580,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `string?', imported from `scheme', is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for
 
     string
 
@@ -584,7 +596,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `symbol?', imported from `scheme', is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for
 
     symbol
 
@@ -600,7 +612,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `string?', imported from `scheme', is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for
 
     string
 
@@ -685,7 +697,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  Procedure `vector-ref', imported from `scheme', has type
+  Procedure `vector-ref' from module `scheme' has type
 
     ((vector-of 'a384) fixnum -> 'a384)
 
@@ -712,7 +724,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  Procedure `vector-set!', imported from `scheme', has type
+  Procedure `vector-set!' from module `scheme' has type
 
     (vector fixnum * -> undefined)
 
@@ -745,7 +757,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  Procedure `list-ref', imported from `scheme', has type
+  Procedure `list-ref' from module `scheme' has type
 
     ((list-of 'a366) fixnum -> 'a366)
 
@@ -763,7 +775,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  Procedure `list-ref', imported from `scheme', has type
+  Procedure `list-ref' from module `scheme' has type
 
     ((list-of 'a366) fixnum -> 'a366)
 
@@ -781,7 +793,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  Procedure `list-ref', imported from `scheme', has type
+  Procedure `list-ref' from module `scheme' has type
 
     ((list-of 'a366) fixnum -> 'a366)
 
@@ -799,7 +811,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-  Procedure `list-ref', imported from `scheme', has type
+  Procedure `list-ref' from module `scheme' has type
 
     ((list-of 'a366) fixnum -> 'a366)
 
@@ -817,7 +829,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `add1', imported from `chicken.base', has type
+  Procedure `add1' from module `chicken.base' has type
 
     (number -> number)
 
@@ -835,7 +847,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `add1', imported from `chicken.base', has type
+  Procedure `add1' from module `chicken.base' has type
 
     (number -> number)
 
@@ -853,7 +865,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `add1', imported from `chicken.base', has type
+  Procedure `add1' from module `chicken.base' has type
 
     (number -> number)
 
@@ -871,7 +883,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `add1', imported from `chicken.base', has type
+  Procedure `add1' from module `chicken.base' has type
 
     (number -> number)
 
@@ -889,7 +901,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     number
 
-  Procedure `add1', imported from `chicken.base', has type
+  Procedure `add1' from module `chicken.base' has type
 
     (number -> number)
 

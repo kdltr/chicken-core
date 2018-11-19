@@ -219,18 +219,15 @@
 	    ((char? lit) 'char)
 	    (else '*)))
 
-    (define (global-result id loc)
+    (define (global-result id loc node)
       (cond ((variable-mark id '##compiler#type) =>
 	     (lambda (a)
 	       (cond
 		((eq? a 'deprecated)
-		 (report loc "use of deprecated `~a'" id)
+		 (r-deprecated-identifier loc node id)
 		 '(*))
 		((and (pair? a) (eq? (car a) 'deprecated))
-		 (report
-		  loc
-		  "use of deprecated `~a' - consider `~a'"
-		  id (cadr a))
+		 (r-deprecated-identifier loc node id (cadr a))
 		 '(*))
 		(else (list a)))))
 	    (else '(*))))
@@ -243,7 +240,7 @@
 	     => cdr)
 	    (else #f)))
 
-    (define (variable-result id e loc flow)
+    (define (variable-result id e loc node flow)
       (cond ((blist-type id flow) => list)
 	    ((and (not strict)
 		  (db-get db id 'assigned) 
@@ -258,7 +255,7 @@
 		       (real-name id db))
 		      '(*))
 		     (else (list (cdr a))))))
-	    (else (global-result id loc))))
+	    (else (global-result id loc node))))
 
     (define (always-true1 t)
       (cond ((pair? t)
@@ -451,7 +448,7 @@
 		 ((quote) (list (constant-result (first params))))
 		 ((##core#undefined) '(*))
 		 ((##core#proc) '(procedure))
-		 ((##core#variable) (variable-result (first params) e loc flow))
+		 ((##core#variable) (variable-result (first params) e loc n flow))
 		 ((##core#inline_ref)
 		  (list (foreign-type->scrutiny-type (second params) 'result)))
 		 ((##core#inline_loc_ref)
@@ -2497,7 +2494,7 @@
 (define (variable-from-module sym)
   (let ((r (string-split (symbol->string sym) "#" #t)))
     (if (= (length r) 2)
-	(sprintf "`~a', imported from `~a'," (second r) (first r))
+	(sprintf "`~a' from module `~a'" (second r) (first r))
 	(sprintf "`~a'" sym))))
 
 (define (report2 report-f location-node-candidates loc msg . args)
@@ -2802,4 +2799,23 @@
    (type->pp-string atype)
    var
    (type->pp-string xptype)))
+
+(define (r-deprecated-identifier loc node id #!optional suggestion)
+  (report2
+   warning
+   (list node)
+   loc
+   (string-append
+    "In expression"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Use of deprecated identifier ~a."
+    "~a")
+   (pp-fragment node) ;; TODO: parent node would be nice here
+   (variable-from-module id)
+   (if suggestion
+       (sprintf "~%~%The suggested alternative is ~a."
+		(variable-from-module suggestion))
+       "")))
 )

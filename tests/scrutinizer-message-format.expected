@@ -13,7 +13,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Procedure `cons' is called with 1 argument but 2 arguments are expected.
 
-  Procedure `cons', imported from `scheme', has type
+  Procedure `cons' from module `scheme' has type
 
     ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
@@ -31,7 +31,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     list
 
-  Procedure `length', imported from `scheme', has type
+  Procedure `length' from module `scheme' has type
 
     (list -> fixnum)
 
@@ -82,7 +82,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `list?', imported from `scheme', is a predicate for
+  Procedure `list?' from module `scheme' is a predicate for
 
     list
 
@@ -98,7 +98,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `symbol?', imported from `scheme', is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for
 
     symbol
 
@@ -194,11 +194,23 @@ Warning: Type mismatch
 
     boolean
 
-Warning: In `r-deprecated-identifier', a toplevel procedure
-  use of deprecated `deprecated-foo'
+Warning: Type mismatch
+  In `r-deprecated-identifier', a toplevel procedure
+  In expression
 
-Warning: In `r-deprecated-identifier', a toplevel procedure
-  use of deprecated `deprecated-foo2' - consider `foo'
+    deprecated-foo
+
+  Use of deprecated identifier `deprecated-foo'.
+
+Warning: Type mismatch
+  In `r-deprecated-identifier', a toplevel procedure
+  In expression
+
+    deprecated-foo2
+
+  Use of deprecated identifier `deprecated-foo2'.
+
+  The suggested alternative is `foo'.
 
 Warning: Type mismatch
   At toplevel
@@ -260,7 +272,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Procedure `cons' is called with 1 argument but 2 arguments are expected.
 
-  Procedure `cons', imported from `scheme', has type
+  Procedure `cons' from module `scheme' has type
 
     ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
@@ -280,7 +292,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     list
 
-  Procedure `length', imported from `scheme', has type
+  Procedure `length' from module `scheme' has type
 
     (list -> fixnum)
 
@@ -343,7 +355,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Predicate call will always return true.
 
-  Procedure `list?', imported from `scheme', is a predicate for
+  Procedure `list?' from module `scheme' is a predicate for
 
     list
 
@@ -361,7 +373,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Predicate call will always return false.
 
-  Procedure `symbol?', imported from `scheme', is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for
 
     symbol
 
@@ -471,15 +483,27 @@ Warning: Type mismatch
 
     boolean
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+Warning: Type mismatch
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-deprecated-identifier', a local procedure
-  use of deprecated `m#deprecated-foo'
+  In expression
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+    m#deprecated-foo
+
+  Use of deprecated identifier `deprecated-foo' from module `m'.
+
+Warning: Type mismatch
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-deprecated-identifier', a local procedure
-  use of deprecated `m#deprecated-foo2' - consider `foo'
+  In expression
+
+    m#deprecated-foo2
+
+  Use of deprecated identifier `deprecated-foo2' from module `m'.
+
+  The suggested alternative is `foo'.
 
 Warning: In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
