@@ -71,11 +71,37 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (* -> boolean)
 
-Warning: At toplevel
-  (scrutiny-tests.scm:XXX) expected a single result in argument #1 of procedure call `(chicken.base#print (scheme#values 1 2))', but received 2 results
+Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+  At toplevel
+  In procedure call
 
-Warning: At toplevel
-  (scrutiny-tests.scm:XXX) expected a single result in argument #1 of procedure call `(chicken.base#print (scheme#values))', but received zero results
+    (chicken.base#print (scheme#values 1 2))
+
+  Argument #1 to procedure `print' returns 2 values but 1 is expected.
+
+  It is a call to `values' from module `scheme' which has this type
+
+    (procedure (#!rest values) . *)
+
+  This is the expression
+
+    (scheme#values 1 2)
+
+Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+  At toplevel
+  In procedure call
+
+    (chicken.base#print (scheme#values))
+
+  Argument #1 to procedure `print' does not return any values.
+
+  It is a call to `values' from module `scheme' which has this type
+
+    (procedure (#!rest values) . *)
+
+  This is the expression
+
+    (scheme#values)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel

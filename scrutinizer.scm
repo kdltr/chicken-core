@@ -300,6 +300,18 @@
 		    (node-source-prefix node) what n (multiples n))
 		   (first tv))))))
 
+    (define (single2 tv r-value-count-mismatch)
+      (if (eq? '* tv)
+	  '*
+	  (let ((n (length tv)))
+	    (cond ((= 1 n) (car tv))
+		  ((zero? n)
+		   (r-value-count-mismatch tv)
+		   'undefined)
+		  (else
+		   (r-value-count-mismatch tv)
+		   (first tv))))))
+
     (define add-loc cons)
 
     (define (get-specializations name)
@@ -652,22 +664,15 @@
 		 ((##core#call)
 		  (let* ((f (fragment n))
 			 (len (length subs))
-			 (args (map (lambda (n i)
+			 (args (map (lambda (n2 i)
 				      (make-node
 				       '##core#the/result
 				       (list
-					(single
-					 n
-					 (sprintf 
-					     "in ~a of procedure call `~s'"
-					   (if (zero? i)
-					       "operator position"
-					       (sprintf "argument #~a" i))
-					   f)
-					 (walk n e loc #f #f flow #f) 
-					 loc))
-				       (list n)))
-				    subs 
+					(single2
+					 (walk n2 e loc #f #f flow #f)
+					 (cut r-proc-call-argument-value-count loc n i n2 <>)))
+				       (list n2)))
+				    subs
 				    (iota len)))
 			 (fn (walked-result (car args)))
 			 (pn (procedure-name fn))
@@ -2511,7 +2516,7 @@
        (conc "\n" (location-name loc "") (sprintf "~?" msg args))
        "  ")))))
 
-(define (report-notice2 location-node-candidates loc msg . args)
+(define (report-notice location-node-candidates loc msg . args)
   (apply report2 ##sys#notice location-node-candidates loc msg args))
 
 ;;; Reports
@@ -2589,9 +2594,73 @@
    (variable-from-module pname)
    (type->pp-string ptype)))
 
+
+(define (r-proc-call-argument-value-count loc call-node i arg-node atype)
+  (define (p-arg-expr)
+    (define (p-expr)
+      (sprintf (string-append
+		"This is the expression"
+		"~%~%"
+		"~a")
+	       (pp-fragment arg-node)))
+    (or (and (eq? '##core#call (node-class arg-node))
+	     (let ((pnode (first (node-subexpressions arg-node))))
+	       (and-let* (((eq? '##core#variable (node-class pnode)))
+			  (pname (car (node-parameters pnode)))
+			  (ptype (variable-mark pname '##compiler#type)))
+		 (sprintf (string-append
+			   "It is a call to ~a which has this type"
+			   "~%~%"
+			   "~a"
+			   "~%~%"
+			   "~a")
+			  (variable-from-module pname)
+			  (type->pp-string ptype)
+			  (p-expr)))))
+	(p-expr)))
+  (define pn
+    (if (zero? i)
+	""
+	(sprintf " `~a'"
+		 (strip-namespace (fragment (first (node-subexpressions call-node)))))))
+  (if (zero? (length atype))
+      (report2
+       warning
+       (list arg-node call-node)
+       loc
+       (string-append
+	"In procedure call"
+	"~%~%"
+	"~a"
+	"~%~%"
+	"Argument #~a to procedure~a does not return any values."
+	"~%~%"
+	"~a")
+       (pp-fragment call-node)
+       i
+       pn
+       (p-arg-expr))
+      (report2
+       warning
+       (list arg-node call-node)
+       loc
+       (string-append
+	"In procedure call"
+	"~%~%"
+	"~a"
+	"~%~%"
+	"Argument #~a to procedure~a returns ~a values but 1 is expected."
+	"~%~%"
+	"~a")
+       (pp-fragment call-node)
+       i
+       pn
+       (length atype)
+       (p-arg-expr))))
+
 (define (r-pred-call-always-true loc node pname pred-type atype)
   ;; pname is "... proc call to predicate `foo' "
-  (report-notice2
+  (report-notice
    (list node)
    loc
    (string-append
@@ -2614,7 +2683,7 @@
    (type->pp-string atype)))
 
 (define (r-pred-call-always-false loc node pname pred-type atype)
-  (report-notice2
+  (report-notice
    (list node)
    loc
    (string-append
@@ -2637,7 +2706,7 @@
    (type->pp-string atype)))
 
 (define (r-cond-test-always-true loc if-node test-node t)
-  (report-notice2
+  (report-notice
    (list test-node if-node)
    loc
    (string-append
@@ -2652,7 +2721,7 @@
    (type->pp-string t)))
 
 (define (r-cond-test-always-false loc if-node test-node)
-  (report-notice2
+  (report-notice
    (list test-node if-node)
    loc
    (string-append

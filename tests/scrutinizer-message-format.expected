@@ -35,11 +35,37 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (list -> fixnum)
 
-Warning: In `r-proc-call-argument-value-count', a toplevel procedure
-  (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#list (chicken.time#cpu-time))', but received 2 results
+Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+  In `r-proc-call-argument-value-count', a toplevel procedure
+  In procedure call
 
-Warning: In `r-proc-call-argument-value-count', a toplevel procedure
-  (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#vector (scheme#values))', but received zero results
+    (scheme#list (chicken.time#cpu-time))
+
+  Argument #1 to procedure `list' returns 2 values but 1 is expected.
+
+  It is a call to `cpu-time' from module `chicken.time' which has this type
+
+    (-> fixnum fixnum)
+
+  This is the expression
+
+    (chicken.time#cpu-time)
+
+Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+  In `r-proc-call-argument-value-count', a toplevel procedure
+  In procedure call
+
+    (scheme#vector (scheme#values))
+
+  Argument #1 to procedure `vector' does not return any values.
+
+  It is a call to `values' from module `scheme' which has this type
+
+    (procedure (#!rest values) . *)
+
+  This is the expression
+
+    (scheme#values)
 
 Warning: In `r-proc-call-argument-value-count', a toplevel procedure
   expected a single result in `let' binding of `gXXX', but received zero results
@@ -296,15 +322,41 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (list -> fixnum)
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-value-count', a local procedure
-  (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#list (chicken.time#cpu-time))', but received 2 results
+  In procedure call
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+    (scheme#list (chicken.time#cpu-time))
+
+  Argument #1 to procedure `list' returns 2 values but 1 is expected.
+
+  It is a call to `cpu-time' from module `chicken.time' which has this type
+
+    (-> fixnum fixnum)
+
+  This is the expression
+
+    (chicken.time#cpu-time)
+
+Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-value-count', a local procedure
-  (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#vector (scheme#values))', but received zero results
+  In procedure call
+
+    (scheme#vector (scheme#values))
+
+  Argument #1 to procedure `vector' does not return any values.
+
+  It is a call to `values' from module `scheme' which has this type
+
+    (procedure (#!rest values) . *)
+
+  This is the expression
+
+    (scheme#values)
 
 Warning: In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
