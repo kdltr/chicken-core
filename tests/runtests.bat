@@ -92,19 +92,25 @@ echo ======================================== scrutiny tests ...
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
+
 %compile% scrutiny-tests.scm -A -verbose 2>scrutiny.out
 if errorlevel 1 exit /b 1
 
 rem this is sensitive to gensym-names, so make it optional
 if not exist scrutiny.expected copy /Y scrutiny.out scrutiny.expected
 
+%compile% scrutiny-tests-2.scm -A -verbose 2>scrutiny-2.out
+if errorlevel 1 exit /b 1
+%compile% test-scrutinizer-message-format.scm -A -verbose 2>scrutinizer-message-format.out
+rem this is expected to fail, so no errorlevel check
+
+fc /lb%FCBUFSIZE% /w scrutinizer-message-format.expected scrutinizer-message-format.out
+if errorlevel 1 exit /b 1
 fc /lb%FCBUFSIZE% /w scrutiny.expected scrutiny.out
 if errorlevel 1 exit /b 1
 
-%compile% scrutiny-tests-2.scm -A -verbose 2>scrutiny-2.out
-if errorlevel 1 exit /b 1
-
 if not exist scrutiny-2.expected copy /Y scrutiny-2.out scrutiny-2.expected
+
 fc /lb%FCBUFSIZE% /w scrutiny-2.expected scrutiny-2.out
 if errorlevel 1 exit /b 1
 

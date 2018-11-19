@@ -123,10 +123,12 @@ if test \! -f specialization.expected; then
     cp specialization.expected specialization.out
 fi
 
+$compile scrutiny-tests-2.scm -A -verbose 2>scrutiny-2.out
+$compile test-scrutinizer-message-format.scm -A -verbose 2>scrutinizer-message-format.out || true
+
+diff $DIFF_OPTS scrutinizer-message-format.expected scrutinizer-message-format.out
 diff $DIFF_OPTS scrutiny.expected scrutiny.out
 diff $DIFF_OPTS specialization.expected specialization.out
-
-$compile scrutiny-tests-2.scm -A 2>scrutiny-2.out -verbose
 
 # this is sensitive to gensym-names, so make it optional
 if test \! -f scrutiny-2.expected; then
