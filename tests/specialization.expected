@@ -1,34 +1,104 @@
 ;; numbers replaced with XXX by redact-gensyms.scm
 ;; prefixes: (tmp g scm:)
 
-Note: at toplevel:
-  (specialization-tests.scm:XXX) in procedure call to `scheme#string?', the predicate is called with an argument of type `string' and will always return true
+Note: Type mismatch (specialization-tests.scm:XXX) 
+  At toplevel
+  In predicate call
 
-Note: at toplevel:
-  (specialization-tests.scm:XXX) expected a value of type boolean in conditional, but was given a value of type `true' which is always true:
+    (scheme#string? a)
 
-(if (scheme#string? a) 'ok 'no)
+  Predicate call will always return true.
 
-Note: at toplevel:
-  (specialization-tests.scm:XXX) in procedure call to `scheme#string?', the predicate is called with an argument of type `symbol' and will always return false
+  Procedure `scheme#string?' is a predicate for
 
-Note: at toplevel:
-  (specialization-tests.scm:XXX) in conditional, test expression will always return false:
+    string
 
-(if (scheme#string? a) 'ok 'no)
+  The given argument has type
 
-Note: at toplevel:
-  (specialization-tests.scm:XXX) in procedure call to `scheme#input-port?', the predicate is called with an argument of type `input/output-port' and will always return true
+    string
 
-Note: at toplevel:
-  (specialization-tests.scm:XXX) expected a value of type boolean in conditional, but was given a value of type `true' which is always true:
+Note: Type mismatch (specialization-tests.scm:XXX) 
+  At toplevel
+  In conditional expression
 
-(if (scheme#input-port? p) 'ok 'no)
+    (if (scheme#string? a) 'ok 'no)
 
-Note: at toplevel:
-  (specialization-tests.scm:XXX) in procedure call to `scheme#output-port?', the predicate is called with an argument of type `input/output-port' and will always return true
+  Test condition has always true value of type
 
-Note: at toplevel:
-  (specialization-tests.scm:XXX) expected a value of type boolean in conditional, but was given a value of type `true' which is always true:
+    true
 
-(if (scheme#output-port? p) 'ok 'no)
+Note: Type mismatch (specialization-tests.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#string? a)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#string?' is a predicate for
+
+    string
+
+  The given argument has type
+
+    symbol
+
+Note: Type mismatch (specialization-tests.scm:XXX) 
+  At toplevel
+  In conditional expression
+
+    (if (scheme#string? a) 'ok 'no)
+
+  Test condition is always false.
+
+Note: Type mismatch (specialization-tests.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#input-port? p)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#input-port?' is a predicate for
+
+    input-port
+
+  The given argument has type
+
+    input/output-port
+
+Note: Type mismatch (specialization-tests.scm:XXX) 
+  At toplevel
+  In conditional expression
+
+    (if (scheme#input-port? p) 'ok 'no)
+
+  Test condition has always true value of type
+
+    true
+
+Note: Type mismatch (specialization-tests.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#output-port? p)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#output-port?' is a predicate for
+
+    output-port
+
+  The given argument has type
+
+    input/output-port
+
+Note: Type mismatch (specialization-tests.scm:XXX) 
+  At toplevel
+  In conditional expression
+
+    (if (scheme#output-port? p) 'ok 'no)
+
+  Test condition has always true value of type
+
+    true

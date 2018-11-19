@@ -1,68 +1,354 @@
 ;; numbers replaced with XXX by redact-gensyms.scm
 ;; prefixes: (tmp g scm:)
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#pair?', the predicate is called with an argument of type `pair' and will always return true
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#pair?', the predicate is called with an argument of type `null' and will always return false
+    (scheme#pair? p)
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#pair?', the predicate is called with an argument of type `null' and will always return false
+  Predicate call will always return true.
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#pair?', the predicate is called with an argument of type `fixnum' and will always return false
+  Procedure `scheme#pair?' is a predicate for
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#pair?', the predicate is called with an argument of type `float' and will always return false
+    pair
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#list?', the predicate is called with an argument of type `null' and will always return true
+  The given argument has type
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#list?', the predicate is called with an argument of type `null' and will always return true
+    pair
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#list?', the predicate is called with an argument of type `fixnum' and will always return false
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#list?', the predicate is called with an argument of type `float' and will always return false
+    (scheme#pair? l)
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#null?', the predicate is called with an argument of type `null' and will always return true
+  Predicate call will always return false.
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#null?', the predicate is called with an argument of type `null' and will always return true
+  Procedure `scheme#pair?' is a predicate for
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#null?', the predicate is called with an argument of type `pair' and will always return false
+    pair
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#null?', the predicate is called with an argument of type `fixnum' and will always return false
+  The given argument has type
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#null?', the predicate is called with an argument of type `float' and will always return false
+    null
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `chicken.base#fixnum?', the predicate is called with an argument of type `fixnum' and will always return true
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `chicken.base#fixnum?', the predicate is called with an argument of type `float' and will always return false
+    (scheme#pair? n)
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `chicken.base#flonum?', the predicate is called with an argument of type `float' and will always return true
+  Predicate call will always return false.
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `chicken.base#flonum?', the predicate is called with an argument of type `fixnum' and will always return false
+  Procedure `scheme#pair?' is a predicate for
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#number?', the predicate is called with an argument of type `fixnum' and will always return true
+    pair
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#number?', the predicate is called with an argument of type `float' and will always return true
+  The given argument has type
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#number?', the predicate is called with an argument of type `number' and will always return true
+    null
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:XXX) in procedure call to `scheme#number?', the predicate is called with an argument of type `null' and will always return false
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#pair? i)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#pair?' is a predicate for
+
+    pair
+
+  The given argument has type
+
+    fixnum
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#pair? f)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#pair?' is a predicate for
+
+    pair
+
+  The given argument has type
+
+    float
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#list? l)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#list?' is a predicate for
+
+    list
+
+  The given argument has type
+
+    null
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#list? n)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#list?' is a predicate for
+
+    list
+
+  The given argument has type
+
+    null
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#list? i)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#list?' is a predicate for
+
+    list
+
+  The given argument has type
+
+    fixnum
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#list? f)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#list?' is a predicate for
+
+    list
+
+  The given argument has type
+
+    float
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#null? n)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#null?' is a predicate for
+
+    null
+
+  The given argument has type
+
+    null
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#null? l)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#null?' is a predicate for
+
+    null
+
+  The given argument has type
+
+    null
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#null? p)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#null?' is a predicate for
+
+    null
+
+  The given argument has type
+
+    pair
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#null? i)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#null?' is a predicate for
+
+    null
+
+  The given argument has type
+
+    fixnum
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#null? f)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#null?' is a predicate for
+
+    null
+
+  The given argument has type
+
+    float
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (chicken.base#fixnum? i)
+
+  Predicate call will always return true.
+
+  Procedure `chicken.base#fixnum?' is a predicate for
+
+    fixnum
+
+  The given argument has type
+
+    fixnum
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (chicken.base#fixnum? f)
+
+  Predicate call will always return false.
+
+  Procedure `chicken.base#fixnum?' is a predicate for
+
+    fixnum
+
+  The given argument has type
+
+    float
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (chicken.base#flonum? f)
+
+  Predicate call will always return true.
+
+  Procedure `chicken.base#flonum?' is a predicate for
+
+    float
+
+  The given argument has type
+
+    float
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (chicken.base#flonum? i)
+
+  Predicate call will always return false.
+
+  Procedure `chicken.base#flonum?' is a predicate for
+
+    float
+
+  The given argument has type
+
+    fixnum
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#number? i)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#number?' is a predicate for
+
+    number
+
+  The given argument has type
+
+    fixnum
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#number? f)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#number?' is a predicate for
+
+    number
+
+  The given argument has type
+
+    float
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#number? u)
+
+  Predicate call will always return true.
+
+  Procedure `scheme#number?' is a predicate for
+
+    number
+
+  The given argument has type
+
+    number
+
+Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+  At toplevel
+  In predicate call
+
+    (scheme#number? n)
+
+  Predicate call will always return false.
+
+  Procedure `scheme#number?' is a predicate for
+
+    number
+
+  The given argument has type
+
+    null
