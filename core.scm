@@ -154,13 +154,18 @@
 ; - Core language:
 ;
 ; [##core#variable {<variable>}]
+; [##core#float-variable {<index>}]
 ; [if {} <exp> <exp> <exp>)]
-; [quote {<exp>}]
+; [quote {<const>}]
+; [##core#float {<const>}]
 ; [let {<variable>} <exp-v> <exp>]
 ; [##core#lambda {<id> <mode> (<variable>... [. <variable>]) <size>} <exp>]
 ; [set! {<variable> [always-immediate?]} <exp>]
 ; [##core#undefined {}]
 ; [##core#primitive {<name>}]
+; [##core#let_float {<index>} <exp> <exp>]
+; [##core#box_float {} <exp>]
+; [##core#unbox_float {} <exp>]
 ; [##core#inline {<op>} <exp>...]
 ; [##core#inline_allocate {<op> <words>} <exp>...]
 ; [##core#inline_ref {<name> <type>}]
@@ -185,18 +190,19 @@
 ;
 ; [if {} <exp> <exp> <exp>]
 ; [quote {<exp>}]
+; [##core#float {<const>}]
 ; [##core#bind {<count>} <exp-v>... <exp>]
-; [##core#let_unboxed {<name> <utype>} <exp1> <exp2>]
+; [##core#float-variable {<index>}]
 ; [##core#undefined {}]
-; [##core#unboxed_ref {<name> [<utype>]}]
-; [##core#unboxed_set! {<name> <utype>} <exp>]
+; [##core#let_float {<index>} <exp> <exp>]
+; [##core#box_float {} <exp>]
+; [##core#unbox_float {} <exp>]
 ; [##core#inline {<op>} <exp>...]
 ; [##core#inline_allocate {<op <words>} <exp>...]
 ; [##core#inline_ref {<name> <type>}]
 ; [##core#inline_update {<name> <type>} <exp>]
 ; [##core#inline_loc_ref {<type>} <exp>]
 ; [##core#inline_loc_update {<type>} <exp> <exp>]
-; [##core#inline_unboxed {<op>} <exp> ...]
 ; [##core#debug-event {<index> <event> <loc> <ln>}]
 ; [##core#closure {<count>} <exp>...]
 ; [##core#box {} <exp>]
@@ -311,7 +317,7 @@
      foreign-stub-cps foreign-stub-id foreign-stub-name foreign-stub-return-type
      lambda-literal-id lambda-literal-external lambda-literal-argument-count
      lambda-literal-rest-argument lambda-literal-rest-argument-mode
-     lambda-literal-temporaries lambda-literal-unboxed-temporaries
+     lambda-literal-temporaries lambda-literal-float-temporaries
      lambda-literal-callee-signatures lambda-literal-allocated
      lambda-literal-closure-size lambda-literal-looping
      lambda-literal-customizable lambda-literal-body lambda-literal-direct
@@ -1912,7 +1918,8 @@
 	  (params (node-parameters n))
 	  (class (node-class n)) )
       (case (node-class n)
-	((##core#variable quote ##core#undefined ##core#primitive ##core#provide) (k n))
+	((##core#variable quote ##core#undefined ##core#primitive ##core#provide)
+          (k n))
 	((if) (let* ((t1 (gensym 'k))
 		     (t2 (gensym 'r))
 		     (k1 (lambda (r) (make-node '##core#call (list #t) (list (varnode t1) r)))) )
@@ -2530,7 +2537,9 @@
 	    (class (node-class n)) )
 	(case class
 
-	  ((quote ##core#undefined ##core#provide ##core#proc) n)
+	  ((quote ##core#undefined ##core#provide ##core#proc ##core#float
+           ##core#float-variable)
+            n)
 
 	  ((##core#variable)
 	   (let* ((var (first params))
@@ -2542,6 +2551,7 @@
 	  ((if ##core#call ##core#inline ##core#inline_allocate ##core#callunit
 	       ##core#inline_ref ##core#inline_update ##core#debug-event
 	       ##core#switch ##core#cond ##core#direct_call ##core#recurse ##core#return
+               ##core#let_float ##core#box_float ##core#unbox_float
 	       ##core#inline_loc_ref
 	       ##core#inline_loc_update)
 	   (make-node (node-class n) params (maptransform subs here closure)) )
@@ -2692,7 +2702,7 @@
 
 (define-record-type lambda-literal
   (make-lambda-literal id external arguments argument-count rest-argument temporaries
-		       unboxed-temporaries callee-signatures allocated directly-called
+		       float-temporaries callee-signatures allocated directly-called
 		       closure-size looping customizable rest-argument-mode body direct)
   lambda-literal?
   (id lambda-literal-id)			       ; symbol
@@ -2702,7 +2712,7 @@
   (argument-count lambda-literal-argument-count)       ; integer
   (rest-argument lambda-literal-rest-argument)	       ; symbol | #f
   (temporaries lambda-literal-temporaries)	       ; integer
-  (unboxed-temporaries lambda-literal-unboxed-temporaries) ; ((sym . utype) ...)
+  (float-temporaries lambda-literal-float-temporaries)   ; (integer ...)
   (callee-signatures lambda-literal-callee-signatures) ; (integer ...)
   (allocated lambda-literal-allocated)		       ; integer
   ;; lambda-literal-directly-called is used nowhere
@@ -2722,7 +2732,7 @@
 	;; Use analysis db as optimistic heuristic for procedure table size
 	(lambda-table (make-vector (fx* (fxmax current-analysis-database-size 1) 3) '()))
 	(temporaries 0)
-	(ubtemporaries '())
+        (float-temporaries '())
 	(allocated 0)
 	(looping 0)
 	(signatures '())
@@ -2764,7 +2774,7 @@
 	    (class (node-class n)) )
 	(case class
 
-	  ((##core#undefined ##core#proc) n)
+	  ((##core#undefined ##core#proc ##core#float) n)
 
 	  ((##core#variable)
 	   (walk-var (first params) e e-count #f) )
@@ -2785,6 +2795,10 @@
 	  ((##core#inline_allocate)
 	   (set! allocated (+ allocated (second params)))
 	   (make-node class params (mapwalk subs e e-count here boxes)) )
+
+          ((##core#box_float)
+           (set! allocated (+ allocated 4)) ;; words-per-flonum
+           (make-node class params (mapwalk subs e e-count here boxes)))
 
 	  ((##core#inline_ref)
 	   (set! allocated (+ allocated (bytes->words (estimate-foreign-result-size (second params)))))
@@ -2822,13 +2836,13 @@
 
 	  ((##core#lambda ##core#direct_lambda)
 	   (let ((temps temporaries)
-		 (ubtemps ubtemporaries)
+                 (ftemps float-temporaries)
 		 (sigs signatures)
 		 (lping looping)
 		 (alc allocated)
 		 (direct (eq? class '##core#direct_lambda)) )
 	     (set! temporaries 0)
-	     (set! ubtemporaries '())
+             (set! float-temporaries '())
 	     (set! allocated 0)
 	     (set! signatures '())
 	     (set! looping 0)
@@ -2867,7 +2881,7 @@
 		    argc
 		    rest
 		    (add1 temporaries)
-		    ubtemporaries
+                    float-temporaries
 		    signatures
 		    allocated
 		    (or direct (memq id direct-call-ids))
@@ -2883,7 +2897,7 @@
 		    direct) )
 		  (set! looping lping)
 		  (set! temporaries temps)
-		  (set! ubtemporaries ubtemps)
+                  (set! float-temporaries ftemps)
 		  (set! allocated alc)
 		  (set! signatures (lset-adjoin/eq? sigs argc))
 		  (make-node '##core#proc (list (first params)) '()) ) ) ) ) )
@@ -2900,12 +2914,12 @@
 			  (append (##sys#fast-reverse params) e) (fx+ e-count 1)
 			  here (append boxvars boxes)) ) ) ) )
 
-	  ((##core#let_unboxed)
-	   (let* ((var (first params))
-		  (val (first subs)) )
-	     (set! ubtemporaries (alist-cons var (second params) ubtemporaries))
+	  ((##core#let_float)
+	   (let ((i (first params))
+	         (val (first subs)))
+             (set! float-temporaries (cons i float-temporaries))
 	     (make-node
-	      '##core#let_unboxed params
+	      '##core#let_float params
 	      (list (walk val e e-count here boxes)
 		    (walk (second subs) e e-count here boxes) ) ) ) )
 

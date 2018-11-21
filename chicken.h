@@ -1507,15 +1507,19 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_ub_i_flonum_times(x, y)       ((x) * (y))
 #define C_ub_i_flonum_quotient(x, y)    ((x) / (y))
 
-#define C_ub_i_flonum_equalp(n1, n2)    ((n1) == (n2))
-#define C_ub_i_flonum_greaterp(n1, n2)  ((n1) > (n2))
-#define C_ub_i_flonum_lessp(n1, n2)     ((n1) < (n2))
-#define C_ub_i_flonum_greater_or_equal_p(n1, n2)  ((n1) >= (n2))
-#define C_ub_i_flonum_less_or_equal_p(n1, n2)  ((n1) <= (n2))
+#define C_ub_i_flonum_equalp(n1, n2)    C_mk_bool((n1) == (n2))
+#define C_ub_i_flonum_greaterp(n1, n2)  C_mk_bool((n1) > (n2))
+#define C_ub_i_flonum_lessp(n1, n2)     C_mk_bool((n1) < (n2))
+#define C_ub_i_flonum_greater_or_equal_p(n1, n2)  C_mk_bool((n1) >= (n2))
+#define C_ub_i_flonum_less_or_equal_p(n1, n2)  C_mk_bool((n1) <= (n2))
+
+#define C_ub_i_flonum_nanp(x)            C_mk_bool(C_isnan(x))
+#define C_ub_i_flonum_infinitep(x)       C_mk_bool(C_isinf(x))
+#define C_ub_i_flonum_finitep(x)         C_mk_bool(C_isfinite(x))
 
 #define C_ub_i_pointer_inc(p, n)        ((void *)((unsigned char *)(p) + (n)))
-#define C_ub_i_pointer_eqp(p1, p2)      ((p1) == (p2))
-#define C_ub_i_null_pointerp(p)         ((p) == NULL)
+#define C_ub_i_pointer_eqp(p1, p2)      C_mk_bool((p1) == (p2))
+#define C_ub_i_null_pointerp(p)         C_mk_bool((p) == NULL)
 
 #define C_ub_i_pointer_u8_ref(p)        (*((unsigned char *)(p)))
 #define C_ub_i_pointer_s8_ref(p)        (*((signed char *)(p)))

@@ -125,6 +125,9 @@
 		   (gen "((C_word)li" (vector-ref lit 0) ")") 
 		   (gen "lf[" (first params) #\])) ) )
 
+            ((##core#float)
+             (gen (first params)))
+
 	    ((if)
 	     (gen #t "if(C_truep(")
 	     (expr (car subs) i)
@@ -146,12 +149,25 @@
 		      (loop (cdr bs) (add1 i) (sub1 count)) ]
 		     [else (expr (car bs) i)] ) ) )
 
-	    ((##core#let_unboxed)
-	     (let ((name (first params)))
-	       (gen #t name #\=)
+	    ((##core#let_float)
+	     (let ((fi (first params)))
+	       (gen #t #\f fi #\=)
 	       (expr (first subs) i)
 	       (gen #\;)
 	       (expr (second subs) i)))
+
+            ((##core#float-variable)
+             (gen #\f (first params)))
+
+            ((##core#unbox_float)
+             (gen "C_flonum_magnitude(")
+             (expr (first subs) i)
+             (gen ")"))
+
+            ((##core#box_float)
+             (gen "C_flonum(&a,")
+             (expr (first subs) i)
+             (gen ")"))
 
 	    ((##core#ref) 
 	     (gen "((C_word*)")
@@ -474,19 +490,6 @@
 	       (expr (second subs) i) 
 	       (gen "),C_SCHEME_UNDEFINED)") ) )
 
-	    ((##core#unboxed_ref)
-	     (gen (first params)))
-
-	    ((##core#unboxed_set!)
-	     (gen "((" (first params) #\=)
-	     (expr (first subs) i) 
-	     (gen "),C_SCHEME_UNDEFINED)"))
-
-	    ((##core#inline_unboxed)	;XXX is this needed?
-	     (gen (first params) "(")
-	     (expr-args subs i)
-	     (gen #\)))
-
 	    ((##core#switch)
 	     (gen #t "switch(")
 	     (expr (first subs) i)
@@ -772,16 +775,6 @@
 	(##sys#copy-bytes s s2 start 0 len)
 	s2) )
 
-    (define (utype t)
-      (case t
-	((fixnum) "int")
-	((flonum) "double")
-	((char) "char")
-	((pointer) "void *")
-	((int) "int")
-	((bool) "int")
-	(else (bomb "invalid unboxed type" t))))
-
     (define (procedures)
       (for-each
        (lambda (p)
@@ -804,7 +797,7 @@
 		(direct (lambda-literal-direct ll))
 		(rest-mode (lambda-literal-rest-argument-mode ll))
 		(temps (lambda-literal-temporaries ll))
-		(ubtemps (lambda-literal-unboxed-temporaries ll))
+                (ftemps (lambda-literal-float-temporaries ll))
 		(topname (toplevel unit-name)))
 	   (when empty-closure (debugging 'o "dropping unused closure argument" id))
 	   (gen #t #t)
@@ -842,11 +835,11 @@
 		 (do ([i n (add1 i)]
 		      [j (+ temps (if looping (sub1 n) 0)) (sub1 j)] )
 		     ((zero? j))
-		   (gen #t "C_word t" i #\;) )
-		 (for-each
-		  (lambda (ubt)
-		    (gen #t (utype (cdr ubt)) #\space (car ubt) #\;))
-		  ubtemps)))
+		   (gen #t "C_word t" i #\;))
+                 (for-each
+                   (lambda (i)
+                     (gen #t "double f" i #\;))
+                   ftemps)))
 	   (cond ((eq? 'toplevel id)
 		  (let ([ldemand (foldl (lambda (n lit) (+ n (literal-size lit))) 0 literals)]
 			[llen (length literals)] )

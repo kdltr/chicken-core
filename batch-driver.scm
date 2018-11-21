@@ -802,8 +802,13 @@
 			    (when do-lfa2
 			      (begin-time)
 			      (debugging 'p "doing lfa2")
-			      (perform-secondary-flow-analysis node2 db)
-			      (end-time "secondary flow analysis"))
+                              (let ((floatvars (perform-secondary-flow-analysis node2 db)))
+  			        (end-time "secondary flow analysis")
+                                (unless (null? floatvars)
+                                  (begin-time)
+                                  (debugging 'p "doing unboxing")
+                                  (set! node2 (perform-unboxing node2 floatvars)))
+    			          (end-time "unboxing")))
 			    (print-node "optimized" '|7| node2)
 			    ;; inlining into a file with interrupts enabled would
 			    ;; change semantics

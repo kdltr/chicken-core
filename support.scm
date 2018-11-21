@@ -254,7 +254,7 @@
 			(loop (cdr chars)) )
 		(cons c (loop (cdr chars))) ) ) ) ) ) ) )
 
-;; XXX: This too, but it's used only in compiler.scm, WTF?
+;; XXX: This too, but it's used only in core.scm, WTF?
 (define (valid-c-identifier? name)
   (let ([str (string->list (->string name))])
     (and (pair? str)
@@ -645,7 +645,7 @@
 	       (loop (- n 1) (cdr vals) (cons (walk (car vals)) bindings)) ) ) )
 	((##core#unbox ##core#ref ##core#update ##core#update_i)
 	 (cons* class (walk (car subs)) params (map walk (cdr subs))) ) 
-	((##core#inline_allocate ##core#let_unboxed)
+	((##core#inline_allocate)
 	 (cons* class params (map walk subs)))
 	(else (cons class (append params (map walk subs)))) ) ) ) )
 
