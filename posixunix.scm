@@ -771,7 +771,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	(##sys#read-symbolic-link fname 'read-symbolic-link))))
 
 (set! chicken.file.posix#file-link
-  (let ([link (foreign-lambda int "link" c-string c-string)])
+  (let ((link (foreign-lambda int "link" nonnull-c-string nonnull-c-string)))
     (lambda (old new)
       (##sys#check-string old 'file-link)
       (##sys#check-string new 'file-link)
@@ -1284,7 +1284,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 ;;; chroot:
 
 (set! chicken.process-context.posix#set-root-directory!
-  (let ([chroot (foreign-lambda int "chroot" c-string)])
+  (let ((chroot (foreign-lambda int "chroot" nonnull-c-string)))
     (lambda (dir)
       (##sys#check-string dir 'set-root-directory!)
       (when (fx< (chroot dir) 0)

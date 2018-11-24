@@ -5971,7 +5971,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 ;;; Environment access:
 
 (define get-environment-variable
-  (foreign-lambda c-string "C_getenv" c-string))
+  (foreign-lambda c-string "C_getenv" nonnull-c-string))
 
 (define (set-environment-variable! var val)
   (##sys#check-string var 'set-environment-variable!)
