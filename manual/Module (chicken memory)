@@ -13,7 +13,7 @@ The abstract class of ''pointer'' is divided into 2 categories:
 
 ; ''pointer object'' : is a regular or [[#Tagged pointers|tagged]] foreign pointer object.
 
-; ''pointer-like object'' : is a closure, port, [[#Locatives|locative]], or a pointer object.
+; ''pointer-like object'' : is a closure, port, [[Module (chicken locative)|locative]], or a pointer object.
 
 Note that Locatives, while technically pointers, are not considered a ''pointer
 object'', but a ''pointer-like object''. The distinction is artificial.
@@ -379,7 +379,7 @@ Set every element in the {{POINTERVECTOR}} to {{POINTER}}.
 <procedure>(move-memory! FROM TO [BYTES [FROM-OFFSET [TO-OFFSET]]])</procedure>
 
 Copies {{BYTES}} bytes of memory from {{FROM}} to {{TO}}. {{FROM}} and {{TO}}
-may be strings, blobs, [[Unit srfi-4|SRFI-4 number-vectors]], memory
+may be strings, blobs, [[Module srfi-4|SRFI-4 number-vectors]], memory
 mapped files, foreign pointers (as obtained from a call to {{foreign-lambda}},
 for example), tagged-pointers or locatives. if {{BYTES}} is not given and the
 size of the source or destination operand is known then the maximal number of
