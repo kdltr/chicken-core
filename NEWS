@@ -16,7 +16,7 @@
   - Allows "cond-expand" and "error" forms in egg specification files.
 
 - Core libraries
-  - Add the system-config-directory and config-cache-directory procedures
+  - Add the system-config-directory and system-cache-directory procedures
     in the chicken.platform module. These procedures follow the XDG
     specification and also give sensible results on Windows.
 
