@@ -13,6 +13,7 @@ This is the manual for CHICKEN Scheme, version 5.0.1
 * [[Using the compiler]]  : How to use the batch compiler
 * [[Deviations from the standard]] : Where CHICKEN deviates from R5RS
 * [[Extensions to the standard]] : Extensions to R5RS that CHICKEN provides
+* [[Debugging]] : Using the "feathers" debugger to inspect running CHICKEN programs.
 * [[Included modules]] : A reference to CHICKEN's core module library
 * [[Interface to external functions and variables]] : Accessing C/C++ code and data
 * [[Modules]] : How CHICKEN manages namespaces
