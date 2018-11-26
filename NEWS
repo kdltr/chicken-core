@@ -19,6 +19,8 @@
   - Add the system-config-directory and system-cache-directory procedures
     in the chicken.platform module. These procedures follow the XDG
     specification and also give sensible results on Windows.
+  - Fix get-environment from (chicken process-context) to raise an
+     error when passed #f instead of segfaulting.
 
 
 5.0.0

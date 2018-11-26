@@ -64,7 +64,8 @@
      block-variable-literal-name make-random-name
      clear-real-name-table! get-real-name set-real-name!
      real-name real-name2 display-real-name-table
-     source-info->string source-info->line call-info constant-form-eval
+     source-info->string source-info->line source-info->name
+     call-info constant-form-eval
      dump-nodes read-info-hook read/source-info big-fixnum? small-bignum?
      hide-variable export-variable variable-hidden? variable-visible?
      mark-variable variable-mark intrinsic? predicate? foldable?
@@ -1467,12 +1468,13 @@
       (let ((ln (car info))
 	    (name (cadr info)))
 	(conc ln ":" (make-string (max 0 (- 4 (string-length ln))) #\space) " " name) )
-      info))
+      (->string info)))
+
+(define (source-info->name info)
+  (if (list? info) (cadr info) (->string info)))
 
 (define (source-info->line info)
-  (if (list? info)
-      (car info)
-      (and info (->string info))))
+  (and (list? info) (car info)))
 
 (define (call-info params var)		; Used only in optimizer.scm
   (or (and-let* ((info (and (pair? (cdr params)) (second params))))
