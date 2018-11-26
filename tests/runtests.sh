@@ -158,6 +158,14 @@ $time ./fft1.out 1000 7
 echo "specialized:"
 $time ./fft2.out 1000 7
 
+echo "======================================== unboxing benchmark ..."
+$compile fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1.out
+$compile fft.scm -O4 -debug x -d0 -disable-interrupts -b -o fft2.out
+echo "normal:"
+$time ./fft1.out 1000 7
+echo "unboxing:"
+$time ./fft2.out 1000 7
+
 echo "======================================== callback tests ..."
 $compile -extend c-id-valid.scm callback-tests.scm
 ./a.out

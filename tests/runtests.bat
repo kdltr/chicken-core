@@ -142,6 +142,18 @@ echo specialized:
 fft2.out 1000 7
 if errorlevel 1 exit /b 1
 
+echo ======================================== unboxing benchmark ...
+%compile% fft.scm -O2 -local -d0 -disable-interrupts -b -o fft1.out
+if errorlevel 1 exit /b 1
+%compile% fft.scm -O4 -debug x -d0 -disable-interrupts -b -o fft2.out
+if errorlevel 1 exit /b 1
+echo normal:
+fft1.out 1000 7
+if errorlevel 1 exit /b 1
+echo unboxing:
+fft2.out 1000 7
+if errorlevel 1 exit /b 1
+
 echo ======================================== callback tests ...
 %compile% -extend c-id-valid.scm callback-tests.scm
 if errorlevel 1 exit /b 1
