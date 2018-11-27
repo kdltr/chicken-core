@@ -7,63 +7,67 @@ Warning: literal in operator position: (1 2)
 
 Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-count-mismatch', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#cons '())
 
   Procedure `cons' is called with 1 argument but 2 arguments are expected.
 
-  Procedure `cons' from module `scheme' has type
+  Procedure `cons' from module `scheme' has this type:
 
     ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
 Warning: Invalid argument (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-type-mismatch', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#length 'symbol)
 
-  Argument #1 to procedure `length' has invalid type
+  Argument #1 to procedure `length' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     list
 
-  Procedure `length' from module `scheme' has type
+  This is the expression:
+
+    'symbol
+
+  Procedure `length' from module `scheme' has this type:
 
     (list -> fixnum)
 
 Warning: Too many argument values (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-value-count', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#list (chicken.time#cpu-time))
 
   Argument #1 to procedure `list' returns 2 values but 1 is expected.
 
-  It is a call to `cpu-time' from module `chicken.time' which has type
+  It is a call to `cpu-time' from module `chicken.time' which has this type:
 
     (-> fixnum fixnum)
 
-  This is the expression
+  This is the expression:
 
     (chicken.time#cpu-time)
 
 Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-value-count', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#vector (scheme#values))
 
   Argument #1 to procedure `vector' does not return any values.
 
-  It is a call to `values' from module `scheme' which has type
+  It is a call to `values' from module `scheme' which has this type:
 
     (procedure (#!rest values) . *)
 
-  This is the expression
+  This is the expression:
 
     (scheme#values)
 
@@ -72,79 +76,85 @@ Warning: In `r-proc-call-argument-value-count', a toplevel procedure
 
 Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `r-cond-branch-value-count-mismatch', a toplevel procedure
-  In conditional expression
+  In conditional expression:
 
     (if (the * 1) 1 (scheme#values 1 2))
 
   The branches have different numbers of values.
 
-  The true branch returns 1 value
+  The true branch returns 1 value:
 
     1
 
-  The false branch returns 2 values
+  The false branch returns 2 values:
 
     (scheme#values 1 2)
 
 Warning: Invalid procedure
   In `r-invalid-called-procedure-type', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (1 2)
 
-  The procedure has invalid type
+  The procedure expression does not appear to be a callable.
 
-    fixnum
+  This is the expression:
 
-  The expected type is
+    1
+
+  The expected type is:
 
     (* -> *)
 
+  The actual type is:
+
+    fixnum
+
 Note: Predicate is always true (test-scrutinizer-message-format.scm:XXX) 
   In `r-pred-call-always-true', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#list? '())
 
   The predicate will always return true.
 
-  Procedure `list?' from module `scheme' is a predicate for
+  Procedure `list?' from module `scheme' is a predicate for:
 
     list
 
-  The given argument has type
+  The given argument has this type:
 
     null
 
 Note: Predicate is always false (test-scrutinizer-message-format.scm:XXX) 
   In `r-pred-call-always-false', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#symbol? 1)
 
   The predicate will always return false.
 
-  Procedure `symbol?' from module `scheme' is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for:
 
     symbol
 
-  The given argument has type
+  The given argument has this type:
 
     fixnum
 
 Note: Test is always true
   In `r-cond-test-always-true', a toplevel procedure
-  In conditional expression
+  In conditional expression:
 
     (if 'symbol 1 (##core#undefined))
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     symbol
 
 Note: Test is always false
   In `r-cond-test-always-false', a toplevel procedure
-  In conditional expression
+  In conditional expression:
 
     (if #f 1 (##core#undefined))
 
@@ -152,77 +162,77 @@ Note: Test is always false
 
 Warning: Type mismatch
   In `r-type-mismatch-in-the', a toplevel procedure
-  In expression
+  In expression:
 
     1
 
   Expression's declared and actual types do not match.
 
-  The actual type is
-
-    fixnum
-
-  The expression's declared type is
+  The declared type is:
 
     symbol
 
+  The actual type is:
+
+    fixnum
+
 Warning: Not enough values (test-scrutinizer-message-format.scm:XXX) 
   In `r-zero-values-for-the', a toplevel procedure
-  In expression
+  In expression:
 
     (scheme#values)
 
-  Expression returns 0 values but is declared to return
+  Expression returns 0 values but is declared to return:
 
     symbol
 
 Warning: Too many values (test-scrutinizer-message-format.scm:XXX) 
   In `r-too-many-values-for-the', a toplevel procedure
-  In expression
+  In expression:
 
     (scheme#values 1 2)
 
   Expression returns too many values.
 
-  The expression returns 2 values but is declared to return
+  The expression returns 2 values but is declared to return:
 
     symbol
 
 Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `r-too-many-values-for-the', a toplevel procedure
-  In expression
+  In expression:
 
     (scheme#values 1 2)
 
   Expression's declared and actual types do not match.
 
-  The actual type is
-
-    fixnum
-
-  The expression's declared type is
+  The declared type is:
 
     symbol
 
+  The actual type is:
+
+    fixnum
+
 Warning: Invalid assignment
   In `r-toplevel-var-assignment-type-mismatch', a toplevel procedure
-  In assignment
+  In assignment:
 
     (set! foo 1)
 
   Variable `foo' is assigned invalid value.
 
-  The assigned value has type
+  The assigned value has this type:
 
     fixnum
 
-  The declared type of `foo' is
+  The declared type of `foo' is:
 
     boolean
 
 Warning: Deprecated identifier `deprecated-foo'
   In `r-deprecated-identifier', a toplevel procedure
-  In expression
+  In expression:
 
     deprecated-foo
 
@@ -230,7 +240,7 @@ Warning: Deprecated identifier `deprecated-foo'
 
 Warning: Deprecated identifier `deprecated-foo2'
   In `r-deprecated-identifier', a toplevel procedure
-  In expression
+  In expression:
 
     deprecated-foo2
 
@@ -240,28 +250,43 @@ Warning: Deprecated identifier `deprecated-foo2'
 
 Warning: Invalid assignment
   At toplevel
-  In assignment
+  In assignment:
 
     (set! foo 1)
 
   Variable `foo' is assigned invalid value.
 
-  The assigned value has type
+  The assigned value has this type:
 
     fixnum
 
-  The declared type of `foo' is
+  The declared type of `foo' is:
 
     boolean
 
-Warning: In `list-ref-negative-index', a toplevel procedure
-  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
+Warning: Negative list index (test-scrutinizer-message-format.scm:XXX) 
+  In `list-ref-negative-index', a toplevel procedure
+  In procedure call:
 
-Warning: In `list-ref-out-of-range', a toplevel procedure
-  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list-ref', index 1 out of range for proper list of length 0
+    (scheme#list-ref '() -1)
 
-Warning: In `vector-ref-out-of-range', a toplevel procedure
-  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 0
+  Procedure `list-ref' from module `scheme' is called with a negative index -1.
+
+Warning: List index out of range (test-scrutinizer-message-format.scm:XXX) 
+  In `list-ref-out-of-range', a toplevel procedure
+  In procedure call:
+
+    (scheme#list-ref '() 1)
+
+  Procedure `list-ref' from module `scheme' is called with index `1' for a list of length `0'.
+
+Warning: Negative vector index (test-scrutinizer-message-format.scm:XXX) 
+  In `vector-ref-out-of-range', a toplevel procedure
+  In procedure call:
+
+    (scheme#vector-ref (scheme#vector) -1)
+
+  Procedure `vector-ref' from module `scheme' is called with a negative index -1.
 
 Warning: In `zero-values-for-let', a toplevel procedure
   expected a single result in `let' binding of `a', but received zero results
@@ -277,11 +302,11 @@ Warning: In `multiple-values-for-conditional', a toplevel procedure
 
 Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
   In `multiple-values-for-conditional', a toplevel procedure
-  In conditional expression
+  In conditional expression:
 
     (if (scheme#values 1 2) 1 (##core#undefined))
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     fixnum
 
@@ -292,13 +317,13 @@ Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-count-mismatch', a local procedure
-  In procedure call
+  In procedure call:
 
     (scheme#cons '())
 
   Procedure `cons' is called with 1 argument but 2 arguments are expected.
 
-  Procedure `cons' from module `scheme' has type
+  Procedure `cons' from module `scheme' has this type:
 
     ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
@@ -306,19 +331,23 @@ Warning: Invalid argument (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-type-mismatch', a local procedure
-  In procedure call
+  In procedure call:
 
     (scheme#length 'symbol)
 
-  Argument #1 to procedure `length' has invalid type
+  Argument #1 to procedure `length' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     list
 
-  Procedure `length' from module `scheme' has type
+  This is the expression:
+
+    'symbol
+
+  Procedure `length' from module `scheme' has this type:
 
     (list -> fixnum)
 
@@ -326,17 +355,17 @@ Warning: Too many argument values (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-value-count', a local procedure
-  In procedure call
+  In procedure call:
 
     (scheme#list (chicken.time#cpu-time))
 
   Argument #1 to procedure `list' returns 2 values but 1 is expected.
 
-  It is a call to `cpu-time' from module `chicken.time' which has type
+  It is a call to `cpu-time' from module `chicken.time' which has this type:
 
     (-> fixnum fixnum)
 
-  This is the expression
+  This is the expression:
 
     (chicken.time#cpu-time)
 
@@ -344,17 +373,17 @@ Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-value-count', a local procedure
-  In procedure call
+  In procedure call:
 
     (scheme#vector (scheme#values))
 
   Argument #1 to procedure `vector' does not return any values.
 
-  It is a call to `values' from module `scheme' which has type
+  It is a call to `values' from module `scheme' which has this type:
 
     (procedure (#!rest values) . *)
 
-  This is the expression
+  This is the expression:
 
     (scheme#values)
 
@@ -367,17 +396,17 @@ Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-cond-branch-value-count-mismatch', a local procedure
-  In conditional expression
+  In conditional expression:
 
     (if (the * 1) 1 (chicken.time#cpu-time))
 
   The branches have different numbers of values.
 
-  The true branch returns 1 value
+  The true branch returns 1 value:
 
     1
 
-  The false branch returns 2 values
+  The false branch returns 2 values:
 
     (chicken.time#cpu-time)
 
@@ -385,33 +414,39 @@ Warning: Invalid procedure
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-invalid-called-procedure-type', a local procedure
-  In procedure call
+  In procedure call:
 
     (1 2)
 
-  The procedure has invalid type
+  The procedure expression does not appear to be a callable.
 
-    fixnum
+  This is the expression:
 
-  The expected type is
+    1
+
+  The expected type is:
 
     (* -> *)
+
+  The actual type is:
+
+    fixnum
 
 Note: Predicate is always true (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-pred-call-always-true', a local procedure
-  In procedure call
+  In procedure call:
 
     (scheme#list? '())
 
   The predicate will always return true.
 
-  Procedure `list?' from module `scheme' is a predicate for
+  Procedure `list?' from module `scheme' is a predicate for:
 
     list
 
-  The given argument has type
+  The given argument has this type:
 
     null
 
@@ -419,17 +454,17 @@ Note: Predicate is always false (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-pred-call-always-false', a local procedure
-  In procedure call
+  In procedure call:
 
     (scheme#symbol? 1)
 
   The predicate will always return false.
 
-  Procedure `symbol?' from module `scheme' is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for:
 
     symbol
 
-  The given argument has type
+  The given argument has this type:
 
     fixnum
 
@@ -437,11 +472,11 @@ Note: Test is always true (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-cond-test-always-true', a local procedure
-  In conditional expression
+  In conditional expression:
 
     (if (scheme#length '()) 1 (##core#undefined))
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     fixnum
 
@@ -449,7 +484,7 @@ Note: Test is always false
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-cond-test-always-false', a local procedure
-  In conditional expression
+  In conditional expression:
 
     (if #f 1 (##core#undefined))
 
@@ -459,29 +494,29 @@ Warning: Type mismatch
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-type-mismatch-in-the', a local procedure
-  In expression
+  In expression:
 
     1
 
   Expression's declared and actual types do not match.
 
-  The actual type is
-
-    fixnum
-
-  The expression's declared type is
+  The declared type is:
 
     symbol
+
+  The actual type is:
+
+    fixnum
 
 Warning: Not enough values (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-zero-values-for-the', a local procedure
-  In expression
+  In expression:
 
     (scheme#values)
 
-  Expression returns 0 values but is declared to return
+  Expression returns 0 values but is declared to return:
 
     symbol
 
@@ -489,13 +524,13 @@ Warning: Too many values (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-too-many-values-for-the', a local procedure
-  In expression
+  In expression:
 
     (scheme#values 1 2)
 
   Expression returns too many values.
 
-  The expression returns 2 values but is declared to return
+  The expression returns 2 values but is declared to return:
 
     symbol
 
@@ -503,35 +538,35 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-too-many-values-for-the', a local procedure
-  In expression
+  In expression:
 
     (scheme#values 1 2)
 
   Expression's declared and actual types do not match.
 
-  The actual type is
-
-    fixnum
-
-  The expression's declared type is
+  The declared type is:
 
     symbol
+
+  The actual type is:
+
+    fixnum
 
 Warning: Invalid assignment
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-toplevel-var-assignment-type-mismatch', a local procedure
-  In assignment
+  In assignment:
 
     (set! m#foo2 1)
 
-  Variable `m#foo2' is assigned invalid value.
+  Variable `foo2' is assigned invalid value.
 
-  The assigned value has type
+  The assigned value has this type:
 
     fixnum
 
-  The declared type of `m#foo2' is
+  The declared type of `foo2' from module `m' is:
 
     boolean
 
@@ -539,7 +574,7 @@ Warning: Deprecated identifier `deprecated-foo'
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-deprecated-identifier', a local procedure
-  In expression
+  In expression:
 
     m#deprecated-foo
 
@@ -549,7 +584,7 @@ Warning: Deprecated identifier `deprecated-foo2'
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-deprecated-identifier', a local procedure
-  In expression
+  In expression:
 
     m#deprecated-foo2
 
@@ -557,20 +592,35 @@ Warning: Deprecated identifier `deprecated-foo2'
 
   The suggested alternative is `foo'.
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+Warning: Negative list index (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `list-ref-negative-index', a local procedure
-  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
+  In procedure call:
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+    (scheme#list-ref '() -1)
+
+  Procedure `list-ref' from module `scheme' is called with a negative index -1.
+
+Warning: List index out of range (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `list-ref-out-of-range', a local procedure
-  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list-ref', index 1 out of range for proper list of length 0
+  In procedure call:
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+    (scheme#list-ref '() 1)
+
+  Procedure `list-ref' from module `scheme' is called with index `1' for a list of length `0'.
+
+Warning: Negative vector index (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `vector-ref-out-of-range', a local procedure
-  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 0
+  In procedure call:
+
+    (scheme#vector-ref (scheme#vector) -1)
+
+  Procedure `vector-ref' from module `scheme' is called with a negative index -1.
 
 Warning: In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
@@ -596,11 +646,11 @@ Note: Test is always true (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `multiple-values-for-conditional', a local procedure
-  In conditional expression
+  In conditional expression:
 
     (if (scheme#values 1 2) 1 (##core#undefined))
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     fixnum
 
@@ -613,17 +663,17 @@ Error: No typecase match (test-scrutinizer-message-format.scm:XXX)
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `fail-compiler-typecase', a local procedure
-  In `compiler-typecase' expression
+  In `compiler-typecase' expression:
 
     (compiler-typecase gXXX (symbol 1) (list 2) (else (##core#undefined)))
 
   Tested expression does not match any case.
 
-  The expression has type
+  The expression has this type:
 
     fixnum
 
-  The specified type cases are these
+  The specified type cases are these:
 
     symbol
 

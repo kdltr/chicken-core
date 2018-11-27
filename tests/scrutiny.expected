@@ -7,165 +7,175 @@ Note: Test is always true
   In `a', a toplevel procedure
   In `b', a local procedure
   In `c', a local procedure
-  In conditional expression
+  In conditional expression:
 
     (if x 1 2)
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     number
 
 Note: Test is always true
   In `b', a toplevel procedure
-  In conditional expression
+  In conditional expression:
 
     (if x 1 2)
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     true
 
 Warning: Branch values mismatch (scrutiny-tests.scm:XXX) 
   In `foo', a toplevel procedure
-  In conditional expression
+  In conditional expression:
 
     (if x (scheme#values 1 2) (scheme#values 1 2 (scheme#+ (scheme#+ ...))))
 
   The branches have different numbers of values.
 
-  The true branch returns 2 values
+  The true branch returns 2 values:
 
     (scheme#values 1 2)
 
-  The false branch returns 3 values
+  The false branch returns 3 values:
 
     (scheme#values 1 2 (scheme#+ (scheme#+ (scheme#+ ...))))
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (bar 3 'a)
 
-  Argument #2 to procedure `bar' has invalid type
+  Argument #2 to procedure `bar' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `bar' has type
+  This is the expression:
+
+    'a
+
+  Procedure `bar' has this type:
 
     (#!rest number -> number)
 
 Warning: Wrong number of arguments (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#string?)
 
   Procedure `string?' is called with 0 arguments but 1 argument is expected.
 
-  Procedure `string?' from module `scheme' has type
+  Procedure `string?' from module `scheme' has this type:
 
     (* -> boolean)
 
 Warning: Too many argument values (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (chicken.base#print (scheme#values 1 2))
 
   Argument #1 to procedure `print' returns 2 values but 1 is expected.
 
-  It is a call to `values' from module `scheme' which has type
+  It is a call to `values' from module `scheme' which has this type:
 
     (procedure (#!rest values) . *)
 
-  This is the expression
+  This is the expression:
 
     (scheme#values 1 2)
 
 Warning: Not enough argument values (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (chicken.base#print (scheme#values))
 
   Argument #1 to procedure `print' does not return any values.
 
-  It is a call to `values' from module `scheme' which has type
+  It is a call to `values' from module `scheme' which has this type:
 
     (procedure (#!rest values) . *)
 
-  This is the expression
+  This is the expression:
 
     (scheme#values)
 
 Warning: Invalid procedure (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (x)
 
-  The procedure has invalid type
+  Variable `x18' is not a procedure.
+
+  It has this type:
 
     fixnum
 
-  The expected type is
-
-    (-> *)
-
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#+ 'a 'b)
 
-  Argument #1 to procedure `+' has invalid type
+  Argument #1 to procedure `+' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `+' from module `scheme' has type
+  This is the expression:
+
+    'a
+
+  Procedure `+' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#+ 'a 'b)
 
-  Argument #2 to procedure `+' has invalid type
+  Argument #2 to procedure `+' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `+' from module `scheme' has type
+  This is the expression:
+
+    'b
+
+  Procedure `+' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Invalid assignment
   At toplevel
-  In assignment
+  In assignment:
 
     (set! scheme#car 33)
 
-  Variable `scheme#car' is assigned invalid value.
+  Variable `car' is assigned invalid value.
 
-  The assigned value has type
+  The assigned value has this type:
 
     fixnum
 
-  The declared type of `scheme#car' is
+  The declared type of `car' from module `scheme' is:
 
     ((pair 'a335 *) -> 'a335)
 
@@ -174,267 +184,309 @@ Warning: At toplevel
 
 Warning: Invalid procedure
   At toplevel
-  In procedure call
+  In procedure call:
 
     (gXXX)
 
-  The procedure has invalid type
+  Variable `gXXX' is not a procedure.
+
+  It has this type:
 
     fixnum
 
-  The expected type is
-
-    (-> *)
-
 Note: Test is always true
   In `foo', a toplevel procedure
-  In conditional expression
+  In conditional expression:
 
     (if bar 3 (##core#undefined))
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     (-> *)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo2', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#string-append x "abc")
 
-  Argument #1 to procedure `string-append' has invalid type
+  Argument #1 to procedure `string-append' has an invalid type:
 
     number
 
-  The expected type is
+  The expected type is:
 
     string
 
-  Procedure `string-append' from module `scheme' has type
+  This is the expression:
+
+    x
+
+  Procedure `string-append' from module `scheme' has this type:
 
     (#!rest string -> string)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (foo3 99)
 
-  Argument #1 to procedure `foo3' has invalid type
+  Argument #1 to procedure `foo3' has an invalid type:
 
     fixnum
 
-  The expected type is
+  The expected type is:
 
     string
 
-  Procedure `foo3' has type
+  This is the expression:
+
+    99
+
+  Procedure `foo3' has this type:
 
     (string -> string)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo4', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#+ x 1)
 
-  Argument #1 to procedure `+' has invalid type
+  Argument #1 to procedure `+' has an invalid type:
 
     string
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `+' from module `scheme' has type
+  This is the expression:
+
+    x
+
+  Procedure `+' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo5', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#+ x 3)
 
-  Argument #1 to procedure `+' has invalid type
+  Argument #1 to procedure `+' has an invalid type:
 
     string
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `+' from module `scheme' has type
+  This is the expression:
+
+    x
+
+  Procedure `+' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo6', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#+ x 3)
 
-  Argument #1 to procedure `+' has invalid type
+  Argument #1 to procedure `+' has an invalid type:
 
     string
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `+' from module `scheme' has type
+  This is the expression:
+
+    x
+
+  Procedure `+' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#+ x 1)
 
-  Argument #1 to procedure `+' has invalid type
+  Argument #1 to procedure `+' has an invalid type:
 
     string
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `+' from module `scheme' has type
+  This is the expression:
+
+    x
+
+  Procedure `+' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (foo9 x)
 
-  Argument #1 to procedure `foo9' has invalid type
+  Argument #1 to procedure `foo9' has an invalid type:
 
     number
 
-  The expected type is
+  The expected type is:
 
     string
 
-  Procedure `foo9' has type
+  This is the expression:
+
+    x
+
+  Procedure `foo9' has this type:
 
     (string -> symbol)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#+ x 1)
 
-  Argument #1 to procedure `+' has invalid type
+  Argument #1 to procedure `+' has an invalid type:
 
     string
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `+' from module `scheme' has type
+  This is the expression:
+
+    x
+
+  Procedure `+' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
-  In expression
+  In expression:
 
     (scheme#substring x 0 10)
 
   Expression's declared and actual types do not match.
 
-  The actual type is
-
-    string
-
-  The expression's declared type is
+  The declared type is:
 
     pair
+
+  The actual type is:
+
+    string
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#string-append (the pair (scheme#substring x 0 10)))
 
-  Argument #1 to procedure `string-append' has invalid type
+  Argument #1 to procedure `string-append' has an invalid type:
 
     pair
 
-  The expected type is
+  The expected type is:
 
     string
 
-  Procedure `string-append' from module `scheme' has type
+  This is the expression:
+
+    (the pair (scheme#substring x 0 10))
+
+  Procedure `string-append' from module `scheme' has this type:
 
     (#!rest string -> string)
 
 Warning: Too many values (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
-  In expression
+  In expression:
 
     (scheme#values 1 2)
 
   Expression returns too many values.
 
-  The expression returns 2 values but is declared to return
+  The expression returns 2 values but is declared to return:
 
     *
 
 Warning: Not enough values (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
-  In expression
+  In expression:
 
     (scheme#values)
 
-  Expression returns 0 values but is declared to return
+  Expression returns 0 values but is declared to return:
 
     *
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#* x y)
 
-  Argument #1 to procedure `*' has invalid type
+  Argument #1 to procedure `*' has an invalid type:
 
     string
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `*' from module `scheme' has type
+  This is the expression:
+
+    x
+
+  Procedure `*' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo#blabla', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#+ 1 'x)
 
-  Argument #2 to procedure `+' has invalid type
+  Argument #2 to procedure `+' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `+' from module `scheme' has type
+  This is the expression:
+
+    'x
+
+  Procedure `+' from module `scheme' has this type:
 
     (#!rest number -> number)
 
 Warning: Deprecated identifier `deprecated-procedure'
   At toplevel
-  In expression
+  In expression:
 
     deprecated-procedure
 
@@ -442,7 +494,7 @@ Warning: Deprecated identifier `deprecated-procedure'
 
 Warning: Deprecated identifier `another-deprecated-procedure'
   At toplevel
-  In expression
+  In expression:
 
     another-deprecated-procedure
 
@@ -452,482 +504,641 @@ Warning: Deprecated identifier `another-deprecated-procedure'
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (apply1 scheme#+ (scheme#list 'a 2 3))
 
-  Argument #2 to procedure `apply1' has invalid type
+  Argument #2 to procedure `apply1' has an invalid type:
 
     (list symbol fixnum fixnum)
 
-  The expected type is
+  The expected type is:
 
     (list-of number)
 
-  Procedure `apply1' has type
+  It is a call to `list' from module `scheme' which has this type:
+
+    (#!rest * -> list)
+
+  This is the expression:
+
+    (scheme#list 'a 2 3)
+
+  Procedure `apply1' has this type:
 
     ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (apply1 scheme#+ (scheme#cons 'a (scheme#cons 2 (scheme#cons 3 ...))))
 
-  Argument #2 to procedure `apply1' has invalid type
+  Argument #2 to procedure `apply1' has an invalid type:
 
     (list symbol fixnum fixnum)
 
-  The expected type is
+  The expected type is:
 
     (list-of number)
 
-  Procedure `apply1' has type
+  It is a call to `cons' from module `scheme' which has this type:
+
+    ('a331 'b332 -> (pair 'a331 'b332))
+
+  This is the expression:
+
+    (scheme#cons 'a (scheme#cons 2 (scheme#cons 3 '())))
+
+  Procedure `apply1' has this type:
 
     ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
 
 Note: Predicate is always true (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (chicken.base#fixnum? x)
 
   The predicate will always return true.
 
-  Procedure `fixnum?' from module `chicken.base' is a predicate for
+  Procedure `fixnum?' from module `chicken.base' is a predicate for:
 
     fixnum
 
-  The given argument has type
+  The given argument has this type:
 
     fixnum
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#symbol? x)
 
   The predicate will always return false.
 
-  Procedure `symbol?' from module `scheme' is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for:
 
     symbol
 
-  The given argument has type
+  The given argument has this type:
 
     (or char string)
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#string? x)
 
   The predicate will always return false.
 
-  Procedure `string?' from module `scheme' is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for:
 
     string
 
-  The given argument has type
+  The given argument has this type:
 
     (not (or char string))
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (char-or-string? x)
 
   The predicate will always return false.
 
-  Procedure `char-or-string?' is a predicate for
+  Procedure `char-or-string?' is a predicate for:
 
     (or char string)
 
-  The given argument has type
+  The given argument has this type:
 
     fixnum
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#symbol? x)
 
   The predicate will always return false.
 
-  Procedure `symbol?' from module `scheme' is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for:
 
     symbol
 
-  The given argument has type
+  The given argument has this type:
 
     (or char string)
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#string? x)
 
   The predicate will always return false.
 
-  Procedure `string?' from module `scheme' is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for:
 
     string
 
-  The given argument has type
+  The given argument has this type:
 
     fixnum
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#symbol? x)
 
   The predicate will always return false.
 
-  Procedure `symbol?' from module `scheme' is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for:
 
     symbol
 
-  The given argument has type
+  The given argument has this type:
 
     char
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#string? x)
 
   The predicate will always return false.
 
-  Procedure `string?' from module `scheme' is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for:
 
     string
 
-  The given argument has type
+  The given argument has this type:
 
     symbol
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#symbol? x)
 
   The predicate will always return false.
 
-  Procedure `symbol?' from module `scheme' is a predicate for
+  Procedure `symbol?' from module `scheme' is a predicate for:
 
     symbol
 
-  The given argument has type
+  The given argument has this type:
 
     (or char string)
 
 Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#string? x)
 
   The predicate will always return false.
 
-  Procedure `string?' from module `scheme' is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for:
 
     string
 
-  The given argument has type
+  The given argument has this type:
 
     symbol
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (f (scheme#list))
 
-  Argument #1 to procedure `f' has invalid type
+  Argument #1 to procedure `f' has an invalid type:
 
     null
 
-  The expected type is
+  The expected type is:
 
     pair
 
-  Procedure `f' has type
+  It is a call to `list' from module `scheme' which has this type:
+
+    (#!rest * -> list)
+
+  This is the expression:
+
+    (scheme#list)
+
+  Procedure `f' has this type:
 
     (pair -> *)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (f (scheme#list 1))
 
-  Argument #1 to procedure `f' has invalid type
+  Argument #1 to procedure `f' has an invalid type:
 
     (list fixnum)
 
-  The expected type is
+  The expected type is:
 
     null
 
-  Procedure `f' has type
+  It is a call to `list' from module `scheme' which has this type:
+
+    (#!rest * -> list)
+
+  This is the expression:
+
+    (scheme#list 1)
+
+  Procedure `f' has this type:
 
     (null -> *)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (f (scheme#cons 1 2))
 
-  Argument #1 to procedure `f' has invalid type
+  Argument #1 to procedure `f' has an invalid type:
 
     (pair fixnum fixnum)
 
-  The expected type is
+  The expected type is:
 
     list
 
-  Procedure `f' has type
+  It is a call to `cons' from module `scheme' which has this type:
+
+    ('a331 'b332 -> (pair 'a331 'b332))
+
+  This is the expression:
+
+    (scheme#cons 1 2)
+
+  Procedure `f' has this type:
 
     (list -> *)
 
-Warning: In `vector-ref-warn1', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 3
+Warning: Negative vector index (scrutiny-tests.scm:XXX) 
+  In `vector-ref-warn1', a toplevel procedure
+  In procedure call:
 
-Warning: In `vector-ref-warn2', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-ref', index 3 out of range for vector of length 3
+    (scheme#vector-ref v1 -1)
 
-Warning: In `vector-ref-warn3', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-ref', index 4 out of range for vector of length 3
+  Procedure `vector-ref' from module `scheme' is called with a negative index -1.
+
+Warning: Vector index out of range (scrutiny-tests.scm:XXX) 
+  In `vector-ref-warn2', a toplevel procedure
+  In procedure call:
+
+    (scheme#vector-ref v1 3)
+
+  Procedure `vector-ref' from module `scheme' is called with index `3' for a vector of length `3'.
+
+Warning: Vector index out of range (scrutiny-tests.scm:XXX) 
+  In `vector-ref-warn3', a toplevel procedure
+  In procedure call:
+
+    (scheme#vector-ref v1 4)
+
+  Procedure `vector-ref' from module `scheme' is called with index `4' for a vector of length `3'.
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `vector-ref-standard-warn1', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#vector-ref v1 'bad)
 
-  Argument #2 to procedure `vector-ref' has invalid type
+  Argument #2 to procedure `vector-ref' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     fixnum
 
-  Procedure `vector-ref' from module `scheme' has type
+  This is the expression:
+
+    'bad
+
+  Procedure `vector-ref' from module `scheme' has this type:
 
     ((vector-of 'a384) fixnum -> 'a384)
 
-Warning: In `vector-set!-warn1', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-set!', index -1 out of range for vector of length 3
+Warning: Negative vector index (scrutiny-tests.scm:XXX) 
+  In `vector-set!-warn1', a toplevel procedure
+  In procedure call:
 
-Warning: In `vector-set!-warn2', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-set!', index 3 out of range for vector of length 3
+    (scheme#vector-set! v1 -1 'whatever)
 
-Warning: In `vector-set!-warn3', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-set!', index 4 out of range for vector of length 3
+  Procedure `vector-set!' from module `scheme' is called with a negative index -1.
+
+Warning: Vector index out of range (scrutiny-tests.scm:XXX) 
+  In `vector-set!-warn2', a toplevel procedure
+  In procedure call:
+
+    (scheme#vector-set! v1 3 'whatever)
+
+  Procedure `vector-set!' from module `scheme' is called with index `3' for a vector of length `3'.
+
+Warning: Vector index out of range (scrutiny-tests.scm:XXX) 
+  In `vector-set!-warn3', a toplevel procedure
+  In procedure call:
+
+    (scheme#vector-set! v1 4 'whatever)
+
+  Procedure `vector-set!' from module `scheme' is called with index `4' for a vector of length `3'.
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `vector-set!-standard-warn1', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#vector-set! v1 'bad 'whatever)
 
-  Argument #2 to procedure `vector-set!' has invalid type
+  Argument #2 to procedure `vector-set!' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     fixnum
 
-  Procedure `vector-set!' from module `scheme' has type
+  This is the expression:
+
+    'bad
+
+  Procedure `vector-set!' from module `scheme' has this type:
 
     (vector fixnum * -> undefined)
 
-Warning: In `list-ref-warn1', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
+Warning: Negative list index (scrutiny-tests.scm:XXX) 
+  In `list-ref-warn1', a toplevel procedure
+  In procedure call:
 
-Warning: In `list-ref-warn2', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
+    (scheme#list-ref l1 -1)
 
-Warning: In `list-ref-warn3', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
+  Procedure `list-ref' from module `scheme' is called with a negative index -1.
 
-Warning: In `list-ref-warn4', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#list-ref', index 3 out of range for proper list of length 3
+Warning: Negative list index (scrutiny-tests.scm:XXX) 
+  In `list-ref-warn2', a toplevel procedure
+  In procedure call:
 
-Warning: In `list-ref-warn5', a toplevel procedure
-  (scrutiny-tests.scm:XXX) in procedure call to `scheme#list-ref', index 4 out of range for proper list of length 3
+    (scheme#list-ref l2 -1)
+
+  Procedure `list-ref' from module `scheme' is called with a negative index -1.
+
+Warning: Negative list index (scrutiny-tests.scm:XXX) 
+  In `list-ref-warn3', a toplevel procedure
+  In procedure call:
+
+    (scheme#list-ref l3 -1)
+
+  Procedure `list-ref' from module `scheme' is called with a negative index -1.
+
+Warning: List index out of range (scrutiny-tests.scm:XXX) 
+  In `list-ref-warn4', a toplevel procedure
+  In procedure call:
+
+    (scheme#list-ref l1 3)
+
+  Procedure `list-ref' from module `scheme' is called with index `3' for a list of length `3'.
+
+Warning: List index out of range (scrutiny-tests.scm:XXX) 
+  In `list-ref-warn5', a toplevel procedure
+  In procedure call:
+
+    (scheme#list-ref l1 4)
+
+  Procedure `list-ref' from module `scheme' is called with index `4' for a list of length `3'.
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn1', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#list-ref l1 'bad)
 
-  Argument #2 to procedure `list-ref' has invalid type
+  Argument #2 to procedure `list-ref' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     fixnum
 
-  Procedure `list-ref' from module `scheme' has type
+  This is the expression:
+
+    'bad
+
+  Procedure `list-ref' from module `scheme' has this type:
 
     ((list-of 'a366) fixnum -> 'a366)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn2', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#list-ref l1 'bad)
 
-  Argument #2 to procedure `list-ref' has invalid type
+  Argument #2 to procedure `list-ref' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     fixnum
 
-  Procedure `list-ref' from module `scheme' has type
+  This is the expression:
+
+    'bad
+
+  Procedure `list-ref' from module `scheme' has this type:
 
     ((list-of 'a366) fixnum -> 'a366)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn3', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#list-ref l2 'bad)
 
-  Argument #2 to procedure `list-ref' has invalid type
+  Argument #2 to procedure `list-ref' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     fixnum
 
-  Procedure `list-ref' from module `scheme' has type
+  This is the expression:
+
+    'bad
+
+  Procedure `list-ref' from module `scheme' has this type:
 
     ((list-of 'a366) fixnum -> 'a366)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn4', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (scheme#list-ref l2 'bad)
 
-  Argument #2 to procedure `list-ref' has invalid type
+  Argument #2 to procedure `list-ref' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     fixnum
 
-  Procedure `list-ref' from module `scheme' has type
+  This is the expression:
+
+    'bad
+
+  Procedure `list-ref' from module `scheme' has this type:
 
     ((list-of 'a366) fixnum -> 'a366)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn1', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l1 1))
 
-  Argument #1 to procedure `add1' has invalid type
+  Argument #1 to procedure `add1' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `add1' from module `chicken.base' has type
+  It is a call to `list-ref' from module `scheme' which has this type:
+
+    ((list-of 'a366) fixnum -> 'a366)
+
+  This is the expression:
+
+    (scheme#list-ref l1 1)
+
+  Procedure `add1' from module `chicken.base' has this type:
 
     (number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn2', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l2 1))
 
-  Argument #1 to procedure `add1' has invalid type
+  Argument #1 to procedure `add1' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `add1' from module `chicken.base' has type
+  It is a call to `list-ref' from module `scheme' which has this type:
+
+    ((list-of 'a366) fixnum -> 'a366)
+
+  This is the expression:
+
+    (scheme#list-ref l2 1)
+
+  Procedure `add1' from module `chicken.base' has this type:
 
     (number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn3', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l3 1))
 
-  Argument #1 to procedure `add1' has invalid type
+  Argument #1 to procedure `add1' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `add1' from module `chicken.base' has type
+  It is a call to `list-ref' from module `scheme' which has this type:
+
+    ((list-of 'a366) fixnum -> 'a366)
+
+  This is the expression:
+
+    (scheme#list-ref l3 1)
+
+  Procedure `add1' from module `chicken.base' has this type:
 
     (number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `append-result-type-warn1', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l1 1))
 
-  Argument #1 to procedure `add1' has invalid type
+  Argument #1 to procedure `add1' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `add1' from module `chicken.base' has type
+  It is a call to `list-ref' from module `scheme' which has this type:
+
+    ((list-of 'a366) fixnum -> 'a366)
+
+  This is the expression:
+
+    (scheme#list-ref l1 1)
+
+  Procedure `add1' from module `chicken.base' has this type:
 
     (number -> number)
 
 Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `append-result-type-warn2', a toplevel procedure
-  In procedure call
+  In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l3 3))
 
-  Argument #1 to procedure `add1' has invalid type
+  Argument #1 to procedure `add1' has an invalid type:
 
     symbol
 
-  The expected type is
+  The expected type is:
 
     number
 
-  Procedure `add1' from module `chicken.base' has type
+  It is a call to `list-ref' from module `scheme' which has this type:
+
+    ((list-of 'a366) fixnum -> 'a366)
+
+  This is the expression:
+
+    (scheme#list-ref l3 3)
+
+  Procedure `add1' from module `chicken.base' has this type:
 
     (number -> number)
 

@@ -325,7 +325,7 @@
 	(d "  call: ~a, te: ~a" actualtypes typeenv)
 	(cond ((and (not pptype?) (not (match-types xptype ptype typeenv)))
 	       (r-invalid-called-procedure-type
-		loc node (resolve xptype typeenv) (resolve ptype typeenv))
+		loc node (resolve xptype typeenv) (car args) (resolve ptype typeenv))
 	       (values '* #f))
 	      (else
 	       (let-values (((atypes values-rest ok alen)
@@ -333,6 +333,7 @@
 		 (unless ok
 		   (r-proc-call-argument-count-mismatch loc node alen nargs ptype))
 		 (do ((actualtypes (cdr actualtypes) (cdr actualtypes))
+		      (anodes (cdr args) (cdr anodes))
 		      (atypes atypes (cdr atypes))
 		      (i 1 (add1 i)))
 		     ((or (null? actualtypes) (null? atypes)))
@@ -342,6 +343,7 @@
 			    typeenv)
 		     (r-proc-call-argument-type-mismatch
 		      loc node i
+		      (car anodes)
 		      (resolve (car atypes) typeenv)
 		      (resolve (car actualtypes) typeenv)
 		      ptype)))
@@ -2064,16 +2066,6 @@
 	rtypes)))
 
 (let ()
-  ;; TODO: Complain argument not available here, so we can't use the
-  ;; standard "report" defined above.  However, ##sys#enable-warnings
-  ;; and "complain" (do-scrutinize) are always true together, except
-  ;; that "complain" will be false while ##sys#enable-warnings is true
-  ;; on "no-usual-integrations", so perhaps get rid of "complain"?
-  (define (report loc msg . args)
-    (warning
-     (conc (location-name loc)
-	   (sprintf "~?" msg args))))
-
   (define (known-length-vector-index node args loc expected-argcount)
     (and-let* ((subs (node-subexpressions node))
 	       ((= (length subs) (add1 expected-argcount)))
@@ -2088,12 +2080,7 @@
       (if (and (>= val 0) (< val vector-length))
 	  val
 	  (begin
-	    (report
-	     loc "~ain procedure call to `~a', index ~a out of range \
-                   for vector of length ~a"
-	     (node-source-prefix node)
-	     ;; TODO: It might make more sense to use "pname" here
-	     (first (node-parameters (first subs))) val vector-length)
+	    (r-index-out-of-range loc node val vector-length "vector")
 	    #f))))
 
   ;; These are a bit hacky, since they mutate the node.  These special
@@ -2133,12 +2120,6 @@
 ;   list-ref, list-tail
 
 (let ()
-  ;; See comment in vector (let) just above this
-  (define (report loc msg . args)
-    (warning
-     (conc (location-name loc)
-	   (sprintf "~?" msg args))))
-
   (define (list-or-null a)
     (if (null? a) 'null `(list ,@a)))
 
@@ -2181,25 +2162,15 @@
 		     ((eq? 'quote (node-class index)))
 		     (val (first (node-parameters index)))
 		     ((fixnum? val))) ; Standard type warning otherwise
-	    ;; TODO: It might make sense to use "pname" when reporting
 	    (cond ((negative? val)
-		   ;; Negative indices should always generate a warning
-		   (report
-		    loc "~ain procedure call to `~a', index ~a is \
-                        negative, which is never valid"
-		    (node-source-prefix node)
-		    (first (node-parameters (first subs))) val)
+		   (r-index-out-of-range loc node val 'not-used "list")
 		   #f)
 		  ((split-list-type arg1 val k))
 		  ;; Warn only if it's a known proper list.  This avoids
 		  ;; false warnings due to component smashing.
 		  ((proper-list-type-length arg1) =>
 		   (lambda (length)
-		     (report
-		      loc "~ain procedure call to `~a', index ~a out of \
-                        range for proper list of length ~a"
-		      (node-source-prefix node)
-		      (first (node-parameters (first subs))) val length)
+		     (r-index-out-of-range loc node val length "list")
 		     #f))
 		  (else #f)))
 	  rtypes)))
@@ -2245,12 +2216,6 @@
 	rtypes)))
 
 (let ()
-  ;; See comment in vector (let)
-  (define (report loc msg . args)
-    (warning
-     (conc (location-name loc)
-	   (sprintf "~?" msg args))))
-
   (define (append-special-case node args loc rtypes)
     (define (potentially-proper-list? l) (match-types l 'list '()))
 
@@ -2282,17 +2247,9 @@
 		;; The final argument may be an atom or improper list
 		(unless (or (null? (cdr arg-types))
 			    (potentially-proper-list? arg1))
-		  (report
-		   loc
-		   (string-append
-		    "~ain procedure call to `~a', argument #~a is of type"
-		    "~%~%~a~%~%"
-		    "  but expected a proper list.")
-		   (node-source-prefix node)
-		   (first (node-parameters
-			   (first (node-subexpressions node))))
-		   index
-		   (type->pp-string arg1)))
+		  (r-proc-call-argument-type-mismatch
+		   loc node index 'list
+		   (car arg-types) arg1 (variable-mark 'scheme#append '##compiler#type)))
 		#f))))))
     (cond ((derive-result-type) => list)
 	  (else rtypes)))
@@ -2496,25 +2453,27 @@
 
 (define (describe-expression node)
   (define (p-expr n)
-    (sprintf (string-append "This is the expression" "~%~%" "~a")
+    (sprintf (string-append "This is the expression:" "~%~%" "~a")
 	     (pp-fragment n)))
   (define (p-node n)
-    (or (and (eq? '##core#call (node-class n))
-	     (let ((pnode (first (node-subexpressions n))))
-	       (and-let* (((eq? '##core#variable (node-class pnode)))
-			  (pname (car (node-parameters pnode)))
-			  (ptype (variable-mark pname '##compiler#type)))
-		 (sprintf (string-append
-			   "It is a call to ~a which has type"
-			   "~%~%"
-			   "~a"
-			   "~%~%"
-			   "~a")
-			  (variable-from-module pname)
-			  (type->pp-string ptype)
-			  (p-expr n)))))
-	(p-expr n)))
-  (p-node node))
+    (cond ((and (eq? '##core#call (node-class n))
+		(let ((pnode (first (node-subexpressions n))))
+		  (and-let* (((eq? '##core#variable (node-class pnode)))
+			     (pname (car (node-parameters pnode)))
+			     (ptype (variable-mark pname '##compiler#type)))
+		    (sprintf (string-append
+			      "It is a call to ~a which has this type:"
+			      "~%~%"
+			      "~a"
+			      "~%~%"
+			      "~a")
+			     (variable-from-module pname)
+			     (type->pp-string ptype)
+			     (p-expr n))))))
+	  ((eq? '##core#the/result (node-class n)) ; walk through
+	   (p-node (first (node-subexpressions n))))
+	  (else (p-expr n))))
+  (p-node (source-node-tree node)))
 
 (define (call-node-procedure-name node)
   (fragment (first (node-subexpressions node))))
@@ -2531,34 +2490,64 @@
       (let ((l (file-location))) (if l (conc " " l) ""))
       (string-add-indent
        (conc "\n" (location-name loc "") (sprintf "~?" msg args))
-       "  ")))))
+       "  ")))
+    (flush-output)))
 
 (define (report-notice reason location-node-candidates loc msg . args)
   (apply report2 reason ##sys#notice location-node-candidates loc msg args))
 
 ;;; Reports
 
-(define (r-invalid-called-procedure-type loc node xptype ptype)
-  (report2
-   "Invalid procedure"
-   warning
-   (list node)
-   loc
-   (string-append
-    "In procedure call"
-    "~%~%"
-    "~a"
-    "~%~%"
-    "The procedure has invalid type"
-    "~%~%"
-    "~a"
-    "~%~%"
-    "The expected type is"
-    "~%~%"
-    "~a")
-   (pp-fragment node)
-   (type->pp-string ptype)
-   (type->pp-string xptype)))
+(define (r-invalid-called-procedure-type loc call-node xptype p-node ptype)
+  (define (variable-node-name n)
+    (cond ((eq? '##core#the/result (node-class n))
+	   (variable-node-name (first (node-subexpressions n))))
+	  ((eq? '##core#variable (node-class n)) (car (node-parameters n)))
+	  (else #f)))
+  (if (variable-node-name p-node)
+      (report2
+       "Invalid procedure"
+       warning
+       (list p-node call-node)
+       loc
+       (string-append
+	"In procedure call:"
+	"~%~%"
+	"~a"
+	"~%~%"
+	"Variable ~a is not a procedure."
+	"~%~%"
+	"It has this type:"
+	"~%~%"
+	"~a")
+       (pp-fragment call-node)
+       (variable-from-module (variable-node-name p-node))
+       (type->pp-string ptype))
+      (report2
+       "Invalid procedure"
+       warning
+       (list p-node call-node)
+       loc
+       (string-append
+	"In procedure call:"
+	"~%~%"
+	"~a"
+	"~%~%"
+	"The procedure expression does not appear to be a callable."
+	"~%~%"
+	"~a"
+	"~%~%"
+	"The expected type is:"
+	"~%~%"
+	"~a"
+	"~%~%"
+	"The actual type is:"
+	"~%~%"
+	"~a")
+       (pp-fragment call-node)
+       (describe-expression p-node)
+       (type->pp-string xptype)
+       (type->pp-string ptype))))
 
 (define (r-proc-call-argument-count-mismatch loc node exp-count argc ptype)
   (define pname (call-node-procedure-name node))
@@ -2568,13 +2557,13 @@
    (list node)
    loc
    (string-append
-    "In procedure call"
+    "In procedure call:"
     "~%~%"
     "~a"
     "~%~%"
     "Procedure `~a' is called with ~a argument~a but ~a argument~a ~a expected."
     "~%~%"
-    "Procedure ~a has type"
+    "Procedure ~a has this type:"
     "~%~%"
     "~a")
    (pp-fragment node)
@@ -2585,7 +2574,7 @@
    (variable-from-module pname)
    (type->pp-string ptype)))
 
-(define (r-proc-call-argument-type-mismatch loc node i xptype atype ptype)
+(define (r-proc-call-argument-type-mismatch loc node i arg-node xptype atype ptype)
   (define pname (call-node-procedure-name node))
   (report2
    "Invalid argument"
@@ -2593,19 +2582,21 @@
    (list node)
    loc
    (string-append
-    "In procedure call"
+    "In procedure call:"
     "~%~%"
     "~a"
     "~%~%"
-    "Argument #~a to procedure `~a' has invalid type"
+    "Argument #~a to procedure `~a' has an invalid type:"
     "~%~%"
     "~a"
     "~%~%"
-    "The expected type is"
+    "The expected type is:"
     "~%~%"
     "~a"
     "~%~%"
-    "Procedure ~a has type"
+    "~a"
+    "~%~%"
+    "Procedure ~a has this type:"
     "~%~%"
     "~a")
    (pp-fragment node)
@@ -2613,6 +2604,7 @@
    (strip-namespace pname)
    (type->pp-string atype)
    (type->pp-string xptype)
+   (describe-expression arg-node)
    (variable-from-module pname)
    (type->pp-string ptype)))
 
@@ -2625,7 +2617,7 @@
      (list arg-node call-node)
      loc
      (string-append
-      "In procedure call"
+      "In procedure call:"
       "~%~%"
       "~a"
       "~%~%"
@@ -2643,6 +2635,30 @@
       (p "Too many argument values"
 	 (sprintf "returns ~a values but 1 is expected." (length atype)))))
 
+(define (r-index-out-of-range loc node idx obj-length obj-name)
+  ;; Negative indices should always generate a warning
+  (define pname (call-node-procedure-name node))
+  (report2
+   (if (negative? idx)
+       (sprintf "Negative ~a index" obj-name)
+       (sprintf "~a~a index out of range"
+		(char-upcase (string-ref obj-name 0))
+		(substring obj-name 1)))
+   warning
+   (list node)
+   loc
+   (string-append
+    "In procedure call:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Procedure ~a is called with ~a")
+   (pp-fragment node)
+   (variable-from-module pname)
+   (if (negative? idx)
+       (sprintf "a negative index ~a." idx)
+       (sprintf "index `~a' for a ~a of length `~a'." idx obj-name obj-length))))
+
 (define (r-pred-call-always-true loc node pred-type atype)
   (define pname (call-node-procedure-name node))
   (report-notice
@@ -2650,17 +2666,17 @@
    (list node)
    loc
    (string-append
-    "In procedure call"
+    "In procedure call:"
     "~%~%"
     "~a"
     "~%~%"
     "The predicate will always return true."
     "~%~%"
-    "Procedure ~a is a predicate for"
+    "Procedure ~a is a predicate for:"
     "~%~%"
     "~a"
     "~%~%"
-    "The given argument has type"
+    "The given argument has this type:"
     "~%~%"
     "~a")
    (pp-fragment node)
@@ -2675,17 +2691,17 @@
    (list node)
    loc
    (string-append
-    "In procedure call"
+    "In procedure call:"
     "~%~%"
     "~a"
     "~%~%"
     "The predicate will always return false."
     "~%~%"
-    "Procedure ~a is a predicate for"
+    "Procedure ~a is a predicate for:"
     "~%~%"
     "~a"
     "~%~%"
-    "The given argument has type"
+    "The given argument has this type:"
     "~%~%"
     "~a")
    (pp-fragment node)
@@ -2699,11 +2715,11 @@
    (list test-node if-node)
    loc
    (string-append
-    "In conditional expression"
+    "In conditional expression:"
     "~%~%"
     "~a"
     "~%~%"
-    "Test condition has always true value of type"
+    "Test condition has always true value of type:"
     "~%~%"
     "~a")
    (pp-fragment if-node)
@@ -2715,7 +2731,7 @@
    (list test-node if-node)
    loc
    (string-append
-    "In conditional expression"
+    "In conditional expression:"
     "~%~%"
     "~a"
     "~%~%"
@@ -2730,11 +2746,11 @@
    (list node)
    loc
    (string-append
-    "In expression"
+    "In expression:"
     "~%~%"
     "~a"
     "~%~%"
-    "Expression returns 0 values but is declared to return"
+    "Expression returns 0 values but is declared to return:"
     "~%~%"
     "~a")
    (pp-fragment node)
@@ -2747,42 +2763,42 @@
    (list node)
    loc
    (string-append
-    "In expression"
+    "In expression:"
     "~%~%"
     "~a"
     "~%~%"
     "Expression returns too many values."
     "~%~%"
-    "The expression returns ~a values but is declared to return"
+    "The expression returns ~a values but is declared to return:"
     "~%~%"
     "~a")
    (pp-fragment node)
    (length rtypes)
    (type->pp-string the-type)))
 
-(define (r-type-mismatch-in-the loc node first-rtype the-type)
+(define (r-type-mismatch-in-the loc node atype the-type)
   (report2
    "Type mismatch"
    warning
    (list node)
    loc
    (string-append
-    "In expression"
+    "In expression:"
     "~%~%"
     "~a"
     "~%~%"
     "Expression's declared and actual types do not match."
     "~%~%"
-    "The actual type is"
+    "The declared type is:"
     "~%~%"
     "~a"
     "~%~%"
-    "The expression's declared type is"
+    "The actual type is:"
     "~%~%"
     "~a")
    (pp-fragment node)
-   (type->pp-string first-rtype)
-   (type->pp-string the-type)))
+   (type->pp-string the-type)
+   (type->pp-string atype)))
 
 (define (fail-compiler-typecase loc node atype ct-types)
   (define (pp-type t) (string-add-indent (type->pp-string t) "  "))
@@ -2791,17 +2807,17 @@
     "No typecase match"
     "~a"
     "~a"
-    "In `compiler-typecase' expression"
+    "In `compiler-typecase' expression:"
     "~%~%"
     "  ~a"
     "~%~%"
     "  Tested expression does not match any case."
     "~%~%"
-    "  The expression has type"
+    "  The expression has this type:"
     "~%~%"
     "~a"
     "~%~%"
-    "  The specified type cases are these"
+    "  The specified type cases are these:"
     "~%~%"
     "~a")
    (if (string=? "" (node-source-prefix node))
@@ -2819,17 +2835,17 @@
    (list a-node node)
    loc
    (string-append
-    "In conditional expression"
+    "In conditional expression:"
     "~%~%"
     "~a"
     "~%~%"
     "The branches have different numbers of values."
     "~%~%"
-    "The true branch returns ~a value~a"
+    "The true branch returns ~a value~a:"
     "~%~%"
     "~a"
     "~%~%"
-    "The false branch returns ~a value~a"
+    "The false branch returns ~a value~a:"
     "~%~%"
     "~a")
    (pp-fragment node)
@@ -2845,23 +2861,25 @@
    (list node value-node)
    loc
    (string-append
-    "In assignment"
+    "In assignment:"
     "~%~%"
     "~a"
     "~%~%"
     "Variable `~a' is assigned invalid value."
     "~%~%"
-    "The assigned value has type"
+    "The assigned value has this type:"
     "~%~%"
     "~a"
     "~%~%"
-    "The declared type of `~a' is"
+    "The declared type of ~a is:"
     "~%~%"
     "~a")
    (pp-fragment node)
-   var
+   (strip-namespace var)
    (type->pp-string atype)
-   var
+   (variable-from-module
+    (let ((n (real-name var)))
+      (if (symbol? n) n (string->symbol n))))
    (type->pp-string xptype)))
 
 (define (r-deprecated-identifier loc node id #!optional suggestion)
@@ -2871,7 +2889,7 @@
    (list node)
    loc
    (string-append
-    "In expression"
+    "In expression:"
     "~%~%"
     "~a"
     "~%~%"

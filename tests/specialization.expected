@@ -3,49 +3,49 @@
 
 Note: Predicate is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#string? a)
 
   The predicate will always return true.
 
-  Procedure `string?' from module `scheme' is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for:
 
     string
 
-  The given argument has type
+  The given argument has this type:
 
     string
 
 Note: Test is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In conditional expression
+  In conditional expression:
 
     (if (scheme#string? a) 'ok 'no)
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     true
 
 Note: Predicate is always false (specialization-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#string? a)
 
   The predicate will always return false.
 
-  Procedure `string?' from module `scheme' is a predicate for
+  Procedure `string?' from module `scheme' is a predicate for:
 
     string
 
-  The given argument has type
+  The given argument has this type:
 
     symbol
 
 Note: Test is always false (specialization-tests.scm:XXX) 
   At toplevel
-  In conditional expression
+  In conditional expression:
 
     (if (scheme#string? a) 'ok 'no)
 
@@ -53,52 +53,52 @@ Note: Test is always false (specialization-tests.scm:XXX)
 
 Note: Predicate is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#input-port? p)
 
   The predicate will always return true.
 
-  Procedure `input-port?' from module `scheme' is a predicate for
+  Procedure `input-port?' from module `scheme' is a predicate for:
 
     input-port
 
-  The given argument has type
+  The given argument has this type:
 
     input/output-port
 
 Note: Test is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In conditional expression
+  In conditional expression:
 
     (if (scheme#input-port? p) 'ok 'no)
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     true
 
 Note: Predicate is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In procedure call
+  In procedure call:
 
     (scheme#output-port? p)
 
   The predicate will always return true.
 
-  Procedure `output-port?' from module `scheme' is a predicate for
+  Procedure `output-port?' from module `scheme' is a predicate for:
 
     output-port
 
-  The given argument has type
+  The given argument has this type:
 
     input/output-port
 
 Note: Test is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In conditional expression
+  In conditional expression:
 
     (if (scheme#output-port? p) 'ok 'no)
 
-  Test condition has always true value of type
+  Test condition has always true value of type:
 
     true
