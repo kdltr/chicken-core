@@ -170,12 +170,6 @@
 	(else #f)))
 
 (define (scrutinize node db complain specialize strict block-compilation)
-  (define (report-notice loc msg . args)
-    (when *complain?*
-      (##sys#notice
-       (conc (location-name loc)
-	     (sprintf "~?" msg args)))))
-
   (define (report loc msg . args)
     (when *complain?*
       (warning
@@ -2502,7 +2496,7 @@
 	(sprintf "`~a' from module `~a'" (second r) (first r))
 	(sprintf "`~a'" sym))))
 
-(define (report2 report-f location-node-candidates loc msg . args)
+(define (report2 short report-f location-node-candidates loc msg . args)
   (define (file-location)
     (any (lambda (n) (and (not (string=? "" (node-source-prefix n)))
 		     (node-source-prefix n)))
@@ -2510,19 +2504,20 @@
   (when *complain?*
     (report-f
      (conc
-      "Type mismatch"
+      short
       (let ((l (file-location))) (if l (conc " " l) ""))
       (string-add-indent
        (conc "\n" (location-name loc "") (sprintf "~?" msg args))
        "  ")))))
 
-(define (report-notice location-node-candidates loc msg . args)
-  (apply report2 ##sys#notice location-node-candidates loc msg args))
+(define (report-notice reason location-node-candidates loc msg . args)
+  (apply report2 reason ##sys#notice location-node-candidates loc msg args))
 
 ;;; Reports
 
 (define (r-invalid-called-procedure-type loc node xptype ptype)
   (report2
+   "Invalid procedure"
    warning
    (list node)
    loc
@@ -2531,7 +2526,7 @@
     "~%~%"
     "~a"
     "~%~%"
-    "Procedure in a procedure call has invalid type"
+    "The procedure has invalid type"
     "~%~%"
     "~a"
     "~%~%"
@@ -2544,6 +2539,7 @@
 
 (define (r-proc-call-argument-count-mismatch loc node pname exp-count argc ptype)
   (report2
+   "Wrong number of arguments"
    warning
    (list node)
    loc
@@ -2567,6 +2563,7 @@
 
 (define (r-proc-call-argument-type-mismatch loc node pname i xptype atype ptype)
   (report2
+   "Invalid argument"
    warning
    (list node)
    loc
@@ -2594,7 +2591,6 @@
    (variable-from-module pname)
    (type->pp-string ptype)))
 
-
 (define (r-proc-call-argument-value-count loc call-node i arg-node atype)
   (define (p-arg-expr)
     (define (p-expr)
@@ -2609,7 +2605,7 @@
 			  (pname (car (node-parameters pnode)))
 			  (ptype (variable-mark pname '##compiler#type)))
 		 (sprintf (string-append
-			   "It is a call to ~a which has this type"
+			   "It is a call to ~a which has type"
 			   "~%~%"
 			   "~a"
 			   "~%~%"
@@ -2618,57 +2614,46 @@
 			  (type->pp-string ptype)
 			  (p-expr)))))
 	(p-expr)))
-  (define pn
-    (if (zero? i)
-	""
-	(sprintf " `~a'"
-		 (strip-namespace (fragment (first (node-subexpressions call-node)))))))
+  (define (p short long)
+    (report2
+     short
+     warning
+     (list arg-node call-node)
+     loc
+     (string-append
+      "In procedure call"
+      "~%~%"
+      "~a"
+      "~%~%"
+      "Argument #~a to procedure~a ~a"
+      "~%~%"
+      "~a")
+     (pp-fragment call-node)
+     i
+     (if (zero? i)
+	 ""
+	 (sprintf " `~a'"
+		  (strip-namespace (fragment (first (node-subexpressions call-node))))))
+     long
+     (p-arg-expr)))
   (if (zero? (length atype))
-      (report2
-       warning
-       (list arg-node call-node)
-       loc
-       (string-append
-	"In procedure call"
-	"~%~%"
-	"~a"
-	"~%~%"
-	"Argument #~a to procedure~a does not return any values."
-	"~%~%"
-	"~a")
-       (pp-fragment call-node)
-       i
-       pn
-       (p-arg-expr))
-      (report2
-       warning
-       (list arg-node call-node)
-       loc
-       (string-append
-	"In procedure call"
-	"~%~%"
-	"~a"
-	"~%~%"
-	"Argument #~a to procedure~a returns ~a values but 1 is expected."
-	"~%~%"
-	"~a")
-       (pp-fragment call-node)
-       i
-       pn
-       (length atype)
-       (p-arg-expr))))
+      (p "Not enough argument values"
+	 "does not return any values.")
+      (p "Too many argument values"
+	 (sprintf "returns ~a values but 1 is expected." (length atype)))))
 
 (define (r-pred-call-always-true loc node pname pred-type atype)
   ;; pname is "... proc call to predicate `foo' "
   (report-notice
+   "Predicate is always true"
    (list node)
    loc
    (string-append
-    "In predicate call"
+    "In procedure call"
     "~%~%"
     "~a"
     "~%~%"
-    "Predicate call will always return true."
+    "The predicate will always return true."
     "~%~%"
     "Procedure ~a is a predicate for"
     "~%~%"
@@ -2684,14 +2669,15 @@
 
 (define (r-pred-call-always-false loc node pname pred-type atype)
   (report-notice
+   "Predicate is always false"
    (list node)
    loc
    (string-append
-    "In predicate call"
+    "In procedure call"
     "~%~%"
     "~a"
     "~%~%"
-    "Predicate call will always return false."
+    "The predicate will always return false."
     "~%~%"
     "Procedure ~a is a predicate for"
     "~%~%"
@@ -2707,6 +2693,7 @@
 
 (define (r-cond-test-always-true loc if-node test-node t)
   (report-notice
+   "Test is always true"
    (list test-node if-node)
    loc
    (string-append
@@ -2722,6 +2709,7 @@
 
 (define (r-cond-test-always-false loc if-node test-node)
   (report-notice
+   "Test is always false"
    (list test-node if-node)
    loc
    (string-append
@@ -2735,6 +2723,7 @@
 (define (r-zero-values-for-the loc node the-type)
   ;; (the t r) expects r returns exactly 1 value
   (report2
+   "Not enough values"
    warning
    (list node)
    loc
@@ -2751,6 +2740,7 @@
 
 (define (r-too-many-values-for-the loc node the-type rtypes)
   (report2
+   "Too many values"
    warning
    (list node)
    loc
@@ -2770,6 +2760,7 @@
 
 (define (r-type-mismatch-in-the loc node first-rtype the-type)
   (report2
+   "Type mismatch"
    warning
    (list node)
    loc
@@ -2795,14 +2786,14 @@
   (define (pp-type t) (string-add-indent (type->pp-string t) "  "))
   (quit-compiling
    (string-append
-    "Type mismatch"
+    "No typecase match"
     "~a"
     "~a"
     "In `compiler-typecase' expression"
     "~%~%"
     "  ~a"
     "~%~%"
-    "  Tested expression in `compiler-typecase' does not match any case."
+    "  Tested expression does not match any case."
     "~%~%"
     "  The expression has type"
     "~%~%"
@@ -2821,6 +2812,7 @@
 
 (define (r-cond-branch-value-count-mismatch loc node c-node a-node c-types a-types)
   (report2
+   "Branch values mismatch"
    warning
    (list a-node node)
    loc
@@ -2829,7 +2821,7 @@
     "~%~%"
     "~a"
     "~%~%"
-    "The branches have different number of returned values."
+    "The branches have different numbers of values."
     "~%~%"
     "The true branch returns ~a value~a"
     "~%~%"
@@ -2846,6 +2838,7 @@
 
 (define (r-toplevel-var-assignment-type-mismatch loc node atype var xptype value-node)
   (report2
+   "Invalid assignment"
    warning
    (list node value-node)
    loc
@@ -2871,6 +2864,7 @@
 
 (define (r-deprecated-identifier loc node id #!optional suggestion)
   (report2
+   (sprintf "Deprecated identifier `~a'" (strip-namespace id))
    warning
    (list node)
    loc

@@ -3,7 +3,7 @@
 
 Warning: (scrutiny-tests.scm:XXX) - assignment to imported value binding `car'
 
-Note: Type mismatch
+Note: Test is always true
   In `a', a toplevel procedure
   In `b', a local procedure
   In `c', a local procedure
@@ -15,7 +15,7 @@ Note: Type mismatch
 
     number
 
-Note: Type mismatch
+Note: Test is always true
   In `b', a toplevel procedure
   In conditional expression
 
@@ -25,13 +25,13 @@ Note: Type mismatch
 
     true
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Branch values mismatch (scrutiny-tests.scm:XXX) 
   In `foo', a toplevel procedure
   In conditional expression
 
     (if x (scheme#values 1 2) (scheme#values 1 2 (scheme#+ (scheme#+ ...))))
 
-  The branches have different number of returned values.
+  The branches have different numbers of values.
 
   The true branch returns 2 values
 
@@ -41,7 +41,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#values 1 2 (scheme#+ (scheme#+ (scheme#+ ...))))
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -59,7 +59,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Wrong number of arguments (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -71,7 +71,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (* -> boolean)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Too many argument values (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -79,7 +79,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Argument #1 to procedure `print' returns 2 values but 1 is expected.
 
-  It is a call to `values' from module `scheme' which has this type
+  It is a call to `values' from module `scheme' which has type
 
     (procedure (#!rest values) . *)
 
@@ -87,7 +87,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#values 1 2)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Not enough argument values (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -95,7 +95,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Argument #1 to procedure `print' does not return any values.
 
-  It is a call to `values' from module `scheme' which has this type
+  It is a call to `values' from module `scheme' which has type
 
     (procedure (#!rest values) . *)
 
@@ -103,13 +103,13 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#values)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid procedure (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
     (x)
 
-  Procedure in a procedure call has invalid type
+  The procedure has invalid type
 
     fixnum
 
@@ -117,7 +117,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (-> *)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -135,7 +135,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -153,7 +153,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch
+Warning: Invalid assignment
   At toplevel
   In assignment
 
@@ -172,13 +172,13 @@ Warning: Type mismatch
 Warning: At toplevel
   expected a single result in `let' binding of `gXXX', but received 2 results
 
-Warning: Type mismatch
+Warning: Invalid procedure
   At toplevel
   In procedure call
 
     (gXXX)
 
-  Procedure in a procedure call has invalid type
+  The procedure has invalid type
 
     fixnum
 
@@ -186,7 +186,7 @@ Warning: Type mismatch
 
     (-> *)
 
-Note: Type mismatch
+Note: Test is always true
   In `foo', a toplevel procedure
   In conditional expression
 
@@ -196,7 +196,7 @@ Note: Type mismatch
 
     (-> *)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo2', a toplevel procedure
   In procedure call
 
@@ -214,7 +214,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest string -> string)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -232,7 +232,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (string -> string)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo4', a toplevel procedure
   In procedure call
 
@@ -250,7 +250,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo5', a toplevel procedure
   In procedure call
 
@@ -268,7 +268,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo6', a toplevel procedure
   In procedure call
 
@@ -286,7 +286,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -304,7 +304,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
   In procedure call
 
@@ -322,7 +322,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (string -> symbol)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
   In procedure call
 
@@ -356,7 +356,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     pair
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
   In procedure call
 
@@ -374,7 +374,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest string -> string)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Too many values (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
   In expression
 
@@ -386,7 +386,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     *
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Not enough values (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
   In expression
 
@@ -396,7 +396,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     *
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
   In procedure call
 
@@ -414,7 +414,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `foo#blabla', a toplevel procedure
   In procedure call
 
@@ -432,7 +432,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch
+Warning: Deprecated identifier `deprecated-procedure'
   At toplevel
   In expression
 
@@ -440,7 +440,7 @@ Warning: Type mismatch
 
   Use of deprecated identifier `deprecated-procedure'.
 
-Warning: Type mismatch
+Warning: Deprecated identifier `another-deprecated-procedure'
   At toplevel
   In expression
 
@@ -450,7 +450,7 @@ Warning: Type mismatch
 
   The suggested alternative is `replacement-procedure'.
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -468,7 +468,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -486,13 +486,13 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (chicken.base#fixnum? x)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `fixnum?' from module `chicken.base' is a predicate for
 
@@ -502,13 +502,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#symbol? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `symbol?' from module `scheme' is a predicate for
 
@@ -518,13 +518,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     (or char string)
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#string? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `string?' from module `scheme' is a predicate for
 
@@ -534,13 +534,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     (not (or char string))
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (char-or-string? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `char-or-string?' is a predicate for
 
@@ -550,13 +550,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#symbol? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `symbol?' from module `scheme' is a predicate for
 
@@ -566,13 +566,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     (or char string)
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#string? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `string?' from module `scheme' is a predicate for
 
@@ -582,13 +582,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#symbol? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `symbol?' from module `scheme' is a predicate for
 
@@ -598,13 +598,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     char
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#string? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `string?' from module `scheme' is a predicate for
 
@@ -614,13 +614,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     symbol
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#symbol? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `symbol?' from module `scheme' is a predicate for
 
@@ -630,13 +630,13 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     (or char string)
 
-Note: Type mismatch (scrutiny-tests.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#string? x)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `string?' from module `scheme' is a predicate for
 
@@ -646,7 +646,7 @@ Note: Type mismatch (scrutiny-tests.scm:XXX)
 
     symbol
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -664,7 +664,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (pair -> *)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -682,7 +682,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (null -> *)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   At toplevel
   In procedure call
 
@@ -709,7 +709,7 @@ Warning: In `vector-ref-warn2', a toplevel procedure
 Warning: In `vector-ref-warn3', a toplevel procedure
   (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-ref', index 4 out of range for vector of length 3
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `vector-ref-standard-warn1', a toplevel procedure
   In procedure call
 
@@ -736,7 +736,7 @@ Warning: In `vector-set!-warn2', a toplevel procedure
 Warning: In `vector-set!-warn3', a toplevel procedure
   (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-set!', index 4 out of range for vector of length 3
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `vector-set!-standard-warn1', a toplevel procedure
   In procedure call
 
@@ -769,7 +769,7 @@ Warning: In `list-ref-warn4', a toplevel procedure
 Warning: In `list-ref-warn5', a toplevel procedure
   (scrutiny-tests.scm:XXX) in procedure call to `scheme#list-ref', index 4 out of range for proper list of length 3
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn1', a toplevel procedure
   In procedure call
 
@@ -787,7 +787,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     ((list-of 'a366) fixnum -> 'a366)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn2', a toplevel procedure
   In procedure call
 
@@ -805,7 +805,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     ((list-of 'a366) fixnum -> 'a366)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn3', a toplevel procedure
   In procedure call
 
@@ -823,7 +823,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     ((list-of 'a366) fixnum -> 'a366)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn4', a toplevel procedure
   In procedure call
 
@@ -841,7 +841,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     ((list-of 'a366) fixnum -> 'a366)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn1', a toplevel procedure
   In procedure call
 
@@ -859,7 +859,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn2', a toplevel procedure
   In procedure call
 
@@ -877,7 +877,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn3', a toplevel procedure
   In procedure call
 
@@ -895,7 +895,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `append-result-type-warn1', a toplevel procedure
   In procedure call
 
@@ -913,7 +913,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     (number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
+Warning: Invalid argument (scrutiny-tests.scm:XXX) 
   In `append-result-type-warn2', a toplevel procedure
   In procedure call
 

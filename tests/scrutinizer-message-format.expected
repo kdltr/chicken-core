@@ -5,7 +5,7 @@ Warning: literal in operator position: (1 2)
 
 Warning: literal in operator position: (1 2)
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-count-mismatch', a toplevel procedure
   In procedure call
 
@@ -17,7 +17,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Invalid argument (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-type-mismatch', a toplevel procedure
   In procedure call
 
@@ -35,7 +35,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (list -> fixnum)
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Too many argument values (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-value-count', a toplevel procedure
   In procedure call
 
@@ -43,7 +43,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Argument #1 to procedure `list' returns 2 values but 1 is expected.
 
-  It is a call to `cpu-time' from module `chicken.time' which has this type
+  It is a call to `cpu-time' from module `chicken.time' which has type
 
     (-> fixnum fixnum)
 
@@ -51,7 +51,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (chicken.time#cpu-time)
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-value-count', a toplevel procedure
   In procedure call
 
@@ -59,7 +59,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Argument #1 to procedure `vector' does not return any values.
 
-  It is a call to `values' from module `scheme' which has this type
+  It is a call to `values' from module `scheme' which has type
 
     (procedure (#!rest values) . *)
 
@@ -70,13 +70,13 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 Warning: In `r-proc-call-argument-value-count', a toplevel procedure
   expected a single result in `let' binding of `gXXX', but received zero results
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `r-cond-branch-value-count-mismatch', a toplevel procedure
   In conditional expression
 
     (if (the * 1) 1 (scheme#values 1 2))
 
-  The branches have different number of returned values.
+  The branches have different numbers of values.
 
   The true branch returns 1 value
 
@@ -86,13 +86,13 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#values 1 2)
 
-Warning: Type mismatch
+Warning: Invalid procedure
   In `r-invalid-called-procedure-type', a toplevel procedure
   In procedure call
 
     (1 2)
 
-  Procedure in a procedure call has invalid type
+  The procedure has invalid type
 
     fixnum
 
@@ -100,13 +100,13 @@ Warning: Type mismatch
 
     (* -> *)
 
-Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Note: Predicate is always true (test-scrutinizer-message-format.scm:XXX) 
   In `r-pred-call-always-true', a toplevel procedure
-  In predicate call
+  In procedure call
 
     (scheme#list? '())
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `list?' from module `scheme' is a predicate for
 
@@ -116,13 +116,13 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     null
 
-Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Note: Predicate is always false (test-scrutinizer-message-format.scm:XXX) 
   In `r-pred-call-always-false', a toplevel procedure
-  In predicate call
+  In procedure call
 
     (scheme#symbol? 1)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `symbol?' from module `scheme' is a predicate for
 
@@ -132,7 +132,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
-Note: Type mismatch
+Note: Test is always true
   In `r-cond-test-always-true', a toplevel procedure
   In conditional expression
 
@@ -142,7 +142,7 @@ Note: Type mismatch
 
     symbol
 
-Note: Type mismatch
+Note: Test is always false
   In `r-cond-test-always-false', a toplevel procedure
   In conditional expression
 
@@ -166,7 +166,7 @@ Warning: Type mismatch
 
     symbol
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Not enough values (test-scrutinizer-message-format.scm:XXX) 
   In `r-zero-values-for-the', a toplevel procedure
   In expression
 
@@ -176,7 +176,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     symbol
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Too many values (test-scrutinizer-message-format.scm:XXX) 
   In `r-too-many-values-for-the', a toplevel procedure
   In expression
 
@@ -204,7 +204,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     symbol
 
-Warning: Type mismatch
+Warning: Invalid assignment
   In `r-toplevel-var-assignment-type-mismatch', a toplevel procedure
   In assignment
 
@@ -220,7 +220,7 @@ Warning: Type mismatch
 
     boolean
 
-Warning: Type mismatch
+Warning: Deprecated identifier `deprecated-foo'
   In `r-deprecated-identifier', a toplevel procedure
   In expression
 
@@ -228,7 +228,7 @@ Warning: Type mismatch
 
   Use of deprecated identifier `deprecated-foo'.
 
-Warning: Type mismatch
+Warning: Deprecated identifier `deprecated-foo2'
   In `r-deprecated-identifier', a toplevel procedure
   In expression
 
@@ -238,7 +238,7 @@ Warning: Type mismatch
 
   The suggested alternative is `foo'.
 
-Warning: Type mismatch
+Warning: Invalid assignment
   At toplevel
   In assignment
 
@@ -275,7 +275,7 @@ Warning: In `zero-values-for-conditional', a toplevel procedure
 Warning: In `multiple-values-for-conditional', a toplevel procedure
   expected a single result in conditional, but received 2 results
 
-Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
   In `multiple-values-for-conditional', a toplevel procedure
   In conditional expression
 
@@ -288,7 +288,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 Warning: In `multiple-values-for-conditional', a toplevel procedure
   expected a single result in `let' binding of `gXXX', but received 2 results
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-count-mismatch', a local procedure
@@ -302,7 +302,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Invalid argument (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-type-mismatch', a local procedure
@@ -322,7 +322,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (list -> fixnum)
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Too many argument values (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-value-count', a local procedure
@@ -332,7 +332,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Argument #1 to procedure `list' returns 2 values but 1 is expected.
 
-  It is a call to `cpu-time' from module `chicken.time' which has this type
+  It is a call to `cpu-time' from module `chicken.time' which has type
 
     (-> fixnum fixnum)
 
@@ -340,7 +340,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (chicken.time#cpu-time)
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-value-count', a local procedure
@@ -350,7 +350,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Argument #1 to procedure `vector' does not return any values.
 
-  It is a call to `values' from module `scheme' which has this type
+  It is a call to `values' from module `scheme' which has type
 
     (procedure (#!rest values) . *)
 
@@ -363,7 +363,7 @@ Warning: In `m#toplevel-foo', a toplevel procedure
   In `r-proc-call-argument-value-count', a local procedure
   expected a single result in `let' binding of `gXXX', but received zero results
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-cond-branch-value-count-mismatch', a local procedure
@@ -371,7 +371,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (if (the * 1) 1 (chicken.time#cpu-time))
 
-  The branches have different number of returned values.
+  The branches have different numbers of values.
 
   The true branch returns 1 value
 
@@ -381,7 +381,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (chicken.time#cpu-time)
 
-Warning: Type mismatch
+Warning: Invalid procedure
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-invalid-called-procedure-type', a local procedure
@@ -389,7 +389,7 @@ Warning: Type mismatch
 
     (1 2)
 
-  Procedure in a procedure call has invalid type
+  The procedure has invalid type
 
     fixnum
 
@@ -397,15 +397,15 @@ Warning: Type mismatch
 
     (* -> *)
 
-Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Note: Predicate is always true (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-pred-call-always-true', a local procedure
-  In predicate call
+  In procedure call
 
     (scheme#list? '())
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `list?' from module `scheme' is a predicate for
 
@@ -415,15 +415,15 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     null
 
-Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Note: Predicate is always false (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-pred-call-always-false', a local procedure
-  In predicate call
+  In procedure call
 
     (scheme#symbol? 1)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `symbol?' from module `scheme' is a predicate for
 
@@ -433,7 +433,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-cond-test-always-true', a local procedure
@@ -445,7 +445,7 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
-Note: Type mismatch
+Note: Test is always false
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-cond-test-always-false', a local procedure
@@ -473,7 +473,7 @@ Warning: Type mismatch
 
     symbol
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Not enough values (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-zero-values-for-the', a local procedure
@@ -485,7 +485,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     symbol
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Warning: Too many values (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-too-many-values-for-the', a local procedure
@@ -517,7 +517,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     symbol
 
-Warning: Type mismatch
+Warning: Invalid assignment
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-toplevel-var-assignment-type-mismatch', a local procedure
@@ -535,7 +535,7 @@ Warning: Type mismatch
 
     boolean
 
-Warning: Type mismatch
+Warning: Deprecated identifier `deprecated-foo'
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-deprecated-identifier', a local procedure
@@ -545,7 +545,7 @@ Warning: Type mismatch
 
   Use of deprecated identifier `deprecated-foo' from module `m'.
 
-Warning: Type mismatch
+Warning: Deprecated identifier `deprecated-foo2'
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-deprecated-identifier', a local procedure
@@ -592,7 +592,7 @@ Warning: In `m#toplevel-foo', a toplevel procedure
   In `multiple-values-for-conditional', a local procedure
   expected a single result in conditional, but received 2 results
 
-Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `multiple-values-for-conditional', a local procedure
@@ -609,7 +609,7 @@ Warning: In `m#toplevel-foo', a toplevel procedure
   In `multiple-values-for-conditional', a local procedure
   expected a single result in `let' binding of `gXXX', but received 2 results
 
-Error: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
+Error: No typecase match (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `fail-compiler-typecase', a local procedure
@@ -617,7 +617,7 @@ Error: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (compiler-typecase gXXX (symbol 1) (list 2) (else (##core#undefined)))
 
-  Tested expression in `compiler-typecase' does not match any case.
+  Tested expression does not match any case.
 
   The expression has type
 

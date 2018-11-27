@@ -1,13 +1,13 @@
 ;; numbers replaced with XXX by redact-gensyms.scm
 ;; prefixes: (tmp g scm:)
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#pair? p)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `pair?' from module `scheme' is a predicate for
 
@@ -17,13 +17,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     pair
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#pair? l)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `pair?' from module `scheme' is a predicate for
 
@@ -33,13 +33,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     null
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#pair? n)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `pair?' from module `scheme' is a predicate for
 
@@ -49,13 +49,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     null
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#pair? i)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `pair?' from module `scheme' is a predicate for
 
@@ -65,13 +65,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#pair? f)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `pair?' from module `scheme' is a predicate for
 
@@ -81,13 +81,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     float
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#list? l)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `list?' from module `scheme' is a predicate for
 
@@ -97,13 +97,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     null
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#list? n)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `list?' from module `scheme' is a predicate for
 
@@ -113,13 +113,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     null
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#list? i)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `list?' from module `scheme' is a predicate for
 
@@ -129,13 +129,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#list? f)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `list?' from module `scheme' is a predicate for
 
@@ -145,13 +145,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     float
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#null? n)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `null?' from module `scheme' is a predicate for
 
@@ -161,13 +161,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     null
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#null? l)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `null?' from module `scheme' is a predicate for
 
@@ -177,13 +177,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     null
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#null? p)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `null?' from module `scheme' is a predicate for
 
@@ -193,13 +193,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     pair
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#null? i)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `null?' from module `scheme' is a predicate for
 
@@ -209,13 +209,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#null? f)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `null?' from module `scheme' is a predicate for
 
@@ -225,13 +225,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     float
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (chicken.base#fixnum? i)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `fixnum?' from module `chicken.base' is a predicate for
 
@@ -241,13 +241,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (chicken.base#fixnum? f)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `fixnum?' from module `chicken.base' is a predicate for
 
@@ -257,13 +257,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     float
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (chicken.base#flonum? f)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `flonum?' from module `chicken.base' is a predicate for
 
@@ -273,13 +273,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     float
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (chicken.base#flonum? i)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `flonum?' from module `chicken.base' is a predicate for
 
@@ -289,13 +289,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#number? i)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `number?' from module `scheme' is a predicate for
 
@@ -305,13 +305,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     fixnum
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#number? f)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `number?' from module `scheme' is a predicate for
 
@@ -321,13 +321,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     float
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always true (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#number? u)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `number?' from module `scheme' is a predicate for
 
@@ -337,13 +337,13 @@ Note: Type mismatch (scrutiny-tests-2.scm:XXX)
 
     number
 
-Note: Type mismatch (scrutiny-tests-2.scm:XXX) 
+Note: Predicate is always false (scrutiny-tests-2.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#number? n)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `number?' from module `scheme' is a predicate for
 

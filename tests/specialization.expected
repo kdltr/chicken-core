@@ -1,13 +1,13 @@
 ;; numbers replaced with XXX by redact-gensyms.scm
 ;; prefixes: (tmp g scm:)
 
-Note: Type mismatch (specialization-tests.scm:XXX) 
+Note: Predicate is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#string? a)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `string?' from module `scheme' is a predicate for
 
@@ -17,7 +17,7 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
     string
 
-Note: Type mismatch (specialization-tests.scm:XXX) 
+Note: Test is always true (specialization-tests.scm:XXX) 
   At toplevel
   In conditional expression
 
@@ -27,13 +27,13 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
     true
 
-Note: Type mismatch (specialization-tests.scm:XXX) 
+Note: Predicate is always false (specialization-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#string? a)
 
-  Predicate call will always return false.
+  The predicate will always return false.
 
   Procedure `string?' from module `scheme' is a predicate for
 
@@ -43,7 +43,7 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
     symbol
 
-Note: Type mismatch (specialization-tests.scm:XXX) 
+Note: Test is always false (specialization-tests.scm:XXX) 
   At toplevel
   In conditional expression
 
@@ -51,13 +51,13 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
   Test condition is always false.
 
-Note: Type mismatch (specialization-tests.scm:XXX) 
+Note: Predicate is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#input-port? p)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `input-port?' from module `scheme' is a predicate for
 
@@ -67,7 +67,7 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
     input/output-port
 
-Note: Type mismatch (specialization-tests.scm:XXX) 
+Note: Test is always true (specialization-tests.scm:XXX) 
   At toplevel
   In conditional expression
 
@@ -77,13 +77,13 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
     true
 
-Note: Type mismatch (specialization-tests.scm:XXX) 
+Note: Predicate is always true (specialization-tests.scm:XXX) 
   At toplevel
-  In predicate call
+  In procedure call
 
     (scheme#output-port? p)
 
-  Predicate call will always return true.
+  The predicate will always return true.
 
   Procedure `output-port?' from module `scheme' is a predicate for
 
@@ -93,7 +93,7 @@ Note: Type mismatch (specialization-tests.scm:XXX)
 
     input/output-port
 
-Note: Type mismatch (specialization-tests.scm:XXX) 
+Note: Test is always true (specialization-tests.scm:XXX) 
   At toplevel
   In conditional expression
 
