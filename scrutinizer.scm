@@ -2494,6 +2494,28 @@
 	(sprintf "`~a' from module `~a'" (second r) (first r))
 	(sprintf "`~a'" sym))))
 
+(define (describe-expression node)
+  (define (p-expr n)
+    (sprintf (string-append "This is the expression" "~%~%" "~a")
+	     (pp-fragment n)))
+  (define (p-node n)
+    (or (and (eq? '##core#call (node-class n))
+	     (let ((pnode (first (node-subexpressions n))))
+	       (and-let* (((eq? '##core#variable (node-class pnode)))
+			  (pname (car (node-parameters pnode)))
+			  (ptype (variable-mark pname '##compiler#type)))
+		 (sprintf (string-append
+			   "It is a call to ~a which has type"
+			   "~%~%"
+			   "~a"
+			   "~%~%"
+			   "~a")
+			  (variable-from-module pname)
+			  (type->pp-string ptype)
+			  (p-expr n)))))
+	(p-expr n)))
+  (p-node node))
+
 (define (call-node-procedure-name node)
   (fragment (first (node-subexpressions node))))
 
@@ -2596,28 +2618,6 @@
 
 (define (r-proc-call-argument-value-count loc call-node i arg-node atype)
   (define pname (call-node-procedure-name call-node))
-  (define (p-arg-expr)
-    (define (p-expr)
-      (sprintf (string-append
-		"This is the expression"
-		"~%~%"
-		"~a")
-	       (pp-fragment arg-node)))
-    (or (and (eq? '##core#call (node-class arg-node))
-	     (let ((pnode (first (node-subexpressions arg-node))))
-	       (and-let* (((eq? '##core#variable (node-class pnode)))
-			  (pname (car (node-parameters pnode)))
-			  (ptype (variable-mark pname '##compiler#type)))
-		 (sprintf (string-append
-			   "It is a call to ~a which has type"
-			   "~%~%"
-			   "~a"
-			   "~%~%"
-			   "~a")
-			  (variable-from-module pname)
-			  (type->pp-string ptype)
-			  (p-expr)))))
-	(p-expr)))
   (define (p short long)
     (report2
      short
@@ -2636,7 +2636,7 @@
      i
      (if (zero? i) "" (sprintf " `~a'" (strip-namespace pname)))
      long
-     (p-arg-expr)))
+     (describe-expression arg-node)))
   (if (zero? (length atype))
       (p "Not enough argument values"
 	 "does not return any values.")
