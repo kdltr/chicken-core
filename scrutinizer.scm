@@ -315,8 +315,6 @@
 	(and (pair? c) c)))
 
     (define (call-result node args e loc params typeenv)
-      (define (pname)
-	(fragment (first (node-subexpressions node))))
       (let* ((actualtypes (map walked-result args))
 	     (ptype (car actualtypes))
 	     (pptype? (procedure-type? ptype))
@@ -333,7 +331,7 @@
 	       (let-values (((atypes values-rest ok alen)
 			     (procedure-argument-types ptype nargs typeenv)))
 		 (unless ok
-		   (r-proc-call-argument-count-mismatch loc node (pname) alen nargs ptype))
+		   (r-proc-call-argument-count-mismatch loc node alen nargs ptype))
 		 (do ((actualtypes (cdr actualtypes) (cdr actualtypes))
 		      (atypes atypes (cdr atypes))
 		      (i 1 (add1 i)))
@@ -343,7 +341,7 @@
 			    (car actualtypes)
 			    typeenv)
 		     (r-proc-call-argument-type-mismatch
-		      loc node (pname) i
+		      loc node i
 		      (resolve (car atypes) typeenv)
 		      (resolve (car actualtypes) typeenv)
 		      ptype)))
@@ -358,7 +356,7 @@
 				   (lambda (pt)
 				     (cond ((match-argument-types (list pt) (cdr actualtypes) typeenv)
 					    (r-pred-call-always-true
-					     loc node (pname) pt (cadr actualtypes))
+					     loc node pt (cadr actualtypes))
 					    (when specialize
 					      (specialize-node!
 					       node (cdr args)
@@ -369,7 +367,7 @@
 					      (trail-restore trail0 typeenv)
 					      (match-argument-types (list `(not ,pt)) (cdr actualtypes) typeenv))
 					    (r-pred-call-always-false
-					     loc node (pname) pt (cadr actualtypes))
+					     loc node pt (cadr actualtypes))
 					    (when specialize
 					      (specialize-node!
 					       node (cdr args)
@@ -2496,6 +2494,9 @@
 	(sprintf "`~a' from module `~a'" (second r) (first r))
 	(sprintf "`~a'" sym))))
 
+(define (call-node-procedure-name node)
+  (fragment (first (node-subexpressions node))))
+
 (define (report2 short report-f location-node-candidates loc msg . args)
   (define (file-location)
     (any (lambda (n) (and (not (string=? "" (node-source-prefix n)))
@@ -2537,7 +2538,8 @@
    (type->pp-string ptype)
    (type->pp-string xptype)))
 
-(define (r-proc-call-argument-count-mismatch loc node pname exp-count argc ptype)
+(define (r-proc-call-argument-count-mismatch loc node exp-count argc ptype)
+  (define pname (call-node-procedure-name node))
   (report2
    "Wrong number of arguments"
    warning
@@ -2561,7 +2563,8 @@
    (variable-from-module pname)
    (type->pp-string ptype)))
 
-(define (r-proc-call-argument-type-mismatch loc node pname i xptype atype ptype)
+(define (r-proc-call-argument-type-mismatch loc node i xptype atype ptype)
+  (define pname (call-node-procedure-name node))
   (report2
    "Invalid argument"
    warning
@@ -2592,6 +2595,7 @@
    (type->pp-string ptype)))
 
 (define (r-proc-call-argument-value-count loc call-node i arg-node atype)
+  (define pname (call-node-procedure-name call-node))
   (define (p-arg-expr)
     (define (p-expr)
       (sprintf (string-append
@@ -2630,10 +2634,7 @@
       "~a")
      (pp-fragment call-node)
      i
-     (if (zero? i)
-	 ""
-	 (sprintf " `~a'"
-		  (strip-namespace (fragment (first (node-subexpressions call-node))))))
+     (if (zero? i) "" (sprintf " `~a'" (strip-namespace pname)))
      long
      (p-arg-expr)))
   (if (zero? (length atype))
@@ -2642,8 +2643,8 @@
       (p "Too many argument values"
 	 (sprintf "returns ~a values but 1 is expected." (length atype)))))
 
-(define (r-pred-call-always-true loc node pname pred-type atype)
-  ;; pname is "... proc call to predicate `foo' "
+(define (r-pred-call-always-true loc node pred-type atype)
+  (define pname (call-node-procedure-name node))
   (report-notice
    "Predicate is always true"
    (list node)
@@ -2667,7 +2668,8 @@
    (type->pp-string pred-type)
    (type->pp-string atype)))
 
-(define (r-pred-call-always-false loc node pname pred-type atype)
+(define (r-pred-call-always-false loc node pred-type atype)
+  (define pname (call-node-procedure-name node))
   (report-notice
    "Predicate is always false"
    (list node)
