@@ -563,7 +563,10 @@
 		      (set! count (add1 count))
 		      (let ((n (make-node '##core#inline
 					  (list ub)
-					  (map walk/unbox subs))))
+					  (map (if (eq? type 'acc)
+						   walk
+						   walk/unbox)
+					       subs))))
 			(case type
 			  ((pred) n)
 			  (else (make-node '##core#box_float '()
