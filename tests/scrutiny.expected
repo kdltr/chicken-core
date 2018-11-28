@@ -179,8 +179,21 @@ Warning: Invalid assignment
 
     ((pair 'a335 *) -> 'a335)
 
-Warning: At toplevel
-  expected a single result in `let' binding of `gXXX', but received 2 results
+Warning: Let binding to `gXXX' has 2 values (scrutiny-tests.scm:XXX) 
+  At toplevel
+  In let expression:
+
+    (let ((gXXX (scheme#values 1 2))) (gXXX))
+
+  Variable `gXXX' is bound to an expression that returns 2 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values 1 2)
 
 Warning: Invalid procedure
   At toplevel

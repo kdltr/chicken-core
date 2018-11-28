@@ -276,25 +276,7 @@
 	(d "assignment to var ~a in ~a is always immediate" var loc)
 	#t))
 
-    (define (single node what tv loc)
-      (if (eq? '* tv)
-	  '*
-	  (let ((n (length tv)))
-	    (cond ((= 1 n) (car tv))
-		  ((zero? n)
-		   (report
-		    loc
-		    "~aexpected a single result ~a, but received zero results"
-		    (node-source-prefix node) what)
-		   'undefined)
-		  (else
-		   (report
-		    loc
-		    "~aexpected a single result ~a, but received ~a result~a"
-		    (node-source-prefix node) what n (multiples n))
-		   (first tv))))))
-
-    (define (single2 tv r-value-count-mismatch)
+    (define (single tv r-value-count-mismatch)
       (if (eq? '* tv)
 	  '*
 	  (let ((n (length tv)))
@@ -464,7 +446,8 @@
 			(tst (first subs))
 			(nor-1 noreturn))
 		    (set! noreturn #f)
-		    (let* ((rt (single n "in conditional" (walk tst e loc #f #f flow tags) loc))
+		    (let* ((rt (single (walk tst e loc #f #f flow tags)
+				       (cut r-conditional-value-count-invalid loc n tst <>)))
 			   (c (second subs))
 			   (a (third subs))
 			   (nor0 noreturn))
@@ -517,11 +500,8 @@
 			(walk (car body) (append e2 e) loc dest tail flow ctags)
 			(let* ((var (car vars))
 			       (val (car body))
-			       (t (single
-				   n
-				   (sprintf "in `let' binding of `~a'" (real-name var))
-				   (walk val e loc var #f flow #f) 
-				   loc)))
+			       (t (single (walk val e loc var #f flow #f)
+					  (cut r-let-value-count-invalid loc var n val <>))))
 			  (when (and (eq? (node-class val) '##core#variable)
 				     (not (db-get db var 'assigned)))
 			    (let ((var2 (first (node-parameters val))))
@@ -585,11 +565,9 @@
 		 ((set! ##core#set!)
 		  (let* ((var (first params))
 			 (type (variable-mark var '##compiler#type))
-			 (rt (single
-			      n
-			      (sprintf "in assignment to `~a'" var)
-			      (walk (first subs) e loc var #f flow #f)
-			      loc))
+			 (rt (single (walk (first subs) e loc var #f flow #f)
+				     (cut r-assignment-value-count-invalid
+					  loc var n (first subs) <>)))
 			 (typeenv (append 
 				   (if type (type-typeenv type) '())
 				   (type-typeenv rt)))
@@ -662,7 +640,7 @@
 				      (make-node
 				       '##core#the/result
 				       (list
-					(single2
+					(single
 					 (walk n2 e loc #f #f flow #f)
 					 (cut r-proc-call-argument-value-count loc n i n2 <>)))
 				       (list n2)))
@@ -2248,8 +2226,9 @@
 		(unless (or (null? (cdr arg-types))
 			    (potentially-proper-list? arg1))
 		  (r-proc-call-argument-type-mismatch
-		   loc node index 'list
-		   (car arg-types) arg1 (variable-mark 'scheme#append '##compiler#type)))
+		   loc node index 'list arg1
+		   (car arg-types)
+		   (variable-mark 'scheme#append '##compiler#type)))
 		#f))))))
     (cond ((derive-result-type) => list)
 	  (else rtypes)))
@@ -2658,6 +2637,71 @@
    (if (negative? idx)
        (sprintf "a negative index ~a." idx)
        (sprintf "index `~a' for a ~a of length `~a'." idx obj-name obj-length))))
+
+(define (r-conditional-value-count-invalid loc if-node test-node atype)
+  (define (p short long)
+    (report2 short warning (list test-node if-node)
+	     loc
+	     (string-append
+	      "In conditional:"
+	      "~%~%"
+	      "~a"
+	      "~%~%"
+	      "The test expression ~a"
+	      "~%~%"
+	      "~a")
+	     (pp-fragment if-node)
+	     long
+	     (describe-expression test-node)))
+  (if (zero? (length atype))
+      (p "Zero values for conditional"
+	 "returns 0 values.")
+      (p "Too many values for conditional"
+	 (sprintf "returns ~a values." (length atype)))))
+
+(define (r-let-value-count-invalid loc var let-node val-node atype)
+  (define (p short long)
+    (report2 short warning (list val-node let-node)
+	     loc
+	     (string-append
+	      "In let expression:"
+	      "~%~%"
+	      "~a"
+	      "~%~%"
+	      "Variable `~a' is bound to an expression that ~a"
+	      "~%~%"
+	      "~a")
+	     (pp-fragment let-node)
+	     (real-name var)
+	     long
+	     (describe-expression val-node)))
+  (if (zero? (length atype))
+      (p (sprintf "Let binding to `~a' has zero values" (real-name var))
+	 "returns 0 values.")
+      (p (sprintf "Let binding to `~a' has ~a values" (real-name var) (length atype))
+	 (sprintf "returns ~a values." (length atype)))))
+
+(define (r-assignment-value-count-invalid loc var set-node val-node atype)
+  (define (p short long)
+    (report2 short warning (list val-node set-node)
+	     loc
+	     (string-append
+	      "In assignment:"
+	      "~%~%"
+	      "~a"
+	      "~%~%"
+	      "Variable `~a' is assigned from expression that ~a"
+	      "~%~%"
+	      "~a")
+	     (pp-fragment set-node)
+	     (strip-namespace var)
+	     long
+	     (describe-expression val-node)))
+  (if (zero? (length atype))
+      (p (sprintf "Assignment to `~a' has zero values" (strip-namespace var))
+	 "returns 0 values.")
+      (p (sprintf "Assignment to `~a' has ~a values" (strip-namespace var) (length atype))
+	 (sprintf "returns ~a values." (length atype)))))
 
 (define (r-pred-call-always-true loc node pred-type atype)
   (define pname (call-node-procedure-name node))

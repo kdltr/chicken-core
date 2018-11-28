@@ -71,8 +71,21 @@ Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#values)
 
-Warning: In `r-proc-call-argument-value-count', a toplevel procedure
-  expected a single result in `let' binding of `gXXX', but received zero results
+Warning: Let binding to `gXXX' has zero values (test-scrutinizer-message-format.scm:XXX) 
+  In `r-proc-call-argument-value-count', a toplevel procedure
+  In let expression:
+
+    (let ((gXXX (scheme#values))) (gXXX))
+
+  Variable `gXXX' is bound to an expression that returns 0 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values)
 
 Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `r-cond-branch-value-count-mismatch', a toplevel procedure
@@ -288,17 +301,69 @@ Warning: Negative vector index (test-scrutinizer-message-format.scm:XXX)
 
   Procedure `vector-ref' from module `scheme' is called with a negative index -1.
 
-Warning: In `zero-values-for-let', a toplevel procedure
-  expected a single result in `let' binding of `a', but received zero results
+Warning: Let binding to `a' has zero values (test-scrutinizer-message-format.scm:XXX) 
+  In `zero-values-for-let', a toplevel procedure
+  In let expression:
 
-Warning: In `multiple-values-for-let', a toplevel procedure
-  expected a single result in `let' binding of `a', but received 2 results
+    (let ((a (scheme#values))) a)
 
-Warning: In `zero-values-for-conditional', a toplevel procedure
-  expected a single result in conditional, but received zero results
+  Variable `a' is bound to an expression that returns 0 values.
 
-Warning: In `multiple-values-for-conditional', a toplevel procedure
-  expected a single result in conditional, but received 2 results
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values)
+
+Warning: Let binding to `a' has 2 values (test-scrutinizer-message-format.scm:XXX) 
+  In `multiple-values-for-let', a toplevel procedure
+  In let expression:
+
+    (let ((a (scheme#values 1 2))) a)
+
+  Variable `a' is bound to an expression that returns 2 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values 1 2)
+
+Warning: Zero values for conditional (test-scrutinizer-message-format.scm:XXX) 
+  In `zero-values-for-conditional', a toplevel procedure
+  In conditional:
+
+    (if (scheme#values) 1 (##core#undefined))
+
+  The test expression returns 0 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values)
+
+Warning: Too many values for conditional (test-scrutinizer-message-format.scm:XXX) 
+  In `multiple-values-for-conditional', a toplevel procedure
+  In conditional:
+
+    (if (scheme#values 1 2) 1 (##core#undefined))
+
+  The test expression returns 2 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values 1 2)
 
 Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
   In `multiple-values-for-conditional', a toplevel procedure
@@ -310,8 +375,21 @@ Note: Test is always true (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
-Warning: In `multiple-values-for-conditional', a toplevel procedure
-  expected a single result in `let' binding of `gXXX', but received 2 results
+Warning: Let binding to `gXXX' has 2 values (test-scrutinizer-message-format.scm:XXX) 
+  In `multiple-values-for-conditional', a toplevel procedure
+  In let expression:
+
+    (if (scheme#values 1 2) 1 (##core#undefined))
+
+  Variable `gXXX' is bound to an expression that returns 2 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values 1 2)
 
 Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
@@ -387,10 +465,23 @@ Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#values)
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+Warning: Let binding to `gXXX' has zero values (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `r-proc-call-argument-value-count', a local procedure
-  expected a single result in `let' binding of `gXXX', but received zero results
+  In let expression:
+
+    (let ((gXXX (scheme#values))) (gXXX))
+
+  Variable `gXXX' is bound to an expression that returns 0 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values)
 
 Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
@@ -622,25 +713,77 @@ Warning: Negative vector index (test-scrutinizer-message-format.scm:XXX)
 
   Procedure `vector-ref' from module `scheme' is called with a negative index -1.
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+Warning: Let binding to `a' has zero values (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `zero-values-for-let', a local procedure
-  expected a single result in `let' binding of `a', but received zero results
+  In let expression:
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+    (let ((a (scheme#values))) a)
+
+  Variable `a' is bound to an expression that returns 0 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values)
+
+Warning: Let binding to `a' has 2 values (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `multiple-values-for-let', a local procedure
-  expected a single result in `let' binding of `a', but received 2 results
+  In let expression:
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+    (let ((a (scheme#values 1 2))) a)
+
+  Variable `a' is bound to an expression that returns 2 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values 1 2)
+
+Warning: Zero values for conditional (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `zero-values-for-conditional', a local procedure
-  expected a single result in conditional, but received zero results
+  In conditional:
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+    (if (scheme#values) 1 (##core#undefined))
+
+  The test expression returns 0 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values)
+
+Warning: Too many values for conditional (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `multiple-values-for-conditional', a local procedure
-  expected a single result in conditional, but received 2 results
+  In conditional:
+
+    (if (scheme#values 1 2) 1 (##core#undefined))
+
+  The test expression returns 2 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values 1 2)
 
 Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
@@ -654,10 +797,23 @@ Note: Test is always true (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
-Warning: In `m#toplevel-foo', a toplevel procedure
+Warning: Let binding to `gXXX' has 2 values (test-scrutinizer-message-format.scm:XXX) 
+  In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
   In `multiple-values-for-conditional', a local procedure
-  expected a single result in `let' binding of `gXXX', but received 2 results
+  In let expression:
+
+    (if (scheme#values 1 2) 1 (##core#undefined))
+
+  Variable `gXXX' is bound to an expression that returns 2 values.
+
+  It is a call to `values' from module `scheme' which has this type:
+
+    (procedure (#!rest values) . *)
+
+  This is the expression:
+
+    (scheme#values 1 2)
 
 Error: No typecase match (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
