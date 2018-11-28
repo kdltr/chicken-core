@@ -1,22 +1,24 @@
+;; numbers replaced with XXX by redact-gensyms.scm
+;; prefixes: (tmp g scm: a b)
 
 Warning: literal in operator position: (1 2)
 
 Warning: literal in operator position: (1 2)
 
 Warning: in toplevel procedure `r-proc-call-argument-count-mismatch':
-  (test-scrutinizer-message-format.scm:9) in procedure call to `scheme#cons', expected 2 arguments but was given 1 argument
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#cons', expected 2 arguments but was given 1 argument
 
 Warning: in toplevel procedure `r-proc-call-argument-type-mismatch':
-  (test-scrutinizer-message-format.scm:10) in procedure call to `scheme#length', expected argument #1 of type `list' but was given an argument of type `symbol'
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#length', expected argument #1 of type `list' but was given an argument of type `symbol'
 
 Warning: in toplevel procedure `r-proc-call-argument-value-count':
-  (test-scrutinizer-message-format.scm:11) expected a single result in argument #1 of procedure call `(scheme#list (chicken.time#cpu-time))', but received 2 results
+  (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#list (chicken.time#cpu-time))', but received 2 results
 
 Warning: in toplevel procedure `r-proc-call-argument-value-count':
-  (test-scrutinizer-message-format.scm:11) expected a single result in argument #1 of procedure call `(scheme#vector (scheme#values))', but received zero results
+  (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#vector (scheme#values))', but received zero results
 
 Warning: in toplevel procedure `r-proc-call-argument-value-count':
-  expected a single result in `let' binding of `g28', but received zero results
+  expected a single result in `let' binding of `gXXX', but received zero results
 
 Warning: in toplevel procedure `r-cond-branch-value-count-mismatch':
   branches in conditional expression differ in the number of results:
@@ -27,10 +29,10 @@ Warning: in toplevel procedure `r-invalid-called-procedure-type':
   in procedure call to `1', expected a value of type `(procedure (*) *)' but was given a value of type `fixnum'
 
 Note: in toplevel procedure `r-pred-call-always-true':
-  (test-scrutinizer-message-format.scm:14) in procedure call to `scheme#list?', the predicate is called with an argument of type `null' and will always return true
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list?', the predicate is called with an argument of type `null' and will always return true
 
 Note: in toplevel procedure `r-pred-call-always-false':
-  (test-scrutinizer-message-format.scm:15) in procedure call to `scheme#symbol?', the predicate is called with an argument of type `fixnum' and will always return false
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#symbol?', the predicate is called with an argument of type `fixnum' and will always return false
 
 Note: in toplevel procedure `r-cond-test-always-true':
   expected a value of type boolean in conditional, but was given a value of type `symbol' which is always true:
@@ -67,13 +69,13 @@ Warning: at toplevel:
   assignment of value of type `fixnum' to toplevel variable `foo' does not match declared type `boolean'
 
 Warning: in toplevel procedure `list-ref-negative-index':
-  (test-scrutinizer-message-format.scm:26) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
 
 Warning: in toplevel procedure `list-ref-out-of-range':
-  (test-scrutinizer-message-format.scm:27) in procedure call to `scheme#list-ref', index 1 out of range for proper list of length 0
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list-ref', index 1 out of range for proper list of length 0
 
 Warning: in toplevel procedure `vector-ref-out-of-range':
-  (test-scrutinizer-message-format.scm:29) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 0
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 0
 
 Warning: in toplevel procedure `zero-values-for-let':
   expected a single result in `let' binding of `a', but received zero results
@@ -88,34 +90,34 @@ Warning: in toplevel procedure `multiple-values-for-conditional':
   expected a single result in conditional, but received 2 results
 
 Note: in toplevel procedure `multiple-values-for-conditional':
-  (test-scrutinizer-message-format.scm:33) expected a value of type boolean in conditional, but was given a value of type `fixnum' which is always true:
+  (test-scrutinizer-message-format.scm:XXX) expected a value of type boolean in conditional, but was given a value of type `fixnum' which is always true:
 
 (if (scheme#values 1 2) 1 (##core#undefined))
 
 Warning: in local procedure `r-proc-call-argument-count-mismatch',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:52) in procedure call to `scheme#cons', expected 2 arguments but was given 1 argument
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#cons', expected 2 arguments but was given 1 argument
 
 Warning: in local procedure `r-proc-call-argument-type-mismatch',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:53) in procedure call to `scheme#length', expected argument #1 of type `list' but was given an argument of type `symbol'
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#length', expected argument #1 of type `list' but was given an argument of type `symbol'
 
 Warning: in local procedure `r-proc-call-argument-value-count',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:54) expected a single result in argument #1 of procedure call `(scheme#list (chicken.time#cpu-time))', but received 2 results
+  (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#list (chicken.time#cpu-time))', but received 2 results
 
 Warning: in local procedure `r-proc-call-argument-value-count',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:54) expected a single result in argument #1 of procedure call `(scheme#vector (scheme#values))', but received zero results
+  (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#vector (scheme#values))', but received zero results
 
 Warning: in local procedure `r-proc-call-argument-value-count',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  expected a single result in `let' binding of `g90', but received zero results
+  expected a single result in `let' binding of `gXXX', but received zero results
 
 Warning: in local procedure `r-cond-branch-value-count-mismatch',
   in local procedure `local-bar',
@@ -132,17 +134,17 @@ Warning: in local procedure `r-invalid-called-procedure-type',
 Note: in local procedure `r-pred-call-always-true',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:57) in procedure call to `scheme#list?', the predicate is called with an argument of type `null' and will always return true
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list?', the predicate is called with an argument of type `null' and will always return true
 
 Note: in local procedure `r-pred-call-always-false',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:58) in procedure call to `scheme#symbol?', the predicate is called with an argument of type `fixnum' and will always return false
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#symbol?', the predicate is called with an argument of type `fixnum' and will always return false
 
 Note: in local procedure `r-cond-test-always-true',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:59) expected a value of type boolean in conditional, but was given a value of type `fixnum' which is always true:
+  (test-scrutinizer-message-format.scm:XXX) expected a value of type boolean in conditional, but was given a value of type `fixnum' which is always true:
 
 (if (scheme#length '()) 1 (##core#undefined))
 
@@ -191,17 +193,17 @@ Warning: in local procedure `r-deprecated-identifier',
 Warning: in local procedure `list-ref-negative-index',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:67) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
 
 Warning: in local procedure `list-ref-out-of-range',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:68) in procedure call to `scheme#list-ref', index 1 out of range for proper list of length 0
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#list-ref', index 1 out of range for proper list of length 0
 
 Warning: in local procedure `vector-ref-out-of-range',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:70) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 0
+  (test-scrutinizer-message-format.scm:XXX) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 0
 
 Warning: in local procedure `zero-values-for-let',
   in local procedure `local-bar',
@@ -226,13 +228,13 @@ Warning: in local procedure `multiple-values-for-conditional',
 Note: in local procedure `multiple-values-for-conditional',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:74) expected a value of type boolean in conditional, but was given a value of type `fixnum' which is always true:
+  (test-scrutinizer-message-format.scm:XXX) expected a value of type boolean in conditional, but was given a value of type `fixnum' which is always true:
 
 (if (scheme#values 1 2) 1 (##core#undefined))
 
 Error: in local procedure `fail-compiler-typecase',
   in local procedure `local-bar',
   in toplevel procedure `m#toplevel-foo':
-  (test-scrutinizer-message-format.scm:76) no clause applies in `compiler-typecase' for expression of type `fixnum':
+  (test-scrutinizer-message-format.scm:XXX) no clause applies in `compiler-typecase' for expression of type `fixnum':
     symbol
     list

@@ -93,25 +93,34 @@ if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 
-%compile% scrutiny-tests.scm -A -verbose 2>scrutiny.out
-if errorlevel 1 exit /b 1
-
-rem this is sensitive to gensym-names, so make it optional
-if not exist scrutiny.expected copy /Y scrutiny.out scrutiny.expected
-
-%compile% scrutiny-tests-2.scm -A -verbose 2>scrutiny-2.out
-if errorlevel 1 exit /b 1
-%compile% test-scrutinizer-message-format.scm -A -verbose 2>scrutinizer-message-format.out
+%compile% test-scrutinizer-message-format.scm -A 2>scrutinizer-message-format.out
 rem this is expected to fail, so no errorlevel check
-
-fc /lb%FCBUFSIZE% /w scrutinizer-message-format.expected scrutinizer-message-format.out
+%compile% scrutiny-tests.scm -A 2>scrutiny.out
 if errorlevel 1 exit /b 1
-fc /lb%FCBUFSIZE% /w scrutiny.expected scrutiny.out
+%compile% scrutiny-tests-2.scm -A 2>scrutiny-2.out
+if errorlevel 1 exit /b 1
+%compile% specialization-tests.scm -A -specialize 2>specialization.out
 if errorlevel 1 exit /b 1
 
-if not exist scrutiny-2.expected copy /Y scrutiny-2.out scrutiny-2.expected
+rem Replace foo123 -> fooXX so gensyms don't trigger failures
+%compile% redact-gensyms.scm -o redact-gensyms
+if errorlevel 1 exit /b 1
+redact-gensyms "tmp,g,scm:,a,b" < scrutinizer-message-format.out > scrutinizer-message-format.redacted
+if errorlevel 1 exit /b 1
+redact-gensyms < scrutiny-2.out > scrutiny-2.redacted
+if errorlevel 1 exit /b 1
+redact-gensyms < scrutiny.out > scrutiny.redacted
+if errorlevel 1 exit /b 1
+redact-gensyms < specialization.out > specialization.redacted
+if errorlevel 1 exit /b 1
 
-fc /lb%FCBUFSIZE% /w scrutiny-2.expected scrutiny-2.out
+fc /lb%FCBUFSIZE% /w scrutinizer-message-format.expected scrutinizer-message-format.redacted
+if errorlevel 1 exit /b 1
+fc /lb%FCBUFSIZE% /w scrutiny.expected scrutiny.redacted
+if errorlevel 1 exit /b 1
+fc /lb%FCBUFSIZE% /w scrutiny-2.expected scrutiny-2.redacted
+if errorlevel 1 exit /b 1
+fc /lb%FCBUFSIZE% /w specialization.expected specialization.redacted
 if errorlevel 1 exit /b 1
 
 %compile% scrutiny-tests-3.scm -specialize -block
