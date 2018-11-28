@@ -2406,7 +2406,7 @@
 
 (define (node-source-prefix n)
   (let ((line (node-line-number n)))
-    (if (not line) "" (sprintf "(~a) " line))))
+    (if (not line) "" (sprintf "In file `~a'," line))))
 
 (define (location-name loc #!optional (indent "  "))
   (define (lname loc1)
@@ -2414,21 +2414,35 @@
 	(real-name loc1)
 	"(unknown procedure)"))
   (if (null? loc)
-      (sprintf "At toplevel\n~a" indent)
+      (conc "At the toplevel,\n" indent)
       (let rec ((loc loc)
 		(msgs (list "")))
 	(if (null? (cdr loc))
 	    (string-intersperse
-	     (cons (sprintf "In `~a', a toplevel procedure" (lname (car loc))) msgs)
-	     (sprintf "\n~a" indent))
+	     (cons (if (car loc)
+		       ;; If the first location is of format 'bar#foo'
+		       ;; consider it as being being procedure 'foo' in
+		       ;; module 'bar'.
+		       (receive (var mod) (variable-and-module (real-name (car loc)))
+			 (conc (if mod (sprintf "In module `~a',~%~a" mod indent) "")
+			       (sprintf "In procedure `~a'," var)))
+		       "In a toplevel procedure") msgs)
+	     (conc "\n" indent))
 	    (rec (cdr loc)
-		 (cons (sprintf "In `~a', a local procedure" (lname (car loc))) msgs))))))
+		 (cons (sprintf "In procedure `~a'," (lname (car loc))) msgs))))))
+
+(define (variable-and-module name) ; -> (values var module-or-false)
+  (let* ((str-name (if (symbol? name) (symbol->string name) name))
+	 (r (string-split str-name "#" #t)))
+    (if (pair? (cdr r))
+	(values (string->symbol (second r)) (string->symbol (first r)))
+	(values (string->symbol str-name) #f))))
 
 (define (variable-from-module sym)
-  (let ((r (string-split (symbol->string sym) "#" #t)))
-    (if (= (length r) 2)
-	(sprintf "`~a' from module `~a'" (second r) (first r))
-	(sprintf "`~a'" sym))))
+  (receive (var mod) (variable-and-module sym)
+    (if mod
+	(sprintf "`~a' from module `~a'" var mod)
+	(sprintf "`~a'" var))))
 
 (define (describe-expression node)
   (define (p-expr n)
@@ -2466,9 +2480,10 @@
     (report-f
      (conc
       short
-      (let ((l (file-location))) (if l (conc " " l) ""))
       (string-add-indent
-       (conc "\n" (location-name loc "") (sprintf "~?" msg args))
+       (conc (let ((l (file-location))) (if l (conc "\n" l) "")) "\n"
+	     (location-name loc "")
+	     (sprintf "~?" msg args))
        "  ")))
     (flush-output)))
 
@@ -2849,6 +2864,7 @@
   (quit-compiling
    (string-append
     "No typecase match"
+    "~%"
     "~a"
     "~a"
     "In `compiler-typecase' expression:"
@@ -2866,7 +2882,7 @@
     "~a")
    (if (string=? "" (node-source-prefix node))
        "\n"
-       (conc " " (node-source-prefix node) "\n  "))
+       (conc "  " (node-source-prefix node) "\n  "))
    (location-name loc)
    (pp-fragment node)
    (pp-type atype)

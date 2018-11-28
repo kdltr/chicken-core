@@ -5,8 +5,9 @@ Warning: literal in operator position: (1 2)
 
 Warning: literal in operator position: (1 2)
 
-Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX) 
-  In `r-proc-call-argument-count-mismatch', a toplevel procedure
+Warning: Wrong number of arguments
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-proc-call-argument-count-mismatch',
   In procedure call:
 
     (scheme#cons '())
@@ -17,8 +18,9 @@ Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX)
 
     ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
-Warning: Invalid argument (test-scrutinizer-message-format.scm:XXX) 
-  In `r-proc-call-argument-type-mismatch', a toplevel procedure
+Warning: Invalid argument
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-proc-call-argument-type-mismatch',
   In procedure call:
 
     (scheme#length 'symbol)
@@ -39,8 +41,9 @@ Warning: Invalid argument (test-scrutinizer-message-format.scm:XXX)
 
     (list -> fixnum)
 
-Warning: Too many argument values (test-scrutinizer-message-format.scm:XXX) 
-  In `r-proc-call-argument-value-count', a toplevel procedure
+Warning: Too many argument values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-proc-call-argument-value-count',
   In procedure call:
 
     (scheme#list (chicken.time#cpu-time))
@@ -55,8 +58,9 @@ Warning: Too many argument values (test-scrutinizer-message-format.scm:XXX)
 
     (chicken.time#cpu-time)
 
-Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX) 
-  In `r-proc-call-argument-value-count', a toplevel procedure
+Warning: Not enough argument values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-proc-call-argument-value-count',
   In procedure call:
 
     (scheme#vector (scheme#values))
@@ -71,8 +75,9 @@ Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#values)
 
-Warning: Let binding to `gXXX' has zero values (test-scrutinizer-message-format.scm:XXX) 
-  In `r-proc-call-argument-value-count', a toplevel procedure
+Warning: Let binding to `gXXX' has zero values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-proc-call-argument-value-count',
   In let expression:
 
     (let ((gXXX (scheme#values))) (gXXX))
@@ -87,8 +92,9 @@ Warning: Let binding to `gXXX' has zero values (test-scrutinizer-message-format.
 
     (scheme#values)
 
-Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX) 
-  In `r-cond-branch-value-count-mismatch', a toplevel procedure
+Warning: Branch values mismatch
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-cond-branch-value-count-mismatch',
   In conditional expression:
 
     (if (the * 1) 1 (scheme#values 1 2))
@@ -104,7 +110,7 @@ Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX)
     (scheme#values 1 2)
 
 Warning: Invalid procedure
-  In `r-invalid-called-procedure-type', a toplevel procedure
+  In procedure `r-invalid-called-procedure-type',
   In procedure call:
 
     (1 2)
@@ -123,8 +129,9 @@ Warning: Invalid procedure
 
     fixnum
 
-Note: Predicate is always true (test-scrutinizer-message-format.scm:XXX) 
-  In `r-pred-call-always-true', a toplevel procedure
+Note: Predicate is always true
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-pred-call-always-true',
   In procedure call:
 
     (scheme#list? '())
@@ -139,8 +146,9 @@ Note: Predicate is always true (test-scrutinizer-message-format.scm:XXX)
 
     null
 
-Note: Predicate is always false (test-scrutinizer-message-format.scm:XXX) 
-  In `r-pred-call-always-false', a toplevel procedure
+Note: Predicate is always false
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-pred-call-always-false',
   In procedure call:
 
     (scheme#symbol? 1)
@@ -156,7 +164,7 @@ Note: Predicate is always false (test-scrutinizer-message-format.scm:XXX)
     fixnum
 
 Note: Test is always true
-  In `r-cond-test-always-true', a toplevel procedure
+  In procedure `r-cond-test-always-true',
   In conditional expression:
 
     (if 'symbol 1 (##core#undefined))
@@ -166,7 +174,7 @@ Note: Test is always true
     symbol
 
 Note: Test is always false
-  In `r-cond-test-always-false', a toplevel procedure
+  In procedure `r-cond-test-always-false',
   In conditional expression:
 
     (if #f 1 (##core#undefined))
@@ -174,7 +182,7 @@ Note: Test is always false
   Test condition is always false.
 
 Warning: Type mismatch
-  In `r-type-mismatch-in-the', a toplevel procedure
+  In procedure `r-type-mismatch-in-the',
   In expression:
 
     1
@@ -189,8 +197,9 @@ Warning: Type mismatch
 
     fixnum
 
-Warning: Not enough values (test-scrutinizer-message-format.scm:XXX) 
-  In `r-zero-values-for-the', a toplevel procedure
+Warning: Not enough values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-zero-values-for-the',
   In expression:
 
     (scheme#values)
@@ -199,8 +208,9 @@ Warning: Not enough values (test-scrutinizer-message-format.scm:XXX)
 
     symbol
 
-Warning: Too many values (test-scrutinizer-message-format.scm:XXX) 
-  In `r-too-many-values-for-the', a toplevel procedure
+Warning: Too many values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-too-many-values-for-the',
   In expression:
 
     (scheme#values 1 2)
@@ -211,8 +221,9 @@ Warning: Too many values (test-scrutinizer-message-format.scm:XXX)
 
     symbol
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
-  In `r-too-many-values-for-the', a toplevel procedure
+Warning: Type mismatch
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `r-too-many-values-for-the',
   In expression:
 
     (scheme#values 1 2)
@@ -228,7 +239,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
     fixnum
 
 Warning: Invalid assignment
-  In `r-toplevel-var-assignment-type-mismatch', a toplevel procedure
+  In procedure `r-toplevel-var-assignment-type-mismatch',
   In assignment:
 
     (set! foo 1)
@@ -244,7 +255,7 @@ Warning: Invalid assignment
     boolean
 
 Warning: Deprecated identifier `deprecated-foo'
-  In `r-deprecated-identifier', a toplevel procedure
+  In procedure `r-deprecated-identifier',
   In expression:
 
     deprecated-foo
@@ -252,7 +263,7 @@ Warning: Deprecated identifier `deprecated-foo'
   Use of deprecated identifier `deprecated-foo'.
 
 Warning: Deprecated identifier `deprecated-foo2'
-  In `r-deprecated-identifier', a toplevel procedure
+  In procedure `r-deprecated-identifier',
   In expression:
 
     deprecated-foo2
@@ -262,7 +273,7 @@ Warning: Deprecated identifier `deprecated-foo2'
   The suggested alternative is `foo'.
 
 Warning: Invalid assignment
-  At toplevel
+  At the toplevel,
   In assignment:
 
     (set! foo 1)
@@ -277,32 +288,36 @@ Warning: Invalid assignment
 
     boolean
 
-Warning: Negative list index (test-scrutinizer-message-format.scm:XXX) 
-  In `list-ref-negative-index', a toplevel procedure
+Warning: Negative list index
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `list-ref-negative-index',
   In procedure call:
 
     (scheme#list-ref '() -1)
 
   Procedure `list-ref' from module `scheme' is called with a negative index -1.
 
-Warning: List index out of range (test-scrutinizer-message-format.scm:XXX) 
-  In `list-ref-out-of-range', a toplevel procedure
+Warning: List index out of range
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `list-ref-out-of-range',
   In procedure call:
 
     (scheme#list-ref '() 1)
 
   Procedure `list-ref' from module `scheme' is called with index `1' for a list of length `0'.
 
-Warning: Negative vector index (test-scrutinizer-message-format.scm:XXX) 
-  In `vector-ref-out-of-range', a toplevel procedure
+Warning: Negative vector index
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `vector-ref-out-of-range',
   In procedure call:
 
     (scheme#vector-ref (scheme#vector) -1)
 
   Procedure `vector-ref' from module `scheme' is called with a negative index -1.
 
-Warning: Let binding to `a' has zero values (test-scrutinizer-message-format.scm:XXX) 
-  In `zero-values-for-let', a toplevel procedure
+Warning: Let binding to `a' has zero values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `zero-values-for-let',
   In let expression:
 
     (let ((a (scheme#values))) a)
@@ -317,8 +332,9 @@ Warning: Let binding to `a' has zero values (test-scrutinizer-message-format.scm
 
     (scheme#values)
 
-Warning: Let binding to `a' has 2 values (test-scrutinizer-message-format.scm:XXX) 
-  In `multiple-values-for-let', a toplevel procedure
+Warning: Let binding to `a' has 2 values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `multiple-values-for-let',
   In let expression:
 
     (let ((a (scheme#values 1 2))) a)
@@ -333,8 +349,9 @@ Warning: Let binding to `a' has 2 values (test-scrutinizer-message-format.scm:XX
 
     (scheme#values 1 2)
 
-Warning: Zero values for conditional (test-scrutinizer-message-format.scm:XXX) 
-  In `zero-values-for-conditional', a toplevel procedure
+Warning: Zero values for conditional
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `zero-values-for-conditional',
   In conditional:
 
     (if (scheme#values) 1 (##core#undefined))
@@ -349,8 +366,9 @@ Warning: Zero values for conditional (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#values)
 
-Warning: Too many values for conditional (test-scrutinizer-message-format.scm:XXX) 
-  In `multiple-values-for-conditional', a toplevel procedure
+Warning: Too many values for conditional
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `multiple-values-for-conditional',
   In conditional:
 
     (if (scheme#values 1 2) 1 (##core#undefined))
@@ -365,8 +383,9 @@ Warning: Too many values for conditional (test-scrutinizer-message-format.scm:XX
 
     (scheme#values 1 2)
 
-Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
-  In `multiple-values-for-conditional', a toplevel procedure
+Note: Test is always true
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `multiple-values-for-conditional',
   In conditional expression:
 
     (if (scheme#values 1 2) 1 (##core#undefined))
@@ -375,8 +394,9 @@ Note: Test is always true (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
-Warning: Let binding to `gXXX' has 2 values (test-scrutinizer-message-format.scm:XXX) 
-  In `multiple-values-for-conditional', a toplevel procedure
+Warning: Let binding to `gXXX' has 2 values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In procedure `multiple-values-for-conditional',
   In let expression:
 
     (if (scheme#values 1 2) 1 (##core#undefined))
@@ -391,10 +411,12 @@ Warning: Let binding to `gXXX' has 2 values (test-scrutinizer-message-format.scm
 
     (scheme#values 1 2)
 
-Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-proc-call-argument-count-mismatch', a local procedure
+Warning: Wrong number of arguments
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-proc-call-argument-count-mismatch',
   In procedure call:
 
     (scheme#cons '())
@@ -405,10 +427,12 @@ Warning: Wrong number of arguments (test-scrutinizer-message-format.scm:XXX)
 
     ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
-Warning: Invalid argument (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-proc-call-argument-type-mismatch', a local procedure
+Warning: Invalid argument
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-proc-call-argument-type-mismatch',
   In procedure call:
 
     (scheme#length 'symbol)
@@ -429,10 +453,12 @@ Warning: Invalid argument (test-scrutinizer-message-format.scm:XXX)
 
     (list -> fixnum)
 
-Warning: Too many argument values (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-proc-call-argument-value-count', a local procedure
+Warning: Too many argument values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-proc-call-argument-value-count',
   In procedure call:
 
     (scheme#list (chicken.time#cpu-time))
@@ -447,10 +473,12 @@ Warning: Too many argument values (test-scrutinizer-message-format.scm:XXX)
 
     (chicken.time#cpu-time)
 
-Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-proc-call-argument-value-count', a local procedure
+Warning: Not enough argument values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-proc-call-argument-value-count',
   In procedure call:
 
     (scheme#vector (scheme#values))
@@ -465,10 +493,12 @@ Warning: Not enough argument values (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#values)
 
-Warning: Let binding to `gXXX' has zero values (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-proc-call-argument-value-count', a local procedure
+Warning: Let binding to `gXXX' has zero values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-proc-call-argument-value-count',
   In let expression:
 
     (let ((gXXX (scheme#values))) (gXXX))
@@ -483,10 +513,12 @@ Warning: Let binding to `gXXX' has zero values (test-scrutinizer-message-format.
 
     (scheme#values)
 
-Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-cond-branch-value-count-mismatch', a local procedure
+Warning: Branch values mismatch
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-cond-branch-value-count-mismatch',
   In conditional expression:
 
     (if (the * 1) 1 (chicken.time#cpu-time))
@@ -502,9 +534,10 @@ Warning: Branch values mismatch (test-scrutinizer-message-format.scm:XXX)
     (chicken.time#cpu-time)
 
 Warning: Invalid procedure
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-invalid-called-procedure-type', a local procedure
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-invalid-called-procedure-type',
   In procedure call:
 
     (1 2)
@@ -523,10 +556,12 @@ Warning: Invalid procedure
 
     fixnum
 
-Note: Predicate is always true (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-pred-call-always-true', a local procedure
+Note: Predicate is always true
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-pred-call-always-true',
   In procedure call:
 
     (scheme#list? '())
@@ -541,10 +576,12 @@ Note: Predicate is always true (test-scrutinizer-message-format.scm:XXX)
 
     null
 
-Note: Predicate is always false (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-pred-call-always-false', a local procedure
+Note: Predicate is always false
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-pred-call-always-false',
   In procedure call:
 
     (scheme#symbol? 1)
@@ -559,10 +596,12 @@ Note: Predicate is always false (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
-Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-cond-test-always-true', a local procedure
+Note: Test is always true
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-cond-test-always-true',
   In conditional expression:
 
     (if (scheme#length '()) 1 (##core#undefined))
@@ -572,9 +611,10 @@ Note: Test is always true (test-scrutinizer-message-format.scm:XXX)
     fixnum
 
 Note: Test is always false
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-cond-test-always-false', a local procedure
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-cond-test-always-false',
   In conditional expression:
 
     (if #f 1 (##core#undefined))
@@ -582,9 +622,10 @@ Note: Test is always false
   Test condition is always false.
 
 Warning: Type mismatch
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-type-mismatch-in-the', a local procedure
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-type-mismatch-in-the',
   In expression:
 
     1
@@ -599,10 +640,12 @@ Warning: Type mismatch
 
     fixnum
 
-Warning: Not enough values (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-zero-values-for-the', a local procedure
+Warning: Not enough values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-zero-values-for-the',
   In expression:
 
     (scheme#values)
@@ -611,10 +654,12 @@ Warning: Not enough values (test-scrutinizer-message-format.scm:XXX)
 
     symbol
 
-Warning: Too many values (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-too-many-values-for-the', a local procedure
+Warning: Too many values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-too-many-values-for-the',
   In expression:
 
     (scheme#values 1 2)
@@ -625,10 +670,12 @@ Warning: Too many values (test-scrutinizer-message-format.scm:XXX)
 
     symbol
 
-Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-too-many-values-for-the', a local procedure
+Warning: Type mismatch
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-too-many-values-for-the',
   In expression:
 
     (scheme#values 1 2)
@@ -644,9 +691,10 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
     fixnum
 
 Warning: Invalid assignment
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-toplevel-var-assignment-type-mismatch', a local procedure
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-toplevel-var-assignment-type-mismatch',
   In assignment:
 
     (set! m#foo2 1)
@@ -662,9 +710,10 @@ Warning: Invalid assignment
     boolean
 
 Warning: Deprecated identifier `deprecated-foo'
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-deprecated-identifier', a local procedure
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-deprecated-identifier',
   In expression:
 
     m#deprecated-foo
@@ -672,9 +721,10 @@ Warning: Deprecated identifier `deprecated-foo'
   Use of deprecated identifier `deprecated-foo' from module `m'.
 
 Warning: Deprecated identifier `deprecated-foo2'
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `r-deprecated-identifier', a local procedure
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `r-deprecated-identifier',
   In expression:
 
     m#deprecated-foo2
@@ -683,40 +733,48 @@ Warning: Deprecated identifier `deprecated-foo2'
 
   The suggested alternative is `foo'.
 
-Warning: Negative list index (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `list-ref-negative-index', a local procedure
+Warning: Negative list index
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `list-ref-negative-index',
   In procedure call:
 
     (scheme#list-ref '() -1)
 
   Procedure `list-ref' from module `scheme' is called with a negative index -1.
 
-Warning: List index out of range (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `list-ref-out-of-range', a local procedure
+Warning: List index out of range
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `list-ref-out-of-range',
   In procedure call:
 
     (scheme#list-ref '() 1)
 
   Procedure `list-ref' from module `scheme' is called with index `1' for a list of length `0'.
 
-Warning: Negative vector index (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `vector-ref-out-of-range', a local procedure
+Warning: Negative vector index
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `vector-ref-out-of-range',
   In procedure call:
 
     (scheme#vector-ref (scheme#vector) -1)
 
   Procedure `vector-ref' from module `scheme' is called with a negative index -1.
 
-Warning: Let binding to `a' has zero values (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `zero-values-for-let', a local procedure
+Warning: Let binding to `a' has zero values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `zero-values-for-let',
   In let expression:
 
     (let ((a (scheme#values))) a)
@@ -731,10 +789,12 @@ Warning: Let binding to `a' has zero values (test-scrutinizer-message-format.scm
 
     (scheme#values)
 
-Warning: Let binding to `a' has 2 values (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `multiple-values-for-let', a local procedure
+Warning: Let binding to `a' has 2 values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `multiple-values-for-let',
   In let expression:
 
     (let ((a (scheme#values 1 2))) a)
@@ -749,10 +809,12 @@ Warning: Let binding to `a' has 2 values (test-scrutinizer-message-format.scm:XX
 
     (scheme#values 1 2)
 
-Warning: Zero values for conditional (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `zero-values-for-conditional', a local procedure
+Warning: Zero values for conditional
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `zero-values-for-conditional',
   In conditional:
 
     (if (scheme#values) 1 (##core#undefined))
@@ -767,10 +829,12 @@ Warning: Zero values for conditional (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#values)
 
-Warning: Too many values for conditional (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `multiple-values-for-conditional', a local procedure
+Warning: Too many values for conditional
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `multiple-values-for-conditional',
   In conditional:
 
     (if (scheme#values 1 2) 1 (##core#undefined))
@@ -785,10 +849,12 @@ Warning: Too many values for conditional (test-scrutinizer-message-format.scm:XX
 
     (scheme#values 1 2)
 
-Note: Test is always true (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `multiple-values-for-conditional', a local procedure
+Note: Test is always true
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `multiple-values-for-conditional',
   In conditional expression:
 
     (if (scheme#values 1 2) 1 (##core#undefined))
@@ -797,10 +863,12 @@ Note: Test is always true (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
-Warning: Let binding to `gXXX' has 2 values (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `multiple-values-for-conditional', a local procedure
+Warning: Let binding to `gXXX' has 2 values
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `multiple-values-for-conditional',
   In let expression:
 
     (if (scheme#values 1 2) 1 (##core#undefined))
@@ -815,10 +883,12 @@ Warning: Let binding to `gXXX' has 2 values (test-scrutinizer-message-format.scm
 
     (scheme#values 1 2)
 
-Error: No typecase match (test-scrutinizer-message-format.scm:XXX) 
-  In `m#toplevel-foo', a toplevel procedure
-  In `local-bar', a local procedure
-  In `fail-compiler-typecase', a local procedure
+Error: No typecase match
+  In file `test-scrutinizer-message-format.scm:XXX',
+  In module `m',
+  In procedure `toplevel-foo',
+  In procedure `local-bar',
+  In procedure `fail-compiler-typecase',
   In `compiler-typecase' expression:
 
     (compiler-typecase gXXX (symbol 1) (list 2) (else (##core#undefined)))

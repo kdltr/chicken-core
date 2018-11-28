@@ -1,8 +1,9 @@
 ;; numbers replaced with XXX by redact-gensyms.scm
 ;; prefixes: (tmp g scm:)
 
-Note: Predicate is always true (specialization-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#string? a)
@@ -17,8 +18,9 @@ Note: Predicate is always true (specialization-tests.scm:XXX)
 
     string
 
-Note: Test is always true (specialization-tests.scm:XXX) 
-  At toplevel
+Note: Test is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
   In conditional expression:
 
     (if (scheme#string? a) 'ok 'no)
@@ -27,8 +29,9 @@ Note: Test is always true (specialization-tests.scm:XXX)
 
     true
 
-Note: Predicate is always false (specialization-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#string? a)
@@ -43,16 +46,18 @@ Note: Predicate is always false (specialization-tests.scm:XXX)
 
     symbol
 
-Note: Test is always false (specialization-tests.scm:XXX) 
-  At toplevel
+Note: Test is always false
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
   In conditional expression:
 
     (if (scheme#string? a) 'ok 'no)
 
   Test condition is always false.
 
-Note: Predicate is always true (specialization-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#input-port? p)
@@ -67,8 +72,9 @@ Note: Predicate is always true (specialization-tests.scm:XXX)
 
     input/output-port
 
-Note: Test is always true (specialization-tests.scm:XXX) 
-  At toplevel
+Note: Test is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
   In conditional expression:
 
     (if (scheme#input-port? p) 'ok 'no)
@@ -77,8 +83,9 @@ Note: Test is always true (specialization-tests.scm:XXX)
 
     true
 
-Note: Predicate is always true (specialization-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#output-port? p)
@@ -93,8 +100,9 @@ Note: Predicate is always true (specialization-tests.scm:XXX)
 
     input/output-port
 
-Note: Test is always true (specialization-tests.scm:XXX) 
-  At toplevel
+Note: Test is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
   In conditional expression:
 
     (if (scheme#output-port? p) 'ok 'no)

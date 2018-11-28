@@ -4,9 +4,9 @@
 Warning: (scrutiny-tests.scm:XXX) - assignment to imported value binding `car'
 
 Note: Test is always true
-  In `a', a toplevel procedure
-  In `b', a local procedure
-  In `c', a local procedure
+  In procedure `a',
+  In procedure `b',
+  In procedure `c',
   In conditional expression:
 
     (if x 1 2)
@@ -16,7 +16,7 @@ Note: Test is always true
     number
 
 Note: Test is always true
-  In `b', a toplevel procedure
+  In procedure `b',
   In conditional expression:
 
     (if x 1 2)
@@ -25,8 +25,9 @@ Note: Test is always true
 
     true
 
-Warning: Branch values mismatch (scrutiny-tests.scm:XXX) 
-  In `foo', a toplevel procedure
+Warning: Branch values mismatch
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo',
   In conditional expression:
 
     (if x (scheme#values 1 2) (scheme#values 1 2 (scheme#+ (scheme#+ ...))))
@@ -41,8 +42,9 @@ Warning: Branch values mismatch (scrutiny-tests.scm:XXX)
 
     (scheme#values 1 2 (scheme#+ (scheme#+ (scheme#+ ...))))
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (bar 3 'a)
@@ -63,8 +65,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Wrong number of arguments (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Wrong number of arguments
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#string?)
@@ -75,8 +78,9 @@ Warning: Wrong number of arguments (scrutiny-tests.scm:XXX)
 
     (* -> boolean)
 
-Warning: Too many argument values (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Too many argument values
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (chicken.base#print (scheme#values 1 2))
@@ -91,8 +95,9 @@ Warning: Too many argument values (scrutiny-tests.scm:XXX)
 
     (scheme#values 1 2)
 
-Warning: Not enough argument values (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Not enough argument values
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (chicken.base#print (scheme#values))
@@ -107,8 +112,9 @@ Warning: Not enough argument values (scrutiny-tests.scm:XXX)
 
     (scheme#values)
 
-Warning: Invalid procedure (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid procedure
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (x)
@@ -119,8 +125,9 @@ Warning: Invalid procedure (scrutiny-tests.scm:XXX)
 
     fixnum
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#+ 'a 'b)
@@ -141,8 +148,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#+ 'a 'b)
@@ -164,7 +172,7 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
     (#!rest number -> number)
 
 Warning: Invalid assignment
-  At toplevel
+  At the toplevel,
   In assignment:
 
     (set! scheme#car 33)
@@ -179,8 +187,9 @@ Warning: Invalid assignment
 
     ((pair 'a335 *) -> 'a335)
 
-Warning: Let binding to `gXXX' has 2 values (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Let binding to `gXXX' has 2 values
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In let expression:
 
     (let ((gXXX (scheme#values 1 2))) (gXXX))
@@ -196,7 +205,7 @@ Warning: Let binding to `gXXX' has 2 values (scrutiny-tests.scm:XXX)
     (scheme#values 1 2)
 
 Warning: Invalid procedure
-  At toplevel
+  At the toplevel,
   In procedure call:
 
     (gXXX)
@@ -208,7 +217,7 @@ Warning: Invalid procedure
     fixnum
 
 Note: Test is always true
-  In `foo', a toplevel procedure
+  In procedure `foo',
   In conditional expression:
 
     (if bar 3 (##core#undefined))
@@ -217,8 +226,9 @@ Note: Test is always true
 
     (-> *)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo2', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo2',
   In procedure call:
 
     (scheme#string-append x "abc")
@@ -239,8 +249,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest string -> string)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (foo3 99)
@@ -261,8 +272,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (string -> string)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo4', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo4',
   In procedure call:
 
     (scheme#+ x 1)
@@ -283,8 +295,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo5', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo5',
   In procedure call:
 
     (scheme#+ x 3)
@@ -305,8 +318,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo6', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo6',
   In procedure call:
 
     (scheme#+ x 3)
@@ -327,8 +341,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#+ x 1)
@@ -349,8 +364,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo10', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo10',
   In procedure call:
 
     (foo9 x)
@@ -371,8 +387,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (string -> symbol)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo10', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo10',
   In procedure call:
 
     (scheme#+ x 1)
@@ -393,8 +410,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Type mismatch (scrutiny-tests.scm:XXX) 
-  In `foo10', a toplevel procedure
+Warning: Type mismatch
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo10',
   In expression:
 
     (scheme#substring x 0 10)
@@ -409,8 +427,9 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
     string
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo10', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo10',
   In procedure call:
 
     (scheme#string-append (the pair (scheme#substring x 0 10)))
@@ -431,8 +450,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest string -> string)
 
-Warning: Too many values (scrutiny-tests.scm:XXX) 
-  In `foo10', a toplevel procedure
+Warning: Too many values
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo10',
   In expression:
 
     (scheme#values 1 2)
@@ -443,8 +463,9 @@ Warning: Too many values (scrutiny-tests.scm:XXX)
 
     *
 
-Warning: Not enough values (scrutiny-tests.scm:XXX) 
-  In `foo10', a toplevel procedure
+Warning: Not enough values
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo10',
   In expression:
 
     (scheme#values)
@@ -453,8 +474,9 @@ Warning: Not enough values (scrutiny-tests.scm:XXX)
 
     *
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo10', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `foo10',
   In procedure call:
 
     (scheme#* x y)
@@ -475,8 +497,10 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (#!rest number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `foo#blabla', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In module `foo',
+  In procedure `blabla',
   In procedure call:
 
     (scheme#+ 1 'x)
@@ -498,7 +522,7 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
     (#!rest number -> number)
 
 Warning: Deprecated identifier `deprecated-procedure'
-  At toplevel
+  At the toplevel,
   In expression:
 
     deprecated-procedure
@@ -506,7 +530,7 @@ Warning: Deprecated identifier `deprecated-procedure'
   Use of deprecated identifier `deprecated-procedure'.
 
 Warning: Deprecated identifier `another-deprecated-procedure'
-  At toplevel
+  At the toplevel,
   In expression:
 
     another-deprecated-procedure
@@ -515,8 +539,9 @@ Warning: Deprecated identifier `another-deprecated-procedure'
 
   The suggested alternative is `replacement-procedure'.
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (apply1 scheme#+ (scheme#list 'a 2 3))
@@ -541,8 +566,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (apply1 scheme#+ (scheme#cons 'a (scheme#cons 2 (scheme#cons 3 ...))))
@@ -567,8 +593,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
 
-Note: Predicate is always true (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always true
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (chicken.base#fixnum? x)
@@ -583,8 +610,9 @@ Note: Predicate is always true (scrutiny-tests.scm:XXX)
 
     fixnum
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#symbol? x)
@@ -599,8 +627,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     (or char string)
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#string? x)
@@ -615,8 +644,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     (not (or char string))
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (char-or-string? x)
@@ -631,8 +661,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     fixnum
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#symbol? x)
@@ -647,8 +678,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     (or char string)
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#string? x)
@@ -663,8 +695,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     fixnum
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#symbol? x)
@@ -679,8 +712,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     char
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#string? x)
@@ -695,8 +729,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     symbol
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#symbol? x)
@@ -711,8 +746,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     (or char string)
 
-Note: Predicate is always false (scrutiny-tests.scm:XXX) 
-  At toplevel
+Note: Predicate is always false
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (scheme#string? x)
@@ -727,8 +763,9 @@ Note: Predicate is always false (scrutiny-tests.scm:XXX)
 
     symbol
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (f (scheme#list))
@@ -753,8 +790,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (pair -> *)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (f (scheme#list 1))
@@ -779,8 +817,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (null -> *)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  At toplevel
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  At the toplevel,
   In procedure call:
 
     (f (scheme#cons 1 2))
@@ -805,32 +844,36 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (list -> *)
 
-Warning: Negative vector index (scrutiny-tests.scm:XXX) 
-  In `vector-ref-warn1', a toplevel procedure
+Warning: Negative vector index
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `vector-ref-warn1',
   In procedure call:
 
     (scheme#vector-ref v1 -1)
 
   Procedure `vector-ref' from module `scheme' is called with a negative index -1.
 
-Warning: Vector index out of range (scrutiny-tests.scm:XXX) 
-  In `vector-ref-warn2', a toplevel procedure
+Warning: Vector index out of range
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `vector-ref-warn2',
   In procedure call:
 
     (scheme#vector-ref v1 3)
 
   Procedure `vector-ref' from module `scheme' is called with index `3' for a vector of length `3'.
 
-Warning: Vector index out of range (scrutiny-tests.scm:XXX) 
-  In `vector-ref-warn3', a toplevel procedure
+Warning: Vector index out of range
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `vector-ref-warn3',
   In procedure call:
 
     (scheme#vector-ref v1 4)
 
   Procedure `vector-ref' from module `scheme' is called with index `4' for a vector of length `3'.
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `vector-ref-standard-warn1', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `vector-ref-standard-warn1',
   In procedure call:
 
     (scheme#vector-ref v1 'bad)
@@ -851,32 +894,36 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     ((vector-of 'a384) fixnum -> 'a384)
 
-Warning: Negative vector index (scrutiny-tests.scm:XXX) 
-  In `vector-set!-warn1', a toplevel procedure
+Warning: Negative vector index
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `vector-set!-warn1',
   In procedure call:
 
     (scheme#vector-set! v1 -1 'whatever)
 
   Procedure `vector-set!' from module `scheme' is called with a negative index -1.
 
-Warning: Vector index out of range (scrutiny-tests.scm:XXX) 
-  In `vector-set!-warn2', a toplevel procedure
+Warning: Vector index out of range
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `vector-set!-warn2',
   In procedure call:
 
     (scheme#vector-set! v1 3 'whatever)
 
   Procedure `vector-set!' from module `scheme' is called with index `3' for a vector of length `3'.
 
-Warning: Vector index out of range (scrutiny-tests.scm:XXX) 
-  In `vector-set!-warn3', a toplevel procedure
+Warning: Vector index out of range
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `vector-set!-warn3',
   In procedure call:
 
     (scheme#vector-set! v1 4 'whatever)
 
   Procedure `vector-set!' from module `scheme' is called with index `4' for a vector of length `3'.
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `vector-set!-standard-warn1', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `vector-set!-standard-warn1',
   In procedure call:
 
     (scheme#vector-set! v1 'bad 'whatever)
@@ -897,48 +944,54 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (vector fixnum * -> undefined)
 
-Warning: Negative list index (scrutiny-tests.scm:XXX) 
-  In `list-ref-warn1', a toplevel procedure
+Warning: Negative list index
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-warn1',
   In procedure call:
 
     (scheme#list-ref l1 -1)
 
   Procedure `list-ref' from module `scheme' is called with a negative index -1.
 
-Warning: Negative list index (scrutiny-tests.scm:XXX) 
-  In `list-ref-warn2', a toplevel procedure
+Warning: Negative list index
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-warn2',
   In procedure call:
 
     (scheme#list-ref l2 -1)
 
   Procedure `list-ref' from module `scheme' is called with a negative index -1.
 
-Warning: Negative list index (scrutiny-tests.scm:XXX) 
-  In `list-ref-warn3', a toplevel procedure
+Warning: Negative list index
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-warn3',
   In procedure call:
 
     (scheme#list-ref l3 -1)
 
   Procedure `list-ref' from module `scheme' is called with a negative index -1.
 
-Warning: List index out of range (scrutiny-tests.scm:XXX) 
-  In `list-ref-warn4', a toplevel procedure
+Warning: List index out of range
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-warn4',
   In procedure call:
 
     (scheme#list-ref l1 3)
 
   Procedure `list-ref' from module `scheme' is called with index `3' for a list of length `3'.
 
-Warning: List index out of range (scrutiny-tests.scm:XXX) 
-  In `list-ref-warn5', a toplevel procedure
+Warning: List index out of range
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-warn5',
   In procedure call:
 
     (scheme#list-ref l1 4)
 
   Procedure `list-ref' from module `scheme' is called with index `4' for a list of length `3'.
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `list-ref-standard-warn1', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-standard-warn1',
   In procedure call:
 
     (scheme#list-ref l1 'bad)
@@ -959,8 +1012,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     ((list-of 'a366) fixnum -> 'a366)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `list-ref-standard-warn2', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-standard-warn2',
   In procedure call:
 
     (scheme#list-ref l1 'bad)
@@ -981,8 +1035,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     ((list-of 'a366) fixnum -> 'a366)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `list-ref-standard-warn3', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-standard-warn3',
   In procedure call:
 
     (scheme#list-ref l2 'bad)
@@ -1003,8 +1058,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     ((list-of 'a366) fixnum -> 'a366)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `list-ref-standard-warn4', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-standard-warn4',
   In procedure call:
 
     (scheme#list-ref l2 'bad)
@@ -1025,8 +1081,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     ((list-of 'a366) fixnum -> 'a366)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `list-ref-type-warn1', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-type-warn1',
   In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l1 1))
@@ -1051,8 +1108,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `list-ref-type-warn2', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-type-warn2',
   In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l2 1))
@@ -1077,8 +1135,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `list-ref-type-warn3', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `list-ref-type-warn3',
   In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l3 1))
@@ -1103,8 +1162,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `append-result-type-warn1', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `append-result-type-warn1',
   In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l1 1))
@@ -1129,8 +1189,9 @@ Warning: Invalid argument (scrutiny-tests.scm:XXX)
 
     (number -> number)
 
-Warning: Invalid argument (scrutiny-tests.scm:XXX) 
-  In `append-result-type-warn2', a toplevel procedure
+Warning: Invalid argument
+  In file `scrutiny-tests.scm:XXX',
+  In procedure `append-result-type-warn2',
   In procedure call:
 
     (chicken.base#add1 (scheme#list-ref l3 3))
