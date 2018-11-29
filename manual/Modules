@@ -201,7 +201,7 @@ other modules:
 
 <enscript hightlight=scheme>
 (module r4rs ()
-  (import scheme chicken)
+  (import scheme (chicken module))
   (reexport 
     (except scheme 
       dynamic-wind values call-with-values eval scheme-report-environment
