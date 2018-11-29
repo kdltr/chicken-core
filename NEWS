@@ -12,6 +12,12 @@
     for its egg cache directory when the CHICKEN_EGG_CACHE environment
     variable is not defined.
 
+- Compiler
+  - Added an optimization pass for reducing the amount of boxing of
+    intermediate floating point values, enabled by the "-lfa2" compiler
+    option.
+  - The "lfa2" pass is now enabled at optimization levels 2 or higher.
+
 - Egg specifications
   - Allows "cond-expand" and "error" forms in egg specification files.
 
@@ -61,10 +67,6 @@
     with the same version of the compiler.
   - the "-consult-type-file" and "-emit-type-file" options have been renamed
     to "-consult-types-file" and "-emit-types-file", respectively.
-  - Added an optimization pass for reducing the amount of boxing of
-    intermediate floating point values, enabled by the "-lfa2" compiler
-    option.
-  - The "lfa2" pass is now enabled at optimization levels 2 or higher.
 
 - Tools
   - The new "-link" option to csc allows linking with objects from extensions.
