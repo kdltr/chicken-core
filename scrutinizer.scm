@@ -1224,9 +1224,7 @@
 		     (set! typeenv
 		       (append (map (lambda (v)
 				      (let ((v (if (symbol? v) v (first v))))
-					(let ((v* (gensym v)))
-					  (mark-variable v* '##core#real-name v)
-					  (cons v v*))))
+					(cons v (gensym v))))
 				    typevars)
 			       typeenv))
 		     (set! constraints 

@@ -40,7 +40,7 @@ Warning: at toplevel:
   (scrutiny-tests.scm:29) in procedure call to `scheme#+', expected argument #2 of type `number' but was given an argument of type `symbol'
 
 Warning: at toplevel:
-  assignment of value of type `fixnum' to toplevel variable `scheme#car' does not match declared type `(forall (a) (procedure scheme#car ((pair a *)) a))'
+  assignment of value of type `fixnum' to toplevel variable `scheme#car' does not match declared type `(forall (a335) (procedure scheme#car ((pair a335 *)) a335))'
 
 Warning: at toplevel:
   expected a single result in `let' binding of `g19', but received 2 results

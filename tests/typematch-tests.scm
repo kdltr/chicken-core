@@ -403,6 +403,9 @@
   ;; The tv "foo" and "foo" in struct should have no relation
   ((forall (foo) (list (struct foo) foo)) 'ok))
 
+;; Issue #1563
+(compiler-typecase (the (forall (a) a) 1) ((forall (a) (list a)) 'ok))
+
 (assert
  (compiler-typecase 1
    ('a #t)))
