@@ -399,6 +399,9 @@
   (length a) ; refine (or pair null) with list (= (list-of *))
   (infer list a))
 
+(compiler-typecase (the (list (struct foo) symbol) (the 'a 1))
+  ;; The tv "foo" and "foo" in struct should have no relation
+  ((forall (foo) (list (struct foo) foo)) 'ok))
 
 (assert
  (compiler-typecase 1
