@@ -461,23 +461,17 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc)
       break;
 
     case C_DEBUG_REPLY_GET_TRACE:
-      str = C_dump_trace(0);
-      C_strlcpy(rw_buffer, "(* \"", sizeof(rw_buffer));
-      ptr = rw_buffer + 4;
+      str = ptr = C_dump_trace(0);
 
-      while(*str != '\0') {
-        if(*str == '\n') {
-          C_strlcpy(ptr, "\")\n", 4);
-          send_string(rw_buffer);
-          C_strlcpy(rw_buffer, "(* \"", sizeof(rw_buffer));
-          ptr = rw_buffer + 4;
-          ++str;
-        }
-        else *(ptr++) = *(str++);
+      while((n = C_strcspn(ptr, "\n"))) {
+        ptr[ n++ ] = '\0';
+        send_string("(* \"");
+        send_string(ptr);
+        send_string("\")\n");
+        ptr += n;
       }
 
-      C_strlcpy(ptr, "\")\n", 4);
-      send_string(rw_buffer);
+      free(str);
       break;
 
     default: terminate("invalid reply code");
