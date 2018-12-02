@@ -285,14 +285,12 @@
 		    (empty-closure (and customizable (zero? (lambda-literal-closure-size (find-lambda call-id)))))
 		    (fn (car subs)) )
 	       (when name
-		 (cond (emit-debug-info
-			(when dbi
-			  (gen #t "C_debugger(&(C_debug_info[" dbi "]),"
-			       (if non-av-proc "0,NULL" "c,av") ");")))
-		       (emit-trace-info
-			(gen #t "C_trace(C_text(\"" (backslashify name-str) "\"));"))
-		       (else
-			(gen #t "/* " (uncommentify name-str) " */") ) ) )
+		 (if emit-trace-info
+		     (gen #t "C_trace(C_text(\"" (backslashify name-str) "\"));")
+		     (gen #t "/* " (uncommentify name-str) " */"))
+		 (when (and emit-debug-info dbi)
+		   (gen #t "C_debugger(&(C_debug_info[" dbi "]),"
+			(if non-av-proc "0,NULL" "c,av") ");")))
 	       (cond ((eq? '##core#proc (node-class fn))
 		      (gen #\{)
 		      (push-args args i "0")
@@ -414,14 +412,12 @@
 		    (fn (car subs)) )
 	       (gen #\()
 	       (when name
-		 (cond (emit-debug-info
-			(when dbi
-			  (gen #t "  C_debugger(&(C_debug_info[" dbi "]),"
-			       (if non-av-proc "0,NULL" "c,av") "),")))
-		       (emit-trace-info
-			(gen #t "  C_trace(\"" (backslashify name-str) "\"),"))
-		       (else
-			(gen #t "  /* " (uncommentify name-str) " */"))))
+		 (if emit-trace-info
+		     (gen #t "C_trace(\"" (backslashify name-str) "\"),")
+		     (gen #t "/* " (uncommentify name-str) " */"))
+		 (when (and emit-debug-info dbi)
+		   (gen #t "C_debugger(&(C_debug_info[" dbi "]),"
+			(if non-av-proc "0,NULL" "c,av") "),")))
 	       (gen #t "  " call-id #\()
 	       (when allocating 
 		 (gen "C_a_i(&a," demand #\))

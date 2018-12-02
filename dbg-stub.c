@@ -577,8 +577,6 @@ debug_event_hook(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc)
     }
   }
 
-  if(cell->event == C_DEBUG_CALL) C_trace(cell->val);
-
   return C_SCHEME_UNDEFINED;
 }
 
