@@ -53,7 +53,7 @@ static WSADATA wsa;
 #endif
 
 
-#define C_DEBUG_PROTOCOL_VERSION         0
+#define C_DEBUG_PROTOCOL_VERSION         1
 
 #define C_DEBUG_REPLY_UNUSED             0
 #define C_DEBUG_REPLY_SETMASK            1

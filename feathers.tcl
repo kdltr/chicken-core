@@ -27,7 +27,7 @@
 
 
 set version 0
-set protocol_version 0
+set protocol_version 1
 set debugger_port 9999
 
 set events(1) call
