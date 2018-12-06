@@ -1076,13 +1076,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_isinf(f)                 isinf(f)
 #define C_isfinite(f)              isfinite(f)
 
-#ifdef C_STRESS_TEST
-# define C_STRESS_FAILURE          3
-# define C_stress                  (rand() % C_STRESS_FAILURE)
-#else
-# define C_stress                  1
-#endif
-
 #define C_stack_overflow_check    C_stack_check1(C_stack_overflow(NULL))
 
 /* TODO: The C_scratch_usage checks should probably be moved.  Maybe
@@ -1092,7 +1085,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
  * "end" of a C function.
  */
 #if C_STACK_GROWS_DOWNWARD
-# define C_demand(n)              (C_stress && ((C_word)(C_stack_pointer - C_stack_limit) > ((n)+C_scratch_usage)))
+# define C_demand(n)              ((C_word)(C_stack_pointer - C_stack_limit) > ((n)+C_scratch_usage))
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
 				      if(_sp < (C_byte *)C_stack_hard_limit && \
@@ -1101,7 +1094,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 				    while(0);}
 
 #else
-# define C_demand(n)              (C_stress && ((C_word)(C_stack_limit - C_stack_pointer) > ((n)+C_scratch_usage)))
+# define C_demand(n)              ((C_word)(C_stack_limit - C_stack_pointer) > ((n)+C_scratch_usage))
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
 				      if(_sp > (C_byte *)C_stack_hard_limit && \
