@@ -4947,12 +4947,6 @@ C_regparm C_word C_fcall C_i_allocated_finalizer_count(void)
   return C_fix(allocated_finalizer_count);
 }
 
-C_regparm void C_fcall C_paranoid_check_for_interrupt(void)
-{
-  if(--C_timer_interrupt_counter <= 0)
-    C_raise_interrupt(C_TIMER_INTERRUPT_NUMBER);
-}
-
 
 C_regparm void C_fcall C_raise_interrupt(int reason)
 {
