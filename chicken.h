@@ -1946,7 +1946,7 @@ C_fctexport C_word C_fcall C_i_nanp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_finitep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_infinitep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_zerop(C_word x) C_regparm;
-C_fctexport C_word C_fcall C_u_i_zerop(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_u_i_zerop(C_word x) C_regparm;  /* DEPRECATED */
 C_fctexport C_word C_fcall C_i_positivep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_positivep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_negativep(C_word x) C_regparm;
@@ -2214,6 +2214,15 @@ inline static C_word C_flonum(C_word **ptr, double n)
   *((double *)p) = n;
   *ptr = p + sizeof(double) / sizeof(C_word);
   return (C_word)p0;
+}
+
+
+inline static C_word C_fcall C_u_i_zerop2(C_word x)
+{
+  return C_mk_bool(x == C_fix(0) ||
+                   (!C_immediatep(x) &&
+                    C_block_header(x) == C_FLONUM_TAG &&
+                    C_flonum_magnitude(x) == 0.0));
 }
 
 

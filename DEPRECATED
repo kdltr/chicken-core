@@ -5,6 +5,8 @@ Deprecated functions and variables
 
 - ##sys#check-exact and its C implementations C_i_check_exact and
   C_i_check_exact_2 have been deprecated (see also #1631).
+- "C_u_i_zerop" has been turned into an inline operation and is
+  deprecated in favor of "C_u_i_zerop2".
 
 
 5.0.0

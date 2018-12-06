@@ -650,7 +650,7 @@
 (rewrite 'chicken.flonum#fpgcd 16 2 "C_a_i_flonum_gcd" #f words-per-flonum)
 
 (rewrite 'scheme#zero? 5 "C_eqp" 0 'fixnum)
-(rewrite 'scheme#zero? 2 1 "C_u_i_zerop" #f)
+(rewrite 'scheme#zero? 2 1 "C_u_i_zerop2" #f)
 (rewrite 'scheme#zero? 2 1 "C_i_zerop" #t)
 (rewrite 'scheme#positive? 5 "C_fixnum_greaterp" 0 'fixnum)
 (rewrite 'scheme#positive? 5 "C_flonum_greaterp" 0 'flonum)

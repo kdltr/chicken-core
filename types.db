@@ -260,7 +260,7 @@
 (scheme#zero? (#(procedure #:clean #:enforce #:foldable) scheme#zero? (number) boolean)
 	      ((integer) (scheme#eq? #(1) '0))
 	      (((or cplxnum ratnum)) (let ((#(tmp) #(1))) '#f))
-	      ((number) (##core#inline "C_u_i_zerop" #(1)))
+	      ((number) (##core#inline "C_u_i_zerop2" #(1)))
 	      ((*) (##core#inline "C_i_zerop" #(1))))
 
 (scheme#odd? (#(procedure #:clean #:enforce #:foldable) scheme#odd? (number) boolean)
