@@ -127,7 +127,7 @@ $(eval $(call declare-static-libchicken-object,eval-modules))
 
 define declare-import-lib-object
 $(1).import$(O): $(1).import.c chicken.h $$(CHICKEN_CONFIG_H)
-	$$(C_COMPILER) $$(C_COMPILER_OPTIONS) $$(C_COMPILER_PTABLES_OPTIONS) \
+	$$(C_COMPILER) $$(C_COMPILER_OPTIONS)  \
 	  -DC_SHARED $$(C_COMPILER_COMPILE_OPTION) \
 	  $$(C_COMPILER_OPTIMIZATION_OPTIONS) $$(C_COMPILER_SHARED_OPTIONS) \
 	  $$(C_COMPILER_BUILD_RUNTIME_OPTIONS) $$< $$(C_COMPILER_OUTPUT) \
