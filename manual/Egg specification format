@@ -210,6 +210,19 @@ Specifies one or more Scheme include files.
 
 Specifies an executable program.
 
+==== c-object
+
+ [egg property] (c-object NAME PROP ...)
+
+Specifies a compiled C/C++ object file. Usually this component type
+is required if you want to link a separately compiled C/C++ module
+with your extension or program. C-objects are compiled like Scheme
+source files with the {{csc}} tool to ensure the same C compiler
+options and toolchain is used as for regular Scheme files compiled
+to C. If you want to pass compiler-specific options to the build
+of the C object, use the {{csc-options}} property and precede
+C compiler options with {{-C}}.
+
 === Component properties
 
 ==== host
@@ -344,6 +357,13 @@ Specifies dependencies to additional source files. {{NAME ...}} must
 denote filenames of which the program or extension depends.
 A program or extension implicitly depends on its source file and
 and on the egg-specification file.
+
+==== objects
+
+ [egg property] (objects NAME ...)
+
+Specifies that the components of type {{c-object}} should be linked
+to this component and that the object components are dependencies.
 
 ==== destination
 
