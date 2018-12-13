@@ -1076,13 +1076,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_isinf(f)                 isinf(f)
 #define C_isfinite(f)              isfinite(f)
 
-#ifdef C_STRESS_TEST
-# define C_STRESS_FAILURE          3
-# define C_stress                  (rand() % C_STRESS_FAILURE)
-#else
-# define C_stress                  1
-#endif
-
 #define C_stack_overflow_check    C_stack_check1(C_stack_overflow(NULL))
 
 /* TODO: The C_scratch_usage checks should probably be moved.  Maybe
@@ -1092,7 +1085,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
  * "end" of a C function.
  */
 #if C_STACK_GROWS_DOWNWARD
-# define C_demand(n)              (C_stress && ((C_word)(C_stack_pointer - C_stack_limit) > ((n)+C_scratch_usage)))
+# define C_demand(n)              ((C_word)(C_stack_pointer - C_stack_limit) > ((n)+C_scratch_usage))
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
 				      if(_sp < (C_byte *)C_stack_hard_limit && \
@@ -1101,7 +1094,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 				    while(0);}
 
 #else
-# define C_demand(n)              (C_stress && ((C_word)(C_stack_limit - C_stack_pointer) > ((n)+C_scratch_usage)))
+# define C_demand(n)              ((C_word)(C_stack_limit - C_stack_pointer) > ((n)+C_scratch_usage))
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
 				      if(_sp > (C_byte *)C_stack_hard_limit && \
@@ -1294,11 +1287,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_string_to_lambdainfo(s)       (C_block_header(s) = C_header_size(s) | C_LAMBDA_INFO_TYPE, C_SCHEME_UNDEFINED)
 
 #ifdef C_TIMER_INTERRUPTS
-# ifdef PARANOIA
-#  define C_check_for_interrupt         C_paranoid_check_for_interrupt()
-# else
-#  define C_check_for_interrupt         if(--C_timer_interrupt_counter <= 0) C_raise_interrupt(C_TIMER_INTERRUPT_NUMBER)
-# endif
+# define C_check_for_interrupt         if(--C_timer_interrupt_counter <= 0) C_raise_interrupt(C_TIMER_INTERRUPT_NUMBER)
 #else
 # define C_check_for_interrupt
 #endif
@@ -1749,7 +1738,6 @@ C_fctexport C_word C_fcall C_a_i_provide(C_word **a, int c, C_word id) C_regparm
 C_fctexport C_word C_fcall C_i_providedp(C_word id) C_regparm;
 C_fctexport C_word C_fcall C_enable_interrupts(void) C_regparm;
 C_fctexport C_word C_fcall C_disable_interrupts(void) C_regparm;
-C_fctexport void C_fcall C_paranoid_check_for_interrupt(void) C_regparm;
 C_fctexport void C_set_or_change_heap_size(C_word heap, int reintern);
 C_fctexport void C_do_resize_stack(C_word stack);
 C_fctexport C_word C_resize_pending_finalizers(C_word size);
