@@ -4501,8 +4501,7 @@ EOF
 				       (not (and (fx> len 2)
 						 (eq? (##core#inline "C_subchar" str 1) #\#)
 						 (not (eq? (##core#inline "C_subchar" str 2) #\#)))))
-				  ;; #!rest, #!key etc
-				  (eq? (##core#inline "C_subchar" str 1) #\!))
+				  (member str '("#!rest" "#!key" "#!optional")))
 				 ((specialchar? c) #f)
 				 (else #t) ) )
 			 (let ((c (##core#inline "C_subchar" str i)))

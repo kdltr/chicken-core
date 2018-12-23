@@ -275,7 +275,15 @@
 (t '#!rest (with-input-from-string "#!rest" read))
 (t '#!rest (with-input-from-string "|#!rest|" read))
 (t "#!rest" (with-output-to-string (lambda () (write '#!rest))))
+
+;; Non-special symbols starting with shebang
+(f (with-input-from-string "#!foo" read))
+(t '|#!foo| (with-input-from-string "|#!foo|" read))
+(t "|#!foo|" (with-output-to-string (lambda () (write '|#!foo|))))
+
+;; Namespaced symbols
 (t "foo#bar" (with-output-to-string (lambda () (write 'foo#bar))))
+(t "##foo#bar" (with-output-to-string (lambda () (write '##foo#bar))))
 
 ;; These used to be treated specially, but now they just trigger an
 ;; "invalid sharp-sign read syntax" error.
