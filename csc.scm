@@ -102,7 +102,7 @@
 (define rc-compiler (quotewrap (if host-mode INSTALL_RC_COMPILER TARGET_RC_COMPILER)))
 (define linker (quotewrap (if host-mode host-cc default-cc)))
 (define c++-linker (quotewrap (if host-mode host-cxx default-cxx)))
-(define object-extension (if windows "obj" "o"))
+(define object-extension (if mingw "obj" "o"))
 (define library-extension "a")
 (define link-output-flag "-o ")
 (define executable-extension "")

@@ -97,11 +97,9 @@
 (define keepfiles #f)
 (define print-repository #f)
 (define cached-only #f)
-  
+
 (define platform
-  (if (eq? 'mingw32 (software-version))
-      'windows
-      'unix))
+  (if (eq? (software-version) 'mingw32) 'windows 'unix))
 
 (define current-status 
   (list ##sys#build-id default-prefix
