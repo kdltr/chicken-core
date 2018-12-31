@@ -42,6 +42,10 @@
 #define MAX_TARGETS 256
 #define MAX_DEPENDS 1024
 
+#ifdef WIN32
+# define MAX_COMMAND_LEN 32767
+#endif
+
 static char *targets[ MAX_TARGETS ];
 static char *depends[ MAX_DEPENDS ];
 static struct stat tstats[ MAX_TARGETS ];
@@ -75,13 +79,18 @@ static int execute(char **argv)
 #ifdef WIN32
   static PROCESS_INFORMATION process_info;
   static STARTUPINFO startup_info;
-  startup_info.cb = sizeof(STARTUPINFO);
-  static TCHAR cmdline[ MAX_PATH ];
+  static TCHAR cmdline[ MAX_COMMAND_LEN ];
+  static int len;
 
+  startup_info.cb = sizeof(STARTUPINFO);
+
+  /* quote command arguments */
   while(*argv != NULL) {
-    strcat(cmdline, "\"");
-    strcat(cmdline, *(argv++));
-    strcat(cmdline, "\" ");
+    len += snprintf(cmdline + len, sizeof(cmdline) - len, "\"%s\" ", *(argv++));
+    if(len > sizeof(cmdline)) {
+      fprintf(stderr, "argument list too long\n");
+      exit(1);
+    }
   }
 
   if(!CreateProcess(NULL, cmdline, NULL, NULL, TRUE, 
