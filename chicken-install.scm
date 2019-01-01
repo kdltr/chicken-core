@@ -97,11 +97,9 @@
 (define keepfiles #f)
 (define print-repository #f)
 (define cached-only #f)
-  
+
 (define platform
-  (if (eq? 'mingw32 (software-version))
-      'windows
-      'unix))
+  (if (eq? (software-version) 'mingw32) 'windows 'unix))
 
 (define current-status 
   (list ##sys#build-id default-prefix
@@ -184,12 +182,14 @@
     (link-options #f #f #f)
     (custom-build #f #f #f)
     (linkage #f #f #f)
+    (objects #f #f #f)
     (install-name #f #f #f ,nameprop?)
     (target #f #t #f)
     (host #f #t #f)
     (types-file #f #f #f ,name-or-predefd?)
     (inline-file #f #f #f ,optname?)
     (extension #f #t #t)
+    (c-object #f #t #t)
     (generated-source-file #f #t #t)
     (program #f #t #t)
     (data #f #t #t)

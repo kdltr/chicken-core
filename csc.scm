@@ -102,13 +102,14 @@
 (define rc-compiler (quotewrap (if host-mode INSTALL_RC_COMPILER TARGET_RC_COMPILER)))
 (define linker (quotewrap (if host-mode host-cc default-cc)))
 (define c++-linker (quotewrap (if host-mode host-cxx default-cxx)))
-(define object-extension (if windows "obj" "o"))
+(define object-extension (if mingw "obj" "o"))
 (define library-extension "a")
 (define link-output-flag "-o ")
 (define executable-extension "")
 (define compile-output-flag "-o ")
 (define shared-library-extension ##sys#load-dynamic-extension)
 (define static-object-extension (##sys#string-append "static." object-extension))
+(define static-library-extension (##sys#string-append "static." library-extension))
 (define default-translation-optimization-options '())
 (define pic-options (if (or mingw cygwin) '("-DPIC") '("-fPIC" "-DPIC")))
 (define generate-manifest #f)
@@ -295,13 +296,18 @@
 
 (define (find-object-file name)
   (let ((o (make-pathname #f name object-extension))
+	(a (make-pathname #f name library-extension))
 	;; In setup mode, objects in build dir may also end with "static.o"
+	(static-a (make-pathname #f name static-library-extension))
 	(static-o (make-pathname #f name static-object-extension)))
-    (or (file-exists? o)
+    (or (file-exists? a)
+	(file-exists? o)
 	(and (eq? ##sys#setup-mode #t)
-	     (file-exists? static-o))
+	     (or (file-exists? static-a)
+		 (file-exists? static-o)))
 	(and (not ignore-repository)
-	     (chicken.load#find-file o (repo-path))))))
+	     (or (chicken.load#find-file a (repo-path))
+		 (chicken.load#find-file o (repo-path)))))))
 
 
 ;;; Display usage information:
