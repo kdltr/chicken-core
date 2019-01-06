@@ -94,7 +94,7 @@
 	(else #f)))
 
 (define (macro-alias var se)
-  (if (or (##sys#qualified-symbol? var) (namespaced-symbol? var))
+  (if (or (keyword? var) (namespaced-symbol? var))
       var
       (let* ((alias (gensym var))
 	     (ua (or (lookup var se) var))

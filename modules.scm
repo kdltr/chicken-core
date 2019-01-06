@@ -768,7 +768,7 @@
 	       (register-undefined sym mod where))
 	     (module-rename sym (module-name mod))))
 	  (else sym)))
-  (cond ((##sys#qualified-symbol? sym) sym)
+  (cond ((keyword? sym) sym)
 	((namespaced-symbol? sym) sym)
 	((assq sym (##sys#current-environment)) =>
 	 (lambda (a)

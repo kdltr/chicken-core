@@ -321,6 +321,17 @@
   ;; "Unterminated string" (unterminated identifier?)
   (assert-fail (with-input-from-string "a|Bc" read)))
 
+;;; Old style qualified low byte, see #1077
+
+(assert (string=? "##foo#bar" (symbol->string '|##foo#bar|)))
+(assert (string=? "##foo#bar" (symbol->string '##foo#bar)))
+(assert (eq? '##foo#bar '|##foo#bar|))
+
+(assert (string=? "|\\x0a|" (with-output-to-string (lambda () (write '|\n|)))))
+;; NOT YET, keywords are still prefixed with \000:
+; (assert (string=? "|\000foo|" (with-output-to-string (lambda () (write '|\000foo|)))))
+(assert (string=? "|###foo#bar|" (with-output-to-string (lambda () (write '|###foo#bar|)))))
+
 ;;; Paren synonyms
 
 (parameterize ((parentheses-synonyms #f))

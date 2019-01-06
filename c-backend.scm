@@ -237,7 +237,7 @@
 		      (if safe
 			  (gen "lf[" index "]")
 			  (gen "C_retrieve2(lf[" index "],C_text("
-			       (c-ify-string (##sys#symbol->qualified-string
+			       (c-ify-string (##sys#symbol->string
 					      (fourth params))) "))"))]
 		     [safe (gen "*((C_word*)lf[" index "]+1)")]
 		     [else (gen "C_fast_retrieve(lf[" index "])")] ) ) )
@@ -249,7 +249,7 @@
 	       (if block
 		   (gen "C_mutate(&lf[" index "]")
 		   (gen "C_mutate((C_word*)lf[" index "]+1"))
-	       (gen " /* (set! " (uncommentify (##sys#symbol->qualified-string var)) " ...) */,")
+	       (gen " /* (set! " (uncommentify (##sys#symbol->string var)) " ...) */,")
 	       (expr (car subs) i)
 	       (gen #\)) ) )
 
@@ -259,12 +259,12 @@
 		   (var (third params)) )
 	       (cond [block
 		      (gen "lf[" index "] /* "
-			   (uncommentify (##sys#symbol->qualified-string var)) " */ =")
+			   (uncommentify (##sys#symbol->string var)) " */ =")
 		      (expr (car subs) i)
 		      (gen #\;) ]
 		     [else
 		      (gen "C_set_block_item(lf[" index "] /* "
-			   (uncommentify (##sys#symbol->qualified-string var)) " */,0,")
+			   (uncommentify (##sys#symbol->string var)) " */,0,")
 		      (expr (car subs) i)
 		      (gen #\)) ] ) ) )
 
@@ -349,7 +349,7 @@
 			       (if safe
 				   (gen "C_fast_retrieve_proc(" carg ")")
 				   (gen "C_retrieve2_symbol_proc(" carg ",C_text("
-					(c-ify-string (##sys#symbol->qualified-string (fourth gparams))) "))")))
+					(c-ify-string (##sys#symbol->string (fourth gparams))) "))")))
 			      (safe
 			       (set! carg 
 				 (string-append "*((C_word*)lf[" (number->string index) "]+1)"))

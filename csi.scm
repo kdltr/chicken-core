@@ -621,13 +621,9 @@ EOF
 	    ((symbol? x)
 	     (unless (##sys#symbol-has-toplevel-binding? x)
 	       (display "unbound " out))
-	     (let ((q (##sys#qualified-symbol? x)))
-	       (fprintf out "~a~asymbol with name ~S~%"
-		 (if (##sys#interned-symbol? x) "" "uninterned ")
-		 (if q "qualified " "")
-		 (if q 
-		     (##sys#symbol->qualified-string x)
-		     (##sys#symbol->string x))))
+	     (fprintf out "~asymbol with name ~S~%"
+	       (if (##sys#interned-symbol? x) "" "uninterned ")
+	       (##sys#symbol->string x))
 	     (let ((plist (##sys#slot x 2)))
 	       (unless (null? plist)
 		 (display "  \nproperties:\n\n" out)

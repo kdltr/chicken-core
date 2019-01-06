@@ -234,7 +234,7 @@ EOF
 			    (t (third entry))  ; total time
 			    (a (fourth entry)) ; average time
 			    (p (fifth entry)) ) ; % of max time
-			(list (##sys#symbol->qualified-string (first entry))
+			(list (##sys#symbol->string (first entry))
 			      (if (not c) "overflow" (number->string c))
 			      (format-real (/ t 1000) seconds-digits)
 			      (format-real (/ a 1000) average-digits)

@@ -952,7 +952,6 @@ EOF
 
 (import chicken.base)
 
-(define-constant namespace-max-id-len 31)
 (define-constant char-name-table-size 37)
 (define-constant output-string-initial-size 256)
 (define-constant read-line-buffer-initial-size 1024)
@@ -2673,50 +2672,11 @@ EOF
   (##sys#check-string str)
   (##sys#intern-symbol str) )
 
-(define ##sys#symbol->string)
-;; DEPRECATED: Remove this once we have a new bootstrapping compiler
-(define ##sys#symbol->qualified-string)
-(define ##sys#qualified-symbol-prefix)
-
-(let ([string-append string-append]
-      [string-copy string-copy] )
-
-  (define (split str len)
-    (let ([b0 (##sys#byte str 0)])	; we fetch the byte, wether len is 0 or not
-      (if (and (fx> len 0) (fx< b0 len) (fx<= b0 namespace-max-id-len))
-	  (fx+ b0 1)
-	  #f) ) )
-
-  (set! ##sys#symbol->string
-    (lambda (s)
-      (let* ([str (##sys#slot s 1)]
-	     [len (##sys#size str)]
-	     [i (split str len)] )
-	(if i (##sys#substring str i len) str) ) ) )
-
-  ;; DEPRECATED: Remove this once we have a new bootstrapping compiler
-  (set! ##sys#symbol->qualified-string 
-    (lambda (s)
-      (let* ([str (##sys#slot s 1)]
-	     [len (##sys#size str)] 
-	     [i (split str len)] )
-	(if i
-	    (string-append "##" (##sys#substring str 1 i) "#" (##sys#substring str i len))
-	    str) ) ) )
-
-  ;; DEPRECATED: Remove this once we have a new bootstrapping compiler
-  (set! ##sys#qualified-symbol-prefix 
-    (lambda (s)
-      (let* ([str (##sys#slot s 1)]
-	     [len (##sys#size str)]
-	     [i (split str len)] )
-	(and i (##sys#substring str 0 i)) ) ) ) )
-
-;; DEPRECATED: Remove this once we have a new bootstrapping compiler
-(define (##sys#qualified-symbol? s)
+(define (##sys#symbol->string s)
   (let ((str (##sys#slot s 1)))
-    (and (fx> (##sys#size str) 0)
-	 (fx<= (##sys#byte str 0) namespace-max-id-len))))
+    (if (##core#inline "C_u_i_keywordp" s) ; Keywords encoded as \000foo
+	(##sys#substring str 1 (string-length str))
+	str)))
 
 (set! scheme#symbol->string
   (lambda (s)
@@ -4588,8 +4548,6 @@ EOF
 			  (else
 			   (outstr port "#:")
 			   (outsym port x))))
-		       ((##sys#qualified-symbol? x)
-			(outstr port (##sys#symbol->qualified-string x)))
 		       (else
 			(outsym port x))))
 		((##sys#number? x) (outstr port (##sys#number->string x)))
@@ -5191,7 +5149,7 @@ EOF
 			      (loc (and loca (cadr loca))) )
 			  (if (and loc (symbol? loc))
 			      (string-append
-			       "(" (##sys#symbol->qualified-string loc) ") " 
+			       "(" (##sys#symbol->string loc) ") "
 			       (cond ((symbol? msg) (##sys#slot msg 1))
 				     ((string? msg) msg)
 				     (else "") ) ) ; Hm...
@@ -5338,7 +5296,7 @@ EOF
 			(display ": " port)
 			(let ((loc (errloc ex)))
 			  (when (and loc (symbol? loc))
-			    (display (string-append "(" (##sys#symbol->qualified-string loc) ") ") port) ) )
+			    (display (string-append "(" (##sys#symbol->string loc) ") ") port) ) )
 			(display msg port) ) )
 		     (else
 		      (let ((kinds (##sys#slot ex 1)))

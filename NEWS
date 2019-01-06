@@ -32,6 +32,9 @@
      invariance of symbols which start with a low-byte character
      (fixes #1077, except for keywords, which start with NUL bytes).
 
+- Runtime system
+  - Increased the "binary compatibility version" to 11.
+
 
 5.0.0
 

@@ -597,46 +597,6 @@ C_dbg(C_char *prefix, C_char *fstr, ...)
   va_end(va);
 }
 
-/*
- * Dequalify symbol string if necessary.  This is a temporary hack to
- * ensure that all interned symbols are in the literal ##foo#bar
- * style.  This enforces compatibility between a new runtime and code
- * compiled by an older compiler which still generates \003foobar
- * literal symbols.  This transition is needed to fix #1077.  Because
- * of its temporary nature (ideally we just build a new bootstrapping
- * compiler with this in which the hack should have no effect), we can
- * afford to be stupidly wasteful and just malloc a new string every
- * time we get here.
- *
- * DEPRECATED: Remove this once we have a new bootstrapping compiler
- */
-static C_char *dequalified_symbol_string(C_char *str, int *len)
-{
-  C_char *deq_str;
-  int prefix = (int)str[0];
-
-  if (prefix >= 31) return str; /* namespace-max-id-len */
-  if (prefix == 0) return str; /* keyword (TODO: change this too) */
-
-  deq_str = malloc(*len+3);
-  if (deq_str == NULL) {
-    horror(C_text("cannot dequalify string - out of memory"));
-  }
-
-  deq_str[0] = '#';
-  deq_str[1] = '#';
-  memcpy(deq_str + 2, str + 1, prefix);
-  deq_str[prefix + 2] = '#';
-  memcpy(deq_str + prefix + 3, str + 1 + prefix, *len - prefix - 1);
-  deq_str[*len+2] = '\0'; /* Not always part of original str, but if it is, we must add it */
-  *len += 2;
-  if(debug_mode) {
-    C_dbg(C_text("debug"), C_text("Dequalified [%o]%.*s into %s\n"), str[0], len-3, str+1, deq_str);
-  }
-  return deq_str;
-}
-
-
 /* Startup code: */
 
 int CHICKEN_main(int argc, char *argv[], void *toplevel) 
@@ -2317,8 +2277,6 @@ C_regparm C_word C_fcall C_intern_in(C_word **ptr, int len, C_char *str, C_SYMBO
   int key;
   C_word s;
 
-  str = dequalified_symbol_string(str, &len);
-
   if(stable == NULL) stable = symbol_table;
 
   key = hash_string(len, str, stable->size, stable->rand, 0);
@@ -2339,8 +2297,6 @@ C_regparm C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYM
    */
   int key;
   C_word s;
-
-  str = dequalified_symbol_string(str, &len);
 
   if(stable == NULL) stable = symbol_table;
 
@@ -2365,8 +2321,6 @@ C_regparm C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYM
 C_regparm C_word C_fcall intern0(C_char *str)
 {
   int len = C_strlen(str);
-  str = dequalified_symbol_string(str, &len);
-
   int key = hash_string(len, str, symbol_table->size, symbol_table->rand, 0);
   C_word s;
 
@@ -2380,11 +2334,10 @@ C_regparm C_word C_fcall C_lookup_symbol(C_word sym)
   int key;
   C_word str = C_block_item(sym, 1);
   int len = C_header_size(str);
-  C_char *the_str = dequalified_symbol_string(C_c_string(str), &len);
 
-  key = hash_string(len, the_str, symbol_table->size, symbol_table->rand, 0);
+  key = hash_string(len, C_c_string(str), symbol_table->size, symbol_table->rand, 0);
 
-  return lookup(key, len, the_str, symbol_table);
+  return lookup(key, len, C_c_string(str), symbol_table);
 }
 
 
@@ -9994,7 +9947,6 @@ void C_ccall C_string_to_symbol(C_word c, C_word *av)
     
   len = C_header_size(string);
   name = (C_char *)C_data_pointer(string);
-  name = dequalified_symbol_string(name, &len);
   key = hash_string(len, name, symbol_table->size, symbol_table->rand, 0);
 
   if(!C_truep(s = lookup(key, len, name, symbol_table))) 
