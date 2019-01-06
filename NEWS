@@ -27,6 +27,10 @@
     specification and also give sensible results on Windows.
   - Fix get-environment from (chicken process-context) to raise an
      error when passed #f instead of segfaulting.
+  - Qualified symbols (##foo#bar style) are no longer encoded by a
+     byte prefix inside the symbol name.  This ensures read-write
+     invariance of symbols which start with a low-byte character
+     (fixes #1077, except for keywords, which start with NUL bytes).
 
 
 5.0.0

@@ -146,7 +146,6 @@
 		   (##sys#reset-handler
 		    (lambda ()
 		      (set! ##sys#read-error-with-line-number #f)
-		      (set! ##sys#enable-qualifiers #t)
 		      (resetports)
 		      (c #f)))))
 		(##sys#read-prompt-hook)

@@ -2674,6 +2674,7 @@ EOF
   (##sys#intern-symbol str) )
 
 (define ##sys#symbol->string)
+;; DEPRECATED: Remove this once we have a new bootstrapping compiler
 (define ##sys#symbol->qualified-string)
 (define ##sys#qualified-symbol-prefix)
 
@@ -2693,6 +2694,7 @@ EOF
 	     [i (split str len)] )
 	(if i (##sys#substring str i len) str) ) ) )
 
+  ;; DEPRECATED: Remove this once we have a new bootstrapping compiler
   (set! ##sys#symbol->qualified-string 
     (lambda (s)
       (let* ([str (##sys#slot s 1)]
@@ -2702,6 +2704,7 @@ EOF
 	    (string-append "##" (##sys#substring str 1 i) "#" (##sys#substring str i len))
 	    str) ) ) )
 
+  ;; DEPRECATED: Remove this once we have a new bootstrapping compiler
   (set! ##sys#qualified-symbol-prefix 
     (lambda (s)
       (let* ([str (##sys#slot s 1)]
@@ -2709,17 +2712,11 @@ EOF
 	     [i (split str len)] )
 	(and i (##sys#substring str 0 i)) ) ) ) )
 
+;; DEPRECATED: Remove this once we have a new bootstrapping compiler
 (define (##sys#qualified-symbol? s)
   (let ((str (##sys#slot s 1)))
     (and (fx> (##sys#size str) 0)
 	 (fx<= (##sys#byte str 0) namespace-max-id-len))))
-
-(define ##sys#string->qualified-symbol
-  (lambda (prefix str)
-    (##sys#string->symbol
-     (if prefix
-	 (##sys#string-append prefix str)
-	 str) ) ) )
 
 (set! scheme#symbol->string
   (lambda (s)
@@ -3710,7 +3707,6 @@ EOF
 
 (define ##sys#default-read-info-hook #f)
 (define ##sys#read-error-with-line-number #f)
-(define ##sys#enable-qualifiers #t)
 (define (##sys#read-prompt-hook) #f)	; just here so that srfi-18 works without eval
 (define (##sys#infix-list-hook lst) lst)
 
@@ -4152,24 +4148,8 @@ EOF
 			    (loop i) ) ) ) ) ) )
 
 	  (define (r-ext-symbol)
-	    (let* ([p (##sys#make-string 1)]
-		   [tok (r-token)] 
-		   [toklen (##sys#size tok)] )
-	      (unless ##sys#enable-qualifiers 
-		(##sys#read-error port "qualified symbol syntax is not allowed" tok) )
-	      (let loop ([i 0])
-		(cond [(fx>= i toklen)
-		       (##sys#read-error port "invalid qualified symbol syntax" tok) ]
-		      [(fx= (##sys#byte tok i) (char->integer #\#))
-		       (when (fx> i namespace-max-id-len)
-			 (set! tok (##sys#substring tok 0 namespace-max-id-len)) )
-		       (##sys#setbyte p 0 i)
-		       (##sys#intern-symbol
-			(string-append
-			 p 
-			 (##sys#substring tok 0 i)
-			 (##sys#substring tok (fx+ i 1) toklen)) ) ]
-		      [else (loop (fx+ i 1))] ) ) ) )
+	    (let ((tok (r-token)))
+	      (build-symbol (string-append "##" tok))))
 
 	  (define (build-symbol tok)
 	    (##sys#intern-symbol tok) )
@@ -4556,7 +4536,12 @@ EOF
 				      (eq? c #\-) )
 				  (not (##sys#string->number str)) )
 				 ((eq? c #\:) (not (eq? ksp #:prefix)))
-				 ((eq? c #\#) ;; #!rest, #!key etc
+				 ((and (eq? c #\#)
+				       ;; Not a qualified symbol?
+				       (not (and (fx> len 2)
+						 (eq? (##core#inline "C_subchar" str 1) #\#)
+						 (not (eq? (##core#inline "C_subchar" str 2) #\#)))))
+				  ;; #!rest, #!key etc
 				  (eq? (##core#inline "C_subchar" str 1) #\!))
 				 ((specialchar? c) #f)
 				 (else #t) ) )
