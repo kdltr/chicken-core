@@ -448,11 +448,11 @@ EOF
 (let ()
   (define (mode inp m loc)
     (##sys#make-c-string
-     (cond [(pair? m)
+     (cond ((pair? m)
             (let ([m (car m)])
               (case m
-                [(###append) (if (not inp) "a" (##sys#error "invalid mode for input file" m))]
-                [else (##sys#error "invalid mode argument" m)] ) ) ]
+                ((#:append) (if (not inp) "a" (##sys#error "invalid mode for input file" m)))
+                (else (##sys#error "invalid mode argument" m)) ) ) )
            [inp "r"]
            [else "w"] )
      loc) )
@@ -707,7 +707,7 @@ EOF
 (set! chicken.process#pipe/buf _pipe_buf)
 
 (let ()
-  (define (mode arg) (if (pair? arg) (##sys#slot arg 0) '###text))
+  (define (mode arg) (if (pair? arg) (##sys#slot arg 0) #:text))
   (define (badmode m) (##sys#error "illegal input/output mode specifier" m))
   (define (check loc cmd inp r)
     (if (##sys#null-pointer? r)
