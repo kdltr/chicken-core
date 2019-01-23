@@ -145,7 +145,7 @@ intended for cross compilation.
 [egg property] (component-options OPTIONSPEC ...)
 
 Specifies global options for all programs and extensions compiled for this egg.
-{{OPTIONSPEC}} may be {{csc-options}} or {{link-options}} specifications.
+{{OPTIONSPEC}} may be {{csc-options}}, {{link-options}} or {{linkage}} specifications.
 
 ==== cond-expand
 
