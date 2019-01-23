@@ -30,10 +30,12 @@
 (define default-dynamic-program-link-options '())
 (define default-static-extension-link-options '())
 (define default-dynamic-extension-link-options '())
-(define default-program-linkage '(dynamic))
 (define default-static-compilation-options '("-O2" "-d1"))
 (define default-dynamic-compilation-options '("-O2" "-d1"))
 (define default-import-library-compilation-options '("-O2" "-d0"))
+
+(define default-program-linkage
+  (if staticbuild '(static) '(dynamic)))
 
 (define default-extension-linkage
   (if staticbuild '(static) '(static dynamic)))
