@@ -11,7 +11,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#cons '())
 
-  Procedure `cons' is called with 1 argument but 2 arguments is expected.
+  Procedure `cons' is called with 1 argument but 2 arguments are expected.
 
   Procedure `cons', imported from `scheme', has type
 
@@ -255,7 +255,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     (scheme#cons '())
 
-  Procedure `cons' is called with 1 argument but 2 arguments is expected.
+  Procedure `cons' is called with 1 argument but 2 arguments are expected.
 
   Procedure `cons', imported from `scheme', has type
 

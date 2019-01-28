@@ -2524,7 +2524,7 @@
     "~%~%"
     "~a"
     "~%~%"
-    "Procedure `~a' is called with ~a argument~a but ~a argument~a is expected."
+    "Procedure `~a' is called with ~a argument~a but ~a argument~a ~a expected."
     "~%~%"
     "Procedure ~a has type"
     "~%~%"
@@ -2533,6 +2533,7 @@
    (strip-namespace pname)
    argc (multiples argc)
    exp-count (multiples exp-count)
+   (if (= exp-count 1) "is" "are")
    (variable-from-module pname)
    (type->pp-string ptype)))
 
