@@ -15,7 +15,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Procedure `cons', imported from `scheme', has type
 
-    (forall (aXXX bXXX) (procedure scheme#cons (aXXX bXXX) (pair aXXX bXXX)))
+    ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
 Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `r-proc-call-argument-type-mismatch', a toplevel procedure
@@ -33,7 +33,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Procedure `length', imported from `scheme', has type
 
-    (procedure scheme#length (list) fixnum)
+    (list -> fixnum)
 
 Warning: In `r-proc-call-argument-value-count', a toplevel procedure
   (test-scrutinizer-message-format.scm:XXX) expected a single result in argument #1 of procedure call `(scheme#list (chicken.time#cpu-time))', but received 2 results
@@ -72,7 +72,7 @@ Warning: Type mismatch
 
   The expected type is
 
-    (procedure (*) *)
+    (* -> *)
 
 Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `r-pred-call-always-true', a toplevel procedure
@@ -247,6 +247,9 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
     fixnum
 
+Warning: In `multiple-values-for-conditional', a toplevel procedure
+  expected a single result in `let' binding of `gXXX', but received 2 results
+
 Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
@@ -259,7 +262,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Procedure `cons', imported from `scheme', has type
 
-    (forall (aXXX bXXX) (procedure scheme#cons (aXXX bXXX) (pair aXXX bXXX)))
+    ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
 
 Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
@@ -279,7 +282,7 @@ Warning: Type mismatch (test-scrutinizer-message-format.scm:XXX)
 
   Procedure `length', imported from `scheme', has type
 
-    (procedure scheme#length (list) fixnum)
+    (list -> fixnum)
 
 Warning: In `m#toplevel-foo', a toplevel procedure
   In `local-bar', a local procedure
@@ -328,7 +331,7 @@ Warning: Type mismatch
 
   The expected type is
 
-    (procedure (*) *)
+    (* -> *)
 
 Note: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure
@@ -524,6 +527,11 @@ Note: Type mismatch (test-scrutinizer-message-format.scm:XXX)
   Test condition has always true value of type
 
     fixnum
+
+Warning: In `m#toplevel-foo', a toplevel procedure
+  In `local-bar', a local procedure
+  In `multiple-values-for-conditional', a local procedure
+  expected a single result in `let' binding of `gXXX', but received 2 results
 
 Error: Type mismatch (test-scrutinizer-message-format.scm:XXX) 
   In `m#toplevel-foo', a toplevel procedure

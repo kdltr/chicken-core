@@ -57,7 +57,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `bar' has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -69,7 +69,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `string?', imported from `scheme', has type
 
-    (procedure scheme#string? (*) boolean)
+    (* -> boolean)
 
 Warning: At toplevel
   (scrutiny-tests.scm:XXX) expected a single result in argument #1 of procedure call `(chicken.base#print (scheme#values 1 2))', but received 2 results
@@ -89,7 +89,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   The expected type is
 
-    (procedure () *)
+    (-> *)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -107,7 +107,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `+', imported from `scheme', has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -125,7 +125,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `+', imported from `scheme', has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch
   At toplevel
@@ -141,7 +141,7 @@ Warning: Type mismatch
 
   The declared type of `scheme#car' is
 
-    (forall (a335) (procedure scheme#car ((pair a335 *)) a335))
+    ((pair 'a335 *) -> 'a335)
 
 Warning: At toplevel
   expected a single result in `let' binding of `gXXX', but received 2 results
@@ -158,7 +158,7 @@ Warning: Type mismatch
 
   The expected type is
 
-    (procedure () *)
+    (-> *)
 
 Note: Type mismatch
   In `foo', a toplevel procedure
@@ -168,7 +168,7 @@ Note: Type mismatch
 
   Test condition has always true value of type
 
-    (procedure bar () *)
+    (-> *)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo2', a toplevel procedure
@@ -186,7 +186,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `string-append', imported from `scheme', has type
 
-    (procedure scheme#string-append (#!rest string) string)
+    (#!rest string -> string)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -204,7 +204,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `foo3' has type
 
-    (procedure foo3 (string) string)
+    (string -> string)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo4', a toplevel procedure
@@ -222,7 +222,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `+', imported from `scheme', has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo5', a toplevel procedure
@@ -240,7 +240,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `+', imported from `scheme', has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo6', a toplevel procedure
@@ -258,7 +258,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `+', imported from `scheme', has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -276,7 +276,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `+', imported from `scheme', has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
@@ -294,7 +294,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `foo9' has type
 
-    (procedure foo9 (string) symbol)
+    (string -> symbol)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
@@ -312,7 +312,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `+', imported from `scheme', has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
@@ -346,7 +346,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `string-append', imported from `scheme', has type
 
-    (procedure scheme#string-append (#!rest string) string)
+    (#!rest string -> string)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo10', a toplevel procedure
@@ -386,7 +386,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `*', imported from `scheme', has type
 
-    (procedure scheme#* (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `foo#blabla', a toplevel procedure
@@ -404,7 +404,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `+', imported from `scheme', has type
 
-    (procedure scheme#+ (#!rest number) number)
+    (#!rest number -> number)
 
 Warning: At toplevel
   use of deprecated `deprecated-procedure'
@@ -428,9 +428,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `apply1' has type
 
-    (forall
-      (a143 b144)
-      (procedure apply1 ((procedure (#!rest a143) b144) (list-of a143)) b144))
+    ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -448,9 +446,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `apply1' has type
 
-    (forall
-      (a143 b144)
-      (procedure apply1 ((procedure (#!rest a143) b144) (list-of a143)) b144))
+    ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
 
 Note: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -628,7 +624,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `f' has type
 
-    (procedure (pair) *)
+    (pair -> *)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -646,7 +642,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `f' has type
 
-    (procedure (null) *)
+    (null -> *)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   At toplevel
@@ -664,7 +660,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `f' has type
 
-    (procedure (list) *)
+    (list -> *)
 
 Warning: In `vector-ref-warn1', a toplevel procedure
   (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-ref', index -1 out of range for vector of length 3
@@ -691,7 +687,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `vector-ref', imported from `scheme', has type
 
-    (forall (a384) (procedure scheme#vector-ref ((vector-of a384) fixnum) a384))
+    ((vector-of 'a384) fixnum -> 'a384)
 
 Warning: In `vector-set!-warn1', a toplevel procedure
   (scrutiny-tests.scm:XXX) in procedure call to `scheme#vector-set!', index -1 out of range for vector of length 3
@@ -718,7 +714,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `vector-set!', imported from `scheme', has type
 
-    (procedure scheme#vector-set! (vector fixnum *) undefined)
+    (vector fixnum * -> undefined)
 
 Warning: In `list-ref-warn1', a toplevel procedure
   (scrutiny-tests.scm:XXX) in procedure call to `scheme#list-ref', index -1 is negative, which is never valid
@@ -751,7 +747,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `list-ref', imported from `scheme', has type
 
-    (forall (a366) (procedure scheme#list-ref ((list-of a366) fixnum) a366))
+    ((list-of 'a366) fixnum -> 'a366)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn2', a toplevel procedure
@@ -769,7 +765,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `list-ref', imported from `scheme', has type
 
-    (forall (a366) (procedure scheme#list-ref ((list-of a366) fixnum) a366))
+    ((list-of 'a366) fixnum -> 'a366)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn3', a toplevel procedure
@@ -787,7 +783,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `list-ref', imported from `scheme', has type
 
-    (forall (a366) (procedure scheme#list-ref ((list-of a366) fixnum) a366))
+    ((list-of 'a366) fixnum -> 'a366)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `list-ref-standard-warn4', a toplevel procedure
@@ -805,7 +801,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `list-ref', imported from `scheme', has type
 
-    (forall (a366) (procedure scheme#list-ref ((list-of a366) fixnum) a366))
+    ((list-of 'a366) fixnum -> 'a366)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn1', a toplevel procedure
@@ -823,7 +819,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `add1', imported from `chicken.base', has type
 
-    (procedure chicken.base#add1 (number) number)
+    (number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn2', a toplevel procedure
@@ -841,7 +837,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `add1', imported from `chicken.base', has type
 
-    (procedure chicken.base#add1 (number) number)
+    (number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `list-ref-type-warn3', a toplevel procedure
@@ -859,7 +855,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `add1', imported from `chicken.base', has type
 
-    (procedure chicken.base#add1 (number) number)
+    (number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `append-result-type-warn1', a toplevel procedure
@@ -877,7 +873,7 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `add1', imported from `chicken.base', has type
 
-    (procedure chicken.base#add1 (number) number)
+    (number -> number)
 
 Warning: Type mismatch (scrutiny-tests.scm:XXX) 
   In `append-result-type-warn2', a toplevel procedure
@@ -895,6 +891,6 @@ Warning: Type mismatch (scrutiny-tests.scm:XXX)
 
   Procedure `add1', imported from `chicken.base', has type
 
-    (procedure chicken.base#add1 (number) number)
+    (number -> number)
 
 Warning: redefinition of standard binding: scheme#car

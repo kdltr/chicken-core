@@ -112,7 +112,7 @@ $compile scrutinizer-tests.scm -analyze-only
 $compile typematch-tests.scm -specialize -no-warnings
 ./a.out
 
-$compile test-scrutinizer-message-format.scm -A 2>scrutinizer-message-format.out || true
+$compile test-scrutinizer-message-format.scm -A -specialize 2>scrutinizer-message-format.out || true
 $compile scrutiny-tests.scm -A 2>scrutiny.out
 $compile scrutiny-tests-2.scm -A 2>scrutiny-2.out
 $compile specialization-tests.scm -A -specialize 2>specialization.out

@@ -2417,15 +2417,42 @@
 	s)))
 
 (define (type->pp-string t)
-  (string-add-indent
-   (string-chomp
-    (with-output-to-string
-      (lambda ()
-	(let ((t (strip-syntax t)))
-	  (if (refinement-type? t)
-	      (printf "~a-~a" (string-intersperse (map conc (second t)) "/") (third t))
-	      (pp t))))))
-   "  "))
+  (define (conv t #!optional (tv-replacements '()))
+    (define (R t) (conv t tv-replacements))
+    (cond
+      ((not (pair? t))
+       (or (alist-ref t tv-replacements eq?) t))
+      ((refinement-type? t)
+       (string->symbol
+	(sprintf "~a-~a" (string-intersperse (map conc (second t)) "/") (third t))))
+      (else
+       (let ((tcar (and (pair? t) (car t))))
+	 (cond
+	   ((and (eq? 'forall tcar) (every symbol? (second t))) ; no constraints
+	    (let ((tvs (map (lambda (tv) (cons tv (list 'quote tv))) (second t))))
+	      (conv (third t) tvs)))
+	   ((eq? 'forall tcar) t) ; forall with constraints, do nothing
+	   ((memq tcar '(or not list vector pair list-of vector-of))
+	    `(,tcar ,@(map R (cdr t))))
+	   ((eq? 'struct tcar) t)
+	   ((eq? 'procedure tcar)
+	    (let ((args (map R (procedure-arguments t)))
+		  (res (let ((res (procedure-results t)))
+			 (if (eq? '* res)
+			     #f
+			     (map R res)))))
+	      (if (not res) ; '. *' return type not supported by ->
+		  `(procedure ,args ,@(or res '*))
+		  `(,@args ,(if (and-let* ((pn (procedure-name t))
+					   ((variable-mark pn '##compiler#pure))))
+				'--> '->)
+			   ,@res))))
+	   (else (bomb "type->pp-string: unhandled type" t)))))))
+  (let ((t* (conv (strip-syntax t))))
+    (string-add-indent
+     (string-chomp
+      (with-output-to-string
+       (lambda () (pp t*)))))))
 
 (define (fragment x)
   (let ((x (build-expression-tree (source-node-tree x))))
@@ -2445,8 +2472,7 @@
    (string-chomp
     (with-output-to-string
       (lambda ()
-	(pp (fragment x)))))
-   "  "))
+	(pp (fragment x)))))))
 
 (define (node-source-prefix n)
   (let ((line (node-line-number n)))
