@@ -361,6 +361,13 @@
 					      (set! r '(false))
 					      (set! op (list pt `(not ,pt)))))
 					   (else (trail-restore trail0 typeenv)))))
+			     ((maybe-constant-fold-call node (node-subexpressions node)
+			     				(lambda (ok res _constant?)
+			     				  (and ok (cons res ok))))
+			      => (lambda (res.ok)
+			     	   ;; Actual type doesn't matter; the node gets walked again
+			     	   (set! r '*)
+			     	   (mutate-node! node (list 'quote (car res.ok)))))
 			     ((and specialize (get-specializations pn)) =>
 			      (lambda (specs)
 				(let loop ((specs specs))
@@ -391,7 +398,8 @@
 				(set! specialization-statistics
 				  (cons (cons op 1) 
 					specialization-statistics))))))
-		     (when (and specialize (not op) (procedure-type? ptype))
+		     (when (and specialize (not op) (procedure-type? ptype)
+				(eq? '##core#call (node-class node)))
 		       (set-car! (node-parameters node) #t)
 		       (set! safe-calls (add1 safe-calls))))
 		   (let ((r (if (eq? '* r) r (map (cut resolve <> typeenv) r))))
@@ -673,6 +681,8 @@
 			     (if (eq? '* r)
 				 r
 				 (map (cut resolve <> typeenv) r)))
+			    ((eq? 'quote (node-class n)) ; Call got constant folded
+			     (walk n e loc dest tail flow ctags))
 			    (else
 			     (for-each
 			      (lambda (arg argr)

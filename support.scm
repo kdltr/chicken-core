@@ -65,7 +65,7 @@
      clear-real-name-table! get-real-name set-real-name!
      real-name real-name2 display-real-name-table
      source-info->string source-info->line source-info->name
-     call-info constant-form-eval
+     call-info constant-form-eval maybe-constant-fold-call
      dump-nodes read-info-hook read/source-info big-fixnum? small-bignum?
      hide-variable export-variable variable-hidden? variable-visible?
      mark-variable variable-mark intrinsic? predicate? foldable?
@@ -1504,6 +1504,18 @@
 		  (else
 		   (bomb "attempt to constant-fold call to procedure that has multiple results" form))))
 	  (bomb "attempt to constant-fold call to non-procedure" form)))))
+
+(define (maybe-constant-fold-call n subs k)
+  (define (constant-node? n2) (eq? 'quote (node-class n2)))
+  (if (eq? '##core#variable (node-class (car subs)))
+      (let ((var (first (node-parameters (car subs)))))
+	(if (and (intrinsic? var)
+		 (or (foldable? var)
+		     (predicate? var))
+		 (every constant-node? (cdr subs)) )
+	    (constant-form-eval var (cdr subs) (lambda (ok res) (k ok res #t)))
+	    (k #f #f #f)))
+      (k #f #f #f)))
 
 ;; Is the literal small enough to be encoded?  Otherwise, it should
 ;; not be constant-folded.

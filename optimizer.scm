@@ -206,32 +206,24 @@
 		      (else n1) ) )
 
 	       ((##core#call)
-		(if (eq? '##core#variable (node-class (car subs)))
-		    (let ((var (first (node-parameters (car subs)))))
-		      (if (and (intrinsic? var)
-			       (or (foldable? var)
-				   (predicate? var))
-			       (every constant-node? (cddr subs)))
-			  (constant-form-eval
-			   var
-			   (cddr subs)
-			   (lambda (ok result)
-			     (cond ((not ok)
-				    (unless odirty (set! dirty #f))
-				    (set! broken-constant-nodes
-				      (lset-adjoin/eq? broken-constant-nodes n1))
-				    n1)
-				   (else
-				    (touch)
-				    ;; Build call to continuation with new result...
-				    (let ((n2 (qnode result)))
-				      (make-node
-				       '##core#call
-				       (list #t)
-				       (list (cadr subs) n2) ) ) ) )))
-			  n1) )
-		    n1) )
-
+		(maybe-constant-fold-call
+		 n1
+		 (cons (car subs) (cddr subs))
+		 (lambda (ok result constant?)
+		   (cond ((not ok)
+			  (when constant?
+			    (unless odirty (set! dirty #f))
+			    (set! broken-constant-nodes
+				(lset-adjoin/eq? broken-constant-nodes n1)))
+			  n1)
+			 (else
+			  (touch)
+			  ;; Build call to continuation with new result...
+			  (let ((n2 (qnode result)))
+			    (make-node
+			     '##core#call
+			     (list #t)
+			     (list (cadr subs) n2) ) ) ) ))) )
 	       (else n1) ) ) ) ) )
 
     (define (replace-var var)

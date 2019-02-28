@@ -425,4 +425,6 @@
    ((list 'a (forall (a) (list 'b a))) #f)
    ((list 'b (forall (b) (list b 'a))) #t)))
 
+(infer true (= 3 (+ 1 2))) ; Constant folding should happen before / during scrutiny
+
 (test-exit)

@@ -13,7 +13,7 @@ Note: Test is always true
 
   Test condition has always true value of type:
 
-    number
+    fixnum
 
 Note: Test is always true
   In procedure `b',
@@ -30,7 +30,7 @@ Warning: Branch values mismatch
   In procedure `foo',
   In conditional expression:
 
-    (if x (scheme#values 1 2) (scheme#values 1 2 (scheme#+ (scheme#+ ...))))
+    (if x (scheme#values 1 2) (scheme#values 1 2 3))
 
   The branches have different numbers of values.
 
@@ -40,7 +40,7 @@ Warning: Branch values mismatch
 
   The false branch returns 3 values:
 
-    (scheme#values 1 2 (scheme#+ (scheme#+ (scheme#+ ...))))
+    (scheme#values 1 2 (scheme#+ 3))
 
 Warning: Invalid argument
   In file `scrutiny-tests.scm:XXX',
