@@ -138,7 +138,8 @@ defaults to
 )
 .El
 .Sh EXIT STATUS
-.Ex -std
+The tool exits with status 1 on error, 2 after the user aborted an
+operation or 3 if it was invoked with no explicitly given egg names and no *.egg files could be found in the current directory.
 .Sh EXAMPLES
 Install
 .Sq regex

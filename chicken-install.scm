@@ -773,7 +773,7 @@
     (let ((r (trim (read-line))))
       (cond ((string=? r "yes"))
             ((string=? r "no") #f)
-            ((string=? r "abort") (exit 1))
+            ((string=? r "abort") (exit 2))
             (else (loop))))))
 
 (define (trim str)
@@ -1009,22 +1009,24 @@
         (purge-mode (purge-cache eggs))
         (print-repository (print (install-path)))
         ((null? eggs)
-         (when cached-only
-           (error "`-cached' needs explicit egg list"))
-         (if list-versions-only
-             (print "no eggs specified")
-             (let ((files (glob "*.egg" "chicken/*.egg")))
-               (set! canonical-eggs 
-                 (map (lambda (fname)
-                        (list (pathname-file fname) (current-directory) #f))
-                   files))
-               (set! requested-eggs (map car canonical-eggs))
-               (retrieve-eggs '())
-               (unless retrieve-only (install-eggs)))))
+         (cond (cached-only
+                 (error "`-cached' needs explicit egg list"))
+               (list-versions-only
+                 (print "no eggs specified"))
+               (else
+                 (let ((files (glob "*.egg" "chicken/*.egg")))
+                   (when (null? files) (exit 3))
+                   (set! canonical-eggs
+                     (map (lambda (fname)
+                            (list (pathname-file fname) (current-directory) #f))
+                       files))
+                   (set! requested-eggs (map car canonical-eggs))
+                   (retrieve-eggs '())
+                   (unless retrieve-only (install-eggs))))))
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
-                  (else 
+                  (else
                     (set! requested-eggs (map (o car canonical) eggs))
                     (retrieve-eggs eggs)
                     (unless retrieve-only (install-eggs))))))))
@@ -1180,7 +1182,7 @@ EOF
                          (irregex-match-substring m 2)
                          eggs))
                      (loop (cdr args))))
-                  (else 
+                  (else
                     (set! eggs (cons arg eggs))
                     (loop (cdr args)))))))))
 
