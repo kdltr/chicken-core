@@ -1493,18 +1493,14 @@
     ;; op must have toplevel binding, result must be single-valued
     (let ((proc (##sys#slot op 0)))
       (if (procedure? proc)
-	  (let ((results (handle-exceptions ex
-			     (k #f form #f
-				(get-condition-property ex 'exn 'message))
-			   (receive (apply proc args)))))
-	    (cond ((node? results) ; TODO: This should not happen
-		   (k #f form #f #f))
+	  (let ((results (handle-exceptions ex ex (receive (apply proc args)))))
+	    (cond ((condition? results) (k #f #f))
 		  ((and (= 1 (length results))
 			(encodeable-literal? (car results)))
 		   (debugging 'o "folded constant expression" form)
-		   (k #t form (car results) #f))
+		   (k #t (car results)))
 		  ((= 1 (length results)) ; not encodeable; don't fold
-		   (k #f form #f #f))
+		   (k #f #f))
 		  (else
 		   (bomb "attempt to constant-fold call to procedure that has multiple results" form))))
 	  (bomb "attempt to constant-fold call to non-procedure" form)))))

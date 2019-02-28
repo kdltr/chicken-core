@@ -215,7 +215,7 @@
 			  (constant-form-eval
 			   var
 			   (cddr subs)
-			   (lambda (ok form result msg)
+			   (lambda (ok result)
 			     (cond ((not ok)
 				    (unless odirty (set! dirty #f))
 				    (set! broken-constant-nodes
