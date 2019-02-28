@@ -2066,7 +2066,7 @@
 (chicken.process#process-spawn
  (#(procedure #:clean #:enforce) chicken.process#process-spawn (fixnum string #!optional (list-of string) (list-of (pair string string)) boolean) fixnum))
 (chicken.process#system (#(procedure #:clean #:enforce) chicken.process#system (string) fixnum))
-(chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string #!rest) undefined))
+(chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string) undefined))
 (chicken.process#process (#(procedure #:clean #:enforce) chicken.process#process (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum))
 (chicken.process#process* (#(procedure #:clean #:enforce) chicken.process#process* (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum *))
 (chicken.process#process-wait (#(procedure #:clean #:enforce) chicken.process#process-wait (#!optional fixnum *) fixnum fixnum fixnum))
