@@ -138,8 +138,11 @@ defaults to
 )
 .El
 .Sh EXIT STATUS
-The tool exits with status 1 on error, 2 after the user aborted an
-operation or 3 if it was invoked with no explicitly given egg names and no *.egg files could be found in the current directory.
+The
+.Nm
+utility exits 0 on success, 2 if the user aborted an operation, 3 if it
+was invoked with no explicitly given egg names and no *.egg files could
+be found in the current directory, and >0 if any other error occurs.
 .Sh EXAMPLES
 Install
 .Sq regex
