@@ -2411,8 +2411,8 @@
 (define (location-name loc #!optional (indent "  "))
   (define (lname loc1)
     (if loc1
-	(real-name loc1)
-	"(unknown procedure)"))
+	(sprintf "In procedure `~a'," (real-name loc1))
+	"In a local procedure"))
   (if (null? loc)
       (conc "At the toplevel,\n" indent)
       (let rec ((loc loc)
@@ -2429,7 +2429,7 @@
 		       "In a toplevel procedure") msgs)
 	     (conc "\n" indent))
 	    (rec (cdr loc)
-		 (cons (sprintf "In procedure `~a'," (lname (car loc))) msgs))))))
+		 (cons (lname (car loc)) msgs))))))
 
 (define (variable-and-module name) ; -> (values var module-or-false)
   (let* ((str-name (if (symbol? name) (symbol->string name) name))
