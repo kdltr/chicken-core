@@ -4111,9 +4111,13 @@ EOF
 	    (let ((tok (r-token)))
 	      (build-symbol (string-append "##" tok))))
 
+	  (define (r-quote q)
+	    (let ((ln (##sys#port-line port)))
+	      (info 'list-info (list q (readrec)) ln)))
+
 	  (define (build-symbol tok)
 	    (##sys#intern-symbol tok) )
-	  
+
 	  (define (build-keyword tok)
 	    (##sys#intern-symbol
 	     (##sys#string-append kwprefix tok)))
@@ -4137,16 +4141,16 @@ EOF
 		(case c
 		  ((#\')
 		   (##sys#read-char-0 port)
-		   (list 'quote (readrec)) )
+		   (r-quote 'quote))
 		  ((#\`)
 		   (##sys#read-char-0 port)
-		   (list 'quasiquote (readrec)) )
+		   (r-quote 'quasiquote))
 		  ((#\,)
 		   (##sys#read-char-0 port)
 		   (cond ((eq? (##sys#peek-char-0 port) #\@)
 			  (##sys#read-char-0 port)
-			  (list 'unquote-splicing (readrec)) )
-			 (else (list 'unquote (readrec))) ) )
+			  (r-quote 'unquote-splicing))
+			 (else (r-quote 'unquote))))
 		  ((#\#)
 		   (##sys#read-char-0 port)
 		   (let ((dchar (##sys#peek-char-0 port)))
@@ -4214,14 +4218,16 @@ EOF
 				     (readrec) (readrec) )
 				    ((#\`)
 				     (##sys#read-char-0 port)
-				     (list 'quasisyntax (readrec)) )
+				     (r-quote 'quasisyntax))
 				    ((#\$)
 				     (##sys#read-char-0 port)
 				     (let ((c (##sys#peek-char-0 port)))
 				       (cond ((char=? c #\{)
 					      (##sys#read-char-0 port)
 					      (##sys#read-bytevector-literal port))
-					     (else (list 'location (readrec)) ))))
+					     (else
+					      ;; HACK: reuse r-quote to add line number info
+					      (r-quote 'location)))))
 				    ((#\:)
 				     (##sys#read-char-0 port)
 				     (let ((c (##sys#peek-char-0 port)))
@@ -4234,8 +4240,11 @@ EOF
 						(build-keyword str)))))))
 				    ((#\+)
 				     (##sys#read-char-0 port)
-				     (let ((tst (readrec)))
-				       (list 'cond-expand (list tst (readrec)) '(else)) ) )
+				     (let* ((ln (##sys#port-line port))
+					    (tst (readrec)))
+				       (info 'list-info
+					     (list 'cond-expand (list tst (readrec)) '(else))
+					     ln)))
 				    ((#\!)
 				     (##sys#read-char-0 port)
 				     (let ((c (##sys#peek-char-0 port)))
