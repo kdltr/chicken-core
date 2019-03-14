@@ -159,7 +159,7 @@ socket_read()
       if(*(input_buffer_top++) == '\n') {
         *ptr = '\0';
         --input_buffer_len;
-        return 0;
+        return 1;
       }
 
       if(++off >= RW_BUFFER_SIZE) return -1; /* read-buffer overflow */
@@ -170,6 +170,8 @@ socket_read()
     n = recv(socket_fd, input_buffer, INPUT_BUFFER_SIZE, 0);
 
     if(n == SOCKET_ERROR) return -1; /* read failed */
+
+    if(n == 0) return 0; /* client disconnect */
 
     input_buffer_len = n;
     input_buffer_top = input_buffer;
@@ -304,7 +306,11 @@ send_event(int event, C_char *loc, C_char *val, C_char *cloc)
     send_string_value(cloc);
     send_string(")\n");
 
-    if(socket_read() < 0) terminate("read failed");
+    n = socket_read();
+
+    if(n < 0) terminate("read failed");
+
+    if(n == 0) terminate("debugger disconnected");
 
     /* fprintf(stderr, "<READ: %s>\n", rw_buffer); */
     n = sscanf(rw_buffer, "(%d ", &reply);
