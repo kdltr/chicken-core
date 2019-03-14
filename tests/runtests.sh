@@ -112,28 +112,22 @@ $compile scrutinizer-tests.scm -analyze-only
 $compile typematch-tests.scm -specialize -no-warnings
 ./a.out
 
-$compile scrutiny-tests.scm -analyze-only -verbose 2>scrutiny.out
-$compile specialization-tests.scm -analyze-only -verbose -specialize 2>specialization.out
+$compile test-scrutinizer-message-format.scm -A -specialize 2>scrutinizer-message-format.out || true
+$compile scrutiny-tests.scm -A 2>scrutiny.out
+$compile scrutiny-tests-2.scm -A 2>scrutiny-2.out
+$compile specialization-tests.scm -A -specialize 2>specialization.out
 
-# these are sensitive to gensym-names, so make them optional
-if test \! -f scrutiny.expected; then
-    cp scrutiny.expected scrutiny.out
-fi
-if test \! -f specialization.expected; then
-    cp specialization.expected specialization.out
-fi
+# Replace foo123 -> fooXX so gensyms don't trigger failures
+$compile redact-gensyms.scm -o redact-gensyms
+./redact-gensyms "tmp,g,scm:,a,b" < scrutinizer-message-format.out > scrutinizer-message-format.redacted
+./redact-gensyms < scrutiny-2.out > scrutiny-2.redacted
+./redact-gensyms < scrutiny.out > scrutiny.redacted
+./redact-gensyms < specialization.out > specialization.redacted
 
-diff $DIFF_OPTS scrutiny.expected scrutiny.out
-diff $DIFF_OPTS specialization.expected specialization.out
-
-$compile scrutiny-tests-2.scm -A 2>scrutiny-2.out -verbose
-
-# this is sensitive to gensym-names, so make it optional
-if test \! -f scrutiny-2.expected; then
-    cp scrutiny-2.expected scrutiny-2.out
-fi
-
-diff $DIFF_OPTS scrutiny-2.expected scrutiny-2.out
+diff $DIFF_OPTS scrutinizer-message-format.expected scrutinizer-message-format.redacted
+diff $DIFF_OPTS scrutiny.expected scrutiny.redacted
+diff $DIFF_OPTS scrutiny-2.expected scrutiny-2.redacted
+diff $DIFF_OPTS specialization.expected specialization.redacted
 
 $compile scrutiny-tests-3.scm -specialize -block
 ./a.out

@@ -53,6 +53,7 @@
 
 (define d-depth 0)
 (define scrutiny-debug #t)
+(define *complain?* #f)
 
 (define (d fstr . args)
   (when (and scrutiny-debug (##sys#debug-mode?))
@@ -153,17 +154,8 @@
 (define-inline (value-type? t)
   (or (struct-type? t) (memq t value-types)))
 
-(define (type-name x)
-  (let ((t (strip-syntax x)))
-    (if (refinement-type? t)
-	(sprintf "~a-~a" (string-intersperse (map conc (second t)) "/") (third t))
-	(sprintf "~a" t))))
-
 (define specialization-statistics '())
 (define trail '())
-
-(define (multiples n)
-  (if (= n 1) "" "s"))
 
 (define (walked-result n)
   (first (node-parameters n)))		; assumes ##core#the/result node
@@ -177,25 +169,15 @@
 	((memq t '(eof null fixnum char boolean undefined)) #t)
 	(else #f)))
 
-(define (node-source-prefix n)
-  (let ((line (node-line-number n)))
-    (if (not line) "" (sprintf "(~a) " line))))
-
-(define (location-name loc)
-  (define (lname loc1)
-    (if loc1
-	(sprintf "procedure `~a'" (real-name loc1))
-	"unknown procedure"))
-  (cond ((null? loc) "at toplevel:\n  ")
-	((null? (cdr loc))
-	 (sprintf "in toplevel ~a:\n  " (lname (car loc))))
-	(else
-	 (let rec ((loc loc))
-	   (if (null? (cdr loc))
-	       (location-name loc)
-	       (sprintf "in local ~a,\n  ~a" (lname (car loc)) (rec (cdr loc))))))))
-
 (define (scrutinize node db complain specialize strict block-compilation)
+  (define (report loc msg . args)
+    (when *complain?*
+      (warning
+       (conc (location-name loc)
+	     (sprintf "~?" msg args)))))
+
+  (set! *complain?* complain)
+
   (let ((blist '())			; (((VAR . FLOW) TYPE) ...)
 	(aliased '())
 	(noreturn #f)
@@ -231,18 +213,15 @@
 	    ((char? lit) 'char)
 	    (else '*)))
 
-    (define (global-result id loc)
+    (define (global-result id loc node)
       (cond ((variable-mark id '##compiler#type) =>
 	     (lambda (a)
 	       (cond
 		((eq? a 'deprecated)
-		 (report loc "use of deprecated `~a'" id)
+		 (r-deprecated-identifier loc node id)
 		 '(*))
 		((and (pair? a) (eq? (car a) 'deprecated))
-		 (report
-		  loc
-		  "use of deprecated `~a' - consider `~a'"
-		  id (cadr a))
+		 (r-deprecated-identifier loc node id (cadr a))
 		 '(*))
 		(else (list a)))))
 	    (else '(*))))
@@ -255,7 +234,7 @@
 	     => cdr)
 	    (else #f)))
 
-    (define (variable-result id e loc flow)
+    (define (variable-result id e loc node flow)
       (cond ((blist-type id flow) => list)
 	    ((and (not strict)
 		  (db-get db id 'assigned) 
@@ -270,7 +249,7 @@
 		       (real-name id db))
 		      '(*))
 		     (else (list (cdr a))))))
-	    (else (global-result id loc))))
+	    (else (global-result id loc node))))
 
     (define (always-true1 t)
       (cond ((pair? t)
@@ -284,17 +263,12 @@
 
     (define (always-true if-node test-node t loc)
       (and-let* ((_ (always-true1 t)))
-	(report-notice
-	 loc "~aexpected a value of type boolean in conditional, but \
-	 was given a value of type `~a' which is always true:~%~%~a"
-	 (node-source-prefix test-node) t (pp-fragment if-node))
+	(r-cond-test-always-true loc if-node test-node t)
 	#t))
 
     (define (always-false if-node test-node t loc)
       (and-let* ((_ (eq? t 'false)))
-	(report-notice
-	 loc "~ain conditional, test expression will always return false:~%~%~a"
-	 (node-source-prefix test-node) (pp-fragment if-node))
+	(r-cond-test-always-false loc if-node test-node)
 	#t))
 
     (define (always-immediate var t loc)
@@ -302,60 +276,19 @@
 	(d "assignment to var ~a in ~a is always immediate" var loc)
 	#t))
 
-    (define (single node what tv loc)
+    (define (single tv r-value-count-mismatch)
       (if (eq? '* tv)
 	  '*
 	  (let ((n (length tv)))
 	    (cond ((= 1 n) (car tv))
 		  ((zero? n)
-		   (report
-		    loc
-		    "~aexpected a single result ~a, but received zero results"
-		    (node-source-prefix node) what)
+		   (r-value-count-mismatch tv)
 		   'undefined)
 		  (else
-		   (report
-		    loc
-		    "~aexpected a single result ~a, but received ~a result~a"
-		    (node-source-prefix node) what n (multiples n))
+		   (r-value-count-mismatch tv)
 		   (first tv))))))
 
-    (define (report-notice loc msg . args)
-      (when complain
-	(##sys#notice
-	 (conc (location-name loc)
-	       (sprintf "~?" msg (map type-name args))))))
-
-    (define (report loc msg . args)
-      (when complain
-	(warning
-	 (conc (location-name loc)
-	       (sprintf "~?" msg (map type-name args))))))
-
-    (define (report-error loc msg . args)
-      (set! errors #t)
-      (apply report loc msg args))
-
     (define add-loc cons)
-
-    (define (fragment x)
-      (let ((x (build-expression-tree (source-node-tree x))))
-	(let walk ((x x) (d 0))
-	  (cond ((atom? x) (strip-syntax x))
-		((>= d +fragment-max-depth+) '...)
-		((list? x)
-		 (let* ((len (length x))
-			(xs (if (< +fragment-max-length+ len)
-				(append (take x +fragment-max-length+) '(...))
-				x)))
-		   (map (cute walk <> (add1 d)) xs)))
-		(else (strip-syntax x))))))
-
-    (define (pp-fragment x)
-      (string-chomp
-       (with-output-to-string
-	 (lambda ()
-	   (pp (fragment x))))))
 
     (define (get-specializations name)
       (let* ((a (variable-mark name '##compiler#local-specializations))
@@ -364,10 +297,6 @@
 	(and (pair? c) c)))
 
     (define (call-result node args e loc params typeenv)
-      (define (pname)
-	(sprintf "~ain procedure call to `~s', "
-		 (node-source-prefix node)
-		 (fragment (first (node-subexpressions node)))))
       (let* ((actualtypes (map walked-result args))
 	     (ptype (car actualtypes))
 	     (pptype? (procedure-type? ptype))
@@ -377,24 +306,16 @@
 	     (op #f))
 	(d "  call: ~a, te: ~a" actualtypes typeenv)
 	(cond ((and (not pptype?) (not (match-types xptype ptype typeenv)))
-	       (report
-		loc
-		"~aexpected a value of type `~a' but was given a value of type `~a'"
-		(pname)
-		(resolve xptype typeenv)
-		(resolve ptype typeenv))
+	       (r-invalid-called-procedure-type
+		loc node (resolve xptype typeenv) (car args) (resolve ptype typeenv))
 	       (values '* #f))
 	      (else
 	       (let-values (((atypes values-rest ok alen)
 			     (procedure-argument-types ptype nargs typeenv)))
 		 (unless ok
-		   (report
-		    loc
-		    "~aexpected ~a argument~a but was given ~a argument~a"
-		    (pname)
-		    alen (multiples alen)
-		    nargs (multiples nargs)))
+		   (r-proc-call-argument-count-mismatch loc node alen nargs ptype))
 		 (do ((actualtypes (cdr actualtypes) (cdr actualtypes))
+		      (anodes (cdr args) (cdr anodes))
 		      (atypes atypes (cdr atypes))
 		      (i 1 (add1 i)))
 		     ((or (null? actualtypes) (null? atypes)))
@@ -402,13 +323,12 @@
 			    (car atypes)
 			    (car actualtypes)
 			    typeenv)
-		     (report
-		      loc
-		      "~aexpected argument #~a of type `~a' but was given an argument of type `~a'"
-		      (pname)
-		      i
+		     (r-proc-call-argument-type-mismatch
+		      loc node i
+		      (car anodes)
 		      (resolve (car atypes) typeenv)
-		      (resolve (car actualtypes) typeenv))))
+		      (resolve (car actualtypes) typeenv)
+		      ptype)))
 		 (when (noreturn-procedure-type? ptype)
 		   (set! noreturn #t))
 		 (let ((r (procedure-result-types ptype values-rest (cdr actualtypes) typeenv)))
@@ -419,11 +339,8 @@
 				   (variable-mark pn '##compiler#predicate)) =>
 				   (lambda (pt)
 				     (cond ((match-argument-types (list pt) (cdr actualtypes) typeenv)
-					    (report-notice
-					     loc
-					     "~athe predicate is called with an argument of type `~a' \
-					      and will always return true"
-					     (pname) (cadr actualtypes))
+					    (r-pred-call-always-true
+					     loc node pt (cadr actualtypes))
 					    (when specialize
 					      (specialize-node!
 					       node (cdr args)
@@ -433,11 +350,8 @@
 					   ((begin
 					      (trail-restore trail0 typeenv)
 					      (match-argument-types (list `(not ,pt)) (cdr actualtypes) typeenv))
-					    (report-notice
-					     loc
-					     "~athe predicate is called with an argument of type `~a' \
-					      and will always return false"
-					     (pname) (cadr actualtypes))
+					    (r-pred-call-always-false
+					     loc node pt (cadr actualtypes))
 					    (when specialize
 					      (specialize-node!
 					       node (cdr args)
@@ -522,7 +436,7 @@
 		 ((quote) (list (constant-result (first params))))
 		 ((##core#undefined) '(*))
 		 ((##core#proc) '(procedure))
-		 ((##core#variable) (variable-result (first params) e loc flow))
+		 ((##core#variable) (variable-result (first params) e loc n flow))
 		 ((##core#inline_ref)
 		  (list (foreign-type->scrutiny-type (second params) 'result)))
 		 ((##core#inline_loc_ref)
@@ -532,7 +446,8 @@
 			(tst (first subs))
 			(nor-1 noreturn))
 		    (set! noreturn #f)
-		    (let* ((rt (single n "in conditional" (walk tst e loc #f #f flow tags) loc))
+		    (let* ((rt (single (walk tst e loc #f #f flow tags)
+				       (cut r-conditional-value-count-invalid loc n tst <>)))
 			   (c (second subs))
 			   (a (third subs))
 			   (nor0 noreturn))
@@ -568,10 +483,7 @@
 				   ;;(dd " branches: ~s:~s / ~s:~s" nor1 r1 nor2 r2)
 				   (cond ((and (not nor1) (not nor2)
 					       (not (= (length r1) (length r2))))
-					  (report
-					   loc
-					   "branches in conditional expression differ in the number of results:~%~%~a"
-					   (pp-fragment n))
+					  (r-cond-branch-value-count-mismatch loc n c a r1 r2)
 					  '*)
 					 (nor1 r2)
 					 (nor2 r1)
@@ -588,11 +500,8 @@
 			(walk (car body) (append e2 e) loc dest tail flow ctags)
 			(let* ((var (car vars))
 			       (val (car body))
-			       (t (single
-				   n
-				   (sprintf "in `let' binding of `~a'" (real-name var))
-				   (walk val e loc var #f flow #f) 
-				   loc)))
+			       (t (single (walk val e loc var #f flow #f)
+					  (cut r-let-value-count-invalid loc var n val <>))))
 			  (when (and (eq? (node-class val) '##core#variable)
 				     (not (db-get db var 'assigned)))
 			    (let ((var2 (first (node-parameters val))))
@@ -656,11 +565,9 @@
 		 ((set! ##core#set!)
 		  (let* ((var (first params))
 			 (type (variable-mark var '##compiler#type))
-			 (rt (single
-			      n
-			      (sprintf "in assignment to `~a'" var)
-			      (walk (first subs) e loc var #f flow #f)
-			      loc))
+			 (rt (single (walk (first subs) e loc var #f flow #f)
+				     (cut r-assignment-value-count-invalid
+					  loc var n (first subs) <>)))
 			 (typeenv (append 
 				   (if type (type-typeenv type) '())
 				   (type-typeenv rt)))
@@ -670,11 +577,8 @@
                                         (and (pair? type)
                                              (eq? (car type) 'deprecated))))
 			       (not (match-types type rt typeenv)))
-		      ((if strict report-error report)
-		       loc
-		       "assignment of value of type `~a' to toplevel variable `~a' \
-			does not match declared type `~a'"
-		       rt var type))
+		      (when strict (set! errors #t))
+		      (r-toplevel-var-assignment-type-mismatch loc n rt var type (first subs)))
 		    (when (and (not type) ;XXX global declaration could allow this
 			       (not b)
 			       (not (eq? '* rt))
@@ -732,22 +636,15 @@
 		 ((##core#call)
 		  (let* ((f (fragment n))
 			 (len (length subs))
-			 (args (map (lambda (n i)
+			 (args (map (lambda (n2 i)
 				      (make-node
 				       '##core#the/result
 				       (list
 					(single
-					 n
-					 (sprintf 
-					     "in ~a of procedure call `~s'"
-					   (if (zero? i)
-					       "operator position"
-					       (sprintf "argument #~a" i))
-					   f)
-					 (walk n e loc #f #f flow #f) 
-					 loc))
-				       (list n)))
-				    subs 
+					 (walk n2 e loc #f #f flow #f)
+					 (cut r-proc-call-argument-value-count loc n i n2 <>)))
+				       (list n2)))
+				    subs
 				    (iota len)))
 			 (fn (walked-result (car args)))
 			 (pn (procedure-name fn))
@@ -837,24 +734,14 @@
 		  (let ((t (first params))
 			(rt (walk (first subs) e loc dest tail flow ctags)))
 		    (cond ((eq? rt '*))
-			  ((null? rt)
-			   (report
-			    loc
-			    "expression returns zero values but is declared to have \
-			     a single result of type `~a'" t))
+			  ((null? rt) (r-zero-values-for-the loc (first subs) t))
 			  (else
 			   (when (> (length rt) 1)
-			     (report
-			      loc
-			      "expression returns ~a values but is declared to have \
-			       a single result" (length rt)))
+			     (r-too-many-values-for-the loc (first subs) t rt))
 			   (when (and (second params)
 				      (not (compatible-types? t (first rt))))
-			     ((if strict report-error report-notice)
-			      loc
-			      "expression returns a result of type `~a' but is \
-			       declared to return `~a', which is not compatible"
-			      (first rt) t))))
+			     (when strict (set! errors #t))
+			     (r-type-mismatch-in-the loc (first subs) (first rt) t))))
 		    (list t)))
 		 ((##core#typecase)
 		  (let* ((ts (walk (first subs) e loc #f #f flow ctags))
@@ -863,14 +750,7 @@
 		    ;; first exp is always a variable so ts must be of length 1
 		    (let loop ((types (cdr params)) (subs (cdr subs)))
 		      (if (null? types)
-			  (quit-compiling
-			   "~a~ano clause applies in `compiler-typecase' for expression of type `~a':~a"
-			   (location-name loc)
-			   (node-source-prefix n)
-			   (type-name (car ts))
-			   (string-intersperse
-			    (map (lambda (t) (sprintf "\n    ~a" (type-name t)))
-				 (cdr params)) ""))
+			  (fail-compiler-typecase loc n (car ts) (cdr params))
 			  (let ((typeenv (append (type-typeenv (car types)) typeenv0)))
 			    (if (match-types (car types) (car ts) typeenv #t)
 				(begin ; drops exp
@@ -1735,17 +1615,20 @@
 	   (let-values (((t pred pure) (validate-type new name)))
 	     (unless t
 	       (warning
-		(sprintf "invalid type specification for `~a': ~a"
+		(sprintf "Invalid type specification for `~a':~%~%~a"
 			 name
-			 (type-name new))))
+			 (type->pp-string new))))
 	     (when (and old (not (compatible-types? old t)))
 	       (warning
 		(sprintf
-		 "type definition for toplevel binding `~a' \
-		  conflicts with previously loaded type:\
-		  ~n  New type:      ~a\
-		  ~n  Original type: ~a"
-		 name (type-name old) (type-name new))))
+		 (string-append
+		  "Declared type for toplevel binding `~a'"
+		  "~%~%~a~%~%"
+		  "  conflicts with previously loaded type:"
+		  "~%~%~a")
+		 name
+		 (type->pp-string new)
+		 (type->pp-string old))))
 	     (mark-variable name '##compiler#type t)
 	     (mark-variable name '##compiler#type-source 'db)
 	     (when specs
@@ -2161,16 +2044,6 @@
 	rtypes)))
 
 (let ()
-  ;; TODO: Complain argument not available here, so we can't use the
-  ;; standard "report" defined above.  However, ##sys#enable-warnings
-  ;; and "complain" (do-scrutinize) are always true together, except
-  ;; that "complain" will be false while ##sys#enable-warnings is true
-  ;; on "no-usual-integrations", so perhaps get rid of "complain"?
-  (define (report loc msg . args)
-    (warning
-     (conc (location-name loc)
-	   (sprintf "~?" msg (map type-name args)))))
-
   (define (known-length-vector-index node args loc expected-argcount)
     (and-let* ((subs (node-subexpressions node))
 	       ((= (length subs) (add1 expected-argcount)))
@@ -2185,12 +2058,7 @@
       (if (and (>= val 0) (< val vector-length))
 	  val
 	  (begin
-	    (report
-	     loc "~ain procedure call to `~a', index ~a out of range \
-                   for vector of length ~a"
-	     (node-source-prefix node)
-	     ;; TODO: It might make more sense to use "pname" here
-	     (first (node-parameters (first subs))) val vector-length)
+	    (r-index-out-of-range loc node val vector-length "vector")
 	    #f))))
 
   ;; These are a bit hacky, since they mutate the node.  These special
@@ -2230,12 +2098,6 @@
 ;   list-ref, list-tail
 
 (let ()
-  ;; See comment in vector (let) just above this
-  (define (report loc msg . args)
-    (warning
-     (conc (location-name loc)
-	   (sprintf "~?" msg (map type-name args)))))
-
   (define (list-or-null a)
     (if (null? a) 'null `(list ,@a)))
 
@@ -2278,25 +2140,15 @@
 		     ((eq? 'quote (node-class index)))
 		     (val (first (node-parameters index)))
 		     ((fixnum? val))) ; Standard type warning otherwise
-	    ;; TODO: It might make sense to use "pname" when reporting
 	    (cond ((negative? val)
-		   ;; Negative indices should always generate a warning
-		   (report
-		    loc "~ain procedure call to `~a', index ~a is \
-                        negative, which is never valid"
-		    (node-source-prefix node)
-		    (first (node-parameters (first subs))) val)
+		   (r-index-out-of-range loc node val 'not-used "list")
 		   #f)
 		  ((split-list-type arg1 val k))
 		  ;; Warn only if it's a known proper list.  This avoids
 		  ;; false warnings due to component smashing.
 		  ((proper-list-type-length arg1) =>
 		   (lambda (length)
-		     (report
-		      loc "~ain procedure call to `~a', index ~a out of \
-                        range for proper list of length ~a"
-		      (node-source-prefix node)
-		      (first (node-parameters (first subs))) val length)
+		     (r-index-out-of-range loc node val length "list")
 		     #f))
 		  (else #f)))
 	  rtypes)))
@@ -2342,12 +2194,6 @@
 	rtypes)))
 
 (let ()
-  ;; See comment in vector (let)
-  (define (report loc msg . args)
-    (warning
-     (conc (location-name loc)
-	   (sprintf "~?" msg (map type-name args)))))
-
   (define (append-special-case node args loc rtypes)
     (define (potentially-proper-list? l) (match-types l 'list '()))
 
@@ -2379,13 +2225,10 @@
 		;; The final argument may be an atom or improper list
 		(unless (or (null? (cdr arg-types))
 			    (potentially-proper-list? arg1))
-		  (report
-		   loc "~ain procedure call to `~a', argument #~a is \
-			of type ~a but expected a proper list"
-		   (node-source-prefix node)
-		   (first (node-parameters
-			   (first (node-subexpressions node))))
-		   index arg1))
+		  (r-proc-call-argument-type-mismatch
+		   loc node index 'list arg1
+		   (car arg-types)
+		   (variable-mark 'scheme#append '##compiler#type)))
 		#f))))))
     (cond ((derive-result-type) => list)
 	  (else rtypes)))
@@ -2484,4 +2327,638 @@
 	    (else 
 	     (restore)
 	     (loop (cdr ts) ok))))))
+
+;;; Report helpers
+
+(define (multiples n)
+  (if (= n 1) "" "s"))
+
+(define (string-add-indent str #!optional (indent "  "))
+  (let* ((ls (string-split str "\n" #t))
+	 (s (string-intersperse
+	     (map (lambda (l)
+		    (if (string=? "" l)
+			l
+			(string-append indent l)))
+		  ls)
+	     "\n")))
+    (if (eq? #\newline (string-ref str (sub1 (string-length str))))
+	(string-append s "\n")
+	s)))
+
+(define (type->pp-string t)
+  (define (conv t #!optional (tv-replacements '()))
+    (define (R t) (conv t tv-replacements))
+    (cond
+      ((not (pair? t))
+       (or (alist-ref t tv-replacements eq?) t))
+      ((refinement-type? t)
+       (string->symbol
+	(sprintf "~a-~a" (string-intersperse (map conc (second t)) "/") (third t))))
+      (else
+       (let ((tcar (and (pair? t) (car t))))
+	 (cond
+	   ((and (eq? 'forall tcar) (every symbol? (second t))) ; no constraints
+	    (let ((tvs (map (lambda (tv) (cons tv (list 'quote tv))) (second t))))
+	      (conv (third t) tvs)))
+	   ((eq? 'forall tcar) t) ; forall with constraints, do nothing
+	   ((memq tcar '(or not list vector pair list-of vector-of))
+	    `(,tcar ,@(map R (cdr t))))
+	   ((eq? 'struct tcar) t)
+	   ((eq? 'procedure tcar)
+	    (let ((args (map R (procedure-arguments t)))
+		  (res (let ((res (procedure-results t)))
+			 (if (eq? '* res)
+			     #f
+			     (map R res)))))
+	      (if (not res) ; '. *' return type not supported by ->
+		  `(procedure ,args ,@(or res '*))
+		  `(,@args ,(if (and-let* ((pn (procedure-name t))
+					   ((variable-mark pn '##compiler#pure))))
+				'--> '->)
+			   ,@res))))
+	   (else (bomb "type->pp-string: unhandled type" t)))))))
+  (let ((t* (conv (strip-syntax t))))
+    (string-add-indent
+     (string-chomp
+      (with-output-to-string
+       (lambda () (pp t*)))))))
+
+(define (fragment x)
+  (let ((x (build-expression-tree (source-node-tree x))))
+    (let walk ((x x) (d 0))
+      (cond ((atom? x) (strip-syntax x))
+	    ((>= d +fragment-max-depth+) '...)
+	    ((list? x)
+	     (let* ((len (length x))
+		    (xs (if (< +fragment-max-length+ len)
+			    (append (take x +fragment-max-length+) '(...))
+			    x)))
+	       (map (cute walk <> (add1 d)) xs)))
+	    (else (strip-syntax x))))))
+
+(define (pp-fragment x)
+  (string-add-indent
+   (string-chomp
+    (with-output-to-string
+      (lambda ()
+	(pp (fragment x)))))))
+
+(define (node-source-prefix n)
+  (let ((line (node-line-number n)))
+    (if (not line) "" (sprintf "In file `~a'," line))))
+
+(define (location-name loc #!optional (indent "  "))
+  (define (lname loc1)
+    (if loc1
+	(sprintf "In procedure `~a'," (real-name loc1))
+	"In a local procedure"))
+  (if (null? loc)
+      (conc "At the toplevel,\n" indent)
+      (let rec ((loc loc)
+		(msgs (list "")))
+	(if (null? (cdr loc))
+	    (string-intersperse
+	     (cons (if (car loc)
+		       ;; If the first location is of format 'bar#foo'
+		       ;; consider it as being being procedure 'foo' in
+		       ;; module 'bar'.
+		       (receive (var mod) (variable-and-module (real-name (car loc)))
+			 (conc (if mod (sprintf "In module `~a',~%~a" mod indent) "")
+			       (sprintf "In procedure `~a'," var)))
+		       "In a toplevel procedure") msgs)
+	     (conc "\n" indent))
+	    (rec (cdr loc)
+		 (cons (lname (car loc)) msgs))))))
+
+(define (variable-and-module name) ; -> (values var module-or-false)
+  (let* ((str-name (if (symbol? name) (symbol->string name) name))
+	 (r (string-split str-name "#" #t)))
+    (if (pair? (cdr r))
+	(values (string->symbol (second r)) (string->symbol (first r)))
+	(values (string->symbol str-name) #f))))
+
+(define (variable-from-module sym)
+  (receive (var mod) (variable-and-module sym)
+    (if mod
+	(sprintf "`~a' from module `~a'" var mod)
+	(sprintf "`~a'" var))))
+
+(define (describe-expression node)
+  (define (p-expr n)
+    (sprintf (string-append "This is the expression:" "~%~%" "~a")
+	     (pp-fragment n)))
+  (define (p-node n)
+    (cond ((and (eq? '##core#call (node-class n))
+		(let ((pnode (first (node-subexpressions n))))
+		  (and-let* (((eq? '##core#variable (node-class pnode)))
+			     (pname (car (node-parameters pnode)))
+			     (ptype (variable-mark pname '##compiler#type)))
+		    (sprintf (string-append
+			      "It is a call to ~a which has this type:"
+			      "~%~%"
+			      "~a"
+			      "~%~%"
+			      "~a")
+			     (variable-from-module pname)
+			     (type->pp-string ptype)
+			     (p-expr n))))))
+	  ((eq? '##core#the/result (node-class n)) ; walk through
+	   (p-node (first (node-subexpressions n))))
+	  (else (p-expr n))))
+  (p-node (source-node-tree node)))
+
+(define (call-node-procedure-name node)
+  (fragment (first (node-subexpressions node))))
+
+(define (report2 short report-f location-node-candidates loc msg . args)
+  (define (file-location)
+    (any (lambda (n) (and (not (string=? "" (node-source-prefix n)))
+		     (node-source-prefix n)))
+	 location-node-candidates))
+  (when *complain?*
+    (report-f
+     (conc
+      short
+      (string-add-indent
+       (conc (let ((l (file-location))) (if l (conc "\n" l) "")) "\n"
+	     (location-name loc "")
+	     (sprintf "~?" msg args))
+       "  ")))
+    (flush-output)))
+
+(define (report-notice reason location-node-candidates loc msg . args)
+  (apply report2 reason ##sys#notice location-node-candidates loc msg args))
+
+;;; Reports
+
+(define (r-invalid-called-procedure-type loc call-node xptype p-node ptype)
+  (define (variable-node-name n)
+    (cond ((eq? '##core#the/result (node-class n))
+	   (variable-node-name (first (node-subexpressions n))))
+	  ((eq? '##core#variable (node-class n)) (car (node-parameters n)))
+	  (else #f)))
+  (if (variable-node-name p-node)
+      (report2
+       "Invalid procedure"
+       warning
+       (list p-node call-node)
+       loc
+       (string-append
+	"In procedure call:"
+	"~%~%"
+	"~a"
+	"~%~%"
+	"Variable ~a is not a procedure."
+	"~%~%"
+	"It has this type:"
+	"~%~%"
+	"~a")
+       (pp-fragment call-node)
+       (variable-from-module (variable-node-name p-node))
+       (type->pp-string ptype))
+      (report2
+       "Invalid procedure"
+       warning
+       (list p-node call-node)
+       loc
+       (string-append
+	"In procedure call:"
+	"~%~%"
+	"~a"
+	"~%~%"
+	"The procedure expression does not appear to be a callable."
+	"~%~%"
+	"~a"
+	"~%~%"
+	"The expected type is:"
+	"~%~%"
+	"~a"
+	"~%~%"
+	"The actual type is:"
+	"~%~%"
+	"~a")
+       (pp-fragment call-node)
+       (describe-expression p-node)
+       (type->pp-string xptype)
+       (type->pp-string ptype))))
+
+(define (r-proc-call-argument-count-mismatch loc node exp-count argc ptype)
+  (define pname (call-node-procedure-name node))
+  (report2
+   "Wrong number of arguments"
+   warning
+   (list node)
+   loc
+   (string-append
+    "In procedure call:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Procedure `~a' is called with ~a argument~a but ~a argument~a ~a expected."
+    "~%~%"
+    "Procedure ~a has this type:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   (strip-namespace pname)
+   argc (multiples argc)
+   exp-count (multiples exp-count)
+   (if (= exp-count 1) "is" "are")
+   (variable-from-module pname)
+   (type->pp-string ptype)))
+
+(define (r-proc-call-argument-type-mismatch loc node i arg-node xptype atype ptype)
+  (define pname (call-node-procedure-name node))
+  (report2
+   "Invalid argument"
+   warning
+   (list node)
+   loc
+   (string-append
+    "In procedure call:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Argument #~a to procedure `~a' has an invalid type:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The expected type is:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Procedure ~a has this type:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   i
+   (strip-namespace pname)
+   (type->pp-string atype)
+   (type->pp-string xptype)
+   (describe-expression arg-node)
+   (variable-from-module pname)
+   (type->pp-string ptype)))
+
+(define (r-proc-call-argument-value-count loc call-node i arg-node atype)
+  (define pname (call-node-procedure-name call-node))
+  (define (p short long)
+    (report2
+     short
+     warning
+     (list arg-node call-node)
+     loc
+     (string-append
+      "In procedure call:"
+      "~%~%"
+      "~a"
+      "~%~%"
+      "Argument #~a to procedure~a ~a"
+      "~%~%"
+      "~a")
+     (pp-fragment call-node)
+     i
+     (if (zero? i) "" (sprintf " `~a'" (strip-namespace pname)))
+     long
+     (describe-expression arg-node)))
+  (if (zero? (length atype))
+      (p "Not enough argument values"
+	 "does not return any values.")
+      (p "Too many argument values"
+	 (sprintf "returns ~a values but 1 is expected." (length atype)))))
+
+(define (r-index-out-of-range loc node idx obj-length obj-name)
+  ;; Negative indices should always generate a warning
+  (define pname (call-node-procedure-name node))
+  (report2
+   (if (negative? idx)
+       (sprintf "Negative ~a index" obj-name)
+       (sprintf "~a~a index out of range"
+		(char-upcase (string-ref obj-name 0))
+		(substring obj-name 1)))
+   warning
+   (list node)
+   loc
+   (string-append
+    "In procedure call:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Procedure ~a is called with ~a")
+   (pp-fragment node)
+   (variable-from-module pname)
+   (if (negative? idx)
+       (sprintf "a negative index ~a." idx)
+       (sprintf "index `~a' for a ~a of length `~a'." idx obj-name obj-length))))
+
+(define (r-conditional-value-count-invalid loc if-node test-node atype)
+  (define (p short long)
+    (report2 short warning (list test-node if-node)
+	     loc
+	     (string-append
+	      "In conditional:"
+	      "~%~%"
+	      "~a"
+	      "~%~%"
+	      "The test expression ~a"
+	      "~%~%"
+	      "~a")
+	     (pp-fragment if-node)
+	     long
+	     (describe-expression test-node)))
+  (if (zero? (length atype))
+      (p "Zero values for conditional"
+	 "returns 0 values.")
+      (p "Too many values for conditional"
+	 (sprintf "returns ~a values." (length atype)))))
+
+(define (r-let-value-count-invalid loc var let-node val-node atype)
+  (define (p short long)
+    (report2 short warning (list val-node let-node)
+	     loc
+	     (string-append
+	      "In let expression:"
+	      "~%~%"
+	      "~a"
+	      "~%~%"
+	      "Variable `~a' is bound to an expression that ~a"
+	      "~%~%"
+	      "~a")
+	     (pp-fragment let-node)
+	     (real-name var)
+	     long
+	     (describe-expression val-node)))
+  (if (zero? (length atype))
+      (p (sprintf "Let binding to `~a' has zero values" (real-name var))
+	 "returns 0 values.")
+      (p (sprintf "Let binding to `~a' has ~a values" (real-name var) (length atype))
+	 (sprintf "returns ~a values." (length atype)))))
+
+(define (r-assignment-value-count-invalid loc var set-node val-node atype)
+  (define (p short long)
+    (report2 short warning (list val-node set-node)
+	     loc
+	     (string-append
+	      "In assignment:"
+	      "~%~%"
+	      "~a"
+	      "~%~%"
+	      "Variable `~a' is assigned from expression that ~a"
+	      "~%~%"
+	      "~a")
+	     (pp-fragment set-node)
+	     (strip-namespace var)
+	     long
+	     (describe-expression val-node)))
+  (if (zero? (length atype))
+      (p (sprintf "Assignment to `~a' has zero values" (strip-namespace var))
+	 "returns 0 values.")
+      (p (sprintf "Assignment to `~a' has ~a values" (strip-namespace var) (length atype))
+	 (sprintf "returns ~a values." (length atype)))))
+
+(define (r-pred-call-always-true loc node pred-type atype)
+  (define pname (call-node-procedure-name node))
+  (report-notice
+   "Predicate is always true"
+   (list node)
+   loc
+   (string-append
+    "In procedure call:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The predicate will always return true."
+    "~%~%"
+    "Procedure ~a is a predicate for:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The given argument has this type:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   (variable-from-module pname)
+   (type->pp-string pred-type)
+   (type->pp-string atype)))
+
+(define (r-pred-call-always-false loc node pred-type atype)
+  (define pname (call-node-procedure-name node))
+  (report-notice
+   "Predicate is always false"
+   (list node)
+   loc
+   (string-append
+    "In procedure call:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The predicate will always return false."
+    "~%~%"
+    "Procedure ~a is a predicate for:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The given argument has this type:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   (variable-from-module pname)
+   (type->pp-string pred-type)
+   (type->pp-string atype)))
+
+(define (r-cond-test-always-true loc if-node test-node t)
+  (report-notice
+   "Test is always true"
+   (list test-node if-node)
+   loc
+   (string-append
+    "In conditional expression:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Test condition has always true value of type:"
+    "~%~%"
+    "~a")
+   (pp-fragment if-node)
+   (type->pp-string t)))
+
+(define (r-cond-test-always-false loc if-node test-node)
+  (report-notice
+   "Test is always false"
+   (list test-node if-node)
+   loc
+   (string-append
+    "In conditional expression:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Test condition is always false.")
+   (pp-fragment if-node)))
+
+(define (r-zero-values-for-the loc node the-type)
+  ;; (the t r) expects r returns exactly 1 value
+  (report2
+   "Not enough values"
+   warning
+   (list node)
+   loc
+   (string-append
+    "In expression:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Expression returns 0 values but is declared to return:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   (type->pp-string the-type)))
+
+(define (r-too-many-values-for-the loc node the-type rtypes)
+  (report2
+   "Too many values"
+   warning
+   (list node)
+   loc
+   (string-append
+    "In expression:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Expression returns too many values."
+    "~%~%"
+    "The expression returns ~a values but is declared to return:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   (length rtypes)
+   (type->pp-string the-type)))
+
+(define (r-type-mismatch-in-the loc node atype the-type)
+  (report2
+   "Type mismatch"
+   warning
+   (list node)
+   loc
+   (string-append
+    "In expression:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Expression's declared and actual types do not match."
+    "~%~%"
+    "The declared type is:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The actual type is:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   (type->pp-string the-type)
+   (type->pp-string atype)))
+
+(define (fail-compiler-typecase loc node atype ct-types)
+  (define (pp-type t) (string-add-indent (type->pp-string t) "  "))
+  (quit-compiling
+   (string-append
+    "No typecase match"
+    "~%"
+    "~a"
+    "~a"
+    "In `compiler-typecase' expression:"
+    "~%~%"
+    "  ~a"
+    "~%~%"
+    "  Tested expression does not match any case."
+    "~%~%"
+    "  The expression has this type:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "  The specified type cases are these:"
+    "~%~%"
+    "~a")
+   (if (string=? "" (node-source-prefix node))
+       "\n"
+       (conc "  " (node-source-prefix node) "\n  "))
+   (location-name loc)
+   (pp-fragment node)
+   (pp-type atype)
+   (string-intersperse (map pp-type ct-types) "\n\n")))
+
+(define (r-cond-branch-value-count-mismatch loc node c-node a-node c-types a-types)
+  (report2
+   "Branch values mismatch"
+   warning
+   (list a-node node)
+   loc
+   (string-append
+    "In conditional expression:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The branches have different numbers of values."
+    "~%~%"
+    "The true branch returns ~a value~a:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The false branch returns ~a value~a:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   (length c-types) (multiples (length c-types))
+   (pp-fragment c-node)
+   (length a-types) (multiples (length a-types))
+   (pp-fragment a-node)))
+
+(define (r-toplevel-var-assignment-type-mismatch loc node atype var xptype value-node)
+  (report2
+   "Invalid assignment"
+   warning
+   (list node value-node)
+   loc
+   (string-append
+    "In assignment:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Variable `~a' is assigned invalid value."
+    "~%~%"
+    "The assigned value has this type:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "The declared type of ~a is:"
+    "~%~%"
+    "~a")
+   (pp-fragment node)
+   (strip-namespace var)
+   (type->pp-string atype)
+   (variable-from-module
+    (let ((n (real-name var)))
+      (if (symbol? n) n (string->symbol n))))
+   (type->pp-string xptype)))
+
+(define (r-deprecated-identifier loc node id #!optional suggestion)
+  (report2
+   (sprintf "Deprecated identifier `~a'" (strip-namespace id))
+   warning
+   (list node)
+   loc
+   (string-append
+    "In expression:"
+    "~%~%"
+    "~a"
+    "~%~%"
+    "Use of deprecated identifier ~a."
+    "~a")
+   (pp-fragment node) ;; TODO: parent node would be nice here
+   (variable-from-module id)
+   (if suggestion
+       (sprintf "~%~%The suggested alternative is ~a."
+		(variable-from-module suggestion))
+       "")))
 )
