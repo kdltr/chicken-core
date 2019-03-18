@@ -2412,7 +2412,7 @@
   (define (lname loc1)
     (if loc1
 	(sprintf "In procedure `~a'," (real-name loc1))
-	"In a local procedure"))
+	"In a local procedure,"))
   (if (null? loc)
       (conc "At the toplevel,\n" indent)
       (let rec ((loc loc)
@@ -2426,7 +2426,7 @@
 		       (receive (var mod) (variable-and-module (real-name (car loc)))
 			 (conc (if mod (sprintf "In module `~a',~%~a" mod indent) "")
 			       (sprintf "In procedure `~a'," var)))
-		       "In a toplevel procedure") msgs)
+		       "In a toplevel procedure,") msgs)
 	     (conc "\n" indent))
 	    (rec (cdr loc)
 		 (cons (lname (car loc)) msgs))))))
