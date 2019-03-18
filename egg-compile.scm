@@ -637,8 +637,8 @@
                                     custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
-		       default-csc)
-		   platform))
+                       default-csc)
+                   platform))
          (sname (prefix srcdir name))
          (tfile (qs* (prefix srcdir (conc types-file ".types"))
                      platform))
@@ -675,7 +675,7 @@
            " : "
            src " "
            (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "") " "
+           (if custom cmd "") " "
            (filelist srcdir lobjs platform) " "
            (filelist srcdir source-dependencies platform)
            " : "
@@ -726,8 +726,9 @@
                                 source (options '())
                                 eggfile custom)
          srcdir platform)
-  (let* ((cmd (or (custom-cmd custom srcdir platform)
-                  default-csc))
+  (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
+                       default-csc)
+                   platform))
          (sname (prefix srcdir name))
          (ssname (and source (prefix srcdir source)))
          (opts (if (null? options)
@@ -748,7 +749,7 @@
            (filelist srcdir source-dependencies platform)
            src " "
            (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "")
+           (if custom cmd "")
            " : "
            cmd
            " -setup-mode -static -I " srcdir
@@ -765,8 +766,9 @@
                                  source-dependencies
                                  custom)
          srcdir platform)
-  (let* ((cmd (or (custom-cmd custom srcdir platform)
-                  default-csc))
+  (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
+                       default-csc)
+                   platform))
          (opts (if (null? options)
                    default-dynamic-compilation-options
                    options))
@@ -783,7 +785,7 @@
            " : "
            src " "
            (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "") " "
+           (if custom cmd "") " "
            (filelist srcdir source-dependencies platform)
            " : "
            cmd
@@ -824,7 +826,7 @@
            " : "
            src " "
            (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "") " "
+           (if custom cmd "") " "
            (filelist srcdir source-dependencies platform) " "
            (filelist srcdir lobjs platform)
            " : "
@@ -870,7 +872,7 @@
            " : "
            src " "
            (qs* eggfile platform) " "
-           (if custom (qs* cmd platform) "") " "
+           (if custom cmd "") " "
            (filelist srcdir lobjs platform) " "
            (filelist srcdir source-dependencies platform)
            " : "
