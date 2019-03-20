@@ -50,7 +50,7 @@
     macro-subset fixup-macro-environment
 
     ;; Low-level hash table support
-    hash-table-ref hash-table-set! hash-table-update!
+    make-hash-table hash-table-ref hash-table-set! hash-table-update!
     hash-table-for-each hash-table-size
 
     ;; Modules that are made available to code by default
@@ -173,6 +173,9 @@
 	    (set! cache-s s)
 	    (set! cache-h (##core#inline "C_u_i_string_hash" (##sys#slot s 1) rand))
 	    (##core#inline "C_fixnum_modulo" cache-h n))))))
+
+(define (make-hash-table #!optional (size 301))
+  (make-vector size '()))
 
 (define (hash-table-ref ht key)
   (let loop ((bucket (##sys#slot ht (hash-symbol key (##core#inline "C_block_size" ht)))))

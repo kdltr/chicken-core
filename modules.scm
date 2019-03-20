@@ -294,15 +294,22 @@
 			  (warn "indirect export of unknown binding" (car iexports))
 			  (loop2 (cdr iexports)))))))))))
 
-(define (merge-se . ses)		; later occurrences take precedence
-  (let bwd ((ses (remove null? ses)))
-    (cond ((null? ses) '())
-	  ((null? (cdr ses)) (car ses))	; Do not re-cons the final list
-	  (else (let fwd ((se (car ses))
-			  (rest (bwd (cdr ses))))
-		  (cond ((null? se) rest)
-			((assq (caar se) rest) (fwd (cdr se) rest))
-			(else (cons (car se) (fwd (cdr se) rest)))))))))
+(define (merge-se . ses*) ; later occurrences take precedence to earlier ones
+  (let ((seen (make-hash-table)) (rses (reverse ses*)))
+    (let loop ((ses (cdr rses)) (last-se #f) (se2 (car rses)))
+      (cond ((null? ses) se2)
+	    ((or (eq? last-se (car ses)) (null? (car ses)))
+	     (loop (cdr ses) last-se se2))
+	    ((not last-se)
+	     (unless (null? ses)
+	       (for-each (lambda (e) (hash-table-set! seen (car e) #t)) se2))
+	     (loop ses se2 se2))
+	    (else (let lp ((se (car ses)) (se2 se2))
+		    (cond ((null? se) (loop (cdr ses) (car ses) se2))
+			  ((hash-table-ref seen (caar se))
+			   (lp (cdr se) se2))
+			  (else (hash-table-set! seen (caar se) #t)
+				(lp (cdr se) (cons (car se) se2))))))))))
 
 (define (##sys#compiled-module-registration mod)
   (let ((dlist (module-defined-list mod))
