@@ -185,7 +185,7 @@ Warning: Invalid assignment
 
   The declared type of `car' from module `scheme' is:
 
-    ((pair 'a335 *) -> 'a335)
+    ((pair 'a *) -> 'a)
 
 Warning: Let binding to `gXXX' has 2 values
   In file `scrutiny-tests.scm:XXX',
@@ -564,7 +564,7 @@ Warning: Invalid argument
 
   Procedure `apply1' has this type:
 
-    ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
+    ((#!rest 'a -> 'b) (list-of 'a) -> 'b)
 
 Warning: Invalid argument
   In file `scrutiny-tests.scm:XXX',
@@ -583,7 +583,7 @@ Warning: Invalid argument
 
   It is a call to `cons' from module `scheme' which has this type:
 
-    ('a331 'b332 -> (pair 'a331 'b332))
+    ('a 'b -> (pair 'a 'b))
 
   This is the expression:
 
@@ -591,7 +591,7 @@ Warning: Invalid argument
 
   Procedure `apply1' has this type:
 
-    ((#!rest 'a143 -> 'b144) (list-of 'a143) -> 'b144)
+    ((#!rest 'a -> 'b) (list-of 'a) -> 'b)
 
 Note: Predicate is always true
   In file `scrutiny-tests.scm:XXX',
@@ -834,7 +834,7 @@ Warning: Invalid argument
 
   It is a call to `cons' from module `scheme' which has this type:
 
-    ('a331 'b332 -> (pair 'a331 'b332))
+    ('a 'b -> (pair 'a 'b))
 
   This is the expression:
 
@@ -892,7 +892,7 @@ Warning: Invalid argument
 
   Procedure `vector-ref' from module `scheme' has this type:
 
-    ((vector-of 'a384) fixnum -> 'a384)
+    ((vector-of 'a) fixnum -> 'a)
 
 Warning: Negative vector index
   In file `scrutiny-tests.scm:XXX',
@@ -1010,7 +1010,7 @@ Warning: Invalid argument
 
   Procedure `list-ref' from module `scheme' has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
 Warning: Invalid argument
   In file `scrutiny-tests.scm:XXX',
@@ -1033,7 +1033,7 @@ Warning: Invalid argument
 
   Procedure `list-ref' from module `scheme' has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
 Warning: Invalid argument
   In file `scrutiny-tests.scm:XXX',
@@ -1056,7 +1056,7 @@ Warning: Invalid argument
 
   Procedure `list-ref' from module `scheme' has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
 Warning: Invalid argument
   In file `scrutiny-tests.scm:XXX',
@@ -1079,7 +1079,7 @@ Warning: Invalid argument
 
   Procedure `list-ref' from module `scheme' has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
 Warning: Invalid argument
   In file `scrutiny-tests.scm:XXX',
@@ -1098,7 +1098,7 @@ Warning: Invalid argument
 
   It is a call to `list-ref' from module `scheme' which has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
   This is the expression:
 
@@ -1125,7 +1125,7 @@ Warning: Invalid argument
 
   It is a call to `list-ref' from module `scheme' which has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
   This is the expression:
 
@@ -1152,7 +1152,7 @@ Warning: Invalid argument
 
   It is a call to `list-ref' from module `scheme' which has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
   This is the expression:
 
@@ -1179,7 +1179,7 @@ Warning: Invalid argument
 
   It is a call to `list-ref' from module `scheme' which has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
   This is the expression:
 
@@ -1206,7 +1206,7 @@ Warning: Invalid argument
 
   It is a call to `list-ref' from module `scheme' which has this type:
 
-    ((list-of 'a366) fixnum -> 'a366)
+    ((list-of 'a) fixnum -> 'a)
 
   This is the expression:
 

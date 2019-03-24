@@ -43,6 +43,7 @@
 	chicken.io
 	chicken.pathname
 	chicken.platform
+	chicken.plist
 	chicken.port
 	chicken.pretty-print
 	chicken.string
@@ -107,6 +108,7 @@
 ;   ##compiler#special-result-type -> PROCEDURE
 ;   ##compiler#escape          ->  #f | 'yes | 'no
 ;   ##compiler#type-abbreviation -> TYPESPEC
+;;  ##compiler#tv-root         ->  STRING
 ;
 ; specialization specifiers:
 ;
@@ -1104,7 +1106,7 @@
 		     (set! typeenv
 		       (append (map (lambda (v)
 				      (let ((v (if (symbol? v) v (first v))))
-					(cons v (gensym v))))
+					(cons v (make-tv v))))
 				    typevars)
 			       typeenv))
 		     (set! constraints 
@@ -1474,6 +1476,13 @@
 	 (else #f))))
 
 ;;; Type-environments and -variables
+
+(define (make-tv sym)
+  (let* ((r (get sym '##core#tv-root))
+	 ;; ##core#tv-root is a string to make this gensym fast
+	 (new (gensym r)))
+    (put! new '##core#tv-root r)
+    new))
 
 (define (type-typeenv t)
   (let ((te '()))
@@ -1926,6 +1935,7 @@
 	       (set! type
 		 `(forall
 		   ,(map (lambda (tv)
+			   (put! tv '##core#tv-root (symbol->string (strip-syntax tv)))
 			   (cond ((assq tv constraints) => identity)
 				 (else tv)))
 			 (delete-duplicates typevars eq?))
@@ -2347,6 +2357,10 @@
 	s)))
 
 (define (type->pp-string t)
+  (define (pp-tv tv)
+    (let ((r (get tv '##core#tv-root)))
+      (assert r (list tv: tv))
+      (list 'quote (string->symbol r))))
   (define (conv t #!optional (tv-replacements '()))
     (define (R t) (conv t tv-replacements))
     (cond
@@ -2359,7 +2373,7 @@
        (let ((tcar (and (pair? t) (car t))))
 	 (cond
 	   ((and (eq? 'forall tcar) (every symbol? (second t))) ; no constraints
-	    (let ((tvs (map (lambda (tv) (cons tv (list 'quote tv))) (second t))))
+	    (let ((tvs (map (lambda (tv) (cons tv (pp-tv tv))) (second t))))
 	      (conv (third t) tvs)))
 	   ((eq? 'forall tcar) t) ; forall with constraints, do nothing
 	   ((memq tcar '(or not list vector pair list-of vector-of))

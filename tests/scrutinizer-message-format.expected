@@ -16,7 +16,7 @@ Warning: Wrong number of arguments
 
   Procedure `cons' from module `scheme' has this type:
 
-    ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
+    ('a 'b --> (pair 'a 'b))
 
 Warning: Invalid argument
   In file `test-scrutinizer-message-format.scm:XXX',
@@ -425,7 +425,7 @@ Warning: Wrong number of arguments
 
   Procedure `cons' from module `scheme' has this type:
 
-    ('aXXX 'bXXX --> (pair 'aXXX 'bXXX))
+    ('a 'b --> (pair 'a 'b))
 
 Warning: Invalid argument
   In file `test-scrutinizer-message-format.scm:XXX',
