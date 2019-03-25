@@ -2198,24 +2198,25 @@
     (define (potentially-proper-list? l) (match-types l 'list '()))
 
     (define (derive-result-type)
-      (let lp ((arg-types (cdr args))
+      (let lp ((args (cdr args))
 	       (index 1))
-	(if (null? arg-types)
+	(if (null? args)
 	    'null
-	    (let ((arg1 (walked-result (car arg-types))))
+	    (let* ((arg1 (car args))
+		   (arg1-t (walked-result arg1)))
 	      (cond
-	       ((and (pair? arg1) (eq? (car arg1) 'list))
-		(and-let* ((rest-t (lp (cdr arg-types) (add1 index))))
+	       ((and (pair? arg1-t) (eq? (car arg1-t) 'list))
+		(and-let* ((rest-t (lp (cdr args) (add1 index))))
 		  ;; decanonicalize, then recanonicalize to make it
 		  ;; easy to append a variety of types.
 		  (canonicalize-list-type
 		   (foldl (lambda (rest t) `(pair ,t ,rest))
-			  rest-t (reverse (cdr arg1))))))
+			  rest-t (reverse (cdr arg1-t))))))
 
-	       ((and (pair? arg1) (eq? (car arg1) 'list-of))
-		(and-let* ((rest-t (lp (cdr arg-types) (add1 index))))
+	       ((and (pair? arg1-t) (eq? (car arg1-t) 'list-of))
+		(and-let* ((rest-t (lp (cdr args) (add1 index))))
 		  ;; list-of's length unsurety is "contagious"
-		  (simplify-type `(or ,arg1 ,rest-t))))
+		  (simplify-type `(or ,arg1-t ,rest-t))))
 
 	       ;; TODO: (append (pair x (pair y z)) lst) =>
 	       ;; (pair x (pair y (or z lst)))
@@ -2223,11 +2224,10 @@
 
 	       (else
 		;; The final argument may be an atom or improper list
-		(unless (or (null? (cdr arg-types))
-			    (potentially-proper-list? arg1))
+		(unless (or (null? (cdr args))
+			    (potentially-proper-list? arg1-t))
 		  (r-proc-call-argument-type-mismatch
-		   loc node index 'list arg1
-		   (car arg-types)
+		   loc node index arg1 'list arg1-t
 		   (variable-mark 'scheme#append '##compiler#type)))
 		#f))))))
     (cond ((derive-result-type) => list)
