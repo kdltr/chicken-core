@@ -4,7 +4,6 @@
   - Read-write invariance of special symbols starting with #! other
     than #!key, #!rest or #!optional is now preserved (#1572).
 
-
 5.0.1
 
 - Type system
@@ -27,6 +26,8 @@
 
 - Egg specifications
   - Allows "cond-expand" and "error" forms in egg specification files.
+  - Add "c-object" and "object" properties to link separately compiled
+     C objects into CHICKEN code.
 
 - Core libraries
   - Add the system-config-directory and system-cache-directory procedures
