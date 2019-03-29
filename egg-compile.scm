@@ -618,7 +618,7 @@
            " " src " -o " out2)
     (when (pair? link-objects)
       (let ((lobjs (filelist srcdir
-                             (map (cut conc <> (object-extension platform))
+                             (map (cut conc <> ".static" (object-extension platform))
                                link-objects)
                              platform)))
         (print (qs* default-builder platform #t) " " out3 " : "
@@ -772,12 +772,13 @@
          (opts (if (null? options)
                    default-dynamic-compilation-options
                    options))
-         (sname (or source name))
+         (sname (prefix srcdir name))
+         (ssname (and source (prefix srcdir source)))
          (out (qs* (target-file (conc sname
                                       (object-extension platform))
                                 mode)
                    platform))
-         (src (qs* (conc sname ".c") platform)))
+         (src (qs* (or ssname (conc sname ".c")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
     (print "\n" (slashify default-builder platform) " "
