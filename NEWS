@@ -41,7 +41,7 @@
      (fixes #1077, except for keywords, which start with NUL bytes).
 
 - Runtime system
-  - Increased the "binary compatibility version" to 11.
+  - Increased the "binary compatibility version" to 10.
 
 
 5.0.0
