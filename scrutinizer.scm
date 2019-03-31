@@ -1719,7 +1719,7 @@
    (lambda (n*)
      (make-node (node-class n*)
 		(node-parameters n*)
-		(map source-node (node-subexpressions n*))))))
+		(map source-node-tree (node-subexpressions n*))))))
 
 (define (node-line-number n)
   (node-debug-info (source-node n)))
