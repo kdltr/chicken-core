@@ -3,6 +3,8 @@
 - Core libraries
   - Read-write invariance of special symbols starting with #! other
     than #!key, #!rest or #!optional is now preserved (#1572).
+  - When using (set-file-position!) on a port, its EOF status will now
+    be reset.
 
 5.0.1
 

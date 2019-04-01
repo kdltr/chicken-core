@@ -357,8 +357,10 @@ EOF
       (##sys#check-fixnum pos 'set-file-position!)
       (##sys#check-fixnum whence 'set-file-position!)
       (unless (cond ((port? port)
-		     (and (eq? (##sys#slot port 7) 'stream)
-			  (##core#inline "C_fseek" port pos whence) ) )
+		     (and-let* ((stream (eq? (##sys#slot port 7) 'stream))
+				(res (##core#inline "C_fseek" port pos whence)))
+			(##sys#setislot port 6 #f) ;; Reset EOF status
+			res))
 		    ((fixnum? port)
 		     (##core#inline "C_lseek" port pos whence))
 		    (else
