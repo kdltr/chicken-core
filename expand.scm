@@ -969,7 +969,11 @@
     (lambda (x r c)
       `(##core#begin
 	,@(map (lambda (x)
-		 (let-values (((name lib spec v s i) (##sys#decompose-import x r c 'import)))
+		 (let-values (((name lib spec v s i) (##sys#decompose-import x r c 'import))
+			      ((mod) (##sys#current-module)))
+		   (when (and mod (eq? name (##sys#module-name mod)))
+		     (##sys#syntax-error-hook
+		      'import "cannot import from module currently being defined" name))
 		   (if (not spec)
 		       (##sys#syntax-error-hook
 			'import "cannot import from undefined module" name)

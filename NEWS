@@ -10,6 +10,12 @@
   - Removed the unused, undocumented (and incorrect!) C functions
     C_delete_symbol_table and C_set_symbol_table.
 
+- Module system
+  - When you try to import the module you are currently defining into
+    itself, an error will be raised. This prevents an infinite loop in
+    the compiler when later trying to import that same module (fixes
+    #1506, thanks to Kristian Lein-Mathisen).
+
 
 5.0.1
 
