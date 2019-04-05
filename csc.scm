@@ -212,6 +212,7 @@
 (define deployed #f)
 (define rpath #f)
 (define ignore-repository #f)
+(define show-debugging-help #f)
 
 (define library-dir
   (if host-mode host-libdir default-libdir))
@@ -566,6 +567,10 @@ EOF
 	   (cond ((null? scheme-files)
 		  (when (and (null? c-files)
 			     (null? object-files))
+		    (when show-debugging-help
+		      (command
+		       (string-intersperse
+			(cons* translator "bogus.scm" translate-options))))
 		    (stop "no source files specified") )
 		  (unless target-filename
 		    (set! target-filename
@@ -712,6 +717,13 @@ EOF
 	       [(|-d1|) (set! rest (cons* "-debug-level" "1" rest))]
 	       [(|-d2|) (set! rest (cons* "-debug-level" "2" rest))]
 	       [(|-d3|) (set! rest (cons* "-debug-level" "3" rest))]
+	       ((-debug)
+		(check s rest)
+		(t-options arg (car rest))
+		(when (memv #\h (string->list (car rest)))
+		  (set! show-debugging-help #t)
+		  (set! translate-only #t))
+		(set! rest (cdr rest)))
 	       [(-dry-run) 
 		(set! verbose #t)
 		(set! dry-run #t)]
@@ -777,12 +789,10 @@ EOF
 		  (set! linking-optimization-options best-linking-optimization-options) )
 		(cond [(assq s shortcuts) => (lambda (a) (set! rest (cons (cadr a) rest)))]
 		      [(memq s simple-options) (t-options arg)]
-		      [(memq s complex-options) 
+		      ((memq s complex-options)
 		       (check s rest)
-		       (let* ((n (car rest))
-			      (ns (string->number n)) )
-			 (t-options arg n)
-			 (set! rest (cdr rest)) ) ]
+		       (t-options arg (car rest))
+		       (set! rest (cdr rest)))
 		      [(and (> (string-length arg) 2) (string=? "-:" (substring arg 0 2)))
 		       (t-options arg) ]
 		      [(and (> (string-length arg) 1)
