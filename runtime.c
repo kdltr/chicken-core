@@ -1051,26 +1051,6 @@ C_regparm C_SYMBOL_TABLE *C_new_symbol_table(char *name, unsigned int size)
 }  
 
 
-C_regparm void C_delete_symbol_table(C_SYMBOL_TABLE *st)
-{
-  C_SYMBOL_TABLE *stp, *prev = NULL;
-
-  for(stp = symbol_table_list; stp != NULL; stp = stp->next)
-    if(stp == st) {
-      if(prev != NULL) prev->next = stp->next;
-      else symbol_table_list = stp->next;
-
-      return;
-    }
-}
-
-
-C_regparm void C_set_symbol_table(C_SYMBOL_TABLE *st)
-{
-  symbol_table = st;
-}
-
-
 C_regparm C_SYMBOL_TABLE *C_find_symbol_table(char *name)
 {
   C_SYMBOL_TABLE *stp;

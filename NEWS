@@ -6,6 +6,11 @@
   - When using (set-file-position!) on a port, its EOF status will now
     be reset.
 
+- Runtime system
+  - Removed the unused, undocumented (and incorrect!) C functions
+    C_delete_symbol_table and C_set_symbol_table.
+
+
 5.0.1
 
 - Type system

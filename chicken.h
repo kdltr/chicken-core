@@ -1825,8 +1825,6 @@ C_fctexport C_word C_fcall C_evict_block(C_word from, C_word ptr) C_regparm;
 C_fctexport void C_fcall C_gc_protect(C_word **addr, int n) C_regparm;
 C_fctexport void C_fcall C_gc_unprotect(int n) C_regparm;
 C_fctexport C_SYMBOL_TABLE *C_new_symbol_table(char *name, unsigned int size) C_regparm;
-C_fctexport void C_delete_symbol_table(C_SYMBOL_TABLE *st) C_regparm;
-C_fctexport void C_set_symbol_table(C_SYMBOL_TABLE *st) C_regparm;
 C_fctexport C_SYMBOL_TABLE *C_find_symbol_table(char *name) C_regparm;
 C_fctexport C_word C_find_symbol(C_word str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_lookup_symbol(C_word sym) C_regparm;
