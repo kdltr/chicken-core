@@ -1,5 +1,7 @@
 ;;;; test-finalizers.scm
 
+;; NOTE: This may fail, reopen #1426 if it does
+
 (import (chicken format))
 (import (chicken gc))
 
