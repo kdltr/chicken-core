@@ -522,7 +522,8 @@
 	  (else (find-id id (cdr se)))))
 
   (define (lookup id)
-    (cond ((find-id id (##sys#current-environment)))
+    (cond ((keyword? id) id)
+	  ((find-id id (##sys#current-environment)))
 	  ((##sys#get id '##core#macro-alias) symbol? => values)
 	  (else id)))
 
@@ -560,6 +561,11 @@
 	x) )
 
   (define (resolve-variable x0 e dest ldest h)
+
+    (when (memq x0 unlikely-variables)
+      (warning
+       (sprintf "reference to variable `~s' possibly unintended" x0) ))
+
     (let ((x (lookup x0)))
       (d `(RESOLVE-VARIABLE: ,x0 ,x ,(map (lambda (x) (car x)) (##sys#current-environment))))
       (cond ((not (symbol? x)) x0)	; syntax?
@@ -614,12 +620,8 @@
 		 (print "\n;; END OF FILE"))))) ) )
 
   (define (walk x e dest ldest h outer-ln tl?)
-    (cond ((symbol? x)
-	   (cond ((keyword? x) `(quote ,x))
-		 ((memq x unlikely-variables)
-		  (warning
-		   (sprintf "reference to variable `~s' possibly unintended" x) )))
-	   (resolve-variable x e dest ldest h))
+    (cond ((keyword? x) `(quote ,x))
+	  ((symbol? x) (resolve-variable x e dest ldest h))
 	  ((not (pair? x))
 	   (if (constant? x)
 	       `(quote ,x)

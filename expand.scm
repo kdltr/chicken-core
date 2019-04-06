@@ -111,6 +111,7 @@
  (let ((seen '()))
    (let walk ((x exp))
      (cond ((assq x seen) => cdr)
+	   ((keyword? x) x)
            ((symbol? x)
             (let ((x2 (getp x '##core#macro-alias) ) )
               (cond ((getp x '##core#real-name))
@@ -836,7 +837,7 @@
 		(cons (rename (car sym)) (rename (cdr sym))))
 	       ((vector? sym)
 		(list->vector (rename (vector->list sym))))
-	       ((not (symbol? sym)) sym)
+	       ((or (not (symbol? sym)) (keyword? sym)) sym)
 	       ((assq sym renv) => 
 		(lambda (a) 
 		  (dd `(RENAME/RENV: ,sym --> ,(cdr a)))
@@ -859,7 +860,8 @@
 				   (do ((i 0 (fx+ i 1))
 					(f #t (compare (vector-ref s1 i) (vector-ref s2 i))))
 				       ((or (fx>= i len) (not f)) f))))))
-		      ((and (symbol? s1) (symbol? s2))
+		      ((and (symbol? s1) (not (keyword? s1))
+			    (symbol? s2) (not (keyword? s2)))
 		       (let ((ss1 (or (getp s1 '##core#macro-alias)
 				      (lookup2 1 s1 dse)
 				      s1) )
@@ -897,7 +899,7 @@
 		(cons (mirror-rename (car sym)) (mirror-rename (cdr sym))))
 	       ((vector? sym)
 		(list->vector (mirror-rename (vector->list sym))))
-	       ((not (symbol? sym)) sym)
+	       ((or (not (symbol? sym)) (keyword? sym)) sym)
 	       (else		 ; Code stolen from strip-syntax
 		(let ((renamed (lookup sym se) ) )
 		  (cond ((assq-reverse sym renv) =>

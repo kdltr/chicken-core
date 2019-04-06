@@ -583,7 +583,7 @@ void *alloca ();
 #define C_BAD_MINIMUM_ARGUMENT_COUNT_ERROR            2
 #define C_BAD_ARGUMENT_TYPE_ERROR                     3
 #define C_UNBOUND_VARIABLE_ERROR                      4
-/* Unused:                                            5 */
+#define C_BAD_ARGUMENT_TYPE_SYMBOL_IS_KEYWORD_ERROR   5
 #define C_OUT_OF_MEMORY_ERROR                         6
 #define C_DIVISION_BY_ZERO_ERROR                      7
 #define C_OUT_OF_RANGE_ERROR                          8
@@ -1760,8 +1760,10 @@ C_fctexport C_word C_fcall C_string_aligned8(C_word **ptr, int len, C_char *str)
 C_fctexport C_word C_fcall C_string2(C_word **ptr, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_string2_safe(C_word **ptr, int max, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_intern(C_word **ptr, int len, C_char *str) C_regparm;
+C_fctexport C_word C_fcall C_intern_kw(C_word **ptr, int len, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_intern_in(C_word **ptr, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_h_intern(C_word *slot, int len, C_char *str) C_regparm;
+C_fctexport C_word C_fcall C_h_intern_kw(C_word *slot, int len, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_intern2(C_word **ptr, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_intern3(C_word **ptr, C_char *str, C_word value) C_regparm;
@@ -1827,6 +1829,7 @@ C_fctexport void C_fcall C_gc_unprotect(int n) C_regparm;
 C_fctexport C_SYMBOL_TABLE *C_new_symbol_table(char *name, unsigned int size) C_regparm;
 C_fctexport C_SYMBOL_TABLE *C_find_symbol_table(char *name) C_regparm;
 C_fctexport C_word C_find_symbol(C_word str, C_SYMBOL_TABLE *stable) C_regparm;
+C_fctexport C_word C_find_keyword(C_word str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_lookup_symbol(C_word sym) C_regparm;
 C_fctexport void C_do_register_finalizer(C_word x, C_word proc);
 C_fctexport int C_do_unregister_finalizer(C_word x);
@@ -1866,6 +1869,7 @@ C_fctexport C_cpsproc(C_gc) C_noret;
 C_fctexport C_cpsproc(C_open_file_port) C_noret;
 C_fctexport C_cpsproc(C_allocate_vector) C_noret;
 C_fctexport C_cpsproc(C_string_to_symbol) C_noret;
+C_fctexport C_cpsproc(C_string_to_keyword) C_noret;
 C_fctexport C_cpsproc(C_build_symbol) C_noret;
 C_fctexport C_cpsproc(C_number_to_string) C_noret;
 C_fctexport C_cpsproc(C_fixnum_to_string) C_noret;
@@ -2192,11 +2196,7 @@ inline static C_word C_u_i_namespaced_symbolp(C_word x)
 
 inline static C_word C_u_i_keywordp(C_word x)
 {
-  /* TODO: This representation is rather bogus */
-  C_word n = C_symbol_name(x);
-  return C_mk_bool(C_symbol_value(x) == x &&
-                   C_header_size(n) > 0 &&
-                   ((C_byte *)C_data_pointer(n))[0] == '\0');
+  return C_mk_bool(C_symbol_plist(x) == C_SCHEME_FALSE);
 }
 
 inline static C_word C_flonum(C_word **ptr, double n)
@@ -2658,9 +2658,10 @@ inline static C_word C_i_symbolp(C_word x)
 
 inline static int C_persistable_symbol(C_word x)
 {
-  /* Symbol is bound (and not a keyword), or has a non-empty plist */
-  return ((C_truep(C_boundp(x)) && !C_truep(C_u_i_keywordp(x))) ||
-          C_symbol_plist(x) != C_SCHEME_END_OF_LIST);
+  /* Symbol is bound, or has a non-empty plist (but is not a keyword) */
+  return ((C_truep(C_boundp(x)) ||
+           C_symbol_plist(x) != C_SCHEME_END_OF_LIST) &&
+          !C_truep(C_u_i_keywordp(x)));
 }
 
 inline static C_word C_i_pairp(C_word x)

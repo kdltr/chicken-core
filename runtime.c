@@ -155,6 +155,7 @@ static C_TLS int timezone;
 #endif
 
 #define DEFAULT_SYMBOL_TABLE_SIZE      2999
+#define DEFAULT_KEYWORD_TABLE_SIZE      999
 #define DEFAULT_HEAP_SIZE              DEFAULT_STACK_SIZE
 #define MINIMAL_HEAP_SIZE              DEFAULT_STACK_SIZE
 #define DEFAULT_SCRATCH_SPACE_SIZE     256
@@ -400,7 +401,8 @@ static C_TLS C_char
   *save_string;
 static C_TLS C_SYMBOL_TABLE
   *symbol_table,
-  *symbol_table_list;
+  *symbol_table_list,
+  *keyword_table;
 static C_TLS C_word 
   **collectibles,
   **collectibles_top,
@@ -714,6 +716,12 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   if(symbol_table == NULL)
     return 0;
 
+  /* TODO: Should we use "symbols" here too? */
+  keyword_table = C_new_symbol_table("kw", DEFAULT_KEYWORD_TABLE_SIZE);
+
+  if(keyword_table == NULL)
+    return 0;
+
   page_size = 0;
   stack_size = stack ? stack : DEFAULT_STACK_SIZE;
   C_set_or_change_heap_size(heap ? heap : DEFAULT_HEAP_SIZE, 0);
@@ -924,6 +932,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(C_number_to_string);
   C_pte(C_make_symbol);
   C_pte(C_string_to_symbol);
+  C_pte(C_string_to_keyword);
   C_pte(C_apply);
   C_pte(C_call_cc);
   C_pte(C_values);
@@ -1117,6 +1126,22 @@ void initialize_symbol_table(void)
   s64vector_symbol = C_intern2(C_heaptop, C_text("s64vector"));
   f32vector_symbol = C_intern2(C_heaptop, C_text("f32vector"));
   f64vector_symbol = C_intern2(C_heaptop, C_text("f64vector"));
+}
+
+
+C_regparm C_word C_find_keyword(C_word str, C_SYMBOL_TABLE *kwtable)
+{
+  C_char *sptr = C_c_string(str);
+  int len = C_header_size(str);
+  int key;
+  C_word s;
+
+  if(kwtable == NULL) kwtable = keyword_table;
+
+  key = hash_string(len, sptr, kwtable->size, kwtable->rand, 0);
+
+  if(C_truep(s = lookup(key, len, sptr, kwtable))) return s;
+  else return C_SCHEME_FALSE;
 }
 
 
@@ -1353,7 +1378,6 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:sSIZE          set nursery (stack) size\n"
 		 " -:tSIZE          set symbol-table size\n"
                  " -:fSIZE          set maximal number of pending finalizers\n"
-		 " -:w              enable garbage collection of unused symbols\n"
 		 " -:x              deliver uncaught exceptions of other threads to primordial one\n"
 		 " -:b              enter REPL on error\n"
 		 " -:B              sound bell on major GC\n"
@@ -1667,6 +1691,11 @@ void barf(int code, char *loc, ...)
 
   case C_UNBOUND_VARIABLE_ERROR:
     msg = C_text("unbound variable");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_SYMBOL_IS_KEYWORD_ERROR:
+    msg = C_text("symbol is a keyword, which has no plist");
     c = 1;
     break;
 
@@ -2266,15 +2295,40 @@ void C_unregister_lf(void *handle)
 
 C_regparm C_word C_fcall C_intern(C_word **ptr, int len, C_char *str) 
 {
-  return C_intern_in(ptr, len, str, symbol_table);
+  if (*str == '\0') { /* OBSOLETE: Backwards compatibility */
+    return C_intern_kw(ptr, len-1, str+1);
+  } else {
+    return C_intern_in(ptr, len, str, symbol_table);
+  }
 }
 
 
 C_regparm C_word C_fcall C_h_intern(C_word *slot, int len, C_char *str)
 {
-  return C_h_intern_in(slot, len, str, symbol_table);
+  if (*str == '\0') { /* OBSOLETE: Backwards compatibility */
+    return C_h_intern_kw(slot, len-1, str+1);
+  } else {
+    return C_h_intern_in(slot, len, str, symbol_table);
+  }
 }
 
+
+C_regparm C_word C_fcall C_intern_kw(C_word **ptr, int len, C_char *str) 
+{
+  C_word kw = C_intern_in(ptr, len, str, keyword_table);
+  C_set_block_item(kw, 0, kw); /* Keywords evaluate to themselves */
+  C_set_block_item(kw, 2, C_SCHEME_FALSE); /* Keywords have no plists */
+  return kw;
+}
+
+
+C_regparm C_word C_fcall C_h_intern_kw(C_word *slot, int len, C_char *str)
+{
+  C_word kw = C_h_intern_in(slot, len, str, keyword_table);
+  C_set_block_item(kw, 0, kw); /* Keywords evaluate to themselves */
+  C_set_block_item(kw, 2, C_SCHEME_FALSE); /* Keywords have no plists */
+  return kw;
+}
 
 C_regparm C_word C_fcall C_intern_in(C_word **ptr, int len, C_char *str, C_SYMBOL_TABLE *stable)
 {
@@ -2395,15 +2449,19 @@ C_regparm C_word C_fcall lookup(C_word key, int len, C_char *str, C_SYMBOL_TABLE
 C_regparm C_word C_fcall C_i_persist_symbol(C_word sym)
 {
   C_word bucket;
+  C_SYMBOL_TABLE *stp;
 
   C_i_check_symbol(sym);
 
-  bucket = lookup_bucket(sym, NULL);
-  if (C_truep(bucket)) {  /* It could be an uninterned symbol(?) */
-    /* Change weak to strong ref to ensure long-term survival */
-    C_block_header(bucket) = C_block_header(bucket) & ~C_SPECIALBLOCK_BIT;
-    /* Ensure survival on next minor GC */
-    if (C_in_stackp(sym)) C_mutate_slot(&C_block_item(bucket, 0), sym);
+  for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
+    bucket = lookup_bucket(sym, stp);
+
+    if (C_truep(bucket)) {
+      /* Change weak to strong ref to ensure long-term survival */
+      C_block_header(bucket) = C_block_header(bucket) & ~C_SPECIALBLOCK_BIT;
+      /* Ensure survival on next minor GC */
+      if (C_in_stackp(sym)) C_mutate_slot(&C_block_item(bucket, 0), sym);
+    }
   }
   return C_SCHEME_UNDEFINED;
 }
@@ -2415,6 +2473,7 @@ C_regparm C_word C_fcall C_i_persist_symbol(C_word sym)
 C_regparm C_word C_fcall C_i_unpersist_symbol(C_word sym)
 {
   C_word bucket;
+  C_SYMBOL_TABLE *stp;
 
   C_i_check_symbol(sym);
 
@@ -2423,11 +2482,14 @@ C_regparm C_word C_fcall C_i_unpersist_symbol(C_word sym)
     return C_SCHEME_FALSE;
   }
 
-  bucket = lookup_bucket(sym, NULL);
-  if (C_truep(bucket)) { /* It could be an uninterned symbol(?) */
-    /* Turn it into a weak ref */
-    C_block_header(bucket) = C_block_header(bucket) | C_SPECIALBLOCK_BIT;
-    return C_SCHEME_TRUE;
+  for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
+    bucket = lookup_bucket(sym, NULL);
+
+    if (C_truep(bucket)) {
+      /* Turn it into a weak ref */
+      C_block_header(bucket) = C_block_header(bucket) | C_SPECIALBLOCK_BIT;
+      return C_SCHEME_TRUE;
+    }
   }
   return C_SCHEME_FALSE;
 }
@@ -2481,20 +2543,19 @@ double compute_symbol_table_load(double *avg_bucket_len, int *total_n)
 C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stable)
 {
   C_word bucket, sym, b2, *p;
-  int keyw = C_header_size(string) > 0 && *((char *)C_data_pointer(string)) == 0;
 
   p = *ptr;
   sym = (C_word)p;
   p += C_SIZEOF_SYMBOL;
   C_block_header_init(sym, C_SYMBOL_TYPE | (C_SIZEOF_SYMBOL - 1));
-  C_set_block_item(sym, 0, keyw ? sym : C_SCHEME_UNBOUND); /* keyword? */
+  C_set_block_item(sym, 0, C_SCHEME_UNBOUND);
   C_set_block_item(sym, 1, string);
   C_set_block_item(sym, 2, C_SCHEME_END_OF_LIST);
   *ptr = p;
   b2 = stable->table[ key ];	/* previous bucket */
 
   /* Create new weak or strong bucket depending on persistability */
-  if (C_persistable_symbol(sym) || C_truep(C_permanentp(string))) {
+  if (C_truep(C_permanentp(string))) {
     bucket = C_a_pair(ptr, sym, b2);
   } else {
     bucket = C_a_weak_pair(ptr, sym, b2);
@@ -10569,11 +10630,51 @@ void C_ccall C_string_to_symbol(C_word c, C_word *av)
     
   len = C_header_size(string);
   name = (C_char *)C_data_pointer(string);
-  key = hash_string(len, name, symbol_table->size, symbol_table->rand, 0);
 
-  if(!C_truep(s = lookup(key, len, name, symbol_table))) 
-    s = add_symbol(&a, key, string, symbol_table);
+  if (*name == '\0' && len > 1) { /* OBSOLETE: Backwards compatibility */
+    key = hash_string(len-1, name+1, keyword_table->size, keyword_table->rand, 0);
+    if(!C_truep(s = lookup(key, len-1, name+1, keyword_table))) {
+      C_word *a2 = C_alloc(C_bytestowords(len-1)+1);
+      C_word string2 = C_string(&a2, len-1, name+1);
+      s = add_symbol(&a, key, string, keyword_table);
+      C_set_block_item(s, 0, s); /* Keywords evaluate to themselves */
+      C_set_block_item(s, 2, C_SCHEME_FALSE); /* Keywords have no plists */
+    }
+  } else {
+    key = hash_string(len, name, symbol_table->size, symbol_table->rand, 0);
+    if(!C_truep(s = lookup(key, len, name, symbol_table)))
+      s = add_symbol(&a, key, string, symbol_table);
+  }
 
+  C_kontinue(k, s);
+}
+
+void C_ccall C_string_to_keyword(C_word c, C_word *av) 
+{ 
+  C_word
+    /* closure = av[ 0 ] */
+    k = av[ 1 ],
+    string;
+  int len, key;
+  C_word s, *a = C_alloc(C_SIZEOF_SYMBOL + C_SIZEOF_PAIR);
+  C_char *name;
+
+  if(c != 3) C_bad_argc(c, 3);
+
+  string = av[ 2 ];
+
+  if(C_immediatep(string) || C_header_bits(string) != C_STRING_TYPE)
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "string->keyword", string);
+    
+  len = C_header_size(string);
+  name = (C_char *)C_data_pointer(string);
+  key = hash_string(len, name, keyword_table->size, keyword_table->rand, 0);
+
+  if(!C_truep(s = lookup(key, len, name, keyword_table))) {
+    s = add_symbol(&a, key, string, keyword_table);
+    C_set_block_item(s, 0, s); /* Keywords evaluate to themselves */
+    C_set_block_item(s, 2, C_SCHEME_FALSE); /* Keywords have no plists */
+  }
   C_kontinue(k, s);
 }
 
@@ -12542,7 +12643,14 @@ static C_regparm C_word C_fcall decode_literal2(C_word **ptr, C_char **str,
     if(dest == NULL) 
       panic(C_text("invalid literal symbol destination"));
 
-    val = C_h_intern(dest, size, *str);
+    if (**str == '\1') {
+      val = C_h_intern(dest, size, ++*str);
+    } else if (**str == '\2') {
+      val = C_h_intern_kw(dest, size, ++*str);
+    } else {
+      /* Backwards compatibility */
+      val = C_h_intern(dest, size, *str);
+    }
     *str += size;
     break;
 
@@ -12747,7 +12855,10 @@ error:
 C_regparm C_word C_fcall
 C_i_getprop(C_word sym, C_word prop, C_word def)
 {
-  C_word pl = C_block_item(sym, 2);
+  C_word pl = C_symbol_plist(sym);
+
+  if (pl == C_SCHEME_FALSE)
+    barf(C_BAD_ARGUMENT_TYPE_SYMBOL_IS_KEYWORD_ERROR, "get", sym);
 
   while(pl != C_SCHEME_END_OF_LIST) {
     if(C_block_item(pl, 0) == prop)
@@ -12763,6 +12874,9 @@ C_regparm C_word C_fcall
 C_putprop(C_word **ptr, C_word sym, C_word prop, C_word val)
 {
   C_word pl = C_symbol_plist(sym);
+
+  if (pl == C_SCHEME_FALSE)
+    barf(C_BAD_ARGUMENT_TYPE_SYMBOL_IS_KEYWORD_ERROR, "put", sym);
 
   /* Newly added plist?  Ensure the symbol stays! */
   if (pl == C_SCHEME_END_OF_LIST) C_i_persist_symbol(sym);

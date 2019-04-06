@@ -2666,6 +2666,7 @@ EOF
 
 (define ##sys#snafu '##sys#fnord)
 (define ##sys#intern-symbol (##core#primitive "C_string_to_symbol"))
+(define ##sys#intern-keyword (##core#primitive "C_string_to_keyword"))
 (define (##sys#interned-symbol? x) (##core#inline "C_lookup_symbol" x))
 
 (define (##sys#string->symbol str)
@@ -2673,10 +2674,7 @@ EOF
   (##sys#intern-symbol str) )
 
 (define (##sys#symbol->string s)
-  (let ((str (##sys#slot s 1)))
-    (if (##core#inline "C_u_i_keywordp" s) ; Keywords encoded as \000foo
-	(##sys#substring str 1 (string-length str))
-	str)))
+  (##sys#slot s 1))
 
 (set! scheme#symbol->string
   (lambda (s)
@@ -2738,7 +2736,7 @@ EOF
   (let ([string string] )
     (lambda (s)
       (##sys#check-string s 'string->keyword)
-      (##sys#intern-symbol (##sys#string-append (string (integer->char 0)) s)) ) ) )
+      (##sys#intern-keyword s) ) ) )
 
 (define keyword->string
   (let ([keyword? keyword?])
@@ -3709,8 +3707,7 @@ EOF
 	(case-sensitive case-sensitive)
 	(parentheses-synonyms parentheses-synonyms)
 	(symbol-escape symbol-escape)
-	(current-read-table ##sys#current-read-table)
-	(kwprefix (string (integer->char 0))))
+	(current-read-table ##sys#current-read-table))
     (lambda (port infohandler)
       (let ((csp (case-sensitive))
 	    (ksp (keyword-style))
@@ -4119,8 +4116,7 @@ EOF
 	    (##sys#intern-symbol tok) )
 
 	  (define (build-keyword tok)
-	    (##sys#intern-symbol
-	     (##sys#string-append kwprefix tok)))
+	    (##sys#intern-keyword tok))
 
           ;; now have the state to make a decision.
           (set! reserved-characters
@@ -5381,7 +5377,7 @@ EOF
 		(if fn (list fn) '()))))
 	((3) (apply ##sys#signal-hook #:type-error loc "bad argument type" args))
 	((4) (apply ##sys#signal-hook #:runtime-error loc "unbound variable" args))
-	;; ((5) ...unused...)
+	((5) (apply ##sys#signal-hook #:type-error loc "symbol is a keyword, which has no plist" args))
 	((6) (apply ##sys#signal-hook #:limit-error loc "out of memory" args))
 	((7) (apply ##sys#signal-hook #:arithmetic-error loc "division by zero" args))
 	((8) (apply ##sys#signal-hook #:bounds-error loc "out of range" args))
