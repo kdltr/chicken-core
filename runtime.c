@@ -2295,21 +2295,13 @@ void C_unregister_lf(void *handle)
 
 C_regparm C_word C_fcall C_intern(C_word **ptr, int len, C_char *str) 
 {
-  if (*str == '\0') { /* OBSOLETE: Backwards compatibility */
-    return C_intern_kw(ptr, len-1, str+1);
-  } else {
-    return C_intern_in(ptr, len, str, symbol_table);
-  }
+  return C_intern_in(ptr, len, str, symbol_table);
 }
 
 
 C_regparm C_word C_fcall C_h_intern(C_word *slot, int len, C_char *str)
 {
-  if (*str == '\0') { /* OBSOLETE: Backwards compatibility */
-    return C_h_intern_kw(slot, len-1, str+1);
-  } else {
-    return C_h_intern_in(slot, len, str, symbol_table);
-  }
+  return C_h_intern_in(slot, len, str, symbol_table);
 }
 
 
@@ -10631,20 +10623,9 @@ void C_ccall C_string_to_symbol(C_word c, C_word *av)
   len = C_header_size(string);
   name = (C_char *)C_data_pointer(string);
 
-  if (*name == '\0' && len > 1) { /* OBSOLETE: Backwards compatibility */
-    key = hash_string(len-1, name+1, keyword_table->size, keyword_table->rand, 0);
-    if(!C_truep(s = lookup(key, len-1, name+1, keyword_table))) {
-      C_word *a2 = C_alloc(C_bytestowords(len-1)+1);
-      C_word string2 = C_string(&a2, len-1, name+1);
-      s = add_symbol(&a, key, string, keyword_table);
-      C_set_block_item(s, 0, s); /* Keywords evaluate to themselves */
-      C_set_block_item(s, 2, C_SCHEME_FALSE); /* Keywords have no plists */
-    }
-  } else {
-    key = hash_string(len, name, symbol_table->size, symbol_table->rand, 0);
-    if(!C_truep(s = lookup(key, len, name, symbol_table)))
-      s = add_symbol(&a, key, string, symbol_table);
-  }
+  key = hash_string(len, name, symbol_table->size, symbol_table->rand, 0);
+  if(!C_truep(s = lookup(key, len, name, symbol_table)))
+    s = add_symbol(&a, key, string, symbol_table);
 
   C_kontinue(k, s);
 }
@@ -12648,8 +12629,8 @@ static C_regparm C_word C_fcall decode_literal2(C_word **ptr, C_char **str,
     } else if (**str == '\2') {
       val = C_h_intern_kw(dest, size, ++*str);
     } else {
-      /* Backwards compatibility */
-      val = C_h_intern(dest, size, *str);
+      C_snprintf(buffer, sizeof(buffer), C_text("Unknown symbol subtype: %d"), (int)**str);
+      panic(buffer);
     }
     *str += size;
     break;

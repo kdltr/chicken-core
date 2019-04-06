@@ -328,8 +328,9 @@
 (assert (eq? '##foo#bar '|##foo#bar|))
 
 (assert (string=? "|\\x0a|" (with-output-to-string (lambda () (write '|\n|)))))
-;; NOT YET, keywords are still prefixed with \000:
-; (assert (string=? "|\000foo|" (with-output-to-string (lambda () (write '|\000foo|)))))
+;; #1576
+(assert (string=? "|\\x00foo|" (with-output-to-string (lambda () (write '|\000foo|)))))
+(assert (not (keyword? '|\000foo|)))
 (assert (string=? "|###foo#bar|" (with-output-to-string (lambda () (write '|###foo#bar|)))))
 
 ;;; Paren synonyms
