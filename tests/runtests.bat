@@ -93,7 +93,7 @@ if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 
-%compile% test-scrutinizer-message-format.scm -A 2>scrutinizer-message-format.out
+%compile% test-scrutinizer-message-format.scm -A -specialize 2>scrutinizer-message-format.out
 rem this is expected to fail, so no errorlevel check
 %compile% scrutiny-tests.scm -A 2>scrutiny.out
 if errorlevel 1 exit /b 1
