@@ -247,10 +247,6 @@
             (let ((dest (destination-repository mode #t))
                   ;; Respect install-name if specified
                   (rtarget (or oname target)))
-              (addfiles
-               (if (memq 'static link)
-                   (list (conc dest "/" rtarget objext))
-                   '()))
               (set! objs
                 (cons (list target dependencies: cdeps source: src
                             options: opts
