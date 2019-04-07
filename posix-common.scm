@@ -44,6 +44,36 @@ static C_TLS struct stat C_statbuf;
 # define S_IFSOCK           0140000
 #endif
 
+#ifndef S_IRUSR
+# define S_IRUSR  S_IREAD
+#endif
+#ifndef S_IWUSR
+# define S_IWUSR  S_IWRITE
+#endif
+#ifndef S_IXUSR
+# define S_IXUSR  S_IEXEC
+#endif
+
+#ifndef S_IRGRP
+# define S_IRGRP  S_IREAD
+#endif
+#ifndef S_IWGRP
+# define S_IWGRP  S_IWRITE
+#endif
+#ifndef S_IXGRP
+# define S_IXGRP  S_IEXEC
+#endif
+
+#ifndef S_IROTH
+# define S_IROTH  S_IREAD
+#endif
+#ifndef S_IWOTH
+# define S_IWOTH  S_IWRITE
+#endif
+#ifndef S_IXOTH
+# define S_IXOTH  S_IEXEC
+#endif
+
 #define cpy_tmvec_to_tmstc08(ptm, v) \
     ((ptm)->tm_sec = C_unfix(C_block_item((v), 0)), \
     (ptm)->tm_min = C_unfix(C_block_item((v), 1)), \
@@ -419,18 +449,18 @@ EOF
 
 ;; open/noinherit is platform-specific
 
-(define-foreign-variable _s_irusr int "S_IREAD")
-(define-foreign-variable _s_iwusr int "S_IWRITE")
-(define-foreign-variable _s_ixusr int "S_IEXEC")
-(define-foreign-variable _s_irgrp int "S_IREAD")
-(define-foreign-variable _s_iwgrp int "S_IWRITE")
-(define-foreign-variable _s_ixgrp int "S_IEXEC")
-(define-foreign-variable _s_iroth int "S_IREAD")
-(define-foreign-variable _s_iwoth int "S_IWRITE")
-(define-foreign-variable _s_ixoth int "S_IEXEC")
-(define-foreign-variable _s_irwxu int "S_IREAD | S_IWRITE | S_IEXEC")
-(define-foreign-variable _s_irwxg int "S_IREAD | S_IWRITE | S_IEXEC")
-(define-foreign-variable _s_irwxo int "S_IREAD | S_IWRITE | S_IEXEC")
+(define-foreign-variable _s_irusr int "S_IRUSR")
+(define-foreign-variable _s_iwusr int "S_IWUSR")
+(define-foreign-variable _s_ixusr int "S_IXUSR")
+(define-foreign-variable _s_irgrp int "S_IRGRP")
+(define-foreign-variable _s_iwgrp int "S_IWGRP")
+(define-foreign-variable _s_ixgrp int "S_IXGRP")
+(define-foreign-variable _s_iroth int "S_IROTH")
+(define-foreign-variable _s_iwoth int "S_IWOTH")
+(define-foreign-variable _s_ixoth int "S_IXOTH")
+(define-foreign-variable _s_irwxu int "S_IRUSR | S_IWUSR | S_IXUSR")
+(define-foreign-variable _s_irwxg int "S_IRGRP | S_IWGRP | S_IXGRP")
+(define-foreign-variable _s_irwxo int "S_IROTH | S_IWOTH | S_IXOTH")
 
 (set! chicken.file.posix#perm/irusr _s_irusr)
 (set! chicken.file.posix#perm/iwusr _s_iwusr)

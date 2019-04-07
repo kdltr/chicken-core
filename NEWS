@@ -5,6 +5,9 @@
     than #!key, #!rest or #!optional is now preserved (#1572).
   - When using (set-file-position!) on a port, its EOF status will now
     be reset.
+  - In (chicken file posix), the values of perm/irgrp, perm/iwgrp,
+    perm/ixgrp, perm/iroth, perm/iwoth and perm/ixoth are now correctly
+    defined (they were all for "usr"; #1602, thanks to Eric Hoffman).
 
 - Runtime system
   - Removed the unused, undocumented (and incorrect!) C functions
