@@ -5453,11 +5453,7 @@ EOF
 (define (##sys#permanent? x) (##core#inline "C_permanentp" x))
 (define (##sys#block-address x) (##core#inline_allocate ("C_block_address" 6) x))
 (define (##sys#locative? x) (##core#inline "C_locativep" x))
-(define (##sys#srfi-4-vector? x)
-  (and (##core#inline "C_blockp" x)
-       (##sys#generic-structure? x)
-       (memq (##sys#slot x 0)
-             '(u8vector u16vector s8vector s16vector u32vector s32vector u64vector s64vector f32vector f64vector))))
+(define (##sys#srfi-4-vector? x) (##core#inline "C_i_srfi_4_vectorp" x))
 
 (define (##sys#null-pointer)
   (let ([ptr (##sys#make-pointer)])

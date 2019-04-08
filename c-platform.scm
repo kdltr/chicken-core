@@ -180,11 +180,30 @@
 
     chicken.keyword#get-keyword
 
+    srfi-4#u8vector? srfi-4#s8vector?
+    srfi-4#u16vector? srfi-4#s16vector?
+    srfi-4#u32vector? srfi-4#u64vector?
+    srfi-4#s32vector? srfi-4#s64vector?
+    srfi-4#f32vector? srfi-4#f64vector?
+
     srfi-4#u8vector-length srfi-4#s8vector-length
     srfi-4#u16vector-length srfi-4#s16vector-length
     srfi-4#u32vector-length srfi-4#u64vector-length
     srfi-4#s32vector-length srfi-4#s64vector-length
     srfi-4#f32vector-length srfi-4#f64vector-length
+    
+    srfi-4#u8vector-ref srfi-4#s8vector-ref
+    srfi-4#u16vector-ref srfi-4#s16vector-ref
+    srfi-4#u32vector-ref srfi-4#u64vector-ref
+    srfi-4#s32vector-ref srfi-4#s64vector-ref
+    srfi-4#f32vector-ref srfi-4#f64vector-ref
+
+    srfi-4#u8vector-set! srfi-4#s8vector-set!
+    srfi-4#u16vector-set! srfi-4#s16vector-set!
+    srfi-4#u32vector-set! srfi-4#u64vector-set!
+    srfi-4#s32vector-set! srfi-4#s64vector-set!
+    srfi-4#f32vector-set! srfi-4#f64vector-set!
+
     srfi-4#u8vector->blob/shared srfi-4#s8vector->blob/shared
     srfi-4#u16vector->blob/shared srfi-4#s16vector->blob/shared
     srfi-4#u32vector->blob/shared srfi-4#s32vector->blob/shared
@@ -501,6 +520,17 @@
 (rewrite 'scheme#symbol? 2 1 "C_i_symbolp" #t)
 (rewrite 'scheme#vector? 2 1 "C_i_vectorp" #t)
 (rewrite '##sys#vector? 2 1 "C_i_vectorp" #t)
+(rewrite '##sys#srfi-4-vector? 2 1 "C_i_srfi_4_vectorp" #t)
+(rewrite 'srfi-4#u8vector? 2 1 "C_i_u8vectorp" #t)
+(rewrite 'srfi-4#s8vector? 2 1 "C_i_s8vectorp" #t)
+(rewrite 'srfi-4#u16vector? 2 1 "C_i_u16vectorp" #t)
+(rewrite 'srfi-4#s16vector? 2 1 "C_i_s16vectorp" #t)
+(rewrite 'srfi-4#u32vector? 2 1 "C_i_u32vectorp" #t)
+(rewrite 'srfi-4#s32vector? 2 1 "C_i_s32vectorp" #t)
+(rewrite 'srfi-4#u64vector? 2 1 "C_i_u64vectorp" #t)
+(rewrite 'srfi-4#s64vector? 2 1 "C_i_s64vectorp" #t)
+(rewrite 'srfi-4#f32vector? 2 1 "C_i_f32vectorp" #t)
+(rewrite 'srfi-4#f64vector? 2 1 "C_i_f64vectorp" #t)
 (rewrite 'scheme#pair? 2 1 "C_i_pairp" #t)
 (rewrite '##sys#pair? 2 1 "C_i_pairp" #t)
 (rewrite 'scheme#procedure? 2 1 "C_i_closurep" #t)
@@ -887,34 +917,63 @@
 
 ;; TODO: Move this stuff to types.db
 (rewrite 'srfi-4#u8vector-ref 2 2 "C_u_i_u8vector_ref" #f)
+(rewrite 'srfi-4#u8vector-ref 2 2 "C_i_u8vector_ref" #t)
 (rewrite 'srfi-4#s8vector-ref 2 2 "C_u_i_s8vector_ref" #f)
+(rewrite 'srfi-4#s8vector-ref 2 2 "C_i_s8vector_ref" #t)
 (rewrite 'srfi-4#u16vector-ref 2 2 "C_u_i_u16vector_ref" #f)
+(rewrite 'srfi-4#u16vector-ref 2 2 "C_i_u16vector_ref" #t)
 (rewrite 'srfi-4#s16vector-ref 2 2 "C_u_i_s16vector_ref" #f)
+(rewrite 'srfi-4#s16vector-ref 2 2 "C_i_s16vector_ref" #t)
+
+(rewrite 'srfi-4#u32vector-ref 16 2 "C_a_i_u32vector_ref" #t words-per-flonum)
+(rewrite 'srfi-4#s32vector-ref 16 2 "C_a_i_s32vector_ref" #t words-per-flonum)
 
 (rewrite 'srfi-4#f32vector-ref 16 2 "C_a_u_i_f32vector_ref" #f words-per-flonum)
+(rewrite 'srfi-4#f32vector-ref 16 2 "C_a_i_f32vector_ref" #t words-per-flonum)
 (rewrite 'srfi-4#f64vector-ref 16 2 "C_a_u_i_f64vector_ref" #f words-per-flonum)
+(rewrite 'srfi-4#f64vector-ref 16 2 "C_a_i_f64vector_ref" #t words-per-flonum)
 
 (rewrite 'srfi-4#u8vector-set! 2 3 "C_u_i_u8vector_set" #f)
+(rewrite 'srfi-4#u8vector-set! 2 3 "C_i_u8vector_set" #t)
 (rewrite 'srfi-4#s8vector-set! 2 3 "C_u_i_s8vector_set" #f)
+(rewrite 'srfi-4#s8vector-set! 2 3 "C_i_s8vector_set" #t)
 (rewrite 'srfi-4#u16vector-set! 2 3 "C_u_i_u16vector_set" #f)
+(rewrite 'srfi-4#u16vector-set! 2 3 "C_i_u16vector_set" #t)
 (rewrite 'srfi-4#s16vector-set! 2 3 "C_u_i_s16vector_set" #f)
+(rewrite 'srfi-4#s16vector-set! 2 3 "C_i_s16vector_set" #t)
 (rewrite 'srfi-4#u32vector-set! 2 3 "C_u_i_u32vector_set" #f)
+(rewrite 'srfi-4#u32vector-set! 2 3 "C_i_u32vector_set" #t)
 (rewrite 'srfi-4#s32vector-set! 2 3 "C_u_i_s32vector_set" #f)
-(rewrite 'srfi-4#u64vector-set! 2 3 "C_u_i_u32vector_set" #f)
-(rewrite 'srfi-4#s64vector-set! 2 3 "C_u_i_s32vector_set" #f)
+(rewrite 'srfi-4#s32vector-set! 2 3 "C_i_s32vector_set" #t)
+(rewrite 'srfi-4#u64vector-set! 2 3 "C_u_i_u64vector_set" #f)
+(rewrite 'srfi-4#u64vector-set! 2 3 "C_i_u64vector_set" #t)
+(rewrite 'srfi-4#s64vector-set! 2 3 "C_u_i_s64vector_set" #f)
+(rewrite 'srfi-4#s64vector-set! 2 3 "C_i_s64vector_set" #t)
 (rewrite 'srfi-4#f32vector-set! 2 3 "C_u_i_f32vector_set" #f)
+(rewrite 'srfi-4#f32vector-set! 2 3 "C_i_f32vector_set" #t)
 (rewrite 'srfi-4#f64vector-set! 2 3 "C_u_i_f64vector_set" #f)
+(rewrite 'srfi-4#f64vector-set! 2 3 "C_i_f64vector_set" #t)
 
-(rewrite 'srfi-4#u8vector-length 2 1 "C_u_i_8vector_length" #f)
-(rewrite 'srfi-4#s8vector-length 2 1 "C_u_i_8vector_length" #f)
-(rewrite 'srfi-4#u16vector-length 2 1 "C_u_i_16vector_length" #f)
-(rewrite 'srfi-4#s16vector-length 2 1 "C_u_i_16vector_length" #f)
-(rewrite 'srfi-4#u32vector-length 2 1 "C_u_i_32vector_length" #f)
-(rewrite 'srfi-4#s32vector-length 2 1 "C_u_i_32vector_length" #f)
-(rewrite 'srfi-4#u64vector-length 2 1 "C_u_i_64vector_length" #f)
-(rewrite 'srfi-4#s64vector-length 2 1 "C_u_i_64vector_length" #f)
-(rewrite 'srfi-4#f32vector-length 2 1 "C_u_i_32vector_length" #f)
-(rewrite 'srfi-4#f64vector-length 2 1 "C_u_i_64vector_length" #f)
+(rewrite 'srfi-4#u8vector-length 2 1 "C_u_i_u8vector_length" #f)
+(rewrite 'srfi-4#u8vector-length 2 1 "C_i_u8vector_length" #t)
+(rewrite 'srfi-4#s8vector-length 2 1 "C_u_i_s8vector_length" #f)
+(rewrite 'srfi-4#s8vector-length 2 1 "C_i_s8vector_length" #t)
+(rewrite 'srfi-4#u16vector-length 2 1 "C_u_i_u16vector_length" #f)
+(rewrite 'srfi-4#u16vector-length 2 1 "C_i_u16vector_length" #t)
+(rewrite 'srfi-4#s16vector-length 2 1 "C_u_i_s16vector_length" #f)
+(rewrite 'srfi-4#s16vector-length 2 1 "C_i_s16vector_length" #t)
+(rewrite 'srfi-4#u32vector-length 2 1 "C_u_i_u32vector_length" #f)
+(rewrite 'srfi-4#u32vector-length 2 1 "C_i_u32vector_length" #t)
+(rewrite 'srfi-4#s32vector-length 2 1 "C_u_i_s32vector_length" #f)
+(rewrite 'srfi-4#s32vector-length 2 1 "C_i_s32vector_length" #t)
+(rewrite 'srfi-4#u64vector-length 2 1 "C_u_i_u64vector_length" #f)
+(rewrite 'srfi-4#u64vector-length 2 1 "C_i_u64vector_length" #t)
+(rewrite 'srfi-4#s64vector-length 2 1 "C_u_i_s64vector_length" #f)
+(rewrite 'srfi-4#s64vector-length 2 1 "C_i_s64vector_length" #t)
+(rewrite 'srfi-4#f32vector-length 2 1 "C_u_i_f32vector_length" #f)
+(rewrite 'srfi-4#f32vector-length 2 1 "C_i_f32vector_length" #t)
+(rewrite 'srfi-4#f64vector-length 2 1 "C_u_i_f64vector_length" #f)
+(rewrite 'srfi-4#f64vector-length 2 1 "C_i_f64vector_length" #t)
 
 (rewrite 'chicken.base#atom? 17 1 "C_i_not_pair_p")
 

@@ -16,6 +16,8 @@
     longer accept multiple values via direct invocation after being
     captured through `call/cc`, only via `values` (revert of #1390,
     due to #1601)
+  - SRFI-4 vector predicates, reference, set and length procedures
+    should now be faster in tight loops as they're inlineable (#757).
 
 - Module system
   - When you try to import the module you are currently defining into

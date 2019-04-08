@@ -121,226 +121,125 @@ EOF
 ;;; Get vector length:
 
 (define (u8vector-length x)
-  (##sys#check-structure x 'u8vector 'u8vector-length)
-  (##core#inline "C_u_i_8vector_length" x))
+  (##core#inline "C_i_u8vector_length" x))
 
 (define (s8vector-length x)
-  (##sys#check-structure x 's8vector 's8vector-length)
-  (##core#inline "C_u_i_8vector_length" x))
+  (##core#inline "C_i_s8vector_length" x))
 
 (define (u16vector-length x)
-  (##sys#check-structure x 'u16vector 'u16vector-length)
-  (##core#inline "C_u_i_16vector_length" x))
+  (##core#inline "C_i_u16vector_length" x))
 
 (define (s16vector-length x)
-  (##sys#check-structure x 's16vector 's16vector-length)
-  (##core#inline "C_u_i_16vector_length" x))
+  (##core#inline "C_i_s16vector_length" x))
 
 (define (u32vector-length x)
-  (##sys#check-structure x 'u32vector 'u32vector-length)
-  (##core#inline "C_u_i_32vector_length" x))
+  (##core#inline "C_i_u32vector_length" x))
 
 (define (s32vector-length x)
-  (##sys#check-structure x 's32vector 's32vector-length)
-  (##core#inline "C_u_i_32vector_length" x))
+  (##core#inline "C_i_s32vector_length" x))
 
 (define (u64vector-length x)
-  (##sys#check-structure x 'u64vector 'u64vector-length)
-  (##core#inline "C_u_i_64vector_length" x))
+  (##core#inline "C_i_u64vector_length" x))
 
 (define (s64vector-length x)
-  (##sys#check-structure x 's64vector 's64vector-length)
-  (##core#inline "C_u_i_64vector_length" x))
+  (##core#inline "C_i_s64vector_length" x))
 
 (define (f32vector-length x)
-  (##sys#check-structure x 'f32vector 'f32vector-length)
-  (##core#inline "C_u_i_32vector_length" x))
+  (##core#inline "C_i_f32vector_length" x))
 
 (define (f64vector-length x)
-  (##sys#check-structure x 'f64vector 'f64vector-length)
-  (##core#inline "C_u_i_64vector_length" x))
+  (##core#inline "C_i_f64vector_length" x))
 
-;; XXX TODO: u64/s64-vectors
 
 ;;; Safe accessors:
 
 (define (u8vector-set! x i y)
-  (##sys#check-structure x 'u8vector 'u8vector-set!)
-  (let ((len (##core#inline "C_u_i_8vector_length" x)))
-    (check-uint-length y 8 'u8vector-set!)
-    (check-range i 0 len 'u8vector-set!)
-    (##core#inline "C_u_i_u8vector_set" x i y)))
+  (##core#inline "C_i_u8vector_set" x i y))
 
 (define (s8vector-set! x i y)
-  (##sys#check-structure x 's8vector 's8vector-set!)
-  (let ((len (##core#inline "C_u_i_8vector_length" x)))
-    (check-int-length y 8 's8vector-set!)
-    (check-range i 0 len 's8vector-set!)
-    (##core#inline "C_u_i_s8vector_set" x i y)))
+  (##core#inline "C_i_s8vector_set" x i y))
 
 (define (u16vector-set! x i y)
-  (##sys#check-structure x 'u16vector 'u16vector-set!)
-  (let ((len (##core#inline "C_u_i_16vector_length" x)))
-    (check-uint-length y 16 'u16vector-set!)
-    (check-range i 0 len 'u16vector-set!)
-    (##core#inline "C_u_i_u16vector_set" x i y)))
+  (##core#inline "C_i_u16vector_set" x i y))
 
 (define (s16vector-set! x i y)
-  (##sys#check-structure x 's16vector 's16vector-set!)
-  (let ((len (##core#inline "C_u_i_16vector_length" x)))
-    (check-int-length y 16 's16vector-set!)
-    (check-range i 0 len 's16vector-set!)
-    (##core#inline "C_u_i_s16vector_set" x i y)))
+  (##core#inline "C_i_s16vector_set" x i y))
 
 (define (u32vector-set! x i y)
-  (##sys#check-structure x 'u32vector 'u32vector-set!)
-  (let ((len (##core#inline "C_u_i_32vector_length" x)))
-    (check-uint-length y 32 'u32vector-set!)
-    (check-range i 0 len 'u32vector-set!)
-    (##core#inline "C_u_i_u32vector_set" x i y)))
+  (##core#inline "C_i_u32vector_set" x i y))
 
 (define (s32vector-set! x i y)
-  (##sys#check-structure x 's32vector 's32vector-set!)
-  (let ((len (##core#inline "C_u_i_32vector_length" x)))
-    (check-int-length y 32 's32vector-set!)
-    (check-range i 0 len 's32vector-set!)
-    (##core#inline "C_u_i_s32vector_set" x i y)))
+  (##core#inline "C_i_s32vector_set" x i y))
 
 (define (u64vector-set! x i y)
-  (##sys#check-structure x 'u64vector 'u64vector-set!)
-  (let ((len (##core#inline "C_u_i_64vector_length" x)))
-    (check-uint-length y 64 'u64vector-set!)
-    (check-range i 0 len 'u64vector-set!)
-    (##core#inline "C_u_i_u64vector_set" x i y)))
+  (##core#inline "C_i_u64vector_set" x i y))
 
 (define (s64vector-set! x i y)
-  (##sys#check-structure x 's64vector 's64vector-set!)
-  (let ((len (##core#inline "C_u_i_64vector_length" x)))
-    (check-int-length y 64 's64vector-set!)
-    (check-range i 0 len 's64vector-set!)
-    (##core#inline "C_u_i_s64vector_set" x i y)))
+  (##core#inline "C_i_s64vector_set" x i y))
 
 (define (f32vector-set! x i y)
-  (##sys#check-structure x 'f32vector 'f32vector-set!)
-  (let ((len (##core#inline "C_u_i_32vector_length" x)))
-    (check-int/flonum y 'f32vector-set!)
-    (check-range i 0 len 'f32vector-set!)
-    (##core#inline
-     "C_u_i_f32vector_set"
-     x i 
-     (if (##core#inline "C_i_flonump" y)
-	 y
-	 (##core#inline_allocate ("C_a_u_i_int_to_flo" 4) y)))))
+  (##core#inline "C_i_f32vector_set" x i y))
 
 (define (f64vector-set! x i y)
-  (##sys#check-structure x 'f64vector 'f64vector-set!)
-  (let ((len (##core#inline "C_u_i_64vector_length" x)))
-    (check-int/flonum y 'f64vector-set!)
-    (check-range i 0 len 'f64vector-set!)
-    (##core#inline
-     "C_u_i_f64vector_set"
-     x i 
-     (if (##core#inline "C_i_flonump" y)
-	 y
-	 (##core#inline_allocate ("C_a_u_i_int_to_flo" 4) y)))))
+  (##core#inline "C_i_f64vector_set" x i y))
 
 (define u8vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 'u8vector 'u8vector-ref)
-     (let ((len (##core#inline "C_u_i_s8vector_length" x)))
-       (check-range i 0 len 'u8vector-ref)
-       (##core#inline "C_u_i_u8vector_ref" x i)))
+   (lambda (x i) (##core#inline "C_i_u8vector_ref" x i))
    u8vector-set!
    "(chicken.srfi-4#u8vector-ref v i)"))
 
 (define s8vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 's8vector 's8vector-ref)
-     (let ((len (##core#inline "C_u_i_s8vector_length" x)))
-       (check-range i 0 len 's8vector-ref)
-       (##core#inline "C_u_i_s8vector_ref" x i)))
+   (lambda (x i) (##core#inline "C_i_s8vector_ref" x i))
    s8vector-set!
    "(chicken.srfi-4#s8vector-ref v i)"))
 
 (define u16vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 'u16vector 'u16vector-ref)
-     (let ((len (##core#inline "C_u_i_s16vector_length" x)))
-       (check-range i 0 len 'u16vector-ref)
-       (##core#inline "C_u_i_u16vector_ref" x i)))
+   (lambda (x i) (##core#inline "C_i_u16vector_ref" x i))
    u16vector-set!
    "(chicken.srfi-4#u16vector-ref v i)"))
 
 (define s16vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 's16vector 's16vector-ref)
-     (let ((len (##core#inline "C_u_i_s16vector_length" x)))
-       (check-range i 0 len 's16vector-ref)
-       (##core#inline "C_u_i_s16vector_ref" x i)))
+   (lambda (x i) (##core#inline "C_i_s16vector_ref" x i))
    s16vector-set!
    "(chicken.srfi-4#s16vector-ref v i)"))
    
 (define u32vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 'u32vector 'u32vector-ref)
-     (let ((len (##core#inline "C_u_i_u32vector_length" x)))
-       (check-range i 0 len 'u32vector-ref)
-       (##core#inline_allocate ("C_a_u_i_u32vector_ref" 6) x i)))
+   (lambda (x i) (##core#inline_allocate ("C_a_i_u32vector_ref" 4) x i))
    u32vector-set!
    "(chicken.srfi-4#u32vector-ref v i)"))
 
 (define s32vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 's32vector 's32vector-ref)
-     (let ((len (##core#inline "C_u_i_s32vector_length" x)))
-       (check-range i 0 len 's32vector-ref)
-       (##core#inline_allocate ("C_a_u_i_s32vector_ref" 6) x i)))
+   (lambda (x i) (##core#inline_allocate ("C_a_i_s32vector_ref" 4) x i))
    s32vector-set!
    "(chicken.srfi-4#s32vector-ref v i)"))
 
 (define u64vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 'u64vector 'u64vector-ref)
-     (let ((len (##core#inline "C_u_i_u64vector_length" x)))
-       (check-range i 0 len 'u64vector-ref)
-       (##core#inline_allocate ("C_a_u_i_u64vector_ref" 7) x i)))
+   (lambda (x i) (##core#inline_allocate ("C_a_i_u64vector_ref" 7) x i))
    u64vector-set!
    "(chicken.srfi-4#u64vector-ref v i)"))
 
 (define s64vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 's64vector 's64vector-ref)
-     (let ((len (##core#inline "C_u_i_s64vector_length" x)))
-       (check-range i 0 len 's64vector-ref)
-       (##core#inline_allocate ("C_a_u_i_s64vector_ref" 7) x i)))
+   (lambda (x i) (##core#inline_allocate ("C_a_i_s64vector_ref" 7) x i))
    s64vector-set!
    "(chicken.srfi-4#s64vector-ref v i)"))
 
 (define f32vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 'f32vector 'f32vector-ref)
-     (let ((len (##core#inline "C_u_i_f32vector_length" x)))
-       (check-range i 0 len 'f32vector-ref)
-       (##core#inline_allocate ("C_a_u_i_f32vector_ref" 4) x i)))
+   (lambda (x i) (##core#inline_allocate ("C_a_i_f32vector_ref" 4) x i))
    f32vector-set!
    "(chicken.srfi-4#f32vector-ref v i)"))
 
 (define f64vector-ref
   (getter-with-setter
-   (lambda (x i)
-     (##sys#check-structure x 'f64vector 'f64vector-ref)
-     (let ((len (##core#inline "C_u_i_f64vector_length" x)))
-       (check-range i 0 len 'f64vector-ref)
-       (##core#inline_allocate ("C_a_u_i_f64vector_ref" 4) x i)))
+   (lambda (x i) (##core#inline_allocate ("C_a_i_f64vector_ref" 4) x i))
    f64vector-set!
    "(chicken.srfi-4#f64vector-ref v i)"))
 
@@ -617,16 +516,16 @@ EOF
 
 ;;; Predicates:
 
-(define (u8vector? x) (##sys#structure? x 'u8vector))
-(define (s8vector? x) (##sys#structure? x 's8vector))
-(define (u16vector? x) (##sys#structure? x 'u16vector))
-(define (s16vector? x) (##sys#structure? x 's16vector))
-(define (u32vector? x) (##sys#structure? x 'u32vector))
-(define (s32vector? x) (##sys#structure? x 's32vector))
-(define (u64vector? x) (##sys#structure? x 'u64vector))
-(define (s64vector? x) (##sys#structure? x 's64vector))
-(define (f32vector? x) (##sys#structure? x 'f32vector))
-(define (f64vector? x) (##sys#structure? x 'f64vector))
+(define (u8vector? x) (##core#inline "C_i_u8vectorp" x))
+(define (s8vector? x) (##core#inline "C_i_s8vectorp" x))
+(define (u16vector? x) (##core#inline "C_i_u16vectorp" x))
+(define (s16vector? x) (##core#inline "C_i_s16vectorp" x))
+(define (u32vector? x) (##core#inline "C_i_u32vectorp" x))
+(define (s32vector? x) (##core#inline "C_i_s32vectorp" x))
+(define (u64vector? x) (##core#inline "C_i_u64vectorp" x))
+(define (s64vector? x) (##core#inline "C_i_s64vectorp" x))
+(define (f32vector? x) (##core#inline "C_i_f32vectorp" x))
+(define (f64vector? x) (##core#inline "C_i_f64vectorp" x))
 
 ;; Catch-all predicate
 (define number-vector? ##sys#srfi-4-vector?)

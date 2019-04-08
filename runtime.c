@@ -417,6 +417,16 @@ static C_TLS C_word
   pending_finalizers_symbol,
   callback_continuation_stack_symbol,
   core_provided_symbol,
+  u8vector_symbol,
+  s8vector_symbol,
+  u16vector_symbol,
+  s16vector_symbol,
+  u32vector_symbol,
+  s32vector_symbol,
+  u64vector_symbol,
+  s64vector_symbol,
+  f32vector_symbol,
+  f64vector_symbol,
   *forwarding_table;
 static C_TLS int 
   trace_buffer_full,
@@ -1095,6 +1105,18 @@ void initialize_symbol_table(void)
   callback_continuation_stack_symbol = C_intern3(C_heaptop, C_text("##sys#callback-continuation-stack"), C_SCHEME_END_OF_LIST);
   pending_finalizers_symbol = C_intern2(C_heaptop, C_text("##sys#pending-finalizers"));
   current_thread_symbol = C_intern3(C_heaptop, C_text("##sys#current-thread"), C_SCHEME_FALSE);
+
+  /* SRFI-4 tags */
+  u8vector_symbol = C_intern2(C_heaptop, C_text("u8vector"));
+  s8vector_symbol = C_intern2(C_heaptop, C_text("s8vector"));
+  u16vector_symbol = C_intern2(C_heaptop, C_text("u16vector"));
+  s16vector_symbol = C_intern2(C_heaptop, C_text("s16vector"));
+  u32vector_symbol = C_intern2(C_heaptop, C_text("u32vector"));
+  s32vector_symbol = C_intern2(C_heaptop, C_text("s32vector"));
+  u64vector_symbol = C_intern2(C_heaptop, C_text("u64vector"));
+  s64vector_symbol = C_intern2(C_heaptop, C_text("s64vector"));
+  f32vector_symbol = C_intern2(C_heaptop, C_text("f32vector"));
+  f64vector_symbol = C_intern2(C_heaptop, C_text("f64vector"));
 }
 
 
@@ -3603,6 +3625,17 @@ C_regparm void C_fcall mark_system_globals(void)
   mark(&callback_continuation_stack_symbol);
   mark(&pending_finalizers_symbol);
   mark(&current_thread_symbol);
+
+  mark(&u8vector_symbol);
+  mark(&s8vector_symbol);
+  mark(&u16vector_symbol);
+  mark(&s16vector_symbol);
+  mark(&u32vector_symbol);
+  mark(&s32vector_symbol);
+  mark(&u64vector_symbol);
+  mark(&s64vector_symbol);
+  mark(&f32vector_symbol);
+  mark(&f64vector_symbol);
 }
 
 
@@ -3942,6 +3975,17 @@ C_regparm void C_fcall remark_system_globals(void)
   remark(&callback_continuation_stack_symbol);
   remark(&pending_finalizers_symbol);
   remark(&current_thread_symbol);
+
+  remark(&u8vector_symbol);
+  remark(&s8vector_symbol);
+  remark(&u16vector_symbol);
+  remark(&s16vector_symbol);
+  remark(&u32vector_symbol);
+  remark(&s32vector_symbol);
+  remark(&u64vector_symbol);
+  remark(&s64vector_symbol);
+  remark(&f32vector_symbol);
+  remark(&f64vector_symbol);
 }
 
 
@@ -5058,6 +5102,56 @@ C_regparm C_word C_fcall C_i_listp(C_word x)
   return C_SCHEME_TRUE;
 }
 
+C_regparm C_word C_fcall C_i_u8vectorp(C_word x)
+{
+  return C_i_structurep(x, u8vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_s8vectorp(C_word x)
+{
+  return C_i_structurep(x, s8vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_u16vectorp(C_word x)
+{
+  return C_i_structurep(x, u16vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_s16vectorp(C_word x)
+{
+  return C_i_structurep(x, s16vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_u32vectorp(C_word x)
+{
+  return C_i_structurep(x, u32vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_s32vectorp(C_word x)
+{
+  return C_i_structurep(x, s32vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_u64vectorp(C_word x)
+{
+  return C_i_structurep(x, u64vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_s64vectorp(C_word x)
+{
+  return C_i_structurep(x, s64vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_f32vectorp(C_word x)
+{
+  return C_i_structurep(x, f32vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_f64vectorp(C_word x)
+{
+  return C_i_structurep(x, f64vector_symbol);
+}
+
 
 C_regparm C_word C_fcall C_i_string_equal_p(C_word x, C_word y)
 {
@@ -5641,6 +5735,200 @@ C_regparm C_word C_fcall C_i_vector_ref(C_word v, C_word i)
 }
 
 
+C_regparm C_word C_fcall C_i_u8vector_ref(C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_u8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= C_header_size(C_block_item(v, 1))) barf(C_OUT_OF_RANGE_ERROR, "u8vector-ref", v, i);
+
+    return C_fix(((unsigned char *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s8vector_ref(C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_s8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= C_header_size(C_block_item(v, 1))) barf(C_OUT_OF_RANGE_ERROR, "s8vector-ref", v, i);
+
+    return C_fix(((signed char *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_u16vector_ref(C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_u16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 1)) barf(C_OUT_OF_RANGE_ERROR, "u16vector-ref", v, i);
+
+    return C_fix(((unsigned short *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s16vector_ref(C_word v, C_word i)
+{
+  C_word size;
+  int j;
+
+  if(C_immediatep(v) || C_header_bits(v) != C_STRUCTURE_TYPE ||
+     C_header_size(v) != 2 || C_block_item(v, 0) != s16vector_symbol)
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 1)) barf(C_OUT_OF_RANGE_ERROR, "u16vector-ref", v, i);
+
+    return C_fix(((signed short *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_u32vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_u32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "u32vector-ref", v, i);
+
+    return C_unsigned_int_to_num(ptr, ((C_u32 *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_s32vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_s32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "s32vector-ref", v, i);
+
+    return C_int_to_num(ptr, ((C_s32 *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_u64vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_u64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "u64vector-ref", v, i);
+
+    return C_uint64_to_num(ptr, ((C_u64 *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_s64vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_s64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "s64vector-ref", v, i);
+
+    return C_int64_to_num(ptr, ((C_s64 *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_f32vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_f32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "f32vector-ref", v, i);
+
+    return C_flonum(ptr, ((float *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_f64vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  C_word size;
+  int j;
+
+  if(!C_truep(C_i_f64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "f64vector-ref", v, i);
+
+    return C_flonum(ptr, ((double *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+
 C_regparm C_word C_fcall C_i_block_ref(C_word x, C_word i)
 {
   int j;
@@ -5710,6 +5998,87 @@ C_regparm C_word C_fcall C_i_vector_length(C_word v)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "vector-length", v);
 
   return C_fix(C_header_size(v));
+}
+
+C_regparm C_word C_fcall C_i_u8vector_length(C_word v)
+{
+  if(!C_truep(C_i_u8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)));
+}
+
+C_regparm C_word C_fcall C_i_s8vector_length(C_word v)
+{
+  if(!C_truep(C_i_s8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)));
+}
+
+C_regparm C_word C_fcall C_i_u16vector_length(C_word v)
+{
+  if(!C_truep(C_i_u16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 1);
+}
+
+C_regparm C_word C_fcall C_i_s16vector_length(C_word v)
+{
+  if(!C_truep(C_i_s16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 1);
+}
+
+C_regparm C_word C_fcall C_i_u32vector_length(C_word v)
+{
+  if(!C_truep(C_i_u32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 2);
+}
+
+C_regparm C_word C_fcall C_i_s32vector_length(C_word v)
+{
+  if(!C_truep(C_i_s32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 2);
+}
+
+C_regparm C_word C_fcall C_i_u64vector_length(C_word v)
+{
+  if(!C_truep(C_i_u64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 3);
+}
+
+C_regparm C_word C_fcall C_i_s64vector_length(C_word v)
+{
+  if(!C_truep(C_i_s64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 3);
+}
+
+
+C_regparm C_word C_fcall C_i_f32vector_length(C_word v)
+{
+  if(!C_truep(C_i_f32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 2);
+}
+
+C_regparm C_word C_fcall C_i_f64vector_length(C_word v)
+{
+  if(!C_truep(C_i_f64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 3);
 }
 
 
@@ -5805,6 +6174,257 @@ C_regparm C_word C_fcall C_i_vector_set(C_word v, C_word i, C_word x)
 
   return C_SCHEME_UNDEFINED;
 }
+
+
+C_regparm C_word C_fcall C_i_u8vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_word n;
+
+  if(!C_truep(C_i_u8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= C_header_size(C_block_item(v, 1))) barf(C_OUT_OF_RANGE_ERROR, "u8vector-set!", v, i);
+
+    if(x & C_FIXNUM_BIT) {
+      if (!(x & C_INT_SIGN_BIT) && C_ilen(C_unfix(x)) <= 8) n = C_unfix(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "u8vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-set!", i);
+
+  ((unsigned char *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s8vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_word n;
+
+  if(!C_truep(C_i_s8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= C_header_size(C_block_item(v, 1))) barf(C_OUT_OF_RANGE_ERROR, "s8vector-set!", v, i);
+
+    if(x & C_FIXNUM_BIT) {
+      if (C_unfix(C_i_fixnum_length(x)) <= 8) n = C_unfix(x);
+      else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-set!", i);
+
+  ((signed char *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_u16vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_word n;
+
+  if(!C_truep(C_i_u16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 1)) barf(C_OUT_OF_RANGE_ERROR, "u16vector-set!", v, i);
+
+    if(x & C_FIXNUM_BIT) {
+      if (!(x & C_INT_SIGN_BIT) && C_ilen(C_unfix(x)) <= 16) n = C_unfix(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "u16vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-set!", i);
+
+  ((unsigned short *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s16vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_word n;
+
+  if(!C_truep(C_i_s16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 1)) barf(C_OUT_OF_RANGE_ERROR, "u16vector-set!", v, i);
+
+    if(x & C_FIXNUM_BIT) {
+      if (C_unfix(C_i_fixnum_length(x)) <= 16) n = C_unfix(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "s16vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-set!", i);
+
+  ((short *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_u32vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_u32 n;
+
+  if(!C_truep(C_i_u32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "u32vector-set!", v, i);
+
+    if(C_truep(C_i_exact_integerp(x))) {
+      if (C_unfix(C_i_integer_length(x)) <= 32) n = C_num_to_unsigned_int(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "u32vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-set!", i);
+
+  ((C_u32 *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s32vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_s32 n;
+
+  if(!C_truep(C_i_s32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "s32vector-set!", v, i);
+
+    if(C_truep(C_i_exact_integerp(x))) {
+      if (C_unfix(C_i_integer_length(x)) <= 32) n = C_num_to_int(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "s32vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-set!", i);
+
+  ((C_s32 *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_u64vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_u64 n;
+
+  if(!C_truep(C_i_u64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "u64vector-set!", v, i);
+
+    if(C_truep(C_i_exact_integerp(x))) {
+      if (C_unfix(C_i_integer_length(x)) <= 64) n = C_num_to_uint64(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "u64vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-set!", i);
+
+  ((C_u64 *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s64vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_s64 n;
+
+  if(!C_truep(C_i_s64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "s64vector-set!", v, i);
+
+    if(C_truep(C_i_exact_integerp(x))) {
+      if (C_unfix(C_i_integer_length(x)) <= 64) n = C_num_to_int64(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "s64vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-set!", i);
+
+  ((C_s64 *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_f32vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  double f;
+
+  if(!C_truep(C_i_f32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "f32vector-set!", v, i);
+
+    if(C_truep(C_i_flonump(x))) f = C_flonum_magnitude(x);
+    else if(x & C_FIXNUM_BIT) f = C_unfix(x);
+    else if (C_truep(C_i_bignump(x))) f = C_bignum_to_double(x);
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-set!", i);
+
+  ((float *)C_data_pointer(C_block_item(v, 1)))[j] = (float)f;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_f64vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  double f;
+
+  if(!C_truep(C_i_f64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "f64vector-set!", v, i);
+
+    if(C_truep(C_i_flonump(x))) f = C_flonum_magnitude(x);
+    else if(x & C_FIXNUM_BIT) f = C_unfix(x);
+    else if (C_truep(C_i_bignump(x))) f = C_bignum_to_double(x);
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-set!", x);
+
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-set!", i);
+
+  ((double *)C_data_pointer(C_block_item(v, 1)))[j] = f;
+  return C_SCHEME_UNDEFINED;
+}
+
 
 /* This needs at most C_SIZEOF_FIX_BIGNUM + max(C_SIZEOF_RATNUM, C_SIZEOF_CPLXNUM) so 7 words */
 C_regparm C_word C_fcall

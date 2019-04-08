@@ -1910,11 +1910,31 @@ C_fctexport C_word C_a_i_record(C_word **a, int c, ...);
 C_fctexport C_word C_a_i_port(C_word **a, int c);
 C_fctexport C_word C_fcall C_a_i_bytevector(C_word **a, int c, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_listp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u8vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s8vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u16vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s16vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u32vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s32vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u64vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s64vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_f32vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_f64vectorp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_string_equal_p(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_string_ci_equal_p(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_set_car(C_word p, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_set_cdr(C_word p, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u8vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s8vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u16vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s16vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u32vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s32vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u64vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s64vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_f32vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_f64vector_set(C_word v, C_word i, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_exactp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_inexactp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_nanp(C_word x) C_regparm;
@@ -1942,10 +1962,30 @@ C_fctexport C_word C_fcall C_i_integer_evenp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_oddp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_oddp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_u8vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_s8vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_u16vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_s16vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_u32vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_s32vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_u64vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_s64vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_f32vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_f64vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
 C_fctexport C_word C_fcall C_i_block_ref(C_word x, C_word i) C_regparm;
 C_fctexport C_word C_fcall C_i_string_set(C_word s, C_word i, C_word c) C_regparm;
 C_fctexport C_word C_fcall C_i_string_ref(C_word s, C_word i) C_regparm;
 C_fctexport C_word C_fcall C_i_vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_u8vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_s8vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_u16vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_s16vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_u32vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_s32vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_u64vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_s64vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_f32vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_f64vector_length(C_word v) C_regparm;
 C_fctexport C_word C_fcall C_i_string_length(C_word s) C_regparm;
 C_fctexport C_word C_fcall C_i_assq(C_word x, C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_i_assv(C_word x, C_word lst) C_regparm;
@@ -2646,6 +2686,21 @@ inline static C_word C_i_vectorp(C_word x)
   return C_mk_bool(!C_immediatep(x) && C_header_bits(x) == C_VECTOR_TYPE);
 }
 
+inline static C_word C_i_srfi_4_vectorp(C_word x)
+{
+  return C_mk_bool(!C_immediatep(x) &&
+                   C_header_bits(x) == C_STRUCTURE_TYPE &&
+                   (C_truep(C_i_u8vectorp(x)) ||
+                    C_truep(C_i_s8vectorp(x)) ||
+                    C_truep(C_i_u16vectorp(x)) ||
+                    C_truep(C_i_s16vectorp(x)) ||
+                    C_truep(C_i_u32vectorp(x)) ||
+                    C_truep(C_i_s32vectorp(x)) ||
+                    C_truep(C_i_u64vectorp(x)) ||
+                    C_truep(C_i_s64vectorp(x)) ||
+                    C_truep(C_i_f32vectorp(x)) ||
+                    C_truep(C_i_f64vectorp(x))));
+}
 
 inline static C_word C_i_portp(C_word x)
 {
