@@ -12,6 +12,10 @@
 - Runtime system
   - Removed the unused, undocumented (and incorrect!) C functions
     C_delete_symbol_table and C_set_symbol_table.
+  - Continuations which discard additional values beyond the first no
+    longer accept multiple values via direct invocation after being
+    captured through `call/cc`, only via `values` (revert of #1390,
+    due to #1601)
 
 - Module system
   - When you try to import the module you are currently defining into
