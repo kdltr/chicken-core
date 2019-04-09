@@ -34,6 +34,9 @@
     the compiler when later trying to import that same module (fixes
     #1506, thanks to Kristian Lein-Mathisen).
 
+- Foreign function interface
+  - Improved hygiene in FFI macro expansions, which means you don't
+     have to import "scheme" or "(chicken base)" for them to work.
 
 5.0.1
 

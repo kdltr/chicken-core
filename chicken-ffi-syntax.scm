@@ -63,7 +63,9 @@
 
 (##sys#extend-macro-environment
  'define-external
- '()
+ `((define . ,(alist-ref 'define me0))	; Or just me0?
+   (begin . ,(alist-ref 'begin me0))
+   (lambda . ,(alist-ref 'lambda me0)))
  (compiler-only-er-transformer
   (lambda (form r c)
     (let* ((form (cdr form))
@@ -82,14 +84,14 @@
 	     (if quals
 		 (##sys#check-syntax 'define-external form '(string (symbol . #((_ symbol) 0)) _ . #(_ 1)))
 		 (##sys#check-syntax 'define-external form '((symbol . #((_ symbol) 0)) _ . #(_ 1))) )
-	     (let* ([head (if quals (cadr form) (car form))]
-		    [args (cdr head)] )
+	     (let* ((head (if quals (cadr form) (car form)))
+		    (args (cdr head)) )
 	       `(,(r 'define) ,(car head)
 		 (##core#foreign-callback-wrapper
-		  ',(car head)
+		  (##core#quote ,(car head))
 		  ,(if quals (car form) "")
-		  ',(if quals (caddr form) (cadr form))
-		  ',(map (lambda (a) (car a)) args)
+		  (##core#quote ,(if quals (caddr form) (cadr form)))
+		  (##core#quote ,(map (lambda (a) (car a)) args))
 		  (,(r 'lambda) 
 		   ,(map (lambda (a) (cadr a)) args)
 		   ,@(if quals (cdddr form) (cddr form)) ) ) ) ) ] ) ) ) ) )
@@ -108,7 +110,7 @@
 
 (##sys#extend-macro-environment
  'define-location
- '()
+ `((begin . ,(alist-ref 'begin me0)))
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'define-location form '(_ variable _ . #(_ 0 1)))
@@ -161,7 +163,7 @@
 
 (##sys#extend-macro-environment
  'foreign-code
- '()
+ `((declare . ,(alist-ref 'declare me0)))
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-code form '(_ . #(string 0)))

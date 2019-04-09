@@ -664,7 +664,7 @@
 
 			((##core#check)
 			 (if unsafe
-			     ''#t
+			     '(quote #t)
 			     (walk (cadr x) e dest ldest h ln tl?) ) )
 
 			((##core#the)
@@ -797,7 +797,7 @@
 					       (walk
 						(if emit-debug-info
 						    `(##core#begin
-						      (##core#debug-event C_DEBUG_ENTRY ',dest)
+						      (##core#debug-event C_DEBUG_ENTRY (##core#quote ,dest))
 						      ,body0)
 						    body0)
 						(append aliases e) #f #f dest ln #f))))
@@ -883,7 +883,7 @@
 			  (walk
 			   (if ##sys#enable-runtime-macros
 			       `(##sys#extend-macro-environment
-				 ',var
+				 (##core#quote ,var)
 				 (##sys#current-environment) ,body) ;XXX possibly wrong se?
 			       '(##core#undefined) )
 			   e dest ldest h ln #f)) )
@@ -915,7 +915,7 @@
 				      `(##sys#cons
 					(##sys#ensure-transformer
 					 ,body
-					 ',var)
+					 (##core#quote ,var))
 					(##sys#current-environment))))
 			       '(##core#undefined) )
 			   e dest ldest h ln #f)))
@@ -1106,7 +1106,7 @@
 				      (let ((type (second fv))
 					    (tmp (gensym)))
 					(walk
-					 `(let ((,tmp ,(foreign-type-convert-argument val type)))
+					 `(##core#let ((,tmp ,(foreign-type-convert-argument val type)))
 					    (##core#inline_update
 					     (,(third fv) ,type)
 					     ,(foreign-type-check tmp type)))
@@ -1116,7 +1116,7 @@
 				      (let* ((type (third a))
 					     (tmp (gensym)))
 					(walk
-					 `(let ((,tmp ,(foreign-type-convert-argument val type)))
+					 `(##core#let ((,tmp ,(foreign-type-convert-argument val type)))
 					    (##core#inline_loc_update
 					     (,type)
 					     ,(second a)
@@ -1130,8 +1130,8 @@
 				     (mark-variable var '##compiler#always-bound))
 				   (when emit-debug-info
 				     (set! val
-				       `(let ((,var ,val))
-					  (##core#debug-event C_DEBUG_GLOBAL_ASSIGN ',var)
+				       `(##core#let ((,var ,val))
+					  (##core#debug-event C_DEBUG_GLOBAL_ASSIGN (##core#quote ,var))
 					  ,var)))
 				   ;; We use `var0` instead of `var` because the {macro,current}-environment
 				   ;; are keyed by the raw and unqualified name
@@ -1243,8 +1243,8 @@
 				    (hide-variable ret)
 				    (walk
 				     `(##core#begin
-					(define ,arg ,(first conv))
-					(define
+					(##core#set! ,arg ,(first conv))
+					(##core#set!
 					 ,ret
 					 ,(if (pair? (cdr conv)) (second conv) '##sys#values)) )
 				     e dest ldest h ln tl?))]
@@ -1284,7 +1284,7 @@
 			   (parameterize ((##sys#current-environment
 					   (alist-cons var alias (##sys#current-environment))))
 			    (walk
-			     `(let (,(let ((size (bytes->words (estimate-foreign-result-location-size type))))
+			     `(##core#let (,(let ((size (bytes->words (estimate-foreign-result-location-size type))))
 				       ;; Add 2 words: 1 for the header, 1 for double-alignment:
 				       ;; Note: C_a_i_bytevector takes number of words, not bytes
 				       (list
@@ -1416,7 +1416,7 @@
 						 `((##sys#make-c-string
 						    (##core#let
 						     () ,@(cddr lam))
-						    ',name)))
+						    (##core#quote ,name))))
 						((member
 						  rtype
 						  '((const c-string*)
@@ -1439,7 +1439,7 @@
 						    ((r (##core#let () ,@(cddr lam))))
 						    (,(macro-alias 'and)
 						     r
-						     (##sys#make-c-string r ',name)) ) ) )
+						     (##sys#make-c-string r (##core#quote ,name))) ) ) )
 						(else (cddr lam)) ) )
 					   rtype) ) )
 				      e #f #f h ln #f) ) ) ) )
@@ -1450,7 +1450,7 @@
 			       (cond ((assq (lookup sym) location-pointer-map)
 				      => (lambda (a)
 					   (walk
-					    `(##sys#make-locative ,(second a) 0 #f 'location)
+					    `(##sys#make-locative ,(second a) 0 #f (##core#quote location))
 					    e #f #f h ln #f) ) )
 				     ((assq sym external-to-pointer)
 				      => (lambda (a) (walk (cdr a) e #f #f h ln #f)) )
@@ -1458,10 +1458,10 @@
 				      `(##core#inline_ref (,(symbol->string sym) c-pointer)) )
 				     (else
 				      (walk
-				       `(##sys#make-locative ,sym 0 #f 'location)
+				       `(##sys#make-locative ,sym 0 #f (##core#quote location))
 				       e #f #f h ln #f) ) )
 			       (walk
-				`(##sys#make-locative ,sym 0 #f 'location)
+				`(##sys#make-locative ,sym 0 #f (##core#quote location))
 				e #f #f h ln #f) ) ) )
 
 			(else
@@ -1837,14 +1837,14 @@
 		    `((##core#primitive ,f-id))
 		    `(##core#inline ,f-id) ) ]
 	  [rest (map (lambda (p t) (foreign-type-check (foreign-type-convert-argument p t) t)) params argtypes)] )
-      `(lambda ,params
+      `(##core#lambda ,params
 	 ;; Do minor GC (if callback) to make room on stack:
 	 ,@(if callback '((##sys#gc #f)) '())
 	 ,(if (zero? rsize)
 	      (foreign-type-convert-result (append head (cons '(##core#undefined) rest)) rtype)
 	      (let ([ft (final-foreign-type rtype)]
 		    [ws (bytes->words rsize)] )
-		`(let ([,bufvar (##core#inline_allocate ("C_a_i_bytevector" ,(+ 2 ws)) ',ws)])
+		`(##core#let ([,bufvar (##core#inline_allocate ("C_a_i_bytevector" ,(+ 2 ws)) (##core#quote ,ws))])
 		   ,(foreign-type-convert-result
 		     (finish-foreign-result ft (append head (cons bufvar rest)))
 		     rtype) ) ) ) ) ) ) )
