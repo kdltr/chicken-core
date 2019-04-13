@@ -824,7 +824,6 @@
                                                                ver
                                                                platform
                                                                'host)))
-            (check-installed-files name info)                         
             (let ((bscript (make-pathname dir name 
                                           (build-script-extension 'host platform)))
                   (iscript (make-pathname dir name 
@@ -843,6 +842,7 @@
                       (print "building " name)
                       (run-script dir bscript platform)
                       (unless (if (member name requested-eggs) no-install no-install-dependencies)
+                        (check-installed-files name info)
                         (print "  installing " name)
                         (run-script dir iscript platform sudo: sudo-install))
                       (when (and (member name requested-eggs)
