@@ -8,6 +8,10 @@
   - In (chicken file posix), the values of perm/irgrp, perm/iwgrp,
     perm/ixgrp, perm/iroth, perm/iwoth and perm/ixoth are now correctly
     defined (they were all for "usr"; #1602, thanks to Eric Hoffman).
+  - In (chicken file posix), `file-truncate` now accepts also accepts
+    port objects, for consistency with other file procedures.
+    All such procedures from (chicken file posix) now have the correct
+    types in types.db (fixes #1609, thanks to Robert Jensen).
 
 - Runtime system
   - Removed the unused, undocumented (and incorrect!) C functions

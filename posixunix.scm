@@ -968,9 +968,10 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (set! chicken.file.posix#file-truncate
   (lambda (fname off)
     (##sys#check-exact-integer off 'file-truncate)
-    (when (fx< (cond [(string? fname) (##core#inline "C_truncate" (##sys#make-c-string fname 'file-truncate) off)]
-		     [(fixnum? fname) (##core#inline "C_ftruncate" fname off)]
-		     [else (##sys#error 'file-truncate "invalid file" fname)] )
+    (when (fx< (cond ((string? fname) (##core#inline "C_truncate" (##sys#make-c-string fname 'file-truncate) off))
+		     ((port? fname) (##core#inline "C_ftruncate" (chicken.file.posix#port->fileno fname) off))
+		     ((fixnum? fname) (##core#inline "C_ftruncate" fname off))
+		     (else (##sys#error 'file-truncate "invalid file" fname)))
 	       0)
       (posix-error #:file-error 'file-truncate "cannot truncate file" fname off) ) ) )
 

@@ -373,8 +373,8 @@ object, {{MODE}} should be a fixnum.
 
 Truncates the file {{FILE}} to the length {{OFFSET}},
 which should be an integer. If the file-size is smaller or equal to
-{{OFFSET}} then nothing is done.  {{FILE}} should be a filename
-or a file-descriptor.
+{{OFFSET}} then nothing is done.  {{FILE}} should be a filename,
+a file-descriptor or a port object.
 
 '''NOTE''': On native Windows builds (all except cygwin), this
 procedure is unimplemented and will raise an error.
