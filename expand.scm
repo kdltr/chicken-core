@@ -299,7 +299,7 @@
 			 (cond ((eq? result exp) (expand head exp head2))
 			       (else
 				(when ##sys#compiler-syntax-hook
-				  (##sys#compiler-syntax-hook head result))
+				  (##sys#compiler-syntax-hook head2 result))
 				(loop result))))))
 		    [else (expand head exp head2)] ) )
 	    (values exp #f) ) )
