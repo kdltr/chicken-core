@@ -292,7 +292,7 @@
          (user-file (and cfg-dir (make-pathname (list cfg-dir "chicken")
                                                 +defaults-file+)))
          (deff (or user-defaults
-                   (and (file-exists? user-file) user-file)
+                   (and user-file (file-exists? user-file))
                    (make-pathname host-sharedir +defaults-file+))))
       (define (broken x)
 	(error "invalid entry in defaults file" deff x))
