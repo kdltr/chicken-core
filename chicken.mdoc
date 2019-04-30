@@ -239,6 +239,9 @@ Display debugging output for the given modes.
 Do not generate implicit init- and exit code.
 .It Fl emit-external-prototypes-first
 Emit prototypes for callbacks before foreign declarations.
+.It Fl regenerate-import-libraries
+Always emit import libraries, even when their contents haven't changed.
+The default behaviour is to preserve existing import libraries.
 .It Fl ignore-repository
 Do not refer to repository for extensions.
 .It Fl setup-mode

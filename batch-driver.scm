@@ -370,6 +370,8 @@
       (set! unsafe #t) )
     (when (memq 'setup-mode options)
       (set! ##sys#setup-mode #t))
+    (when (memq 'regenerate-import-libraries options)
+      (set! preserve-unchanged-import-libraries #f))
     (when (memq 'disable-interrupts options) (set! insert-timer-checks #f))
     (when (memq 'fixnum-arithmetic options) (set! number-type 'fixnum))
     (when (memq 'block options) (set! block-compilation #t))

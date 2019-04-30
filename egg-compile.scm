@@ -605,6 +605,7 @@
            (filelist srcdir source-dependencies platform)
            " : " cmd
            (if keep-generated-files " -k" "")
+           " -regenerate-import-libraries"
            " -setup-mode -static -I " srcdir 
            " -emit-link-file " lfile
            (if (eq? mode 'host) " -host" "")
@@ -679,6 +680,7 @@
            (if keep-generated-files " -k" "")
            (if (eq? mode 'host) " -host" "")
            " -D compiling-extension -J -s"
+           " -regenerate-import-libraries"
            " -setup-mode -I " srcdir
            " -C -I" srcdir
            (arglist opts platform)

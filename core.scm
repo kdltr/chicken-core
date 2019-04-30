@@ -287,7 +287,8 @@
      process-declaration file-requirements
 
      ;; Various ugly global boolean flags that get set by the (batch) driver
-     all-import-libraries bootstrap-mode compiler-syntax-enabled
+     all-import-libraries preserve-unchanged-import-libraries
+     bootstrap-mode compiler-syntax-enabled
      emit-closure-info emit-profile enable-inline-files explicit-use-flag
      first-analysis no-bound-checks enable-module-registration
      optimize-leaf-routines standalone-executable undefine-shadowed-macros
@@ -400,6 +401,7 @@
 (define profiled-procedures #f)
 (define import-libraries '())
 (define all-import-libraries #f)
+(define preserve-unchanged-import-libraries #t)
 (define enable-module-registration #t)
 (define standalone-executable #t)
 (define local-definitions #f)
@@ -604,7 +606,7 @@
 	   (oldimps
 	    (and (file-exists? fname)
 		 (call-with-input-file fname read-expressions))))
-      (cond ((equal? imps oldimps)
+      (cond ((and (equal? imps oldimps) preserve-unchanged-import-libraries)
 	     (when verbose-mode
 	       (print "not generating import library `" fname "' for module `"
 		      name "' because imports did not change")) )

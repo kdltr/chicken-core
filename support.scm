@@ -1814,6 +1814,7 @@ Usage: chicken FILENAME [OPTION ...]
     -emit-external-prototypes-first
                                  emit prototypes for callbacks before foreign
                                   declarations
+    -regenerate-import-libraries emit import libraries even when unchanged
     -ignore-repository           do not refer to repository for extensions
     -setup-mode                  prefer the current directory when locating extensions
 

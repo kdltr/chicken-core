@@ -152,7 +152,7 @@
     -no-symbol-escape -no-parentheses-synonyms -r5rs-syntax
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
     -emit-all-import-libraries -no-elevation -no-module-registration
-    -no-procedure-checks-for-usual-bindings
+    -no-procedure-checks-for-usual-bindings -regenerate-import-libraries
     -specialize -strict-types -clustering -lfa2 -debug-info
     -no-procedure-checks-for-toplevel-bindings))
 
@@ -494,6 +494,7 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
     -emit-external-prototypes-first
                                    emit prototypes for callbacks before foreign
                                     declarations
+    -regenerate-import-libraries   emit import libraries even when unchanged
     -ignore-repository             do not refer to repository for extensions
     -keep-shadowed-macros          do not remove shadowed macro
     -host                          compile for host when configured for

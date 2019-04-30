@@ -102,7 +102,7 @@
     no-bound-checks no-procedure-checks-for-usual-bindings no-compiler-syntax
     no-parentheses-synonyms no-symbol-escape r5rs-syntax emit-all-import-libraries
     strict-types clustering lfa2 debug-info
-    setup-mode no-module-registration) )
+    regenerate-import-libraries setup-mode no-module-registration))
 
 (define valid-compiler-options-with-argument
   '(debug emit-link-file
