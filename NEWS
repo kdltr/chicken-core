@@ -22,6 +22,11 @@
     due to #1601)
   - SRFI-4 vector predicates, reference, set and length procedures
     should now be faster in tight loops as they're inlineable (#757).
+  - Keywords are now interned in a separate keyword table, not in the
+     standard symbol table.  This brings full read-write invariance
+     for symbols (they can now also start with NUL bytes).  Keywords
+     no longer have plists.  Fixes #1576.
+  - Increased the "binary compatibility version" to 11.
 
 - Module system
   - When you try to import the module you are currently defining into
