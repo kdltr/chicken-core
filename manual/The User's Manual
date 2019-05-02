@@ -6,7 +6,7 @@
 <img id="big-logo" style="float:right; margin-left:1em;" src="http://wiki.call-cc.org/chicken-small.png" alt="Stylized picture of a chicken"/>
 </nowiki>
 
-This is the manual for CHICKEN Scheme, version 5.0.2
+This is the manual for CHICKEN Scheme, version 5.0.3
 
 * [[Getting started]] : What is CHICKEN and how do I use it?
 * [[Using the interpreter]] : How to use the interactive interpreter, {{csi}}
