@@ -155,7 +155,7 @@ static C_TLS int timezone;
 #endif
 
 #define DEFAULT_SYMBOL_TABLE_SIZE      2999
-#define DEFAULT_KEYWORD_TABLE_SIZE      999
+#define DEFAULT_KEYWORD_TABLE_SIZE      499
 #define DEFAULT_HEAP_SIZE              DEFAULT_STACK_SIZE
 #define MINIMAL_HEAP_SIZE              DEFAULT_STACK_SIZE
 #define DEFAULT_SCRATCH_SPACE_SIZE     256
@@ -716,8 +716,7 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   if(symbol_table == NULL)
     return 0;
 
-  /* TODO: Should we use "symbols" here too? */
-  keyword_table = C_new_symbol_table("kw", DEFAULT_KEYWORD_TABLE_SIZE);
+  keyword_table = C_new_symbol_table("kw", symbols ? symbols / 4 : DEFAULT_KEYWORD_TABLE_SIZE);
 
   if(keyword_table == NULL)
     return 0;

@@ -26,12 +26,13 @@ only if this function has been called by the containing application.
 
  [C function] int CHICKEN_initialize (int heap, int stack, int symbols, void *toplevel) 
 
-Initializes the Scheme execution context and memory. {{heap}}
-holds the number of bytes that are to be allocated for the secondary
+Initializes the Scheme execution context and memory. {{heap}} holds
+the number of bytes that are to be allocated for the secondary
 heap. {{stack}} holds the number of bytes for the primary
-heap. {{symbols}} contains the size of the symbol table. Passing
-{{0}} to one or more of these parameters will select a default
-size. 
+heap. {{symbols}} contains the size of the symbol table. The keyword
+table will be 1/4th the symbol table size.  Passing {{0}} to one or
+more of these parameters will select a default size.
+
 {{toplevel}} should be a pointer to the toplevel entry point
 procedure. You should pass {{C_toplevel}} here. In any subsequent
 call to {{CHICKEN_run}} you can simply
