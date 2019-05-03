@@ -64,6 +64,9 @@
 
 (import scheme)
 
+(define (plain-symbol? x)
+  (and (symbol? x) (not (##core#inline "C_u_i_keywordp" x))) )
+
 (define (syntax-rules-mismatch input)
   (##sys#syntax-error-hook "no rule matches form" input))
 
@@ -160,7 +163,7 @@
   ;; Generate code to test whether input expression matches pattern
 
   (define (process-match input pattern seen-segment?)
-    (cond ((symbol? pattern)
+    (cond ((plain-symbol? pattern)
 	   (if (memq pattern subkeywords)
 	       `((,%compare ,input (,%rename (##core#syntax ,pattern))))
 	       `()))
@@ -199,7 +202,7 @@
   ;; This is pretty bad, but it seems to work (can't say why).
 
   (define (process-pattern pattern path mapit seen-segment?)
-    (cond ((symbol? pattern)
+    (cond ((plain-symbol? pattern)
 	   (if (memq pattern subkeywords)
 	       '()
 	       (list (list pattern (mapit path)))))
@@ -230,7 +233,7 @@
   ;; Generate code to compose the output expression according to template
 
   (define (process-template template dim env)
-    (cond ((symbol? template)
+    (cond ((plain-symbol? template)
 	   (let ((probe (assq template env)))
 	     (if probe
 		 (if (<= (cdr probe) dim)
@@ -250,7 +253,7 @@
 					     env))
 			(gen (if (and (pair? vars)
 				      (null? (cdr vars))
-				      (symbol? x)
+				      (plain-symbol? x)
 				      (eq? x (car vars)))
 				 x	;+++
 				 `(,%map (,%lambda ,vars ,x)
@@ -275,7 +278,7 @@
   ;; Return an association list of (var . dim)
 
   (define (meta-variables pattern dim vars seen-segment?)
-    (cond ((symbol? pattern)
+    (cond ((plain-symbol? pattern)
 	   (if (memq pattern subkeywords)
 	       vars
 	       (cons (cons pattern dim) vars)))
@@ -292,7 +295,7 @@
   ;; Return a list of meta-variables of given higher dim
 
   (define (free-meta-variables template dim env free)
-    (cond ((symbol? template)
+    (cond ((plain-symbol? template)
 	   (if (and (not (memq template free))
 		    (let ((probe (assq template env)))
 		      (and probe (>= (cdr probe) dim))))

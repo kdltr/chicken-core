@@ -323,14 +323,14 @@
  '()
  (##sys#er-transformer
   (lambda (form r c)
-    (##sys#check-syntax 'define-constant form '(_ symbol _))
+    (##sys#check-syntax 'define-constant form '(_ variable _))
     `(##core#define-constant ,@(cdr form)))))
 
 (##sys#extend-macro-environment
  'define-record '()
  (##sys#er-transformer
   (lambda (x r c)
-    (##sys#check-syntax 'define-record x '(_ symbol . _))
+    (##sys#check-syntax 'define-record x '(_ variable . _))
     (let* ((type-name (cadr x))
 	   (plain-name (strip-syntax type-name))
 	   (prefix (symbol->string plain-name))
@@ -449,7 +449,7 @@
  'fluid-let '()
  (##sys#er-transformer
   (lambda (form r c)
-    (##sys#check-syntax 'fluid-let form '(_ #((symbol _) 0) . _))
+    (##sys#check-syntax 'fluid-let form '(_ #((variable _) 0) . _))
      (let* ((clauses (cadr form))
 	   (body (cddr form))
 	   (ids (##sys#map car clauses))
@@ -679,7 +679,7 @@
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    (##sys#check-syntax 'letrec* x '(_ #((symbol _) 0) . #(_ 1)))
+    (##sys#check-syntax 'letrec* x '(_ #((variable _) 0) . #(_ 1)))
     (check-for-multiple-bindings (cadr x) x "letrec*")
     `(##core#letrec* ,@(cdr x)))))
 
@@ -728,7 +728,7 @@
 	    (let ([b (car bs)]
 		  [bs2 (cdr bs)] )
 	      (cond [(not (pair? b))
-                     (##sys#check-syntax 'and-let* b 'symbol)
+                     (##sys#check-syntax 'and-let* b 'variable)
                      (let ((var (r (gensym))))
                        `(##core#let ((,var ,b))
                           (##core#if ,var ,(fold bs2 var) #f)))]
@@ -737,7 +737,7 @@
                        `(##core#let ((,var ,(car b)))
                           (##core#if ,var ,(fold bs2 var) #f)))]
 		    [else
-		     (##sys#check-syntax 'and-let* b '(symbol _))
+		     (##sys#check-syntax 'and-let* b '(variable _))
 		     (let ((var (car b)))
 		       `(##core#let ((,var ,(cadr b)))
 			 (##core#if ,var ,(fold bs2 var) #f)))]))))))))
@@ -1049,7 +1049,7 @@
       (cond [(pair? head)
 	     (##sys#check-syntax 
 	      'define-record-printer (cons head body)
-	      '((symbol symbol symbol) . #(_ 1)))
+	      '((variable variable variable) . #(_ 1)))
 	     (let* ((plain-name (strip-syntax (##sys#slot head 0)))
 		    (tag (if (##sys#current-module)
 			     (symbol-append
@@ -1060,7 +1060,7 @@
 		 (##core#quote ,tag)
 		 (##core#lambda ,(##sys#slot head 1) ,@body)))]
 	    (else
-	     (##sys#check-syntax 'define-record-printer (cons head body) '(symbol _))
+	     (##sys#check-syntax 'define-record-printer (cons head body) '(variable _))
 	     (let* ((plain-name (strip-syntax head))
 		    (tag (if (##sys#current-module)
 			     (symbol-append
