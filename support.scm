@@ -32,9 +32,8 @@
 (module chicken.compiler.support
     (compiler-cleanup-hook bomb collected-debugging-output debugging
      debugging-chicken with-debugging-output quit-compiling
-     emit-syntax-trace-info check-signature stringify symbolify
-     build-lambda-list c-ify-string valid-c-identifier?
-     read-expressions
+     emit-syntax-trace-info check-signature build-lambda-list
+     c-ify-string valid-c-identifier? read-expressions
      bytes->words words->bytes
      check-and-open-input-file close-checked-input-file fold-inner
      constant? collapsable-literal? immediate? basic-literal?
@@ -220,16 +219,6 @@
 
 
 ;;; Generic utility routines:
-
-(define (stringify x)
-  (cond ((string? x) x)
-	((symbol? x) (symbol->string x))
-	(else (sprintf "~a" x)) ) )
-
-(define (symbolify x)
-  (cond ((symbol? x) x)
-	((string? x) (string->symbol x))
-	(else (string->symbol (sprintf "~a" x))) ) )
 
 (define (build-lambda-list vars argc rest)
   (let loop ((vars vars) (n argc))
