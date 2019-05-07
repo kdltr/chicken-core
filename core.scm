@@ -1241,6 +1241,11 @@
 				    (mark-variable ret '##compiler#always-bound)
 				    (hide-variable arg)
 				    (hide-variable ret)
+				    ;; NOTE: Above we already check we're in toplevel context,
+				    ;; so we can unconditionally register the export here.
+				    ;; TODO: Remove after fixing #1615
+				    (##sys#register-export arg (##sys#current-module))
+				    (##sys#register-export ret (##sys#current-module))
 				    (walk
 				     `(##core#begin
 					(##core#set! ,arg ,(first conv))
