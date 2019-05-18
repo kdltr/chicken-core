@@ -237,7 +237,7 @@ To invoke the CHICKEN interpreter, you use the {{csi}} command.
 
  $ csi
  CHICKEN
- (c) 2008-2018, The CHICKEN Team
+ (c) 2008-2019, The CHICKEN Team
  (c) 2000-2007, Felix L. Winkelmann
  Version 5.0.0 (rev 6653dce)
  linux-unix-gnu-x86-64 [ 64bit dload ptables ]
