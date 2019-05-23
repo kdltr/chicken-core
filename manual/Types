@@ -137,6 +137,7 @@ or {{:}} should follow the syntax given below:
 <tr><td>{{ratnum}}</td><td>rational number</td></tr>
 <tr><td>{{string}}</td><td>string</td></tr>
 <tr><td>{{symbol}}</td><td>symbol</td></tr>
+<tr><td>{{keyword}}</td><td>keyword object</td></tr>
 <tr><td>{{true}}</td><td>boolean true</td></tr>
 <tr><td>{{vector}}</td><td>vector</td></tr>
 </table>
