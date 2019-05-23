@@ -56,7 +56,7 @@ compiled Scheme program. If the runtime system was not initialized before,
 then {{CHICKEN_initialize}} is called with default sizes.
 {{toplevel}} is the toplevel entry-point procedure, you usually pass {{C_toplevel}} here.
 The result value is the continuation that can be used to re-invoke the Scheme code from the
-point after it called [[Module (chicken gc)#return-to-host|{{return-to-host}}]].
+point after it called [[Module (chicken platform)#return-to-host|{{return-to-host}}]].
 
 If you just need a Scheme interpreter, you can also pass {{CHICKEN_default_toplevel}} as
 the toplevel procedure, which just uses the default library units.

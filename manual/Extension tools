@@ -127,7 +127,7 @@ and for providing a temporary location for building the eggs before
 they are installed.
 
 By default the cache is located in the directory
-{{.chicken-install.cache}} is the user's home directory ({{$HOME}} on
+{{.chicken-install/cache}} in the user's home directory ({{$HOME}} on
 UNIX, or {{%USERPROFILE%}} on Windows. If the respective environment
 variable is not set, then {{/tmp}} or {{/Temp}} is used.
 

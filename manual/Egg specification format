@@ -142,14 +142,14 @@ intended for cross compilation.
 
 ==== component-options
 
-[egg property] (component-options OPTIONSPEC ...)
+ [egg property] (component-options OPTIONSPEC ...)
 
 Specifies global options for all programs and extensions compiled for this egg.
 {{OPTIONSPEC}} may be {{csc-options}}, {{link-options}} or {{linkage}} specifications.
 
 ==== cond-expand
 
-[egg property] (cond-expand CLAUSE ...)
+ [egg property] (cond-expand CLAUSE ...)
 
 Conditionally expand egg specification forms, depending on system 
 features. Each {{CLAUSE}} should be of the form 
@@ -165,7 +165,7 @@ forms for constraining mode and linkage.
 
 ==== error
 
-[egg property] (error STRING ARG ...)
+ [egg property] (error STRING ARG ...)
 
 Signal an error and abort processing. Mostly useful inside {{cond-expand}} forms.
 
@@ -209,19 +209,6 @@ Specifies one or more Scheme include files.
  [egg property] (program NAME PROP ...)
 
 Specifies an executable program.
-
-==== c-object
-
- [egg property] (c-object NAME PROP ...)
-
-Specifies a compiled C/C++ object file. Usually this component type
-is required if you want to link a separately compiled C/C++ module
-with your extension or program. C-objects are compiled like Scheme
-source files with the {{csc}} tool to ensure the same C compiler
-options and toolchain is used as for regular Scheme files compiled
-to C. If you want to pass compiler-specific options to the build
-of the C object, use the {{csc-options}} property and precede
-C compiler options with {{-C}}.
 
 === Component properties
 
@@ -295,6 +282,7 @@ are set in the execution environment of the script:
 * {{CHICKEN_CSC}}: path to {{csc}}
 * {{CHICKEN_CSI}}: path to {{csi}}
 
+
 ==== csc-options
 
  [egg property] (csc-options OPTION ...)
@@ -321,6 +309,9 @@ Note that the options are quoted when passed to csc during the
 compilation of the extension, so multiple options should be specified
 as {{(link-options "OPT1" "OPT2" ...)}} instead of {{(link-options "OPT1 OPT2")}}
 (the latter would be a single option containing a whitespace character).
+
+Note that in order to pass linker options to the underlying C-compiler, these must
+be prefixed with {{-L}}, eg. {{(link-options "-L" "-lpng")}}.
 
 ==== source
 
@@ -358,13 +349,6 @@ denote filenames of which the program or extension depends.
 A program or extension implicitly depends on its source file and
 and on the egg-specification file.
 
-==== objects
-
- [egg property] (objects NAME ...)
-
-Specifies that the components of type {{c-object}} should be linked
-to this component and that the object components are dependencies.
-
 ==== destination
 
  [egg property] (destination NAME)
@@ -399,19 +383,6 @@ Specifies modules that the component (usually an extension) contains.
 {{chicken-install}} will compile and install all import libraries for the given modules.
 If this property is not given, then it is assumed that the extension has a single
 module of the same name as the component.
-
-==== cond-expand
-
- [egg property] (cond-expand CLAUSE ...)
-
-Similar to the toplevel {{cond-expand}} clause and may appear inside
-component specifications.
-
-==== error
-
- [egg property] (error STRING ARG ...)
-
-Similar to the toplevel {{error}} form, may appear inside component specifications.
 
 ---
 

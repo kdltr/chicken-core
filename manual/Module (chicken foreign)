@@ -11,7 +11,7 @@ Note that this interface is source-based, since CHICKEN translates
 Scheme code to C. It is not binary, as in many other Scheme implementations.
 
 Several special forms of this interface refer to ''foreign type specifiers'', 
-consult the [[relevant chapter|Foreign type specifiers]] of this manual for
+consult the [[Foreign type specifiers|relevant chapter]] of this manual for
 more information.
 
 
