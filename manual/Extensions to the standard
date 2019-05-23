@@ -18,7 +18,31 @@ extensions is provided.
 === Non-standard procedures and syntax
 
 CHICKEN provides numerous non-standard procedures. See the manual
-sections on the included library modules ([[Included modules]]) for more information.
+sections on the included library modules ([[Included modules]]) for
+more information.  Here we only document {{cond-expand}} because it is
+always present in a module, even without imports.
+
+==== cond-expand
+
+<macro>(cond-expand FEATURE-CLAUSE ...)</macro>
+
+Expands by selecting feature clauses. This form is allowed to appear in non-toplevel expressions.
+
+Predefined feature-identifiers are "situation" specific:
+
+; compile : {{chicken}}, {{compiling}}, {{library}}, {{eval}}, {{extras}}, {{regex}}, {{srfi-0}}, {{srfi-2}}, {{srfi-4}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-11}}, {{srfi-12}}, {{srfi-15}}, {{srfi-16}}, {{srfi-17}}, {{srfi-23}}, {{srfi-26}}, {{srfi-28}}, {{srfi-30}}, {{srfi-31}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}
+
+; load : {{chicken}}, {{extras}}, {{srfi-0}}, {{srfi-2}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-12}}, {{srfi-17}}, {{srfi-23}}, {{srfi-28}}, {{srfi-30}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}. {{library}} is implicit.
+
+; eval : {{csi}}, {{chicken}}, {{extras}}, {{srfi-0}}, {{srfi-2}}, {{srfi-6}}, {{srfi-8}}, {{srfi-9}}, {{srfi-10}}, {{srfi-11}}, {{srfi-12}}, {{srfi-15}}, {{srfi-16}}, {{srfi-17}}, {{srfi-23}}, {{srfi-26}}, {{srfi-28}}, {{srfi-30}}, {{srfi-31}}, {{srfi-39}}, {{srfi-55}}, {{srfi-61}}, {{srfi-62}}. {{library}} is implicit.
+
+The following feature-identifier classes are available in all situations: {{(machine-byte-order)}}, {{(machine-type)}}, {{(software-type)}}, {{(software-version)}}, where the actual feature-identifier is platform dependent.
+
+In addition the following feature-identifiers may exist: {{cross-chicken}}, {{dload}}, {{manyargs}}, {{ptables}}.
+
+For further information, see the documentation for
+[[http://srfi.schemers.org/srfi-0/srfi-0.html|SRFI-0]].
+
 
 === User defined character names
 
