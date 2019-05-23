@@ -1,5 +1,7 @@
 5.0.3
+
 - Runtime system
+  - Keywords are now distinct types; they are not a subtype of symbols.
   - Use arc4random on FreeBSD (thanks to Tobias Kortkamp and gahr)
 
 5.0.2

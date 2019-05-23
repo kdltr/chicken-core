@@ -348,21 +348,21 @@
 
 (parameterize ((keyword-style #:suffix))
   (assert (string=? "abc:" (symbol->string (with-input-from-string "|abc:|" read))))
-  (assert (string=? "abc" (symbol->string (with-input-from-string "|abc|:" read)))) ; keyword
+  (assert (string=? "abc" (keyword->string (with-input-from-string "|abc|:" read)))) ; keyword
   (let ((kw (with-input-from-string "|foo bar|:" read)))
     (assert (eq? kw (with-input-from-string "#:|foo bar|" read)))
-    (assert (string=? "foo bar" (symbol->string kw)))
+    (assert (string=? "foo bar" (keyword->string kw)))
     (assert (string=? "foo bar:"
 		      (with-output-to-string (lambda () (display kw)))))
     (assert (string=? "#:|foo bar|"
 		      (with-output-to-string (lambda () (write kw)))))))
 
 (parameterize ((keyword-style #:prefix))
-  (assert (string=? "abc" (symbol->string (with-input-from-string ":|abc|" read))))
+  (assert (string=? "abc" (keyword->string (with-input-from-string ":|abc|" read))))
   (assert (string=? ":abc" (symbol->string (with-input-from-string "|:abc|" read))))
   (let ((kw (with-input-from-string ":|foo bar|" read)))
     (assert (eq? kw (with-input-from-string "#:|foo bar|" read)))
-    (assert (string=? "foo bar" (symbol->string kw)))
+    (assert (string=? "foo bar" (keyword->string kw)))
     (assert (string=? ":foo bar"
 		      (with-output-to-string (lambda () (display kw)))))
     (assert (string=? "#:|foo bar|"
@@ -413,6 +413,7 @@
 (assert-fail (with-input-from-string "#:" read))
 
 (let ((empty-kw (with-input-from-string "#:||" read)))
+  (assert (not (symbol? empty-kw)))
   (assert (keyword? empty-kw))
   (assert (string=? "" (keyword->string empty-kw))))
 
@@ -427,6 +428,11 @@
 (assert (equal? (cons 1 2) (with-input-from-string "(1 . 2)" read)))
 (assert (every keyword? (with-input-from-string "(42: abc: .: #:: ::)" read)))
 
+;; symbols and keywords are now distinct
+(assert (not (symbol? #:foo)))
+(assert (not (symbol? (string->keyword "foo"))))
+(assert (not (keyword? 'foo)))
+(assert (not (keyword? (string->symbol "foo"))))
 
 ;;; reading unterminated objects
 

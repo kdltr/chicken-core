@@ -524,7 +524,7 @@
 	  (else (find-id id (cdr se)))))
 
   (define (lookup id)
-    (cond ((keyword? id) id)
+    (cond ((keyword? id) id)		; DEPRECATED
 	  ((find-id id (##sys#current-environment)))
 	  ((##sys#get id '##core#macro-alias) symbol? => values)
 	  (else id)))
@@ -1145,10 +1145,6 @@
 					 ((assq var0 (##sys#current-environment))
 					  (warning
 					   (sprintf "~aassignment to imported value binding `~S'"
-					    (if ln (sprintf "(~a) - " ln) "") var0)))
-					 ((keyword? var0)
-					  (warning
-					   (sprintf "~aassignment to keyword `~S'"
 					    (if ln (sprintf "(~a) - " ln) "") var0)))))
 				 `(set! ,var ,(walk val e var0 (memq var e) h ln #f))))))
 

@@ -771,7 +771,7 @@
 		  (else #f) ) ) ) )
 
     (define (variable? v)
-      (and (symbol? v) (not (##core#inline "C_u_i_keywordp" v))))
+      (symbol? v))
 
     (define (proper-list? x)
       (let loop ((x x))

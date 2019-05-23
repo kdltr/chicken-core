@@ -41,6 +41,7 @@
 	chicken.format
 	chicken.internal
 	chicken.io
+	chicken.keyword
 	chicken.pathname
 	chicken.platform
 	chicken.plist
@@ -84,7 +85,8 @@
 ;        | (refine (SYMBOL ...) VALUE)
 ;        | deprecated
 ;        | (deprecated NAME)
-;   VALUE = string | symbol | char | number | boolean | true | false |
+;   VALUE = string | symbol | keyword | char | number |
+;           boolean | true | false |
 ;           null | eof | blob |  pointer | port | locative | fixnum |
 ;           float | bignum | ratnum | cplxnum | integer | pointer-vector
 ;   BASIC = * | list | pair | procedure | vector | undefined | noreturn | values
@@ -130,8 +132,9 @@
 (define-constant +maximal-complex-object-constructor-result-type-length+ 256)
 
 (define-constant value-types
-  '(string symbol char null boolean true false blob eof fixnum float number
-    integer bignum ratnum cplxnum pointer-vector port pointer locative))
+  '(string symbol keyword char null boolean true false blob eof
+    fixnum float number integer bignum ratnum cplxnum
+    pointer-vector port pointer locative))
 
 (define-constant basic-types
   '(* list pair procedure vector undefined deprecated noreturn values))
@@ -190,6 +193,7 @@
 
     (define (constant-result lit)
       (cond ((string? lit) 'string)
+	    ((keyword? lit) 'keyword)
 	    ((symbol? lit) 'symbol)
 	    ;; Do not assume fixnum width matches target platforms!
 	    ((or (big-fixnum? lit) (small-bignum? lit)) 'integer)

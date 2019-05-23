@@ -583,7 +583,7 @@ void *alloca ();
 #define C_BAD_MINIMUM_ARGUMENT_COUNT_ERROR            2
 #define C_BAD_ARGUMENT_TYPE_ERROR                     3
 #define C_UNBOUND_VARIABLE_ERROR                      4
-#define C_BAD_ARGUMENT_TYPE_SYMBOL_IS_KEYWORD_ERROR   5
+#define C_BAD_ARGUMENT_TYPE_NO_KEYWORD_ERROR          5
 #define C_OUT_OF_MEMORY_ERROR                         6
 #define C_DIVISION_BY_ZERO_ERROR                      7
 #define C_OUT_OF_RANGE_ERROR                          8
@@ -1388,6 +1388,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_i_check_number(x)             C_i_check_number_2(x, C_SCHEME_FALSE)
 #define C_i_check_string(x)             C_i_check_string_2(x, C_SCHEME_FALSE)
 #define C_i_check_bytevector(x)         C_i_check_bytevector_2(x, C_SCHEME_FALSE)
+#define C_i_check_keyword(x)            C_i_check_keyword_2(x, C_SCHEME_FALSE)
 #define C_i_check_symbol(x)             C_i_check_symbol_2(x, C_SCHEME_FALSE)
 #define C_i_check_list(x)               C_i_check_list_2(x, C_SCHEME_FALSE)
 #define C_i_check_pair(x)               C_i_check_pair_2(x, C_SCHEME_FALSE)
@@ -2008,6 +2009,7 @@ C_fctexport C_word C_fcall C_i_check_number_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_string_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_bytevector_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_symbol_2(C_word x, C_word loc) C_regparm;
+C_fctexport C_word C_fcall C_i_check_keyword_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_list_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_pair_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_boolean_2(C_word x, C_word loc) C_regparm;
@@ -2192,11 +2194,6 @@ inline static C_word C_u_i_namespaced_symbolp(C_word x)
 {
   C_word s = C_symbol_name(x);
   return C_mk_bool(C_memchr(C_data_pointer(s), '#', C_header_size(s)));
-}
-
-inline static C_word C_u_i_keywordp(C_word x)
-{
-  return C_mk_bool(C_symbol_plist(x) == C_SCHEME_FALSE);
 }
 
 inline static C_word C_flonum(C_word **ptr, double n)
@@ -2653,7 +2650,16 @@ inline static C_word C_i_eqvp(C_word x, C_word y)
 
 inline static C_word C_i_symbolp(C_word x)
 {
-  return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_SYMBOL_TAG);
+  return C_mk_bool(!C_immediatep(x) &&
+                   C_block_header(x) == C_SYMBOL_TAG &&
+                   C_symbol_plist(x) != C_SCHEME_FALSE);
+}
+
+inline static C_word C_i_keywordp(C_word x)
+{
+  return C_mk_bool(!C_immediatep(x) &&
+                   C_block_header(x) == C_SYMBOL_TAG &&
+                   C_symbol_plist(x) == C_SCHEME_FALSE);
 }
 
 inline static int C_persistable_symbol(C_word x)
@@ -2661,7 +2667,7 @@ inline static int C_persistable_symbol(C_word x)
   /* Symbol is bound, or has a non-empty plist (but is not a keyword) */
   return ((C_truep(C_boundp(x)) ||
            C_symbol_plist(x) != C_SCHEME_END_OF_LIST) &&
-          !C_truep(C_u_i_keywordp(x)));
+          C_symbol_plist(x) != C_SCHEME_FALSE);
 }
 
 inline static C_word C_i_pairp(C_word x)

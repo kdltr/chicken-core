@@ -45,7 +45,8 @@
 	chicken.base
 	chicken.compiler.support
 	chicken.fixnum
-	chicken.format)
+	chicken.format
+	chicken.keyword)
 
 (include "tweaks")
 (include "mini-srfi-1.scm")
@@ -61,6 +62,7 @@
     ("C_i_check_string" string)
     ("C_i_check_bytevector" blob)
     ("C_i_check_symbol" symbol)
+    ("C_i_check_keyword" keyword)
     ("C_i_check_list" null pair list)
     ("C_i_check_pair" pair)
     ("C_i_check_locative" locative)
@@ -75,6 +77,7 @@
     ("C_i_check_string_2" string)
     ("C_i_check_bytevector_2" blob)
     ("C_i_check_symbol_2" symbol)
+    ("C_i_check_keyword_2" keyword)
     ("C_i_check_list_2" null pair list)
     ("C_i_check_pair_2" pair)
     ("C_i_check_locative_2" locative)
@@ -97,6 +100,7 @@
     ("C_i_cplxnump" cplxnum)
     ("C_stringp" string)
     ("C_bytevectorp" blob)
+    ("C_i_keywordp" keyword)
     ("C_i_symbolp" symbol)
     ("C_i_listp" list)
     ("C_i_pairp" pair)
@@ -235,6 +239,7 @@
     (define (constant-result lit) 
       ;; a simplified variant of the one in scrutinizer.scm
       (cond ((string? lit) 'string)
+	    ((keyword? lit) 'keyword)
 	    ((symbol? lit) 'symbol)
 	    ;; Do not assume fixnum width matches target platforms!
 	    ((or (big-fixnum? lit) (small-bignum? lit)) 'integer)

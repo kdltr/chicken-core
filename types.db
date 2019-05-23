@@ -1322,10 +1322,10 @@
 
 ;; keyword
 
-(chicken.keyword#get-keyword (#(procedure #:clean #:enforce) chicken.keyword#get-keyword (symbol list #!optional *) *))
-(chicken.keyword#keyword->string (#(procedure #:clean #:enforce) chicken.keyword#keyword->string (symbol) string))
-(chicken.keyword#keyword? (#(procedure #:pure) chicken.keyword#keyword? (*) boolean))
-(chicken.keyword#string->keyword (#(procedure #:clean #:enforce) chicken.keyword#string->keyword (string) symbol))
+(chicken.keyword#get-keyword (#(procedure #:clean #:enforce) chicken.keyword#get-keyword (keyword list #!optional *) *))
+(chicken.keyword#keyword->string (#(procedure #:clean #:enforce) chicken.keyword#keyword->string (keyword) string))
+(chicken.keyword#keyword? (#(procedure #:pure #:predicate keyword) chicken.keyword#keyword? (*) boolean))
+(chicken.keyword#string->keyword (#(procedure #:clean #:enforce) chicken.keyword#string->keyword (string) keyword))
 
 ;; load
 
@@ -1346,12 +1346,12 @@
 (chicken.platform#build-platform (#(procedure #:pure) chicken.platform#build-platform () symbol))
 (chicken.platform#chicken-version (#(procedure #:pure) chicken.platform#chicken-version (#!optional *) string))
 (chicken.platform#chicken-home (#(procedure #:clean) chicken.platform#chicken-home () string))
-(chicken.platform#feature? (#(procedure #:clean) chicken.platform#feature? (#!rest symbol) boolean))
-(chicken.platform#features (#(procedure #:clean) chicken.platform#features () (list-of symbol)))
+(chicken.platform#feature? (#(procedure #:clean) chicken.platform#feature? (#!rest (or keyword symbol string)) boolean))
+(chicken.platform#features (#(procedure #:clean) chicken.platform#features () (list-of keyword)))
 (chicken.platform#software-type (#(procedure #:pure) chicken.platform#software-type () symbol))
 (chicken.platform#software-version (#(procedure #:pure) chicken.platform#software-version () symbol))
-(chicken.platform#register-feature! (#(procedure #:clean #:enforce) chicken.platform#register-feature! (#!rest symbol) undefined))
-(chicken.platform#unregister-feature! (#(procedure #:clean #:enforce) chicken.platform#unregister-feature! (#!rest symbol) undefined))
+(chicken.platform#register-feature! (#(procedure #:clean #:enforce) chicken.platform#register-feature! (#!rest (or keyword symbol string)) undefined))
+(chicken.platform#unregister-feature! (#(procedure #:clean #:enforce) chicken.platform#unregister-feature! (#!rest (or keyword symbol string)) undefined))
 (chicken.platform#machine-byte-order (#(procedure #:pure) chicken.platform#machine-byte-order () symbol))
 (chicken.platform#machine-type (#(procedure #:pure) chicken.platform#machine-type () symbol))
 (chicken.platform#repository-path (#(procedure #:clean) chicken.platform#repository-path (#!optional *) *))

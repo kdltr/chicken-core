@@ -1693,8 +1693,8 @@ void barf(int code, char *loc, ...)
     c = 1;
     break;
 
-  case C_BAD_ARGUMENT_TYPE_SYMBOL_IS_KEYWORD_ERROR:
-    msg = C_text("symbol is a keyword, which has no plist");
+  case C_BAD_ARGUMENT_TYPE_NO_KEYWORD_ERROR:
+    msg = C_text("bad argument type - not a keyword");
     c = 1;
     break;
 
@@ -7408,7 +7408,7 @@ C_regparm C_word C_fcall C_i_check_locative_2(C_word x, C_word loc)
 
 C_regparm C_word C_fcall C_i_check_symbol_2(C_word x, C_word loc)
 {
-  if(C_immediatep(x) || C_block_header(x) != C_SYMBOL_TAG) {
+  if(!C_truep(C_i_symbolp(x))) {
     error_location = loc;
     barf(C_BAD_ARGUMENT_TYPE_NO_SYMBOL_ERROR, NULL, x);
   }
@@ -7416,6 +7416,16 @@ C_regparm C_word C_fcall C_i_check_symbol_2(C_word x, C_word loc)
   return C_SCHEME_UNDEFINED;
 }
 
+
+C_regparm C_word C_fcall C_i_check_keyword_2(C_word x, C_word loc)
+{
+  if(!C_truep(C_i_keywordp(x))) {
+    error_location = loc;
+    barf(C_BAD_ARGUMENT_TYPE_NO_KEYWORD_ERROR, NULL, x);
+  }
+
+  return C_SCHEME_UNDEFINED;
+}
 
 C_regparm C_word C_fcall C_i_check_list_2(C_word x, C_word loc)
 {
@@ -12837,9 +12847,6 @@ C_i_getprop(C_word sym, C_word prop, C_word def)
 {
   C_word pl = C_symbol_plist(sym);
 
-  if (pl == C_SCHEME_FALSE)
-    barf(C_BAD_ARGUMENT_TYPE_SYMBOL_IS_KEYWORD_ERROR, "get", sym);
-
   while(pl != C_SCHEME_END_OF_LIST) {
     if(C_block_item(pl, 0) == prop)
       return C_u_i_car(C_u_i_cdr(pl));
@@ -12854,9 +12861,6 @@ C_regparm C_word C_fcall
 C_putprop(C_word **ptr, C_word sym, C_word prop, C_word val)
 {
   C_word pl = C_symbol_plist(sym);
-
-  if (pl == C_SCHEME_FALSE)
-    barf(C_BAD_ARGUMENT_TYPE_SYMBOL_IS_KEYWORD_ERROR, "put", sym);
 
   /* Newly added plist?  Ensure the symbol stays! */
   if (pl == C_SCHEME_END_OF_LIST) C_i_persist_symbol(sym);

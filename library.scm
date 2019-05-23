@@ -1156,6 +1156,11 @@ EOF
       (##core#inline "C_i_check_symbol_2" x (car loc))
       (##core#inline "C_i_check_symbol" x) ) )
 
+(define (##sys#check-keyword x . loc)
+  (if (pair? loc)
+      (##core#inline "C_i_check_keyword_2" x (car loc))
+      (##core#inline "C_i_check_keyword" x) ) )
+
 (define (##sys#check-vector x . loc) 
   (if (pair? loc)
       (##core#inline "C_i_check_vector_2" x (car loc))
@@ -2729,8 +2734,7 @@ EOF
 (import scheme)
 (import chicken.fixnum)
 
-(define (keyword? x)
-  (and (symbol? x) (##core#inline "C_u_i_keywordp" x)) )
+(define (keyword? x) (##core#inline "C_i_keywordp" x) )
 
 (define string->keyword
   (let ([string string] )
@@ -2748,6 +2752,7 @@ EOF
 (define get-keyword
   (let ((tag (list 'tag)))
     (lambda (key args #!optional thunk)
+      (##sys#check-keyword key 'get-keyword)
       (##sys#check-list args 'get-keyword)
       (let ((r (##core#inline "C_i_get_keyword" key args tag)))
 	(if (eq? r tag)			; not found
@@ -4539,21 +4544,19 @@ EOF
 		((##core#inline "C_unboundvaluep" x) (outstr port "#<unbound value>"))
 		((not (##core#inline "C_blockp" x)) (outstr port "#<invalid immediate object>"))
 		((##core#inline "C_forwardedp" x) (outstr port "#<invalid forwarded object>"))
-		((##core#inline "C_symbolp" x)
-		 (cond ((##core#inline "C_u_i_keywordp" x)
-			;; Force portable #: style for readable output
-			(case (and (not readable) ksp)
-			  ((#:prefix)
-			   (outchr port #\:)
-			   (outsym port x))
-			  ((#:suffix)
-			   (outsym port x)
-			   (outchr port #\:))
-			  (else
-			   (outstr port "#:")
-			   (outsym port x))))
-		       (else
-			(outsym port x))))
+		((##core#inline "C_i_keywordp" x)
+                 ;; Force portable #: style for readable output
+		 (case (and (not readable) ksp)
+                   ((#:prefix)
+                    (outchr port #\:)
+                    (outsym port x))
+                   ((#:suffix)
+                    (outsym port x)
+                    (outchr port #\:))
+                   (else
+                    (outstr port "#:")
+                    (outsym port x))))
+		((##core#inline "C_i_symbolp" x) (outsym port x))
 		((##sys#number? x) (outstr port (##sys#number->string x)))
 		((##core#inline "C_anypointerp" x) (outstr port (##sys#pointer->string x)))
 		((##core#inline "C_stringp" x)
@@ -5377,7 +5380,7 @@ EOF
 		(if fn (list fn) '()))))
 	((3) (apply ##sys#signal-hook #:type-error loc "bad argument type" args))
 	((4) (apply ##sys#signal-hook #:runtime-error loc "unbound variable" args))
-	((5) (apply ##sys#signal-hook #:type-error loc "symbol is a keyword, which has no plist" args))
+	((5) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a keyword" args))
 	((6) (apply ##sys#signal-hook #:limit-error loc "out of memory" args))
 	((7) (apply ##sys#signal-hook #:arithmetic-error loc "division by zero" args))
 	((8) (apply ##sys#signal-hook #:bounds-error loc "out of range" args))

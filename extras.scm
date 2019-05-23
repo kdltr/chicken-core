@@ -248,7 +248,7 @@
 (module chicken.pretty-print
   (pp pretty-print pretty-print-width)
 
-(import scheme chicken.base chicken.fixnum chicken.string)
+(import scheme chicken.base chicken.fixnum chicken.keyword chicken.string)
 
 (define generic-write
   (lambda (obj display? width output)
@@ -298,8 +298,8 @@
 	    ((vector? obj)      (wr-lst (vector->list obj) (out "#" col)))
 	    ((boolean? obj)     (out (if obj "#t" "#f") col))
 	    ((##sys#number? obj)      (out (##sys#number->string obj) col))
-	    ((symbol? obj)
-	     (let ([s (open-output-string)])
+	    ((or (keyword? obj) (symbol? obj))
+	     (let ((s (open-output-string)))
 	       (##sys#print obj #t s)
 	       (out (get-output-string s) col) ) )
 	    ((procedure? obj)   (out (##sys#procedure->string obj) col))
