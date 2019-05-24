@@ -2442,7 +2442,13 @@ C_regparm C_word C_fcall C_i_persist_symbol(C_word sym)
   C_word bucket;
   C_SYMBOL_TABLE *stp;
 
-  C_i_check_symbol(sym);
+  /* Normally, this will get called with a symbol, but in
+   * C_h_intern_kw we may call it with keywords too.
+   */
+  if(!C_truep(C_i_symbolp(sym)) && !C_truep(C_i_keywordp(sym))) {
+    error_location = C_SCHEME_FALSE;
+    barf(C_BAD_ARGUMENT_TYPE_NO_SYMBOL_ERROR, NULL, sym);
+  }
 
   for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
     bucket = lookup_bucket(sym, stp);
