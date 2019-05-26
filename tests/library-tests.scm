@@ -291,7 +291,6 @@
 	      (write (string->symbol "3"))))
 	read)))
 
-
 ;;; escaped symbol syntax
 
 (assert (string=? "abc" (symbol->string '|abc|)))
@@ -349,24 +348,99 @@
 (parameterize ((keyword-style #:suffix))
   (assert (string=? "abc:" (symbol->string (with-input-from-string "|abc:|" read))))
   (assert (string=? "abc" (keyword->string (with-input-from-string "|abc|:" read)))) ; keyword
-  (let ((kw (with-input-from-string "|foo bar|:" read)))
+  (let ((kw (with-input-from-string "|foo bar|:" read))
+	(sym1 (with-input-from-string "|foo:|" read))
+	(sym2 (with-input-from-string "|:foo|" read)))
+
+    (assert (symbol? sym1))
+    (assert (not (keyword? sym1)))
+
+    (assert (symbol? sym2))
+    (assert (not (keyword? sym2)))
+
+    (assert (keyword? kw))
+    (assert (not (symbol? kw)))
+
     (assert (eq? kw (with-input-from-string "#:|foo bar|" read)))
     (assert (string=? "foo bar" (keyword->string kw)))
+    (assert (string=? "foo:" (symbol->string sym1)))
+    (assert (string=? ":foo" (symbol->string sym2)))
+
     (assert (string=? "foo bar:"
 		      (with-output-to-string (lambda () (display kw)))))
     (assert (string=? "#:|foo bar|"
-		      (with-output-to-string (lambda () (write kw)))))))
+		      (with-output-to-string (lambda () (write kw)))))
+
+    (assert (string=? "|foo:|"
+		      (with-output-to-string (lambda () (write sym1)))))
+    ;; Regardless of keyword style, symbols must be quoted to avoid
+    ;; issues when reading it back with a different keyword style.
+    (assert (string=? "|:foo|"
+		      (with-output-to-string (lambda () (write sym2)))))))
 
 (parameterize ((keyword-style #:prefix))
   (assert (string=? "abc" (keyword->string (with-input-from-string ":|abc|" read))))
   (assert (string=? ":abc" (symbol->string (with-input-from-string "|:abc|" read))))
-  (let ((kw (with-input-from-string ":|foo bar|" read)))
+  (let ((kw (with-input-from-string ":|foo bar|" read))
+	(sym1 (with-input-from-string "|:foo|" read))
+	(sym2 (with-input-from-string "|foo:|" read)))
+
+    (assert (symbol? sym1))
+    (assert (not (keyword? sym1)))
+
+    (assert (symbol? sym2))
+    (assert (not (keyword? sym2)))
+
+    (assert (keyword? kw))
+    (assert (not (symbol? kw)))
+
     (assert (eq? kw (with-input-from-string "#:|foo bar|" read)))
     (assert (string=? "foo bar" (keyword->string kw)))
+    (assert (string=? ":foo" (symbol->string sym1)))
+    (assert (string=? "foo:" (symbol->string sym2)))
+
     (assert (string=? ":foo bar"
 		      (with-output-to-string (lambda () (display kw)))))
     (assert (string=? "#:|foo bar|"
-		      (with-output-to-string (lambda () (write kw)))))))
+		      (with-output-to-string (lambda () (write kw)))))
+
+    (assert (string=? "|:foo|"
+		      (with-output-to-string (lambda () (write sym1)))))
+    ;; Regardless of keyword style, symbols must be quoted to avoid
+    ;; issues when reading it back with a different keyword style.
+    (assert (string=? "|foo:|"
+		      (with-output-to-string (lambda () (write sym2)))))))
+
+(parameterize ((keyword-style #:none))
+  (let ((kw (with-input-from-string "#:|foo bar|" read))
+	(sym1 (with-input-from-string "|:foo|" read))
+	(sym2 (with-input-from-string "|foo:|" read)))
+
+    (assert (symbol? sym1))
+    (assert (not (keyword? sym1)))
+
+    (assert (symbol? sym2))
+    (assert (not (keyword? sym2)))
+
+    (assert (keyword? kw))
+    (assert (not (symbol? kw)))
+
+    (assert (eq? kw (string->keyword "foo bar"))
+    (assert (string=? "foo bar" (keyword->string kw)))
+    (assert (string=? ":foo" (symbol->string sym1)))
+    (assert (string=? "foo:" (symbol->string sym2)))
+
+    (assert (string=? ":foo"
+		      (with-output-to-string (lambda () (display kw)))))
+    (assert (string=? "#:|foo bar|"
+		      (with-output-to-string (lambda () (write kw)))))
+
+    ;; Regardless of keyword style, symbols must be quoted to avoid
+    ;; issues when reading it back with a different keyword style.
+    (assert (string=? "|:foo|"
+		      (with-output-to-string (lambda () (write sym1)))))
+    (assert (string=? "|foo:|"
+		      (with-output-to-string (lambda () (write sym2))))))))
 
 (assert (eq? '|#:| (string->symbol "#:")))
 (assert-fail (with-input-from-string "#:" read)) ; empty keyword

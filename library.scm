@@ -4505,7 +4505,7 @@ EOF
 				      (eq? c #\.)
 				      (eq? c #\-) )
 				  (not (##sys#string->number str)) )
-				 ((eq? c #\:) (not (eq? ksp #:prefix)))
+				 ((eq? c #\:) #f)
 				 ((and (eq? c #\#)
 				       ;; Not a qualified symbol?
 				       (not (and (fx> len 2)
@@ -4518,8 +4518,7 @@ EOF
 			   (and (or csp (not (char-upper-case? c)))
 				(not (specialchar? c))
 				(or (not (eq? c #\:))
-				    (fx< i (fx- len 1))
-				    (not (eq? ksp #:suffix)))
+				    (fx< i (fx- len 1)))
 				(loop (fx- i 1)) ) ) ) ) ) ) ) )
 
 	(let out ([x x])
