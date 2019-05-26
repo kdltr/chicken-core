@@ -6416,7 +6416,10 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define-foreign-variable installation-home c-string "C_INSTALL_SHARE_HOME")
 (define-foreign-variable install-egg-home c-string "C_INSTALL_EGG_HOME")
 
-(define (chicken-home) installation-home)
+(define (chicken-home)
+  (or (and-let* ((prefix (get-environment-variable "CHICKEN_INSTALL_PREFIX")))
+        (string-append prefix "/share"))
+      installation-home))
 
 (define path-list-separator
   (if ##sys#windows-platform #\; #\:))
