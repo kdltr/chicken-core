@@ -258,7 +258,7 @@
   (append +fixnum-bindings+ +flonum-bindings+ +extended-bindings+))
 
 (set! internal-bindings
-  '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set!
+  '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set! ##sys#/-2
     ##sys#call-with-current-continuation ##sys#size ##sys#byte ##sys#setbyte
     ##sys#pointer? ##sys#generic-structure? ##sys#structure? ##sys#check-structure
     ##sys#check-exact ##sys#check-number ##sys#check-list ##sys#check-pair ##sys#check-string
@@ -724,6 +724,155 @@
 (rewrite 'scheme#gcd 18 0)
 (rewrite 'scheme#lcm 18 1)
 (rewrite 'scheme#list 18 '())
+
+(rewrite
+ 'scheme#* 8
+ (lambda (db classargs cont callargs)
+   ;; (*) -> 1
+   ;; (* <x>) -> <x>
+   ;; (* <x1> ...) -> (##core#inline "C_fixnum_times" <x1> (##core#inline "C_fixnum_times" ...)) [fixnum-mode]
+   ;; - Remove "1" from arguments.
+   ;; - Replace multiplications with 2 by shift left. [fixnum-mode]
+   (let ((callargs
+	  (filter
+	   (lambda (x)
+	     (not (and (eq? 'quote (node-class x))
+		       (eq? 1 (first (node-parameters x))) ) ) )
+	   callargs) ) )
+     (cond ((null? callargs) (make-node '##core#call (list #t) (list cont (qnode 0))))
+	   ((null? (cdr callargs))
+	    (make-node '##core#call (list #t) (list cont (first callargs))) )
+	   ((eq? number-type 'fixnum)
+	    (make-node
+	     '##core#call (list #t)
+	     (list
+	      cont
+	      (fold-inner
+	       (lambda (x y)
+		 (if (and (eq? 'quote (node-class y)) (eq? 2 (first (node-parameters y))))
+		     (make-node '##core#inline '("C_fixnum_shift_left") (list x (qnode 1)))
+		     (make-node '##core#inline '("C_fixnum_times") (list x y)) ) )
+	       callargs) ) ) )
+	   (else #f) ) ) ) )
+
+(rewrite
+ 'scheme#+ 8
+ (lambda (db classargs cont callargs)
+   ;; (+ <x>) -> <x>
+   ;; (+ <x1> ...) -> (##core#inline "C_fixnum_plus" <x1> (##core#inline "C_fixnum_plus" ...)) [fixnum-mode]
+   ;; (+ <x1> ...) -> (##core#inline "C_u_fixnum_plus" <x1> (##core#inline "C_u_fixnum_plus" ...))
+   ;;    [fixnum-mode + unsafe]
+   ;; - Remove "0" from arguments, if more than 1.
+   (cond ((or (null? callargs) (not (eq? number-type 'fixnum))) #f)
+	 ((null? (cdr callargs))
+	  (make-node
+	   '##core#call (list #t)
+	   (list cont
+		 (make-node '##core#inline
+			    (if unsafe '("C_u_fixnum_plus") '("C_fixnum_plus"))
+			    callargs)) ) )
+	 (else
+	  (let ((callargs
+		 (cons (car callargs)
+		       (filter
+			(lambda (x)
+			  (not (and (eq? 'quote (node-class x))
+				    (zero? (first (node-parameters x))) ) ) )
+			(cdr callargs) ) ) ) )
+	    (and (>= (length callargs) 2)
+		 (make-node
+		  '##core#call (list #t)
+		  (list
+		   cont
+		   (fold-inner
+		    (lambda (x y)
+		      (make-node '##core#inline
+				 (if unsafe '("C_u_fixnum_plus") '("C_fixnum_plus"))
+				 (list x y) ) )
+		    callargs) ) ) ) ) ) ) ) )
+
+(rewrite
+ 'scheme#- 8
+ (lambda (db classargs cont callargs)
+   ;; (- <x>) -> (##core#inline "C_fixnum_negate" <x>)  [fixnum-mode]
+   ;; (- <x>) -> (##core#inline "C_u_fixnum_negate" <x>)  [fixnum-mode + unsafe]
+   ;; (- <x1> ...) -> (##core#inline "C_fixnum_difference" <x1> (##core#inline "C_fixnum_difference" ...)) [fixnum-mode]
+   ;; (- <x1> ...) -> (##core#inline "C_u_fixnum_difference" <x1> (##core#inline "C_u_fixnum_difference" ...))
+   ;;    [fixnum-mode + unsafe]
+   ;; - Remove "0" from arguments, if more than 1.
+   (cond ((or (null? callargs) (not (eq? number-type 'fixnum))) #f)
+	 ((null? (cdr callargs))
+	  (make-node
+	   '##core#call (list #t)
+	   (list cont
+		 (make-node '##core#inline
+			    (if unsafe '("C_u_fixnum_negate") '("C_fixnum_negate"))
+			    callargs)) ) )
+	 (else
+	  (let ((callargs
+		 (cons (car callargs)
+		       (filter
+			(lambda (x)
+			  (not (and (eq? 'quote (node-class x))
+				    (zero? (first (node-parameters x))) ) ) )
+			(cdr callargs) ) ) ) )
+	    (and (>= (length callargs) 2)
+		 (make-node
+		  '##core#call (list #t)
+		  (list
+		   cont
+		   (fold-inner
+		    (lambda (x y)
+		      (make-node '##core#inline
+				 (if unsafe '("C_u_fixnum_difference") '("C_fixnum_difference"))
+				 (list x y) ) )
+		    callargs) ) ) ) ) ) ) ) )
+
+(let ()
+  (define (rewrite-div db classargs cont callargs)
+    ;; (/ <x1> ...) -> (##core#inline "C_fixnum_divide" <x1> (##core#inline "C_fixnum_divide" ...)) [fixnum-mode]
+    ;; - Remove "1" from arguments, if more than 1.
+    ;; - Replace divisions by 2 with shift right. [fixnum-mode]
+    (and (eq? number-type 'fixnum)
+	 (>= (length callargs) 2)
+	 (let ((callargs
+		(cons (car callargs)
+		      (filter
+		       (lambda (x)
+			 (not (and (eq? 'quote (node-class x))
+				   (eq? 1 (first (node-parameters x))) ) ) )
+		       (cdr callargs) ) ) ) )
+	   (and (>= (length callargs) 2)
+		(make-node
+		 '##core#call (list #t)
+		 (list
+		  cont
+		  (fold-inner
+		   (lambda (x y)
+		     (if (and (eq? 'quote (node-class y)) (eq? 2 (first (node-parameters y))))
+			 (make-node '##core#inline '("C_fixnum_shift_right") (list x (qnode 1)))
+			 (make-node '##core#inline '("C_fixnum_divide") (list x y)) ) )
+		   callargs) ) ) ) ) ) )
+  (rewrite 'scheme#/ 8 rewrite-div)
+  (rewrite '##sys#/-2 8 rewrite-div))
+
+(rewrite
+ 'scheme#quotient 8
+ (lambda (db classargs cont callargs)
+   ;; (quotient <x> 2) -> (##core#inline "C_fixnum_shift_right" <x> 1) [fixnum-mode]
+   ;; (quotient <x> <y>) -> (##core#inline "C_fixnum_divide" <x> <y>) [fixnum-mode]
+   (and (eq? 'fixnum number-type)
+	(= (length callargs) 2)
+	(make-node
+	 '##core#call (list #t)
+	 (let ([arg2 (second callargs)])
+	   (list cont
+		 (if (and (eq? 'quote (node-class arg2))
+			  (eq? 2 (first (node-parameters arg2))) )
+		     (make-node
+		      '##core#inline '("C_fixnum_shift_right")
+		      (list (first callargs) (qnode 1)) )
+		     (make-node '##core#inline '("C_fixnum_divide") callargs) ) ) ) )  ) ) )
 
 (rewrite 'scheme#+ 19)
 (rewrite 'scheme#- 19)
