@@ -15,6 +15,15 @@
     port objects, for consistency with other file procedures.
     All such procedures from (chicken file posix) now have the correct
     types in types.db (fixes #1609, thanks to Robert Jensen).
+  - Add the system-config-directory and system-cache-directory procedures
+    in the chicken.platform module. These procedures follow the XDG
+    specification and also give sensible results on Windows.
+  - Fix get-environment from (chicken process-context) to raise an
+    error when passed #f instead of segfaulting.
+  - Qualified symbols (##foo#bar style) are no longer encoded by a
+    byte prefix inside the symbol name.  This ensures read-write
+    invariance of symbols which start with a low-byte character
+    (fixes #1077, except for keywords, which start with NUL bytes).
 
 - Runtime system
   - Keywords are now distinct types; they are not a subtype of symbols.
@@ -36,6 +45,10 @@
 - Compiler
   - Restored optimized implementations of =, +, -, /, * and quotient in
     fixnum-arithmetic mode (fixes #1604 mostly; thanks to "chickendan").
+  - Added an optimization pass for reducing the amount of boxing of
+    intermediate floating point values, enabled by the "-lfa2" compiler
+    option.
+  - The "lfa2" pass is now enabled at optimization levels 2 or higher.
 
 - Module system
   - When you try to import the module you are currently defining into
@@ -46,8 +59,6 @@
 - Foreign function interface
   - Improved hygiene in FFI macro expansions, which means you don't
      have to import "scheme" or "(chicken base)" for them to work.
-
-5.0.1
 
 - Type system
   - It is now possible to quote free variables in type declarations,
@@ -61,30 +72,10 @@
     for its egg cache directory when the CHICKEN_EGG_CACHE environment
     variable is not defined.
 
-- Compiler
-  - Added an optimization pass for reducing the amount of boxing of
-    intermediate floating point values, enabled by the "-lfa2" compiler
-    option.
-  - The "lfa2" pass is now enabled at optimization levels 2 or higher.
-
 - Egg specifications
   - Allows "cond-expand" and "error" forms in egg specification files.
   - Add "c-object" and "object" properties to link separately compiled
      C objects into CHICKEN code.
-
-- Core libraries
-  - Add the system-config-directory and system-cache-directory procedures
-    in the chicken.platform module. These procedures follow the XDG
-    specification and also give sensible results on Windows.
-  - Fix get-environment from (chicken process-context) to raise an
-     error when passed #f instead of segfaulting.
-  - Qualified symbols (##foo#bar style) are no longer encoded by a
-     byte prefix inside the symbol name.  This ensures read-write
-     invariance of symbols which start with a low-byte character
-     (fixes #1077, except for keywords, which start with NUL bytes).
-
-- Runtime system
-  - Increased the "binary compatibility version" to 10.
 
 
 5.0.0
