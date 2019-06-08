@@ -1,21 +1,9 @@
-5.0.3
+5.1.0
 
 - Core libraries
   - Symbols ending or starting with a colon are now always pipe-quoted
     when written by `write` to ensure they can be read back with a
     different keyword-style setting.
-
-- Runtime system
-  - Keywords are now distinct types; they are not a subtype of symbols.
-  - Use arc4random on FreeBSD (thanks to Tobias Kortkamp and gahr)
-
-- Compiler
-  - Restored optimized implementations of =, +, -, /, * and quotient in
-    fixnum-arithmetic mode (fixes #1604 mostly; thanks to "chickendan").
-
-5.0.2
-
-- Core libraries
   - Read-write invariance of special symbols starting with #! other
     than #!key, #!rest or #!optional is now preserved (#1572).
   - When using (set-file-position!) on a port, its EOF status will now
@@ -29,6 +17,8 @@
     types in types.db (fixes #1609, thanks to Robert Jensen).
 
 - Runtime system
+  - Keywords are now distinct types; they are not a subtype of symbols.
+  - Use arc4random on FreeBSD (thanks to Tobias Kortkamp and gahr)
   - Removed the unused, undocumented (and incorrect!) C functions
     C_delete_symbol_table and C_set_symbol_table.
   - Continuations which discard additional values beyond the first no
@@ -38,10 +28,14 @@
   - SRFI-4 vector predicates, reference, set and length procedures
     should now be faster in tight loops as they're inlineable (#757).
   - Keywords are now interned in a separate keyword table, not in the
-     standard symbol table.  This brings full read-write invariance
-     for symbols (they can now also start with NUL bytes).  Keywords
-     no longer have plists.  Fixes #1576.
+    standard symbol table.  This brings full read-write invariance
+    for symbols (they can now also start with NUL bytes).  Keywords
+    no longer have plists.  Fixes #1576.
   - Increased the "binary compatibility version" to 11.
+
+- Compiler
+  - Restored optimized implementations of =, +, -, /, * and quotient in
+    fixnum-arithmetic mode (fixes #1604 mostly; thanks to "chickendan").
 
 - Module system
   - When you try to import the module you are currently defining into
