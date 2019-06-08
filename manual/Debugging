@@ -7,7 +7,7 @@
 
 This document describes "Feathers", a debugger for compiled CHICKEN programs.
 
-"Feathers" is a [[Tcl/Tk|http://tcl.tk]] script, installed together with
+"Feathers" is a [[http://tcl.tk|Tcl/Tk]] script, installed together with
 all other components of the CHICKEN system. To use the debugger, Tcl/Tk version
 8.5 or later must be installed.
 
