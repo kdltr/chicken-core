@@ -1,6 +1,6 @@
 # defaults.make - default settings -*- Makefile -*-
 #
-# Copyright (c) 2008-2018, The CHICKEN Team
+# Copyright (c) 2008-2019, The CHICKEN Team
 # Copyright (c) 2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -27,7 +27,7 @@
 
 # basic parameters
 
-BINARYVERSION = 9
+BINARYVERSION = 11
 STACKDIRECTION ?= 1
 CROSS_CHICKEN ?= 0
 
@@ -99,14 +99,17 @@ ifdef TARGETSYSTEM
 TARGET_C_COMPILER ?= $(TARGETSYSTEM)-$(C_COMPILER)
 TARGET_CXX_COMPILER ?= $(TARGETSYSTEM)-$(CXX_COMPILER)
 TARGET_RC_COMPILER ?= $(TARGETSYSTEM)-$(RC_COMPILER)
+TARGET_LIBRARIAN ?= $(TARGETSYSTEM)-$(LIBRARIAN)
 else
 TARGET_C_COMPILER ?= $(C_COMPILER)
 TARGET_CXX_COMPILER ?= $(CXX_COMPILER)
 TARGET_RC_COMPILER ?= $(RC_COMPILER)
+TARGET_LIBRARIAN ?= $(LIBRARIAN)
 endif
 
 TARGET_C_COMPILER_OPTIONS ?= $(C_COMPILER_OPTIONS)
 TARGET_C_COMPILER_OPTIMIZATION_OPTIONS ?= $(C_COMPILER_OPTIMIZATION_OPTIONS)
+TARGET_LIBRARIAN_OPTIONS ?= $(LIBRARIAN_OPTIONS)
 TARGET_PREFIX ?= $(PREFIX)
 TARGET_RUN_PREFIX ?= $(TARGET_PREFIX)
 TARGET_LIBRARIES ?= $(LIBRARIES)
@@ -408,11 +411,17 @@ endif
 	$(call echo, >>, $@,#ifndef C_TARGET_RC_COMPILER)
 	$(call echo, >>, $@,# define C_TARGET_RC_COMPILER "$(TARGET_RC_COMPILER)")
 	$(call echo, >>, $@,#endif)
+	$(call echo, >>, $@,#ifndef C_TARGET_LIBRARIAN)
+	$(call echo, >>, $@,# define C_TARGET_LIBRARIAN "$(TARGET_LIBRARIAN)")
+	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_TARGET_INSTALL_PROGRAM)
 	$(call echo, >>, $@,# define C_TARGET_INSTALL_PROGRAM "$(INSTALL_PROGRAM)")
 	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_TARGET_CFLAGS)
 	$(call echo, >>, $@,# define C_TARGET_CFLAGS "$(TARGET_C_COMPILER_OPTIONS) $(TARGET_C_COMPILER_OPTIMIZATION_OPTIONS)")
+	$(call echo, >>, $@,#endif)
+	$(call echo, >>, $@,#ifndef C_TARGET_LIBRARIAN_FLAGS)
+	$(call echo, >>, $@,# define C_TARGET_LIBRARIAN_FLAGS "$(TARGET_LIBRARIAN_OPTIONS)")
 	$(call echo, >>, $@,#endif)
 	$(call echo, >>, $@,#ifndef C_TARGET_LDFLAGS)
 	$(call echo, >>, $@,# define C_TARGET_LDFLAGS "$(TARGET_LINKER_OPTIONS) $(TARGET_LINKER_OPTIMIZATION_OPTIONS)")

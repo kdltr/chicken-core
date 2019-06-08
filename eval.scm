@@ -1,6 +1,6 @@
 ;;;; eval.scm - Interpreter for CHICKEN
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -923,13 +923,6 @@
 (define-constant hppa-load-library-extension ".sl")
 (define-constant default-load-library-extension ".so")
 (define-constant source-file-extension ".scm")
-(define-constant windows-object-file-extension ".obj")
-(define-constant unix-object-file-extension ".o")
-(define-constant loadable-file-extension ".so")
-
-(define object-file-extension
-  (cond ((eq? (software-type) 'windows) windows-object-file-extension)
-	(else unix-object-file-extension)))
 
 (define load-library-extension
   (cond ((eq? (software-type) 'windows) windows-load-library-extension)
@@ -1180,36 +1173,6 @@
 
 ;;; Extensions:
 
-(define ##sys#canonicalize-extension-path
-  (let ([string-append string-append])
-    (lambda (id loc)
-      (define (err) (##sys#error loc "invalid extension path" id))
-      (define (sep? c) (or (char=? #\\ c) (char=? #\/ c)))
-      (let ([p (cond [(string? id) id]
-		     [(symbol? id) (##sys#symbol->string id)]
-		     [(list? id) 
-		      (let loop ([id id])
-			(if (null? id)
-			    ""
-			    (string-append 
-			     (let ([id0 (##sys#slot id 0)])
-			       (cond [(symbol? id0) (##sys#symbol->string id0)]
-				     [(string? id0) id0]
-				     [else (err)] ) )
-			     (if (null? (##sys#slot id 1))
-				 ""
-				 "/")
-			     (loop (##sys#slot id 1)) ) ) ) ] ) ] )
-	(let check ([p p])
-	  (let ([n (##sys#size p)])
-	    (cond [(fx= 0 n) (err)]
-		  [(sep? (string-ref p 0))
-		   (check (##sys#substring p 1 n)) ]
-		  [(sep? (string-ref p (fx- n 1)))
-		   (check (##sys#substring p 0 (fx- n 1))) ]
-		  [else p] ) ) ) ) ) ) )
-
-
 (define ##sys#setup-mode #f)
 
 (define (file-exists? name) ; defined here to avoid file unit dependency
@@ -1224,11 +1187,11 @@
 
 (define find-dynamic-extension
   (let ((string-append string-append))
-    (lambda (path inc?)
-      (let ((p  (##sys#canonicalize-extension-path path #f))
-	    (rp (repository-path)))
+    (lambda (id inc?)
+      (let ((rp (repository-path))
+	    (basename (if (symbol? id) (symbol->string id) id)))
 	(define (check path)
-	  (let ((p0 (string-append path "/" p)))
+	  (let ((p0 (string-append path "/" basename)))
 	    (or (and rp
 		     (not ##sys#dload-disabled)
 		     (feature? #:dload)
@@ -1272,14 +1235,8 @@
   (for-each (cut ##sys#check-symbol <> 'provided?) ids)
   (every ##sys#provided? ids))
 
-(define (find-static-extension id)
-  (let ((p (##sys#canonicalize-extension-path id #f)))
-    (find-file (##sys#string-append p object-file-extension)
-	       (repository-path))))
-
 ;; Export for internal use in csc, modules and batch-driver:
 (define chicken.load#find-file find-file)
-(define chicken.load#find-static-extension find-static-extension)
 (define chicken.load#find-dynamic-extension find-dynamic-extension)
 
 ;;

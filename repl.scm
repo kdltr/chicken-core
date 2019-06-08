@@ -1,6 +1,6 @@
 ;;;; repl.scm - CHICKEN's read/eval/print loop
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -146,7 +146,6 @@
 		   (##sys#reset-handler
 		    (lambda ()
 		      (set! ##sys#read-error-with-line-number #f)
-		      (set! ##sys#enable-qualifiers #t)
 		      (resetports)
 		      (c #f)))))
 		(##sys#read-prompt-hook)

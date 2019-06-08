@@ -1,6 +1,6 @@
 /* runtime.c - Runtime code for compiler generated executables
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -155,6 +155,7 @@ static C_TLS int timezone;
 #endif
 
 #define DEFAULT_SYMBOL_TABLE_SIZE      2999
+#define DEFAULT_KEYWORD_TABLE_SIZE      499
 #define DEFAULT_HEAP_SIZE              DEFAULT_STACK_SIZE
 #define MINIMAL_HEAP_SIZE              DEFAULT_STACK_SIZE
 #define DEFAULT_SCRATCH_SPACE_SIZE     256
@@ -342,7 +343,7 @@ C_TLS void (*C_gc_trace_hook)(C_word *var, int mode);
 C_TLS void (*C_panic_hook)(C_char *msg) = NULL;
 C_TLS void (*C_pre_gc_hook)(int mode) = NULL;
 C_TLS void (*C_post_gc_hook)(int mode, C_long ms) = NULL;
-C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc, int cln) = NULL;
+C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, C_char *cloc) = NULL;
 
 C_TLS int
   C_gui_mode = 0,
@@ -400,7 +401,8 @@ static C_TLS C_char
   *save_string;
 static C_TLS C_SYMBOL_TABLE
   *symbol_table,
-  *symbol_table_list;
+  *symbol_table_list,
+  *keyword_table;
 static C_TLS C_word 
   **collectibles,
   **collectibles_top,
@@ -417,6 +419,16 @@ static C_TLS C_word
   pending_finalizers_symbol,
   callback_continuation_stack_symbol,
   core_provided_symbol,
+  u8vector_symbol,
+  s8vector_symbol,
+  u16vector_symbol,
+  s16vector_symbol,
+  u32vector_symbol,
+  s32vector_symbol,
+  u64vector_symbol,
+  s64vector_symbol,
+  f32vector_symbol,
+  f64vector_symbol,
   *forwarding_table;
 static C_TLS int 
   trace_buffer_full,
@@ -546,6 +558,7 @@ static void set_profile_timer(C_uword freq);
 static void take_profile_sample();
 
 static C_cpsproc(call_cc_wrapper) C_noret;
+static C_cpsproc(call_cc_values_wrapper) C_noret;
 static C_cpsproc(gc_2) C_noret;
 static C_cpsproc(allocate_vector_2) C_noret;
 static C_cpsproc(generic_trampoline) C_noret;
@@ -596,7 +609,6 @@ C_dbg(C_char *prefix, C_char *fstr, ...)
 #endif
   va_end(va);
 }
-
 
 /* Startup code: */
 
@@ -702,6 +714,11 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   symbol_table = C_new_symbol_table(".", symbols ? symbols : DEFAULT_SYMBOL_TABLE_SIZE);
 
   if(symbol_table == NULL)
+    return 0;
+
+  keyword_table = C_new_symbol_table("kw", symbols ? symbols / 4 : DEFAULT_KEYWORD_TABLE_SIZE);
+
+  if(keyword_table == NULL)
     return 0;
 
   page_size = 0;
@@ -878,7 +895,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
 {
   /* IMPORTANT: hardcoded table size -
      this must match the number of C_pte calls + 1 (NULL terminator)! */
-  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 62);
+  C_PTABLE_ENTRY *pt = (C_PTABLE_ENTRY *)C_malloc(sizeof(C_PTABLE_ENTRY) * 63);
   int i = 0;
 
   if(pt == NULL)
@@ -887,6 +904,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(termination_continuation);
   C_pte(callback_return_continuation);
   C_pte(values_continuation);
+  C_pte(call_cc_values_wrapper);
   C_pte(call_cc_wrapper);
   C_pte(C_gc);
   C_pte(C_allocate_vector);
@@ -913,6 +931,7 @@ static C_PTABLE_ENTRY *create_initial_ptable()
   C_pte(C_number_to_string);
   C_pte(C_make_symbol);
   C_pte(C_string_to_symbol);
+  C_pte(C_string_to_keyword);
   C_pte(C_apply);
   C_pte(C_call_cc);
   C_pte(C_values);
@@ -1052,26 +1071,6 @@ C_regparm C_SYMBOL_TABLE *C_new_symbol_table(char *name, unsigned int size)
 }  
 
 
-C_regparm void C_delete_symbol_table(C_SYMBOL_TABLE *st)
-{
-  C_SYMBOL_TABLE *stp, *prev = NULL;
-
-  for(stp = symbol_table_list; stp != NULL; stp = stp->next)
-    if(stp == st) {
-      if(prev != NULL) prev->next = stp->next;
-      else symbol_table_list = stp->next;
-
-      return;
-    }
-}
-
-
-C_regparm void C_set_symbol_table(C_SYMBOL_TABLE *st)
-{
-  symbol_table = st;
-}
-
-
 C_regparm C_SYMBOL_TABLE *C_find_symbol_table(char *name)
 {
   C_SYMBOL_TABLE *stp;
@@ -1108,12 +1107,40 @@ void initialize_symbol_table(void)
   for(i = 0; i < symbol_table->size; symbol_table->table[ i++ ] = C_SCHEME_END_OF_LIST);
 
   /* Obtain reference to hooks for later: */
-  core_provided_symbol = C_intern2(C_heaptop, C_text("\004coreprovided"));
-  interrupt_hook_symbol = C_intern2(C_heaptop, C_text("\003sysinterrupt-hook"));
-  error_hook_symbol = C_intern2(C_heaptop, C_text("\003syserror-hook"));
-  callback_continuation_stack_symbol = C_intern3(C_heaptop, C_text("\003syscallback-continuation-stack"), C_SCHEME_END_OF_LIST);
-  pending_finalizers_symbol = C_intern2(C_heaptop, C_text("\003syspending-finalizers"));
-  current_thread_symbol = C_intern3(C_heaptop, C_text("\003syscurrent-thread"), C_SCHEME_FALSE);
+  core_provided_symbol = C_intern2(C_heaptop, C_text("##core#provided"));
+  interrupt_hook_symbol = C_intern2(C_heaptop, C_text("##sys#interrupt-hook"));
+  error_hook_symbol = C_intern2(C_heaptop, C_text("##sys#error-hook"));
+  callback_continuation_stack_symbol = C_intern3(C_heaptop, C_text("##sys#callback-continuation-stack"), C_SCHEME_END_OF_LIST);
+  pending_finalizers_symbol = C_intern2(C_heaptop, C_text("##sys#pending-finalizers"));
+  current_thread_symbol = C_intern3(C_heaptop, C_text("##sys#current-thread"), C_SCHEME_FALSE);
+
+  /* SRFI-4 tags */
+  u8vector_symbol = C_intern2(C_heaptop, C_text("u8vector"));
+  s8vector_symbol = C_intern2(C_heaptop, C_text("s8vector"));
+  u16vector_symbol = C_intern2(C_heaptop, C_text("u16vector"));
+  s16vector_symbol = C_intern2(C_heaptop, C_text("s16vector"));
+  u32vector_symbol = C_intern2(C_heaptop, C_text("u32vector"));
+  s32vector_symbol = C_intern2(C_heaptop, C_text("s32vector"));
+  u64vector_symbol = C_intern2(C_heaptop, C_text("u64vector"));
+  s64vector_symbol = C_intern2(C_heaptop, C_text("s64vector"));
+  f32vector_symbol = C_intern2(C_heaptop, C_text("f32vector"));
+  f64vector_symbol = C_intern2(C_heaptop, C_text("f64vector"));
+}
+
+
+C_regparm C_word C_find_keyword(C_word str, C_SYMBOL_TABLE *kwtable)
+{
+  C_char *sptr = C_c_string(str);
+  int len = C_header_size(str);
+  int key;
+  C_word s;
+
+  if(kwtable == NULL) kwtable = keyword_table;
+
+  key = hash_string(len, sptr, kwtable->size, kwtable->rand, 0);
+
+  if(C_truep(s = lookup(key, len, sptr, kwtable))) return s;
+  else return C_SCHEME_FALSE;
 }
 
 
@@ -1350,7 +1377,6 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:sSIZE          set nursery (stack) size\n"
 		 " -:tSIZE          set symbol-table size\n"
                  " -:fSIZE          set maximal number of pending finalizers\n"
-		 " -:w              enable garbage collection of unused symbols\n"
 		 " -:x              deliver uncaught exceptions of other threads to primordial one\n"
 		 " -:b              enter REPL on error\n"
 		 " -:B              sound bell on major GC\n"
@@ -1664,6 +1690,11 @@ void barf(int code, char *loc, ...)
 
   case C_UNBOUND_VARIABLE_ERROR:
     msg = C_text("unbound variable");
+    c = 1;
+    break;
+
+  case C_BAD_ARGUMENT_TYPE_NO_KEYWORD_ERROR:
+    msg = C_text("bad argument type - not a keyword");
     c = 1;
     break;
 
@@ -2273,6 +2304,23 @@ C_regparm C_word C_fcall C_h_intern(C_word *slot, int len, C_char *str)
 }
 
 
+C_regparm C_word C_fcall C_intern_kw(C_word **ptr, int len, C_char *str) 
+{
+  C_word kw = C_intern_in(ptr, len, str, keyword_table);
+  C_set_block_item(kw, 0, kw); /* Keywords evaluate to themselves */
+  C_set_block_item(kw, 2, C_SCHEME_FALSE); /* Keywords have no plists */
+  return kw;
+}
+
+
+C_regparm C_word C_fcall C_h_intern_kw(C_word *slot, int len, C_char *str)
+{
+  C_word kw = C_h_intern_in(slot, len, str, keyword_table);
+  C_set_block_item(kw, 0, kw); /* Keywords evaluate to themselves */
+  C_set_block_item(kw, 2, C_SCHEME_FALSE); /* Keywords have no plists */
+  return kw;
+}
+
 C_regparm C_word C_fcall C_intern_in(C_word **ptr, int len, C_char *str, C_SYMBOL_TABLE *stable)
 {
   int key;
@@ -2392,15 +2440,25 @@ C_regparm C_word C_fcall lookup(C_word key, int len, C_char *str, C_SYMBOL_TABLE
 C_regparm C_word C_fcall C_i_persist_symbol(C_word sym)
 {
   C_word bucket;
+  C_SYMBOL_TABLE *stp;
 
-  C_i_check_symbol(sym);
+  /* Normally, this will get called with a symbol, but in
+   * C_h_intern_kw we may call it with keywords too.
+   */
+  if(!C_truep(C_i_symbolp(sym)) && !C_truep(C_i_keywordp(sym))) {
+    error_location = C_SCHEME_FALSE;
+    barf(C_BAD_ARGUMENT_TYPE_NO_SYMBOL_ERROR, NULL, sym);
+  }
 
-  bucket = lookup_bucket(sym, NULL);
-  if (C_truep(bucket)) {  /* It could be an uninterned symbol(?) */
-    /* Change weak to strong ref to ensure long-term survival */
-    C_block_header(bucket) = C_block_header(bucket) & ~C_SPECIALBLOCK_BIT;
-    /* Ensure survival on next minor GC */
-    if (C_in_stackp(sym)) C_mutate_slot(&C_block_item(bucket, 0), sym);
+  for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
+    bucket = lookup_bucket(sym, stp);
+
+    if (C_truep(bucket)) {
+      /* Change weak to strong ref to ensure long-term survival */
+      C_block_header(bucket) = C_block_header(bucket) & ~C_SPECIALBLOCK_BIT;
+      /* Ensure survival on next minor GC */
+      if (C_in_stackp(sym)) C_mutate_slot(&C_block_item(bucket, 0), sym);
+    }
   }
   return C_SCHEME_UNDEFINED;
 }
@@ -2412,6 +2470,7 @@ C_regparm C_word C_fcall C_i_persist_symbol(C_word sym)
 C_regparm C_word C_fcall C_i_unpersist_symbol(C_word sym)
 {
   C_word bucket;
+  C_SYMBOL_TABLE *stp;
 
   C_i_check_symbol(sym);
 
@@ -2420,11 +2479,14 @@ C_regparm C_word C_fcall C_i_unpersist_symbol(C_word sym)
     return C_SCHEME_FALSE;
   }
 
-  bucket = lookup_bucket(sym, NULL);
-  if (C_truep(bucket)) { /* It could be an uninterned symbol(?) */
-    /* Turn it into a weak ref */
-    C_block_header(bucket) = C_block_header(bucket) | C_SPECIALBLOCK_BIT;
-    return C_SCHEME_TRUE;
+  for(stp = symbol_table_list; stp != NULL; stp = stp->next) {
+    bucket = lookup_bucket(sym, NULL);
+
+    if (C_truep(bucket)) {
+      /* Turn it into a weak ref */
+      C_block_header(bucket) = C_block_header(bucket) | C_SPECIALBLOCK_BIT;
+      return C_SCHEME_TRUE;
+    }
   }
   return C_SCHEME_FALSE;
 }
@@ -2478,20 +2540,19 @@ double compute_symbol_table_load(double *avg_bucket_len, int *total_n)
 C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stable)
 {
   C_word bucket, sym, b2, *p;
-  int keyw = C_header_size(string) > 0 && *((char *)C_data_pointer(string)) == 0;
 
   p = *ptr;
   sym = (C_word)p;
   p += C_SIZEOF_SYMBOL;
   C_block_header_init(sym, C_SYMBOL_TYPE | (C_SIZEOF_SYMBOL - 1));
-  C_set_block_item(sym, 0, keyw ? sym : C_SCHEME_UNBOUND); /* keyword? */
+  C_set_block_item(sym, 0, C_SCHEME_UNBOUND);
   C_set_block_item(sym, 1, string);
   C_set_block_item(sym, 2, C_SCHEME_END_OF_LIST);
   *ptr = p;
   b2 = stable->table[ key ];	/* previous bucket */
 
   /* Create new weak or strong bucket depending on persistability */
-  if (C_persistable_symbol(sym) || C_truep(C_permanentp(string))) {
+  if (C_truep(C_permanentp(string))) {
     bucket = C_a_pair(ptr, sym, b2);
   } else {
     bucket = C_a_weak_pair(ptr, sym, b2);
@@ -3622,6 +3683,17 @@ C_regparm void C_fcall mark_system_globals(void)
   mark(&callback_continuation_stack_symbol);
   mark(&pending_finalizers_symbol);
   mark(&current_thread_symbol);
+
+  mark(&u8vector_symbol);
+  mark(&s8vector_symbol);
+  mark(&u16vector_symbol);
+  mark(&s16vector_symbol);
+  mark(&u32vector_symbol);
+  mark(&s32vector_symbol);
+  mark(&u64vector_symbol);
+  mark(&s64vector_symbol);
+  mark(&f32vector_symbol);
+  mark(&f64vector_symbol);
 }
 
 
@@ -3961,6 +4033,17 @@ C_regparm void C_fcall remark_system_globals(void)
   remark(&callback_continuation_stack_symbol);
   remark(&pending_finalizers_symbol);
   remark(&current_thread_symbol);
+
+  remark(&u8vector_symbol);
+  remark(&s8vector_symbol);
+  remark(&u16vector_symbol);
+  remark(&s16vector_symbol);
+  remark(&u32vector_symbol);
+  remark(&s32vector_symbol);
+  remark(&u64vector_symbol);
+  remark(&s64vector_symbol);
+  remark(&f32vector_symbol);
+  remark(&f64vector_symbol);
 }
 
 
@@ -4947,12 +5030,6 @@ C_regparm C_word C_fcall C_i_allocated_finalizer_count(void)
   return C_fix(allocated_finalizer_count);
 }
 
-C_regparm void C_fcall C_paranoid_check_for_interrupt(void)
-{
-  if(--C_timer_interrupt_counter <= 0)
-    C_raise_interrupt(C_TIMER_INTERRUPT_NUMBER);
-}
-
 
 C_regparm void C_fcall C_raise_interrupt(int reason)
 {
@@ -5081,6 +5158,56 @@ C_regparm C_word C_fcall C_i_listp(C_word x)
     else return C_SCHEME_FALSE;
 
   return C_SCHEME_TRUE;
+}
+
+C_regparm C_word C_fcall C_i_u8vectorp(C_word x)
+{
+  return C_i_structurep(x, u8vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_s8vectorp(C_word x)
+{
+  return C_i_structurep(x, s8vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_u16vectorp(C_word x)
+{
+  return C_i_structurep(x, u16vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_s16vectorp(C_word x)
+{
+  return C_i_structurep(x, s16vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_u32vectorp(C_word x)
+{
+  return C_i_structurep(x, u32vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_s32vectorp(C_word x)
+{
+  return C_i_structurep(x, s32vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_u64vectorp(C_word x)
+{
+  return C_i_structurep(x, u64vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_s64vectorp(C_word x)
+{
+  return C_i_structurep(x, s64vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_f32vectorp(C_word x)
+{
+  return C_i_structurep(x, f32vector_symbol);
+}
+
+C_regparm C_word C_fcall C_i_f64vectorp(C_word x)
+{
+  return C_i_structurep(x, f64vector_symbol);
 }
 
 
@@ -5666,6 +5793,200 @@ C_regparm C_word C_fcall C_i_vector_ref(C_word v, C_word i)
 }
 
 
+C_regparm C_word C_fcall C_i_u8vector_ref(C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_u8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= C_header_size(C_block_item(v, 1))) barf(C_OUT_OF_RANGE_ERROR, "u8vector-ref", v, i);
+
+    return C_fix(((unsigned char *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s8vector_ref(C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_s8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= C_header_size(C_block_item(v, 1))) barf(C_OUT_OF_RANGE_ERROR, "s8vector-ref", v, i);
+
+    return C_fix(((signed char *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_u16vector_ref(C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_u16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 1)) barf(C_OUT_OF_RANGE_ERROR, "u16vector-ref", v, i);
+
+    return C_fix(((unsigned short *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s16vector_ref(C_word v, C_word i)
+{
+  C_word size;
+  int j;
+
+  if(C_immediatep(v) || C_header_bits(v) != C_STRUCTURE_TYPE ||
+     C_header_size(v) != 2 || C_block_item(v, 0) != s16vector_symbol)
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 1)) barf(C_OUT_OF_RANGE_ERROR, "u16vector-ref", v, i);
+
+    return C_fix(((signed short *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_u32vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_u32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "u32vector-ref", v, i);
+
+    return C_unsigned_int_to_num(ptr, ((C_u32 *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_s32vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_s32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "s32vector-ref", v, i);
+
+    return C_int_to_num(ptr, ((C_s32 *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_u64vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_u64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "u64vector-ref", v, i);
+
+    return C_uint64_to_num(ptr, ((C_u64 *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_s64vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_s64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "s64vector-ref", v, i);
+
+    return C_int64_to_num(ptr, ((C_s64 *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_f32vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  int j;
+
+  if(!C_truep(C_i_f32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "f32vector-ref", v, i);
+
+    return C_flonum(ptr, ((float *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_a_i_f64vector_ref(C_word **ptr, C_word c, C_word v, C_word i)
+{
+  C_word size;
+  int j;
+
+  if(!C_truep(C_i_f64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-ref", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "f64vector-ref", v, i);
+
+    return C_flonum(ptr, ((double *)C_data_pointer(C_block_item(v, 1)))[j]);
+  }
+  
+  barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-ref", i);
+  return C_SCHEME_UNDEFINED;
+}
+
+
 C_regparm C_word C_fcall C_i_block_ref(C_word x, C_word i)
 {
   int j;
@@ -5735,6 +6056,87 @@ C_regparm C_word C_fcall C_i_vector_length(C_word v)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "vector-length", v);
 
   return C_fix(C_header_size(v));
+}
+
+C_regparm C_word C_fcall C_i_u8vector_length(C_word v)
+{
+  if(!C_truep(C_i_u8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)));
+}
+
+C_regparm C_word C_fcall C_i_s8vector_length(C_word v)
+{
+  if(!C_truep(C_i_s8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)));
+}
+
+C_regparm C_word C_fcall C_i_u16vector_length(C_word v)
+{
+  if(!C_truep(C_i_u16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 1);
+}
+
+C_regparm C_word C_fcall C_i_s16vector_length(C_word v)
+{
+  if(!C_truep(C_i_s16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 1);
+}
+
+C_regparm C_word C_fcall C_i_u32vector_length(C_word v)
+{
+  if(!C_truep(C_i_u32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 2);
+}
+
+C_regparm C_word C_fcall C_i_s32vector_length(C_word v)
+{
+  if(!C_truep(C_i_s32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 2);
+}
+
+C_regparm C_word C_fcall C_i_u64vector_length(C_word v)
+{
+  if(!C_truep(C_i_u64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 3);
+}
+
+C_regparm C_word C_fcall C_i_s64vector_length(C_word v)
+{
+  if(!C_truep(C_i_s64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 3);
+}
+
+
+C_regparm C_word C_fcall C_i_f32vector_length(C_word v)
+{
+  if(!C_truep(C_i_f32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 2);
+}
+
+C_regparm C_word C_fcall C_i_f64vector_length(C_word v)
+{
+  if(!C_truep(C_i_f64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-length", v);
+
+  return C_fix(C_header_size(C_block_item(v, 1)) >> 3);
 }
 
 
@@ -5831,6 +6233,257 @@ C_regparm C_word C_fcall C_i_vector_set(C_word v, C_word i, C_word x)
   return C_SCHEME_UNDEFINED;
 }
 
+
+C_regparm C_word C_fcall C_i_u8vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_word n;
+
+  if(!C_truep(C_i_u8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= C_header_size(C_block_item(v, 1))) barf(C_OUT_OF_RANGE_ERROR, "u8vector-set!", v, i);
+
+    if(x & C_FIXNUM_BIT) {
+      if (!(x & C_INT_SIGN_BIT) && C_ilen(C_unfix(x)) <= 8) n = C_unfix(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "u8vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u8vector-set!", i);
+
+  ((unsigned char *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s8vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_word n;
+
+  if(!C_truep(C_i_s8vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= C_header_size(C_block_item(v, 1))) barf(C_OUT_OF_RANGE_ERROR, "s8vector-set!", v, i);
+
+    if(x & C_FIXNUM_BIT) {
+      if (C_unfix(C_i_fixnum_length(x)) <= 8) n = C_unfix(x);
+      else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s8vector-set!", i);
+
+  ((signed char *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_u16vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_word n;
+
+  if(!C_truep(C_i_u16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 1)) barf(C_OUT_OF_RANGE_ERROR, "u16vector-set!", v, i);
+
+    if(x & C_FIXNUM_BIT) {
+      if (!(x & C_INT_SIGN_BIT) && C_ilen(C_unfix(x)) <= 16) n = C_unfix(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "u16vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u16vector-set!", i);
+
+  ((unsigned short *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s16vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_word n;
+
+  if(!C_truep(C_i_s16vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 1)) barf(C_OUT_OF_RANGE_ERROR, "u16vector-set!", v, i);
+
+    if(x & C_FIXNUM_BIT) {
+      if (C_unfix(C_i_fixnum_length(x)) <= 16) n = C_unfix(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "s16vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s16vector-set!", i);
+
+  ((short *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_u32vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_u32 n;
+
+  if(!C_truep(C_i_u32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "u32vector-set!", v, i);
+
+    if(C_truep(C_i_exact_integerp(x))) {
+      if (C_unfix(C_i_integer_length(x)) <= 32) n = C_num_to_unsigned_int(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "u32vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u32vector-set!", i);
+
+  ((C_u32 *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s32vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_s32 n;
+
+  if(!C_truep(C_i_s32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "s32vector-set!", v, i);
+
+    if(C_truep(C_i_exact_integerp(x))) {
+      if (C_unfix(C_i_integer_length(x)) <= 32) n = C_num_to_int(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "s32vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s32vector-set!", i);
+
+  ((C_s32 *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_u64vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_u64 n;
+
+  if(!C_truep(C_i_u64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "u64vector-set!", v, i);
+
+    if(C_truep(C_i_exact_integerp(x))) {
+      if (C_unfix(C_i_integer_length(x)) <= 64) n = C_num_to_uint64(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "u64vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "u64vector-set!", i);
+
+  ((C_u64 *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_s64vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  C_s64 n;
+
+  if(!C_truep(C_i_s64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "s64vector-set!", v, i);
+
+    if(C_truep(C_i_exact_integerp(x))) {
+      if (C_unfix(C_i_integer_length(x)) <= 64) n = C_num_to_int64(x);
+      else barf(C_OUT_OF_RANGE_ERROR, "s64vector-set!", x);
+    }
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "s64vector-set!", i);
+
+  ((C_s64 *)C_data_pointer(C_block_item(v, 1)))[j] = n;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_f32vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  double f;
+
+  if(!C_truep(C_i_f32vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 2)) barf(C_OUT_OF_RANGE_ERROR, "f32vector-set!", v, i);
+
+    if(C_truep(C_i_flonump(x))) f = C_flonum_magnitude(x);
+    else if(x & C_FIXNUM_BIT) f = C_unfix(x);
+    else if (C_truep(C_i_bignump(x))) f = C_bignum_to_double(x);
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-set!", x);
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "f32vector-set!", i);
+
+  ((float *)C_data_pointer(C_block_item(v, 1)))[j] = (float)f;
+  return C_SCHEME_UNDEFINED;
+}
+
+C_regparm C_word C_fcall C_i_f64vector_set(C_word v, C_word i, C_word x)
+{
+  int j;
+  double f;
+
+  if(!C_truep(C_i_f64vectorp(v)))
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-set!", v);
+
+  if(i & C_FIXNUM_BIT) {
+    j = C_unfix(i);
+
+    if(j < 0 || j >= (C_header_size(C_block_item(v, 1)) >> 3)) barf(C_OUT_OF_RANGE_ERROR, "f64vector-set!", v, i);
+
+    if(C_truep(C_i_flonump(x))) f = C_flonum_magnitude(x);
+    else if(x & C_FIXNUM_BIT) f = C_unfix(x);
+    else if (C_truep(C_i_bignump(x))) f = C_bignum_to_double(x);
+    else barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-set!", x);
+
+  }
+  else barf(C_BAD_ARGUMENT_TYPE_ERROR, "f64vector-set!", i);
+
+  ((double *)C_data_pointer(C_block_item(v, 1)))[j] = f;
+  return C_SCHEME_UNDEFINED;
+}
+
+
 /* This needs at most C_SIZEOF_FIX_BIGNUM + max(C_SIZEOF_RATNUM, C_SIZEOF_CPLXNUM) so 7 words */
 C_regparm C_word C_fcall
 C_s_a_i_abs(C_word **ptr, C_word n, C_word x)
@@ -5872,7 +6525,7 @@ void C_ccall C_signum(C_word c, C_word *av)
   } else if (C_truep(C_bignump(x))) {
     C_kontinue(k, C_bignum_negativep(x) ? C_fix(-1) : C_fix(1));
   } else {
-    try_extended_number("\003sysextended-signum", 2, k, x);
+    try_extended_number("##sys#extended-signum", 2, k, x);
   }
 }
 
@@ -6761,7 +7414,7 @@ C_regparm C_word C_fcall C_i_check_locative_2(C_word x, C_word loc)
 
 C_regparm C_word C_fcall C_i_check_symbol_2(C_word x, C_word loc)
 {
-  if(C_immediatep(x) || C_block_header(x) != C_SYMBOL_TAG) {
+  if(!C_truep(C_i_symbolp(x))) {
     error_location = loc;
     barf(C_BAD_ARGUMENT_TYPE_NO_SYMBOL_ERROR, NULL, x);
   }
@@ -6769,6 +7422,16 @@ C_regparm C_word C_fcall C_i_check_symbol_2(C_word x, C_word loc)
   return C_SCHEME_UNDEFINED;
 }
 
+
+C_regparm C_word C_fcall C_i_check_keyword_2(C_word x, C_word loc)
+{
+  if(!C_truep(C_i_keywordp(x))) {
+    error_location = loc;
+    barf(C_BAD_ARGUMENT_TYPE_NO_KEYWORD_ERROR, NULL, x);
+  }
+
+  return C_SCHEME_UNDEFINED;
+}
 
 C_regparm C_word C_fcall C_i_check_list_2(C_word x, C_word loc)
 {
@@ -7075,7 +7738,10 @@ void C_ccall C_call_cc(C_word c, C_word *av)
   if(C_immediatep(cont) || C_header_bits(cont) != C_CLOSURE_TYPE)
     barf(C_BAD_ARGUMENT_TYPE_ERROR, "call-with-current-continuation", cont);
   
-  wrapper = C_closure(&a, 2, (C_word)call_cc_wrapper, k);
+  /* Check for values-continuation: */
+  if(C_block_item(k, 0) == (C_word)values_continuation)
+    wrapper = C_closure(&a, 2, (C_word)call_cc_values_wrapper, k);
+  else wrapper = C_closure(&a, 2, (C_word)call_cc_wrapper, k);
   
   av2[ 0 ] = cont;
   av2[ 1 ] = k;
@@ -7089,11 +7755,28 @@ void C_ccall call_cc_wrapper(C_word c, C_word *av)
   C_word
     closure = av[ 0 ],
     /* av[ 1 ] is current k and ignored */
+    result,
     k = C_block_item(closure, 1);
+
+  if(c != 3) C_bad_argc(c, 3);
+
+  result = av[ 2 ];
+  C_kontinue(k, result);
+}
+
+
+void C_ccall call_cc_values_wrapper(C_word c, C_word *av)
+{
+  C_word
+    closure = av[ 0 ],
+    /* av[ 1 ] is current k and ignored */
+    k = C_block_item(closure, 1),
+    x1,
+    n = c;
   
   av[ 0 ] = k;               /* reuse av */
-  C_memmove(av + 1, av + 2, (c - 1) * sizeof(C_word));
-  C_do_apply(c - 1, av);
+  C_memmove(av + 1, av + 2, (n - 1) * sizeof(C_word));
+  C_do_apply(n - 1, av);
 }
 
 
@@ -9954,11 +10637,40 @@ void C_ccall C_string_to_symbol(C_word c, C_word *av)
     
   len = C_header_size(string);
   name = (C_char *)C_data_pointer(string);
-  key = hash_string(len, name, symbol_table->size, symbol_table->rand, 0);
 
-  if(!C_truep(s = lookup(key, len, name, symbol_table))) 
+  key = hash_string(len, name, symbol_table->size, symbol_table->rand, 0);
+  if(!C_truep(s = lookup(key, len, name, symbol_table)))
     s = add_symbol(&a, key, string, symbol_table);
 
+  C_kontinue(k, s);
+}
+
+void C_ccall C_string_to_keyword(C_word c, C_word *av) 
+{ 
+  C_word
+    /* closure = av[ 0 ] */
+    k = av[ 1 ],
+    string;
+  int len, key;
+  C_word s, *a = C_alloc(C_SIZEOF_SYMBOL + C_SIZEOF_PAIR);
+  C_char *name;
+
+  if(c != 3) C_bad_argc(c, 3);
+
+  string = av[ 2 ];
+
+  if(C_immediatep(string) || C_header_bits(string) != C_STRING_TYPE)
+    barf(C_BAD_ARGUMENT_TYPE_ERROR, "string->keyword", string);
+    
+  len = C_header_size(string);
+  name = (C_char *)C_data_pointer(string);
+  key = hash_string(len, name, keyword_table->size, keyword_table->rand, 0);
+
+  if(!C_truep(s = lookup(key, len, name, keyword_table))) {
+    s = add_symbol(&a, key, string, keyword_table);
+    C_set_block_item(s, 0, s); /* Keywords evaluate to themselves */
+    C_set_block_item(s, 2, C_SCHEME_FALSE); /* Keywords have no plists */
+  }
   C_kontinue(k, s);
 }
 
@@ -10418,7 +11130,7 @@ void C_ccall C_number_to_string(C_word c, C_word *av)
     C_integer_to_string(c, av); /* reuse av */
   } else {
     C_word k = av[ 1 ];
-    try_extended_number("\003sysextended-number->string", 3, k, num, radix);
+    try_extended_number("##sys#extended-number->string", 3, k, num, radix);
   }
 }
 
@@ -10539,7 +11251,7 @@ void C_ccall C_integer_to_string(C_word c, C_word *av)
     if (len > C_RECURSIVE_TO_STRING_THRESHOLD &&
         /* The power of two fast path is much faster than recursion */
         ((C_uword)1 << radix_shift) != radix) {
-      try_extended_number("\003sysinteger->string/recursive",
+      try_extended_number("##sys#integer->string/recursive",
                           4, k, num, C_fix(radix), C_fix(len));
     } else {
       C_word kab[C_SIZEOF_CLOSURE(4)], *ka = kab, kav[6];
@@ -11927,7 +12639,14 @@ static C_regparm C_word C_fcall decode_literal2(C_word **ptr, C_char **str,
     if(dest == NULL) 
       panic(C_text("invalid literal symbol destination"));
 
-    val = C_h_intern(dest, size, *str);
+    if (**str == '\1') {
+      val = C_h_intern(dest, size, ++*str);
+    } else if (**str == '\2') {
+      val = C_h_intern_kw(dest, size, ++*str);
+    } else {
+      C_snprintf(buffer, sizeof(buffer), C_text("Unknown symbol subtype: %d"), (int)**str);
+      panic(buffer);
+    }
     *str += size;
     break;
 
@@ -12132,7 +12851,7 @@ error:
 C_regparm C_word C_fcall
 C_i_getprop(C_word sym, C_word prop, C_word def)
 {
-  C_word pl = C_block_item(sym, 2);
+  C_word pl = C_symbol_plist(sym);
 
   while(pl != C_SCHEME_END_OF_LIST) {
     if(C_block_item(pl, 0) == prop)
@@ -12577,7 +13296,7 @@ C_word C_random_bytes(C_word buf, C_word size)
   int r = 0;
   int off = 0;
 
-#ifdef __OpenBSD__
+#if defined(__OpenBSD__) || defined(__FreeBSD__)
   arc4random_buf(C_data_pointer(buf), count);
 #elif defined(SYS_getrandom) && defined(__NR_getrandom)
   static int use_urandom = 0;

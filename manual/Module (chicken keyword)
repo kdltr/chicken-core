@@ -3,10 +3,13 @@
 
 == Module (chicken keyword)
 
-Keywords are special symbols prefixed with {{#:}} that evaluate to
-themselves. Procedures can use keywords to accept optional named
-parameters in addition to normal required parameters. Assignment to
-and binding of keyword symbols is not allowed.
+Keywords are written like symbols, but prefixed with {{#:}}.  They
+evaluate to themselves. While they behave a lot like symbols in that
+they are interned when read and can be compared in constant time with
+{{eq?}}, they are a distinct type.  In particular, they have no plist,
+they cannot be bound or assigned to and aren't {{eq?}} to a symbol
+with the same spelling.  Procedures can use keywords to accept
+optional named parameters in addition to normal required parameters.
 
 The parameter {{keyword-style}} and the compiler/interpreter option
 {{-keyword-style}} can be used to allow an additional keyword syntax,
@@ -38,8 +41,7 @@ Note: the {{KEYWORD}} may actually be any kind of object.
 
 <procedure>(keyword? X)</procedure>
 
-Returns {{#t}} if {{X}} is a keyword symbol, or {{#f}}
-otherwise.
+Returns {{#t}} if {{X}} is a keyword, or {{#f}} otherwise.
 
 
 ==== keyword->string

@@ -1,6 +1,6 @@
 ;;;; csc.scm - Driver program for the CHICKEN compiler - felix -*- Scheme -*-
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -102,13 +102,14 @@
 (define rc-compiler (quotewrap (if host-mode INSTALL_RC_COMPILER TARGET_RC_COMPILER)))
 (define linker (quotewrap (if host-mode host-cc default-cc)))
 (define c++-linker (quotewrap (if host-mode host-cxx default-cxx)))
-(define object-extension (if windows "obj" "o"))
+(define object-extension (if mingw "obj" "o"))
 (define library-extension "a")
 (define link-output-flag "-o ")
 (define executable-extension "")
 (define compile-output-flag "-o ")
 (define shared-library-extension ##sys#load-dynamic-extension)
 (define static-object-extension (##sys#string-append "static." object-extension))
+(define static-library-extension (##sys#string-append "static." library-extension))
 (define default-translation-optimization-options '())
 (define pic-options (if (or mingw cygwin) '("-DPIC") '("-fPIC" "-DPIC")))
 (define generate-manifest #f)
@@ -151,7 +152,7 @@
     -no-symbol-escape -no-parentheses-synonyms -r5rs-syntax
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
     -emit-all-import-libraries -no-elevation -no-module-registration
-    -no-procedure-checks-for-usual-bindings
+    -no-procedure-checks-for-usual-bindings -regenerate-import-libraries
     -specialize -strict-types -clustering -lfa2 -debug-info
     -no-procedure-checks-for-toplevel-bindings))
 
@@ -211,6 +212,7 @@
 (define deployed #f)
 (define rpath #f)
 (define ignore-repository #f)
+(define show-debugging-help #f)
 
 (define library-dir
   (if host-mode host-libdir default-libdir))
@@ -295,13 +297,18 @@
 
 (define (find-object-file name)
   (let ((o (make-pathname #f name object-extension))
+	(a (make-pathname #f name library-extension))
 	;; In setup mode, objects in build dir may also end with "static.o"
+	(static-a (make-pathname #f name static-library-extension))
 	(static-o (make-pathname #f name static-object-extension)))
-    (or (file-exists? o)
+    (or (file-exists? a)
+	(file-exists? o)
 	(and (eq? ##sys#setup-mode #t)
-	     (file-exists? static-o))
+	     (or (file-exists? static-a)
+		 (file-exists? static-o)))
 	(and (not ignore-repository)
-	     (chicken.load#find-file o (repo-path))))))
+	     (or (chicken.load#find-file a (repo-path))
+		 (chicken.load#find-file o (repo-path)))))))
 
 
 ;;; Display usage information:
@@ -487,6 +494,7 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
     -emit-external-prototypes-first
                                    emit prototypes for callbacks before foreign
                                     declarations
+    -regenerate-import-libraries   emit import libraries even when unchanged
     -ignore-repository             do not refer to repository for extensions
     -keep-shadowed-macros          do not remove shadowed macro
     -host                          compile for host when configured for
@@ -557,12 +565,13 @@ EOF
 	     (when show-libs (print* (linker-libraries) #\space))
 	     (newline)
 	     (exit) )
-	   (when (pair? linked-extensions)
-	     (set! object-files ; add objects from linked extensions
-	       (append (filter-map find-object-file linked-extensions) object-files)))
 	   (cond ((null? scheme-files)
 		  (when (and (null? c-files)
 			     (null? object-files))
+		    (when show-debugging-help
+		      (command
+		       (string-intersperse
+			(cons* translator "bogus.scm" translate-options))))
 		    (stop "no source files specified") )
 		  (unless target-filename
 		    (set! target-filename
@@ -578,6 +587,9 @@ EOF
 	   (unless translate-only 
 	     (run-compilation)
 	     (unless compile-only
+	       (when (pair? linked-extensions)
+		 (set! object-files ; add objects from linked extensions
+		   (append (filter-map find-object-file linked-extensions) object-files)))
 	       (when (member target-filename scheme-files)
 		 (fprintf (current-error-port)
                           "Warning: output file will overwrite source file `~A' - renaming source to `~A.old'~%"
@@ -706,6 +718,13 @@ EOF
 	       [(|-d1|) (set! rest (cons* "-debug-level" "1" rest))]
 	       [(|-d2|) (set! rest (cons* "-debug-level" "2" rest))]
 	       [(|-d3|) (set! rest (cons* "-debug-level" "3" rest))]
+	       ((-debug)
+		(check s rest)
+		(t-options arg (car rest))
+		(when (memv #\h (string->list (car rest)))
+		  (set! show-debugging-help #t)
+		  (set! translate-only #t))
+		(set! rest (cdr rest)))
 	       [(-dry-run) 
 		(set! verbose #t)
 		(set! dry-run #t)]
@@ -771,12 +790,10 @@ EOF
 		  (set! linking-optimization-options best-linking-optimization-options) )
 		(cond [(assq s shortcuts) => (lambda (a) (set! rest (cons (cadr a) rest)))]
 		      [(memq s simple-options) (t-options arg)]
-		      [(memq s complex-options) 
+		      ((memq s complex-options)
 		       (check s rest)
-		       (let* ((n (car rest))
-			      (ns (string->number n)) )
-			 (t-options arg n)
-			 (set! rest (cdr rest)) ) ]
+		       (t-options arg (car rest))
+		       (set! rest (cdr rest)))
 		      [(and (> (string-length arg) 2) (string=? "-:" (substring arg 0 2)))
 		       (t-options arg) ]
 		      [(and (> (string-length arg) 1)

@@ -1,6 +1,6 @@
 ;;;; posix-common.scm - common code for UNIX and Windows versions of the posix unit
 ;
-; Copyright (c) 2010-2018, The CHICKEN Team
+; Copyright (c) 2010-2019, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -42,6 +42,36 @@ static C_TLS struct stat C_statbuf;
 
 #ifndef S_IFSOCK
 # define S_IFSOCK           0140000
+#endif
+
+#ifndef S_IRUSR
+# define S_IRUSR  S_IREAD
+#endif
+#ifndef S_IWUSR
+# define S_IWUSR  S_IWRITE
+#endif
+#ifndef S_IXUSR
+# define S_IXUSR  S_IEXEC
+#endif
+
+#ifndef S_IRGRP
+# define S_IRGRP  S_IREAD
+#endif
+#ifndef S_IWGRP
+# define S_IWGRP  S_IWRITE
+#endif
+#ifndef S_IXGRP
+# define S_IXGRP  S_IEXEC
+#endif
+
+#ifndef S_IROTH
+# define S_IROTH  S_IREAD
+#endif
+#ifndef S_IWOTH
+# define S_IWOTH  S_IWRITE
+#endif
+#ifndef S_IXOTH
+# define S_IXOTH  S_IEXEC
 #endif
 
 #define cpy_tmvec_to_tmstc08(ptm, v) \
@@ -357,8 +387,10 @@ EOF
       (##sys#check-fixnum pos 'set-file-position!)
       (##sys#check-fixnum whence 'set-file-position!)
       (unless (cond ((port? port)
-		     (and (eq? (##sys#slot port 7) 'stream)
-			  (##core#inline "C_fseek" port pos whence) ) )
+		     (and-let* ((stream (eq? (##sys#slot port 7) 'stream))
+				(res (##core#inline "C_fseek" port pos whence)))
+			(##sys#setislot port 6 #f) ;; Reset EOF status
+			res))
 		    ((fixnum? port)
 		     (##core#inline "C_lseek" port pos whence))
 		    (else
@@ -417,18 +449,18 @@ EOF
 
 ;; open/noinherit is platform-specific
 
-(define-foreign-variable _s_irusr int "S_IREAD")
-(define-foreign-variable _s_iwusr int "S_IWRITE")
-(define-foreign-variable _s_ixusr int "S_IEXEC")
-(define-foreign-variable _s_irgrp int "S_IREAD")
-(define-foreign-variable _s_iwgrp int "S_IWRITE")
-(define-foreign-variable _s_ixgrp int "S_IEXEC")
-(define-foreign-variable _s_iroth int "S_IREAD")
-(define-foreign-variable _s_iwoth int "S_IWRITE")
-(define-foreign-variable _s_ixoth int "S_IEXEC")
-(define-foreign-variable _s_irwxu int "S_IREAD | S_IWRITE | S_IEXEC")
-(define-foreign-variable _s_irwxg int "S_IREAD | S_IWRITE | S_IEXEC")
-(define-foreign-variable _s_irwxo int "S_IREAD | S_IWRITE | S_IEXEC")
+(define-foreign-variable _s_irusr int "S_IRUSR")
+(define-foreign-variable _s_iwusr int "S_IWUSR")
+(define-foreign-variable _s_ixusr int "S_IXUSR")
+(define-foreign-variable _s_irgrp int "S_IRGRP")
+(define-foreign-variable _s_iwgrp int "S_IWGRP")
+(define-foreign-variable _s_ixgrp int "S_IXGRP")
+(define-foreign-variable _s_iroth int "S_IROTH")
+(define-foreign-variable _s_iwoth int "S_IWOTH")
+(define-foreign-variable _s_ixoth int "S_IXOTH")
+(define-foreign-variable _s_irwxu int "S_IRUSR | S_IWUSR | S_IXUSR")
+(define-foreign-variable _s_irwxg int "S_IRGRP | S_IWGRP | S_IXGRP")
+(define-foreign-variable _s_irwxo int "S_IROTH | S_IWOTH | S_IXOTH")
 
 (set! chicken.file.posix#perm/irusr _s_irusr)
 (set! chicken.file.posix#perm/iwusr _s_iwusr)
@@ -448,11 +480,11 @@ EOF
 (let ()
   (define (mode inp m loc)
     (##sys#make-c-string
-     (cond [(pair? m)
+     (cond ((pair? m)
             (let ([m (car m)])
               (case m
-                [(###append) (if (not inp) "a" (##sys#error "invalid mode for input file" m))]
-                [else (##sys#error "invalid mode argument" m)] ) ) ]
+                ((#:append) (if (not inp) "a" (##sys#error "invalid mode for input file" m)))
+                (else (##sys#error "invalid mode argument" m)) ) ) )
            [inp "r"]
            [else "w"] )
      loc) )
@@ -707,7 +739,7 @@ EOF
 (set! chicken.process#pipe/buf _pipe_buf)
 
 (let ()
-  (define (mode arg) (if (pair? arg) (##sys#slot arg 0) '###text))
+  (define (mode arg) (if (pair? arg) (##sys#slot arg 0) #:text))
   (define (badmode m) (##sys#error "illegal input/output mode specifier" m))
   (define (check loc cmd inp r)
     (if (##sys#null-pointer? r)

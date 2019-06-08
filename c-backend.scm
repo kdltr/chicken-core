@@ -1,6 +1,6 @@
 ;;; c-backend.scm - C-generating backend for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -42,6 +42,7 @@
 	chicken.foreign
 	chicken.format
 	chicken.internal
+	chicken.keyword
 	chicken.platform
 	chicken.sort
 	chicken.string
@@ -125,6 +126,9 @@
 		   (gen "((C_word)li" (vector-ref lit 0) ")") 
 		   (gen "lf[" (first params) #\])) ) )
 
+            ((##core#float)
+             (gen (first params)))
+
 	    ((if)
 	     (gen #t "if(C_truep(")
 	     (expr (car subs) i)
@@ -146,12 +150,25 @@
 		      (loop (cdr bs) (add1 i) (sub1 count)) ]
 		     [else (expr (car bs) i)] ) ) )
 
-	    ((##core#let_unboxed)
-	     (let ((name (first params)))
-	       (gen #t name #\=)
+	    ((##core#let_float)
+	     (let ((fi (first params)))
+	       (gen #t #\f fi #\=)
 	       (expr (first subs) i)
 	       (gen #\;)
 	       (expr (second subs) i)))
+
+            ((##core#float-variable)
+             (gen #\f (first params)))
+
+            ((##core#unbox_float)
+             (gen "C_flonum_magnitude(")
+             (expr (first subs) i)
+             (gen ")"))
+
+            ((##core#box_float)
+             (gen "C_flonum(&a,")
+             (expr (first subs) i)
+             (gen ")"))
 
 	    ((##core#ref) 
 	     (gen "((C_word*)")
@@ -221,7 +238,7 @@
 		      (if safe
 			  (gen "lf[" index "]")
 			  (gen "C_retrieve2(lf[" index "],C_text("
-			       (c-ify-string (##sys#symbol->qualified-string
+			       (c-ify-string (##sys#symbol->string
 					      (fourth params))) "))"))]
 		     [safe (gen "*((C_word*)lf[" index "]+1)")]
 		     [else (gen "C_fast_retrieve(lf[" index "])")] ) ) )
@@ -233,7 +250,7 @@
 	       (if block
 		   (gen "C_mutate(&lf[" index "]")
 		   (gen "C_mutate((C_word*)lf[" index "]+1"))
-	       (gen " /* (set! " (uncommentify (##sys#symbol->qualified-string var)) " ...) */,")
+	       (gen " /* (set! " (uncommentify (##sys#symbol->string var)) " ...) */,")
 	       (expr (car subs) i)
 	       (gen #\)) ) )
 
@@ -243,12 +260,12 @@
 		   (var (third params)) )
 	       (cond [block
 		      (gen "lf[" index "] /* "
-			   (uncommentify (##sys#symbol->qualified-string var)) " */ =")
+			   (uncommentify (##sys#symbol->string var)) " */ =")
 		      (expr (car subs) i)
 		      (gen #\;) ]
 		     [else
 		      (gen "C_set_block_item(lf[" index "] /* "
-			   (uncommentify (##sys#symbol->qualified-string var)) " */,0,")
+			   (uncommentify (##sys#symbol->string var)) " */,0,")
 		      (expr (car subs) i)
 		      (gen #\)) ] ) ) )
 
@@ -269,14 +286,12 @@
 		    (empty-closure (and customizable (zero? (lambda-literal-closure-size (find-lambda call-id)))))
 		    (fn (car subs)) )
 	       (when name
-		 (cond (emit-debug-info
-			(when dbi
-			  (gen #t "C_debugger(&(C_debug_info[" dbi "]),"
-			       (if non-av-proc "0,NULL" "c,av") ");")))
-		       (emit-trace-info
-			(gen #t "C_trace(C_text(\"" (backslashify name-str) "\"));"))
-		       (else
-			(gen #t "/* " (uncommentify name-str) " */") ) ) )
+		 (if emit-trace-info
+		     (gen #t "C_trace(C_text(\"" (backslashify name-str) "\"));")
+		     (gen #t "/* " (uncommentify name-str) " */"))
+		 (when (and emit-debug-info dbi)
+		   (gen #t "C_debugger(&(C_debug_info[" dbi "]),"
+			(if non-av-proc "0,NULL" "c,av") ");")))
 	       (cond ((eq? '##core#proc (node-class fn))
 		      (gen #\{)
 		      (push-args args i "0")
@@ -335,7 +350,7 @@
 			       (if safe
 				   (gen "C_fast_retrieve_proc(" carg ")")
 				   (gen "C_retrieve2_symbol_proc(" carg ",C_text("
-					(c-ify-string (##sys#symbol->qualified-string (fourth gparams))) "))")))
+					(c-ify-string (##sys#symbol->string (fourth gparams))) "))")))
 			      (safe
 			       (set! carg 
 				 (string-append "*((C_word*)lf[" (number->string index) "]+1)"))
@@ -398,14 +413,12 @@
 		    (fn (car subs)) )
 	       (gen #\()
 	       (when name
-		 (cond (emit-debug-info
-			(when dbi
-			  (gen #t "  C_debugger(&(C_debug_info[" dbi "]),"
-			       (if non-av-proc "0,NULL" "c,av") "),")))
-		       (emit-trace-info
-			(gen #t "  C_trace(\"" (backslashify name-str) "\"),"))
-		       (else
-			(gen #t "  /* " (uncommentify name-str) " */"))))
+		 (if emit-trace-info
+		     (gen #t "C_trace(\"" (backslashify name-str) "\"),")
+		     (gen #t "/* " (uncommentify name-str) " */"))
+		 (when (and emit-debug-info dbi)
+		   (gen #t "C_debugger(&(C_debug_info[" dbi "]),"
+			(if non-av-proc "0,NULL" "c,av") "),")))
 	       (gen #t "  " call-id #\()
 	       (when allocating 
 		 (gen "C_a_i(&a," demand #\))
@@ -473,19 +486,6 @@
 	       (gen "))=" (foreign-argument-conversion t))
 	       (expr (second subs) i) 
 	       (gen "),C_SCHEME_UNDEFINED)") ) )
-
-	    ((##core#unboxed_ref)
-	     (gen (first params)))
-
-	    ((##core#unboxed_set!)
-	     (gen "((" (first params) #\=)
-	     (expr (first subs) i) 
-	     (gen "),C_SCHEME_UNDEFINED)"))
-
-	    ((##core#inline_unboxed)	;XXX is this needed?
-	     (gen (first params) "(")
-	     (expr-args subs i)
-	     (gen #\)))
 
 	    ((##core#switch)
 	     (gen #t "switch(")
@@ -705,6 +705,7 @@
 	    ((bignum? lit) 2)		; internal vector statically allocated
 	    ((flonum? lit) words-per-flonum)
 	    ((symbol? lit) 7)           ; size of symbol, and possibly a bucket
+	    ((keyword? lit) 7)          ; size of keyword (symbol), and possibly a bucket
 	    ((pair? lit) (+ 3 (literal-size (car lit)) (literal-size (cdr lit))))
 	    ((vector? lit)
 	     (+ 1 (vector-length lit)
@@ -739,12 +740,15 @@
 	     (gen #t to #\= (if lit "C_SCHEME_TRUE" "C_SCHEME_FALSE") #\;) )
 	    ((char? lit)
 	     (gen #t to "=C_make_character(" (char->integer lit) ");") )
-	    ((symbol? lit)		; handled slightly specially (see C_h_intern_in)
-	     (let* ([str (##sys#slot lit 1)]
-		    [cstr (c-ify-string str)]
-		    [len (##sys#size str)] )
+	    ((or (keyword? lit) (symbol? lit)) ; handled slightly specially (see C_h_intern_in)
+	     (let* ((str (##sys#slot lit 1))
+		    (cstr (c-ify-string str))
+		    (len (##sys#size str))
+		    (intern (if (keyword? lit)
+				"C_h_intern_kw"
+				"C_h_intern")))
 	       (gen #t to "=")
-	       (gen "C_h_intern(&" to #\, len ", C_text(" cstr "));")))
+	       (gen intern "(&" to #\, len ", C_text(" cstr "));")))
 	    ((null? lit) 
 	     (gen #t to "=C_SCHEME_END_OF_LIST;") )
 	    ((and (not (##sys#immediate? lit)) ; nop
@@ -772,16 +776,6 @@
 	(##sys#copy-bytes s s2 start 0 len)
 	s2) )
 
-    (define (utype t)
-      (case t
-	((fixnum) "int")
-	((flonum) "double")
-	((char) "char")
-	((pointer) "void *")
-	((int) "int")
-	((bool) "int")
-	(else (bomb "invalid unboxed type" t))))
-
     (define (procedures)
       (for-each
        (lambda (p)
@@ -804,7 +798,7 @@
 		(direct (lambda-literal-direct ll))
 		(rest-mode (lambda-literal-rest-argument-mode ll))
 		(temps (lambda-literal-temporaries ll))
-		(ubtemps (lambda-literal-unboxed-temporaries ll))
+                (ftemps (lambda-literal-float-temporaries ll))
 		(topname (toplevel unit-name)))
 	   (when empty-closure (debugging 'o "dropping unused closure argument" id))
 	   (gen #t #t)
@@ -842,11 +836,11 @@
 		 (do ([i n (add1 i)]
 		      [j (+ temps (if looping (sub1 n) 0)) (sub1 j)] )
 		     ((zero? j))
-		   (gen #t "C_word t" i #\;) )
-		 (for-each
-		  (lambda (ubt)
-		    (gen #t (utype (cdr ubt)) #\space (car ubt) #\;))
-		  ubtemps)))
+		   (gen #t "C_word t" i #\;))
+                 (for-each
+                   (lambda (i)
+                     (gen #t "double f" i #\;))
+                   ftemps)))
 	   (cond ((eq? 'toplevel id)
 		  (let ([ldemand (foldl (lambda (n lit) (+ n (literal-size lit))) 0 literals)]
 			[llen (length literals)] )
@@ -962,7 +956,9 @@
      (gen #t "{" (second info) ",0,")
      (for-each
       (lambda (x)
-	(gen "C_text(\"" (backslashify (->string x)) "\"),"))
+	(if (not x)
+	    (gen "NULL,")
+	    (gen "C_text(\"" (backslashify (->string x)) "\"),")))
       (cddr info))
      (gen "},"))
    (sort dbg-info-table (lambda (i1 i2) (< (car i1) (car i2)))))
@@ -1489,11 +1485,12 @@ return((C_header_bits(lit) >> 24) & 0xff);
 	    (string-append "\xc2" (encode-size (string-length str)) str)))
 	 ((flonum? lit)
 	  (string-append "\x55" (number->string lit) "\x00") )
-	 ((symbol? lit)
+	 ((or (keyword? lit) (symbol? lit))
 	  (let ((str (##sys#slot lit 1)))
 	    (string-append 
-	     "\x01" 
+	     "\x01"
 	     (encode-size (string-length str))
+	     (if (keyword? lit) "\x02" "\x01")
 	     str) ) )
 	 ((##sys#immediate? lit)
 	  (bomb "invalid literal - cannot encode" lit))

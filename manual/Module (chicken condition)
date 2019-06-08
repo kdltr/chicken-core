@@ -87,8 +87,8 @@ Signaled on syntax errors.
 exception-handler and the name of the procedure where the error occurred (if
 available).
 
-* When the {{posix}} unit is available and used, then a user-interrupt
-({{signal/int}}) signals an exception of the kind {{user-interrupt}}.
+* Within the interpreter (csi), a user-interrupt ({{signal/int}}) signals an
+exception of the kind {{user-interrupt}}.
 
 * The procedure {{condition-property-accessor}} accepts an optional third
 argument. If the condition does not have a value for the desired property and

@@ -50,6 +50,8 @@ the source text should be read from standard input.
 
 ; -emit-external-prototypes-first : Emit prototypes for callbacks defined with {{define-external}} before any other foreign declarations. This is sometimes useful, when C/C++ code embedded into the a Scheme program has to access the callbacks. By default the prototypes are emitted after foreign declarations.
 
+; -regenerate-import-libraries : Always emit new import libraries, even when their contents haven't changed. The default behaviour is to preserve existing import libraries.
+
 ; -emit-import-library MODULE : Specifies that an import library named {{MODULE.import.scm}} for the named module should be generated (equivalent to using the {{emit-import-library}} declaration).
 
 ; -emit-inline-file FILENAME : Write procedures that can be globally inlined in internal form to {{FILENAME}}, if global inlining is enabled. Implies {{-inline -local}}. If the inline-file would be empty (because no procedure would be inlinable) no file is generated and any existing inline-file with that name is deleted.
@@ -121,7 +123,7 @@ the source text should be read from standard input.
 
 ; -optimize-leaf-routines : Enable leaf routine optimization.
 
-; -optimize-level LEVEL : Enables certain sets of optimization options. {{LEVEL}} should be an integer. Level {{0}} is equivalent to {{-no-usual-integrations -no-compiler-syntax}} (no optimization), level {{1}  is equivalent to {{-optimize-leaf-routines}} (minimal optimization), level {{2}} is equivalent to {{-optimize-leaf-routines -inline}} (enable optimizations that do not break standard compliance, this is the default), level {{3}} is equivalent to {{-optimize-leaf-routines -local -inline -inline-global -specialize}} (maximal optimization, while still "safe"), level {{4}} is equivalent to {{-optimize-leaf-routines -local -inline -inline-global -specialize -unsafe}} (maximal optimization, "unsafe") and any higher level is equivalent to {{-optimize-leaf-routines -block -inline -inline-global -specialize -unsafe -disable-interrupts -no-trace -no-lambda-info -clustering -lfa2}} (all possible optimizations, "unsafe").
+; -optimize-level LEVEL : Enables certain sets of optimization options. {{LEVEL}} should be an integer. Level {{0}} is equivalent to {{-no-usual-integrations -no-compiler-syntax}} (no optimization), level {{1}  is equivalent to {{-optimize-leaf-routines}} (minimal optimization), level {{2}} is equivalent to {{-optimize-leaf-routines -inline -lfa2}} (enable optimizations that do not break standard compliance, this is the default), level {{3}} is equivalent to {{-optimize-leaf-routines -local -inline -lfa2 -inline-global -specialize}} (maximal optimization, while still "safe"), level {{4}} is equivalent to {{-optimize-leaf-routines -local -inline -lfa2 -inline-global -specialize -unsafe}} (maximal optimization, "unsafe") and any higher level is equivalent to {{-optimize-leaf-routines -block -inline -lfa2 -inline-global -specialize -unsafe -disable-interrupts -no-trace -no-lambda-info -clustering}} (all possible optimizations, "unsafe").
 
 ; -output-file FILENAME : Specifies the pathname of the generated C file. Default is to use the source filename with the extension replaced by {{.c}}.
 

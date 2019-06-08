@@ -84,7 +84,7 @@ CHICKEN includes
 * a compatible compiler whose target is C, thus making porting to new
   machines and architectures relatively straightforward
 * the C support allows Scheme code to include `embedded' C code,
-  thus making it easyto invoke host OS or library
+  thus making it easy to invoke host OS or library
   functions
 * a framework for language extensions, library modules that broaden
   the functionality of the system
@@ -237,7 +237,7 @@ To invoke the CHICKEN interpreter, you use the {{csi}} command.
 
  $ csi
  CHICKEN
- (c) 2008-2018, The CHICKEN Team
+ (c) 2008-2019, The CHICKEN Team
  (c) 2000-2007, Felix L. Winkelmann
  Version 5.0.0 (rev 6653dce)
  linux-unix-gnu-x86-64 [ 64bit dload ptables ]
@@ -295,7 +295,8 @@ following little program:
 <enscript highlight=scheme>
 ;; irregex, the regular expression library, is one of the
 ;; libraries included with CHICKEN.
-(import (chicken irregex))
+(import (chicken irregex)
+        (chicken io))
 
 (define (process-line line re rplc) 
   (irregex-replace/all re line rplc))

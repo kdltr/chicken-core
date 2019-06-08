@@ -1,6 +1,6 @@
 # rules.make - basic build rules -*- Makefile -*-
 #
-# Copyright (c) 2008-2018, The CHICKEN Team
+# Copyright (c) 2008-2019, The CHICKEN Team
 # Copyright (c) 2000-2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -127,7 +127,7 @@ $(eval $(call declare-static-libchicken-object,eval-modules))
 
 define declare-import-lib-object
 $(1).import$(O): $(1).import.c chicken.h $$(CHICKEN_CONFIG_H)
-	$$(C_COMPILER) $$(C_COMPILER_OPTIONS) $$(C_COMPILER_PTABLES_OPTIONS) \
+	$$(C_COMPILER) $$(C_COMPILER_OPTIONS)  \
 	  -DC_SHARED $$(C_COMPILER_COMPILE_OPTION) \
 	  $$(C_COMPILER_OPTIMIZATION_OPTIONS) $$(C_COMPILER_SHARED_OPTIONS) \
 	  $$(C_COMPILER_BUILD_RUNTIME_OPTIONS) $$< $$(C_COMPILER_OUTPUT) \
@@ -339,8 +339,7 @@ install-bin: $(TARGETS) install-libs install-dev
 		$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) \
 		$(prog)$(EXE) "$(DESTDIR)$(IBINDIR)" $(NL))
 
-	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) $(CHICKEN_DEBUGGER_PROGRAM) \
-	  "$(DESTDIR)$(IBINDIR)"
+	$(INSTALL_PROGRAM) $(INSTALL_PROGRAM_EXECUTABLE_OPTIONS) $(CHICKEN_DEBUGGER_PROGRAM) "$(DESTDIR)$(IBINDIR)"
 
 ifdef STATICBUILD
 	$(foreach lib,$(IMPORT_LIBRARIES),\

@@ -1,6 +1,6 @@
 ;;;; expand.scm - The HI/LO expander
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -94,7 +94,7 @@
 	(else #f)))
 
 (define (macro-alias var se)
-  (if (or (##sys#qualified-symbol? var) (namespaced-symbol? var))
+  (if (or (keyword? var) (namespaced-symbol? var))
       var
       (let* ((alias (gensym var))
 	     (ua (or (lookup var se) var))
@@ -111,6 +111,7 @@
  (let ((seen '()))
    (let walk ((x exp))
      (cond ((assq x seen) => cdr)
+	   ((keyword? x) x)
            ((symbol? x)
             (let ((x2 (getp x '##core#macro-alias) ) )
               (cond ((getp x '##core#real-name))
@@ -299,7 +300,7 @@
 			 (cond ((eq? result exp) (expand head exp head2))
 			       (else
 				(when ##sys#compiler-syntax-hook
-				  (##sys#compiler-syntax-hook head result))
+				  (##sys#compiler-syntax-hook head2 result))
 				(loop result))))))
 		    [else (expand head exp head2)] ) )
 	    (values exp #f) ) )
@@ -769,6 +770,9 @@
 			  (loop (cdr x)) ) ) )
 		  (else #f) ) ) ) )
 
+    (define (variable? v)
+      (symbol? v))
+
     (define (proper-list? x)
       (let loop ((x x))
 	(cond ((eq? x '()))
@@ -802,7 +806,7 @@
 	     (case p
 	       ((_) #t)
 	       ((pair) (test x pair? "pair expected"))
-	       ((variable) (test x symbol? "identifier expected"))
+	       ((variable) (test x variable? "identifier expected"))
 	       ((symbol) (test x symbol? "symbol expected"))
 	       ((list) (test x proper-list? "proper list expected"))
 	       ((number) (test x number? "number expected"))
@@ -836,7 +840,7 @@
 		(cons (rename (car sym)) (rename (cdr sym))))
 	       ((vector? sym)
 		(list->vector (rename (vector->list sym))))
-	       ((not (symbol? sym)) sym)
+	       ((or (not (symbol? sym)) (keyword? sym)) sym)
 	       ((assq sym renv) => 
 		(lambda (a) 
 		  (dd `(RENAME/RENV: ,sym --> ,(cdr a)))
@@ -859,7 +863,8 @@
 				   (do ((i 0 (fx+ i 1))
 					(f #t (compare (vector-ref s1 i) (vector-ref s2 i))))
 				       ((or (fx>= i len) (not f)) f))))))
-		      ((and (symbol? s1) (symbol? s2))
+		      ((and (symbol? s1) (not (keyword? s1))
+			    (symbol? s2) (not (keyword? s2)))
 		       (let ((ss1 (or (getp s1 '##core#macro-alias)
 				      (lookup2 1 s1 dse)
 				      s1) )
@@ -897,7 +902,7 @@
 		(cons (mirror-rename (car sym)) (mirror-rename (cdr sym))))
 	       ((vector? sym)
 		(list->vector (mirror-rename (vector->list sym))))
-	       ((not (symbol? sym)) sym)
+	       ((or (not (symbol? sym)) (keyword? sym)) sym)
 	       (else		 ; Code stolen from strip-syntax
 		(let ((renamed (lookup sym se) ) )
 		  (cond ((assq-reverse sym renv) =>
@@ -969,7 +974,11 @@
     (lambda (x r c)
       `(##core#begin
 	,@(map (lambda (x)
-		 (let-values (((name lib spec v s i) (##sys#decompose-import x r c 'import)))
+		 (let-values (((name lib spec v s i) (##sys#decompose-import x r c 'import))
+			      ((mod) (##sys#current-module)))
+		   (when (and mod (eq? name (##sys#module-name mod)))
+		     (##sys#syntax-error-hook
+		      'import "cannot import from module currently being defined" name))
 		   (if (not spec)
 		       (##sys#syntax-error-hook
 			'import "cannot import from undefined module" name)
@@ -1240,7 +1249,7 @@
 	(let ((head (cadr form))
 	      (body (cddr form)) )
 	  (cond ((not (pair? head))
-		 (##sys#check-syntax 'define form '(_ symbol . #(_ 0 1)))
+		 (##sys#check-syntax 'define form '(_ variable . #(_ 0 1)))
                  (let ((name (or (getp head '##core#macro-alias) head)))
                    (##sys#register-export name (##sys#current-module)))
 		 (when (c (r 'define) head)
@@ -1254,7 +1263,7 @@
 		 (##sys#check-syntax 'define form '(_ (_ . lambda-list) . #(_ 1)))
 		 (loop (chicken.syntax#expand-curried-define head body '()))) ;XXX '() should be se
 		(else
-		 (##sys#check-syntax 'define form '(_ (symbol . lambda-list) . #(_ 1)))
+		 (##sys#check-syntax 'define form '(_ (variable . lambda-list) . #(_ 1)))
 		 (loop (list (car x) (car head) `(##core#lambda ,(cdr head) ,@body)))))))))))
 
 (set! chicken.syntax#define-syntax-definition
@@ -1263,7 +1272,7 @@
    '()
    (##sys#er-transformer
     (lambda (form r c)
-      (##sys#check-syntax 'define-syntax form '(_ symbol _))
+      (##sys#check-syntax 'define-syntax form '(_ variable _))
       (let ((head (cadr form))
 	    (body (caddr form)))
 	(let ((name (or (getp head '##core#macro-alias) head)))
@@ -1278,10 +1287,10 @@
  (##sys#er-transformer
   (lambda (x r c)
     (cond ((and (pair? (cdr x)) (symbol? (cadr x)))
-	   (##sys#check-syntax 'let x '(_ symbol #((symbol _) 0) . #(_ 1)))
+	   (##sys#check-syntax 'let x '(_ variable #((variable _) 0) . #(_ 1)))
            (check-for-multiple-bindings (caddr x) x "let"))
 	  (else
-	   (##sys#check-syntax 'let x '(_ #((symbol _) 0) . #(_ 1)))
+	   (##sys#check-syntax 'let x '(_ #((variable _) 0) . #(_ 1)))
            (check-for-multiple-bindings (cadr x) x "let")))
     `(##core#let ,@(cdr x)))))
 
@@ -1290,7 +1299,7 @@
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    (##sys#check-syntax 'letrec x '(_ #((symbol _) 0) . #(_ 1)))
+    (##sys#check-syntax 'letrec x '(_ #((variable _) 0) . #(_ 1)))
     (check-for-multiple-bindings (cadr x) x "letrec")
     `(##core#letrec ,@(cdr x)))))
 
@@ -1299,7 +1308,7 @@
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    (##sys#check-syntax 'let-syntax x '(_ #((symbol _) 0) . #(_ 1)))
+    (##sys#check-syntax 'let-syntax x '(_ #((variable _) 0) . #(_ 1)))
     (check-for-multiple-bindings (cadr x) x "let-syntax")
     `(##core#let-syntax ,@(cdr x)))))
 
@@ -1308,7 +1317,7 @@
  '()
  (##sys#er-transformer
   (lambda (x r c)
-    (##sys#check-syntax 'letrec-syntax x '(_ #((symbol _) 0) . #(_ 1)))
+    (##sys#check-syntax 'letrec-syntax x '(_ #((variable _) 0) . #(_ 1)))
     (check-for-multiple-bindings (cadr x) x "letrec-syntax")
     `(##core#letrec-syntax ,@(cdr x)))))
 
@@ -1469,7 +1478,7 @@
  '()
  (##sys#er-transformer
   (lambda (form r c)
-    (##sys#check-syntax 'let* form '(_ #((symbol _) 0) . #(_ 1)))
+    (##sys#check-syntax 'let* form '(_ #((variable _) 0) . #(_ 1)))
     (let ((bindings (cadr form))
 	  (body (cddr form)) )
       (let expand ((bs bindings))
@@ -1482,7 +1491,7 @@
  '()
  (##sys#er-transformer
   (lambda (form r c)
-    (##sys#check-syntax 'do form '(_ #((symbol _ . #(_)) 0) . #(_ 1)))
+    (##sys#check-syntax 'do form '(_ #((variable _ . #(_)) 0) . #(_ 1)))
     (let ((bindings (cadr form))
 	  (test (caddr form))
 	  (body (cdddr form))

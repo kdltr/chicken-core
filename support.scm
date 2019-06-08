@@ -1,6 +1,6 @@
 ;;;; support.scm - Miscellaneous support code for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -32,9 +32,8 @@
 (module chicken.compiler.support
     (compiler-cleanup-hook bomb collected-debugging-output debugging
      debugging-chicken with-debugging-output quit-compiling
-     emit-syntax-trace-info check-signature stringify symbolify
-     build-lambda-list c-ify-string valid-c-identifier?
-     read-expressions
+     emit-syntax-trace-info check-signature build-lambda-list
+     c-ify-string valid-c-identifier? read-expressions
      bytes->words words->bytes
      check-and-open-input-file close-checked-input-file fold-inner
      constant? collapsable-literal? immediate? basic-literal?
@@ -64,7 +63,8 @@
      block-variable-literal-name make-random-name
      clear-real-name-table! get-real-name set-real-name!
      real-name real-name2 display-real-name-table
-     source-info->string source-info->line call-info constant-form-eval
+     source-info->string source-info->line source-info->name
+     call-info constant-form-eval maybe-constant-fold-call
      dump-nodes read-info-hook read/source-info big-fixnum? small-bignum?
      hide-variable export-variable variable-hidden? variable-visible?
      mark-variable variable-mark intrinsic? predicate? foldable?
@@ -220,16 +220,6 @@
 
 ;;; Generic utility routines:
 
-(define (stringify x)
-  (cond ((string? x) x)
-	((symbol? x) (symbol->string x))
-	(else (sprintf "~a" x)) ) )
-
-(define (symbolify x)
-  (cond ((symbol? x) x)
-	((string? x) (string->symbol x))
-	(else (string->symbol (sprintf "~a" x))) ) )
-
 (define (build-lambda-list vars argc rest)
   (let loop ((vars vars) (n argc))
     (cond ((or (zero? n) (null? vars)) (or rest '()))
@@ -254,7 +244,7 @@
 			(loop (cdr chars)) )
 		(cons c (loop (cdr chars))) ) ) ) ) ) ) )
 
-;; XXX: This too, but it's used only in compiler.scm, WTF?
+;; XXX: This too, but it's used only in core.scm, WTF?
 (define (valid-c-identifier? name)
   (let ([str (string->list (->string name))])
     (and (pair? str)
@@ -587,8 +577,8 @@
 			 (if ln
 			     (let ([rn (real-name name)])
 			       (list ln
-				     (or rn (##sys#symbol->qualified-string name))) )
-			     (##sys#symbol->qualified-string name) ) )
+				     (or rn (##sys#symbol->string name))) )
+			     (##sys#symbol->string name) ) )
 		   (map walk x) ) ) ) ) )
 	    (else (make-node '##core#call (list #f) (map walk x))) ) )
     (let ([exp2 (walk exp)])
@@ -645,7 +635,7 @@
 	       (loop (- n 1) (cdr vals) (cons (walk (car vals)) bindings)) ) ) )
 	((##core#unbox ##core#ref ##core#update ##core#update_i)
 	 (cons* class (walk (car subs)) params (map walk (cdr subs))) ) 
-	((##core#inline_allocate ##core#let_unboxed)
+	((##core#inline_allocate)
 	 (cons* class params (map walk subs)))
 	(else (cons class (append params (map walk subs)))) ) ) ) )
 
@@ -924,7 +914,7 @@
 
 (set! ##sys#toplevel-definition-hook
   (lambda (sym renamed exported?)
-    (cond ((or (##sys#qualified-symbol? sym) (namespaced-symbol? sym))
+    (cond ((namespaced-symbol? sym)
 	   (unhide-variable sym))
 	  ((not exported?)
 	   (debugging 'o "hiding unexported module binding" renamed)
@@ -1002,37 +992,37 @@
 	     ((float double number) (if unsafe param `(##sys#foreign-flonum-argument ,param)))
 	     ((blob scheme-pointer)
 	      (let ((tmp (gensym)))
-		`(let ((,tmp ,param))
-		   (if ,tmp
-		       ,(if unsafe
-			    tmp
-			    `(##sys#foreign-block-argument ,tmp) )
-		       '#f) ) ) )
+		`(##core#let ((,tmp ,param))
+		   (##core#if ,tmp
+			      ,(if unsafe
+				   tmp
+				   `(##sys#foreign-block-argument ,tmp) )
+		       (##core#quote #f)) ) ) )
 	     ((nonnull-scheme-pointer nonnull-blob)
 	      (if unsafe
 		  param
 		  `(##sys#foreign-block-argument ,param) ) )
 	     ((pointer-vector)
 	      (let ((tmp (gensym)))
-		`(let ((,tmp ,param))
-		   (if ,tmp
-		       ,(if unsafe
-			    tmp
-			    `(##sys#foreign-struct-wrapper-argument 'pointer-vector ,tmp) )
-		       '#f) ) ) )
+		`(##core#let ((,tmp ,param))
+		   (##core#if ,tmp
+			      ,(if unsafe
+				   tmp
+				   `(##sys#foreign-struct-wrapper-argument (##core#quote pointer-vector) ,tmp) )
+		       (##core#quote #f)) ) ) )
 	     ((nonnull-pointer-vector)
 	      (if unsafe
 		  param
-		  `(##sys#foreign-struct-wrapper-argument 'pointer-vector ,param) ) )
+		  `(##sys#foreign-struct-wrapper-argument (##core#quote pointer-vector) ,param) ) )
 	     ((u8vector u16vector s8vector s16vector u32vector s32vector
 			u64vector s64vector f32vector f64vector)
 	      (let ((tmp (gensym)))
-		`(let ((,tmp ,param))
-		   (if ,tmp
-		       ,(if unsafe
-			    tmp
-			    `(##sys#foreign-struct-wrapper-argument ',t ,tmp) )
-		       '#f) ) ) )
+		`(##core#let ((,tmp ,param))
+		   (##core#if ,tmp
+			      ,(if unsafe
+				   tmp
+				   `(##sys#foreign-struct-wrapper-argument (##core#quote ,t) ,tmp) )
+		       (##core#quote #f)) ) ) )
 	     ((nonnull-u8vector nonnull-u16vector
 				nonnull-s8vector nonnull-s16vector
 				nonnull-u32vector nonnull-s32vector
@@ -1041,7 +1031,7 @@
 	      (if unsafe
 		  param
 		  `(##sys#foreign-struct-wrapper-argument 
-		    ',(##sys#slot (assq t tmap) 1)
+		    (##core#quote ,(##sys#slot (assq t tmap) 1))
 		    ,param) ) )
 	     ((integer32 integer64 integer short long ssize_t)
 	      (let* ((foreign-type (##sys#slot (assq t ftmap) 1))
@@ -1060,20 +1050,20 @@
 		      ,param (foreign-value ,size-expr int)))))
 	     ((c-pointer c-string-list c-string-list*)
 	      (let ((tmp (gensym)))
-		`(let ((,tmp ,param))
-		   (if ,tmp
-		       (##sys#foreign-pointer-argument ,tmp)
-		       '#f) ) ) )
+		`(##core#let ((,tmp ,param))
+		   (##core#if ,tmp
+			      (##sys#foreign-pointer-argument ,tmp)
+			      (##core#quote #f)) ) ) )
 	     ((nonnull-c-pointer)
 	      `(##sys#foreign-pointer-argument ,param) )
 	     ((c-string c-string* unsigned-c-string unsigned-c-string*)
 	      (let ((tmp (gensym)))
-		`(let ((,tmp ,param))
-		   (if ,tmp
-		       ,(if unsafe 
-			    `(##sys#make-c-string ,tmp)
-			    `(##sys#make-c-string (##sys#foreign-string-argument ,tmp)) )
-		       '#f) ) ) )
+		`(##core#let ((,tmp ,param))
+		   (##core#if ,tmp
+			      ,(if unsafe 
+				   `(##sys#make-c-string ,tmp)
+				   `(##sys#make-c-string (##sys#foreign-string-argument ,tmp)) )
+		       (##core#quote #f)) ) ) )
 	     ((nonnull-c-string nonnull-c-string* nonnull-unsigned-c-string*)
 	      (if unsafe 
 		  `(##sys#make-c-string ,param)
@@ -1089,30 +1079,30 @@
 		     (case (car t)
 		       ((ref pointer function c-pointer)
 			(let ((tmp (gensym)))
-			  `(let ((,tmp ,param))
-			     (if ,tmp
-				 (##sys#foreign-pointer-argument ,tmp)
-				 '#f) ) )  )
+			  `(##core#let ((,tmp ,param))
+			     (##core#if ,tmp
+					(##sys#foreign-pointer-argument ,tmp)
+					(##core#quote #f)) ) )  )
 		       ((instance instance-ref)
 			(let ((tmp (gensym)))
-			  `(let ((,tmp ,param))
-			     (if ,tmp
-				 (slot-ref ,param 'this)
-				 '#f) ) ) )
+			  `(##core#let ((,tmp ,param))
+			     (##core#if ,tmp
+					(slot-ref ,param (##core#quote this))
+					(##core#quote #f)) ) ) )
 		       ((scheme-pointer)
 			(let ((tmp (gensym)))
-			  `(let ((,tmp ,param))
-			     (if ,tmp
-				 ,(if unsafe
-				      tmp
-				      `(##sys#foreign-block-argument ,tmp) )
-				 '#f) ) ) )
+			  `(##core#let ((,tmp ,param))
+			     (##core#if ,tmp
+					,(if unsafe
+					     tmp
+					     `(##sys#foreign-block-argument ,tmp) )
+					(##core#quote #f)) ) ) )
 		       ((nonnull-scheme-pointer)
 			(if unsafe
 			    param
 			    `(##sys#foreign-block-argument ,param) ) )
 		       ((nonnull-instance)
-			`(slot-ref ,param 'this) )
+			`(slot-ref ,param (##core#quote this)) )
 		       ((const) (repeat (cadr t)))
 		       ((enum)
 			(if unsafe
@@ -1223,14 +1213,14 @@
 (define (finish-foreign-result type body) ; Used only in compiler.scm
   (let ((type (strip-syntax type)))
     (case type
-      [(c-string unsigned-c-string) `(##sys#peek-c-string ,body '0)]
-      [(nonnull-c-string) `(##sys#peek-nonnull-c-string ,body '0)]
-      [(c-string* unsigned-c-string*) `(##sys#peek-and-free-c-string ,body '0)]
-      [(nonnull-c-string* nonnull-unsigned-c-string*) `(##sys#peek-and-free-nonnull-c-string ,body '0)]
-      [(symbol) `(##sys#intern-symbol (##sys#peek-c-string ,body '0))]
-      [(c-string-list) `(##sys#peek-c-string-list ,body '#f)]
-      [(c-string-list*) `(##sys#peek-and-free-c-string-list ,body '#f)]
-      [else
+      ((c-string unsigned-c-string) `(##sys#peek-c-string ,body (##core#quote 0)))
+      ((nonnull-c-string) `(##sys#peek-nonnull-c-string ,body (##core#quote 0)))
+      ((c-string* unsigned-c-string*) `(##sys#peek-and-free-c-string ,body (##core#quote 0)))
+      ((nonnull-c-string* nonnull-unsigned-c-string*) `(##sys#peek-and-free-nonnull-c-string ,body (##core#quote 0)))
+      ((symbol) `(##sys#intern-symbol (##sys#peek-c-string ,body (##core#quote 0))))
+      ((c-string-list) `(##sys#peek-c-string-list ,body (##core#quote #f)))
+      ((c-string-list*) `(##sys#peek-and-free-c-string-list ,body (##core#quote #f)))
+      (else
        (if (list? type)
 	   (if (and (eq? (car type) 'const)
 		    (= 2 (length type))
@@ -1246,12 +1236,13 @@
 			`(let ((,tmp ,body))
 			   (and ,tmp
 				(not (##sys#null-pointer? ,tmp))
-				(make ,(caddr type) 'this ,tmp) ) ) ) )
+				(make ,(caddr type)
+				  (##core#quote this) ,tmp) ) ) ) )
 		     ((nonnull-instance)
-		      `(make ,(caddr type) 'this ,body) )
+		      `(make ,(caddr type) (##core#quote this) ,body) )
 		     (else body))
 		   body))
-	   body)])))
+	   body)))))
 
 
 ;;; Translate foreign-type into scrutinizer type:
@@ -1433,10 +1424,10 @@
 	      n2) 
 	  n) ) )
   (let ((rn (resolve var)))
-    (cond ((not rn) (##sys#symbol->qualified-string var))
+    (cond ((not rn) (##sys#symbol->string var))
 	  ((pair? db)
 	   (let ((db (car db)))
-	     (let loop ((nesting (list (##sys#symbol->qualified-string rn)))
+	     (let loop ((nesting (list (##sys#symbol->string rn)))
 			(depth 0)
 			(container (db-get db var 'contained-in)) )
 	       (cond
@@ -1450,7 +1441,7 @@
 			     (fx+ depth 1)
 			     (db-get db container 'contained-in) ) ) ))
 		(else (string-intersperse (reverse nesting) " in "))) ) ) )
-	  (else (##sys#symbol->qualified-string rn)) ) ) )
+	  (else (##sys#symbol->string rn)) ) ) )
 
 (define (real-name2 var db)		; Used only in c-backend.scm
   (and-let* ((rn (hash-table-ref real-name-table var)))
@@ -1467,12 +1458,13 @@
       (let ((ln (car info))
 	    (name (cadr info)))
 	(conc ln ":" (make-string (max 0 (- 4 (string-length ln))) #\space) " " name) )
-      info))
+      (->string info)))
+
+(define (source-info->name info)
+  (if (list? info) (cadr info) (->string info)))
 
 (define (source-info->line info)
-  (if (list? info)
-      (car info)
-      (and info (->string info))))
+  (and (list? info) (car info)))
 
 (define (call-info params var)		; Used only in optimizer.scm
   (or (and-let* ((info (and (pair? (cdr params)) (second params))))
@@ -1491,21 +1483,29 @@
     ;; op must have toplevel binding, result must be single-valued
     (let ((proc (##sys#slot op 0)))
       (if (procedure? proc)
-	  (let ((results (handle-exceptions ex
-			     (k #f form #f
-				(get-condition-property ex 'exn 'message))
-			   (receive (apply proc args)))))
-	    (cond ((node? results) ; TODO: This should not happen
-		   (k #f form #f #f))
+	  (let ((results (handle-exceptions ex ex (receive (apply proc args)))))
+	    (cond ((condition? results) (k #f #f))
 		  ((and (= 1 (length results))
 			(encodeable-literal? (car results)))
 		   (debugging 'o "folded constant expression" form)
-		   (k #t form (car results) #f))
+		   (k #t (car results)))
 		  ((= 1 (length results)) ; not encodeable; don't fold
-		   (k #f form #f #f))
+		   (k #f #f))
 		  (else
 		   (bomb "attempt to constant-fold call to procedure that has multiple results" form))))
 	  (bomb "attempt to constant-fold call to non-procedure" form)))))
+
+(define (maybe-constant-fold-call n subs k)
+  (define (constant-node? n2) (eq? 'quote (node-class n2)))
+  (if (eq? '##core#variable (node-class (car subs)))
+      (let ((var (first (node-parameters (car subs)))))
+	(if (and (intrinsic? var)
+		 (or (foldable? var)
+		     (predicate? var))
+		 (every constant-node? (cdr subs)) )
+	    (constant-form-eval var (cdr subs) (lambda (ok res) (k ok res #t)))
+	    (k #f #f #f)))
+      (k #f #f #f)))
 
 ;; Is the literal small enough to be encoded?  Otherwise, it should
 ;; not be constant-folded.
@@ -1804,6 +1804,7 @@ Usage: chicken FILENAME [OPTION ...]
     -emit-external-prototypes-first
                                  emit prototypes for callbacks before foreign
                                   declarations
+    -regenerate-import-libraries emit import libraries even when unchanged
     -ignore-repository           do not refer to repository for extensions
     -setup-mode                  prefer the current directory when locating extensions
 

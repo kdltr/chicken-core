@@ -1956,7 +1956,8 @@ See "[[#implementation-restrictions|Implementation restrictions]]".
 
 Radix must be an exact integer.  The R5RS standard only requires
 implementations to support 2, 8, 10, or 16, but CHICKEN allows any
-radix between 2 and 36, inclusive.  If omitted, radix defaults to
+radix between 2 and 36, inclusive (note: a bug in CHICKEN 5 currently 
+limits the upper bound to 16).  If omitted, radix defaults to
 10. The procedure number->string takes a number and a radix and
 returns as a string an external representation of the given number in
 the given radix such that

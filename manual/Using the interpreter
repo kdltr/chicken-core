@@ -208,11 +208,11 @@ will not return the result you expected.
 On platforms that support it, it is possible to get auto-completion of
 symbols, history (over different {{csi}} sessions) and a more
 feature-full editor for the expressions you type using the
-[[/eggref/4/readline|readline]] egg by Tony
-Garnock Jones.  It is very useful for interactive use of csi. See the
-egg's documentation on how to set it up. If readline is not available
-on your system consider using the self-contained
-[[/eggref/4/linenoise|linenoise]] egg
+[[/eggref/5/breadline|breadline]] egg by Vasilij Schneidermann.
+It is very useful for interactive use of csi. See the egg's
+documentation on how to set it up. If readline is not available on
+your system consider using the self-contained
+[[/eggref/5/linenoise|linenoise]] egg
 instead. It should work on almost any system but is not as
 feature-rich as readline (e.g. it lacks reverse-i-search and
 auto-completion).

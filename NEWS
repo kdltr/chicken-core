@@ -1,3 +1,92 @@
+5.1.0
+
+- Core libraries
+  - Symbols ending or starting with a colon are now always pipe-quoted
+    when written by `write` to ensure they can be read back with a
+    different keyword-style setting.
+  - Read-write invariance of special symbols starting with #! other
+    than #!key, #!rest or #!optional is now preserved (#1572).
+  - When using (set-file-position!) on a port, its EOF status will now
+    be reset.
+  - In (chicken file posix), the values of perm/irgrp, perm/iwgrp,
+    perm/ixgrp, perm/iroth, perm/iwoth and perm/ixoth are now correctly
+    defined (they were all for "usr"; #1602, thanks to Eric Hoffman).
+  - In (chicken file posix), `file-truncate` now accepts also accepts
+    port objects, for consistency with other file procedures.
+    All such procedures from (chicken file posix) now have the correct
+    types in types.db (fixes #1609, thanks to Robert Jensen).
+
+- Runtime system
+  - Keywords are now distinct types; they are not a subtype of symbols.
+  - Use arc4random on FreeBSD (thanks to Tobias Kortkamp and gahr)
+  - Removed the unused, undocumented (and incorrect!) C functions
+    C_delete_symbol_table and C_set_symbol_table.
+  - Continuations which discard additional values beyond the first no
+    longer accept multiple values via direct invocation after being
+    captured through `call/cc`, only via `values` (revert of #1390,
+    due to #1601)
+  - SRFI-4 vector predicates, reference, set and length procedures
+    should now be faster in tight loops as they're inlineable (#757).
+  - Keywords are now interned in a separate keyword table, not in the
+    standard symbol table.  This brings full read-write invariance
+    for symbols (they can now also start with NUL bytes).  Keywords
+    no longer have plists.  Fixes #1576.
+  - Increased the "binary compatibility version" to 11.
+
+- Compiler
+  - Restored optimized implementations of =, +, -, /, * and quotient in
+    fixnum-arithmetic mode (fixes #1604 mostly; thanks to "chickendan").
+
+- Module system
+  - When you try to import the module you are currently defining into
+    itself, an error will be raised. This prevents an infinite loop in
+    the compiler when later trying to import that same module (fixes
+    #1506, thanks to Kristian Lein-Mathisen).
+
+- Foreign function interface
+  - Improved hygiene in FFI macro expansions, which means you don't
+     have to import "scheme" or "(chicken base)" for them to work.
+
+5.0.1
+
+- Type system
+  - It is now possible to quote free variables in type declarations,
+     which acts as shorthand for `forall' (thanks to "megane")
+
+- Tools
+  - csi now uses (system-config-directory) to find csirc and falls back to
+    $HOME/.csirc when needed.
+  - chicken-install now uses (system-config-directory) to find a user
+    defined setup.defaults file ; it also uses (system-cache-directory)
+    for its egg cache directory when the CHICKEN_EGG_CACHE environment
+    variable is not defined.
+
+- Compiler
+  - Added an optimization pass for reducing the amount of boxing of
+    intermediate floating point values, enabled by the "-lfa2" compiler
+    option.
+  - The "lfa2" pass is now enabled at optimization levels 2 or higher.
+
+- Egg specifications
+  - Allows "cond-expand" and "error" forms in egg specification files.
+  - Add "c-object" and "object" properties to link separately compiled
+     C objects into CHICKEN code.
+
+- Core libraries
+  - Add the system-config-directory and system-cache-directory procedures
+    in the chicken.platform module. These procedures follow the XDG
+    specification and also give sensible results on Windows.
+  - Fix get-environment from (chicken process-context) to raise an
+     error when passed #f instead of segfaulting.
+  - Qualified symbols (##foo#bar style) are no longer encoded by a
+     byte prefix inside the symbol name.  This ensures read-write
+     invariance of symbols which start with a low-byte character
+     (fixes #1077, except for keywords, which start with NUL bytes).
+
+- Runtime system
+  - Increased the "binary compatibility version" to 10.
+
+
 5.0.0
 
 - Runtime system

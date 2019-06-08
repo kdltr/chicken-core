@@ -5,7 +5,7 @@
 ;
 ;
 ;--------------------------------------------------------------------------------------------
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -154,13 +154,18 @@
 ; - Core language:
 ;
 ; [##core#variable {<variable>}]
+; [##core#float-variable {<index>}]
 ; [if {} <exp> <exp> <exp>)]
-; [quote {<exp>}]
+; [quote {<const>}]
+; [##core#float {<const>}]
 ; [let {<variable>} <exp-v> <exp>]
 ; [##core#lambda {<id> <mode> (<variable>... [. <variable>]) <size>} <exp>]
 ; [set! {<variable> [always-immediate?]} <exp>]
 ; [##core#undefined {}]
 ; [##core#primitive {<name>}]
+; [##core#let_float {<index>} <exp> <exp>]
+; [##core#box_float {} <exp>]
+; [##core#unbox_float {} <exp>]
 ; [##core#inline {<op>} <exp>...]
 ; [##core#inline_allocate {<op> <words>} <exp>...]
 ; [##core#inline_ref {<name> <type>}]
@@ -185,18 +190,19 @@
 ;
 ; [if {} <exp> <exp> <exp>]
 ; [quote {<exp>}]
+; [##core#float {<const>}]
 ; [##core#bind {<count>} <exp-v>... <exp>]
-; [##core#let_unboxed {<name> <utype>} <exp1> <exp2>]
+; [##core#float-variable {<index>}]
 ; [##core#undefined {}]
-; [##core#unboxed_ref {<name> [<utype>]}]
-; [##core#unboxed_set! {<name> <utype>} <exp>]
+; [##core#let_float {<index>} <exp> <exp>]
+; [##core#box_float {} <exp>]
+; [##core#unbox_float {} <exp>]
 ; [##core#inline {<op>} <exp>...]
 ; [##core#inline_allocate {<op <words>} <exp>...]
 ; [##core#inline_ref {<name> <type>}]
 ; [##core#inline_update {<name> <type>} <exp>]
 ; [##core#inline_loc_ref {<type>} <exp>]
 ; [##core#inline_loc_update {<type>} <exp> <exp>]
-; [##core#inline_unboxed {<op>} <exp> ...]
 ; [##core#debug-event {<index> <event> <loc> <ln>}]
 ; [##core#closure {<count>} <exp>...]
 ; [##core#box {} <exp>]
@@ -281,7 +287,8 @@
      process-declaration file-requirements
 
      ;; Various ugly global boolean flags that get set by the (batch) driver
-     all-import-libraries bootstrap-mode compiler-syntax-enabled
+     all-import-libraries preserve-unchanged-import-libraries
+     bootstrap-mode compiler-syntax-enabled
      emit-closure-info emit-profile enable-inline-files explicit-use-flag
      first-analysis no-bound-checks enable-module-registration
      optimize-leaf-routines standalone-executable undefine-shadowed-macros
@@ -311,7 +318,7 @@
      foreign-stub-cps foreign-stub-id foreign-stub-name foreign-stub-return-type
      lambda-literal-id lambda-literal-external lambda-literal-argument-count
      lambda-literal-rest-argument lambda-literal-rest-argument-mode
-     lambda-literal-temporaries lambda-literal-unboxed-temporaries
+     lambda-literal-temporaries lambda-literal-float-temporaries
      lambda-literal-callee-signatures lambda-literal-allocated
      lambda-literal-closure-size lambda-literal-looping
      lambda-literal-customizable lambda-literal-body lambda-literal-direct
@@ -394,6 +401,7 @@
 (define profiled-procedures #f)
 (define import-libraries '())
 (define all-import-libraries #f)
+(define preserve-unchanged-import-libraries #t)
 (define enable-module-registration #t)
 (define standalone-executable #t)
 (define local-definitions #f)
@@ -516,7 +524,8 @@
 	  (else (find-id id (cdr se)))))
 
   (define (lookup id)
-    (cond ((find-id id (##sys#current-environment)))
+    (cond ((keyword? id) id)		; DEPRECATED
+	  ((find-id id (##sys#current-environment)))
 	  ((##sys#get id '##core#macro-alias) symbol? => values)
 	  (else id)))
 
@@ -554,6 +563,11 @@
 	x) )
 
   (define (resolve-variable x0 e dest ldest h)
+
+    (when (memq x0 unlikely-variables)
+      (warning
+       (sprintf "reference to variable `~s' possibly unintended" x0) ))
+
     (let ((x (lookup x0)))
       (d `(RESOLVE-VARIABLE: ,x0 ,x ,(map (lambda (x) (car x)) (##sys#current-environment))))
       (cond ((not (symbol? x)) x0)	; syntax?
@@ -592,7 +606,7 @@
 	   (oldimps
 	    (and (file-exists? fname)
 		 (call-with-input-file fname read-expressions))))
-      (cond ((equal? imps oldimps)
+      (cond ((and (equal? imps oldimps) preserve-unchanged-import-libraries)
 	     (when verbose-mode
 	       (print "not generating import library `" fname "' for module `"
 		      name "' because imports did not change")) )
@@ -608,12 +622,8 @@
 		 (print "\n;; END OF FILE"))))) ) )
 
   (define (walk x e dest ldest h outer-ln tl?)
-    (cond ((symbol? x)
-	   (cond ((keyword? x) `(quote ,x))
-		 ((memq x unlikely-variables)
-		  (warning
-		   (sprintf "reference to variable `~s' possibly unintended" x) )))
-	   (resolve-variable x e dest ldest h))
+    (cond ((keyword? x) `(quote ,x))
+	  ((symbol? x) (resolve-variable x e dest ldest h))
 	  ((not (pair? x))
 	   (if (constant? x)
 	       `(quote ,x)
@@ -654,7 +664,7 @@
 
 			((##core#check)
 			 (if unsafe
-			     ''#t
+			     '(quote #t)
 			     (walk (cadr x) e dest ldest h ln tl?) ) )
 
 			((##core#the)
@@ -787,7 +797,7 @@
 					       (walk
 						(if emit-debug-info
 						    `(##core#begin
-						      (##core#debug-event "C_DEBUG_ENTRY" ',dest)
+						      (##core#debug-event C_DEBUG_ENTRY (##core#quote ,dest))
 						      ,body0)
 						    body0)
 						(append aliases e) #f #f dest ln #f))))
@@ -873,7 +883,7 @@
 			  (walk
 			   (if ##sys#enable-runtime-macros
 			       `(##sys#extend-macro-environment
-				 ',var
+				 (##core#quote ,var)
 				 (##sys#current-environment) ,body) ;XXX possibly wrong se?
 			       '(##core#undefined) )
 			   e dest ldest h ln #f)) )
@@ -905,7 +915,7 @@
 				      `(##sys#cons
 					(##sys#ensure-transformer
 					 ,body
-					 ',var)
+					 (##core#quote ,var))
 					(##sys#current-environment))))
 			       '(##core#undefined) )
 			   e dest ldest h ln #f)))
@@ -1096,7 +1106,7 @@
 				      (let ((type (second fv))
 					    (tmp (gensym)))
 					(walk
-					 `(let ((,tmp ,(foreign-type-convert-argument val type)))
+					 `(##core#let ((,tmp ,(foreign-type-convert-argument val type)))
 					    (##core#inline_update
 					     (,(third fv) ,type)
 					     ,(foreign-type-check tmp type)))
@@ -1106,7 +1116,7 @@
 				      (let* ((type (third a))
 					     (tmp (gensym)))
 					(walk
-					 `(let ((,tmp ,(foreign-type-convert-argument val type)))
+					 `(##core#let ((,tmp ,(foreign-type-convert-argument val type)))
 					    (##core#inline_loc_update
 					     (,type)
 					     ,(second a)
@@ -1120,8 +1130,8 @@
 				     (mark-variable var '##compiler#always-bound))
 				   (when emit-debug-info
 				     (set! val
-				       `(let ((,var ,val))
-					  (##core#debug-event "C_DEBUG_GLOBAL_ASSIGN" ',var)
+				       `(##core#let ((,var ,val))
+					  (##core#debug-event C_DEBUG_GLOBAL_ASSIGN (##core#quote ,var))
 					  ,var)))
 				   ;; We use `var0` instead of `var` because the {macro,current}-environment
 				   ;; are keyed by the raw and unqualified name
@@ -1135,16 +1145,12 @@
 					 ((assq var0 (##sys#current-environment))
 					  (warning
 					   (sprintf "~aassignment to imported value binding `~S'"
-					    (if ln (sprintf "(~a) - " ln) "") var0)))
-					 ((keyword? var0)
-					  (warning
-					   (sprintf "~aassignment to keyword `~S'"
 					    (if ln (sprintf "(~a) - " ln) "") var0)))))
 				 `(set! ,var ,(walk val e var0 (memq var e) h ln #f))))))
 
 			((##core#debug-event)
 			 `(##core#debug-event
-			   ,(unquotify (cadr x))
+			   ,(cadr x)
 			   ,ln ; this arg is added - from this phase on ##core#debug-event has an additional argument!
 			   ,@(map (lambda (arg)
 				    (unquotify (walk arg e #f #f h ln tl?)))
@@ -1231,10 +1237,15 @@
 				    (mark-variable ret '##compiler#always-bound)
 				    (hide-variable arg)
 				    (hide-variable ret)
+				    ;; NOTE: Above we already check we're in toplevel context,
+				    ;; so we can unconditionally register the export here.
+				    ;; TODO: Remove after fixing #1615
+				    (##sys#register-export arg (##sys#current-module))
+				    (##sys#register-export ret (##sys#current-module))
 				    (walk
 				     `(##core#begin
-					(define ,arg ,(first conv))
-					(define
+					(##core#set! ,arg ,(first conv))
+					(##core#set!
 					 ,ret
 					 ,(if (pair? (cdr conv)) (second conv) '##sys#values)) )
 				     e dest ldest h ln tl?))]
@@ -1274,7 +1285,7 @@
 			   (parameterize ((##sys#current-environment
 					   (alist-cons var alias (##sys#current-environment))))
 			    (walk
-			     `(let (,(let ((size (bytes->words (estimate-foreign-result-location-size type))))
+			     `(##core#let (,(let ((size (bytes->words (estimate-foreign-result-location-size type))))
 				       ;; Add 2 words: 1 for the header, 1 for double-alignment:
 				       ;; Note: C_a_i_bytevector takes number of words, not bytes
 				       (list
@@ -1406,7 +1417,7 @@
 						 `((##sys#make-c-string
 						    (##core#let
 						     () ,@(cddr lam))
-						    ',name)))
+						    (##core#quote ,name))))
 						((member
 						  rtype
 						  '((const c-string*)
@@ -1429,7 +1440,7 @@
 						    ((r (##core#let () ,@(cddr lam))))
 						    (,(macro-alias 'and)
 						     r
-						     (##sys#make-c-string r ',name)) ) ) )
+						     (##sys#make-c-string r (##core#quote ,name))) ) ) )
 						(else (cddr lam)) ) )
 					   rtype) ) )
 				      e #f #f h ln #f) ) ) ) )
@@ -1440,7 +1451,7 @@
 			       (cond ((assq (lookup sym) location-pointer-map)
 				      => (lambda (a)
 					   (walk
-					    `(##sys#make-locative ,(second a) 0 #f 'location)
+					    `(##sys#make-locative ,(second a) 0 #f (##core#quote location))
 					    e #f #f h ln #f) ) )
 				     ((assq sym external-to-pointer)
 				      => (lambda (a) (walk (cdr a) e #f #f h ln #f)) )
@@ -1448,10 +1459,10 @@
 				      `(##core#inline_ref (,(symbol->string sym) c-pointer)) )
 				     (else
 				      (walk
-				       `(##sys#make-locative ,sym 0 #f 'location)
+				       `(##sys#make-locative ,sym 0 #f (##core#quote location))
 				       e #f #f h ln #f) ) )
 			       (walk
-				`(##sys#make-locative ,sym 0 #f 'location)
+				`(##sys#make-locative ,sym 0 #f (##core#quote location))
 				e #f #f h ln #f) ) ) )
 
 			(else
@@ -1827,14 +1838,14 @@
 		    `((##core#primitive ,f-id))
 		    `(##core#inline ,f-id) ) ]
 	  [rest (map (lambda (p t) (foreign-type-check (foreign-type-convert-argument p t) t)) params argtypes)] )
-      `(lambda ,params
+      `(##core#lambda ,params
 	 ;; Do minor GC (if callback) to make room on stack:
 	 ,@(if callback '((##sys#gc #f)) '())
 	 ,(if (zero? rsize)
 	      (foreign-type-convert-result (append head (cons '(##core#undefined) rest)) rtype)
 	      (let ([ft (final-foreign-type rtype)]
 		    [ws (bytes->words rsize)] )
-		`(let ([,bufvar (##core#inline_allocate ("C_a_i_bytevector" ,(+ 2 ws)) ',ws)])
+		`(##core#let ([,bufvar (##core#inline_allocate ("C_a_i_bytevector" ,(+ 2 ws)) (##core#quote ,ws))])
 		   ,(foreign-type-convert-result
 		     (finish-foreign-result ft (append head (cons bufvar rest)))
 		     rtype) ) ) ) ) ) ) )
@@ -1912,7 +1923,8 @@
 	  (params (node-parameters n))
 	  (class (node-class n)) )
       (case (node-class n)
-	((##core#variable quote ##core#undefined ##core#primitive ##core#provide) (k n))
+	((##core#variable quote ##core#undefined ##core#primitive ##core#provide)
+          (k n))
 	((if) (let* ((t1 (gensym 'k))
 		     (t2 (gensym 'r))
 		     (k1 (lambda (r) (make-node '##core#call (list #t) (list (varnode t1) r)))) )
@@ -2500,7 +2512,7 @@
 						     (not (llist-match? llist (cdr subs))))
 					    (quit-compiling
 					     "~a: procedure `~a' called with wrong number of arguments"
-					     (source-info->line name)
+					     (source-info->string name)
 					     (if (pair? name) (cadr name) name)))
 					  (register-direct-call! id)
 					  (when custom (register-customizable! varname id))
@@ -2530,7 +2542,9 @@
 	    (class (node-class n)) )
 	(case class
 
-	  ((quote ##core#undefined ##core#provide ##core#proc) n)
+	  ((quote ##core#undefined ##core#provide ##core#proc ##core#float
+           ##core#float-variable)
+            n)
 
 	  ((##core#variable)
 	   (let* ((var (first params))
@@ -2542,6 +2556,7 @@
 	  ((if ##core#call ##core#inline ##core#inline_allocate ##core#callunit
 	       ##core#inline_ref ##core#inline_update ##core#debug-event
 	       ##core#switch ##core#cond ##core#direct_call ##core#recurse ##core#return
+               ##core#let_float ##core#box_float ##core#unbox_float
 	       ##core#inline_loc_ref
 	       ##core#inline_loc_update)
 	   (make-node (node-class n) params (maptransform subs here closure)) )
@@ -2692,7 +2707,7 @@
 
 (define-record-type lambda-literal
   (make-lambda-literal id external arguments argument-count rest-argument temporaries
-		       unboxed-temporaries callee-signatures allocated directly-called
+		       float-temporaries callee-signatures allocated directly-called
 		       closure-size looping customizable rest-argument-mode body direct)
   lambda-literal?
   (id lambda-literal-id)			       ; symbol
@@ -2702,7 +2717,7 @@
   (argument-count lambda-literal-argument-count)       ; integer
   (rest-argument lambda-literal-rest-argument)	       ; symbol | #f
   (temporaries lambda-literal-temporaries)	       ; integer
-  (unboxed-temporaries lambda-literal-unboxed-temporaries) ; ((sym . utype) ...)
+  (float-temporaries lambda-literal-float-temporaries)   ; (integer ...)
   (callee-signatures lambda-literal-callee-signatures) ; (integer ...)
   (allocated lambda-literal-allocated)		       ; integer
   ;; lambda-literal-directly-called is used nowhere
@@ -2722,7 +2737,7 @@
 	;; Use analysis db as optimistic heuristic for procedure table size
 	(lambda-table (make-vector (fx* (fxmax current-analysis-database-size 1) 3) '()))
 	(temporaries 0)
-	(ubtemporaries '())
+        (float-temporaries '())
 	(allocated 0)
 	(looping 0)
 	(signatures '())
@@ -2764,17 +2779,18 @@
 	    (class (node-class n)) )
 	(case class
 
-	  ((##core#undefined ##core#proc) n)
+	  ((##core#undefined ##core#proc ##core#float) n)
 
 	  ((##core#variable)
 	   (walk-var (first params) e e-count #f) )
 
 	  ((##core#direct_call)
-	   (let* ((name (second params))
-		  (name-str (source-info->string name))
+	   (let* ((source-info (second params))
 		  (demand (fourth params)))
-	     (if (and emit-debug-info name)
-		 (let ((info (list dbg-index 'C_DEBUG_CALL "" name-str)))
+	     (if (and emit-debug-info source-info)
+		 (let ((info (list dbg-index 'C_DEBUG_CALL
+				   (source-info->line source-info)
+				   (source-info->name source-info))))
 		   (set! params (cons dbg-index params))
 		   (set! debug-info (cons info debug-info))
 		   (set! dbg-index (add1 dbg-index)))
@@ -2785,6 +2801,10 @@
 	  ((##core#inline_allocate)
 	   (set! allocated (+ allocated (second params)))
 	   (make-node class params (mapwalk subs e e-count here boxes)) )
+
+          ((##core#box_float)
+           (set! allocated (+ allocated 4)) ;; words-per-flonum
+           (make-node class params (mapwalk subs e e-count here boxes)))
 
 	  ((##core#inline_ref)
 	   (set! allocated (+ allocated (bytes->words (estimate-foreign-result-size (second params)))))
@@ -2822,13 +2842,13 @@
 
 	  ((##core#lambda ##core#direct_lambda)
 	   (let ((temps temporaries)
-		 (ubtemps ubtemporaries)
+                 (ftemps float-temporaries)
 		 (sigs signatures)
 		 (lping looping)
 		 (alc allocated)
 		 (direct (eq? class '##core#direct_lambda)) )
 	     (set! temporaries 0)
-	     (set! ubtemporaries '())
+             (set! float-temporaries '())
 	     (set! allocated 0)
 	     (set! signatures '())
 	     (set! looping 0)
@@ -2867,7 +2887,7 @@
 		    argc
 		    rest
 		    (add1 temporaries)
-		    ubtemporaries
+                    float-temporaries
 		    signatures
 		    allocated
 		    (or direct (memq id direct-call-ids))
@@ -2883,7 +2903,7 @@
 		    direct) )
 		  (set! looping lping)
 		  (set! temporaries temps)
-		  (set! ubtemporaries ubtemps)
+                  (set! float-temporaries ftemps)
 		  (set! allocated alc)
 		  (set! signatures (lset-adjoin/eq? sigs argc))
 		  (make-node '##core#proc (list (first params)) '()) ) ) ) ) )
@@ -2900,12 +2920,12 @@
 			  (append (##sys#fast-reverse params) e) (fx+ e-count 1)
 			  here (append boxvars boxes)) ) ) ) )
 
-	  ((##core#let_unboxed)
-	   (let* ((var (first params))
-		  (val (first subs)) )
-	     (set! ubtemporaries (alist-cons var (second params) ubtemporaries))
+	  ((##core#let_float)
+	   (let ((i (first params))
+	         (val (first subs)))
+             (set! float-temporaries (cons i float-temporaries))
 	     (make-node
-	      '##core#let_unboxed params
+	      '##core#let_float params
 	      (list (walk val e e-count here boxes)
 		    (walk (second subs) e e-count here boxes) ) ) ) )
 
@@ -2937,13 +2957,14 @@
 	  ((##core#call)
 	   (let* ((len (length (cdr subs)))
 		  (p2 (pair? (cdr params)))
-		  (name (and p2 (second params)))
-		  (name-str (source-info->string name)))
+		  (source-info (and p2 (second params))))
 	     (set! signatures (lset-adjoin/eq? signatures len))
 	     (when (and (>= (length params) 3) (eq? here (third params)))
 	       (set! looping (add1 looping)) )
-               (if (and emit-debug-info name)
-                 (let ((info (list dbg-index 'C_DEBUG_CALL "" name-str)))
+               (if (and emit-debug-info source-info)
+                 (let ((info (list dbg-index 'C_DEBUG_CALL
+				   (source-info->line source-info)
+				   (source-info->name source-info))))
                    (set! params (cons dbg-index params))
                    (set! debug-info (cons info debug-info))
                    (set! dbg-index (add1 dbg-index)))

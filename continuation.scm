@@ -1,6 +1,6 @@
 ;;;; continuation.scm - A better API for continuations
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2007, Felix L. Winkelmann
 ; All rights reserved.
 ;

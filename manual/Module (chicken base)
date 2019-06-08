@@ -267,6 +267,13 @@ exception-handler. This conforms to
 name of the procedure) where the error occurred.
 
 
+==== assert
+
+<macro>(assert EXP [OBJ ...])</macro>
+
+Evaluates {{EXP}}, if it returns #f, applies {{error}} on {{OBJ ...}}.
+When compiling in unsafe mode, assertions of this kind are disabled.
+
 
 ==== get-call-chain
 

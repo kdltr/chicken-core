@@ -69,6 +69,19 @@
 (import x)
 (assert (= 1 ((bar 42))))
 
+
+;; Test custom foreign type conversions
+
+(module y (my-add1)
+  (import scheme (chicken base) (chicken foreign))
+
+  (define-foreign-type my-int integer add1 sub1)
+
+  (define my-add1 (foreign-lambda* my-int ((my-int x)) "C_return(x+1);")))
+
+(import y)
+(assert (= 2 (my-add1 1)))
+
 ;;; rev. 14574 (reported by Peter Bex)
 ;
 ; - type specifiers in foreign-lambda in macros are incorrectly renamed
@@ -148,14 +161,14 @@
 ;; Unused arguments in foreign callback wrappers are not optimized away (#584)
 (module bla (foo)
 
-(import scheme chicken.base chicken.foreign)
+(import (prefix scheme s:) (only chicken.base assert) chicken.foreign)
 
 (define-external
   (blabla (int a) (c-string b) (int c) (int d) (c-string e) (int f))
   int
   f)
 
-(define (foo) ((foreign-safe-lambda* int () "C_return(blabla(1, \"2\", 3, 4, \"5\", 6));")))
+(s:define (foo) ((foreign-safe-lambda* int () "C_return(blabla(1, \"2\", 3, 4, \"5\", 6));")))
 
 (assert (location blabla))
 )

@@ -36,6 +36,11 @@
 
 (t 100 (test 2 100))
 
+
+;; Keywords are not symbols; don't attempt to bind them
+(t 1 (let-syntax ((foo (syntax-rules () ((foo bar: qux) qux))))
+       (foo bar: 1)))
+
 ;; some basic contrived testing
 
 (define (fac n)
@@ -275,7 +280,15 @@
 (t '#!rest (with-input-from-string "#!rest" read))
 (t '#!rest (with-input-from-string "|#!rest|" read))
 (t "#!rest" (with-output-to-string (lambda () (write '#!rest))))
+
+;; Non-special symbols starting with shebang
+(f (with-input-from-string "#!foo" read))
+(t '|#!foo| (with-input-from-string "|#!foo|" read))
+(t "|#!foo|" (with-output-to-string (lambda () (write '|#!foo|))))
+
+;; Namespaced symbols
 (t "foo#bar" (with-output-to-string (lambda () (write 'foo#bar))))
+(t "##foo#bar" (with-output-to-string (lambda () (write '##foo#bar))))
 
 ;; These used to be treated specially, but now they just trigger an
 ;; "invalid sharp-sign read syntax" error.
@@ -800,6 +813,14 @@
 (s:define-syntax s:define-syntax (syntax-rules ()))
 )
 |#
+
+;;; Definitions of non-identifiers
+
+(f (eval '(define foo: 1)))
+(f (eval '(define-syntax foo: (syntax-rules () ((_) 1)))))
+(f (eval '(let foo: () 1)))
+(f (eval '(let ((foo: 1)) 1)))
+
 
 ;;; Definitions in expression contexts are rejected (#1309)
 

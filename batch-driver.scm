@@ -1,6 +1,6 @@
 ;;;; batch-driver.scm - Driver procedure for the compiler
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -370,6 +370,8 @@
       (set! unsafe #t) )
     (when (memq 'setup-mode options)
       (set! ##sys#setup-mode #t))
+    (when (memq 'regenerate-import-libraries options)
+      (set! preserve-unchanged-import-libraries #f))
     (when (memq 'disable-interrupts options) (set! insert-timer-checks #f))
     (when (memq 'fixnum-arithmetic options) (set! number-type 'fixnum))
     (when (memq 'block options) (set! block-compilation #t))
@@ -802,8 +804,13 @@
 			    (when do-lfa2
 			      (begin-time)
 			      (debugging 'p "doing lfa2")
-			      (perform-secondary-flow-analysis node2 db)
-			      (end-time "secondary flow analysis"))
+                              (let ((floatvars (perform-secondary-flow-analysis node2 db)))
+  			        (end-time "secondary flow analysis")
+                                (unless (null? floatvars)
+                                  (begin-time)
+                                  (debugging 'p "doing unboxing")
+                                  (set! node2 (perform-unboxing node2 floatvars)))
+    			          (end-time "unboxing")))
 			    (print-node "optimized" '|7| node2)
 			    ;; inlining into a file with interrupts enabled would
 			    ;; change semantics

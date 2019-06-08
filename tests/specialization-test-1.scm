@@ -69,7 +69,9 @@ return n;}
 (assert (abc 1))
 
 ;; user-defined specializations take precedence over built-ins
-(define-specialization (+) 1)
-(assert (= (+) 1))
+(: foo (-> fixnum))
+(define (foo) (begin))
+(define-specialization (+ fixnum) fixnum 1)
+(assert (= (+ (foo)) 1))
 
 )

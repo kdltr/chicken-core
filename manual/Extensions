@@ -233,7 +233,7 @@ The egg file:
 
 ((components (extension my-lib))
  (version 1.0)
- (licence "BSD")
+ (license "BSD")
  (author "Me again")
  (synopsis "My own cool libraries"))
 </enscript>

@@ -1,4 +1,4 @@
-.\"  Copyright (c) 2007-2018, The CHICKEN Team
+.\"  Copyright (c) 2007-2019, The CHICKEN Team
 .\"  All rights reserved.
 .\"
 .\"  Redistribution and use in source and binary forms, with or without
@@ -99,6 +99,10 @@ which has the same format as
 This option may be given multiple times.
 .It Fl cached
 Install given eggs from cache and do not download.
+.It Fl feature , Fl D Ar name
+Register feature 
+.Ar name ,
+usable as a condition in cond-expand clauses.
 .El
 .Sh ENVIRONMENT
 Following environment variables change the behaviour of
@@ -116,8 +120,29 @@ The command to execute when using
 flag in command. If not provided, defaults to
 .Xr sudo 8 .
 .El
+.Sh FILES
+.Bl -tag -width 4n
+.It Pa $XDG_CONFIG_HOME/chicken/setup.defaults
+User specific setup.defaults file. (
+.Ev $XDG_CONFIG_HOME
+defaults to
+.Pa $HOME/.config
+)
+.It Pa $prefix/share/chicken/setup.default
+System-wide setup.defaults file.
+.It Pa $XDG_CACHE_HOME/chicken-install/
+Default directory for cached eggs. (
+.Ev $XDG_CACHE_HOME
+defaults to
+.Pa $HOME/.cache
+)
+.El
 .Sh EXIT STATUS
-.Ex -std
+The
+.Nm
+utility exits 0 on success, 2 if the user aborted an operation, 3 if it
+was invoked with no explicitly given egg names and no *.egg files could
+be found in the current directory, and >0 if any other error occurs.
 .Sh EXAMPLES
 Install
 .Sq regex
