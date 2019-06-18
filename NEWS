@@ -24,6 +24,7 @@
     byte prefix inside the symbol name.  This ensures read-write
     invariance of symbols which start with a low-byte character
     (fixes #1077, except for keywords, which start with NUL bytes).
+  - Fix a missing export (list->s64vector) in SRFI-4.
 
 - Runtime system
   - Keywords are now distinct types; they are not a subtype of symbols.
