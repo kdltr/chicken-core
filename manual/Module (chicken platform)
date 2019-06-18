@@ -62,7 +62,7 @@ linked at runtime.)
 
 === system-config-directory
 
-<procedure>(system-config-directory</procedure>
+<procedure>(system-config-directory)</procedure>
 
 Returns the location of the directory for configuration files.  This
 obeys the XDG specification, so when the {{XDG_CONFIG_HOME}}
