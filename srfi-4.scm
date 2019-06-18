@@ -69,8 +69,8 @@ EOF
    u64vector u64vector->blob u64vector->blob/shared u64vector->list
    u64vector-length u64vector-ref u64vector-set! u64vector?
    list->f32vector list->f64vector list->s16vector list->s32vector
-   list->s8vector list->u16vector list->u32vector list->u8vector
-   list->u64vector
+   list->s64vector list->s8vector list->u16vector list->u32vector
+   list->u8vector list->u64vector
    make-f32vector make-f64vector make-s16vector make-s32vector
    make-s64vector make-s8vector make-u16vector make-u32vector
    make-u64vector make-u8vector
