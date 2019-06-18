@@ -115,13 +115,16 @@ or {{:}} should follow the syntax given below:
 <table>
 <tr><th>BASICTYPE</th><th>meaning</th></tr>
 <tr><td>{{*}}</td><td>any value</td></tr>
+<tr><td>{{bignum}}</td><td>arbitrary precision integer</td></tr>
 <tr><td>{{blob}}</td><td>byte vector</td></tr>
 <tr><td>{{boolean}}</td><td>true or false</td></tr>
 <tr><td>{{char}}</td><td>character</td></tr>
+<tr><td>{{cplxnum}}</td><td>complex number</td></tr>
 <tr><td>{{eof}}</td><td>end-of-file object</td></tr>
 <tr><td>{{false}}</td><td>boolean false</td></tr>
 <tr><td>{{fixnum}}</td><td>word-sized integer</td></tr>
 <tr><td>{{float}}</td><td>floating-point number</td></tr>
+<tr><td>{{integer}}</td><td>exact integer (either fixnum or bignum)</td></tr>
 <tr><td>{{list}}</td><td>null or pair</td></tr>
 <tr><td>{{locative}}</td><td>locative object</td></tr>
 <tr><td>{{null}}</td><td>empty list</td></tr>
@@ -131,8 +134,10 @@ or {{:}} should follow the syntax given below:
 <tr><td>{{pointer}}</td><td>native pointer</td></tr>
 <tr><td>{{input-port}} {{output-port}}</td><td>input- or output-port</td></tr>
 <tr><td>{{procedure}}</td><td>unspecific procedure</td></tr>
+<tr><td>{{ratnum}}</td><td>rational number</td></tr>
 <tr><td>{{string}}</td><td>string</td></tr>
 <tr><td>{{symbol}}</td><td>symbol</td></tr>
+<tr><td>{{keyword}}</td><td>keyword object</td></tr>
 <tr><td>{{true}}</td><td>boolean true</td></tr>
 <tr><td>{{vector}}</td><td>vector</td></tr>
 </table>
@@ -160,6 +165,16 @@ or {{:}} should follow the syntax given below:
 </table>
 
 (*) Note: no type-variables are bound inside {{(not TYPE)}}.
+
+You can use a shorthand {{'SYMBOL}} for introducing free variables in
+{{forall}} types, for example:
+
+  ('a -> 'a) is translated to (forall (a) (a -> a))
+
+If a {{forall}} already exists, quotes around the free variables
+introduced by it will be stripped:
+
+  (forall (a) ('a -> a)) is translated to (forall (a) (a -> a))
 
 Note that type-variables in {{forall}} types may be given "constraint" types, i.e.
 

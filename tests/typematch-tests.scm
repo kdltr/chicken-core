@@ -255,6 +255,7 @@
 (infer (forall (a) (procedure (#!rest a) a)) +)
 (infer (list fixnum) '(1))
 
+(define something)
 
 (infer port (open-input-string "foo"))
 (infer input-port (open-input-string "bar"))
@@ -397,5 +398,33 @@
 (let ((a (the (or pair null) (cons 1 '()))))
   (length a) ; refine (or pair null) with list (= (list-of *))
   (infer list a))
+
+(compiler-typecase (the (list (struct foo) symbol) (the 'a 1))
+  ;; The tv "foo" and "foo" in struct should have no relation
+  ((forall (foo) (list (struct foo) foo)) 'ok))
+
+;; Issue #1563
+(compiler-typecase (the (forall (a) a) 1) ((forall (a) (list a)) 'ok))
+
+(assert
+ (compiler-typecase 1
+   ('a #t)))
+
+(assert
+ (compiler-typecase (the (list fixnum string string) something)
+   ((list 'a 'a 'b) #f)
+   ((list 'a 'b 'b) #t)))
+
+(assert
+ (compiler-typecase (the (list fixnum string string) something)
+   ((forall (a) (list a 'a 'b)) #f)
+   ((forall (b) (list 'a 'b b)) #t)))
+
+(assert
+ (compiler-typecase (the (list string (list string fixnum)) something)
+   ((list 'a (forall (a) (list 'b a))) #f)
+   ((list 'b (forall (b) (list b 'a))) #t)))
+
+(infer true (= 3 (+ 1 2))) ; Constant folding should happen before / during scrutiny
 
 (test-exit)

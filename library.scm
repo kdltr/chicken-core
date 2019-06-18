@@ -1,6 +1,6 @@
 ;;;; library.scm - R5RS library for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -952,7 +952,6 @@ EOF
 
 (import chicken.base)
 
-(define-constant namespace-max-id-len 31)
 (define-constant char-name-table-size 37)
 (define-constant output-string-initial-size 256)
 (define-constant read-line-buffer-initial-size 1024)
@@ -1156,6 +1155,11 @@ EOF
   (if (pair? loc)
       (##core#inline "C_i_check_symbol_2" x (car loc))
       (##core#inline "C_i_check_symbol" x) ) )
+
+(define (##sys#check-keyword x . loc)
+  (if (pair? loc)
+      (##core#inline "C_i_check_keyword_2" x (car loc))
+      (##core#inline "C_i_check_keyword" x) ) )
 
 (define (##sys#check-vector x . loc) 
   (if (pair? loc)
@@ -2667,59 +2671,15 @@ EOF
 
 (define ##sys#snafu '##sys#fnord)
 (define ##sys#intern-symbol (##core#primitive "C_string_to_symbol"))
+(define ##sys#intern-keyword (##core#primitive "C_string_to_keyword"))
 (define (##sys#interned-symbol? x) (##core#inline "C_lookup_symbol" x))
 
 (define (##sys#string->symbol str)
   (##sys#check-string str)
   (##sys#intern-symbol str) )
 
-(define ##sys#symbol->string)
-(define ##sys#symbol->qualified-string)
-(define ##sys#qualified-symbol-prefix)
-
-(let ([string-append string-append]
-      [string-copy string-copy] )
-
-  (define (split str len)
-    (let ([b0 (##sys#byte str 0)])	; we fetch the byte, wether len is 0 or not
-      (if (and (fx> len 0) (fx< b0 len) (fx<= b0 namespace-max-id-len))
-	  (fx+ b0 1)
-	  #f) ) )
-
-  (set! ##sys#symbol->string
-    (lambda (s)
-      (let* ([str (##sys#slot s 1)]
-	     [len (##sys#size str)]
-	     [i (split str len)] )
-	(if i (##sys#substring str i len) str) ) ) )
-
-  (set! ##sys#symbol->qualified-string 
-    (lambda (s)
-      (let* ([str (##sys#slot s 1)]
-	     [len (##sys#size str)] 
-	     [i (split str len)] )
-	(if i
-	    (string-append "##" (##sys#substring str 1 i) "#" (##sys#substring str i len))
-	    str) ) ) )
-
-  (set! ##sys#qualified-symbol-prefix 
-    (lambda (s)
-      (let* ([str (##sys#slot s 1)]
-	     [len (##sys#size str)]
-	     [i (split str len)] )
-	(and i (##sys#substring str 0 i)) ) ) ) )
-
-(define (##sys#qualified-symbol? s)
-  (let ((str (##sys#slot s 1)))
-    (and (fx> (##sys#size str) 0)
-	 (fx<= (##sys#byte str 0) namespace-max-id-len))))
-
-(define ##sys#string->qualified-symbol
-  (lambda (prefix str)
-    (##sys#string->symbol
-     (if prefix
-	 (##sys#string-append prefix str)
-	 str) ) ) )
+(define (##sys#symbol->string s)
+  (##sys#slot s 1))
 
 (set! scheme#symbol->string
   (lambda (s)
@@ -2774,14 +2734,13 @@ EOF
 (import scheme)
 (import chicken.fixnum)
 
-(define (keyword? x)
-  (and (symbol? x) (##core#inline "C_u_i_keywordp" x)) )
+(define (keyword? x) (##core#inline "C_i_keywordp" x) )
 
 (define string->keyword
   (let ([string string] )
     (lambda (s)
       (##sys#check-string s 'string->keyword)
-      (##sys#intern-symbol (##sys#string-append (string (integer->char 0)) s)) ) ) )
+      (##sys#intern-keyword s) ) ) )
 
 (define keyword->string
   (let ([keyword? keyword?])
@@ -2793,6 +2752,7 @@ EOF
 (define get-keyword
   (let ((tag (list 'tag)))
     (lambda (key args #!optional thunk)
+      (##sys#check-keyword key 'get-keyword)
       (##sys#check-list args 'get-keyword)
       (let ((r (##core#inline "C_i_get_keyword" key args tag)))
 	(if (eq? r tag)			; not found
@@ -3710,7 +3670,6 @@ EOF
 
 (define ##sys#default-read-info-hook #f)
 (define ##sys#read-error-with-line-number #f)
-(define ##sys#enable-qualifiers #t)
 (define (##sys#read-prompt-hook) #f)	; just here so that srfi-18 works without eval
 (define (##sys#infix-list-hook lst) lst)
 
@@ -3753,8 +3712,7 @@ EOF
 	(case-sensitive case-sensitive)
 	(parentheses-synonyms parentheses-synonyms)
 	(symbol-escape symbol-escape)
-	(current-read-table ##sys#current-read-table)
-	(kwprefix (string (integer->char 0))))
+	(current-read-table ##sys#current-read-table))
     (lambda (port infohandler)
       (let ((csp (case-sensitive))
 	    (ksp (keyword-style))
@@ -4152,31 +4110,18 @@ EOF
 			    (loop i) ) ) ) ) ) )
 
 	  (define (r-ext-symbol)
-	    (let* ([p (##sys#make-string 1)]
-		   [tok (r-token)] 
-		   [toklen (##sys#size tok)] )
-	      (unless ##sys#enable-qualifiers 
-		(##sys#read-error port "qualified symbol syntax is not allowed" tok) )
-	      (let loop ([i 0])
-		(cond [(fx>= i toklen)
-		       (##sys#read-error port "invalid qualified symbol syntax" tok) ]
-		      [(fx= (##sys#byte tok i) (char->integer #\#))
-		       (when (fx> i namespace-max-id-len)
-			 (set! tok (##sys#substring tok 0 namespace-max-id-len)) )
-		       (##sys#setbyte p 0 i)
-		       (##sys#intern-symbol
-			(string-append
-			 p 
-			 (##sys#substring tok 0 i)
-			 (##sys#substring tok (fx+ i 1) toklen)) ) ]
-		      [else (loop (fx+ i 1))] ) ) ) )
+	    (let ((tok (r-token)))
+	      (build-symbol (string-append "##" tok))))
+
+	  (define (r-quote q)
+	    (let ((ln (##sys#port-line port)))
+	      (info 'list-info (list q (readrec)) ln)))
 
 	  (define (build-symbol tok)
 	    (##sys#intern-symbol tok) )
-	  
+
 	  (define (build-keyword tok)
-	    (##sys#intern-symbol
-	     (##sys#string-append kwprefix tok)))
+	    (##sys#intern-keyword tok))
 
           ;; now have the state to make a decision.
           (set! reserved-characters
@@ -4197,16 +4142,16 @@ EOF
 		(case c
 		  ((#\')
 		   (##sys#read-char-0 port)
-		   (list 'quote (readrec)) )
+		   (r-quote 'quote))
 		  ((#\`)
 		   (##sys#read-char-0 port)
-		   (list 'quasiquote (readrec)) )
+		   (r-quote 'quasiquote))
 		  ((#\,)
 		   (##sys#read-char-0 port)
 		   (cond ((eq? (##sys#peek-char-0 port) #\@)
 			  (##sys#read-char-0 port)
-			  (list 'unquote-splicing (readrec)) )
-			 (else (list 'unquote (readrec))) ) )
+			  (r-quote 'unquote-splicing))
+			 (else (r-quote 'unquote))))
 		  ((#\#)
 		   (##sys#read-char-0 port)
 		   (let ((dchar (##sys#peek-char-0 port)))
@@ -4274,14 +4219,16 @@ EOF
 				     (readrec) (readrec) )
 				    ((#\`)
 				     (##sys#read-char-0 port)
-				     (list 'quasisyntax (readrec)) )
+				     (r-quote 'quasisyntax))
 				    ((#\$)
 				     (##sys#read-char-0 port)
 				     (let ((c (##sys#peek-char-0 port)))
 				       (cond ((char=? c #\{)
 					      (##sys#read-char-0 port)
 					      (##sys#read-bytevector-literal port))
-					     (else (list 'location (readrec)) ))))
+					     (else
+					      ;; HACK: reuse r-quote to add line number info
+					      (r-quote 'location)))))
 				    ((#\:)
 				     (##sys#read-char-0 port)
 				     (let ((c (##sys#peek-char-0 port)))
@@ -4294,8 +4241,11 @@ EOF
 						(build-keyword str)))))))
 				    ((#\+)
 				     (##sys#read-char-0 port)
-				     (let ((tst (readrec)))
-				       (list 'cond-expand (list tst (readrec)) '(else)) ) )
+				     (let* ((ln (##sys#port-line port))
+					    (tst (readrec)))
+				       (info 'list-info
+					     (list 'cond-expand (list tst (readrec)) '(else))
+					     ln)))
 				    ((#\!)
 				     (##sys#read-char-0 port)
 				     (let ((c (##sys#peek-char-0 port)))
@@ -4555,17 +4505,20 @@ EOF
 				      (eq? c #\.)
 				      (eq? c #\-) )
 				  (not (##sys#string->number str)) )
-				 ((eq? c #\:) (not (eq? ksp #:prefix)))
-				 ((eq? c #\#) ;; #!rest, #!key etc
-				  (eq? (##core#inline "C_subchar" str 1) #\!))
+				 ((eq? c #\:) #f)
+				 ((and (eq? c #\#)
+				       ;; Not a qualified symbol?
+				       (not (and (fx> len 2)
+						 (eq? (##core#inline "C_subchar" str 1) #\#)
+						 (not (eq? (##core#inline "C_subchar" str 2) #\#)))))
+				  (member str '("#!rest" "#!key" "#!optional")))
 				 ((specialchar? c) #f)
 				 (else #t) ) )
 			 (let ((c (##core#inline "C_subchar" str i)))
 			   (and (or csp (not (char-upper-case? c)))
 				(not (specialchar? c))
 				(or (not (eq? c #\:))
-				    (fx< i (fx- len 1))
-				    (not (eq? ksp #:suffix)))
+				    (fx< i (fx- len 1)))
 				(loop (fx- i 1)) ) ) ) ) ) ) ) )
 
 	(let out ([x x])
@@ -4590,23 +4543,19 @@ EOF
 		((##core#inline "C_unboundvaluep" x) (outstr port "#<unbound value>"))
 		((not (##core#inline "C_blockp" x)) (outstr port "#<invalid immediate object>"))
 		((##core#inline "C_forwardedp" x) (outstr port "#<invalid forwarded object>"))
-		((##core#inline "C_symbolp" x)
-		 (cond ((##core#inline "C_u_i_keywordp" x)
-			;; Force portable #: style for readable output
-			(case (and (not readable) ksp)
-			  ((#:prefix)
-			   (outchr port #\:)
-			   (outsym port x))
-			  ((#:suffix)
-			   (outsym port x)
-			   (outchr port #\:))
-			  (else
-			   (outstr port "#:")
-			   (outsym port x))))
-		       ((##sys#qualified-symbol? x)
-			(outstr port (##sys#symbol->qualified-string x)))
-		       (else
-			(outsym port x))))
+		((##core#inline "C_i_keywordp" x)
+                 ;; Force portable #: style for readable output
+		 (case (and (not readable) ksp)
+                   ((#:prefix)
+                    (outchr port #\:)
+                    (outsym port x))
+                   ((#:suffix)
+                    (outsym port x)
+                    (outchr port #\:))
+                   (else
+                    (outstr port "#:")
+                    (outsym port x))))
+		((##core#inline "C_i_symbolp" x) (outsym port x))
 		((##sys#number? x) (outstr port (##sys#number->string x)))
 		((##core#inline "C_anypointerp" x) (outstr port (##sys#pointer->string x)))
 		((##core#inline "C_stringp" x)
@@ -5206,7 +5155,7 @@ EOF
 			      (loc (and loca (cadr loca))) )
 			  (if (and loc (symbol? loc))
 			      (string-append
-			       "(" (##sys#symbol->qualified-string loc) ") " 
+			       "(" (##sys#symbol->string loc) ") "
 			       (cond ((symbol? msg) (##sys#slot msg 1))
 				     ((string? msg) msg)
 				     (else "") ) ) ; Hm...
@@ -5353,7 +5302,7 @@ EOF
 			(display ": " port)
 			(let ((loc (errloc ex)))
 			  (when (and loc (symbol? loc))
-			    (display (string-append "(" (##sys#symbol->qualified-string loc) ") ") port) ) )
+			    (display (string-append "(" (##sys#symbol->string loc) ") ") port) ) )
 			(display msg port) ) )
 		     (else
 		      (let ((kinds (##sys#slot ex 1)))
@@ -5430,7 +5379,7 @@ EOF
 		(if fn (list fn) '()))))
 	((3) (apply ##sys#signal-hook #:type-error loc "bad argument type" args))
 	((4) (apply ##sys#signal-hook #:runtime-error loc "unbound variable" args))
-	;; ((5) ...unused...)
+	((5) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a keyword" args))
 	((6) (apply ##sys#signal-hook #:limit-error loc "out of memory" args))
 	((7) (apply ##sys#signal-hook #:arithmetic-error loc "division by zero" args))
 	((8) (apply ##sys#signal-hook #:bounds-error loc "out of range" args))
@@ -5502,11 +5451,7 @@ EOF
 (define (##sys#permanent? x) (##core#inline "C_permanentp" x))
 (define (##sys#block-address x) (##core#inline_allocate ("C_block_address" 6) x))
 (define (##sys#locative? x) (##core#inline "C_locativep" x))
-(define (##sys#srfi-4-vector? x)
-  (and (##core#inline "C_blockp" x)
-       (##sys#generic-structure? x)
-       (memq (##sys#slot x 0)
-             '(u8vector u16vector s8vector s16vector u32vector s32vector u64vector s64vector f32vector f64vector))))
+(define (##sys#srfi-4-vector? x) (##core#inline "C_i_srfi_4_vectorp" x))
 
 (define (##sys#null-pointer)
   (let ([ptr (##sys#make-pointer)])
@@ -5971,7 +5916,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 ;;; Environment access:
 
 (define get-environment-variable
-  (foreign-lambda c-string "C_getenv" c-string))
+  (foreign-lambda c-string "C_getenv" nonnull-c-string))
 
 (define (set-environment-variable! var val)
   (##sys#check-string var 'set-environment-variable!)
@@ -6403,6 +6348,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
      repository-path installation-repository
      register-feature! unregister-feature!
      software-type software-version return-to-host
+     system-config-directory system-cache-directory
      )
 
 (import scheme)
@@ -6599,5 +6545,20 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 
 (define return-to-host
   (##core#primitive "C_return_to_host"))
+
+(define (system-config-directory)
+  (or (get-environment-variable "XDG_CONFIG_HOME")
+      (if ##sys#windows-platform
+          (get-environment-variable "APPDATA")
+          (let ((home (get-environment-variable "HOME")))
+            (and home (string-append home "/.config"))))))
+
+(define (system-cache-directory)
+  (or (get-environment-variable "XDG_CACHE_HOME")
+      (if ##sys#windows-platform
+          (or (get-environment-variable "LOCALAPPDATA")
+              (get-environment-variable "APPDATA"))
+          (let ((home (get-environment-variable "HOME")))
+            (and home (string-append home "/.cache"))))))
 
 ) ; chicken.platform

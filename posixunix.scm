@@ -1,6 +1,6 @@
 ;;;; posixunix.scm - Miscellaneous file- and process-handling routines
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -771,7 +771,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 	(##sys#read-symbolic-link fname 'read-symbolic-link))))
 
 (set! chicken.file.posix#file-link
-  (let ([link (foreign-lambda int "link" c-string c-string)])
+  (let ((link (foreign-lambda int "link" nonnull-c-string nonnull-c-string)))
     (lambda (old new)
       (##sys#check-string old 'file-link)
       (##sys#check-string new 'file-link)
@@ -968,9 +968,10 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 (set! chicken.file.posix#file-truncate
   (lambda (fname off)
     (##sys#check-exact-integer off 'file-truncate)
-    (when (fx< (cond [(string? fname) (##core#inline "C_truncate" (##sys#make-c-string fname 'file-truncate) off)]
-		     [(fixnum? fname) (##core#inline "C_ftruncate" fname off)]
-		     [else (##sys#error 'file-truncate "invalid file" fname)] )
+    (when (fx< (cond ((string? fname) (##core#inline "C_truncate" (##sys#make-c-string fname 'file-truncate) off))
+		     ((port? fname) (##core#inline "C_ftruncate" (chicken.file.posix#port->fileno fname) off))
+		     ((fixnum? fname) (##core#inline "C_ftruncate" fname off))
+		     (else (##sys#error 'file-truncate "invalid file" fname)))
 	       0)
       (posix-error #:file-error 'file-truncate "cannot truncate file" fname off) ) ) )
 
@@ -990,7 +991,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
       (if (eq? #t len)
           (set! len 0)
           (##sys#check-exact-integer len loc) )
-      (##core#inline "C_flock_setup" (if (##sys#slot port 1) _f_rdlck _f_wrlck) start len)
+      (##core#inline "C_flock_setup" (if (= (##sys#slot port 1) 1) _f_rdlck _f_wrlck) start len)
       (##sys#make-structure 'lock port start len) ) )
   (define (err msg lock loc)
     (posix-error #:file-error loc msg (##sys#slot lock 1) (##sys#slot lock 2) (##sys#slot lock 3)) )
@@ -1284,7 +1285,7 @@ static int set_file_mtime(char *filename, C_word atime, C_word mtime)
 ;;; chroot:
 
 (set! chicken.process-context.posix#set-root-directory!
-  (let ([chroot (foreign-lambda int "chroot" c-string)])
+  (let ((chroot (foreign-lambda int "chroot" nonnull-c-string)))
     (lambda (dir)
       (##sys#check-string dir 'set-root-directory!)
       (when (fx< (chroot dir) 0)

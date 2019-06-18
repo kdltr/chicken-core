@@ -1,6 +1,6 @@
 ;;;; c-platform.scm - Platform specific parameters and definitions
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -102,7 +102,7 @@
     no-bound-checks no-procedure-checks-for-usual-bindings no-compiler-syntax
     no-parentheses-synonyms no-symbol-escape r5rs-syntax emit-all-import-libraries
     strict-types clustering lfa2 debug-info
-    setup-mode no-module-registration) )
+    regenerate-import-libraries setup-mode no-module-registration))
 
 (define valid-compiler-options-with-argument
   '(debug emit-link-file
@@ -180,11 +180,30 @@
 
     chicken.keyword#get-keyword
 
+    srfi-4#u8vector? srfi-4#s8vector?
+    srfi-4#u16vector? srfi-4#s16vector?
+    srfi-4#u32vector? srfi-4#u64vector?
+    srfi-4#s32vector? srfi-4#s64vector?
+    srfi-4#f32vector? srfi-4#f64vector?
+
     srfi-4#u8vector-length srfi-4#s8vector-length
     srfi-4#u16vector-length srfi-4#s16vector-length
     srfi-4#u32vector-length srfi-4#u64vector-length
     srfi-4#s32vector-length srfi-4#s64vector-length
     srfi-4#f32vector-length srfi-4#f64vector-length
+    
+    srfi-4#u8vector-ref srfi-4#s8vector-ref
+    srfi-4#u16vector-ref srfi-4#s16vector-ref
+    srfi-4#u32vector-ref srfi-4#u64vector-ref
+    srfi-4#s32vector-ref srfi-4#s64vector-ref
+    srfi-4#f32vector-ref srfi-4#f64vector-ref
+
+    srfi-4#u8vector-set! srfi-4#s8vector-set!
+    srfi-4#u16vector-set! srfi-4#s16vector-set!
+    srfi-4#u32vector-set! srfi-4#u64vector-set!
+    srfi-4#s32vector-set! srfi-4#s64vector-set!
+    srfi-4#f32vector-set! srfi-4#f64vector-set!
+
     srfi-4#u8vector->blob/shared srfi-4#s8vector->blob/shared
     srfi-4#u16vector->blob/shared srfi-4#s16vector->blob/shared
     srfi-4#u32vector->blob/shared srfi-4#s32vector->blob/shared
@@ -239,7 +258,7 @@
   (append +fixnum-bindings+ +flonum-bindings+ +extended-bindings+))
 
 (set! internal-bindings
-  '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set!
+  '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set! ##sys#/-2
     ##sys#call-with-current-continuation ##sys#size ##sys#byte ##sys#setbyte
     ##sys#pointer? ##sys#generic-structure? ##sys#structure? ##sys#check-structure
     ##sys#check-exact ##sys#check-number ##sys#check-list ##sys#check-pair ##sys#check-string
@@ -501,6 +520,17 @@
 (rewrite 'scheme#symbol? 2 1 "C_i_symbolp" #t)
 (rewrite 'scheme#vector? 2 1 "C_i_vectorp" #t)
 (rewrite '##sys#vector? 2 1 "C_i_vectorp" #t)
+(rewrite '##sys#srfi-4-vector? 2 1 "C_i_srfi_4_vectorp" #t)
+(rewrite 'srfi-4#u8vector? 2 1 "C_i_u8vectorp" #t)
+(rewrite 'srfi-4#s8vector? 2 1 "C_i_s8vectorp" #t)
+(rewrite 'srfi-4#u16vector? 2 1 "C_i_u16vectorp" #t)
+(rewrite 'srfi-4#s16vector? 2 1 "C_i_s16vectorp" #t)
+(rewrite 'srfi-4#u32vector? 2 1 "C_i_u32vectorp" #t)
+(rewrite 'srfi-4#s32vector? 2 1 "C_i_s32vectorp" #t)
+(rewrite 'srfi-4#u64vector? 2 1 "C_i_u64vectorp" #t)
+(rewrite 'srfi-4#s64vector? 2 1 "C_i_s64vectorp" #t)
+(rewrite 'srfi-4#f32vector? 2 1 "C_i_f32vectorp" #t)
+(rewrite 'srfi-4#f64vector? 2 1 "C_i_f64vectorp" #t)
 (rewrite 'scheme#pair? 2 1 "C_i_pairp" #t)
 (rewrite '##sys#pair? 2 1 "C_i_pairp" #t)
 (rewrite 'scheme#procedure? 2 1 "C_i_closurep" #t)
@@ -695,6 +725,155 @@
 (rewrite 'scheme#lcm 18 1)
 (rewrite 'scheme#list 18 '())
 
+(rewrite
+ 'scheme#* 8
+ (lambda (db classargs cont callargs)
+   ;; (*) -> 1
+   ;; (* <x>) -> <x>
+   ;; (* <x1> ...) -> (##core#inline "C_fixnum_times" <x1> (##core#inline "C_fixnum_times" ...)) [fixnum-mode]
+   ;; - Remove "1" from arguments.
+   ;; - Replace multiplications with 2 by shift left. [fixnum-mode]
+   (let ((callargs
+	  (filter
+	   (lambda (x)
+	     (not (and (eq? 'quote (node-class x))
+		       (eq? 1 (first (node-parameters x))) ) ) )
+	   callargs) ) )
+     (cond ((null? callargs) (make-node '##core#call (list #t) (list cont (qnode 0))))
+	   ((null? (cdr callargs))
+	    (make-node '##core#call (list #t) (list cont (first callargs))) )
+	   ((eq? number-type 'fixnum)
+	    (make-node
+	     '##core#call (list #t)
+	     (list
+	      cont
+	      (fold-inner
+	       (lambda (x y)
+		 (if (and (eq? 'quote (node-class y)) (eq? 2 (first (node-parameters y))))
+		     (make-node '##core#inline '("C_fixnum_shift_left") (list x (qnode 1)))
+		     (make-node '##core#inline '("C_fixnum_times") (list x y)) ) )
+	       callargs) ) ) )
+	   (else #f) ) ) ) )
+
+(rewrite
+ 'scheme#+ 8
+ (lambda (db classargs cont callargs)
+   ;; (+ <x>) -> <x>
+   ;; (+ <x1> ...) -> (##core#inline "C_fixnum_plus" <x1> (##core#inline "C_fixnum_plus" ...)) [fixnum-mode]
+   ;; (+ <x1> ...) -> (##core#inline "C_u_fixnum_plus" <x1> (##core#inline "C_u_fixnum_plus" ...))
+   ;;    [fixnum-mode + unsafe]
+   ;; - Remove "0" from arguments, if more than 1.
+   (cond ((or (null? callargs) (not (eq? number-type 'fixnum))) #f)
+	 ((null? (cdr callargs))
+	  (make-node
+	   '##core#call (list #t)
+	   (list cont
+		 (make-node '##core#inline
+			    (if unsafe '("C_u_fixnum_plus") '("C_fixnum_plus"))
+			    callargs)) ) )
+	 (else
+	  (let ((callargs
+		 (cons (car callargs)
+		       (filter
+			(lambda (x)
+			  (not (and (eq? 'quote (node-class x))
+				    (zero? (first (node-parameters x))) ) ) )
+			(cdr callargs) ) ) ) )
+	    (and (>= (length callargs) 2)
+		 (make-node
+		  '##core#call (list #t)
+		  (list
+		   cont
+		   (fold-inner
+		    (lambda (x y)
+		      (make-node '##core#inline
+				 (if unsafe '("C_u_fixnum_plus") '("C_fixnum_plus"))
+				 (list x y) ) )
+		    callargs) ) ) ) ) ) ) ) )
+
+(rewrite
+ 'scheme#- 8
+ (lambda (db classargs cont callargs)
+   ;; (- <x>) -> (##core#inline "C_fixnum_negate" <x>)  [fixnum-mode]
+   ;; (- <x>) -> (##core#inline "C_u_fixnum_negate" <x>)  [fixnum-mode + unsafe]
+   ;; (- <x1> ...) -> (##core#inline "C_fixnum_difference" <x1> (##core#inline "C_fixnum_difference" ...)) [fixnum-mode]
+   ;; (- <x1> ...) -> (##core#inline "C_u_fixnum_difference" <x1> (##core#inline "C_u_fixnum_difference" ...))
+   ;;    [fixnum-mode + unsafe]
+   ;; - Remove "0" from arguments, if more than 1.
+   (cond ((or (null? callargs) (not (eq? number-type 'fixnum))) #f)
+	 ((null? (cdr callargs))
+	  (make-node
+	   '##core#call (list #t)
+	   (list cont
+		 (make-node '##core#inline
+			    (if unsafe '("C_u_fixnum_negate") '("C_fixnum_negate"))
+			    callargs)) ) )
+	 (else
+	  (let ((callargs
+		 (cons (car callargs)
+		       (filter
+			(lambda (x)
+			  (not (and (eq? 'quote (node-class x))
+				    (zero? (first (node-parameters x))) ) ) )
+			(cdr callargs) ) ) ) )
+	    (and (>= (length callargs) 2)
+		 (make-node
+		  '##core#call (list #t)
+		  (list
+		   cont
+		   (fold-inner
+		    (lambda (x y)
+		      (make-node '##core#inline
+				 (if unsafe '("C_u_fixnum_difference") '("C_fixnum_difference"))
+				 (list x y) ) )
+		    callargs) ) ) ) ) ) ) ) )
+
+(let ()
+  (define (rewrite-div db classargs cont callargs)
+    ;; (/ <x1> ...) -> (##core#inline "C_fixnum_divide" <x1> (##core#inline "C_fixnum_divide" ...)) [fixnum-mode]
+    ;; - Remove "1" from arguments, if more than 1.
+    ;; - Replace divisions by 2 with shift right. [fixnum-mode]
+    (and (eq? number-type 'fixnum)
+	 (>= (length callargs) 2)
+	 (let ((callargs
+		(cons (car callargs)
+		      (filter
+		       (lambda (x)
+			 (not (and (eq? 'quote (node-class x))
+				   (eq? 1 (first (node-parameters x))) ) ) )
+		       (cdr callargs) ) ) ) )
+	   (and (>= (length callargs) 2)
+		(make-node
+		 '##core#call (list #t)
+		 (list
+		  cont
+		  (fold-inner
+		   (lambda (x y)
+		     (if (and (eq? 'quote (node-class y)) (eq? 2 (first (node-parameters y))))
+			 (make-node '##core#inline '("C_fixnum_shift_right") (list x (qnode 1)))
+			 (make-node '##core#inline '("C_fixnum_divide") (list x y)) ) )
+		   callargs) ) ) ) ) ) )
+  (rewrite 'scheme#/ 8 rewrite-div)
+  (rewrite '##sys#/-2 8 rewrite-div))
+
+(rewrite
+ 'scheme#quotient 8
+ (lambda (db classargs cont callargs)
+   ;; (quotient <x> 2) -> (##core#inline "C_fixnum_shift_right" <x> 1) [fixnum-mode]
+   ;; (quotient <x> <y>) -> (##core#inline "C_fixnum_divide" <x> <y>) [fixnum-mode]
+   (and (eq? 'fixnum number-type)
+	(= (length callargs) 2)
+	(make-node
+	 '##core#call (list #t)
+	 (let ([arg2 (second callargs)])
+	   (list cont
+		 (if (and (eq? 'quote (node-class arg2))
+			  (eq? 2 (first (node-parameters arg2))) )
+		     (make-node
+		      '##core#inline '("C_fixnum_shift_right")
+		      (list (first callargs) (qnode 1)) )
+		     (make-node '##core#inline '("C_fixnum_divide") callargs) ) ) ) )  ) ) )
+
 (rewrite 'scheme#+ 19)
 (rewrite 'scheme#- 19)
 (rewrite 'scheme#* 19)
@@ -887,34 +1066,63 @@
 
 ;; TODO: Move this stuff to types.db
 (rewrite 'srfi-4#u8vector-ref 2 2 "C_u_i_u8vector_ref" #f)
+(rewrite 'srfi-4#u8vector-ref 2 2 "C_i_u8vector_ref" #t)
 (rewrite 'srfi-4#s8vector-ref 2 2 "C_u_i_s8vector_ref" #f)
+(rewrite 'srfi-4#s8vector-ref 2 2 "C_i_s8vector_ref" #t)
 (rewrite 'srfi-4#u16vector-ref 2 2 "C_u_i_u16vector_ref" #f)
+(rewrite 'srfi-4#u16vector-ref 2 2 "C_i_u16vector_ref" #t)
 (rewrite 'srfi-4#s16vector-ref 2 2 "C_u_i_s16vector_ref" #f)
+(rewrite 'srfi-4#s16vector-ref 2 2 "C_i_s16vector_ref" #t)
+
+(rewrite 'srfi-4#u32vector-ref 16 2 "C_a_i_u32vector_ref" #t words-per-flonum)
+(rewrite 'srfi-4#s32vector-ref 16 2 "C_a_i_s32vector_ref" #t words-per-flonum)
 
 (rewrite 'srfi-4#f32vector-ref 16 2 "C_a_u_i_f32vector_ref" #f words-per-flonum)
+(rewrite 'srfi-4#f32vector-ref 16 2 "C_a_i_f32vector_ref" #t words-per-flonum)
 (rewrite 'srfi-4#f64vector-ref 16 2 "C_a_u_i_f64vector_ref" #f words-per-flonum)
+(rewrite 'srfi-4#f64vector-ref 16 2 "C_a_i_f64vector_ref" #t words-per-flonum)
 
 (rewrite 'srfi-4#u8vector-set! 2 3 "C_u_i_u8vector_set" #f)
+(rewrite 'srfi-4#u8vector-set! 2 3 "C_i_u8vector_set" #t)
 (rewrite 'srfi-4#s8vector-set! 2 3 "C_u_i_s8vector_set" #f)
+(rewrite 'srfi-4#s8vector-set! 2 3 "C_i_s8vector_set" #t)
 (rewrite 'srfi-4#u16vector-set! 2 3 "C_u_i_u16vector_set" #f)
+(rewrite 'srfi-4#u16vector-set! 2 3 "C_i_u16vector_set" #t)
 (rewrite 'srfi-4#s16vector-set! 2 3 "C_u_i_s16vector_set" #f)
+(rewrite 'srfi-4#s16vector-set! 2 3 "C_i_s16vector_set" #t)
 (rewrite 'srfi-4#u32vector-set! 2 3 "C_u_i_u32vector_set" #f)
+(rewrite 'srfi-4#u32vector-set! 2 3 "C_i_u32vector_set" #t)
 (rewrite 'srfi-4#s32vector-set! 2 3 "C_u_i_s32vector_set" #f)
-(rewrite 'srfi-4#u64vector-set! 2 3 "C_u_i_u32vector_set" #f)
-(rewrite 'srfi-4#s64vector-set! 2 3 "C_u_i_s32vector_set" #f)
+(rewrite 'srfi-4#s32vector-set! 2 3 "C_i_s32vector_set" #t)
+(rewrite 'srfi-4#u64vector-set! 2 3 "C_u_i_u64vector_set" #f)
+(rewrite 'srfi-4#u64vector-set! 2 3 "C_i_u64vector_set" #t)
+(rewrite 'srfi-4#s64vector-set! 2 3 "C_u_i_s64vector_set" #f)
+(rewrite 'srfi-4#s64vector-set! 2 3 "C_i_s64vector_set" #t)
 (rewrite 'srfi-4#f32vector-set! 2 3 "C_u_i_f32vector_set" #f)
+(rewrite 'srfi-4#f32vector-set! 2 3 "C_i_f32vector_set" #t)
 (rewrite 'srfi-4#f64vector-set! 2 3 "C_u_i_f64vector_set" #f)
+(rewrite 'srfi-4#f64vector-set! 2 3 "C_i_f64vector_set" #t)
 
-(rewrite 'srfi-4#u8vector-length 2 1 "C_u_i_8vector_length" #f)
-(rewrite 'srfi-4#s8vector-length 2 1 "C_u_i_8vector_length" #f)
-(rewrite 'srfi-4#u16vector-length 2 1 "C_u_i_16vector_length" #f)
-(rewrite 'srfi-4#s16vector-length 2 1 "C_u_i_16vector_length" #f)
-(rewrite 'srfi-4#u32vector-length 2 1 "C_u_i_32vector_length" #f)
-(rewrite 'srfi-4#s32vector-length 2 1 "C_u_i_32vector_length" #f)
-(rewrite 'srfi-4#u64vector-length 2 1 "C_u_i_64vector_length" #f)
-(rewrite 'srfi-4#s64vector-length 2 1 "C_u_i_64vector_length" #f)
-(rewrite 'srfi-4#f32vector-length 2 1 "C_u_i_32vector_length" #f)
-(rewrite 'srfi-4#f64vector-length 2 1 "C_u_i_64vector_length" #f)
+(rewrite 'srfi-4#u8vector-length 2 1 "C_u_i_u8vector_length" #f)
+(rewrite 'srfi-4#u8vector-length 2 1 "C_i_u8vector_length" #t)
+(rewrite 'srfi-4#s8vector-length 2 1 "C_u_i_s8vector_length" #f)
+(rewrite 'srfi-4#s8vector-length 2 1 "C_i_s8vector_length" #t)
+(rewrite 'srfi-4#u16vector-length 2 1 "C_u_i_u16vector_length" #f)
+(rewrite 'srfi-4#u16vector-length 2 1 "C_i_u16vector_length" #t)
+(rewrite 'srfi-4#s16vector-length 2 1 "C_u_i_s16vector_length" #f)
+(rewrite 'srfi-4#s16vector-length 2 1 "C_i_s16vector_length" #t)
+(rewrite 'srfi-4#u32vector-length 2 1 "C_u_i_u32vector_length" #f)
+(rewrite 'srfi-4#u32vector-length 2 1 "C_i_u32vector_length" #t)
+(rewrite 'srfi-4#s32vector-length 2 1 "C_u_i_s32vector_length" #f)
+(rewrite 'srfi-4#s32vector-length 2 1 "C_i_s32vector_length" #t)
+(rewrite 'srfi-4#u64vector-length 2 1 "C_u_i_u64vector_length" #f)
+(rewrite 'srfi-4#u64vector-length 2 1 "C_i_u64vector_length" #t)
+(rewrite 'srfi-4#s64vector-length 2 1 "C_u_i_s64vector_length" #f)
+(rewrite 'srfi-4#s64vector-length 2 1 "C_i_s64vector_length" #t)
+(rewrite 'srfi-4#f32vector-length 2 1 "C_u_i_f32vector_length" #f)
+(rewrite 'srfi-4#f32vector-length 2 1 "C_i_f32vector_length" #t)
+(rewrite 'srfi-4#f64vector-length 2 1 "C_u_i_f64vector_length" #f)
+(rewrite 'srfi-4#f64vector-length 2 1 "C_i_f64vector_length" #t)
 
 (rewrite 'chicken.base#atom? 17 1 "C_i_not_pair_p")
 

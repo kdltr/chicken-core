@@ -1,6 +1,6 @@
 ;;; extras.scm - Optional non-standard extensions
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -248,7 +248,7 @@
 (module chicken.pretty-print
   (pp pretty-print pretty-print-width)
 
-(import scheme chicken.base chicken.fixnum chicken.string)
+(import scheme chicken.base chicken.fixnum chicken.keyword chicken.string)
 
 (define generic-write
   (lambda (obj display? width output)
@@ -298,8 +298,8 @@
 	    ((vector? obj)      (wr-lst (vector->list obj) (out "#" col)))
 	    ((boolean? obj)     (out (if obj "#t" "#f") col))
 	    ((##sys#number? obj)      (out (##sys#number->string obj) col))
-	    ((symbol? obj)
-	     (let ([s (open-output-string)])
+	    ((or (keyword? obj) (symbol? obj))
+	     (let ((s (open-output-string)))
 	       (##sys#print obj #t s)
 	       (out (get-output-string s) col) ) )
 	    ((procedure? obj)   (out (##sys#procedure->string obj) col))
@@ -421,7 +421,7 @@
 		  (let ((proc (style head)))
 		    (if proc
 			(proc expr col extra)
-			(if (> (string-length (##sys#symbol->qualified-string head))
+			(if (> (string-length (##sys#symbol->string head))
 			       max-call-head-width)
 			    (pp-general expr col extra #f #f #f pp-expr)
 			    (pp-call expr col extra pp-expr))))

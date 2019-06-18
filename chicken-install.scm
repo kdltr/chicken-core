@@ -1,6 +1,6 @@
 ;;;; chicken-install.scm
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -97,11 +97,9 @@
 (define keepfiles #f)
 (define print-repository #f)
 (define cached-only #f)
-  
+
 (define platform
-  (if (eq? 'mingw32 (software-version))
-      'windows
-      'unix))
+  (if (eq? (software-version) 'mingw32) 'windows 'unix))
 
 (define current-status 
   (list ##sys#build-id default-prefix
@@ -184,17 +182,21 @@
     (link-options #f #f #f)
     (custom-build #f #f #f)
     (linkage #f #f #f)
+    (objects #f #f #f)
     (install-name #f #f #f ,nameprop?)
     (target #f #t #f)
     (host #f #t #f)
     (types-file #f #f #f ,name-or-predefd?)
     (inline-file #f #f #f ,optname?)
     (extension #f #t #t)
+    (c-object #f #t #t)
     (generated-source-file #f #t #t)
     (program #f #t #t)
     (data #f #t #t)
     (modules #f #f #f)
     (component-options #t #f #f)
+    (cond-expand * #t #f)
+    (error * #f #f)
     (c-include #f #f #t)
     (scheme-include #f #f #t)))
 
@@ -208,11 +210,15 @@
                (error "invalid egg information item" item))
               ((assq (car item) egg-info-items) =>
                (lambda (a)
-                 (apply (lambda (_ toplevel nested named #!optional validator)
-                          (cond ((and top? (not toplevel))
+                 (apply (lambda (name toplevel nested named #!optional validator)
+                          (cond ((and top? 
+                                      (not (eq? toplevel '*))
+                                      (not toplevel))
                                  (error "egg information item not allowed at toplevel" 
                                         item))
-                                ((and toplevel (not top?))
+                                ((and (not (eq? toplevel '*))
+                                      toplevel
+                                      (not top?))
                                  (error "egg information item only allowed at toplevel" item))
                                 ((and named
                                       (or (null? (cdr item))
@@ -222,7 +228,16 @@
                                       (not (validator (cdr item))))
                                  (error "egg information item has invalid structure" item)))
                           (when nested
-                            (validate (if named (cddr item) (cdr item)) #f)))
+                            (cond (named (validate (cddr item) #f))
+                                  ((eq? name 'cond-expand)
+                                   (for-each
+                                     (lambda (clause)
+                                       (unless (and (list? clause)
+                                                    (>= (length clause) 1))
+                                         (error "invalid syntax in `cond-expand' clause" clause))
+                                       (validate (cdr clause) top?))
+                                     (cdr item)))
+                                  (else (validate (cdr item) #f)))))
                         a)))
               (else (error "unknown egg information item" item))))
       info))
@@ -232,7 +247,7 @@
 
 ;; utilities
 
-;; Simpler replacement for SRFI-13's string-suffix?
+;; Simpler replacement for SRFI-13's "string-suffix?"
 (define (string-suffix? suffix s)
   (let ((len-s (string-length s))
         (len-suffix (string-length suffix)))
@@ -273,8 +288,12 @@
 ;; load defaults file ("setup.defaults")
 
 (define (load-defaults)
-  (let ((deff (or user-defaults
-                  (make-pathname host-sharedir +defaults-file+))))
+  (let* ((cfg-dir (system-config-directory))
+         (user-file (and cfg-dir (make-pathname (list cfg-dir "chicken")
+                                                +defaults-file+)))
+         (deff (or user-defaults
+                   (and user-file (file-exists? user-file))
+                   (make-pathname host-sharedir +defaults-file+))))
       (define (broken x)
 	(error "invalid entry in defaults file" deff x))
       (cond ((not (file-exists? deff)) '())
@@ -696,9 +715,8 @@
 (define (ext-version x)
   (cond ((or (eq? x 'chicken) (equal? x "chicken"))
          (chicken-version))
-        ((let* ((ep (##sys#canonicalize-extension-path x 'ext-version))
-                (sf (chicken.load#find-file
-                     (make-pathname #f ep +egg-info-extension+)
+        ((let* ((sf (chicken.load#find-file
+                     (make-pathname #f (->string x) +egg-info-extension+)
                      (repo-path))))
            (and sf
                 (file-exists? sf)
@@ -755,7 +773,7 @@
     (let ((r (trim (read-line))))
       (cond ((string=? r "yes"))
             ((string=? r "no") #f)
-            ((string=? r "abort") (exit 1))
+            ((string=? r "abort") (exit 2))
             (else (loop))))))
 
 (define (trim str)
@@ -806,7 +824,6 @@
                                                                ver
                                                                platform
                                                                'host)))
-            (check-installed-files name info)                         
             (let ((bscript (make-pathname dir name 
                                           (build-script-extension 'host platform)))
                   (iscript (make-pathname dir name 
@@ -825,6 +842,7 @@
                       (print "building " name)
                       (run-script dir bscript platform)
                       (unless (if (member name requested-eggs) no-install no-install-dependencies)
+                        (check-installed-files name info)
                         (print "  installing " name)
                         (run-script dir iscript platform sudo: sudo-install))
                       (when (and (member name requested-eggs)
@@ -991,22 +1009,24 @@
         (purge-mode (purge-cache eggs))
         (print-repository (print (install-path)))
         ((null? eggs)
-         (when cached-only
-           (error "`-cached' needs explicit egg list"))
-         (if list-versions-only
-             (print "no eggs specified")
-             (let ((files (glob "*.egg" "chicken/*.egg")))
-               (set! canonical-eggs 
-                 (map (lambda (fname)
-                        (list (pathname-file fname) (current-directory) #f))
-                   files))
-               (set! requested-eggs (map car canonical-eggs))
-               (retrieve-eggs '())
-               (unless retrieve-only (install-eggs)))))
+         (cond (cached-only
+                 (error "`-cached' needs explicit egg list"))
+               (list-versions-only
+                 (print "no eggs specified"))
+               (else
+                 (let ((files (glob "*.egg" "chicken/*.egg")))
+                   (when (null? files) (exit 3))
+                   (set! canonical-eggs
+                     (map (lambda (fname)
+                            (list (pathname-file fname) (current-directory) #f))
+                       files))
+                   (set! requested-eggs (map car canonical-eggs))
+                   (retrieve-eggs '())
+                   (unless retrieve-only (install-eggs))))))
         (else
           (let ((eggs (apply-mappings eggs)))
             (cond (list-versions-only (list-egg-versions eggs))
-                  (else 
+                  (else
                     (set! requested-eggs (map (o car canonical) eggs))
                     (retrieve-eggs eggs)
                     (unless retrieve-only (install-eggs))))))))
@@ -1038,6 +1058,7 @@ usage: chicken-install [OPTION ...] [NAME[:VERSION] ...]
        -from-list FILENAME      install eggs from list obtained by `chicken-status -list'
   -v   -verbose                 be verbose
        -cached                  only install from cache
+  -D   -feature NAME            define build feature
        -defaults FILENAME       use FILENAME as defaults instead of the installed `setup.defaults'
                                 file
 
@@ -1076,6 +1097,9 @@ EOF
                   ((equal? arg "-version")
                    (print (chicken-version))
                    (exit 0))
+                  ((member arg '("-D" "-feature"))
+                   (register-feature! (cadr args))
+                   (loop (cddr args)))
                   ((equal? arg "-recursive")
                    (set! retrieve-recursive #t)
                    (loop (cdr args)))
@@ -1158,7 +1182,7 @@ EOF
                          (irregex-match-substring m 2)
                          eggs))
                      (loop (cdr args))))
-                  (else 
+                  (else
                     (set! eggs (cons arg eggs))
                     (loop (cdr args)))))))))
 

@@ -7,7 +7,7 @@
 
 ;; Relaxed cases
 (assert (f (values 1 2 3)))
-(assert (f (call/cc (lambda (k) (k 1 2 3)))))
+(assert-fail (call/cc (lambda (k) (k 1 2 3)))) ; For now it should fail, see #1601
 
 ;; Strict cases
 (assert-fail (call-with-values (lambda () (values 1 2 3)) f))

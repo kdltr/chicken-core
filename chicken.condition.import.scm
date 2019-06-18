@@ -1,6 +1,6 @@
 ;;;; chicken.condition.import.scm - import library for "chicken.condition" module
 ;
-; Copyright (c) 2017-2018, The CHICKEN Team
+; Copyright (c) 2017-2019, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following

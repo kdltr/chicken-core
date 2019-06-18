@@ -1,32 +1,112 @@
+;; numbers replaced with XXX by redact-gensyms.scm
+;; prefixes: (tmp g scm:)
 
-Note: at toplevel:
-  (specialization-tests.scm:3) in procedure call to `scheme#string?', the predicate is called with an argument of type `string' and will always return true
+Note: Predicate is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
+  In procedure call:
 
-Note: at toplevel:
-  (specialization-tests.scm:3) expected a value of type boolean in conditional, but was given a value of type `true' which is always true:
+    (scheme#string? a)
 
-(if (scheme#string? a) 'ok 'no)
+  The predicate will always return true.
 
-Note: at toplevel:
-  (specialization-tests.scm:4) in procedure call to `scheme#string?', the predicate is called with an argument of type `symbol' and will always return false
+  Procedure `string?' from module `scheme' is a predicate for:
 
-Note: at toplevel:
-  (specialization-tests.scm:4) in conditional, test expression will always return false:
+    string
 
-(if (scheme#string? a) 'ok 'no)
+  The given argument has this type:
 
-Note: at toplevel:
-  (specialization-tests.scm:10) in procedure call to `scheme#input-port?', the predicate is called with an argument of type `input/output-port' and will always return true
+    string
 
-Note: at toplevel:
-  (specialization-tests.scm:10) expected a value of type boolean in conditional, but was given a value of type `true' which is always true:
+Note: Test is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
+  In conditional expression:
 
-(if (scheme#input-port? p) 'ok 'no)
+    (if (scheme#string? a) 'ok 'no)
 
-Note: at toplevel:
-  (specialization-tests.scm:11) in procedure call to `scheme#output-port?', the predicate is called with an argument of type `input/output-port' and will always return true
+  Test condition has always true value of type:
 
-Note: at toplevel:
-  (specialization-tests.scm:11) expected a value of type boolean in conditional, but was given a value of type `true' which is always true:
+    true
 
-(if (scheme#output-port? p) 'ok 'no)
+Note: Predicate is always false
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#string? a)
+
+  The predicate will always return false.
+
+  Procedure `string?' from module `scheme' is a predicate for:
+
+    string
+
+  The given argument has this type:
+
+    symbol
+
+Note: Test is always false
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
+  In conditional expression:
+
+    (if (scheme#string? a) 'ok 'no)
+
+  Test condition is always false.
+
+Note: Predicate is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#input-port? p)
+
+  The predicate will always return true.
+
+  Procedure `input-port?' from module `scheme' is a predicate for:
+
+    input-port
+
+  The given argument has this type:
+
+    input/output-port
+
+Note: Test is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
+  In conditional expression:
+
+    (if (scheme#input-port? p) 'ok 'no)
+
+  Test condition has always true value of type:
+
+    true
+
+Note: Predicate is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#output-port? p)
+
+  The predicate will always return true.
+
+  Procedure `output-port?' from module `scheme' is a predicate for:
+
+    output-port
+
+  The given argument has this type:
+
+    input/output-port
+
+Note: Test is always true
+  In file `specialization-tests.scm:XXX',
+  At the toplevel,
+  In conditional expression:
+
+    (if (scheme#output-port? p) 'ok 'no)
+
+  Test condition has always true value of type:
+
+    true

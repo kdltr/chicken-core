@@ -1,6 +1,6 @@
 ;;; environment settings for egg compilation
 ;
-; Copyright (c) 2017-2018, The CHICKEN Team
+; Copyright (c) 2017-2019, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -76,6 +76,9 @@ EOF
 (define default-builder 
   (make-pathname default-bindir (foreign-value "C_CHICKEN_DO_PROGRAM" c-string)))
 
+(define target-librarian (foreign-value "C_TARGET_LIBRARIAN" c-string))
+(define target-librarian-options (foreign-value "C_TARGET_LIBRARIAN_FLAGS" c-string))
+
 (define host-repo (foreign-value "C_INSTALL_EGG_HOME" c-string))
 (define host-libdir (foreign-value "C_INSTALL_LIB_HOME" c-string))
 (define host-bindir (foreign-value "C_INSTALL_BIN_HOME" c-string))
@@ -110,13 +113,11 @@ EOF
       (or (get-environment-variable "CHICKEN_INSTALL_REPOSITORY")
           host-repo)))
 
-(define (probe-dir dir)
+(define (probe-dir dir)           
   (and dir (directory-exists? dir) dir))
 
 (define cache-directory
   (or (get-environment-variable "CHICKEN_EGG_CACHE")
-      (make-pathname (list (or (probe-dir (get-environment-variable "HOME"))
-                               (probe-dir (get-environment-variable "USERPROFILE"))
-                               (current-directory))
-                           ".chicken-install")
-                     "cache")))
+      (make-pathname (or (system-cache-directory)
+                         (current-directory))
+                     "chicken-install")))

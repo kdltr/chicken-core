@@ -142,10 +142,32 @@ intended for cross compilation.
 
 ==== component-options
 
-[egg property] (component-options OPTIONSPEC ...)
+ [egg property] (component-options OPTIONSPEC ...)
 
 Specifies global options for all programs and extensions compiled for this egg.
-{{OPTIONSPEC}} may be {{csc-options}} or {{link-options}} specifications.
+{{OPTIONSPEC}} may be {{csc-options}}, {{link-options}} or {{linkage}} specifications.
+
+==== cond-expand
+
+ [egg property] (cond-expand CLAUSE ...)
+
+Conditionally expand egg specification forms, depending on system 
+features. Each {{CLAUSE}} should be of the form 
+{{(TEST PROPERTY)}} where {{TEST}} is a feature identifier or a 
+conditional form, in the same syntax as used in the {{cond-expand}}
+syntactic form.
+
+In addition to normal system-wide feature identifiers, feature identifiers
+given via the {{-feature}} option to {{chicken-install}} are visible in
+the tests. Also, the features {{target}}, {{host}}, {{dynamic}} and
+{{static}} are visible, depending on surrounding egg specification
+forms for constraining mode and linkage.
+
+==== error
+
+ [egg property] (error STRING ARG ...)
+
+Signal an error and abort processing. Mostly useful inside {{cond-expand}} forms.
 
 === Components
 
@@ -287,6 +309,9 @@ Note that the options are quoted when passed to csc during the
 compilation of the extension, so multiple options should be specified
 as {{(link-options "OPT1" "OPT2" ...)}} instead of {{(link-options "OPT1 OPT2")}}
 (the latter would be a single option containing a whitespace character).
+
+Note that in order to pass linker options to the underlying C-compiler, these must
+be prefixed with {{-L}}, eg. {{(link-options "-L" "-lpng")}}.
 
 ==== source
 

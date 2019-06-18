@@ -7,9 +7,8 @@ This module provides a more powerful interface for continuations than that
 provided by {{call/cc}}.
 
 More information about this continuation API can be found in the paper
-[[http://repository.readscheme.org/ftp/papers/sw2001/feeley.pdf]] ''A Better
-API for first class Continuations'' by Marc Feeley.
-
+[[http://www.iro.umontreal.ca/~feeley/papers/FeeleySW01.pdf|A Better
+API for First-Class Continuations]] by Marc Feeley.
 
 === Continuations API
 

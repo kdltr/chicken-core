@@ -1,6 +1,6 @@
 ;;;; types.db - Type-information for core library functions -*- Scheme -*-
 ;
-; Copyright (c) 2009-2018, The CHICKEN Team
+; Copyright (c) 2009-2019, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -63,13 +63,13 @@
 (scheme#eq? (#(procedure #:pure #:foldable) scheme#eq? (* *) boolean))
 
 (scheme#eqv? (#(procedure #:pure #:foldable) scheme#eqv? (* *) boolean)
-	     (((or immediate symbol) *) (scheme#eq? #(1) #(2)))
-	     ((* (or immediate symbol)) (scheme#eq? #(1) #(2)))
+	     (((or immediate symbol keyword) *) (scheme#eq? #(1) #(2)))
+	     ((* (or immediate symbol keyword)) (scheme#eq? #(1) #(2)))
 	     ((* *) (##core#inline "C_i_eqvp" #(1) #(2))))
 
 (scheme#equal? (#(procedure #:pure #:foldable) scheme#equal? (* *) boolean)
-	       (((or immediate symbol) *) (scheme#eq? #(1) #(2)))
-	       ((* (or immediate symbol)) (scheme#eq? #(1) #(2)))
+	       (((or immediate symbol keyword) *) (scheme#eq? #(1) #(2)))
+	       ((* (or immediate symbol keyword)) (scheme#eq? #(1) #(2)))
 	       ((number number) (##core#inline "C_i_eqvp" #(1) #(2))))
 
 (scheme#pair? (#(procedure #:pure #:predicate pair) scheme#pair? (*) boolean))
@@ -190,15 +190,15 @@
 (scheme#memv (forall (a b) (#(procedure #:clean #:foldable) scheme#memv (a (list-of b))
 			    (or false (pair a (list-of b)))))
 	     ((* null) (let ((#(tmp) #(1))) '#f))
-	     (((or symbol procedure immediate) list)
+	     (((or symbol keyword procedure immediate) list)
 	      (##core#inline "C_u_i_memq" #(1) #(2))))
 
 (scheme#member (forall (a b) (#(procedure #:clean #:foldable) scheme#member (a (list-of b))
 			      (or false (pair a (list-of b)))))
 	       ((* null) (let ((#(tmp) #(1))) '#f))
-	       (((or symbol procedure immediate) list)
+	       (((or symbol keyword procedure immediate) list)
 		(##core#inline "C_u_i_memq" #(1) #(2)))
-	       ((* (list-of (or symbol procedure immediate)))
+	       ((* (list-of (or symbol keyword procedure immediate)))
 		(##core#inline "C_u_i_memq" #(1) #(2))))
 
 (scheme#assq (forall (a b c) (#(procedure #:clean #:foldable) scheme#assq
@@ -211,18 +211,18 @@
 			      (a (list-of (pair b c)))
 			      (or false (pair a c))))
 	     ((* null) (let ((#(tmp) #(1))) '#f))
-	     (((or symbol immediate procedure) (list-of pair))
+	     (((or symbol keyword immediate procedure) (list-of pair))
 	      (##core#inline "C_u_i_assq" #(1) #(2)))
-	     ((* (list-of (pair (or symbol procedure immediate) *)))
+	     ((* (list-of (pair (or symbol keyword procedure immediate) *)))
 	      (##core#inline "C_u_i_assq" #(1) #(2))))
 
 (scheme#assoc (forall (a b c) (#(procedure #:clean #:foldable) scheme#assoc
 			       (a (list-of (pair b c)))
 			       (or false (pair a c))))
 	      ((* null) (let ((#(tmp) #(1))) '#f))
-	      (((or symbol procedure immediate) (list-of pair))
+	      (((or symbol keyword procedure immediate) (list-of pair))
 	       (##core#inline "C_u_i_assq" #(1) #(2)))
-	      ((* (list-of (pair (or symbol procedure immediate) *)))
+	      ((* (list-of (pair (or symbol keyword procedure immediate) *)))
 	       (##core#inline "C_u_i_assq" #(1) #(2))))
 
 (scheme#symbol? (#(procedure #:pure #:predicate symbol) scheme#symbol? (*) boolean))
@@ -314,9 +314,7 @@
 	  ((fixnum fixnum) (integer)
 	   (##core#inline_allocate ("C_a_i_fixnum_plus" 5) #(1) #(2)))
 	  ((integer integer) (integer)
-	   (##core#inline_allocate ("C_s_a_u_i_integer_plus" 5) #(1) #(2)))
-	  ((* *) (number)
-	   (##core#inline_allocate ("C_s_a_i_plus" 29) #(1) #(2))))
+	   (##core#inline_allocate ("C_s_a_u_i_integer_plus" 5) #(1) #(2))))
 
 (scheme#- (#(procedure #:clean #:enforce #:foldable) scheme#- (number #!rest number) number)
 	  ((fixnum) (integer) (##core#inline_allocate ("C_a_i_fixnum_negate" 5) #(1)))
@@ -339,9 +337,7 @@
 	  ((fixnum fixnum) (integer)
 	   (##core#inline_allocate ("C_a_i_fixnum_difference" 5) #(1) #(2)))
 	  ((integer integer) (integer)
-	   (##core#inline_allocate ("C_s_a_u_i_integer_minus" 5) #(1) #(2)))
-	  ((* *) (number)
-	   (##core#inline_allocate ("C_s_a_i_minus" 29) #(1) #(2))))
+	   (##core#inline_allocate ("C_s_a_u_i_integer_minus" 5) #(1) #(2))))
 
 (scheme#* (#(procedure #:clean #:enforce #:foldable) scheme#* (#!rest number) number)
 	  (() (fixnum) '1)
@@ -367,9 +363,7 @@
 	  ((fixnum fixnum) (integer)
 	   (##core#inline_allocate ("C_a_i_fixnum_times" 5) #(1) #(2)))
 	  ((integer integer) (integer)
-	   (##core#inline_allocate ("C_s_a_u_i_integer_times" 5) #(1) #(2)))
-	  ((* *) (number)
-	   (##core#inline_allocate ("C_s_a_i_times" 33) #(1) #(2))))
+	   (##core#inline_allocate ("C_s_a_u_i_integer_times" 5) #(1) #(2))))
 
 (scheme#/ (#(procedure #:clean #:enforce #:foldable) scheme#/ (number #!rest number) number)
 	  ((float fixnum) (float)
@@ -395,40 +389,35 @@
 	  ((number) (let ((#(tmp) #(1))) '#t))
 	  ((fixnum fixnum) (scheme#eq? #(1) #(2)))
 	  ((float float) (##core#inline "C_flonum_equalp" #(1) #(2)))
-	  ((integer integer) (##core#inline "C_i_integer_equalp" #(1) #(2)))
-	  ((* *) (##core#inline "C_i_nequalp" #(1) #(2))))
+	  ((integer integer) (##core#inline "C_i_integer_equalp" #(1) #(2))))
 
 (scheme#> (#(procedure #:clean #:enforce #:foldable) scheme#> (#!rest number) boolean)
 	  (() '#t)
 	  ((number) (let ((#(tmp) #(1))) '#t))
 	  ((fixnum fixnum) (chicken.fixnum#fx> #(1) #(2)))
 	  ((float float) (##core#inline "C_flonum_greaterp" #(1) #(2)))
-	  ((integer integer) (##core#inline "C_i_integer_greaterp" #(1) #(2)))
-	  ((* *) (##core#inline "C_i_greaterp" #(1) #(2))))
+	  ((integer integer) (##core#inline "C_i_integer_greaterp" #(1) #(2))))
 
 (scheme#< (#(procedure #:clean #:enforce #:foldable) scheme#< (#!rest number) boolean)
 	  (() '#t)
 	  ((number) (let ((#(tmp) #(1))) '#t))
 	  ((fixnum fixnum) (chicken.fixnum#fx< #(1) #(2)))
 	  ((integer integer) (##core#inline "C_i_integer_lessp" #(1) #(2)))
-	  ((float float) (##core#inline "C_flonum_lessp" #(1) #(2)))
-	  ((* *) (##core#inline "C_i_lessp" #(1) #(2))))
+	  ((float float) (##core#inline "C_flonum_lessp" #(1) #(2))))
 
 (scheme#>= (#(procedure #:clean #:enforce #:foldable) scheme#>= (#!rest number) boolean)
 	   (() '#t)
 	   ((number) (let ((#(tmp) #(1))) '#t))
 	   ((fixnum fixnum) (chicken.fixnum#fx>= #(1) #(2)))
 	   ((integer integer) (##core#inline "C_i_integer_greater_or_equalp" #(1) #(2)))
-	   ((float float) (##core#inline "C_flonum_greater_or_equal_p" #(1) #(2)))
-	   ((* *) (##core#inline "C_i_greater_or_equalp" #(1) #(2))))
+	   ((float float) (##core#inline "C_flonum_greater_or_equal_p" #(1) #(2))))
 
 (scheme#<= (#(procedure #:clean #:enforce #:foldable) scheme#<= (#!rest number) boolean)
 	   (() '#t)
 	   ((number) (let ((#(tmp) #(1))) '#t))
 	   ((fixnum fixnum) (chicken.fixnum#fx<= #(1) #(2)))
 	   ((integer integer) (##core#inline "C_i_integer_less_or_equalp" #(1) #(2)))
-	   ((float float) (##core#inline "C_flonum_less_or_equal_p" #(1) #(2)))
-	   ((* *) (##core#inline "C_i_less_or_equalp" #(1) #(2))))
+	   ((float float) (##core#inline "C_flonum_less_or_equal_p" #(1) #(2))))
 
 (scheme#quotient (#(procedure #:clean #:enforce #:foldable) scheme#quotient ((or integer float) (or integer float)) (or integer float))
 		 ;;XXX flonum/mixed case
@@ -439,8 +428,7 @@
 		  (##core#inline_allocate ("C_a_i_fixnum_quotient_checked" 5)
 					  #(1) #(2)))
 		 ((integer integer) (integer)
-		  (##core#inline_allocate ("C_s_a_u_i_integer_quotient" 5) #(1) #(2)))
-		 ((* *) (##core#inline_allocate ("C_s_a_i_quotient" 5) #(1) #(2))))
+		  (##core#inline_allocate ("C_s_a_u_i_integer_quotient" 5) #(1) #(2))))
 
 (scheme#remainder (#(procedure #:clean #:enforce #:foldable) scheme#remainder ((or integer float) (or integer float)) (or integer float))
 		  ((float float) (float)
@@ -450,8 +438,7 @@
 		  ((fixnum fixnum) (fixnum)
 		   (##core#inline "C_i_fixnum_remainder_checked" #(1) #(2)))
 		  ((integer integer) (integer)
-		   (##core#inline_allocate ("C_s_a_u_i_integer_remainder" 5) #(1) #(2)))
-		  ((* *) (##core#inline_allocate ("C_s_a_i_remainder" 5) #(1) #(2))))
+		   (##core#inline_allocate ("C_s_a_u_i_integer_remainder" 5) #(1) #(2))))
 
 (scheme#modulo (#(procedure #:clean #:enforce #:foldable) scheme#modulo ((or integer float) (or integer float)) (or integer float))
 	       ((float float) (float)
@@ -461,8 +448,7 @@
 	       ((fixnum fixnum) (fixnum)
 		(##core#inline "C_fixnum_modulo" #(1) #(2)))
 	       ((integer integer) (integer)
-		(##core#inline_allocate ("C_s_a_u_i_integer_modulo" 5) #(1) #(2)))
-	       ((* *) (##core#inline_allocate ("C_s_a_i_modulo" 5) #(1) #(2))))
+		(##core#inline_allocate ("C_s_a_u_i_integer_modulo" 5) #(1) #(2))))
 
 (scheme#gcd (#(procedure #:clean #:enforce #:foldable) scheme#gcd (#!rest (or integer float)) (or integer float))
 	    (() '0)
@@ -731,8 +717,8 @@
  (procedure scheme#call-with-output-file
 	    (string (procedure (output-port) . *) #!rest) . *))
 
-(scheme#open-input-file (#(procedure #:clean #:enforce) scheme#open-input-file (string #!rest symbol) input-port))
-(scheme#open-output-file (#(procedure #:clean #:enforce) scheme#open-output-file (string #!rest symbol) output-port))
+(scheme#open-input-file (#(procedure #:clean #:enforce) scheme#open-input-file (string #!rest keyword) input-port))
+(scheme#open-output-file (#(procedure #:clean #:enforce) scheme#open-output-file (string #!rest keyword) output-port))
 (scheme#close-input-port (#(procedure #:enforce) scheme#close-input-port (input-port) undefined))
 (scheme#close-output-port (#(procedure #:enforce) scheme#close-output-port (output-port) undefined))
 
@@ -757,11 +743,11 @@
 (scheme#newline (#(procedure #:enforce) scheme#newline (#!optional output-port) undefined))
 
 (scheme#with-input-from-file
- (#(procedure #:enforce) scheme#with-input-from-file (string (procedure () . *) #!rest symbol) . *))
+ (#(procedure #:enforce) scheme#with-input-from-file (string (procedure () . *) #!rest keyword) . *))
 
 (scheme#with-output-to-file
  (#(procedure #:enforce) scheme#with-output-to-file
-  (string (procedure () . *) #!rest symbol) . *))
+  (string (procedure () . *) #!rest keyword) . *))
 
 (scheme#dynamic-wind
  (#(procedure #:enforce) scheme#dynamic-wind
@@ -952,8 +938,8 @@
 (chicken.base#error (procedure chicken.base#error (* #!rest) noreturn))
 (chicken.base#equal=? (#(procedure #:clean #:foldable) chicken.base#equal=? (* *) boolean)
 	 ((fixnum fixnum) (scheme#eq? #(1) #(2)))
-	 (((or symbol char eof null undefined) *) (scheme#eq? #(1) #(2)))
-	 ((* (or symbol char eof null undefined)) (scheme#eq? #(1) #(2)))
+	 (((or symbol keyword char eof null undefined) *) (scheme#eq? #(1) #(2)))
+	 ((* (or symbol keyword char eof null undefined)) (scheme#eq? #(1) #(2)))
 	 ((number number) (scheme#= #(1) #(2))))
 
 (chicken.base#emergency-exit (procedure chicken.base#emergency-exit (#!optional fixnum) noreturn))
@@ -991,7 +977,7 @@
 (chicken.base#symbol-append (#(procedure #:clean #:enforce #:foldable) chicken.base#symbol-append (#!rest symbol) symbol))
 
 (chicken.base#case-sensitive (#(procedure #:clean) chicken.base#case-sensitive (#!optional *) *))
-(chicken.base#keyword-style (#(procedure #:clean) chicken.base#keyword-style (#!optional symbol) symbol))
+(chicken.base#keyword-style (#(procedure #:clean) chicken.base#keyword-style (#!optional keyword) *))
 (chicken.base#parentheses-synonyms (#(procedure #:clean) chicken.base#parentheses-synonyms (#!optional *) *))
 (chicken.base#symbol-escape (#(procedure #:clean) chicken.base#symbol-escape (#!optional *) *))
 
@@ -1072,41 +1058,35 @@
 		((*) (##core#inline "C_i_integer_length" #(1))))
 
 (chicken.bitwise#arithmetic-shift
- (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#arithmetic-shift (integer fixnum) integer)
-		((* *) (##core#inline_allocate ("C_s_a_i_arithmetic_shift" 5) #(1) #(2))))
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#arithmetic-shift (integer fixnum) integer))
 
 (chicken.bitwise#bit->boolean
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bit->boolean (integer integer) boolean)
-	  ((fixnum fixnum) (##core#inline "C_i_fixnum_bit_to_bool" #(1) #(2)))
-	  ((* *) (##core#inline "C_i_bit_to_bool" #(1) #(2))))
+	  ((fixnum fixnum) (##core#inline "C_i_fixnum_bit_to_bool" #(1) #(2))))
 
 (chicken.bitwise#bitwise-and
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-and (#!rest integer) integer)
            (() '-1)
            ((fixnum) (fixnum) #(1))
            ((integer) #(1))
-           ((fixnum fixnum) (fixnum) (##core#inline "C_u_fixnum_and" #(1) #(2)))
-           ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_and" 5) #(1) #(2))))
+           ((fixnum fixnum) (fixnum) (##core#inline "C_u_fixnum_and" #(1) #(2))))
 
 (chicken.bitwise#bitwise-ior
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-ior (#!rest integer) integer)
            (() '0)
            ((fixnum) (fixnum) #(1))
            ((integer) #(1))
-           ((fixnum fixnum) (fixnum) (##core#inline "C_u_fixnum_or" #(1) #(2)))
-	   ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_ior" 5) #(1) #(2))))
+           ((fixnum fixnum) (fixnum) (##core#inline "C_u_fixnum_or" #(1) #(2))))
 
 (chicken.bitwise#bitwise-xor
  (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-xor (#!rest integer) integer)
            (() '0)
            ((fixnum) (fixnum) #(1))
            ((integer) #(1))
-           ((fixnum fixnum) (fixnum) (##core#inline "C_fixnum_xor" #(1) #(2)))
-           ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_xor" 5) #(1) #(2))))
+           ((fixnum fixnum) (fixnum) (##core#inline "C_fixnum_xor" #(1) #(2))))
 
 (chicken.bitwise#bitwise-not
- (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-not (integer) integer)
-	     ((* *) (##core#inline_allocate ("C_s_a_i_bitwise_not" 5) #(1))))
+ (#(procedure #:clean #:enforce #:foldable) chicken.bitwise#bitwise-not (integer) integer))
 
 ;; blob
 
@@ -1322,10 +1302,10 @@
 
 ;; keyword
 
-(chicken.keyword#get-keyword (#(procedure #:clean #:enforce) chicken.keyword#get-keyword (symbol list #!optional *) *))
-(chicken.keyword#keyword->string (#(procedure #:clean #:enforce) chicken.keyword#keyword->string (symbol) string))
-(chicken.keyword#keyword? (#(procedure #:pure) chicken.keyword#keyword? (*) boolean))
-(chicken.keyword#string->keyword (#(procedure #:clean #:enforce) chicken.keyword#string->keyword (string) symbol))
+(chicken.keyword#get-keyword (#(procedure #:clean #:enforce) chicken.keyword#get-keyword (keyword list #!optional *) *))
+(chicken.keyword#keyword->string (#(procedure #:clean #:enforce) chicken.keyword#keyword->string (keyword) string))
+(chicken.keyword#keyword? (#(procedure #:pure #:predicate keyword) chicken.keyword#keyword? (*) boolean))
+(chicken.keyword#string->keyword (#(procedure #:clean #:enforce) chicken.keyword#string->keyword (string) keyword))
 
 ;; load
 
@@ -1346,17 +1326,19 @@
 (chicken.platform#build-platform (#(procedure #:pure) chicken.platform#build-platform () symbol))
 (chicken.platform#chicken-version (#(procedure #:pure) chicken.platform#chicken-version (#!optional *) string))
 (chicken.platform#chicken-home (#(procedure #:clean) chicken.platform#chicken-home () string))
-(chicken.platform#feature? (#(procedure #:clean) chicken.platform#feature? (#!rest symbol) boolean))
-(chicken.platform#features (#(procedure #:clean) chicken.platform#features () (list-of symbol)))
+(chicken.platform#feature? (#(procedure #:clean) chicken.platform#feature? (#!rest (or keyword symbol string)) boolean))
+(chicken.platform#features (#(procedure #:clean) chicken.platform#features () (list-of keyword)))
 (chicken.platform#software-type (#(procedure #:pure) chicken.platform#software-type () symbol))
 (chicken.platform#software-version (#(procedure #:pure) chicken.platform#software-version () symbol))
-(chicken.platform#register-feature! (#(procedure #:clean #:enforce) chicken.platform#register-feature! (#!rest symbol) undefined))
-(chicken.platform#unregister-feature! (#(procedure #:clean #:enforce) chicken.platform#unregister-feature! (#!rest symbol) undefined))
+(chicken.platform#register-feature! (#(procedure #:clean #:enforce) chicken.platform#register-feature! (#!rest (or keyword symbol string)) undefined))
+(chicken.platform#unregister-feature! (#(procedure #:clean #:enforce) chicken.platform#unregister-feature! (#!rest (or keyword symbol string)) undefined))
 (chicken.platform#machine-byte-order (#(procedure #:pure) chicken.platform#machine-byte-order () symbol))
 (chicken.platform#machine-type (#(procedure #:pure) chicken.platform#machine-type () symbol))
 (chicken.platform#repository-path (#(procedure #:clean) chicken.platform#repository-path (#!optional *) *))
 (chicken.platform#installation-repository (#(procedure #:clean) chicken.platform#installation-repository (#!optional *) *))
 (chicken.platform#return-to-host (procedure chicken.platform#return-to-host () . *))
+(chicken.platform#system-config-directory (#(procedure #:clean) chicken.platform#system-config-directory () (or string false)))
+(chicken.platform#system-cache-directory (#(procedure #:clean) chicken.platform#system-cache-directory () (or string false)))
 
 ;; plist
 
@@ -1447,6 +1429,9 @@
 (##sys#check-closure (#(procedure #:clean #:enforce) ##sys#check-closure (procedure #!optional *) *)
 		     ((procedure) (let ((#(tmp) #(1))) '#t))
 		     ((procedure *) (let ((#(tmp) #(1))) '#t)))
+(##sys#check-keyword (#(procedure #:clean #:enforce) ##sys#check-keyword (keyword #!optional *) *)
+		     ((keyword) (let ((#(tmp) #(1))) '#t))
+		     ((keyword *) (let ((#(tmp) #(1))) '#t)))
 
 (##sys#check-port 
  (#(procedure #:clean #:enforce) ##sys#check-port ((or input-port output-port) #!optional *) *)
@@ -1793,13 +1778,13 @@
 
 (chicken.memory.representation#number-of-bytes (#(procedure #:clean) chicken.memory.representation#number-of-bytes (*) fixnum)
 		 (((or blob string)) (##sys#size #(1)))
-		 (((or port procedure symbol pair vector locative float pointer-vector))
+		 (((or port procedure symbol keyword pair vector locative float pointer-vector))
 		  ;; would be applicable to all structure types, but we can't specify
 		  ;; "(struct *)" (yet)
 		  (##core#inline "C_bytes" (##sys#size #(1)))))
 
 (chicken.memory.representation#number-of-slots (#(procedure #:clean #:foldable) chicken.memory.representation#number-of-slots (*) fixnum)
-		 (((or vector symbol pair)) (##sys#size #(1))))
+		 (((or vector symbol keyword pair)) (##sys#size #(1))))
 
 (chicken.memory.representation#object-become! (procedure chicken.memory.representation#object-become! (list) *))
 (chicken.memory.representation#object-copy (#(procedure #:clean) chicken.memory.representation#object-copy (*) *))
@@ -1847,7 +1832,7 @@
 (chicken.port#make-bidirectional-port (#(procedure #:clean #:enforce) chicken.port#make-bidirectional-port (input-port output-port) (refine (input output) port)))
 (chicken.port#make-broadcast-port (#(procedure #:clean #:enforce) chicken.port#make-broadcast-port (#!rest output-port) output-port))
 (chicken.port#make-concatenated-port (#(procedure #:clean #:enforce) chicken.port#make-concatenated-port (port #!rest input-port) input-port))
-(chicken.port#set-buffering-mode! (#(procedure #:clean #:enforce) chicken.port#set-buffering-mode! (port symbol #!optional fixnum) undefined))
+(chicken.port#set-buffering-mode! (#(procedure #:clean #:enforce) chicken.port#set-buffering-mode! (port keyword #!optional fixnum) undefined))
 (chicken.port#with-error-output-to-port (#(procedure #:enforce) chicken.port#with-error-output-to-port (output-port (procedure () . *)) . *))
 (chicken.port#with-input-from-port (#(procedure #:enforce) chicken.port#with-input-from-port (input-port (procedure () . *)) . *))
 (chicken.port#with-input-from-string (#(procedure #:enforce) chicken.port#with-input-from-string (string (procedure () . *)) . *))
@@ -1962,39 +1947,39 @@
 (chicken.file.posix#file-close (#(procedure #:clean #:enforce) chicken.file.posix#file-close (fixnum) undefined))
 (chicken.file.posix#file-control (#(procedure #:clean #:enforce) chicken.file.posix#file-control (fixnum fixnum #!optional fixnum) fixnum))
 (chicken.file.posix#file-creation-mode (#(procedure #:clean #:enforce) chicken.file.posix#file-creation-mode (#!optional fixnum) fixnum))
-(chicken.file.posix#file-group (#(procedure #:clean #:enforce) chicken.file.posix#file-owner ((or string fixnum)) fixnum))
+(chicken.file.posix#file-group (#(procedure #:clean #:enforce) chicken.file.posix#file-owner ((or string fixnum port)) fixnum))
 (chicken.file.posix#file-link (#(procedure #:clean #:enforce) chicken.file.posix#file-link (string string) undefined))
 (chicken.file.posix#file-lock (#(procedure #:clean #:enforce) chicken.file.posix#file-lock (port #!optional fixnum integer) (struct lock)))
 (chicken.file.posix#file-lock/blocking (#(procedure #:clean #:enforce) chicken.file.posix#file-lock/blocking (port #!optional fixnum integer) (struct lock)))
 (chicken.file.posix#file-mkstemp (#(procedure #:clean #:enforce) chicken.file.posix#file-mkstemp (string) fixnum string))
 (chicken.file.posix#file-open (#(procedure #:clean #:enforce) chicken.file.posix#file-open (string fixnum #!optional fixnum) fixnum))
-(chicken.file.posix#file-owner (#(procedure #:clean #:enforce) chicken.file.posix#file-owner ((or string fixnum)) fixnum))
-(chicken.file.posix#file-permissions (#(procedure #:clean #:enforce) chicken.file.posix#file-permissions ((or string fixnum)) fixnum))
+(chicken.file.posix#file-owner (#(procedure #:clean #:enforce) chicken.file.posix#file-owner ((or string fixnum port)) fixnum))
+(chicken.file.posix#file-permissions (#(procedure #:clean #:enforce) chicken.file.posix#file-permissions ((or string fixnum port)) fixnum))
 (chicken.file.posix#file-position (#(procedure #:clean #:enforce) chicken.file.posix#file-position ((or port fixnum)) integer))
 (chicken.file.posix#file-read (#(procedure #:clean #:enforce) chicken.file.posix#file-read (fixnum fixnum #!optional *) list))
 (chicken.file.posix#file-select (#(procedure #:clean #:enforce) chicken.file.posix#file-select ((or (list-of fixnum) fixnum false) (or (list-of fixnum) fixnum false) #!optional fixnum) * *))
-(chicken.file.posix#file-size (#(procedure #:clean #:enforce) chicken.file.posix#file-size ((or string fixnum)) integer))
-(chicken.file.posix#file-stat (#(procedure #:clean #:enforce) chicken.file.posix#file-stat ((or string fixnum) #!optional *) (vector-of integer)))
+(chicken.file.posix#file-size (#(procedure #:clean #:enforce) chicken.file.posix#file-size ((or string fixnum port)) integer))
+(chicken.file.posix#file-stat (#(procedure #:clean #:enforce) chicken.file.posix#file-stat ((or string fixnum port) #!optional *) (vector-of integer)))
 (chicken.file.posix#file-test-lock (#(procedure #:clean #:enforce) chicken.file.posix#file-test-lock (port #!optional fixnum *) boolean))
-(chicken.file.posix#file-truncate (#(procedure #:clean #:enforce) chicken.file.posix#file-truncate ((or string fixnum) integer) undefined))
+(chicken.file.posix#file-truncate (#(procedure #:clean #:enforce) chicken.file.posix#file-truncate ((or string fixnum output-port) integer) undefined))
 (chicken.file.posix#file-unlock (#(procedure #:clean #:enforce) chicken.file.posix#file-unlock ((struct lock)) undefined))
 (chicken.file.posix#file-write (#(procedure #:clean #:enforce) chicken.file.posix#file-write (fixnum * #!optional fixnum) fixnum))
-(chicken.file.posix#file-type (#(procedure #:clean #:enforce) chicken.file.posix#file-type ((or string fixnum) #!optional * *) symbol))
+(chicken.file.posix#file-type (#(procedure #:clean #:enforce) chicken.file.posix#file-type ((or string fixnum port) #!optional * *) symbol))
 
-(chicken.file.posix#block-device? (#(procedure #:clean #:enforce) chicken.file.posix#block-device? ((or string fixnum)) boolean))
-(chicken.file.posix#character-device? (#(procedure #:clean #:enforce) chicken.file.posix#character-device? ((or string fixnum)) boolean))
-(chicken.file.posix#directory? (#(procedure #:clean #:enforce) chicken.file.posix#directory? ((or string fixnum)) boolean))
-(chicken.file.posix#fifo? (#(procedure #:clean #:enforce) chicken.file.posix#fifo? ((or string fixnum)) boolean))
-(chicken.file.posix#regular-file? (#(procedure #:clean #:enforce) chicken.file.posix#regular-file? ((or string fixnum)) boolean))
-(chicken.file.posix#socket? (#(procedure #:clean #:enforce) chicken.file.posix#socket? ((or string fixnum)) boolean))
-(chicken.file.posix#symbolic-link? (#(procedure #:clean #:enforce) chicken.file.posix#symbolic-link? ((or string fixnum)) boolean))
+(chicken.file.posix#block-device? (#(procedure #:clean #:enforce) chicken.file.posix#block-device? ((or string fixnum port)) boolean))
+(chicken.file.posix#character-device? (#(procedure #:clean #:enforce) chicken.file.posix#character-device? ((or string fixnum port)) boolean))
+(chicken.file.posix#directory? (#(procedure #:clean #:enforce) chicken.file.posix#directory? ((or string fixnum port)) boolean))
+(chicken.file.posix#fifo? (#(procedure #:clean #:enforce) chicken.file.posix#fifo? ((or string fixnum port)) boolean))
+(chicken.file.posix#regular-file? (#(procedure #:clean #:enforce) chicken.file.posix#regular-file? ((or string fixnum port)) boolean))
+(chicken.file.posix#socket? (#(procedure #:clean #:enforce) chicken.file.posix#socket? ((or string fixnum port)) boolean))
+(chicken.file.posix#symbolic-link? (#(procedure #:clean #:enforce) chicken.file.posix#symbolic-link? ((or string fixnum port)) boolean))
 
 (chicken.file.posix#fileno/stderr fixnum)
 (chicken.file.posix#fileno/stdin fixnum)
 (chicken.file.posix#fileno/stdout fixnum)
 
-(chicken.file.posix#open-input-file* (#(procedure #:clean #:enforce) chicken.file.posix#open-input-file* (fixnum #!optional symbol) input-port))
-(chicken.file.posix#open-output-file* (#(procedure #:clean #:enforce) chicken.file.posix#open-output-file* (fixnum #!optional symbol) output-port))
+(chicken.file.posix#open-input-file* (#(procedure #:clean #:enforce) chicken.file.posix#open-input-file* (fixnum #!optional keyword) input-port))
+(chicken.file.posix#open-output-file* (#(procedure #:clean #:enforce) chicken.file.posix#open-output-file* (fixnum #!optional keyword) output-port))
 
 (chicken.file.posix#open/append fixnum)
 (chicken.file.posix#open/binary fixnum)
@@ -2064,20 +2049,20 @@
 (chicken.process#process-spawn
  (#(procedure #:clean #:enforce) chicken.process#process-spawn (fixnum string #!optional (list-of string) (list-of (pair string string)) boolean) fixnum))
 (chicken.process#system (#(procedure #:clean #:enforce) chicken.process#system (string) fixnum))
-(chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string #!rest) undefined))
+(chicken.process#system* (#(procedure #:clean #:enforce) chicken.process#system* (string) undefined))
 (chicken.process#process (#(procedure #:clean #:enforce) chicken.process#process (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum))
 (chicken.process#process* (#(procedure #:clean #:enforce) chicken.process#process* (string #!optional (list-of string) (list-of (pair string string)) boolean) input-port output-port fixnum *))
 (chicken.process#process-wait (#(procedure #:clean #:enforce) chicken.process#process-wait (#!optional fixnum *) fixnum fixnum fixnum))
 (chicken.process#process-sleep (#(procedure #:clean #:enforce) chicken.process#process-sleep (fixnum) fixnum))
-(chicken.process#call-with-input-pipe (#(procedure #:enforce) chicken.process#call-with-input-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
-(chicken.process#call-with-output-pipe (#(procedure #:enforce) chicken.process#call-with-output-pipe (string (procedure (input-port) . *) #!optional symbol) . *))
+(chicken.process#call-with-input-pipe (#(procedure #:enforce) chicken.process#call-with-input-pipe (string (procedure (input-port) . *) #!optional keyword) . *))
+(chicken.process#call-with-output-pipe (#(procedure #:enforce) chicken.process#call-with-output-pipe (string (procedure (input-port) . *) #!optional keyword) . *))
 (chicken.process#close-input-pipe (#(procedure #:clean #:enforce) chicken.process#close-input-pipe (input-port) fixnum))
 (chicken.process#close-output-pipe (#(procedure #:clean #:enforce) chicken.process#close-output-pipe (output-port) fixnum))
 (chicken.process#create-pipe (procedure chicken.process#create-pipe (#!optional fixnum) fixnum fixnum))
-(chicken.process#open-input-pipe (#(procedure #:clean #:enforce) chicken.process#open-input-pipe (string #!optional symbol) input-port))
-(chicken.process#open-output-pipe (#(procedure #:clean #:enforce) chicken.process#open-output-pipe (string #!optional symbol) output-port))
-(chicken.process#with-input-from-pipe (#(procedure #:enforce) chicken.process#with-input-from-pipe (string (procedure () . *) #!optional symbol) . *))
-(chicken.process#with-output-to-pipe (#(procedure #:enforce) chicken.process#with-output-to-pipe (string (procedure () . *) #!optional symbol) . *))
+(chicken.process#open-input-pipe (#(procedure #:clean #:enforce) chicken.process#open-input-pipe (string #!optional keyword) input-port))
+(chicken.process#open-output-pipe (#(procedure #:clean #:enforce) chicken.process#open-output-pipe (string #!optional keyword) output-port))
+(chicken.process#with-input-from-pipe (#(procedure #:enforce) chicken.process#with-input-from-pipe (string (procedure () . *) #!optional keyword) . *))
+(chicken.process#with-output-to-pipe (#(procedure #:enforce) chicken.process#with-output-to-pipe (string (procedure () . *) #!optional keyword) . *))
 
 (chicken.process#pipe/buf fixnum)
 (chicken.process#spawn/overlay fixnum)

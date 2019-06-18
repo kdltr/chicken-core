@@ -1,6 +1,6 @@
 /* chicken.h - General headerfile for compiler generated executables
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -31,7 +31,7 @@
 #define ___CHICKEN
 
 #define C_MAJOR_VERSION   5
-#define C_MINOR_VERSION   0
+#define C_MINOR_VERSION   1
 
 #ifndef _ISOC99_SOURCE
 # define _ISOC99_SOURCE
@@ -583,7 +583,7 @@ void *alloca ();
 #define C_BAD_MINIMUM_ARGUMENT_COUNT_ERROR            2
 #define C_BAD_ARGUMENT_TYPE_ERROR                     3
 #define C_UNBOUND_VARIABLE_ERROR                      4
-/* Unused:                                            5 */
+#define C_BAD_ARGUMENT_TYPE_NO_KEYWORD_ERROR          5
 #define C_OUT_OF_MEMORY_ERROR                         6
 #define C_DIVISION_BY_ZERO_ERROR                      7
 #define C_OUT_OF_RANGE_ERROR                          8
@@ -784,6 +784,9 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 #define CHICKEN_default_toplevel       ((void *)C_default_5fstub_toplevel)
 
+#define C__STR1(x)                 #x
+#define C__STR2(x)                 C__STR1(x)
+
 #define C_align4(n)                (((n) + 3) & ~3)
 #define C_align8(n)                (((n) + 7) & ~7)
 #define C_align16(n)               (((n) + 15) & ~15)
@@ -826,10 +829,9 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
  */
 # define C_VAL1(x)                 C__PREV_TMPST.n1
 # define C_VAL2(x)                 C__PREV_TMPST.n2
-# define C__STR(x)                 #x
 # define C__CHECK_panic(a,s,f,l)                                       \
   ((a) ? (void)0 :                                                     \
-   C_panic_hook(C_text("Low-level type assertion " s " failed at " f ":" C__STR(l))))
+   C_panic_hook(C_text("Low-level type assertion " s " failed at " f ":" C__STR1(l))))
 # define C__CHECK_core(v,a,s,x)                                         \
   ({ struct {                                                           \
       typeof(v) n1;                                                     \
@@ -1074,13 +1076,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_isinf(f)                 isinf(f)
 #define C_isfinite(f)              isfinite(f)
 
-#ifdef C_STRESS_TEST
-# define C_STRESS_FAILURE          3
-# define C_stress                  (rand() % C_STRESS_FAILURE)
-#else
-# define C_stress                  1
-#endif
-
 #define C_stack_overflow_check    C_stack_check1(C_stack_overflow(NULL))
 
 /* TODO: The C_scratch_usage checks should probably be moved.  Maybe
@@ -1090,7 +1085,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
  * "end" of a C function.
  */
 #if C_STACK_GROWS_DOWNWARD
-# define C_demand(n)              (C_stress && ((C_word)(C_stack_pointer - C_stack_limit) > ((n)+C_scratch_usage)))
+# define C_demand(n)              ((C_word)(C_stack_pointer - C_stack_limit) > ((n)+C_scratch_usage))
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
 				      if(_sp < (C_byte *)C_stack_hard_limit && \
@@ -1099,7 +1094,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 				    while(0);}
 
 #else
-# define C_demand(n)              (C_stress && ((C_word)(C_stack_limit - C_stack_pointer) > ((n)+C_scratch_usage)))
+# define C_demand(n)              ((C_word)(C_stack_limit - C_stack_pointer) > ((n)+C_scratch_usage))
 # define C_stack_check1(err)      if(!C_disable_overflow_check) {	\
                                     do { C_byte *_sp = (C_byte*)(C_stack_pointer); \
 				      if(_sp > (C_byte *)C_stack_hard_limit && \
@@ -1292,11 +1287,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_string_to_lambdainfo(s)       (C_block_header(s) = C_header_size(s) | C_LAMBDA_INFO_TYPE, C_SCHEME_UNDEFINED)
 
 #ifdef C_TIMER_INTERRUPTS
-# ifdef PARANOIA
-#  define C_check_for_interrupt         C_paranoid_check_for_interrupt()
-# else
-#  define C_check_for_interrupt         if(--C_timer_interrupt_counter <= 0) C_raise_interrupt(C_TIMER_INTERRUPT_NUMBER)
-# endif
+# define C_check_for_interrupt         if(--C_timer_interrupt_counter <= 0) C_raise_interrupt(C_TIMER_INTERRUPT_NUMBER)
 #else
 # define C_check_for_interrupt
 #endif
@@ -1397,6 +1388,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_i_check_number(x)             C_i_check_number_2(x, C_SCHEME_FALSE)
 #define C_i_check_string(x)             C_i_check_string_2(x, C_SCHEME_FALSE)
 #define C_i_check_bytevector(x)         C_i_check_bytevector_2(x, C_SCHEME_FALSE)
+#define C_i_check_keyword(x)            C_i_check_keyword_2(x, C_SCHEME_FALSE)
 #define C_i_check_symbol(x)             C_i_check_symbol_2(x, C_SCHEME_FALSE)
 #define C_i_check_list(x)               C_i_check_list_2(x, C_SCHEME_FALSE)
 #define C_i_check_pair(x)               C_i_check_pair_2(x, C_SCHEME_FALSE)
@@ -1507,15 +1499,19 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_ub_i_flonum_times(x, y)       ((x) * (y))
 #define C_ub_i_flonum_quotient(x, y)    ((x) / (y))
 
-#define C_ub_i_flonum_equalp(n1, n2)    ((n1) == (n2))
-#define C_ub_i_flonum_greaterp(n1, n2)  ((n1) > (n2))
-#define C_ub_i_flonum_lessp(n1, n2)     ((n1) < (n2))
-#define C_ub_i_flonum_greater_or_equal_p(n1, n2)  ((n1) >= (n2))
-#define C_ub_i_flonum_less_or_equal_p(n1, n2)  ((n1) <= (n2))
+#define C_ub_i_flonum_equalp(n1, n2)    C_mk_bool((n1) == (n2))
+#define C_ub_i_flonum_greaterp(n1, n2)  C_mk_bool((n1) > (n2))
+#define C_ub_i_flonum_lessp(n1, n2)     C_mk_bool((n1) < (n2))
+#define C_ub_i_flonum_greater_or_equal_p(n1, n2)  C_mk_bool((n1) >= (n2))
+#define C_ub_i_flonum_less_or_equal_p(n1, n2)  C_mk_bool((n1) <= (n2))
+
+#define C_ub_i_flonum_nanp(x)            C_mk_bool(C_isnan(x))
+#define C_ub_i_flonum_infinitep(x)       C_mk_bool(C_isinf(x))
+#define C_ub_i_flonum_finitep(x)         C_mk_bool(C_isfinite(x))
 
 #define C_ub_i_pointer_inc(p, n)        ((void *)((unsigned char *)(p) + (n)))
-#define C_ub_i_pointer_eqp(p1, p2)      ((p1) == (p2))
-#define C_ub_i_null_pointerp(p)         ((p) == NULL)
+#define C_ub_i_pointer_eqp(p1, p2)      C_mk_bool((p1) == (p2))
+#define C_ub_i_null_pointerp(p)         C_mk_bool((p) == NULL)
 
 #define C_ub_i_pointer_u8_ref(p)        (*((unsigned char *)(p)))
 #define C_ub_i_pointer_s8_ref(p)        (*((signed char *)(p)))
@@ -1603,10 +1599,10 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_u_i_f32vector_set(v, i, x)    ((((float *)C_data_pointer(C_block_item((v), 1)))[ C_unfix(i) ] = C_flonum_magnitude(x)), C_SCHEME_UNDEFINED)
 #define C_u_i_f64vector_set(v, i, x)    ((((double *)C_data_pointer(C_block_item((v), 1)))[ C_unfix(i) ] = C_flonum_magnitude(x)), C_SCHEME_UNDEFINED)
 
-#define C_ub_i_f32vector_ref(b, i)      (((float *)C_data_pointer(C_block_item((b), 1)))[ i ])
-#define C_ub_i_f64vector_ref(b, i)      (((double *)C_data_pointer(C_block_item((b), 1)))[ i ])
-#define C_ub_i_f32vector_set(v, i, x)   ((((float *)C_data_pointer(C_block_item((v), 1)))[ i ] = (x)), 0)
-#define C_ub_i_f64vector_set(v, i, x)   ((((double *)C_data_pointer(C_block_item((v), 1)))[ i ] = (x)), 0)
+#define C_ub_i_f32vector_ref(b, i)      (((float *)C_data_pointer(C_block_item((b), 1)))[ C_unfix(i) ])
+#define C_ub_i_f64vector_ref(b, i)      (((double *)C_data_pointer(C_block_item((b), 1)))[ C_unfix(i) ])
+#define C_ub_i_f32vector_set(v, i, x)   ((((float *)C_data_pointer(C_block_item((v), 1)))[ C_unfix(i) ] = (x)), 0)
+#define C_ub_i_f64vector_set(v, i, x)   ((((double *)C_data_pointer(C_block_item((v), 1)))[ C_unfix(i) ] = (x)), 0)
 
 #define C_a_i_flonum_sin(ptr, c, x)     C_flonum(ptr, C_sin(C_flonum_magnitude(x)))
 #define C_a_i_flonum_cos(ptr, c, x)     C_flonum(ptr, C_cos(C_flonum_magnitude(x)))
@@ -1643,16 +1639,16 @@ typedef struct C_DEBUG_INFO {
   C_char *val;
 } C_DEBUG_INFO;
 
-#define C_DEBUG_CALL                0
-#define C_DEBUG_GLOBAL_ASSIGN       1
-#define C_DEBUG_GC                  2
-#define C_DEBUG_ENTRY               3
-#define C_DEBUG_SIGNAL              4
-#define C_DEBUG_CONNECT             5
-#define C_DEBUG_LISTEN              6
-#define C_DEBUG_INTERRUPTED         7
+#define C_DEBUG_CALL                1
+#define C_DEBUG_GLOBAL_ASSIGN       2
+#define C_DEBUG_GC                  3
+#define C_DEBUG_ENTRY               4
+#define C_DEBUG_SIGNAL              5
+#define C_DEBUG_CONNECT             6
+#define C_DEBUG_LISTEN              7
+#define C_DEBUG_INTERRUPTED         8
 
-#define C_debugger(cell, c, av)     (C_debugger_hook != NULL ? C_debugger_hook(cell, c, av, C_text(__FILE__), __LINE__) : C_SCHEME_UNDEFINED)
+#define C_debugger(cell, c, av)     (C_debugger_hook != NULL ? C_debugger_hook(cell, c, av, C_text(__FILE__ ":" C__STR2(__LINE__))) : C_SCHEME_UNDEFINED)
 
 /* Variables: */
 
@@ -1687,7 +1683,7 @@ C_varextern C_TLS void *C_restart_trampoline;
 C_varextern C_TLS void (*C_pre_gc_hook)(int mode);
 C_varextern C_TLS void (*C_post_gc_hook)(int mode, C_long ms);
 C_varextern C_TLS void (*C_panic_hook)(C_char *msg);
-C_varextern C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, char *cloc, int cln);
+C_varextern C_TLS C_word (*C_debugger_hook)(C_DEBUG_INFO *cell, C_word c, C_word *av, char *cloc);
 
 C_varextern C_TLS int
   C_abort_on_thread_exceptions,
@@ -1743,7 +1739,6 @@ C_fctexport C_word C_fcall C_a_i_provide(C_word **a, int c, C_word id) C_regparm
 C_fctexport C_word C_fcall C_i_providedp(C_word id) C_regparm;
 C_fctexport C_word C_fcall C_enable_interrupts(void) C_regparm;
 C_fctexport C_word C_fcall C_disable_interrupts(void) C_regparm;
-C_fctexport void C_fcall C_paranoid_check_for_interrupt(void) C_regparm;
 C_fctexport void C_set_or_change_heap_size(C_word heap, int reintern);
 C_fctexport void C_do_resize_stack(C_word stack);
 C_fctexport C_word C_resize_pending_finalizers(C_word size);
@@ -1766,8 +1761,10 @@ C_fctexport C_word C_fcall C_string_aligned8(C_word **ptr, int len, C_char *str)
 C_fctexport C_word C_fcall C_string2(C_word **ptr, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_string2_safe(C_word **ptr, int max, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_intern(C_word **ptr, int len, C_char *str) C_regparm;
+C_fctexport C_word C_fcall C_intern_kw(C_word **ptr, int len, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_intern_in(C_word **ptr, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_h_intern(C_word *slot, int len, C_char *str) C_regparm;
+C_fctexport C_word C_fcall C_h_intern_kw(C_word *slot, int len, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_h_intern_in(C_word *slot, int len, C_char *str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_intern2(C_word **ptr, C_char *str) C_regparm;
 C_fctexport C_word C_fcall C_intern3(C_word **ptr, C_char *str, C_word value) C_regparm;
@@ -1831,10 +1828,9 @@ C_fctexport C_word C_fcall C_evict_block(C_word from, C_word ptr) C_regparm;
 C_fctexport void C_fcall C_gc_protect(C_word **addr, int n) C_regparm;
 C_fctexport void C_fcall C_gc_unprotect(int n) C_regparm;
 C_fctexport C_SYMBOL_TABLE *C_new_symbol_table(char *name, unsigned int size) C_regparm;
-C_fctexport void C_delete_symbol_table(C_SYMBOL_TABLE *st) C_regparm;
-C_fctexport void C_set_symbol_table(C_SYMBOL_TABLE *st) C_regparm;
 C_fctexport C_SYMBOL_TABLE *C_find_symbol_table(char *name) C_regparm;
 C_fctexport C_word C_find_symbol(C_word str, C_SYMBOL_TABLE *stable) C_regparm;
+C_fctexport C_word C_find_keyword(C_word str, C_SYMBOL_TABLE *stable) C_regparm;
 C_fctexport C_word C_fcall C_lookup_symbol(C_word sym) C_regparm;
 C_fctexport void C_do_register_finalizer(C_word x, C_word proc);
 C_fctexport int C_do_unregister_finalizer(C_word x);
@@ -1874,6 +1870,7 @@ C_fctexport C_cpsproc(C_gc) C_noret;
 C_fctexport C_cpsproc(C_open_file_port) C_noret;
 C_fctexport C_cpsproc(C_allocate_vector) C_noret;
 C_fctexport C_cpsproc(C_string_to_symbol) C_noret;
+C_fctexport C_cpsproc(C_string_to_keyword) C_noret;
 C_fctexport C_cpsproc(C_build_symbol) C_noret;
 C_fctexport C_cpsproc(C_number_to_string) C_noret;
 C_fctexport C_cpsproc(C_fixnum_to_string) C_noret;
@@ -1918,11 +1915,31 @@ C_fctexport C_word C_a_i_record(C_word **a, int c, ...);
 C_fctexport C_word C_a_i_port(C_word **a, int c);
 C_fctexport C_word C_fcall C_a_i_bytevector(C_word **a, int c, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_listp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u8vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s8vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u16vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s16vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u32vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s32vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u64vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s64vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_f32vectorp(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_f64vectorp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_string_equal_p(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_string_ci_equal_p(C_word x, C_word y) C_regparm;
 C_fctexport C_word C_fcall C_i_set_car(C_word p, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_set_cdr(C_word p, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u8vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s8vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u16vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s16vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u32vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s32vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_u64vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_s64vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_f32vector_set(C_word v, C_word i, C_word x) C_regparm;
+C_fctexport C_word C_fcall C_i_f64vector_set(C_word v, C_word i, C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_exactp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_inexactp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_nanp(C_word x) C_regparm;
@@ -1950,10 +1967,30 @@ C_fctexport C_word C_fcall C_i_integer_evenp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_oddp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_oddp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_u8vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_s8vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_u16vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_i_s16vector_ref(C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_u32vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_s32vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_u64vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_s64vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_f32vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
+C_fctexport C_word C_fcall C_a_i_f64vector_ref(C_word **ptr, C_word c, C_word v, C_word i) C_regparm;
 C_fctexport C_word C_fcall C_i_block_ref(C_word x, C_word i) C_regparm;
 C_fctexport C_word C_fcall C_i_string_set(C_word s, C_word i, C_word c) C_regparm;
 C_fctexport C_word C_fcall C_i_string_ref(C_word s, C_word i) C_regparm;
 C_fctexport C_word C_fcall C_i_vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_u8vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_s8vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_u16vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_s16vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_u32vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_s32vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_u64vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_s64vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_f32vector_length(C_word v) C_regparm;
+C_fctexport C_word C_fcall C_i_f64vector_length(C_word v) C_regparm;
 C_fctexport C_word C_fcall C_i_string_length(C_word s) C_regparm;
 C_fctexport C_word C_fcall C_i_assq(C_word x, C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_i_assv(C_word x, C_word lst) C_regparm;
@@ -1972,6 +2009,7 @@ C_fctexport C_word C_fcall C_i_check_number_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_string_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_bytevector_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_symbol_2(C_word x, C_word loc) C_regparm;
+C_fctexport C_word C_fcall C_i_check_keyword_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_list_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_pair_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_boolean_2(C_word x, C_word loc) C_regparm;
@@ -2156,15 +2194,6 @@ inline static C_word C_u_i_namespaced_symbolp(C_word x)
 {
   C_word s = C_symbol_name(x);
   return C_mk_bool(C_memchr(C_data_pointer(s), '#', C_header_size(s)));
-}
-
-inline static C_word C_u_i_keywordp(C_word x)
-{
-  /* TODO: This representation is rather bogus */
-  C_word n = C_symbol_name(x);
-  return C_mk_bool(C_symbol_value(x) == x &&
-                   C_header_size(n) > 0 &&
-                   ((C_byte *)C_data_pointer(n))[0] == '\0');
 }
 
 inline static C_word C_flonum(C_word **ptr, double n)
@@ -2621,14 +2650,24 @@ inline static C_word C_i_eqvp(C_word x, C_word y)
 
 inline static C_word C_i_symbolp(C_word x)
 {
-  return C_mk_bool(!C_immediatep(x) && C_block_header(x) == C_SYMBOL_TAG);
+  return C_mk_bool(!C_immediatep(x) &&
+                   C_block_header(x) == C_SYMBOL_TAG &&
+                   C_symbol_plist(x) != C_SCHEME_FALSE);
+}
+
+inline static C_word C_i_keywordp(C_word x)
+{
+  return C_mk_bool(!C_immediatep(x) &&
+                   C_block_header(x) == C_SYMBOL_TAG &&
+                   C_symbol_plist(x) == C_SCHEME_FALSE);
 }
 
 inline static int C_persistable_symbol(C_word x)
 {
-  /* Symbol is bound (and not a keyword), or has a non-empty plist */
-  return ((C_truep(C_boundp(x)) && !C_truep(C_u_i_keywordp(x))) ||
-          C_symbol_plist(x) != C_SCHEME_END_OF_LIST);
+  /* Symbol is bound, or has a non-empty plist (but is not a keyword) */
+  return ((C_truep(C_boundp(x)) ||
+           C_symbol_plist(x) != C_SCHEME_END_OF_LIST) &&
+          C_symbol_plist(x) != C_SCHEME_FALSE);
 }
 
 inline static C_word C_i_pairp(C_word x)
@@ -2654,6 +2693,21 @@ inline static C_word C_i_vectorp(C_word x)
   return C_mk_bool(!C_immediatep(x) && C_header_bits(x) == C_VECTOR_TYPE);
 }
 
+inline static C_word C_i_srfi_4_vectorp(C_word x)
+{
+  return C_mk_bool(!C_immediatep(x) &&
+                   C_header_bits(x) == C_STRUCTURE_TYPE &&
+                   (C_truep(C_i_u8vectorp(x)) ||
+                    C_truep(C_i_s8vectorp(x)) ||
+                    C_truep(C_i_u16vectorp(x)) ||
+                    C_truep(C_i_s16vectorp(x)) ||
+                    C_truep(C_i_u32vectorp(x)) ||
+                    C_truep(C_i_s32vectorp(x)) ||
+                    C_truep(C_i_u64vectorp(x)) ||
+                    C_truep(C_i_s64vectorp(x)) ||
+                    C_truep(C_i_f32vectorp(x)) ||
+                    C_truep(C_i_f64vectorp(x))));
+}
 
 inline static C_word C_i_portp(C_word x)
 {

@@ -1,4 +1,4 @@
-.\"  Copyright (c) 2007-2018, The CHICKEN Team
+.\"  Copyright (c) 2007-2019, The CHICKEN Team
 .\"  All rights reserved.
 .\"
 .\"  Redistribution and use in source and binary forms, with or without
@@ -119,6 +119,17 @@ Contains one or more pathnames where the interpreter should also look
 for include files, separated by
 .Sq \&;
 characters.
+.El
+.Sh FILES
+.Bl -tag -width 4n
+.It Pa $XDG_CONFIG_HOME/chicken/csirc
+Scheme file loaded on startup. (
+.Ev $XDG_CONFIG_HOME
+defaults to
+.Pa $HOME/.config
+)
+.It Pa $HOME/.csirc
+Scheme file loaded on startup if the previous one doesn’t exists.
 .El
 .Sh EXIT STATUS
 .Ex -std

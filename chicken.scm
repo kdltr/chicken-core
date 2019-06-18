@@ -1,6 +1,6 @@
 ;;;; chicken.scm - The CHICKEN Scheme compiler (loader/main-module)
 ;
-; Copyright (c) 2008-2018, The CHICKEN Team
+; Copyright (c) 2008-2019, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -97,14 +97,13 @@
 		   ((1)
 		    (set! options
 		      (cons* 'optimize-leaf-routines
-			     ;XXX 'lfa2 
 			     options)) )
 		   ((2)
 		    (set! options 
 		      (cons* 'optimize-leaf-routines
 			     'inline
 			     ;XXX 'clustering
-			     ;XXX 'lfa2
+			     'lfa2
 			     options)) ) 
 		   ((3)
 		    (set! options
@@ -113,7 +112,7 @@
 			     'inline-global
 			     'local
 			     ;XXX 'clustering
-			     ;XXX 'lfa2
+			     'lfa2
 			     'specialize
 			     options) ) )
 		   ((4)
@@ -123,7 +122,7 @@
 			     'inline-global
 			     'specialize
 			     ;XXX 'clustering
-			     ;XXX 'lfa2
+			     'lfa2
 			     'local 'unsafe
 			     options) ) )
 		   (else

@@ -1,66 +1,376 @@
+;; numbers replaced with XXX by redact-gensyms.scm
+;; prefixes: (tmp g scm:)
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:20) in procedure call to `scheme#pair?', the predicate is called with an argument of type `pair' and will always return true
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:20) in procedure call to `scheme#pair?', the predicate is called with an argument of type `null' and will always return false
+    (scheme#pair? p)
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:20) in procedure call to `scheme#pair?', the predicate is called with an argument of type `null' and will always return false
+  The predicate will always return true.
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:20) in procedure call to `scheme#pair?', the predicate is called with an argument of type `fixnum' and will always return false
+  Procedure `pair?' from module `scheme' is a predicate for:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:20) in procedure call to `scheme#pair?', the predicate is called with an argument of type `float' and will always return false
+    pair
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:21) in procedure call to `scheme#list?', the predicate is called with an argument of type `null' and will always return true
+  The given argument has this type:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:21) in procedure call to `scheme#list?', the predicate is called with an argument of type `null' and will always return true
+    pair
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:21) in procedure call to `scheme#list?', the predicate is called with an argument of type `fixnum' and will always return false
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:21) in procedure call to `scheme#list?', the predicate is called with an argument of type `float' and will always return false
+    (scheme#pair? l)
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:22) in procedure call to `scheme#null?', the predicate is called with an argument of type `null' and will always return true
+  The predicate will always return false.
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:22) in procedure call to `scheme#null?', the predicate is called with an argument of type `null' and will always return true
+  Procedure `pair?' from module `scheme' is a predicate for:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:22) in procedure call to `scheme#null?', the predicate is called with an argument of type `pair' and will always return false
+    pair
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:22) in procedure call to `scheme#null?', the predicate is called with an argument of type `fixnum' and will always return false
+  The given argument has this type:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:22) in procedure call to `scheme#null?', the predicate is called with an argument of type `float' and will always return false
+    null
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:23) in procedure call to `chicken.base#fixnum?', the predicate is called with an argument of type `fixnum' and will always return true
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:23) in procedure call to `chicken.base#fixnum?', the predicate is called with an argument of type `float' and will always return false
+    (scheme#pair? n)
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:25) in procedure call to `chicken.base#flonum?', the predicate is called with an argument of type `float' and will always return true
+  The predicate will always return false.
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:25) in procedure call to `chicken.base#flonum?', the predicate is called with an argument of type `fixnum' and will always return false
+  Procedure `pair?' from module `scheme' is a predicate for:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:27) in procedure call to `scheme#number?', the predicate is called with an argument of type `fixnum' and will always return true
+    pair
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:27) in procedure call to `scheme#number?', the predicate is called with an argument of type `float' and will always return true
+  The given argument has this type:
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:27) in procedure call to `scheme#number?', the predicate is called with an argument of type `number' and will always return true
+    null
 
-Note: at toplevel:
-  (scrutiny-tests-2.scm:27) in procedure call to `scheme#number?', the predicate is called with an argument of type `null' and will always return false
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#pair? i)
+
+  The predicate will always return false.
+
+  Procedure `pair?' from module `scheme' is a predicate for:
+
+    pair
+
+  The given argument has this type:
+
+    fixnum
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#pair? f)
+
+  The predicate will always return false.
+
+  Procedure `pair?' from module `scheme' is a predicate for:
+
+    pair
+
+  The given argument has this type:
+
+    float
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#list? l)
+
+  The predicate will always return true.
+
+  Procedure `list?' from module `scheme' is a predicate for:
+
+    list
+
+  The given argument has this type:
+
+    null
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#list? n)
+
+  The predicate will always return true.
+
+  Procedure `list?' from module `scheme' is a predicate for:
+
+    list
+
+  The given argument has this type:
+
+    null
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#list? i)
+
+  The predicate will always return false.
+
+  Procedure `list?' from module `scheme' is a predicate for:
+
+    list
+
+  The given argument has this type:
+
+    fixnum
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#list? f)
+
+  The predicate will always return false.
+
+  Procedure `list?' from module `scheme' is a predicate for:
+
+    list
+
+  The given argument has this type:
+
+    float
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#null? n)
+
+  The predicate will always return true.
+
+  Procedure `null?' from module `scheme' is a predicate for:
+
+    null
+
+  The given argument has this type:
+
+    null
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#null? l)
+
+  The predicate will always return true.
+
+  Procedure `null?' from module `scheme' is a predicate for:
+
+    null
+
+  The given argument has this type:
+
+    null
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#null? p)
+
+  The predicate will always return false.
+
+  Procedure `null?' from module `scheme' is a predicate for:
+
+    null
+
+  The given argument has this type:
+
+    pair
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#null? i)
+
+  The predicate will always return false.
+
+  Procedure `null?' from module `scheme' is a predicate for:
+
+    null
+
+  The given argument has this type:
+
+    fixnum
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#null? f)
+
+  The predicate will always return false.
+
+  Procedure `null?' from module `scheme' is a predicate for:
+
+    null
+
+  The given argument has this type:
+
+    float
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (chicken.base#fixnum? i)
+
+  The predicate will always return true.
+
+  Procedure `fixnum?' from module `chicken.base' is a predicate for:
+
+    fixnum
+
+  The given argument has this type:
+
+    fixnum
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (chicken.base#fixnum? f)
+
+  The predicate will always return false.
+
+  Procedure `fixnum?' from module `chicken.base' is a predicate for:
+
+    fixnum
+
+  The given argument has this type:
+
+    float
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (chicken.base#flonum? f)
+
+  The predicate will always return true.
+
+  Procedure `flonum?' from module `chicken.base' is a predicate for:
+
+    float
+
+  The given argument has this type:
+
+    float
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (chicken.base#flonum? i)
+
+  The predicate will always return false.
+
+  Procedure `flonum?' from module `chicken.base' is a predicate for:
+
+    float
+
+  The given argument has this type:
+
+    fixnum
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#number? i)
+
+  The predicate will always return true.
+
+  Procedure `number?' from module `scheme' is a predicate for:
+
+    number
+
+  The given argument has this type:
+
+    fixnum
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#number? f)
+
+  The predicate will always return true.
+
+  Procedure `number?' from module `scheme' is a predicate for:
+
+    number
+
+  The given argument has this type:
+
+    float
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#number? u)
+
+  The predicate will always return true.
+
+  Procedure `number?' from module `scheme' is a predicate for:
+
+    number
+
+  The given argument has this type:
+
+    number
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#number? n)
+
+  The predicate will always return false.
+
+  Procedure `number?' from module `scheme' is a predicate for:
+
+    number
+
+  The given argument has this type:
+
+    null

@@ -7,7 +7,7 @@
 
 This document describes "Feathers", a debugger for compiled CHICKEN programs.
 
-"Feathers" is a [[Tcl/Tk|http://tcl.tk]] script, installed together with
+"Feathers" is a [[http://tcl.tk|Tcl/Tk]] script, installed together with
 all other components of the CHICKEN system. To use the debugger, Tcl/Tk version
 8.5 or later must be installed.
 
@@ -16,7 +16,7 @@ it. You can also run a program explicitly by pressing the {{F1}} key and
 selecting an executable to run. If the executable has been compiled with
 debugging information, it will connect to the debugger and the source code
 of the program will be shown in the debugger window, if the original source
-files of the program are available in the search path (see bwlo for more
+files of the program are available in the search path (see below for more
 details on this.)
 
 To enable debugging in compiled programs a number of requirements must be met:
@@ -154,6 +154,6 @@ Text can be marked and searched as in the source-code window with {{F7}} and {{F
 
 
 ---
-Previous: [[Supported language]]
+Previous: [[Extensions to the standard]]
 
 Next: [[Interface to external functions and variables]]

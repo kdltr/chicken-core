@@ -11,7 +11,7 @@ On Linux, the {{getrandom(2)}} system call is used instead, if available.
 On OpenBSD it is {{arc4random_buf(3)}}, on Windows {{RtlGenRandom}}.
 
 The pseudo random number generator is an implementation of the
-[[WELL512|https://en.wikipedia.org/wiki/Well_equidistributed_long-period_linear]] algorithm.
+[[https://en.wikipedia.org/wiki/Well_equidistributed_long-period_linear]] algorithm.
 
 ==== set-pseudo-random-seed!
 
