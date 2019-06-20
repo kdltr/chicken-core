@@ -6022,8 +6022,8 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define (memory-statistics)
   (let* ((free (##sys#gc #t))
 	 (info (##sys#memory-info))
-	 (hsize (##sys#slot info 0)))
-    (vector hsize (fx- hsize free) (##sys#slot info 1))))
+	 (half-size (fx/ (##sys#slot info 0) 2)))
+    (vector half-size (fx- half-size free) (##sys#slot info 1))))
 
 ;;; Finalization:
 
