@@ -520,7 +520,7 @@
 			     (write-char #\) out))
 			   a))))
 		 (##sys#warn (get-output-string out))))))
-	 (module-undefined-list mod))
+	 (reverse (module-undefined-list mod)))
 	(when missing
 	  (##sys#error "module unresolved" name))
 	(let* ((iexports 
