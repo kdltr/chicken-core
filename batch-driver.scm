@@ -819,7 +819,8 @@
 				(dribble "generating global inline file `~a' ..." f)
 				(emit-global-inline-file
 				 filename f db block-compilation
-				 inline-max-size) ) )
+				 inline-max-size
+				 (map foreign-stub-id foreign-lambda-stubs)) ) )
 			    (begin-time)
 			    ;; Closure conversion
 			    (set! node2 (perform-closure-conversion node2 db))

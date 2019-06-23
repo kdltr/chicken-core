@@ -25,3 +25,6 @@
 (define (foo) 0)
 (bar)
 (assert (= 1 (foo)))
+
+(import inline-me)
+(assert (= 42 (foreign-foo 41)))

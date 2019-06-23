@@ -61,6 +61,8 @@ echo "======================================== csc tests ..."
 if errorlevel 1 exit /b 1
 
 echo ======================================== compiler inlining tests  ...
+%compile_r% inline-me.scm -s -J -oi inline-me.inline
+if errorlevel 1 exit /b 1
 %compile% inlining-tests.scm -optimize-level 3
 if errorlevel 1 exit /b 1
 a.out

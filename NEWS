@@ -4,6 +4,8 @@
   - Fixed a bug in lfa2 pass which caused "if" or "cond" nodes to be
     incorrectly unboxed if the "else" branch had a flonum result type
     (#1624, thanks to Sven Hartrumpf)
+  - Inline files no longer refer to unexported foreign stub functions
+    (fixes #1440, thanks to "megane").
 
 5.1.0
 

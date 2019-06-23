@@ -755,7 +755,15 @@
 
 ;; Only used in batch-driver.scm
 (define (emit-global-inline-file source-file inline-file db
-				 block-compilation inline-limit)
+				 block-compilation inline-limit
+				 foreign-stubs)
+  (define (uses-foreign-stubs? node)
+    (let walk ((n node))
+      (case (node-class n)
+	((##core#inline)
+	 (memq (car (node-parameters n)) foreign-stubs))
+	(else
+	 (any walk (node-subexpressions n))))))
   (let ((lst '())
 	(out '()))
     (hash-table-for-each
@@ -772,8 +780,10 @@
 		    ((case (variable-mark sym '##compiler#inline)
 		       ((yes) #t)
 		       ((no) #f)
-		       (else 
-			(< (fourth lparams) inline-limit) ) ) ) )
+		       (else
+			(< (fourth lparams) inline-limit))))
+		    ;; See #1440
+		    ((not (uses-foreign-stubs? (cdr val)))))
 	   (set! lst (cons sym lst))
 	   (set! out (cons (list sym (node->sexpr (cdr val))) out)))))
      db)

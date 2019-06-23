@@ -91,6 +91,7 @@ echo "======================================== csc tests ..."
 $interpret -s csc-tests.scm
 
 echo "======================================== compiler inlining tests  ..."
+$compile_r inline-me.scm -s -J -oi inline-me.inline
 $compile inlining-tests.scm -optimize-level 3
 ./a.out
 
