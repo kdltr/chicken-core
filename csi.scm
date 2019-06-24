@@ -508,7 +508,7 @@ EOF
                     (installation-repository)
 		    (repository-path)
 		    ##sys#include-pathnames
-		    (symbol->string (keyword-style))
+		    (keyword->string (keyword-style))
 		    (shorten (vector-ref sinfo 0))
 		    (shorten (vector-ref sinfo 1))
 		    (vector-ref sinfo 2)

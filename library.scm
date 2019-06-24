@@ -3677,9 +3677,11 @@ EOF
   (##sys#read-error port "invalid `#...' read syntax" n) )
 
 (set! chicken.base#case-sensitive (make-parameter #t))
-(set! chicken.base#keyword-style (make-parameter #:suffix))
 (set! chicken.base#parentheses-synonyms (make-parameter #t))
 (set! chicken.base#symbol-escape (make-parameter #t))
+
+(set! chicken.base#keyword-style
+  (make-parameter #:suffix (lambda (x) (##sys#check-keyword x 'keyword-style) x)))
 
 (define ##sys#current-read-table (make-parameter (##sys#make-structure 'read-table #f #f #f)))
 
