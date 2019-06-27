@@ -127,7 +127,13 @@
 		   (gen "lf[" (first params) #\])) ) )
 
             ((##core#float)
-             (gen (first params)))
+	     (let ((n (first params)))
+	       (gen "(double)")
+	       (cond ((nan? n) (gen "NAN"))
+		     ((infinite? n)
+		      (when (negative? n) (gen #\-))
+		      (gen "INFINITY"))
+		     (else (gen n)))))
 
 	    ((if)
 	     (gen #t "if(C_truep(")
