@@ -208,7 +208,7 @@
     ("C_flonum_greater_or_equal_p" "C_ub_i_flonum_greater_or_equal_p" pred)
     ("C_flonum_less_or_equal_p" "C_ub_i_flonum_less_or_equal_p" pred)
     ("C_u_i_flonum_nanp" "C_ub_i_flonum_nanp" pred)
-    ("C_u_i_flonum_infinitep" "C_ub_i_flonum_infnitep" pred)
+    ("C_u_i_flonum_infinitep" "C_ub_i_flonum_infinitep" pred)
     ("C_u_i_flonum_finitepp" "C_ub_i_flonum_finitep" pred)
     ("C_a_i_flonum_sin" "C_sin" op)
     ("C_a_i_flonum_cos" "C_cos" op)
