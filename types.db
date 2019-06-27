@@ -283,12 +283,12 @@
 		  ((*) (##core#inline "C_i_negativep" #(1))))
 
 (scheme#max (#(procedure #:clean #:enforce #:foldable) scheme#max (#!rest number) number)
-	    ((fixnum fixnum) (chicken.fixnum#fxmax #(1) #(2)))
-	    ((float float) (##core#inline "C_i_flonum_max" #(1) #(2))))
+	    ((fixnum fixnum) (fixnum) (chicken.fixnum#fxmax #(1) #(2)))
+	    ((float float) (float) (##core#inline "C_i_flonum_max" #(1) #(2))))
 
 (scheme#min (#(procedure #:clean #:enforce #:foldable) scheme#min (#!rest number) number)
-	    ((fixnum fixnum) (chicken.fixnum#fxmin #(1) #(2)))
-	    ((float float) (##core#inline "C_i_flonum_min" #(1) #(2))))
+	    ((fixnum fixnum) (fixnum) (chicken.fixnum#fxmin #(1) #(2)))
+	    ((float float) (float) (##core#inline "C_i_flonum_min" #(1) #(2))))
 
 (scheme#+ (#(procedure #:clean #:enforce #:foldable) scheme#+ (#!rest number) number)
 	  (() (fixnum) '0)
