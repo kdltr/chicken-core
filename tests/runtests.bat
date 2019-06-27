@@ -18,7 +18,7 @@ set TYPESDB=..\types.db
 set COMPILE_OPTIONS=-v -compiler %CHICKEN% -I%TEST_DIR%/.. -L%TEST_DIR%/.. -include-path %TEST_DIR%/.. -libdir %TEST_DIR%/..
 
 set compile=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -o a.out -types %TYPESDB% -ignore-repository
-set compile_r=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -o a.out
+set compile_r=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS%
 set compile_s=..\%PROGRAM_PREFIX%csc%PROGRAM_SUFFIX% %COMPILE_OPTIONS% -s -types %TYPESDB% -ignore-repository
 set interpret=..\%PROGRAM_PREFIX%csi%PROGRAM_SUFFIX% -n -include-path %TEST_DIR%/..
 
@@ -460,7 +460,7 @@ if errorlevel 1 exit /b 1
 move sample-module.link %CHICKEN_INSTALL_REPOSITORY%
 move sample-module.import.scm %CHICKEN_INSTALL_REPOSITORY%
 move sample-module.obj %CHICKEN_INSTALL_REPOSITORY%
-%compile_r% -static module-static-link.scm
+%compile_r% -static module-static-link.scm -o a.out
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
@@ -658,21 +658,21 @@ if errorlevel 1 exit /b 1
 
 echo ======================================== linking tests ...
 %compile_r% -unit reverser reverser\tags\1.0\reverser.scm -J -c -o reverser.obj
-%compile_r% -link reverser linking-tests.scm
+%compile_r% -link reverser linking-tests.scm -o a.out
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile_r% -link reverser linking-tests.scm -static
+%compile_r% -link reverser linking-tests.scm -o a.out -static
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 move reverser.obj %CHICKEN_INSTALL_REPOSITORY%
 move reverser.import.scm %CHICKEN_INSTALL_REPOSITORY%
-%compile_r% -link reverser linking-tests.scm
+%compile_r% -link reverser linking-tests.scm -o a.out
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
-%compile_r% -link reverser linking-tests.scm -static
+%compile_r% -link reverser linking-tests.scm -o a.out -static
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
