@@ -977,7 +977,7 @@
 (chicken.base#symbol-append (#(procedure #:clean #:enforce #:foldable) chicken.base#symbol-append (#!rest symbol) symbol))
 
 (chicken.base#case-sensitive (#(procedure #:clean) chicken.base#case-sensitive (#!optional *) *))
-(chicken.base#keyword-style (#(procedure #:clean) chicken.base#keyword-style (#!optional keyword) *))
+(chicken.base#keyword-style (#(procedure #:clean) chicken.base#keyword-style (#!optional (or keyword false)) *))
 (chicken.base#parentheses-synonyms (#(procedure #:clean) chicken.base#parentheses-synonyms (#!optional *) *))
 (chicken.base#symbol-escape (#(procedure #:clean) chicken.base#symbol-escape (#!optional *) *))
 
