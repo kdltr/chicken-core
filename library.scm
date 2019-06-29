@@ -3681,7 +3681,7 @@ EOF
 (set! chicken.base#symbol-escape (make-parameter #t))
 
 (set! chicken.base#keyword-style
-  (make-parameter #:suffix (lambda (x) (##sys#check-keyword x 'keyword-style) x)))
+  (make-parameter #:suffix (lambda (x) (when x (##sys#check-keyword x 'keyword-style)) x)))
 
 (define ##sys#current-read-table (make-parameter (##sys#make-structure 'read-table #f #f #f)))
 
