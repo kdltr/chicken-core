@@ -58,6 +58,20 @@
 (assert (not (integer? "foo")))
 ; XXX number missing
 
+;; Negative vs positive zero (see #1627)
+(assert (not (eqv? 0.0 -0.0)))
+(assert (not (equal? 0.0 -0.0)))
+(assert (= 0.0 -0.0))
+
+(assert (not (positive? 0.0)))
+(assert (not (negative? 0.0)))
+(assert (zero? 0.0))
+
+(assert (not (positive? -0.0)))
+(assert (not (negative? -0.0)))
+(assert (zero? -0.0))
+
+;; Exactness
 (assert (exact? 1))
 (assert (not (exact? 1.0)))
 (assert (not (exact? 1.1)))

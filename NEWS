@@ -13,6 +13,9 @@
     by SRFI-88 in the corresponding keyword mode.  Symbols containing
     quoted empty prefixes or suffixes like ||:abc and abc:|| will be
     read correctly as symbols now (fixes #1625, thanks to Andy Bennett).
+  - IEEE floating point negative zero is now properly handled: it can
+    be read, written and distinguished by eqv? and equal?, but not =
+    (fixes #1627, thanks to John Cowan).
 
 - Core libraries
   - There is now a srfi-88 module which contains just the three

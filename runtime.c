@@ -4791,7 +4791,8 @@ C_regparm C_word C_fcall C_equalp(C_word x, C_word y)
   if((header = C_block_header(x)) != C_block_header(y)) return 0;
   else if((bits = header & C_HEADER_BITS_MASK) & C_BYTEBLOCK_BIT) {
     if(header == C_FLONUM_TAG && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum_magnitude(x) == C_flonum_magnitude(y);
+      return C_ub_i_flonum_eqvp(C_flonum_magnitude(x),
+                                C_flonum_magnitude(y));
     else return !C_memcmp(C_data_pointer(x), C_data_pointer(y), header & C_HEADER_SIZE_MASK);
   }
   else if(header == C_SYMBOL_TAG) return 0;
@@ -11179,7 +11180,7 @@ void C_ccall C_flonum_to_string(C_word c, C_word *av)
   }
 
   if(f == 0.0 || (C_modf(f, &m) == 0.0 && log2(fa) < C_WORD_SIZE)) { /* Use fast int code */
-    if(f < 0) {
+    if(signbit(f)) {
       p = to_n_nary((C_uword)-f, radix, 1, 1);
     } else {
       p = to_n_nary((C_uword)f, radix, 0, 1);

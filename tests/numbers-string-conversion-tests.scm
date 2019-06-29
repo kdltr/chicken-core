@@ -507,3 +507,13 @@
                     (error "No error on invalid base" b))))
   (condition-case (check-base 1)  ((exn type) 'ok))
   (condition-case (check-base 37) ((exn type) 'ok)))
+
+;; #1627 - Even though R7RS Scheme allows not distinguishing negative
+;; zero (as in the test above), we do.
+(assert (string=? "-0.0" (number->string -0.0)))
+(assert (string=? "0.0" (number->string +0.0)))
+(assert (eqv? -0.0 (string->number "-0.0")))
+(assert (eqv? 0.0 (string->number "+0.0")))
+(assert (eqv? 0.0 (string->number "0.0")))
+(assert (eqv? -0.0 (string->number "-0e1")))
+(assert (eqv? 0.0 (string->number "0e-1")))
