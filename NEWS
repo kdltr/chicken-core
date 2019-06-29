@@ -11,6 +11,11 @@
     quoted empty prefixes or suffixes like ||abc: and abc:|| will be
     read correctly as symbols now (fixes #1625, thanks to Andy Bennett).
 
+- Core libraries
+  - There is now a srfi-88 module which contains just the three
+    procedures from the (chicken keyword) module defined by the SRFI.
+  - A feature identifier named "srfi-88" is now registered.
+
 - Compiler
   - Fixed a bug in lfa2 pass which caused "if" or "cond" nodes to be
     incorrectly unboxed if the "else" branch had a flonum result type
