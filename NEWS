@@ -5,6 +5,12 @@
     semi-space bytes like the documentation says. Old implementation
     returned full-heap size and (full-heap - used-semi-space).
 
+- Runtime system
+  - Quoted empty keywords like ||: and :|| are now read like prescribed
+    by SRFI-88 in the corresponding keyword mode.  Symbols containing
+    quoted empty prefixes or suffixes like ||abc: and abc:|| will be
+    read correctly as symbols now (fixes #1625, thanks to Andy Bennett).
+
 - Compiler
   - Fixed a bug in lfa2 pass which caused "if" or "cond" nodes to be
     incorrectly unboxed if the "else" branch had a flonum result type
