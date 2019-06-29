@@ -1,3 +1,10 @@
+5.1.1
+
+- Compiler
+  - Fixed a bug in lfa2 pass which caused "if" or "cond" nodes to be
+    incorrectly unboxed if the "else" branch had a flonum result type
+    (#1624, thanks to Sven Hartrumpf)
+
 5.1.0
 
 - Core libraries
