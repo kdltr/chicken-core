@@ -2317,11 +2317,9 @@
 			     (quick-put! plist 'inlinable #t)
 			     (quick-put! plist 'local-value n))))))))
 
-	 ;; Make 'collapsable, if it has a known constant value which is either collapsable or is only
-	 ;;  referenced once and if no assignments are made:
-	 (when (and value
-		    ;; (not (assq 'assigned plist)) - If it has a known value, it's assigned just once!
-		    (eq? 'quote (node-class value)) )
+	 ;; Make 'collapsable, if it has a known constant value which
+	 ;; is either collapsable or is only referenced once:
+	 (when (and value (eq? 'quote (node-class value)) )
 	   (let ((val (first (node-parameters value))))
 	     (when (or (collapsable-literal? val)
 		       (= 1 nreferences) )
@@ -2372,23 +2370,19 @@
 	   (quick-put! plist 'removable #t) )
 
 	 ;; Make 'replacable, if it has a variable as known value and if either that variable has
-	 ;;  a known value itself, or if it is not captured and referenced only once, the target and
-	 ;;  the source are never assigned and the source is non-global or we are in block-mode:
+	 ;;  a known value itself, or the target and the source are never assigned and the source
+	 ;;  is non-global or we are in block-mode:
 	 ;;  - The target-variable is not allowed to be global.
 	 ;;  - The variable that can be substituted for the current one is marked as 'replacing.
 	 ;;    This is done to prohibit beta-contraction of the replacing variable (It wouldn't be there, if
 	 ;;    it was contracted).
 	 (when (and value (not global))
 	   (when (eq? '##core#variable (node-class value))
-	     (let* ((name (first (node-parameters value)))
-		    (nrefs (db-get db name 'references)) )
+	     (let ((name (first (node-parameters value))) )
 	       (when (and (not captured)
 			  (or (and (not (db-get db name 'unknown))
 				   (db-get db name 'value))
-			      (and (not (db-get db name 'captured))
-				   nrefs
-				   (= 1 (length nrefs))
-				   (not assigned)
+			      (and (not assigned)
 				   (not (db-get db name 'assigned))
 				   (or (not (variable-visible?
 					     name block-compilation))
