@@ -449,3 +449,16 @@
 (let ((v0 ((foreign-lambda* c-string () "C_return(\"str\");")))
       (v1 ((foreign-lambda* (const c-string) () "C_return(\"str\");"))))
   (assert (equal? v0 v1)))
+
+; #1630: inlining may result in incorrectly flagged argument-
+;   count errors.
+(define (outer x y)
+  (define (append-map proc . lsts)
+    (if (null? lsts)
+        (proc 1)
+        (apply proc lsts)))
+  (append-map (lambda (a) (assert (= a 1))))
+  (append-map (lambda (a b) (assert (and (= a 3) (= b 4))))
+    x y))
+(outer 3 4)
+  

@@ -192,7 +192,6 @@
 
 (set! syntax-error ##sys#syntax-error-hook)
 
-;; Move to C-platform?
 (define (emit-syntax-trace-info info cntr) 
   (define (thread-id t) (##sys#slot t 14))
   (##core#inline "C_emit_syntax_trace_info" info cntr
@@ -204,18 +203,12 @@
 	  [(symbol? llist) (proc llist)]
 	  [else (cons (proc (car llist)) (loop (cdr llist)))] ) ) )
 
-;; XXX: Shouldn't this be in optimizer.scm?
 (define (check-signature var args llist)
-  (define (err)
-    (quit-compiling
-     "Arguments to inlined call of `~A' do not match parameter-list ~A" 
-     (real-name var)
-     (map-llist real-name (cdr llist)) ) )
-  (let loop ([as args] [ll llist])
-    (cond [(null? ll) (unless (null? as) (err))]
-	  [(symbol? ll)]
-	  [(null? as) (err)]
-	  [else (loop (cdr as) (cdr ll))] ) ) )
+  (let loop ((as args) (ll llist))
+    (cond ((null? ll) (null? as))
+          ((symbol? ll))
+          ((null? as) #f)
+          (else (loop (cdr as) (cdr ll))) ) ) )
 
 
 ;;; Generic utility routines:

@@ -2508,15 +2508,13 @@
 						     (= (length refs) (length sites))
 						     (test varname 'value)
 						     (list? llist) ) ] )
-					  (when (and name
-						     (not (llist-match? llist (cdr subs))))
-					    (quit-compiling
-					     "~a: procedure `~a' called with wrong number of arguments"
-					     (source-info->string name)
-					     (if (pair? name) (cadr name) name)))
-					  (register-direct-call! id)
-					  (when custom (register-customizable! varname id))
-					  (list id custom) )
+					  (cond ((and name
+                                                      (not (llist-match? llist (cdr subs))))
+                                                   '())
+                                                (else
+   					          (register-direct-call! id)
+					          (when custom (register-customizable! varname id))
+					          (list id custom) ) ) )
 					'() ) )
 				  '() ) )
 			'() ) ) )

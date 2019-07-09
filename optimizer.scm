@@ -335,15 +335,23 @@
 			 ;; only called once
 			 (let* ([lparams (node-parameters lval)]
 				[llist (third lparams)] )
-			   (check-signature var args llist)
-			   (debugging 'o "contracted procedure" info)
-			   (touch)
-			   (for-each (cut db-put! db <> 'inline-target #t) fids)
-			   (walk
-			    (inline-lambda-bindings
-			     llist args (first (node-subexpressions lval)) #f db
-			     void)
-			    fids gae) ) )
+			   (cond ((check-signature var args llist)
+                                   (debugging 'o "contracted procedure" info)
+                                   (touch)
+                       	           (for-each (cut db-put! db <> 'inline-target #t) 
+                                     fids)
+                                   (walk
+                                     (inline-lambda-bindings
+			               llist args (first (node-subexpressions lval)) 
+                                       #f db
+			               void)
+			             fids gae) )
+                                 (else
+                                   (debugging 
+                                     'i
+                                     "not contracting procedure because argument list does not match"
+                                     info)
+                                   (walk-generic n class params subs fids gae #t)))))
 			((and-let* (((variable-mark var '##compiler#pure))
 				    ((eq? '##core#variable (node-class (car args))))
 				    (kvar (first (node-parameters (car args))))
@@ -368,8 +376,8 @@
 			((and lval
 			      (eq? '##core#lambda (node-class lval)))
 			 ;; callee is a lambda
-			 (let* ([lparams (node-parameters lval)]
-				[llist (third lparams)] )
+			 (let* ((lparams (node-parameters lval))
+				(llist (third lparams)) )
 			   (##sys#decompose-lambda-list
 			    llist
 			    (lambda (vars argc rest)
@@ -383,29 +391,34 @@
 					      ((no) #f)
 					      (else 
 					       (or external (< (fourth lparams) inline-limit)))))
-				       (debugging 
-					'i
-					(if external
-					    "global inlining" 	
-					    "inlining")
-					info ifid (fourth lparams))
-				       (for-each (cut db-put! db <> 'inline-target #t) fids)
-				       (check-signature var args llist)
-				       (debugging 'o "inlining procedure" info)
-				       (call/cc
-					(lambda (return)
-					  (define (cfk cvar)
-					    (debugging 
-					     'i
-					     "not inlining procedure because it refers to contractable"
-					     info cvar)
-					    (return 
-					     (walk-generic n class params subs fids gae #t)))
-					  (let ((n2 (inline-lambda-bindings
-						     llist args (first (node-subexpressions lval))
-						     #t db cfk)))
-					    (touch)
-					    (walk n2 fids gae)))))
+				       (cond ((check-signature var args llist)
+                                               (debugging 'i
+                                                          (if external
+                                                              "global inlining" 	
+                                                              "inlining")
+                                                          info ifid (fourth lparams))
+                                               (for-each (cut db-put! db <> 'inline-target #t) 
+                                                 fids)
+				               (debugging 'o "inlining procedure" info)
+				               (call/cc
+                                                 (lambda (return)
+                                                   (define (cfk cvar)
+                                                     (debugging 
+                                                       'i
+                                                       "not inlining procedure because it refers to contractable"
+                                                       info cvar)
+                                                     (return (walk-generic n class params subs fids gae #t)))
+                                                   (let ((n2 (inline-lambda-bindings
+                                                                llist args (first (node-subexpressions lval))
+                                                                #t db cfk)))
+                                                     (touch)
+                                                     (walk n2 fids gae)))))
+                                             (else
+                                               (debugging 
+                                                 'i
+                                                 "not inlining procedure because argument list does not match"
+                                                 info)
+                                               (walk-generic n class params subs fids gae #t))))
 				      ((test ifid 'has-unused-parameters)
 				       (if (< (length args) argc) ; Expression was already optimized (should this happen?)
 					   (walk-generic n class params subs fids gae #t)
