@@ -8,7 +8,7 @@
 - Runtime system
   - Quoted empty keywords like ||: and :|| are now read like prescribed
     by SRFI-88 in the corresponding keyword mode.  Symbols containing
-    quoted empty prefixes or suffixes like ||abc: and abc:|| will be
+    quoted empty prefixes or suffixes like ||:abc and abc:|| will be
     read correctly as symbols now (fixes #1625, thanks to Andy Bennett).
 
 - Core libraries
