@@ -4,6 +4,9 @@
   - Fix `memory-statistics` by returning semi-space bytes and used
     semi-space bytes like the documentation says. Old implementation
     returned full-heap size and (full-heap - used-semi-space).
+  - for-each and map now behave consistently in compiled and interpreted
+    mode, like in SRFI-1.  They now stop when the shortest list is
+    exhausted instead of raising an exception (fixes #1422).
 
 - Runtime system
   - Quoted empty keywords like ||: and :|| are now read like prescribed

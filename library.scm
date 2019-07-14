@@ -3005,46 +3005,40 @@ EOF
 	  (else (##sys#error-not-a-proper-list lst0 'map)) ) ))
 
 (letrec ((mapsafe
-	  (lambda (p lsts start loc)
-	    (if (eq? lsts '())
-		lsts
-		(let ((item (##sys#slot lsts 0)))
-		  (cond ((eq? item '())
-			 (check lsts start loc))
-			((pair? item)
-			 (cons (p item) (mapsafe p (##sys#slot lsts 1) #f loc)) )
-			(else (##sys#error-not-a-proper-list item loc)) ) ) ) ) )
-	 (check 
-	  (lambda (lsts start loc)
-	    (if (or (not start)
-		    (let loop ((lsts lsts))
-		      (and (not (eq? lsts '()))
-			   (not (eq? (##sys#slot lsts 0) '()))
-			   (loop (##sys#slot lsts 1)) ) ) )
-		(##sys#error loc "lists are not of same length" lsts) ) ) ) )
+	  (lambda (p lsts loc)
+	    (call-with-current-continuation
+	     (lambda (empty)
+	       (let lp ((lsts lsts))
+		 (if (eq? lsts '())
+		     lsts
+		     (let ((item (##sys#slot lsts 0)))
+		       (cond ((eq? item '()) (empty '()))
+			     ((pair? item)
+			      (cons (p item) (lp (##sys#slot lsts 1))))
+			     (else (##sys#error-not-a-proper-list item loc)))))))))))
 
   (set! scheme#for-each
     (lambda (fn lst1 . lsts)
       (if (null? lsts)
 	  (##sys#for-each fn lst1)
 	  (let loop ((all (cons lst1 lsts)))
-	    (let ((first (##sys#slot all 0)))
-	      (cond ((pair? first)
-		     (apply fn (mapsafe (lambda (x) (car x)) all #t 'for-each)) ; ensure inlining
-		     (loop (mapsafe (lambda (x) (cdr x)) all #t 'for-each)) )
-		    (else (check all #t 'for-each)) ) ) ) ) ) )
+	    (let* ((first (##sys#slot all 0))
+		   (safe-args (mapsafe (lambda (x) (car x)) all 'for-each))) ; ensure inlining
+	      (when (pair? safe-args)
+		(apply fn safe-args)
+		(loop (mapsafe (lambda (x) (cdr x)) all 'for-each))))))))
 
   (set! scheme#map
     (lambda (fn lst1 . lsts)
       (if (null? lsts)
 	  (##sys#map fn lst1)
 	  (let loop ((all (cons lst1 lsts)))
-	    (let ((first (##sys#slot all 0)))
-	      (cond ((pair? first)
-		     (cons (apply fn (mapsafe (lambda (x) (car x)) all #t 'map))
-			   (loop (mapsafe (lambda (x) (cdr x)) all #t 'map)) ) )
-		    (else (check (##core#inline "C_i_cdr" all) #t 'map)
-			  '() ) ) ) ) ) ) ) )
+	    (let* ((first (##sys#slot all 0))
+		   (safe-args (mapsafe (lambda (x) (car x)) all 'map)))
+	      (if (pair? safe-args)
+		  (cons (apply fn safe-args)
+			(loop (mapsafe (lambda (x) (cdr x)) all 'map)))
+		  '())))))))
 
 
 ;;; dynamic-wind:
