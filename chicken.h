@@ -1421,7 +1421,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 /* these assume fixnum mode */
 #define C_u_i_u32vector_ref(x, i)       C_fix(((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
-#define C_u_i_s32vector_ref(x, i)       C_fix(((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
+#define C_u_i_s32vector_ref(x, i)       C_fix(((C_s32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
 
 #define C_a_u_i_u32vector_ref(ptr, c, x, i)  C_unsigned_int_to_num(ptr, ((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
 #define C_a_u_i_s32vector_ref(ptr, c, x, i)  C_int_to_num(ptr, ((C_s32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
