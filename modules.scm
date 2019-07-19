@@ -1110,6 +1110,12 @@
  'srfi-55 '() (se-subset '(require-extension) ##sys#chicken.base-macro-environment))
 
 (##sys#register-core-module
+ 'srfi-88 'library
+ '((keyword? . chicken.keyword#keyword?)
+   (keyword->string chicken.keyword#keyword->string)
+   (string->keyword chicken.keyword#string->keyword)))
+
+(##sys#register-core-module
  'srfi-98 'posix
  '((get-environment-variable . chicken.process-context#get-environment-variable)
    (get-environment-variables . chicken.process-context#get-environment-variables)))

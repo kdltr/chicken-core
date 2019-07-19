@@ -449,6 +449,7 @@
 (parameterize ((keyword-style #:suffix))
   (assert (keyword? (with-input-from-string "abc:" read)))
   (assert (keyword? (with-input-from-string "|abc|:" read)))
+  (assert (keyword? (with-input-from-string "a|bc|d:" read)))
   (assert (not (keyword? (with-input-from-string "abc:||" read))))
   (assert (not (keyword? (with-input-from-string "abc\\:" read))))
   (assert (not (keyword? (with-input-from-string "abc|:|" read))))
@@ -457,12 +458,15 @@
 (parameterize ((keyword-style #:prefix))
   (assert (keyword? (with-input-from-string ":abc" read)))
   (assert (keyword? (with-input-from-string ":|abc|" read)))
-  (assert (keyword? (with-input-from-string "||:abc" read))) ;XXX should be not
+  (assert (keyword? (with-input-from-string ":a|bc|d" read)))
+  (assert (not (keyword? (with-input-from-string "||:abc" read))))
   (assert (not (keyword? (with-input-from-string "\\:abc" read))))
   (assert (not (keyword? (with-input-from-string "|:|abc" read))))
   (assert (not (keyword? (with-input-from-string "|:abc|" read)))))
 
 (parameterize ((keyword-style #f))
+  (assert (not (keyword? (with-input-from-string ":||" read))))
+  (assert (not (keyword? (with-input-from-string "||:" read))))
   (assert (not (keyword? (with-input-from-string ":abc" read))))
   (assert (not (keyword? (with-input-from-string ":abc:" read))))
   (assert (not (keyword? (with-input-from-string "abc:" read)))))
@@ -472,17 +476,29 @@
   (assert (not (keyword? colon-sym)))
   (assert (string=? ":" (symbol->string colon-sym))))
 
-;; The next two cases are a bit dubious.  These could also be read as
-;; keywords due to the literal quotation.
-(let ((colon-sym (with-input-from-string ":||" read)))
-  (assert (symbol? colon-sym))
-  (assert (not (keyword? colon-sym)))
-  (assert (string=? ":" (symbol->string colon-sym))))
+;; The next two cases are a bit dubious, but we follow SRFI-88 (see
+;; also #1625).
+(parameterize ((keyword-style #:suffix))
+  (let ((colon-sym (with-input-from-string ":||" read)))
+    (assert (symbol? colon-sym))
+    (assert (not (keyword? colon-sym)))
+    (assert (string=? ":" (symbol->string colon-sym))))
 
-(let ((colon-sym (with-input-from-string "||:" read)))
-  (assert (symbol? colon-sym))
-  (assert (not (keyword? colon-sym)))
-  (assert (string=? ":" (symbol->string colon-sym))))
+  (let ((empty-kw (with-input-from-string "||:" read)))
+    (assert (not (symbol? empty-kw)))
+    (assert (keyword? empty-kw))
+    (assert (string=? "" (keyword->string empty-kw)))))
+
+(parameterize ((keyword-style #:prefix))
+  (let ((empty-kw (with-input-from-string ":||" read)))
+    (assert (not (symbol? empty-kw)))
+    (assert (keyword? empty-kw))
+    (assert (string=? "" (keyword->string empty-kw))))
+
+  (let ((colon-sym (with-input-from-string "||:" read)))
+    (assert (symbol? colon-sym))
+    (assert (not (keyword? colon-sym)))
+    (assert (string=? ":" (symbol->string colon-sym)))))
 
 (assert-fail (with-input-from-string "#:" read))
 

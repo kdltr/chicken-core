@@ -17,6 +17,10 @@ either compatible to Common LISP, or to DSSSL.  As long as this
 parameter is set to {{#:suffix}}, CHICKEN conforms to
 [[http://srfi.schemers.org/srfi-88/srfi-88.html|SRFI-88]].
 
+There is also a {{srfi-88}} or {{(srfi 88)}} module which only
+includes the standard procedures from the SRFI document, without the
+CHICKEN extensions.  {{(chicken keyword)}} offers the complete set of
+procedures, both CHICKEN-specific and standard SRFI-88.
 
 ==== get-keyword
 

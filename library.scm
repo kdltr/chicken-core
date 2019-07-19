@@ -4016,49 +4016,51 @@ EOF
 		 (info 'symbol-info s (##sys#port-line port)) ) )))
 
 	  (define (r-xtoken k)
-	    (let ((pkw #f))
-	      (let loop ((lst '()) (skw #f))
-		(let ((c (##sys#peek-char-0 port)))
-		  (cond ((or (eof-object? c) 
-			     (char-whitespace? c)
-			     (memq c terminating-characters))
-			 ;; The not null? checks here ensure we read a
-			 ;; plain ":" as a symbol, not as a keyword.
-			 (if (and skw (eq? ksp #:suffix)
-				  (not (null? (cdr lst))))
-			     (k (##sys#reverse-list->string (cdr lst)) #t)
-			     (k (##sys#reverse-list->string lst)
-				(and pkw (not (null? lst))))))
-                        ((memq c reserved-characters)
-			  (reserved-character c))
-			(else
-			 (let ((c (##sys#read-char-0 port)))
-			   (case c
-			     ((#\|) 
-			      (let ((part (r-string #\|)))
-				(loop (append (##sys#fast-reverse (##sys#string->list part)) lst)
-				      #f)))
-			     ((#\newline)
-			      (##sys#read-warning
-			       port "escaped symbol syntax spans multiple lines"
-			       (##sys#reverse-list->string lst))
-			      (loop (cons #\newline lst) #f))
-			     ((#\:)
-			      (cond ((and (null? lst) (eq? ksp #:prefix))
-				     (set! pkw #t)
-				     (loop '() #f))
-				    (else (loop (cons #\: lst) #t))))
-			     ((#\\)
-			      (let ((c (##sys#read-char-0 port)))
-				(if (eof-object? c)
-				    (##sys#read-error
-				     port
-				     "unexpected end of file while reading escaped character")
-				    (loop (cons c lst) #f))))
-			     (else 
-			      (loop 
-			       (cons (if csp c (char-downcase c)) lst)
-			       #f))))))))))
+	    (let loop ((lst '()) (pkw #f) (skw #f) (qtd #f))
+	      (let ((c (##sys#peek-char-0 port)))
+		(cond ((or (eof-object? c)
+			   (char-whitespace? c)
+			   (memq c terminating-characters))
+		       ;; The not null? checks here ensure we read a
+		       ;; plain ":" as a symbol, not as a keyword.
+		       ;; However, when the keyword is quoted like ||:,
+		       ;; it _should_ be read as a keyword.
+		       (if (and skw (eq? ksp #:suffix)
+				(or qtd (not (null? (cdr lst)))))
+			   (k (##sys#reverse-list->string (cdr lst)) #t)
+			   (k (##sys#reverse-list->string lst)
+			      (and pkw (or qtd (not (null? lst)))))))
+		      ((memq c reserved-characters)
+		       (reserved-character c))
+		      (else
+		       (let ((c (##sys#read-char-0 port)))
+			 (case c
+			   ((#\|)
+			    (let ((part (r-string #\|)))
+			      (loop (append (##sys#fast-reverse (##sys#string->list part)) lst)
+				    pkw #f #t)))
+			   ((#\newline)
+			    (##sys#read-warning
+			     port "escaped symbol syntax spans multiple lines"
+			     (##sys#reverse-list->string lst))
+			    (loop (cons #\newline lst) pkw #f qtd))
+			   ((#\:)
+			    (cond ((and (null? lst)
+					(not qtd)
+					(eq? ksp #:prefix))
+				   (loop '() #t #f qtd))
+				  (else (loop (cons #\: lst) pkw #t qtd))))
+			   ((#\\)
+			    (let ((c (##sys#read-char-0 port)))
+			      (if (eof-object? c)
+				  (##sys#read-error
+				   port
+				   "unexpected end of file while reading escaped character")
+				  (loop (cons c lst) pkw #f qtd))))
+			   (else
+			    (loop
+			     (cons (if csp c (char-downcase c)) lst)
+			     pkw #f qtd)))))))))
 	  
 	  (define (r-char)
 	    ;; Code contributed by Alex Shinn
@@ -6488,7 +6490,8 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 
 (define ##sys#features
   '(#:chicken
-    #:srfi-6 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62 #:full-numeric-tower))
+    #:srfi-6 #:srfi-8 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30
+    #:srfi-39 #:srfi-62 #:srfi-88 #:full-numeric-tower))
 
 ;; Add system features:
 
