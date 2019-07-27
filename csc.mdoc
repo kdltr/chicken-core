@@ -107,12 +107,15 @@ Macros are made available at run-time.
 Write compile-time module information into separate file.
 .It Fl J , Fl emit-all-import-libraries
 Emit import-libraries for all defined modules.
-.It Fl N , Fl no-module-registration
-Do not generate module registration code.
 .It Fl no-compiler-syntax
 Disable expansion of compiler-macros.
 .It Fl m Ar NAME , Fl module Ar NAME
 Wrap compiled code in module of the given name.
+.It Fl M , Fl module-registration
+Always generate module registration code, even when import libraries are emitted.
+.It Fl N , Fl no-module-registration
+Do not generate module registration code. Overrides
+.Fl module-registration .
 .El
 .Pp
 Translation options:

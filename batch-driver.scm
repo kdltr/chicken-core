@@ -181,8 +181,10 @@
   (initialize-compiler)
   (set! explicit-use-flag (memq 'explicit-use options))
   (set! emit-debug-info (memq 'debug-info options))
-  (set! enable-module-registration
-    (not (memq 'no-module-registration options)))
+  (when (memq 'module-registration options)
+    (set! compile-module-registration 'yes))
+  (when (memq 'no-module-registration options)
+    (set! compile-module-registration 'no))
   (when (memq 'static options)
     (set! static-extensions #t)
     (register-feature! 'chicken-compile-static))
@@ -199,10 +201,11 @@
 			     '()
 			     `((uses ,@default-units)))
 			 (if (and static-extensions
-				  enable-module-registration
 				  (not dynamic)
 				  (not unit)
-				  (not explicit-use-flag))
+				  (not explicit-use-flag)
+				  (or (not compile-module-registration)
+				      (eq? compile-module-registration 'yes)))
 			     '((uses eval-modules))
 			     '())))
 		     ,@(if explicit-use-flag

@@ -151,7 +151,7 @@
     -analyze-only -keep-shadowed-macros -inline-global -ignore-repository
     -no-symbol-escape -no-parentheses-synonyms -r5rs-syntax
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
-    -emit-all-import-libraries -no-elevation -no-module-registration
+    -emit-all-import-libraries -no-elevation -module-registration -no-module-registration
     -no-procedure-checks-for-usual-bindings -regenerate-import-libraries
     -specialize -strict-types -clustering -lfa2 -debug-info
     -no-procedure-checks-for-toplevel-bindings))
@@ -178,6 +178,7 @@
     (|-K| "-keyword-style")
     (|-X| "-extend")
     (|-J| "-emit-all-import-libraries")
+    (|-M| "-module-registration")
     (|-N| "-no-module-registration")
     (-x "-explicit-use")
     (-u "-unsafe")
@@ -185,6 +186,7 @@
     (-b "-block")
     (-types "-consult-types-file")))
 
+;; TODO is this up-to-date?
 (define short-options
   (string->list "PHhsfiENxubvwAOeWkctgSJM") )
 
@@ -365,9 +367,11 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
     -j -emit-import-library MODULE write compile-time module information into
                                     separate file
     -J -emit-all-import-libraries  emit import-libraries for all defined modules
-    -no-module-registration        do not generate module registration code
     -no-compiler-syntax            disable expansion of compiler-macros
     -m -module NAME                wrap compiled code in a module
+    -M -module-registration        always generate module registration code
+    -N -no-module-registration     never generate module registration code
+                                    (overrides `-M')
 
   Translation options:
 

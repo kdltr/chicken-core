@@ -475,12 +475,13 @@
                                    '())
                                (if (memq 'static link) 
                                    ;; if compiling both static + dynamic, override
-                                   ;; types-file: + inline-file: properties to
+                                   ;; modules/types-file/inline-file properties to
                                    ;; avoid generating things twice:
                                    (list (apply compile-static-extension
                                                 (if (memq 'dynamic link)
                                                     (cons (car data)
-                                                          (append '(types-file: #f
+                                                          (append '(modules: #f
+                                                                    types-file: #f
                                                                     inline-file: #f)
                                                                   (cdr data)))
                                                     data)))
@@ -559,7 +560,7 @@
                                    source-dependencies
                                    source (options '())
                                    predefined-types eggfile
-                                   link-objects
+                                   link-objects modules
                                    custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
@@ -594,7 +595,11 @@
                         platform)))
          (targets (append (list out3 lfile)
                           (maybe types-file tfile)
-                          (maybe inline-file ifile)))
+                          (maybe inline-file ifile)
+                          (map (lambda (m)
+                                 (qs* (prefix srcdir (conc m ".import.scm"))
+                                      platform))
+                               (or modules '()))))
          (src (qs* (or source (conc name ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
@@ -606,6 +611,7 @@
            " : " cmd
            (if keep-generated-files " -k" "")
            " -regenerate-import-libraries"
+           (if modules " -J" "") " -M"
            " -setup-mode -static -I " srcdir 
            " -emit-link-file " lfile
            (if (eq? mode 'host) " -host" "")

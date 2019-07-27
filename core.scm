@@ -290,7 +290,7 @@
      all-import-libraries preserve-unchanged-import-libraries
      bootstrap-mode compiler-syntax-enabled
      emit-closure-info emit-profile enable-inline-files explicit-use-flag
-     first-analysis no-bound-checks enable-module-registration
+     first-analysis no-bound-checks compile-module-registration
      optimize-leaf-routines standalone-executable undefine-shadowed-macros
      verbose-mode local-definitions enable-specialization block-compilation
      inline-locally inline-substitutions-enabled strict-variable-types
@@ -402,7 +402,7 @@
 (define import-libraries '())
 (define all-import-libraries #f)
 (define preserve-unchanged-import-libraries #t)
-(define enable-module-registration #t)
+(define compile-module-registration #f) ; 'no | 'yes
 (define standalone-executable #t)
 (define local-definitions #f)
 (define inline-locally #f)
@@ -1020,21 +1020,20 @@
 						       (print-error-message ex (current-error-port))
 						       (exit 1))
 						   (##sys#finalize-module (##sys#current-module)))
-						 (cond ((or (assq name import-libraries) all-import-libraries)
-							=> (lambda (il)
-							     (emit-import-lib name il)
-							     ;; Remove from list to avoid error
-							     (when (pair? il)
-							       (set! import-libraries
-								 (delete il import-libraries equal?)))
-							     (values (reverse xs) '())))
-						       ((not enable-module-registration)
-							(values (reverse xs) '()))
-						       (else
-							(values
-							 (reverse xs)
-							 (##sys#compiled-module-registration
-							  (##sys#current-module))))))
+						 (let ((il (or (assq name import-libraries) all-import-libraries)))
+						   (when il
+						     (emit-import-lib name il)
+						     ;; Remove from list to avoid error
+						     (when (pair? il)
+						       (set! import-libraries
+							 (delete il import-libraries equal?))))
+						   (values
+						    (reverse xs)
+						    (if (or (eq? compile-module-registration 'yes)
+							    (and (not il) ; default behaviour
+								 (not compile-module-registration)))
+							(##sys#compiled-module-registration (##sys#current-module))
+							'()))))
 						(else
 						 (loop
 						  (cdr body)
