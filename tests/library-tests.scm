@@ -58,6 +58,20 @@
 (assert (not (integer? "foo")))
 ; XXX number missing
 
+;; Negative vs positive zero (see #1627)
+(assert (not (eqv? 0.0 -0.0)))
+(assert (not (equal? 0.0 -0.0)))
+(assert (= 0.0 -0.0))
+
+(assert (not (positive? 0.0)))
+(assert (not (negative? 0.0)))
+(assert (zero? 0.0))
+
+(assert (not (positive? -0.0)))
+(assert (not (negative? -0.0)))
+(assert (zero? -0.0))
+
+;; Exactness
 (assert (exact? 1))
 (assert (not (exact? 1.0)))
 (assert (not (exact? 1.1)))
@@ -243,6 +257,17 @@
   (map (lambda (n) (number->string 32 n)) (list-tabulate 15 (cut + 2 <>)))
   '("100000" "1012" "200" "112" "52" "44" "40" "35" "32" "2a" "28" "26" "24" "22" "20")))
 
+;; #1422
+(assert (equal? (map + '(1 2 3) '(1 2)) '(2 4)))
+(assert (equal? (map + '(1 2) '(1 2 3)) '(2 4)))
+(let ((result '()))
+  (for-each (lambda (x y) (set! result (cons (+ x y) result)))
+            '(1 2) '(1 2 3))
+  (assert (equal? result '(4 2))))
+(let ((result '()))
+  (for-each (lambda (x y) (set! result (cons (+ x y) result)))
+            '(1 2 3) '(1 2))
+  (assert (equal? result '(4 2))))
 
 ;; string->number conversion
 

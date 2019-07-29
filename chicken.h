@@ -1421,7 +1421,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 /* these assume fixnum mode */
 #define C_u_i_u32vector_ref(x, i)       C_fix(((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
-#define C_u_i_s32vector_ref(x, i)       C_fix(((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
+#define C_u_i_s32vector_ref(x, i)       C_fix(((C_s32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
 
 #define C_a_u_i_u32vector_ref(ptr, c, x, i)  C_unsigned_int_to_num(ptr, ((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
 #define C_a_u_i_s32vector_ref(ptr, c, x, i)  C_int_to_num(ptr, ((C_s32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
@@ -2622,15 +2622,22 @@ inline static int C_memcasecmp(const char *x, const char *y, unsigned int len)
   return 0;
 }
 
+inline static C_word C_ub_i_flonum_eqvp(double x, double y)
+{
+  /* This can distinguish between -0.0 and +0.0 */
+  return x == y && signbit(x) == signbit(y);
+}
+
 inline static C_word basic_eqvp(C_word x, C_word y)
 {
   return (x == y ||
 
           (!C_immediatep(x) && !C_immediatep(y) &&
            C_block_header(x) == C_block_header(y) &&
-           
+
            ((C_block_header(x) == C_FLONUM_TAG &&
-             C_flonum_magnitude(x) == C_flonum_magnitude(y)) ||
+             C_ub_i_flonum_eqvp(C_flonum_magnitude(x),
+                                C_flonum_magnitude(y))) ||
 
             (C_block_header(x) == C_BIGNUM_TAG &&
              C_block_header(y) == C_BIGNUM_TAG &&

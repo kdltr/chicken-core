@@ -4,12 +4,18 @@
   - Fix `memory-statistics` by returning semi-space bytes and used
     semi-space bytes like the documentation says. Old implementation
     returned full-heap size and (full-heap - used-semi-space).
+  - for-each and map now behave consistently in compiled and interpreted
+    mode, like in SRFI-1.  They now stop when the shortest list is
+    exhausted instead of raising an exception (fixes #1422).
 
 - Runtime system
   - Quoted empty keywords like ||: and :|| are now read like prescribed
     by SRFI-88 in the corresponding keyword mode.  Symbols containing
     quoted empty prefixes or suffixes like ||:abc and abc:|| will be
     read correctly as symbols now (fixes #1625, thanks to Andy Bennett).
+  - IEEE floating point negative zero is now properly handled: it can
+    be read, written and distinguished by eqv? and equal?, but not =
+    (fixes #1627, thanks to John Cowan).
 
 - Core libraries
   - There is now a srfi-88 module which contains just the three

@@ -2398,9 +2398,13 @@ EOF
 ;; Shorthand for readability.  TODO: Replace other C_subchar calls with this
 (define-inline (%subchar s i) (##core#inline "C_subchar" s i))
 (define (##sys#string->compnum radix str offset exactness)
-  (define (go-inexact!)
-    ;; Go inexact unless exact was requested (with #e prefix)
-    (unless (eq? exactness 'e) (set! exactness 'i)))
+  ;; Flipped when a sign is encountered (for inexact numbers only)
+  (define negative #f)
+  ;; Go inexact unless exact was requested (with #e prefix)
+  (define (go-inexact! neg?)
+    (unless (eq? exactness 'e)
+      (set! exactness 'i)
+      (set! negative (or negative neg?))))
   (define (safe-exponent value e)
     (and e (cond
             ((not value) 0)
@@ -2465,7 +2469,7 @@ EOF
 			       str start (car end) radix neg?)))
                 (when hashes            ; Eeewww. Feeling dirty yet?
                   (set! seen-hashes? #t)
-                  (go-inexact!))
+                  (go-inexact! neg?))
                 (cons num (cdr end))))))
          (scan-exponent
           (lambda (start)
@@ -2474,7 +2478,6 @@ EOF
                                ((#\+) 'pos) ((#\-) 'neg) (else #f))))
                    (and-let* ((start (if sign (fx+ start 1) start))
                               (end (scan-digits start)))
-                     (go-inexact!)
                      (cons (##core#inline_allocate
 			    ("C_s_a_i_digits_to_integer" 5)
 			    str start (car end) radix (eq? sign 'neg))
@@ -2508,18 +2511,19 @@ EOF
             (if (and (fx> len (fx+ start 1)) (eq? radix 10)
                      (eq? (%subchar str start) #\.))
                 (begin
-                  (go-inexact!)
+                  (go-inexact! neg?)
                   (scan-decimal-tail (fx+ start 1) neg? #f))
                 (and-let* ((end (scan-digits+hashes start neg? #f)))
                   (case (and (cdr end) (%subchar str (cdr end)))
                     ((#\.)
-                     (go-inexact!)
+                     (go-inexact! neg?)
                      (and (eq? radix 10)
                           (if (fx> len (fx+ (cdr end) 1))
                               (scan-decimal-tail (fx+ (cdr end) 1) neg? (car end))
                               (cons (car end) #f))))
                     ((#\e #\s #\f #\d #\l
                       #\E #\S #\F #\D #\L)
+                     (go-inexact! neg?)
                      (and-let* (((eq? radix 10))
                                 ((fx> len (cdr end)))
                                 (ee (scan-exponent (fx+ (cdr end) 1)))
@@ -2557,7 +2561,7 @@ EOF
                                       (cons (if (eq? sign 'neg) -1 1) next))
                                      ((and (fx<= (fx+ next 5) len)
                                            (string-ci=? (substring str next (fx+ next 5)) "inf.0"))
-                                      (go-inexact!)
+                                      (go-inexact! (eq? sign 'neg))
                                       (cons (if (eq? sign 'neg) -inf.0 +inf.0)
                                             (and (fx< (fx+ next 5) len)
                                                  (fx+ next 5))))
@@ -2567,7 +2571,7 @@ EOF
                            (or (and sign
                                     (fx<= (fx+ next 5) len)
                                     (string-ci=? (substring str next (fx+ next 5)) "nan.0")
-                                    (begin (go-inexact!)
+                                    (begin (go-inexact! (eq? sign 'neg))
                                            (cons (make-nan)
                                                  (and (fx< (fx+ next 5) len)
                                                       (fx+ next 5)))))
@@ -2595,7 +2599,10 @@ EOF
                         (make-polar (car r1) (car r2))))
                      (else #f)))))
     (and number (if (eq? exactness 'i)
-                    (exact->inexact number)
+                    (let ((r (exact->inexact number)))
+                      ;; Stupid hack because flonums can represent negative zero,
+                      ;; but we're coming from an exact which has no such thing.
+                      (if (and negative (zero? r)) (fpneg r) r))
                     ;; Ensure we didn't encounter +inf.0 or +nan.0 with #e
                     (and (finite? number) number)))))
 
@@ -3005,46 +3012,40 @@ EOF
 	  (else (##sys#error-not-a-proper-list lst0 'map)) ) ))
 
 (letrec ((mapsafe
-	  (lambda (p lsts start loc)
-	    (if (eq? lsts '())
-		lsts
-		(let ((item (##sys#slot lsts 0)))
-		  (cond ((eq? item '())
-			 (check lsts start loc))
-			((pair? item)
-			 (cons (p item) (mapsafe p (##sys#slot lsts 1) #f loc)) )
-			(else (##sys#error-not-a-proper-list item loc)) ) ) ) ) )
-	 (check 
-	  (lambda (lsts start loc)
-	    (if (or (not start)
-		    (let loop ((lsts lsts))
-		      (and (not (eq? lsts '()))
-			   (not (eq? (##sys#slot lsts 0) '()))
-			   (loop (##sys#slot lsts 1)) ) ) )
-		(##sys#error loc "lists are not of same length" lsts) ) ) ) )
+	  (lambda (p lsts loc)
+	    (call-with-current-continuation
+	     (lambda (empty)
+	       (let lp ((lsts lsts))
+		 (if (eq? lsts '())
+		     lsts
+		     (let ((item (##sys#slot lsts 0)))
+		       (cond ((eq? item '()) (empty '()))
+			     ((pair? item)
+			      (cons (p item) (lp (##sys#slot lsts 1))))
+			     (else (##sys#error-not-a-proper-list item loc)))))))))))
 
   (set! scheme#for-each
     (lambda (fn lst1 . lsts)
       (if (null? lsts)
 	  (##sys#for-each fn lst1)
 	  (let loop ((all (cons lst1 lsts)))
-	    (let ((first (##sys#slot all 0)))
-	      (cond ((pair? first)
-		     (apply fn (mapsafe (lambda (x) (car x)) all #t 'for-each)) ; ensure inlining
-		     (loop (mapsafe (lambda (x) (cdr x)) all #t 'for-each)) )
-		    (else (check all #t 'for-each)) ) ) ) ) ) )
+	    (let* ((first (##sys#slot all 0))
+		   (safe-args (mapsafe (lambda (x) (car x)) all 'for-each))) ; ensure inlining
+	      (when (pair? safe-args)
+		(apply fn safe-args)
+		(loop (mapsafe (lambda (x) (cdr x)) all 'for-each))))))))
 
   (set! scheme#map
     (lambda (fn lst1 . lsts)
       (if (null? lsts)
 	  (##sys#map fn lst1)
 	  (let loop ((all (cons lst1 lsts)))
-	    (let ((first (##sys#slot all 0)))
-	      (cond ((pair? first)
-		     (cons (apply fn (mapsafe (lambda (x) (car x)) all #t 'map))
-			   (loop (mapsafe (lambda (x) (cdr x)) all #t 'map)) ) )
-		    (else (check (##core#inline "C_i_cdr" all) #t 'map)
-			  '() ) ) ) ) ) ) ) )
+	    (let* ((first (##sys#slot all 0))
+		   (safe-args (mapsafe (lambda (x) (car x)) all 'map)))
+	      (if (pair? safe-args)
+		  (cons (apply fn safe-args)
+			(loop (mapsafe (lambda (x) (cdr x)) all 'map)))
+		  '())))))))
 
 
 ;;; dynamic-wind:
