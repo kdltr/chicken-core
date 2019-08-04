@@ -56,7 +56,7 @@
 
 (define +type-check-map+
   '(("C_i_check_closure" procedure)
-    ("C_i_check_exact" fixnum bignum integer ratnum)
+    ("C_i_check_exact" fixnum bignum integer ratnum) ;; DEPRECATED
     ("C_i_check_inexact" float)	; Or an inexact cplxnum...
     ("C_i_check_number" fixnum integer bignum ratnum float cplxnum number)
     ("C_i_check_string" string)
@@ -71,7 +71,7 @@
     ("C_i_check_structure" *struct*)	; special case
     ("C_i_check_char" char)
     ("C_i_check_closure_2" procedure)
-    ("C_i_check_exact_2" fixnum bignum integer ratnum)
+    ("C_i_check_exact_2" fixnum bignum integer ratnum) ;; DEPRECATED
     ("C_i_check_inexact_2" float)	; Or an inexact cplxnum...
     ("C_i_check_number_2" fixnum integer bignum ratnum float cplxnum number)
     ("C_i_check_string_2" string)

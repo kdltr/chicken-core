@@ -1141,7 +1141,7 @@ EOF
       (##core#inline "C_i_check_fixnum_2" x (car loc))
       (##core#inline "C_i_check_fixnum" x) ) )
 
-(define (##sys#check-exact x . loc) 
+(define (##sys#check-exact x . loc) ;; DEPRECATED
   (if (pair? loc)
       (##core#inline "C_i_check_exact_2" x (car loc))
       (##core#inline "C_i_check_exact" x) ) )

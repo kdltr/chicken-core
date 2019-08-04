@@ -262,7 +262,7 @@
   '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set! ##sys#/-2
     ##sys#call-with-current-continuation ##sys#size ##sys#byte ##sys#setbyte
     ##sys#pointer? ##sys#generic-structure? ##sys#structure? ##sys#check-structure
-    ##sys#check-exact ##sys#check-number ##sys#check-list ##sys#check-pair ##sys#check-string
+    ##sys#check-number ##sys#check-list ##sys#check-pair ##sys#check-string
     ##sys#check-symbol ##sys#check-boolean ##sys#check-locative
     ##sys#check-port ##sys#check-input-port ##sys#check-output-port
     ##sys#check-open-port
@@ -668,7 +668,6 @@
 (rewrite '##sys#vector-length 2 1 "C_i_vector_length" #t)
 (rewrite 'scheme#string-length 2 1 "C_i_string_length" #t)
 
-(rewrite '##sys#check-exact 2 1 "C_i_check_exact" #t)
 (rewrite '##sys#check-fixnum 2 1 "C_i_check_fixnum" #t)
 (rewrite '##sys#check-number 2 1 "C_i_check_number" #t)
 (rewrite '##sys#check-list 2 1 "C_i_check_list" #t)
@@ -681,7 +680,6 @@
 (rewrite '##sys#check-vector 2 1 "C_i_check_vector" #t)
 (rewrite '##sys#check-structure 2 2 "C_i_check_structure" #t)
 (rewrite '##sys#check-char 2 1 "C_i_check_char" #t)
-(rewrite '##sys#check-exact 2 2 "C_i_check_exact_2" #t)
 (rewrite '##sys#check-fixnum 2 2 "C_i_check_fixnum_2" #t)
 (rewrite '##sys#check-number 2 2 "C_i_check_number_2" #t)
 (rewrite '##sys#check-list 2 2 "C_i_check_list_2" #t)

@@ -16,6 +16,8 @@
   - IEEE floating point negative zero is now properly handled: it can
     be read, written and distinguished by eqv? and equal?, but not =
     (fixes #1627, thanks to John Cowan).
+  - ##sys#check-exact and its C implementations C_i_check_exact and
+    C_i_check_exact_2 have been deprecated (see also #1631).
 
 - Core libraries
   - There is now a srfi-88 module which contains just the three

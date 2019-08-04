@@ -339,7 +339,7 @@ EOF
 (define make-pointer-vector
   (let ((unset (list 'unset)))
     (lambda (n #!optional (init unset))
-      (##sys#check-exact n 'make-pointer-vector)
+      (##sys#check-fixnum n 'make-pointer-vector)
       (let* ((words->bytes (foreign-lambda int "C_wordstobytes" int))
 	     (size (words->bytes n))
 	     (buf (##sys#make-blob size)))
@@ -384,7 +384,6 @@ EOF
 
 (define (pointer-vector-set! pv i ptr)
   (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
-  (##sys#check-exact i 'pointer-vector-ref)
   (##sys#check-range i 0 (##sys#slot pv 1)) ; len
   (when ptr (##sys#check-pointer ptr 'pointer-vector-set!))
   (pv-buf-set! (##sys#slot pv 2) i ptr))
@@ -393,7 +392,6 @@ EOF
   (getter-with-setter
    (lambda (pv i)
      (##sys#check-structure pv 'pointer-vector 'pointer-vector-ref)
-     (##sys#check-exact i 'pointer-vector-ref)
      (##sys#check-range i 0 (##sys#slot pv 1)) ; len
      (pv-buf-ref (##sys#slot pv 2) i))	; buf
    pointer-vector-set!

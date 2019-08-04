@@ -1382,7 +1382,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #endif
 
 #define C_i_check_closure(x)            C_i_check_closure_2(x, C_SCHEME_FALSE)
-#define C_i_check_exact(x)              C_i_check_exact_2(x, C_SCHEME_FALSE)
+#define C_i_check_exact(x)              C_i_check_exact_2(x, C_SCHEME_FALSE) /* DEPRECATED */
 #define C_i_check_fixnum(x)             C_i_check_fixnum_2(x, C_SCHEME_FALSE)
 #define C_i_check_inexact(x)            C_i_check_inexact_2(x, C_SCHEME_FALSE)
 #define C_i_check_number(x)             C_i_check_number_2(x, C_SCHEME_FALSE)
@@ -2003,7 +2003,7 @@ C_fctexport C_word C_fcall C_i_length(C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_u_i_length(C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_i_check_closure_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_fixnum_2(C_word x, C_word loc) C_regparm;
-C_fctexport C_word C_fcall C_i_check_exact_2(C_word x, C_word loc) C_regparm;
+C_fctexport C_word C_fcall C_i_check_exact_2(C_word x, C_word loc) C_regparm; /* DEPRECATED */
 C_fctexport C_word C_fcall C_i_check_inexact_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_number_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_string_2(C_word x, C_word loc) C_regparm;

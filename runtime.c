@@ -7292,6 +7292,7 @@ C_regparm C_word C_fcall C_i_check_fixnum_2(C_word x, C_word loc)
   return C_SCHEME_UNDEFINED;
 }
 
+/* DEPRECATED */
 C_regparm C_word C_fcall C_i_check_exact_2(C_word x, C_word loc)
 {
   if(C_u_i_exactp(x) == C_SCHEME_FALSE) {
