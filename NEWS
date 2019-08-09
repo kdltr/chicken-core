@@ -18,6 +18,8 @@
     (fixes #1627, thanks to John Cowan).
   - ##sys#check-exact and its C implementations C_i_check_exact and
     C_i_check_exact_2 have been deprecated (see also #1631).
+  - When garbage collector is manually invoked from a finalizer, raise
+    an error instead of hanging forever (fixes #1586).
 
 - Core libraries
   - There is now a srfi-88 module which contains just the three

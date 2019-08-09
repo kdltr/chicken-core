@@ -6072,10 +6072,11 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define ##sys#run-pending-finalizers
   (let ((vector-fill! vector-fill!)
 	(string-append string-append)
-	(working #f) )
+	(working-thread #f) )
     (lambda (state)
-      (unless working
-	(set! working #t)
+      (cond
+       ((not working-thread)
+	(set! working-thread ##sys#current-thread)
 	(let* ((c (##sys#slot ##sys#pending-finalizers 0)) )
 	  (when (##sys#debug-mode?)
 	    (##sys#print 
@@ -6097,7 +6098,15 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 		 (##sys#slot ##sys#pending-finalizers i2)) ) ))
 	  (vector-fill! ##sys#pending-finalizers (##core#undefined))
 	  (##sys#setislot ##sys#pending-finalizers 0 0) 
-	  (set! working #f) ) )
+	  (set! working-thread #f)))
+       (state)         ; Got here due to interrupt; continue w/o error
+       ((eq? working-thread ##sys#current-thread)
+	 (##sys#signal-hook
+	  #:error '##sys#run-pending-finalizers
+	  "re-entry from finalizer thread (maybe (gc #t) was called from a finalizer)"))
+       (else
+	;; Give finalizer thread a change to run
+	(##sys#thread-yield!)))
       (cond ((not state))
 	    ((procedure? state) (state))
 	    (state (##sys#context-switch state) ) ) ) ))
