@@ -1040,7 +1040,7 @@
 ;;; Record printing:
 
 (##sys#extend-macro-environment
- 'define-record-printer '()
+ 'define-record-printer '() ;; DEPRECATED
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'define-record-printer form '(_ _ . _))

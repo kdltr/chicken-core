@@ -193,6 +193,9 @@ $compile -specialize library-tests.scm
 $interpret -s records-and-setters-test.scm
 $compile records-and-setters-test.scm
 ./a.out
+$interpret -s record-printer-test.scm
+$compile record-printer-test.scm
+./a.out
 
 echo "======================================== reader tests ..."
 $interpret -s reader-tests.scm

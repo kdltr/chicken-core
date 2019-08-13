@@ -10,6 +10,9 @@
   - There is now a srfi-88 module which contains just the three
     procedures from the (chicken keyword) module defined by the SRFI.
   - A feature identifier named "srfi-88" is now registered.
+  - The procedures `record-printer` and `set-record-printer!` and a
+    corresponding SRFI-17 setter have been added. These deprecate
+    `define-record-printer` which isn't a "real" definition (see #1294).
 
 - Runtime system
   - Quoted empty keywords like ||: and :|| are now read like prescribed

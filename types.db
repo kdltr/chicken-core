@@ -1005,6 +1005,9 @@
 ;; TODO: Add nonspecializing type specific entries, to help flow analysis?
 (chicken.base#quotient&modulo (#(procedure #:clean #:enforce #:foldable) chicken.base#quotient&modulo ((or integer float) (or integer float)) (or integer float) (or integer float)))
 
+(chicken.base#record-printer (#(procedure #:enforce) chicken.base#record-printer (symbol) (or false procedure)))
+(chicken.base#set-record-printer! (#(procedure #:enforce) chicken.base#set-record-printer! (symbol procedure) undefined))
+
 (chicken.base#alist-ref
  (forall (a b c d)
          (#(procedure #:clean #:foldable) chicken.base#alist-ref

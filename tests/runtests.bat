@@ -219,6 +219,12 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
+%interpret% -s record-printer-test.scm
+if errorlevel 1 exit /b 1
+%compile% record-printer-test.scm
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
 
 echo ======================================== reader tests ...
 %interpret% -s reader-tests.scm

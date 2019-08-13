@@ -96,6 +96,8 @@
    (quotient&remainder . chicken.base#quotient&remainder)
    (rassoc . chicken.base#rassoc)
    (ratnum? . chicken.base#ratnum?)
+   (record-printer . chicken.base#record-printer)
+   (set-record-printer! . chicken.base#set-record-printer!)
    (setter . chicken.base#setter)
    (signum . chicken.base#signum)
    (sleep . chicken.base#sleep)

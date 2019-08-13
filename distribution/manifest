@@ -129,6 +129,7 @@ tests/compiler-tests.scm
 tests/inlining-tests.scm
 tests/locative-stress-test.scm
 tests/record-rename-test.scm
+tests/record-printer-test.scm
 tests/r4rstest.scm
 tests/r4rstest.expected
 tests/null.scm

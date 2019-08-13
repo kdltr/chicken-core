@@ -592,6 +592,7 @@ EOF
    notice procedure-information setter signum string->uninterned-symbol
    subvector symbol-append vector-copy! vector-resize
    warning quotient&remainder quotient&modulo
+   record-printer set-record-printer!
    alist-ref alist-update alist-update! rassoc atom? butlast chop
    compress flatten intersperse join list-of? tail? constantly
    complement compose conjoin disjoin each flip identity o
@@ -660,6 +661,8 @@ EOF
 (define procedure-information)
 (define setter)
 (define string->uninterned-symbol)
+(define record-printer)
+(define set-record-printer!)
 
 (define gensym)
 
@@ -4654,12 +4657,27 @@ EOF
 
 (define ##sys#record-printers '())
 
-(define (##sys#register-record-printer type proc)
-  (let ([a (assq type ##sys#record-printers)])
-    (if a 
-	(##sys#setslot a 1 proc)
-	(set! ##sys#record-printers (cons (cons type proc) ##sys#record-printers)) )
-    (##core#undefined) ) )
+(set! chicken.base#record-printer
+  (lambda (type)
+    (##sys#check-symbol type 'record-printer)
+    (let ((a (assq type ##sys#record-printers)))
+      (and a (cdr a)))))
+
+(set! chicken.base#set-record-printer!
+  (lambda (type proc)
+    (##sys#check-symbol type 'set-record-printer!)
+    (##sys#check-closure proc 'set-record-printer!)
+    (let ((a (assq type ##sys#record-printers)))
+      (if a
+	  (##sys#setslot a 1 proc)
+	  (set! ##sys#record-printers (cons (cons type proc) ##sys#record-printers)))
+      (##core#undefined))))
+
+;; OBSOLETE can be removed after bootstrapping
+(set! ##sys#register-record-printer chicken.base#set-record-printer!)
+
+(set! chicken.base#record-printer
+  (getter-with-setter record-printer set-record-printer!))
 
 (define (##sys#user-print-hook x readable port)
   (let* ((type (##sys#slot x 0))
