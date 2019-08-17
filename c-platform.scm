@@ -502,7 +502,7 @@
 (rewrite 'scheme#cdddr 2 1 "C_i_cdddr" #t)
 (rewrite 'scheme#cddddr 2 1 "C_i_cddddr" #t)
 
-(rewrite 'scheme#cdr 7 1 "C_slot" 1 #f)
+(rewrite 'scheme#cdr 2 1 "C_u_i_cdr" #f)
 (rewrite 'scheme#cdr 2 1 "C_i_cdr" #t)
 
 (rewrite 'scheme#eq? 1 2 "C_eqp")

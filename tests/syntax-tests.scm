@@ -864,6 +864,24 @@
 
 (assert (equal? '(3 4 5 (6 7)) (test-optional&rest 3 4 5 6 7)))
 
+(define (test-optional&rest-cdrs x y #!optional z #!rest r)
+  (list x y z (cdr (cdr r))))
+
+(assert (equal? '(3 4 5 ()) (test-optional&rest-cdrs 3 4 5 6 7)))
+
+;; Ensure that rest conversion is not applied too aggressively.
+;; (only when the consequence is () should it be applied)
+(define (rest-nonnull-optimization . rest)
+  (let ((x (if (null? (cdr rest))
+               '(foo)
+               (cdr rest))))
+    (null? x)))
+
+(assert (not (rest-nonnull-optimization 1)))
+(assert (not (rest-nonnull-optimization 1 2)))
+
+(assert (equal? '(3 4 5 ()) (test-optional&rest-cdrs 3 4 5 6 7)))
+
 (define (test-optional&key x y #!optional z #!key i (j 1))
   (list x y z i: i j: j))
 

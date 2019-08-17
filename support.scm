@@ -650,20 +650,32 @@
        (let* ((rlist (if copy? (map gensym vars) vars))
 	      (body (if copy? 
 			(copy-node-tree-and-rename body vars rlist db cfk)
-			body) ) )
+			body) )
+	      (rarg-aliases (map (lambda (r) (gensym 'rarg)) rargs)) )
+	 (replace-rest-ops-in-known-call! db body rest (last rlist) rarg-aliases)
 	 (let loop ((vars (take rlist argc))
 		    (vals largs))
 	   (if (null? vars)
 	       (if rest
-		   (make-node
-		    'let (list (last rlist))
-		    (list (if (null? rargs)
-			      (qnode '())
-			      (make-node
-			       '##core#inline_allocate
-			       (list "C_a_i_list" (* 3 (length rargs))) 
-			       rargs) )
-			  body) )
+		   ;; NOTE: If contraction happens before rest-op
+		   ;; detection, we might needlessly build a list.
+		   (let loop2 ((rarg-values rargs)
+			       (rarg-aliases rarg-aliases))
+		     (if (null? rarg-aliases)
+			 (if (null? (db-get-list db rest 'references))
+			     body
+			     (make-node
+			      'let (list (last rlist))
+			      (list (if (null? rargs)
+					(qnode '())
+					(make-node
+					 '##core#inline_allocate
+					 (list "C_a_i_list" (* 3 (length rargs))) 
+					 rargs) )
+				    body) ))
+			 (make-node 'let (list (car rarg-aliases))
+				    (list (car rarg-values)
+					  (loop2 (cdr rarg-values) (cdr rarg-aliases))))))
 		   body)
 	       (make-node 'let (list (car vars))
 			  (list (car vals)
@@ -717,6 +729,43 @@
 	  (else (make-node class (tree-copy params)
 			   (map (cut walk <> rl) subs))) ) ) )
     (walk node rlist) ) )
+
+;; Replace rest-{car,cdr,null?} with equivalent code which accesses
+;; the rest argument directly.
+(define (replace-rest-ops-in-known-call! db node rest-var rest-alias rest-args)
+  (define (walk n)
+    (let ((subs (node-subexpressions n))
+	  (params (node-parameters n))
+	  (class (node-class n)) )
+      (case class
+	((##core#rest-null?)
+	 (if (eq? rest-var (first params))
+	     (copy-node! (qnode (<= (length rest-args) (second params))) n)
+	     n))
+	((##core#rest-car)
+	 (if (eq? rest-var (first params))
+	     (let ((depth (second params))
+		   (len (length rest-args)))
+	       (if (> len depth)
+		   (copy-node! (varnode (list-ref rest-args depth)) n)
+		   (copy-node! (make-node '##core#inline
+					  (list "C_rest_arg_out_of_bounds_error")
+					  (list (qnode len) (qnode depth) (qnode 0) (qnode #f)))
+			       n)))
+	     n))
+	((##core#rest-cdr)
+	 (cond ((eq? rest-var (first params))
+		(collect! db rest-var 'references n) ; Restore this reference
+		(let lp ((i (add1 (second params)))
+			 (new-node (varnode rest-alias)))
+		  (if (zero? i)
+		      (copy-node! new-node n)
+		      (lp (sub1 i)
+			  (make-node '##core#inline (list "C_i_cdr") (list new-node))))))
+	       (else n)))
+	(else (for-each walk subs)) ) ) )
+
+  (walk node)  )
 
 ;; Maybe move to scrutinizer.  It's generic enough to keep it here though
 (define (tree-copy t)

@@ -5453,6 +5453,15 @@ EOF
 	((53) (apply ##sys#signal-hook #:type-error loc "bad argument type - not an exact integer" args))
 	((54) (apply ##sys#signal-hook #:type-error loc "number does not fit in foreign type" args))
 	((55) (apply ##sys#signal-hook #:type-error loc "cannot compute absolute value of complex number" args))
+	((56) (let ((c (car args))
+		    (n (cadr args))
+		    (fn (caddr args)))
+	        (apply
+		 ##sys#signal-hook
+		 #:bounds-error loc
+		 (string-append "attempted rest argument access at index " (##sys#number->string n)
+                                " but rest list length is " (##sys#number->string c) )
+		 (if fn (list fn) '()))))
 	(else (apply ##sys#signal-hook #:runtime-error loc "unknown internal error" args)) ) ) ) )
 
 ) ; chicken.condition

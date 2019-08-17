@@ -178,6 +178,9 @@
 ; [##core#call {<safe-flag> [<debug-info>]} <exp-f> <exp>...]
 ; [##core#callunit {<unitname>} <exp>...]
 ; [##core#switch {<count>} <exp> <const1> <body1> ... <defaultbody>]
+; [##core#rest-car {restvar depth [<debug-info>]}]
+; [##core#rest-cdr {restvar depth [<debug-info>]}]
+; [##core#rest-null? {restvar depth [<debug-info>]} <restvar>]
 ; [##core#cond <exp> <exp> <exp>]
 ; [##core#provide <id>]
 ; [##core#recurse {<tail-flag>} <exp1> ...]
@@ -257,6 +260,8 @@
 ;   extended-binding -> <boolean>            If true: variable names an extended binding
 ;   unused -> <boolean>                      If true: variable is a formal parameter that is never used
 ;   rest-parameter -> #f | 'list             If true: variable holds rest-argument list
+;   rest-cdr -> (rvar . n)                   Variable references the cdr of rest list rvar after n cdrs (0 = rest list itself)
+;   rest-null? -> (rvar . n)                 Variable checks if the cdr of rest list rvar after n cdrs is empty (0 = rest list itself)
 ;   constant -> <boolean>                    If true: variable has fixed value
 ;   hidden-refs -> <boolean>                 If true: procedure that refers to hidden global variables
 ;   inline-transient -> <boolean>            If true: was introduced during inlining
@@ -2096,7 +2101,8 @@
 	(case class
 	  ((quote ##core#undefined ##core#provide ##core#proc) #f)
 
-	  ((##core#variable)
+	  ;; Uneliminated rest-cdr calls need to hang on to rest var
+	  ((##core#variable ##core#rest-cdr)
 	   (let ((var (first params)))
 	     (ref var n)
 	     (unless (memq var localenv)
@@ -2160,7 +2166,8 @@
 		   (db-put! db var 'unknown #t) )
 		 vars)
 		(when rest
-		  (db-put! db rest 'rest-parameter 'list) )
+		  (db-put! db rest 'rest-parameter 'list)
+		  (db-put! db rest 'rest-cdr (cons rest 0)))
 		(when (simple-lambda-node? n) (db-put! db id 'simple #t))
 		(let ([tl toplevel-scope])
 		  (unless toplevel-lambda-id (set! toplevel-lambda-id id))
@@ -2204,10 +2211,44 @@
       (for-each (lambda (x) (walk x env lenv fenv here)) xs) )
 
     (define (assign var val env here)
+      ;; Propagate rest-cdr and rest-null? onto aliased variables
+      (and-let* (((eq? '##core#variable (node-class val)))
+		 (v (db-get db (first (node-parameters val)) 'rest-cdr)))
+	(db-put! db var 'rest-cdr v) )
+
+      (and-let* (((eq? '##core#variable (node-class val)))
+		 (v (db-get db (first (node-parameters val)) 'rest-null?)))
+	(db-put! db var 'rest-null? v) )
+
       (cond ((eq? '##core#undefined (node-class val))
 	     (db-put! db var 'undefined #t) )
 	    ((and (eq? '##core#variable (node-class val)) ; assignment to itself
 		  (eq? var (first (node-parameters val))) ) )
+
+	    ;; Propagate info from ##core#rest-{cdr,null?} nodes to var
+	    ((eq? '##core#rest-cdr (node-class val))
+	     (let ((restvar (car (node-parameters val)))
+		   (depth (cadr (node-parameters val))))
+	       (db-put! db var 'rest-cdr (cons restvar (add1 depth))) ) )
+
+	    ((eq? '##core#rest-null? (node-class val))
+	     (let ((restvar (car (node-parameters val)))
+		   (depth (cadr (node-parameters val))))
+	       (db-put! db var 'rest-null? (cons restvar depth)) ) )
+
+	    ;; (##core#cond (null? r) '() (cdr r)) => result is tagged as a rest-cdr var
+	    ((and-let* ((env (match-node val '(##core#cond ()
+							   (##core#variable (test-var))
+							   (quote (()))
+							   (##core#rest-cdr (rvar depth)))
+					 '(test-var rvar depth)))
+			((db-get db (alist-ref 'test-var env) 'rest-null?)))
+	       env)
+	     => (lambda (env)
+		  (let ((rvar (alist-ref 'rvar env))
+			(depth (alist-ref 'depth env)))
+		    (db-put! db var 'rest-cdr (cons rvar (add1 depth))) )) )
+
 	    ((or (memq var env)
 		 (variable-mark var '##compiler#constant)
 		 (not (variable-visible? var block-compilation)))
@@ -2257,8 +2298,8 @@
 	     [assigned-locally #f]
 	     [undefined #f]
 	     [global #f]
-	     [rest-parameter #f]
 	     [nreferences 0]
+	     [rest-cdr #f]
 	     [ncall-sites 0] )
 
 	 (set! current-analysis-database-size (fx+ current-analysis-database-size 1))
@@ -2282,7 +2323,7 @@
 	      [(global) (set! global #t)]
 	      [(value) (set! value (cdr prop))]
 	      [(local-value) (set! local-value (cdr prop))]
-	      [(rest-parameter) (set! rest-parameter #t)] ) )
+	      [(rest-cdr) (set! rest-cdr (cdr prop))] ) )
 	  plist)
 
 	 (set! value (and (not unknown) value))
@@ -2397,8 +2438,10 @@
 			    (rest
 			     (db-put! db (first lparams) 'explicit-rest #t) ) ) ) ) ) ) ) ) )
 
-	 ;; Make 'removable, if it has no references and is not assigned to, and if it
-	 ;; has either a value that does not cause any side-effects or if it is 'undefined:
+	 ;; Make 'removable, if it has no references and is not assigned to, and one of the following:
+	 ;; - it has either a value that does not cause any side-effects
+	 ;; - it is 'undefined
+	 ;; - it holds only a 'rest-cdr reference (strictly speaking, it may bomb but we don't care)
 	 (when (and (not assigned)
 		    (null? references)
 		    (or (and value
@@ -2408,7 +2451,8 @@
 				       (variable-mark varname '##core#always-bound)
 				       (intrinsic? varname)))
 				 (not (expression-has-side-effects? value db)) ))
-			undefined) )
+			undefined
+			rest-cdr) )
 	   (quick-put! plist 'removable #t) )
 
 	 ;; Make 'replacable, if
@@ -2494,7 +2538,7 @@
 	    (params (node-parameters n)) )
 	(case (node-class n)
 
-	  ((##core#variable)
+	  ((##core#variable ##core#rest-cdr)
 	   (let ((var (first params)))
 	     (if (memq var lexicals)
 		 (list var)
@@ -2589,6 +2633,39 @@
 	     (if (test var 'boxed)
 		 (make-node '##core#unbox '() (list val))
 		 val) ) )
+
+	  ((##core#rest-cdr ##core#rest-car ##core#rest-null?)
+	   (let* ((rest-var (first params))
+		  (val (ref-var n here closure)))
+	     (unless (eq? val n)
+	       ;; If it's captured, replacement in optimizer was incorrect
+	       (bomb "Saw rest op for captured variable.  This should not happen!" class) )
+	     ;; If rest-cdrs have not all been eliminated, restore
+	     ;; them as regular cdr calls on the rest list variable.
+	     ;; This can be improved, as it can actually introduce
+	     ;; many more cdr calls than necessary.
+	     (cond ((eq? class '##core#rest-cdr)
+		    (let lp ((cdr-calls (add1 (second params)))
+			     (var (varnode rest-var)))
+		      (if (zero? cdr-calls)
+			  (transform var here closure)
+			  (lp (sub1 cdr-calls)
+			      (make-node '##core#inline (list "C_i_cdr") (list var))))))
+		   ;; If customizable, the list is consed up at the
+		   ;; call site and there is no argvector.  So convert
+		   ;; back to list-ref/list-tail calls.
+		   ((and (eq? class '##core#rest-car)
+			 (test here 'customizable))
+		    (transform (make-node '##core#inline
+					  (list "C_i_list_ref")
+					  (list (varnode rest-var) (second params))) here closure))
+		   ((and (eq? class '##core#rest-null)
+			 (test here 'customizable))
+		    (transform (make-node '##core#inline
+					  (list "C_i_greater_or_equal_p")
+					  (list (qnode (second params))
+						(make-node '##core#inline (list "C_i_length") (list (varnode rest-var))))) here closure))
+		   (else val)) ) )
 
 	  ((if ##core#call ##core#inline ##core#inline_allocate ##core#callunit
 	       ##core#inline_ref ##core#inline_update ##core#debug-event

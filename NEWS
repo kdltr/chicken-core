@@ -37,6 +37,8 @@
     (#1624, thanks to Sven Hartrumpf)
   - Inline files no longer refer to unexported foreign stub functions
     (fixes #1440, thanks to "megane").
+  - In some cases, rest argument lists do not need to be reified, which
+    should make using optional arguments faster (#1623).
 
 - Module system
   - Trying to export a foreign variable, define-inlined procedure or

@@ -1948,6 +1948,11 @@ void barf(int code, char *loc, ...)
     c = 1;
     break;
 
+  case C_REST_ARG_OUT_OF_BOUNDS_ERROR:
+    msg = C_text("attempted rest argument access beyond end of list");
+    c = 3;
+    break;
+
   default: panic(C_text("illegal internal error code"));
   }
 
@@ -2706,6 +2711,16 @@ void C_not_an_integer_error(char *loc, C_word x)
 void C_not_an_uinteger_error(char *loc, C_word x)
 {
   barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, loc, x);
+}
+
+void C_rest_arg_out_of_bounds_error(C_word c, C_word n, C_word ka)
+{
+  C_rest_arg_out_of_bounds_error_2(c, n, ka, C_SCHEME_FALSE);
+}
+
+void C_rest_arg_out_of_bounds_error_2(C_word c, C_word n, C_word ka, C_word closure)
+{
+  barf(C_REST_ARG_OUT_OF_BOUNDS_ERROR, NULL, C_u_fixnum_difference(c, ka), C_u_fixnum_difference(n, ka), closure);
 }
 
 /* Allocate and initialize record: */

@@ -634,6 +634,7 @@ void *alloca ();
 #define C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR    53
 #define C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION        54
 #define C_BAD_ARGUMENT_TYPE_COMPLEX_ABS               55
+#define C_REST_ARG_OUT_OF_BOUNDS_ERROR                56
 
 /* Platform information */
 #if defined(C_BIG_ENDIAN)
@@ -1244,6 +1245,8 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_offset_pointer(x, y)          (C_pointer_address(x) + (y))
 #define C_do_apply(c, av)               ((C_proc)(void *)C_block_item((av)[0], 0))((c), (av))
 #define C_kontinue(k, r)                do { C_word avk[ 2 ]; avk[ 0 ] = (k); avk[ 1 ] = (r); ((C_proc)(void *)C_block_item((k),0))(2, avk); } while(0)
+#define C_get_rest_arg(c, n, av, ka, cl)((n) >= (c) ? (C_rest_arg_out_of_bounds_error_2(C_fix(c), C_fix(n), C_fix(ka), (cl)), C_SCHEME_UNDEFINED) : (av)[(n)])
+#define C_rest_nullp(c, n)              (C_mk_bool((n) >= (c)))
 #define C_fetch_byte(x, p)              (((unsigned C_byte *)C_data_pointer(x))[ p ])
 #define C_poke_integer(x, i, n)         (C_set_block_item(x, C_unfix(i), C_num_to_int(n)), C_SCHEME_UNDEFINED)
 #define C_pointer_to_block(p, x)        (C_set_block_item(p, 0, (C_word)C_data_pointer(x)), C_SCHEME_UNDEFINED)
@@ -1629,7 +1632,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_i_true2(dummy1, dummy2)      ((dummy1), (dummy2), C_SCHEME_TRUE)
 #define C_i_true3(dummy1, dummy2, dummy3)  ((dummy1), (dummy2), (dummy3), C_SCHEME_TRUE)
 
-
 /* debug client interface */
 
 typedef struct C_DEBUG_INFO {
@@ -1781,6 +1783,8 @@ C_fctexport void C_no_closure_error(C_word x) C_noret;
 C_fctexport void C_div_by_zero_error(char *loc) C_noret;
 C_fctexport void C_not_an_integer_error(char *loc, C_word x) C_noret;
 C_fctexport void C_not_an_uinteger_error(char *loc, C_word x) C_noret;
+C_fctexport void C_rest_arg_out_of_bounds_error(C_word c, C_word n, C_word ka) C_noret;
+C_fctexport void C_rest_arg_out_of_bounds_error_2(C_word c, C_word n, C_word ka, C_word closure) C_noret;
 C_fctexport C_word C_closure(C_word **ptr, int cells, C_word proc, ...);
 C_fctexport C_word C_fcall C_pair(C_word **ptr, C_word car, C_word cdr) C_regparm;
 C_fctexport C_word C_fcall C_number(C_word **ptr, double n) C_regparm;

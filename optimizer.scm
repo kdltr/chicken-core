@@ -189,6 +189,35 @@
 		 entry) )
 	  n) )
 
+
+    (define (maybe-replace-rest-arg-calls node)
+      ;; Ugh, we need to match on the core inlined string instead of
+      ;; the call to the intrinsic itself, because rewrites will have
+      ;; introduced this after the first iteration.
+      (or (and-let* (((eq? '##core#inline (node-class node)))
+                     (native (car (node-parameters node)))
+                     (replacement-op (cond
+                                      ((member native '("C_i_car" "C_u_i_car")) '##core#rest-car)
+                                      ((member native '("C_i_cdr" "C_u_i_cdr")) '##core#rest-cdr)
+                                      ((member native '("C_i_nullp")) '##core#rest-null?)
+                                      (else #f)))
+                     (arg (first (node-subexpressions node)))
+                     ((eq? '##core#variable (node-class arg)))
+                     (var (first (node-parameters arg)))
+                     ((not (db-get db var 'captured)))
+                     (info (db-get db var 'rest-cdr))
+                     (restvar (car info))
+                     (depth (cdr info))
+                     ((not (test var 'assigned))))
+            ;; callee is intrinsic and accesses rest arg sublist
+	    (debugging '(o x) "known list op on rest arg sublist"
+		       (call-info (node-parameters node) replacement-op) var depth)
+            (touch)
+            (make-node replacement-op
+	               (cons* restvar depth (cdr (node-parameters node)))
+	               (list) ) )
+          node) )
+
     (define (walk n fids gae)
       (if (memq n broken-constant-nodes)
 	  n
@@ -207,6 +236,9 @@
 				 (caddr subs) )
 			     fids gae) )
 		      (else n1) ) )
+
+               ((##core#inline)
+                (maybe-replace-rest-arg-calls n1))
 
 	       ((##core#call)
 		(maybe-constant-fold-call
