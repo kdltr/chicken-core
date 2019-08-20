@@ -302,7 +302,7 @@
 	     (c (append (or a '()) (or b '()))))
 	(and (pair? c) c)))
 
-    (define (call-result node args e loc params typeenv)
+    (define (call-result node args loc typeenv)
       (let* ((actualtypes (map walked-result args))
 	     (ptype (car actualtypes))
 	     (pptype? (procedure-type? ptype))
@@ -668,7 +668,7 @@
 			  (and pn (variable-mark pn '##compiler#enforce)))
 			 (pt (and pn (variable-mark pn '##compiler#predicate))))
 		    (let-values (((r specialized?) 
-				  (call-result n args e loc params typeenv)))
+				  (call-result n args loc typeenv)))
 		      (define (smash)
 			(when (and (not strict)
 				   (or (not pn)
