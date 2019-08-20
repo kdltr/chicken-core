@@ -624,22 +624,39 @@
 				  loc
 				  "variable `~a' of type `~a' was modified to a value of type `~a'"
 				  var ot rt)))))
-		      ;; don't use "add-to-blist" since the current operation does not affect aliases
 		      (let ((t (if (or strict (not (db-get db var 'captured)))
 				   rt 
 				   '*))
 			    (fl (car flow)))
-			(let loop ((bl blist) (f #f))
+			;; For each outer flow F, change the var's
+			;; type to (or t <old-type@F>). Add a new
+			;; entry for current flow if it's missing.
+			;;
+			;; Motivating example:
+			;;
+			;;   (let* ((x 1)
+			;;          (y x))      ; y x : fixnum @ flow f_1
+			;;     (if foo
+			;;         (set! y 'a)) ; y : symbol   @ flow f_2
+			;;     y)               ; (1)          @ flow f_1
+			;;
+			;; At point (1) the type of y can be inferred
+			;; to be (or fixnum symbol). The type of x
+			;; should stay unchanged, however.
+			(let loop ((bl blist) (fl-found? #f))
 			  (cond ((null? bl)
-				 (unless f
+				 (unless fl-found?
+				   (dd "set! ~a in ~a (new) --> ~a" var fl t)
 				   (set! blist (alist-cons (cons var fl) t blist))))
-				((eq? (caaar bl) var)
-				 (let ((t (simplify-type `(or ,t ,(cdar bl)))))
-				   (dd "assignment modifies blist entry ~s -> ~a"
-				       (caar bl) t)
-				   (set-cdr! (car bl) t)
-				   (loop (cdr bl) (eq? fl (cdaar bl)))))
-				(else (loop (cdr bl) f))))))
+				((eq? var (ble-id (car bl)))
+				 (let* ((ble (car bl))
+					(old-type (ble-type ble))
+					(t2 (simplify-type `(or ,t ,old-type))))
+				   (dd "set! ~a in ~a, or old ~a with ~a --> ~a"
+				       var tag old-type t t2)
+				   (ble-type-set! ble t2)
+				   (loop (cdr bl) (or fl-found? (eq? fl (ble-tag ble))))))
+				(else (loop (cdr bl) fl-found?))))))
 
 		    (when (always-immediate var rt loc)
 		      (set! assigned-immediates (add1 assigned-immediates))
@@ -837,6 +854,16 @@
 	  ((forall)
 	   (loop (third t)
 		 (cute set-car! (cddr t) <>))))))))
+
+
+;;; blist (binding list) helpers
+;;
+;; - Entries (ble) in blist have type ((symbol . fixnum) . type)
+
+(define ble-id caar)		; variable name : symbol
+(define ble-tag cdar)		; block tag     : fixnum
+(define ble-type cdr)		; variable type : valid type sexp
+(define ble-type-set! set-cdr!)
 
 
 ;;; Type-matching
