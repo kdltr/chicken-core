@@ -175,6 +175,7 @@
 	(else #f)))
 
 (define (scrutinize node db complain specialize strict block-compilation)
+  (d "################################## SCRUTINIZE ##################################")
   (define (report loc msg . args)
     (when *complain?*
       (warning
@@ -794,7 +795,7 @@
 		  (for-each (lambda (n) (walk n e loc #f flow #f)) subs)
 		  '*))))
 	  (set! d-depth (sub1 d-depth))
-	  (dd "  ~a -> ~a" class results)
+	  (dd "walked ~a -> ~a flow: ~a" class results flow)
 	  results)))
 
     (let ((rn (walk (first (node-subexpressions node)) '() '() #f (list (tag)) #f)))
@@ -813,6 +814,7 @@
 	(debugging '(o e) "dropped branches" dropped-branches))
       (when (positive? assigned-immediates)
 	(debugging '(o e) "assignments to immediate values" assigned-immediates))
+      (d "############################### SCRUTINIZE FINISH ##############################")
       (when errors
 	(quit-compiling "some variable types do not satisfy strictness"))
       rn)))
