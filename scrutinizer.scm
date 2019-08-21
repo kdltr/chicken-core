@@ -277,11 +277,6 @@
 	(r-cond-test-always-false loc if-node test-node)
 	#t))
 
-    (define (always-immediate var t loc)
-      (and-let* ((_ (type-always-immediate? t)))
-	(d "assignment to var ~a in ~a is always immediate" var loc)
-	#t))
-
     (define (single tv r-value-count-mismatch)
       (if (eq? '* tv)
 	  '*
@@ -658,7 +653,8 @@
 				   (loop (cdr bl) (or fl-found? (eq? fl (ble-tag ble))))))
 				(else (loop (cdr bl) fl-found?))))))
 
-		    (when (always-immediate var rt loc)
+		    (when (type-always-immediate? rt)
+		      (d "  assignment to var ~a in ~a is always immediate" var loc)
 		      (set! assigned-immediates (add1 assigned-immediates))
 		      (set-cdr! params '(#t)))
 
