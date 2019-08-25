@@ -16,7 +16,7 @@ Note: Predicate is always true
 
   The given argument has this type:
 
-    pair
+    (pair fixnum fixnum)
 
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',

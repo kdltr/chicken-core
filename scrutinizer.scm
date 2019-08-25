@@ -1587,10 +1587,6 @@
 
 (define (load-type-database name specialize #!optional
                             (path (repository-path)))
-  (define (clean! name)
-    (when specialize (mark-variable name '##compiler#clean #t)))
-  (define (pure! name)
-    (when specialize (mark-variable name '##compiler#pure #t)))
   (and-let* ((dbfile (if (not path)
 			 (and (##sys#file-exists? name #t #f #f) name)
 			 (chicken.load#find-file name path))))
@@ -1610,10 +1606,10 @@
 				(unless (null? props)
 				  (case (car props)
 				    ((#:pure)
-				     (pure! name)
+                                     (mark-variable name '##compiler#pure #t)
 				     (loop (cdr props)))
 				    ((#:clean)
-				     (clean! name)
+				     (mark-variable name '##compiler#clean #t)
 				     (loop (cdr props)))
 				    ((#:enforce)
 				     (mark-variable name '##compiler#enforce #t)
