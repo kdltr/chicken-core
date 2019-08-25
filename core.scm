@@ -2392,21 +2392,24 @@
 			undefined) )
 	   (quick-put! plist 'removable #t) )
 
-	 ;; Make 'replacable, if it has a variable as known value and if either that variable has
-	 ;;  a known value itself, or the target and the source are never assigned and the source
-	 ;;  is non-global or we are in block-mode:
-	 ;;  - The target-variable is not allowed to be global.
+	 ;; Make 'replacable, if
+	 ;; - it has a variable as known value and
+	 ;; - it is not a global
+	 ;; - it is never assigned to and
+	 ;; - if either the substitute has a known value itself or
+	 ;;   * the substitute is never assigned to and
+	 ;;   * we are in block-mode or the substitute is non-global
+	 ;;
 	 ;;  - The variable that can be substituted for the current one is marked as 'replacing.
 	 ;;    This is done to prohibit beta-contraction of the replacing variable (It wouldn't be there, if
 	 ;;    it was contracted).
 	 (when (and value (not global))
 	   (when (eq? '##core#variable (node-class value))
 	     (let ((name (first (node-parameters value))) )
-	       (when (and (not captured)
+	       (when (and (not assigned)
 			  (or (and (not (db-get db name 'unknown))
 				   (db-get db name 'value))
-			      (and (not assigned)
-				   (not (db-get db name 'assigned))
+			      (and (not (db-get db name 'assigned))
 				   (or (not (variable-visible?
 					     name block-compilation))
 				       (not (db-get db name 'global))) ) ))
