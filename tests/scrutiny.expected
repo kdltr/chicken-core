@@ -661,22 +661,14 @@ Note: Predicate is always false
 
     fixnum
 
-Note: Predicate is always false
+Note: Test is always false
   In file `scrutiny-tests.scm:XXX',
   At the toplevel,
-  In procedure call:
+  In conditional expression:
 
-    (scheme#symbol? x)
+    (if (char-or-string? x) (scheme#symbol? x) (scheme#string? x))
 
-  The predicate will always return false.
-
-  Procedure `symbol?' from module `scheme' is a predicate for:
-
-    symbol
-
-  The given argument has this type:
-
-    (or char string)
+  Test condition is always false.
 
 Note: Predicate is always false
   In file `scrutiny-tests.scm:XXX',
