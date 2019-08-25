@@ -446,7 +446,8 @@
 (define ##sys#finalize-module 
   (let ((display display)
 	(write-char write-char))
-    (lambda (mod)
+    (lambda (mod #!optional (bad-exports '())) 
+      ;; bad-exports: any list of symbols which should be rejected as invalid
       (let* ((explist (module-export-list mod))
 	     (name (module-name mod))
 	     (dlist (module-defined-list mod))
@@ -468,30 +469,33 @@
 		    '()
 		    (let* ((h (car xl))
 			   (id (if (symbol? h) h (car h))))
-		      (if (assq id sexports) 
-			  (loop (cdr xl))
-			  (cons 
-			   (cons 
-			    id
-			    (let ((def (assq id dlist)))
-			      (if (and def (symbol? (cdr def))) 
-				  (cdr def)
-				  (let ((a (assq id (##sys#current-environment))))
-				    (cond ((and a (symbol? (cdr a))) 
-					   (dm "reexporting: " id " -> " (cdr a))
-					   (cdr a)) 
-					  ((not def)
-					   (set! missing #t)
-					   (##sys#warn 
-					    (string-append 
-					     "exported identifier of module `" 
-					     (symbol->string name)
-					     "' has not been defined")
-					    id)
-					   #f)
-					  (else (module-rename id name)))))))
-			   (loop (cdr xl)))))))))
-	(for-each
+		      (cond ((assq id sexports) (loop (cdr xl)))
+                            ((memq id bad-exports)
+                             (##sys#error "special identifier may not be exported"
+                                          id))
+                            (else 
+                              (cons 
+                                (cons 
+			          id
+                                  (let ((def (assq id dlist)))
+                                    (if (and def (symbol? (cdr def))) 
+                                        (cdr def)
+                                        (let ((a (assq id (##sys#current-environment))))
+                                          (cond ((and a (symbol? (cdr a))) 
+                                                 (dm "reexporting: " id " -> " (cdr a))
+                                                 (cdr a)) 
+                                                ((not def)
+                                                 (set! missing #t)
+                                                 (##sys#warn 
+                                                   (string-append 
+					           "exported identifier of module `" 
+					           (symbol->string name)
+					           "' has not been defined")
+					           id)
+                                                 #f)
+                                                (else (module-rename id name)))))))
+                              (loop (cdr xl))))))))))
+        (for-each
 	 (lambda (u)
 	   (let* ((where (cdr u))
 		  (u (car u)))

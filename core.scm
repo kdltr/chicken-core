@@ -1019,7 +1019,9 @@
 						       ;; avoid backtrace
 						       (print-error-message ex (current-error-port))
 						       (exit 1))
-						   (##sys#finalize-module (##sys#current-module)))
+						   (##sys#finalize-module 
+                                                     (##sys#current-module)
+                                                     (map car foreign-variables)))
 						 (let ((il (or (assq name import-libraries) all-import-libraries)))
 						   (when il
 						     (emit-import-lib name il)
