@@ -1283,10 +1283,6 @@ other-eval
 		   (bar foo))
 	    bar))
 
-(t (void) (letrec ((foo (gc))
-		   (bar foo))
-	    bar))
-
 ;; Obscure letrec issue #1068
 (t 1 (letrec ((foo (lambda () 1))
 	      (bar (let ((tmp (lambda (x) (if x (foo) (bar #t)))))

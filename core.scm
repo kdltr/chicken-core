@@ -149,6 +149,7 @@
 ; (##core#the <type> <strict?> <exp>)
 ; (##core#typecase <info> <exp> (<type> <body>) ... [(else <body>)])
 ; (##core#debug-event {<event> <loc>})
+; (##core#with-forbidden-refs (<var> ...) <loc> <expr>)
 ; (<exp> {<exp>})
 
 ; - Core language:
@@ -512,7 +513,8 @@
 ;;; Expand macros and canonicalize expressions:
 
 (define (canonicalize-expression exp)
-  (let ((compiler-syntax '()))
+  (let ((compiler-syntax '())
+        (forbidden-refs '()))
 
   (define (find-id id se)		; ignores macro bindings
     (cond ((null? se) #f)
@@ -559,11 +561,9 @@
 	x) )
 
   (define (resolve-variable x0 e dest ldest h)
-
     (when (memq x0 unlikely-variables)
       (warning
        (sprintf "reference to variable `~s' possibly unintended" x0) ))
-
     (let ((x (lookup x0)))
       (d `(RESOLVE-VARIABLE: ,x0 ,x ,(map (lambda (x) (car x)) (##sys#current-environment))))
       (cond ((not (symbol? x)) x0)	; syntax?
@@ -592,6 +592,13 @@
 		      t)
 		     e dest ldest h #f #f))))
 	    ((not (memq x e)) (##sys#alias-global-hook x #f h)) ; only if global
+            ((assq x forbidden-refs) =>
+             (lambda (a)
+               (let ((ln (cdr a)))
+                 (quit-compiling
+                   "~acyclical reference in LETREC binding for variable `~a'"
+                   (if ln (sprintf "(~a) - " ln) "")
+                   (get-real-name x)))))
 	    (else x))))
 
   (define (emit-import-lib name il)
@@ -766,12 +773,26 @@
 				      (list (car b) '(##core#undefined)))
 				    bindings)
 			      (##core#let
-			       ,(map (lambda (t b) (list t (cadr b))) tmps bindings)
+			       ,(map (lambda (t b)
+                                       (list t `(##core#with-forbidden-refs
+                                                  ,vars ,ln ,(cadr b))))
+                                     tmps bindings)
 			       ,@(map (lambda (v t)
 					`(##core#set! ,v ,t))
 				      vars tmps)
 			       (##core#let () ,@body) ) )
 			    e dest ldest h ln #f)))
+          
+                        ((##core#with-forbidden-refs)
+                         (let* ((loc (caddr x))
+                                (vars (map (lambda (v)
+                                             (cons (resolve-variable v e dest
+                                                                     ldest h) 
+                                                   loc))
+                                        (cadr x))))
+                           (fluid-let ((forbidden-refs 
+                                         (append vars forbidden-refs)))
+                             (walk (cadddr x) e dest ldest h ln #f))))
 
 			((##core#lambda)
 			 (let ((llist (cadr x))
@@ -790,13 +811,15 @@
 				     (body (parameterize ((##sys#current-environment se2))
 					     (let ((body0 (canonicalize-body/ln
 							   ln obody compiler-syntax-enabled)))
-					       (walk
-						(if emit-debug-info
-						    `(##core#begin
-						      (##core#debug-event C_DEBUG_ENTRY (##core#quote ,dest))
-						      ,body0)
-						    body0)
-						(append aliases e) #f #f dest ln #f))))
+                                               (fluid-let ((forbidden-refs '()))
+                                                 (walk
+                                                   (if emit-debug-info
+                                                       `(##core#begin
+                                                          (##core#debug-event C_DEBUG_ENTRY (##core#quote ,dest))
+                                                         ,body0)
+                                                       body0)
+                                                   (append aliases e)
+                                                   #f #f dest ln #f)))))
 				     (llist2
 				      (build-lambda-list
 				       aliases argc
