@@ -1,7 +1,7 @@
 Deprecated functions and variables
 ==================================
 
-5.2.0
+5.1.1
 
 - ##sys#check-exact and its C implementations C_i_check_exact and
   C_i_check_exact_2 have been deprecated (see also #1631).
