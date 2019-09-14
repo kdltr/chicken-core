@@ -7,6 +7,9 @@
   - for-each and map now behave consistently in compiled and interpreted
     mode, like in SRFI-1.  They now stop when the shortest list is
     exhausted instead of raising an exception (fixes #1422).
+  - There is now a srfi-88 module which contains just the three
+    procedures from the (chicken keyword) module defined by the SRFI.
+  - A feature identifier named "srfi-88" is now registered.
 
 - Runtime system
   - Quoted empty keywords like ||: and :|| are now read like prescribed
@@ -20,11 +23,6 @@
     C_i_check_exact_2 have been deprecated (see also #1631).
   - When garbage collector is manually invoked from a finalizer, raise
     an error instead of hanging forever (fixes #1586).
-
-- Core libraries
-  - There is now a srfi-88 module which contains just the three
-    procedures from the (chicken keyword) module defined by the SRFI.
-  - A feature identifier named "srfi-88" is now registered.
 
 - Compiler
   - Fixed a bug in lfa2 pass which caused "if" or "cond" nodes to be
