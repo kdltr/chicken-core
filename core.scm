@@ -512,11 +512,7 @@
 ;;; Expand macros and canonicalize expressions:
 
 (define (canonicalize-expression exp)
-  (let ((compiler-syntax '())
-	;; Not sure this is correct, given that subsequent expressions
-	;; to be canonicalized will mutate the current environment.
-	;; Used to reset the environment for ##core#module forms.
-	(initial-environment (##sys#current-environment)))
+  (let ((compiler-syntax '()))
 
   (define (find-id id se)		; ignores macro bindings
     (cond ((null? se) #f)
