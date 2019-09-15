@@ -593,7 +593,7 @@
 		  (krefs (db-get-list db kont 'references)) )
 	     ;; Call-site has one argument and a known continuation (which is a ##core#lambda)
 	     ;;  that has only one use:
-	     (when (and lnode krefs (= 1 (length krefs)) (= 3 (length subs))
+	     (when (and lnode (= 1 (length krefs)) (= 3 (length subs))
 			(eq? '##core#lambda (node-class lnode)) )
 	       (let* ((llist (third (node-parameters lnode)))
 		      (body (first (node-subexpressions lnode))) 
@@ -603,7 +603,7 @@
 		     (let* ((var (car llist))
 			    (refs (db-get-list db var 'references)) )
 		       ;; Parameter is only used once?
-		       (if (and refs (= 1 (length refs)) (eq? 'if (node-class body)))
+		       (if (and (= 1 (length refs)) (eq? 'if (node-class body)))
 			   ;; Continuation contains an 'if' node?
 			   (let ((iftest (first (node-subexpressions body))))
 			     ;; Parameter is used only once and is the test-argument?
