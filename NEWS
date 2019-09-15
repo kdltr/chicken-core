@@ -44,6 +44,7 @@
     been emitted as a separate file (for example with "-J").
   - chicken-install now correctly checks server response code to avoid
     interpreting error response bodies (like 404, 500) as Scheme code.
+  - chicken-install now follows HTTP redirects when downloading eggs.
 
 
 5.1.0

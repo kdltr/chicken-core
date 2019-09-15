@@ -27,6 +27,7 @@
 (define +default-tcp-connect-timeout+ 30000) ; 30 seconds
 (define +default-tcp-read/write-timeout+ 30000) ; 30 seconds
 (define +url-regex+ "(http://)?([^/:]+)(:([^:/]+))?(/.*)?")
+(define +max-redirects+ 3)
 
 (tcp-connect-timeout +default-tcp-connect-timeout+)
 (tcp-read-timeout +default-tcp-read/write-timeout+)
@@ -60,15 +61,25 @@
     (http-retrieve-response in len)))
 
 (define (http-connect host port locn proxy-host proxy-port proxy-user-pass)
-  (d "connecting to host ~s, port ~a ~a...~%" host port
-     (if proxy-host
-         (sprintf "(via ~a:~a) " proxy-host proxy-port)
-         ""))
-  (let-values (((in out)
+  (let next-req ((redirects 0)
+		 (host host)
+		 (port port)
+		 (locn locn)
+		 (req (make-HTTP-GET/1.1
+		       locn user-agent host
+		       port: port accept: "*/*"
+		       proxy-host: proxy-host proxy-port: proxy-port)))
+
+    (when (= redirects +max-redirects+)
+      (network-failure "too many redirects" redirects))
+
+    (d "connecting to host ~s, port ~a ~a...~%" host port
+       (if proxy-host
+           (sprintf "(via ~a:~a) " proxy-host proxy-port)
+           ""))
+
+    (let-values (((in out)
                   (tcp-connect (or proxy-host host) (or proxy-port port))))
-    (let next-req ((req (make-HTTP-GET/1.1 locn user-agent host
-                         port: port accept: "*/*"
-			 proxy-host: proxy-host proxy-port: proxy-port)))
       (d "requesting ~s ...~%" locn)
       (display req out)
       (flush-output out)
@@ -77,34 +88,58 @@
              (datalen #f)
              (h1 (read-line in))
              (response-match (match-http-response h1)))
-        (d "~a~%" h1)
-        ;;XXX handle redirects here
-        (cond
+
+	(define (process-headers)
+	  (let ((ln (read-line in)))
+	    (unless (equal? ln "")
+	      (cond ((match-chunked-transfer-encoding ln)
+                     (set! chunked #t))
+                    ((match-content-length ln) =>
+                     (lambda (sz) (set! datalen sz)))
+		    ((match-location ln) =>
+                     (lambda (new-locn)
+		       (set!-values (host port locn)
+				    (deconstruct-url new-locn)))))
+	      (d "~a~%" ln)
+	      (process-headers) ) ) )
+
+	(d "~a~%" h1)
+
+	(cond
 	 ((response-match-code? response-match 407)
-          (let-values (((inpx outpx) (tcp-connect proxy-host proxy-port)))
-	    (set! in inpx) (set! out outpx)
-	    (next-req (make-HTTP-GET/1.1
-		       locn user-agent host port: port
-		       accept: "*/*"
-		       proxy-host: proxy-host proxy-port: proxy-port
-		       proxy-user-pass: proxy-user-pass))))
+	  (close-input-port in)
+	  (close-output-port out)
+
+	  (d "retrying with proxy auth ~a~%" locn)
+	  (next-req redirects host port locn
+		    (make-HTTP-GET/1.1
+		     locn user-agent host port: port
+		     accept: "*/*"
+		     proxy-host: proxy-host proxy-port: proxy-port
+		     proxy-user-pass: proxy-user-pass)))
+
+	 ((or (response-match-code? response-match 301)
+	      (response-match-code? response-match 302))
+	  (process-headers)
+	  (close-input-port in)
+	  (close-output-port out)
+
+	  (d "redirected to ~a~%" locn)
+	  (next-req (add1 redirects) host port locn
+		    (make-HTTP-GET/1.1
+		     locn user-agent host
+		     port: port accept: "*/*"
+		     proxy-host: proxy-host proxy-port: proxy-port)))
+
 	 ((response-match-code? response-match 200)
-	  (let loop ()
-    	    (let ((ln (read-line in)))
-	      (unless (equal? ln "")
-		(cond ((match-chunked-transfer-encoding ln)
-                       (set! chunked #t))
-                      ((match-content-length ln) =>
-                       (lambda (sz) (set! datalen sz))))
-		(d "~a~%" ln)
-		(loop) ) ) )
+	  (process-headers)
 	  (when chunked
 	    (d "reading chunks ")
 	    (let ((data (read-chunks in)))
 	      (close-input-port in)
-	      (set! in (open-input-string data))) ))
-	 (else (network-failure "invalid response from server" h1)))
-        (values in out datalen)))))
+	      (set! in (open-input-string data))) )
+	  (values in out datalen))
+	 (else (network-failure "invalid response from server" h1)))))))
 
 (define (http-retrieve-files in out dest)
   (d "reading files ...~%")
@@ -195,6 +230,10 @@
 
 (define (match-chunked-transfer-encoding ln)
   (irregex-match "[Tt]ransfer-[Ee]ncoding:\\s*chunked.*" ln) )
+
+(define (match-location ln)
+  (let ((m (irregex-match "[Ll]ocation:\\s*(.+)\\s*" ln)))
+    (and m (irregex-match-substring m 1))))
 
 (define (match-content-length ln)
   (let ((m (irregex-match "[Cc]ontent-[Ll]ength:\\s*([0-9]+).*" ln)))
