@@ -1564,7 +1564,7 @@
       (let* ((params (node-parameters n))
 	     (argc (length (third params)))
 	     (klambdas '()) 
-	     (sites (or (db-get db fnvar 'call-sites) '()))
+	     (sites (db-get-list db fnvar 'call-sites))
 	     (ksites '()) )
 	(if (and (list? params) (= (length params) 4) (list? (caddr params)))
 	    (let ((id (car params))
@@ -1734,8 +1734,8 @@
 			       (svar (first (node-parameters val))))
 			   ;;XXX should we also accept "##core#direct_lambda" ?
 			   (and (eq? '##core#lambda (node-class sval))
-				(= (length (or (db-get db svar 'references) '()))
-				   (length (or (db-get db svar 'call-sites) '())))
+				(= (length (db-get-list db svar 'references))
+				   (length (db-get-list db svar 'call-sites)))
 				(memq svar e)
 				(user-lambda? sval))))
 		    ;; "(set! VAR (lambda ...))" - add to group
