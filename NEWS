@@ -42,6 +42,8 @@
   - The new "-module-registration" options causes module registration
     code to always be included in the program, even when it has also
     been emitted as a separate file (for example with "-J").
+  - chicken-install now correctly checks server response code to avoid
+    interpreting error response bodies (like 404, 500) as Scheme code.
 
 
 5.1.0

@@ -66,10 +66,10 @@
          ""))
   (let-values (((in out)
                   (tcp-connect (or proxy-host host) (or proxy-port port))))
-    (d "requesting ~s ...~%" locn)
-    (let ((req (make-HTTP-GET/1.1 locn user-agent host 
-                        port: port accept: "*/*"
-			proxy-host: proxy-host proxy-port: proxy-port)))
+    (let next-req ((req (make-HTTP-GET/1.1 locn user-agent host
+                         port: port accept: "*/*"
+			 proxy-host: proxy-host proxy-port: proxy-port)))
+      (d "requesting ~s ...~%" locn)
       (display req out)
       (flush-output out)
       (d "reading response ...~%")
@@ -79,32 +79,31 @@
              (response-match (match-http-response h1)))
         (d "~a~%" h1)
         ;;XXX handle redirects here
-        (if (response-match-code? response-match 407)
-            (let-values (((inpx outpx) (tcp-connect proxy-host proxy-port)))
-	      (set! in inpx) (set! out outpx)
-	      (display
-	        (make-HTTP-GET/1.1 
-		  locn user-agent host port: port 
-                  accept: "*/*"
-		  proxy-host: proxy-host proxy-port: proxy-port 
-		  proxy-user-pass: proxy-user-pass)
-		out)
-	      (unless (response-match-code? response-match 200)
-		(network-failure "invalid response from server" h1)))
-	    (let loop ()
-    	      (let ((ln (read-line in)))
-	        (unless (equal? ln "")
-		  (cond ((match-chunked-transfer-encoding ln)
-                         (set! chunked #t))
-                        ((match-content-length ln) =>
-                         (lambda (sz) (set! datalen sz))))
-		  (d "~a~%" ln)
-		  (loop) ) ) ) )
-	(when chunked
-	  (d "reading chunks ")
-	  (let ((data (read-chunks in)))
-	    (close-input-port in)
-	    (set! in (open-input-string data))) )
+        (cond
+	 ((response-match-code? response-match 407)
+          (let-values (((inpx outpx) (tcp-connect proxy-host proxy-port)))
+	    (set! in inpx) (set! out outpx)
+	    (next-req (make-HTTP-GET/1.1
+		       locn user-agent host port: port
+		       accept: "*/*"
+		       proxy-host: proxy-host proxy-port: proxy-port
+		       proxy-user-pass: proxy-user-pass))))
+	 ((response-match-code? response-match 200)
+	  (let loop ()
+    	    (let ((ln (read-line in)))
+	      (unless (equal? ln "")
+		(cond ((match-chunked-transfer-encoding ln)
+                       (set! chunked #t))
+                      ((match-content-length ln) =>
+                       (lambda (sz) (set! datalen sz))))
+		(d "~a~%" ln)
+		(loop) ) ) )
+	  (when chunked
+	    (d "reading chunks ")
+	    (let ((data (read-chunks in)))
+	      (close-input-port in)
+	      (set! in (open-input-string data))) ))
+	 (else (network-failure "invalid response from server" h1)))
         (values in out datalen)))))
 
 (define (http-retrieve-files in out dest)
