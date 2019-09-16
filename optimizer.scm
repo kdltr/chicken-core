@@ -832,38 +832,6 @@
                            #t))
                     (else (loop (cdr args)
                                 (cons (car args) nargs)
-                                ok)))))))
-
- ;; (let ((<var1> (##core#inline <op> ...)))
- ;;   (<var2> ... <var1> ...))
- ;; -> (<var2> ... (##core#inline <op> ...) ...)
- ;;                                  ...))
- ;; - <var1> is used only once.
- `((let (var) (##core#inline (op) . args1)
-      (##core#call p . args2))
-    (var op args1 p args2)
-    ,(lambda (db may-rewrite var op args1 p args2)
-       (and may-rewrite   ; give other optimizations a chance first
-            (= 1 (length (db-get-list db var 'references)))
-            (let loop ((args args2) (nargs '()) (ok #f))
-              (cond ((null? args)
-                     (and ok
-                          (make-node 
-                           '##core#call p
-                           (reverse nargs))))
-                    ((and (eq? '##core#variable
-                               (node-class (car args)))
-                          (eq? var
-                               (car (node-parameters (car args)))))
-                     (loop (cdr args)
-                           (cons (make-node
-                                   '##core#inline
-                                   (list op)
-                                   args1)
-                                 nargs)
-                           #t))
-                    (else (loop (cdr args)
-                                (cons (car args) nargs)
                                 ok))))))))
 
 
