@@ -150,9 +150,12 @@
 (define simplifications (make-vector 301 '()))
 (define simplified-ops '())
 (define broken-constant-nodes '())
+;; holds a-list mapping inlined fid's to inline-target-fid for catching runaway
+;; unrolling:
+(define inline-history '())
 
 (define (perform-high-level-optimizations
-	 node db block-compilation may-inline inline-limit may-rewrite)
+	 node db block-compilation may-inline inline-limit max-unrolls may-rewrite)
   (let ((removed-lets 0)
 	(removed-ifs 0)
 	(replaced-vars 0)
@@ -390,7 +393,12 @@
 					    (case (variable-mark var '##compiler#inline) 
 					      ((no) #f)
 					      (else 
-					       (or external (< (fourth lparams) inline-limit)))))
+					       (or external (< (fourth lparams) inline-limit))))
+                                            (or (within-unrolling-limit ifid (car fids) max-unrolls)
+                                                (begin
+                                                  (debugging 'i "not inlining as unroll-limit is exceeded"
+                                                             info ifid (car fids))
+                                                  #f)))
 				       (cond ((check-signature var args llist)
                                                (debugging 'i
                                                           (if external
@@ -411,6 +419,8 @@
                                                    (let ((n2 (inline-lambda-bindings
                                                                 llist args (first (node-subexpressions lval))
                                                                 #t db cfk)))
+                                                     (set! inline-history 
+                                                       (alist-cons ifid (car fids) inline-history))
                                                      (touch)
                                                      (walk n2 fids gae)))))
                                              (else
@@ -565,6 +575,20 @@
 	    (when (> removed-lets 0) (debugging 'o "removed binding forms" removed-lets))
 	    (when (> removed-ifs 0) (debugging 'o "removed conditional forms" removed-ifs))
 	    (values node2 dirty) ) ) ) ) )
+
+
+;; Check whether inlined procedure has already been inlined in the
+;; same target procedure and count occurrences. If the number of 
+;; inlinings exceed the unroll-limit
+
+(define (within-unrolling-limit fid tfid max-unrolls)
+  (let ((p (cons fid tfid)))
+    (let loop ((h inline-history) (n 0))
+      (cond ((null? h))
+            ((equal? p (car h))
+             (and (< n max-unrolls)
+                  (loop (cdr h) (add1 n))))
+            (else (loop (cdr h) n))))))
 
 
 ;;; Pre-optimization phase:

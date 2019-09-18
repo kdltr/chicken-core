@@ -159,7 +159,7 @@
 (define-constant complex-options
   '(-debug -heap-size -nursery -stack-size -compiler -unit -uses -keyword-style
     -optimize-level -include-path -database-size -extend -prelude -postlude -prologue -epilogue -emit-link-file
-    -inline-limit -profile-name
+    -inline-limit -profile-name -unroll-limit
     -emit-inline-file -consult-inline-file
     -emit-types-file -consult-types-file
     -feature -debug-level
@@ -429,6 +429,7 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
     -clustering                    combine groups of local procedures into dispatch
                                      loop
     -lfa2                          perform additional lightweight flow-analysis pass
+    -unroll-limit LIMIT          specifies inlining limit for self-recursive calls
 
   Configuration options:
 

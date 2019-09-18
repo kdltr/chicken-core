@@ -67,6 +67,10 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
+%compile% inline-unroll.scm -optimize-level 3
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
 
 echo ======================================== compiler message tests ...
 %compile% -analyze-only messages-test.scm 2>messages.out

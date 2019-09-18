@@ -110,6 +110,7 @@
     output-file include-path heap-size stack-size unit uses module
     keyword-style require-extension inline-limit profile-name
     prelude postlude prologue epilogue nursery extend feature no-feature
+    unroll-limit
     emit-inline-file consult-inline-file
     emit-types-file consult-types-file
     emit-import-library))

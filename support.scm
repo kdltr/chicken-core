@@ -1786,6 +1786,7 @@ Usage: chicken FILENAME [OPTION ...]
     -clustering                  combine groups of local procedures into dispatch
                                    loop
     -lfa2                        perform additional lightweight flow-analysis pass
+    -unroll-limit LIMIT          specifies inlining limit for self-recursive calls
 
   Configuration options:
 

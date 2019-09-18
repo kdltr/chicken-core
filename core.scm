@@ -54,6 +54,7 @@
 ; (foreign-declare {<string>})
 ; (hide {<name>})
 ; (inline-limit <limit>)
+; (unroll-limit <limit>)
 ; (keep-shadowed-macros)
 ; (no-argc-checks)
 ; (no-bound-checks)
@@ -305,6 +306,7 @@
 
      ;; Other, non-boolean, flags set by (batch) driver
      profiled-procedures import-libraries inline-max-size
+     unroll-limit
      extended-bindings standard-bindings
 
      ;; non-booleans set by the (batch) driver, and read by the (c) backend
@@ -370,6 +372,7 @@
 (define-constant constant-table-size 301)
 (define-constant file-requirements-size 301)
 (define-constant default-inline-max-size 20)
+(define-constant default-unroll-limit 1)
 
 
 ;;; Global variables containing compilation parameters:
@@ -397,6 +400,7 @@
 (define disable-stack-overflow-checking #f)
 (define external-protos-first #f)
 (define inline-max-size default-inline-max-size)
+(define unroll-limit default-unroll-limit)
 (define emit-closure-info #t)
 (define undefine-shadowed-macros #t)
 (define profiled-procedures #f)
@@ -1700,6 +1704,14 @@
 	      (set! inline-max-size n)
 	      (warning
 	       "invalid argument to `inline-limit' declaration"
+	       spec) ) ) )
+       ((unroll-limit)
+	(check-decl spec 1 1)
+	(let ((n (cadr spec)))
+	  (if (number? n)
+	      (set! unroll-limit n)
+	      (warning
+	       "invalid argument to `unroll-limit' declaration"
 	       spec) ) ) )
        ((pure)
 	(let ((syms (cdr spec)))

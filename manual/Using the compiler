@@ -166,6 +166,8 @@ the source text should be read from standard input.
 
 ; -no-usual-integrations : Specifies that standard procedures and certain internal procedures may be redefined, and can not be inlined. This is equivalent to declaring {{(not usual-integrations)}}.
 
+; -unroll-limit LIMIT : Specifies how often direct recursive calls should be "unrolled" by inlining the procedure body at the call site. The default limit is 1.
+
 ; -version : Prints the version and some copyright information and exit the compiler.
 
 ; -verbose : enables output of notes that are not necessarily warnings but might be of interest.

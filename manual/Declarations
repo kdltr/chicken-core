@@ -153,6 +153,14 @@ Enabling global inlining implies {{(declare (inline))}}.
 Sets the maximum size of procedures which may potentially be inlined. The default threshold is {{20}}.
 
 
+=== unroll-limit
+
+ [declaration specifier] (unroll-limit LIMIT)
+
+Sets the maximum number of times a self-recursive call is inlined and
+so effectively "unrolled". The default limit is 1.
+
+
 === keep-shadowed-macros
 
  [declaration specifier] (keep-shadowed-macros)

@@ -395,6 +395,12 @@
 	  (or (string->number arg)
 	      (quit-compiling
 	       "invalid argument to `-inline-limit' option: `~A'" arg) ) ) ) )
+    (and-let* ((ulimit (memq 'unroll-limit options)))
+      (set! unroll-limit
+	(let ((arg (option-arg ulimit)))
+	  (or (string->number arg)
+	      (quit-compiling
+	       "invalid argument to `-unroll-limit' option: `~A'" arg) ) ) ) )
     (when (memq 'case-insensitive options) 
       (dribble "Identifiers and symbols are case insensitive")
       (register-feature! 'case-insensitive)
@@ -774,6 +780,7 @@
 				    (perform-high-level-optimizations
 				     node2 db block-compilation
 				     inline-locally inline-max-size
+                                     unroll-limit
 				     inline-substitutions-enabled))
 			      (end-time "optimization")
 			      (print-node "optimized-iteration" '|5| node2)

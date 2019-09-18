@@ -94,6 +94,8 @@ echo "======================================== compiler inlining tests  ..."
 $compile_r inline-me.scm -s -J -oi inline-me.inline
 $compile inlining-tests.scm -optimize-level 3
 ./a.out
+$compile inline-unroll.scm -optimize-level 3
+./a.out
 
 echo "======================================== compiler message tests ..."
 $compile -analyze-only messages-test.scm 2>messages.out
