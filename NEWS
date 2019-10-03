@@ -35,8 +35,9 @@
     (fixes #1440, thanks to "megane").
 
 - Module system
-  - Trying to export a foreign variable gives a friendly error instead
-    of saying the variable doesn't exist (partial fix for #1346).
+  - Trying to export a foreign variable, define-inlined procedure or
+    define-constant variable gives a friendly error instead of saying
+    the variable doesn't exist (fixes #1346).
 
 - Tools
   - The new "-module-registration" options causes module registration

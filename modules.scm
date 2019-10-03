@@ -446,8 +446,8 @@
 (define ##sys#finalize-module 
   (let ((display display)
 	(write-char write-char))
-    (lambda (mod #!optional (bad-exports '())) 
-      ;; bad-exports: any list of symbols which should be rejected as invalid
+    (lambda (mod #!optional (check-export (lambda _ #t)))
+      ;; check-export: returns #f if given identifier names a non-exportable object
       (let* ((explist (module-export-list mod))
 	     (name (module-name mod))
 	     (dlist (module-defined-list mod))
@@ -470,9 +470,11 @@
 		    (let* ((h (car xl))
 			   (id (if (symbol? h) h (car h))))
 		      (cond ((assq id sexports) (loop (cdr xl)))
-                            ((memq id bad-exports)
-                             (##sys#error "special identifier may not be exported"
-                                          id))
+                            ((not (check-export id))
+                             (set! missing #t)
+                             (##sys#warn "exported identifier does not refer to value or syntax binding"
+                                          id)
+                             (loop (cdr xl)))
                             (else 
                               (cons 
                                 (cons 

@@ -1040,7 +1040,10 @@
 						       (exit 1))
 						   (##sys#finalize-module 
                                                      (##sys#current-module)
-                                                     (map car foreign-variables)))
+                                                     (lambda (id)
+                                                       (and (not (assq id foreign-variables))
+                                                            (not (hash-table-ref inline-table id))
+                                                            (not (hash-table-ref constant-table id))))))
 						 (let ((il (or (assq name import-libraries) all-import-libraries)))
 						   (when il
 						     (emit-import-lib name il)
