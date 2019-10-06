@@ -1097,6 +1097,14 @@
 	   (x (r 'x))
 	   (y (r 'y))
 	   (slotnames (map car slots)))
+      ;; Check for inconsistencies in slot names vs constructor args
+      (for-each (lambda (vname)
+		  (unless (memq vname slotnames)
+		    (syntax-error
+		     'define-record-type
+		     "unknown slot name in constructor definition"
+		     vname)))
+		vars)
       `(##core#begin
 	;; TODO: Maybe wrap this in an opaque object?
 	(,%define ,type-name (##core#quote ,tag))

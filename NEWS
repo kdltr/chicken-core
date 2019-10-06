@@ -26,6 +26,8 @@
     C_i_check_exact_2 have been deprecated (see also #1631).
   - When garbage collector is manually invoked from a finalizer, raise
     an error instead of hanging forever (fixes #1586).
+  - define-record-type will now give an error if the constructor
+    definition refers to field that's not listed elsewhere (see #1633)
 
 - Compiler
   - Fixed a bug in lfa2 pass which caused "if" or "cond" nodes to be
