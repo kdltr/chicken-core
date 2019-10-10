@@ -1043,7 +1043,8 @@
                                                      (lambda (id)
                                                        (and (not (assq id foreign-variables))
                                                             (not (hash-table-ref inline-table id))
-                                                            (not (hash-table-ref constant-table id))))))
+                                                            (not (hash-table-ref constant-table id))
+                                                            (not (##sys#get id '##compiler#type-abbreviation))))))
 						 (let ((il (or (assq name import-libraries) all-import-libraries)))
 						   (when il
 						     (emit-import-lib name il)

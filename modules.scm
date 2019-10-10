@@ -470,11 +470,6 @@
 		    (let* ((h (car xl))
 			   (id (if (symbol? h) h (car h))))
 		      (cond ((assq id sexports) (loop (cdr xl)))
-                            ((not (check-export id))
-                             (set! missing #t)
-                             (##sys#warn "exported identifier does not refer to value or syntax binding"
-                                          id)
-                             (loop (cdr xl)))
                             (else 
                               (cons 
                                 (cons 
@@ -488,12 +483,14 @@
                                                  (cdr a)) 
                                                 ((not def)
                                                  (set! missing #t)
-                                                 (##sys#warn 
-                                                   (string-append 
-					           "exported identifier of module `" 
+                                                 (##sys#warn
+						  (string-append
+					           "exported identifier of module `"
 					           (symbol->string name)
-					           "' has not been defined")
-					           id)
+						   (if (check-export id)
+						       "' has not been defined"
+						       "' does not refer to value or syntax binding"))
+					          id)
                                                  #f)
                                                 (else (module-rename id name)))))))
                               (loop (cdr xl))))))))))
