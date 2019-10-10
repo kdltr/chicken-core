@@ -1042,13 +1042,19 @@
 						       ;; avoid backtrace
 						       (print-error-message ex (current-error-port))
 						       (exit 1))
-						   (##sys#finalize-module 
+						   (##sys#finalize-module
                                                      (##sys#current-module)
                                                      (lambda (id)
-                                                       (and (not (assq id foreign-variables))
-                                                            (not (hash-table-ref inline-table id))
-                                                            (not (hash-table-ref constant-table id))
-                                                            (not (##sys#get id '##compiler#type-abbreviation))))))
+						       (cond
+							((assq id foreign-variables)
+							 "a foreign variable")
+							((hash-table-ref inline-table id)
+							 "an inlined function")
+							((hash-table-ref constant-table id)
+							 "a constant")
+							((##sys#get id '##compiler#type-abbreviation)
+							 "a type abbreviation")
+							(else #f)))))
 						 (let ((il (or (assq name import-libraries) all-import-libraries)))
 						   (when il
 						     (emit-import-lib name il)

@@ -446,8 +446,10 @@
 (define ##sys#finalize-module 
   (let ((display display)
 	(write-char write-char))
-    (lambda (mod #!optional (check-export (lambda _ #t)))
-      ;; check-export: returns #f if given identifier names a non-exportable object
+    (lambda (mod #!optional (invalid-export (lambda _ #f)))
+      ;; invalid-export: Returns a string if given identifier names a
+      ;; non-exportable object. The string names the type (e.g. "an
+      ;; inline function"). Returns #f otherwise.
       (let* ((explist (module-export-list mod))
 	     (name (module-name mod))
 	     (dlist (module-defined-list mod))
@@ -478,21 +480,26 @@
                                     (if (and def (symbol? (cdr def))) 
                                         (cdr def)
                                         (let ((a (assq id (##sys#current-environment))))
-                                          (cond ((and a (symbol? (cdr a))) 
+					  (define (fail msg)
+					    (##sys#warn msg)
+					    (set! missing #t))
+					  (define (id-string)
+					    (string-append "`" (symbol->string id) "'"))
+                                          (cond ((and a (symbol? (cdr a)))
                                                  (dm "reexporting: " id " -> " (cdr a))
-                                                 (cdr a)) 
+                                                 (cdr a))
+						(def (module-rename id name))
+						((invalid-export id)
+						 =>
+						 (lambda (type)
+						   (fail (string-append
+							  "Cannot export " (id-string)
+							  " because it is " type "."))))
                                                 ((not def)
-                                                 (set! missing #t)
-                                                 (##sys#warn
-						  (string-append
-					           "exported identifier of module `"
-					           (symbol->string name)
-						   (if (check-export id)
-						       "' has not been defined"
-						       "' does not refer to value or syntax binding"))
-					          id)
-                                                 #f)
-                                                (else (module-rename id name)))))))
+						 (fail (string-append
+							"Exported identifier " (id-string)
+							" has not been defined.")))
+                                                (else (bomb "fail")))))))
                               (loop (cdr xl))))))))))
         (for-each
 	 (lambda (u)
