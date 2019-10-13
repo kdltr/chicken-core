@@ -150,7 +150,7 @@
 (define simplifications (make-vector 301 '()))
 (define simplified-ops '())
 (define broken-constant-nodes '())
-;; holds a-list mapping inlined fid's to inline-target-fid for catching runaway
+;; Holds a-list mapping inlined fid's to inline-target-fid for catching runaway
 ;; unrolling:
 (define inline-history '())
 
@@ -419,7 +419,7 @@
                                                    (let ((n2 (inline-lambda-bindings
                                                                 llist args (first (node-subexpressions lval))
                                                                 #t db cfk)))
-                                                     (set! inline-history 
+                                                     (set! inline-history
                                                        (alist-cons ifid (car fids) inline-history))
                                                      (touch)
                                                      (walk n2 fids gae)))))
@@ -578,8 +578,11 @@
 
 
 ;; Check whether inlined procedure has already been inlined in the
-;; same target procedure and count occurrences. If the number of 
-;; inlinings exceed the unroll-limit
+;; same target procedure and count occurrences.
+;;
+;; Note: This check takes O(n) time, where n is the total number of
+;; performed inlines. This can be optimized to O(1) if high number of
+;; inlines starts to slow down the compilation.
 
 (define (within-unrolling-limit fid tfid max-unrolls)
   (let ((p (cons fid tfid)))
