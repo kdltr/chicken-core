@@ -52,6 +52,8 @@
   - chicken-install now correctly checks server response code to avoid
     interpreting error response bodies (like 404, 500) as Scheme code.
   - chicken-install now follows HTTP redirects when downloading eggs.
+  - chicken-install will now change to the correct drive before
+    attempting to change to the egg directory (fixes #1647).
 
 
 5.1.0
