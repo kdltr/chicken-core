@@ -318,7 +318,7 @@
                 ; else is a prefix
                 (let ((rst (cdr decomp))
                       (elen (##sys#size 1st)))
-                  (if (fx= olen (##sys#size elen))
+                  (if (fx= olen elen)
                       ; then origin is a list prefix
                       rst
                       ; else origin is a string prefix

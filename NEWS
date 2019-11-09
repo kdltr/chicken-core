@@ -13,6 +13,8 @@
   - The procedures `record-printer` and `set-record-printer!` and a
     corresponding SRFI-17 setter have been added. These deprecate
     `define-record-printer` which isn't a "real" definition (see #1294).
+  - On Windows, `decompose-directory` no longer crashes when a drive
+    letter is present in the supplied path string.
 
 - Runtime system
   - Quoted empty keywords like ||: and :|| are now read like prescribed
