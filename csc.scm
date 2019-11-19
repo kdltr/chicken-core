@@ -570,6 +570,11 @@ EOF
 	     (when show-libs (print* (linker-libraries) #\space))
 	     (newline)
 	     (exit) )
+	   (when (and compile-only
+		      (> (+ (length scheme-files)
+			    (length c-files))
+			 1))
+	     (stop "the `-c' option cannot be used in combination with multiple input files"))
 	   (cond ((null? scheme-files)
 		  (when (and (null? c-files)
 			     (null? object-files))
