@@ -78,6 +78,7 @@
 (define default-units '(library eval))
 
 (define words-per-flonum 4)
+(define min-words-per-bignum 5)
 
 (eq-inline-operator "C_eqp")
 (membership-test-operators
@@ -968,8 +969,11 @@
 (rewrite 'chicken.memory#pointer-f32-set! 2 2 "C_u_i_pointer_f32_set" #f)
 (rewrite 'chicken.memory#pointer-f64-set! 2 2 "C_u_i_pointer_f64_set" #f)
 
-(rewrite 'chicken.memory#pointer-u32-ref 16 1 "C_a_u_i_pointer_u32_ref" #f words-per-flonum)
-(rewrite 'chicken.memory#pointer-s32-ref 16 1 "C_a_u_i_pointer_s32_ref" #f words-per-flonum)
+;; on 32-bit platforms, 32-bit integers do not always fit in a word,
+;; bignum1 and bignum wrapper (5 words) may be used instead
+(rewrite 'chicken.memory#pointer-u32-ref 16 1 "C_a_u_i_pointer_u32_ref" #f min-words-per-bignum)
+(rewrite 'chicken.memory#pointer-s32-ref 16 1 "C_a_u_i_pointer_s32_ref" #f min-words-per-bignum)
+
 (rewrite 'chicken.memory#pointer-f32-ref 16 1 "C_a_u_i_pointer_f32_ref" #f words-per-flonum)
 (rewrite 'chicken.memory#pointer-f64-ref 16 1 "C_a_u_i_pointer_f64_ref" #f words-per-flonum)
 
@@ -1074,8 +1078,8 @@
 (rewrite 'srfi-4#s16vector-ref 2 2 "C_u_i_s16vector_ref" #f)
 (rewrite 'srfi-4#s16vector-ref 2 2 "C_i_s16vector_ref" #t)
 
-(rewrite 'srfi-4#u32vector-ref 16 2 "C_a_i_u32vector_ref" #t words-per-flonum)
-(rewrite 'srfi-4#s32vector-ref 16 2 "C_a_i_s32vector_ref" #t words-per-flonum)
+(rewrite 'srfi-4#u32vector-ref 16 2 "C_a_i_u32vector_ref" #t min-words-per-bignum)
+(rewrite 'srfi-4#s32vector-ref 16 2 "C_a_i_s32vector_ref" #t min-words-per-bignum)
 
 (rewrite 'srfi-4#f32vector-ref 16 2 "C_a_u_i_f32vector_ref" #f words-per-flonum)
 (rewrite 'srfi-4#f32vector-ref 16 2 "C_a_i_f32vector_ref" #t words-per-flonum)
