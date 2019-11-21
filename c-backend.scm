@@ -199,6 +199,15 @@
 		   (gen "C_rest_nullp(c," (+ depth n) ")")
 		   (gen "C_mk_bool(C_unfix(C_i_length(t" (sub1 n) ")) >= " depth ")"))))
 
+	    ((##core#rest-length)
+	     (let* ((n (lambda-literal-argument-count ll))
+		    (depth (second params))
+		    (have-av? (not (or (lambda-literal-customizable ll)
+				       (lambda-literal-direct ll)))))
+	       (if have-av?
+		   (gen "C_fix(c - " (+ depth n) ")")
+		   (gen "C_u_i_length(t" (sub1 n) ")"))))
+
 	    ((##core#unbox) 
 	     (gen "((C_word*)")
 	     (expr (car subs) i)

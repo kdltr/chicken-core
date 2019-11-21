@@ -200,6 +200,7 @@
                                       ((member native '("C_i_car" "C_u_i_car")) '##core#rest-car)
                                       ((member native '("C_i_cdr" "C_u_i_cdr")) '##core#rest-cdr)
                                       ((member native '("C_i_nullp")) '##core#rest-null?)
+                                      ((member native '("C_i_length" "C_u_i_length")) '##core#rest-length)
                                       (else #f)))
                      (arg (first (node-subexpressions node)))
                      ((eq? '##core#variable (node-class arg)))

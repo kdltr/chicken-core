@@ -180,7 +180,8 @@
 ; [##core#switch {<count>} <exp> <const1> <body1> ... <defaultbody>]
 ; [##core#rest-car {restvar depth [<debug-info>]}]
 ; [##core#rest-cdr {restvar depth [<debug-info>]}]
-; [##core#rest-null? {restvar depth [<debug-info>]} <restvar>]
+; [##core#rest-null? {restvar depth [<debug-info>]}]
+; [##core#rest-length {restvar depth [<debug-info>]}]
 ; [##core#cond <exp> <exp> <exp>]
 ; [##core#provide <id>]
 ; [##core#recurse {<tail-flag>} <exp1> ...]
@@ -2634,7 +2635,7 @@
 		 (make-node '##core#unbox '() (list val))
 		 val) ) )
 
-	  ((##core#rest-cdr ##core#rest-car ##core#rest-null?)
+	  ((##core#rest-cdr ##core#rest-car ##core#rest-null? ##core#rest-length)
 	   (let* ((rest-var (first params))
 		  (val (ref-var n here closure)))
 	     (unless (eq? val n)
@@ -2665,6 +2666,11 @@
 					  (list "C_i_greater_or_equal_p")
 					  (list (qnode (second params))
 						(make-node '##core#inline (list "C_i_length") (list (varnode rest-var))))) here closure))
+		   ((and (eq? class '##core#rest-length)
+			 (test here 'customizable))
+		    (transform (make-node '##core#inline
+					  (list "C_i_length")
+					  (list (varnode rest-var) (second params))) here closure))
 		   (else val)) ) )
 
 	  ((if ##core#call ##core#inline ##core#inline_allocate ##core#callunit
