@@ -98,12 +98,10 @@
     ((unix) "rm -f")
     ((windows) "del /f /q")))
 
-(define (cd-command platform) "cd")
-
-(define (change-drive-command platform drive)
+(define (cd-command platform)
   (case platform
-    ((unix) #f)
-    ((windows) drive)))		    ; Should already include the colon
+    ((unix) "cd")
+    ((windows) "cd /d")))
 
 (define (uses-compiled-import-library? mode)
   (not (and (eq? mode 'host) staticbuild)))
@@ -1090,10 +1088,6 @@
     (with-output-to-file dest
       (lambda ()
         (prefix platform)
-        (receive (drive root parts) (decompose-directory srcdir)
-          (let ((cmd (change-drive-command platform drive)))
-            (when cmd
-              (print cmd))))
         (print (cd-command platform) " " (qs* srcdir platform #t))
         (for-each
           (lambda (cmd) (cmd srcdir platform))
