@@ -39,6 +39,9 @@
     (fixes #1440, thanks to "megane").
   - In some cases, rest argument lists do not need to be reified, which
     should make using optional arguments and case-lambda faster (#1623).
+  - Values from foreign types which have an argument or return value
+    converter are no longer inferred to have the Scheme type which
+    corresponds to the raw foreign type, which was incorrect (#1649).
 
 - Module system
   - Trying to export a foreign variable, define-inlined procedure or
