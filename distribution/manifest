@@ -126,6 +126,7 @@ tests/arithmetic-test.64.expected
 tests/library-tests.scm
 tests/linking-tests.scm
 tests/inline-me.scm
+tests/inline-unroll.scm
 tests/compiler-tests.scm
 tests/inlining-tests.scm
 tests/locative-stress-test.scm
