@@ -217,8 +217,11 @@
   `(##core#the
     (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
 		     (chicken.syntax#strip-syntax argtypes))
-	       ,(chicken.compiler.support#foreign-type->scrutiny-type
-		 (chicken.syntax#strip-syntax rtype) 'result))
+	       ,@(if rtype
+		     (list (chicken.compiler.support#foreign-type->scrutiny-type
+			    (chicken.syntax#strip-syntax rtype) 'result))
+		     ;; special case for C_values(...). Only triggered by foreign-primitive.
+		     '*))
     #f
     ,e))
 
@@ -245,17 +248,12 @@
   (lambda (form r c)
     (##sys#check-syntax 'foreign-primitive form '(_ _ . _))
     (let* ((hasrtype (and (pair? (cddr form)) (not (string? (caddr form)))))
-	   (rtype (and hasrtype (chicken.syntax#strip-syntax (cadr form))))
-	   (args (chicken.syntax#strip-syntax (if hasrtype (caddr form) (cadr form))))
+	   (rtype (and hasrtype (cadr form)))
+	   (args (if hasrtype (caddr form) (cadr form)))
 	   (argtypes (map car args)))
-      `(##core#the (procedure
-		    ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
-			  argtypes)
-		    ,@(if (not rtype)
-			  '* ; special case for C_values(...)
-			  (list (chicken.compiler.support#foreign-type->scrutiny-type rtype 'result))))
-		   #f
-		   (##core#foreign-primitive ,@(cdr form)))))))
+      (annotate-foreign-procedure `(##core#foreign-primitive ,@(cdr form))
+				  argtypes
+				  rtype)))))
 
 (##sys#extend-macro-environment
  'foreign-lambda
