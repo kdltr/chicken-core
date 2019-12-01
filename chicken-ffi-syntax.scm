@@ -213,6 +213,15 @@
 
 ;;; Aliases for internal forms
 
+(define (annotate-foreign-procedure e argtypes rtype)
+  `(##core#the
+    (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
+		     (chicken.syntax#strip-syntax argtypes))
+	       ,(chicken.compiler.support#foreign-type->scrutiny-type
+		 (chicken.syntax#strip-syntax rtype) 'result))
+    #f
+    ,e))
+
 (##sys#extend-macro-environment
  'define-foreign-type
  '()
@@ -254,13 +263,9 @@
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-lambda form '(_ _ _ . _))
-    `(##core#the
-      (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
-		       (chicken.syntax#strip-syntax (cdddr form)))
-		 ,(chicken.compiler.support#foreign-type->scrutiny-type
-		   (chicken.syntax#strip-syntax (cadr form)) 'result))
-      #f
-      (##core#foreign-lambda ,@(cdr form))))))
+    (annotate-foreign-procedure `(##core#foreign-lambda ,@(cdr form))
+				(cdddr form)
+				(cadr form)))))
 
 (##sys#extend-macro-environment
  'foreign-lambda*
@@ -268,16 +273,9 @@
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-lambda* form '(_ _ _ _ . _))
-    `(##core#the
-      (procedure ,(map (lambda (a)
-			 (chicken.compiler.support#foreign-type->scrutiny-type
-			  (car a)
-			  'arg))
-			(chicken.syntax#strip-syntax (caddr form)))
-		  ,(chicken.compiler.support#foreign-type->scrutiny-type
-		    (chicken.syntax#strip-syntax (cadr form)) 'result))
-      #f
-      (##core#foreign-lambda* ,@(cdr form))))))
+    (annotate-foreign-procedure `(##core#foreign-lambda* ,@(cdr form))
+				(map car (caddr form))
+				(cadr form)))))
 
 (##sys#extend-macro-environment
  'foreign-safe-lambda
@@ -285,13 +283,9 @@
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-safe-lambda form '(_ _ _ . _))
-    `(##core#the
-      (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
-			(chicken.syntax#strip-syntax (cdddr form)))
-		  ,(chicken.compiler.support#foreign-type->scrutiny-type
-		    (chicken.syntax#strip-syntax (cadr form)) 'result))
-      #f
-      (##core#foreign-safe-lambda ,@(cdr form))))))
+    (annotate-foreign-procedure `(##core#foreign-safe-lambda ,@(cdr form))
+				(cdddr form)
+				(cadr form)))))
 
 (##sys#extend-macro-environment
  'foreign-safe-lambda*
@@ -299,14 +293,9 @@
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-safe-lambda* form '(_ _ _ _ . _))
-    `(##core#the
-      (procedure ,(map (lambda (a)
-			 (chicken.compiler.support#foreign-type->scrutiny-type (car a) 'arg))
-			(chicken.syntax#strip-syntax (caddr form)))
-		  ,(chicken.compiler.support#foreign-type->scrutiny-type
-		    (chicken.syntax#strip-syntax (cadr form)) 'result))
-      #f
-      (##core#foreign-safe-lambda* ,@(cdr form))))))
+    (annotate-foreign-procedure `(##core#foreign-safe-lambda* ,@(cdr form))
+				(map car (caddr form))
+				(cadr form)))))
 
 (##sys#extend-macro-environment
  'foreign-type-size
