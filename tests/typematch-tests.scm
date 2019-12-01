@@ -438,8 +438,7 @@
 ;; when the return type should be whatever the retconvert argument
 ;; to define-foreign-type returns (string in this case)
 (let ((retconverted (foreign-lambda retconverted-foreign-int "rand")))
-  (infer-not fixnum (retconverted))
-  (infer-not integer (retconverted)) )
+  (infer string (retconverted)))
 
 (let ((argconverted (foreign-lambda argconverted-foreign-int "rand")))
   ;; Currently types with only argconvert get a retconvert as well,

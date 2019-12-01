@@ -214,16 +214,32 @@
 ;;; Aliases for internal forms
 
 (define (annotate-foreign-procedure e argtypes rtype)
-  `(##core#the
-    (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
-		     (chicken.syntax#strip-syntax argtypes))
-	       ,@(if rtype
-		     (list (chicken.compiler.support#foreign-type->scrutiny-type
-			    (chicken.syntax#strip-syntax rtype) 'result))
-		     ;; special case for C_values(...). Only triggered by foreign-primitive.
-		     '*))
-    #f
-    ,e))
+  (let ((scrut-atypes (map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
+			   (chicken.syntax#strip-syntax argtypes)))
+	(scrut-rtype (and rtype
+			  (chicken.compiler.support#foreign-type->scrutiny-type
+			   (chicken.syntax#strip-syntax rtype) 'result))))
+    ;; Don't add type annotation if the scrutinizer can infer the same
+    ;; or better.
+    ;;
+    ;; At least these cases should work:
+    ;;
+    ;;   (-> <some-known-type>)	=> annotate
+    ;;   (-> *)			=> no annotation
+    ;;   (* ... -> *)		=> no annotation
+    ;;
+    (if (and (or (not rtype) (eq? scrut-rtype '*))
+	     (every (cut eq? '* <>) scrut-atypes))
+	e
+	`(##core#the
+	  (procedure ,scrut-atypes
+		     ,@(if rtype
+			   (list scrut-rtype)
+			   ;; Special case for C_values(...). Only
+			   ;; triggered by foreign-primitive.
+			   '*))
+	  #f
+	  ,e))))
 
 (##sys#extend-macro-environment
  'define-foreign-type
