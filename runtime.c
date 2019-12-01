@@ -358,7 +358,8 @@ C_TLS int
   C_main_argc;
 C_TLS C_uword 
   C_heap_growth,
-  C_heap_shrinkage;
+  C_heap_shrinkage,
+  C_heap_shrinkage_used;
 C_TLS C_uword C_maximal_heap_size;
 C_TLS time_t
   C_startup_time_seconds,
@@ -781,6 +782,8 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   if(C_heap_growth <= 0) C_heap_growth = DEFAULT_HEAP_GROWTH;
 
   if(C_heap_shrinkage <= 0) C_heap_shrinkage = DEFAULT_HEAP_SHRINKAGE;
+
+  if(C_heap_shrinkage_used <= 0) C_heap_shrinkage_used = DEFAULT_HEAP_SHRINKAGE_USED;
 
   if(C_maximal_heap_size <= 0) C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
 
@@ -1370,6 +1373,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:hmSIZE         set maximal heap size\n"
 		 " -:hgPERCENTAGE   set heap growth percentage\n"
 		 " -:hsPERCENTAGE   set heap shrink percentage\n"
+		 " -:huPERCENTAGE   set percentage of memory used at which heap will be shrunk\n"
 		 " -:hSIZE          set fixed heap size\n"
 		 " -:r              write trace output to stderr\n"
 		 " -:p              collect statistical profile and write to file at exit\n"
@@ -1403,6 +1407,9 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 	    goto next;
 	  case 's':
 	    C_heap_shrinkage = arg_val(ptr + 1);
+	    goto next;
+	  case 'u':
+	    C_heap_shrinkage_used = arg_val(ptr + 1);
 	    goto next;
 	  default:
 	    *heap = arg_val(ptr); 
@@ -3605,8 +3612,9 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     count = (C_uword)tospace_top - (C_uword)tospace_start;
 
     /*** isn't gc_mode always GC_MAJOR here? */
+    /* NOTE: count is actual usage, heap_size is both halves */
     if(gc_mode == GC_MAJOR && 
-       count < percentage(percentage(heap_size, C_heap_shrinkage), DEFAULT_HEAP_SHRINKAGE_USED) &&
+       count < percentage(heap_size/2, C_heap_shrinkage_used) &&
        heap_size > MINIMAL_HEAP_SIZE && !C_heap_size_is_fixed)
       C_rereclaim2(percentage(heap_size, C_heap_shrinkage), 0);
     else {

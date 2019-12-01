@@ -30,6 +30,9 @@
     an error instead of hanging forever (fixes #1586).
   - define-record-type will now give an error if the constructor
     definition refers to field that's not listed elsewhere (see #1633)
+  - Added new -:hu option to set the memory usage low watermark
+    percentage at which the heap should be shrunk, and changed the
+    calculation to actually reflect this (see #1379).
 
 - Compiler
   - Fixed a bug in lfa2 pass which caused "if" or "cond" nodes to be

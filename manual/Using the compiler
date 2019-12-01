@@ -219,11 +219,13 @@ by the startup code and will not be contained in the result of
 
 ; {{-:hgPERCENTAGE}} : Sets the growth rate of the heap in percent. If the heap is exhausted, then it will grow by {{PERCENTAGE}}. The default is 200.
 
-; {{-:hiNUMBER}} : Specifies the initial heap size
+; {{-:hiNUMBER}} : Specifies the initial heap size (this number includes both heap semispaces, therefore only half of it is actually available to the program).
 
-; {{-:hmNUMBER}} : Specifies a maximal heap size. The default is (2GB - 15).
+; {{-:hmNUMBER}} : Specifies a maximal heap size (including both semispaces). The default is (2GB - 15).
 
-; {{-:hsPERCENTAGE}} : Sets the shrink rate of the heap in percent. If no more than a quarter of {{PERCENTAGE}} of the heap is used, then it will shrink to {{PERCENTAGE}}. The default is 50.  Note: If you want to make sure that the heap never shrinks, specify a value of {{0}}.  (this can be useful in situations where an optimal heap-size is known in advance). 
+; {{-:hsPERCENTAGE}} : Sets the shrink rate of the heap in percent. The heap is shrunk to {{PERCENTAGE}} when the watermark is reached. The default is 50.  Note: If you want to make sure that the heap never shrinks, specify a value of {{0}}.  (this can be useful in situations where an optimal heap-size is known in advance). 
+
+; {{-:huPERCENTAGE}} : Sets the memory usage watermark below which heap shrinking is triggered. The default is 25.
 
 ; {{-:o}} : Disables detection of stack overflows at run-time.
 
