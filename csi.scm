@@ -1080,7 +1080,8 @@ EOF
       (eval `(import ,@default-imports))
       (unless quiet
 	(load-verbose #t)
-	(print-banner))
+	(print-banner)
+	(print "Type ,? for help."))
       (unless (or (member* '("-n" "-no-init") args) script eval?)
 	(loadinit))
       (when batch

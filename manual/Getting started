@@ -242,6 +242,7 @@ To invoke the CHICKEN interpreter, you use the {{csi}} command.
  Version 5.0.0 (rev 6653dce)
  linux-unix-gnu-x86-64 [ 64bit dload ptables ]
 
+ Type ,? for help.
  #;1>
 
 This brings up a brief banner, and then the prompt. You can use this
