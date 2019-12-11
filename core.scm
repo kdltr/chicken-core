@@ -2636,9 +2636,10 @@
 		 val) ) )
 
 	  ((##core#rest-cdr ##core#rest-car ##core#rest-null? ##core#rest-length)
-	   (let* ((rest-var (first params))
-		  (val (ref-var n here closure)))
-	     (unless (eq? val n)
+	   (let* ((val (ref-var n here closure))
+		  (rest-var (if (eq? val n) (varnode (first params)) val)))
+	     (unless (or (eq? val n)
+			 (match-node val `(##core#ref (i) (##core#variable (,here))) '(i)))
 	       ;; If it's captured, replacement in optimizer was incorrect
 	       (bomb "Saw rest op for captured variable.  This should not happen!" class) )
 	     ;; If rest-cdrs have not all been eliminated, restore
@@ -2647,30 +2648,37 @@
 	     ;; many more cdr calls than necessary.
 	     (cond ((eq? class '##core#rest-cdr)
 		    (let lp ((cdr-calls (add1 (second params)))
-			     (var (varnode rest-var)))
+			     (var rest-var))
 		      (if (zero? cdr-calls)
 			  (transform var here closure)
 			  (lp (sub1 cdr-calls)
 			      (make-node '##core#inline (list "C_i_cdr") (list var))))))
+
 		   ;; If customizable, the list is consed up at the
 		   ;; call site and there is no argvector.  So convert
 		   ;; back to list-ref/list-tail calls.
-		   ((and (eq? class '##core#rest-car)
-			 (test here 'customizable))
-		    (transform (make-node '##core#inline
-					  (list "C_i_list_ref")
-					  (list (varnode rest-var) (second params))) here closure))
-		   ((and (eq? class '##core#rest-null)
-			 (test here 'customizable))
-		    (transform (make-node '##core#inline
-					  (list "C_i_greater_or_equal_p")
-					  (list (qnode (second params))
-						(make-node '##core#inline (list "C_i_length") (list (varnode rest-var))))) here closure))
-		   ((and (eq? class '##core#rest-length)
-			 (test here 'customizable))
-		    (transform (make-node '##core#inline
-					  (list "C_i_length")
-					  (list (varnode rest-var) (second params))) here closure))
+		   ;;
+		   ;; Alternatively, if n isn't val, this node was
+		   ;; processed and the variable got replaced by a
+		   ;; closure access.
+		   ((or (test here 'customizable)
+			(not (eq? val n)))
+		    (case class
+		      ((##core#rest-car)
+		       (transform (make-node '##core#inline
+					     (list "C_i_list_ref")
+					     (list rest-var (qnode (second params)))) here closure))
+		      ((##core#rest-null)
+		       (transform (make-node '##core#inline
+					     (list "C_i_greater_or_equal_p")
+					     (list (qnode (second params))
+						   (make-node '##core#inline (list "C_i_length") (list rest-var)))) here closure))
+		      ((##core#rest-length)
+		       (transform (make-node '##core#inline
+					     (list "C_i_length")
+					     (list rest-var (qnode (second params)))) here closure))
+		      (else (bomb "Unknown rest op node class in while converting to closure. This shouldn't happen!" class))))
+
 		   (else val)) ) )
 
 	  ((if ##core#call ##core#inline ##core#inline_allocate ##core#callunit
@@ -2798,6 +2806,8 @@
 		  (if emit-closure-info
 		      (list (qnode (##sys#make-lambda-info (car params))))
 		      '() ) ) ) )
+
+	  ((##core#ref) n)
 
 	  (else (bomb "bad node (closure2)")) ) ) )
 
