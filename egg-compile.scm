@@ -799,7 +799,7 @@
            cmd
            (if (eq? mode 'host) " -host" "")
            " -setup-mode -I " srcdir
-           " -c -C -I" srcdir
+           " -s -c -C -I" srcdir
            (arglist opts platform)
            " " src
            " -o " out)
