@@ -105,6 +105,9 @@ echo "======================================== optimizer tests  ..."
 $compile clustering-tests.scm -clustering
 ./a.out
 
+$compile rest-arg-tests.scm -specialize
+./a.out
+
 echo "======================================== profiler tests ..."
 $compile null.scm -profile -profile-name TEST.profile
 ./a.out

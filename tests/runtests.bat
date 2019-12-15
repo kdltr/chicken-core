@@ -84,6 +84,11 @@ if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 
+%compile% rest-arg-tests.scm -specialize
+if errorlevel 1 exit /b 1
+a.out
+if errorlevel 1 exit /b 1
+
 echo ======================================== profiler tests ...
 %compile% null.scm -profile -profile-name TEST.profile
 if errorlevel 1 exit /b 1

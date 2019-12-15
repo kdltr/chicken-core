@@ -113,6 +113,7 @@ build-version.scm
 build-version.c
 buildid
 tests/clustering-tests.scm
+tests/rest-arg-tests.scm
 tests/csc-tests.scm
 tests/c-id-valid.scm
 tests/data-structures-tests.scm

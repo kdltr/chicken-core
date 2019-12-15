@@ -122,11 +122,12 @@
 		  internal-bindings) ) )
       (hash-table-for-each
        (lambda (sym plist)
-	 (let ([val #f]
+	 (let ((val #f)
 	       (lval #f)
-	       [pvals #f]
-	       [csites '()]
-	       [refs '()] )
+	       (pvals #f)
+	       (csites '())
+	       (refs '())
+	       (derived-rvars '()))
 	   (unless (memq sym omit)
 	     (write sym)
 	     (let loop ((es plist))
@@ -148,6 +149,8 @@
 		       ((replacable home contains contained-in use-expr closure-size rest-parameter
 				    captured-variables explicit-rest rest-cdr rest-null?)
 			(printf "\t~a=~s" (caar es) (cdar es)) )
+		       ((derived-rest-vars)
+			(set! derived-rvars (cdar es)))
 		       ((references)
 			(set! refs (cdar es)) )
 		       ((call-sites)
@@ -155,6 +158,7 @@
 		       (else (bomb "Illegal property" (car es))) )
 		     (loop (cdr es)) ) ) )
 	     (when (pair? refs) (printf "\trefs=~s" (length refs)))
+	     (when (pair? derived-rvars) (printf "\tdrvars=~s" (length derived-rvars)))
 	     (when (pair? csites) (printf "\tcss=~s" (length csites)))
 	     (cond [(and val (not (eq? val 'unknown)))
 		    (printf "\tval=~s" (cons (node-class val) (node-parameters val))) ]

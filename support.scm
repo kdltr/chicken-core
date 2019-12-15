@@ -653,6 +653,17 @@
 			body) )
 	      (rarg-aliases (map (lambda (r) (gensym 'rarg)) rargs)) )
 	 (replace-rest-ops-in-known-call! db body rest (last rlist) rarg-aliases)
+
+	 ;; Make sure rest ops aren't replaced after inlining (#1658)
+	 ;; argvector does not belong to the same procedure anymore.
+	 (when rest
+	   (for-each (lambda (v)
+		       (db-put! db v 'rest-cdr #f)
+		       (db-put! db v 'rest-null? #f) )
+		     (db-get-list db rest 'derived-rest-vars) )
+	   (db-put! db rest 'rest-cdr #f)
+	   (db-put! db rest 'derived-rest-vars '()) )
+
 	 (let loop ((vars (take rlist argc))
 		    (vals largs))
 	   (if (null? vars)

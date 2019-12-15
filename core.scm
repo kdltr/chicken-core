@@ -263,6 +263,7 @@
 ;   rest-parameter -> #f | 'list             If true: variable holds rest-argument list
 ;   rest-cdr -> (rvar . n)                   Variable references the cdr of rest list rvar after n cdrs (0 = rest list itself)
 ;   rest-null? -> (rvar . n)                 Variable checks if the cdr of rest list rvar after n cdrs is empty (0 = rest list itself)
+;   derived-rest-vars -> (v1 v2 ...)         Other variables aliasing or referencing cdrs of a rest variable
 ;   constant -> <boolean>                    If true: variable has fixed value
 ;   hidden-refs -> <boolean>                 If true: procedure that refers to hidden global variables
 ;   inline-transient -> <boolean>            If true: was introduced during inlining
@@ -2211,15 +2212,23 @@
     (define (walkeach xs env lenv fenv here)
       (for-each (lambda (x) (walk x env lenv fenv here)) xs) )
 
+    (define (mark-rest-cdr var rvar depth)
+      (db-put! db var 'rest-cdr (cons rvar depth))
+      (collect! db rvar 'derived-rest-vars var))
+
+    (define (mark-rest-null? var rvar depth)
+      (db-put! db var 'rest-null? (cons rvar depth))
+      (collect! db rvar 'derived-rest-vars var))
+
     (define (assign var val env here)
       ;; Propagate rest-cdr and rest-null? onto aliased variables
       (and-let* (((eq? '##core#variable (node-class val)))
 		 (v (db-get db (first (node-parameters val)) 'rest-cdr)))
-	(db-put! db var 'rest-cdr v) )
+	(mark-rest-cdr var (car v) (cdr v)) )
 
       (and-let* (((eq? '##core#variable (node-class val)))
 		 (v (db-get db (first (node-parameters val)) 'rest-null?)))
-	(db-put! db var 'rest-null? v) )
+	(mark-rest-null? var (car v) (cdr v)) )
 
       (cond ((eq? '##core#undefined (node-class val))
 	     (db-put! db var 'undefined #t) )
@@ -2230,12 +2239,12 @@
 	    ((eq? '##core#rest-cdr (node-class val))
 	     (let ((restvar (car (node-parameters val)))
 		   (depth (cadr (node-parameters val))))
-	       (db-put! db var 'rest-cdr (cons restvar (add1 depth))) ) )
+	       (mark-rest-cdr var restvar (add1 depth)) ) )
 
 	    ((eq? '##core#rest-null? (node-class val))
 	     (let ((restvar (car (node-parameters val)))
 		   (depth (cadr (node-parameters val))))
-	       (db-put! db var 'rest-null? (cons restvar depth)) ) )
+	       (mark-rest-null? var restvar depth) ) )
 
 	    ;; (##core#cond (null? r) '() (cdr r)) => result is tagged as a rest-cdr var
 	    ((and-let* ((env (match-node val '(##core#cond ()
@@ -2248,7 +2257,7 @@
 	     => (lambda (env)
 		  (let ((rvar (alist-ref 'rvar env))
 			(depth (alist-ref 'depth env)))
-		    (db-put! db var 'rest-cdr (cons rvar (add1 depth))) )) )
+		    (mark-rest-cdr var rvar (add1 depth)) ) ) )
 
 	    ((or (memq var env)
 		 (variable-mark var '##compiler#constant)
