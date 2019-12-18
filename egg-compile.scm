@@ -753,7 +753,7 @@
     (print "\n" (slashify default-builder platform) " "
            out
            " : "
-           (filelist srcdir source-dependencies platform)
+           (filelist srcdir source-dependencies platform) " "
            src " "
            (qs* eggfile platform) " "
            (if custom cmd "")
