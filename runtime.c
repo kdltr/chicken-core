@@ -357,10 +357,10 @@ C_TLS int
   C_debugging = 0,
   C_main_argc;
 C_TLS C_uword 
-  C_heap_growth,
-  C_heap_shrinkage,
-  C_heap_shrinkage_used;
-C_TLS C_uword C_maximal_heap_size;
+  C_heap_growth = DEFAULT_HEAP_GROWTH,
+  C_heap_shrinkage = DEFAULT_HEAP_SHRINKAGE,
+  C_heap_shrinkage_used = DEFAULT_HEAP_SHRINKAGE_USED,
+  C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
 C_TLS time_t
   C_startup_time_seconds,
   profile_frequency = 10000;
@@ -778,15 +778,6 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   collectibles_limit = collectibles + DEFAULT_COLLECTIBLES_SIZE;
   gc_root_list = NULL;
  
-  /* Initialize global variables: */
-  if(C_heap_growth <= 0) C_heap_growth = DEFAULT_HEAP_GROWTH;
-
-  if(C_heap_shrinkage <= 0) C_heap_shrinkage = DEFAULT_HEAP_SHRINKAGE;
-
-  if(C_heap_shrinkage_used <= 0) C_heap_shrinkage_used = DEFAULT_HEAP_SHRINKAGE_USED;
-
-  if(C_maximal_heap_size <= 0) C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
-
 #if !defined(NO_DLOAD2) && defined(HAVE_DLFCN_H)
   dlopen_flags = RTLD_LAZY | RTLD_GLOBAL;
 #else
@@ -3615,6 +3606,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     /* NOTE: count is actual usage, heap_size is both halves */
     if(gc_mode == GC_MAJOR && 
        count < percentage(heap_size/2, C_heap_shrinkage_used) &&
+       C_heap_shrinkage > 0 && 
        heap_size > MINIMAL_HEAP_SIZE && !C_heap_size_is_fixed)
       C_rereclaim2(percentage(heap_size, C_heap_shrinkage), 0);
     else {
