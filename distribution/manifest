@@ -253,6 +253,7 @@ tweaks.scm
 Makefile
 Makefile.android
 Makefile.aix
+Makefile.detect
 Makefile.linux
 Makefile.macosx
 Makefile.ios

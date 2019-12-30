@@ -4,6 +4,11 @@
     parameters in interrupt handlers anymore. (See #1638. Fix
     contributed by Sebastien Marie)
 
+- Build system
+  - Auto-configure at build time on most platforms. Cross-compilation
+    still requires PLATFORM to be set, and it can still be provided
+    manually, but it is no longer required in the common case.
+
 
 5.1.1
 
