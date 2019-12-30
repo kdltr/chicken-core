@@ -361,7 +361,10 @@
        (lambda (src i s) (reverse s))))
   (test-equal '("poo poo ")
       (irregex-fold '(* "poo ")
-                    (lambda (i m s) (cons (irregex-match-substring m) s))
+                    (lambda (i m s)
+                      (if (< i (irregex-match-end-index m 0))
+                          (cons (irregex-match-substring m) s)
+                          s))
                     '()
                     "poo poo platter"))
   (test-equal "*  x   "
@@ -388,8 +391,14 @@
   (test-equal "xaac"
       (irregex-replace/all (irregex '(or (seq bos "a") "b") 'dfa)
                            "aaac" "x"))
+  (test-equal "*Line 1\n*Line 2"
+      (irregex-replace/all 'bol "Line 1\nLine 2" "*"))
+  (test-equal "**p*l*a*t*t*e*r"
+      (irregex-replace/all '(* "poo ") "poo poo platter" "*"))
   (test-equal '("foo" " " "foo" " " "b" "a" "r" " " "foo")
       (irregex-extract '(or (: bow "foo" eow) any) "foo foo bar foo"))
+  ;; (test-equal '("f" "o" "o" "b" "a" "r" "b" "a" "z")
+  ;;     (irregex-split (irregex "") "foobarbaz"))
   )
 
 

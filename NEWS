@@ -15,6 +15,8 @@
     `define-record-printer` which isn't a "real" definition (see #1294).
   - On Windows, `decompose-directory` no longer crashes when a drive
     letter is present in the supplied path string.
+  - irregex-replace[/all] have been fixed for empty matches, so they
+    will no longer drop characters and ignore the replacement (#1661).
 
 - Runtime system
   - Quoted empty keywords like ||: and :|| are now read like prescribed
