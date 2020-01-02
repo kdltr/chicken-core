@@ -1,6 +1,6 @@
 ;;;; common-declarations.scm - settings for core libraries
 ;
-; Copyright (c) 2011-2019, The CHICKEN Team
+; Copyright (c) 2011-2020, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
