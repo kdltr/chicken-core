@@ -397,8 +397,14 @@
       (irregex-replace/all '(* "poo ") "poo poo platter" "*"))
   (test-equal '("foo" " " "foo" " " "b" "a" "r" " " "foo")
       (irregex-extract '(or (: bow "foo" eow) any) "foo foo bar foo"))
-  ;; (test-equal '("f" "o" "o" "b" "a" "r" "b" "a" "z")
-  ;;     (irregex-split (irregex "") "foobarbaz"))
+  (test-equal '("f" "o" "o" "b" "a" "r" "b" "a" "z")
+      (irregex-split (irregex "") "foobarbaz"))
+  (test-equal '("f" "b" "r" "b" "z")
+      (irregex-split (irregex "[aeiou]*") "foobarbaz"))
+  (test-equal '("" "oo" "" "a" "" "" "a" "")
+      (irregex-extract (irregex "[aeiou]*") "foobarbaz"))
+  (test-equal '("Line 1\n" "Line 2\n" "Line 3")
+      (irregex-split 'bol "Line 1\nLine 2\nLine 3"))
   )
 
 

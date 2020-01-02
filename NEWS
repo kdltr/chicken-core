@@ -17,6 +17,8 @@
     letter is present in the supplied path string.
   - irregex-replace[/all] have been fixed for empty matches, so they
     will no longer drop characters and ignore the replacement (#1661).
+  - Irregex has been updated to upstream 0.9.7, which also improves
+    how empty matches are treated in irregex-fold and irregex-split.
 
 - Runtime system
   - Quoted empty keywords like ||: and :|| are now read like prescribed
