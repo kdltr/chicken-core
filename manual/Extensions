@@ -151,7 +151,7 @@ Here we create a simple application:
 
 <enscript highlight=scheme>
 ;;;; hello2.scm
-
+(import scheme chicken.format chicken.process-context)
 (print "Hello, ")
 (for-each (lambda (x) (printf "~A " x)) (command-line-arguments))
 (print "!")

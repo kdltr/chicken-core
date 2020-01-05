@@ -105,7 +105,7 @@ are {{(not PLATFORM)}}, {{(or PLATFORM ...)}} and {{(and PLATFORM ...)}}.
 If the expression can not be satisfied, then installation of this
 egg will abort.
 
-===== distribution-files
+==== distribution-files
 
  [egg property] (distribution-files FILE ...)
 

@@ -16,6 +16,7 @@ The easiest way is to use the {{-script}} option like this:
 
  % cat foo
  #! /usr/local/bin/csi -script
+ (import (chicken process-context))
  (print (eval (with-input-from-string
                  (car (command-line-arguments))
                   read)))
@@ -34,6 +35,7 @@ this on Windows:
 
  C:>type foo.bat
  @;csibatch %0 %1 %2 %3 %4 %5 %6 %7 %8 %9
+ (import (chicken process-context))
  (print (eval (with-input-from-string
                  (car (command-line-arguments))
                  read)))
@@ -72,6 +74,7 @@ executed as a script or normally loaded into the interpreter, say for debugging 
 #| demonstrates a slightly different way to run a script on UNIX systems
 exec csi -s "$0" "$@"
 |#
+(import (chicken process-context))
 
 (define (main args) ...)
 

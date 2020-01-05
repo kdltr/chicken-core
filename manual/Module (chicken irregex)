@@ -184,6 +184,8 @@ Fetches the matched substring (or its start or end offset) at the
 given submatch index, or named submatch.  The entire match is index 0,
 the first 1, etc.  The default is index 0.
 
+Returns {{#f}} if the given submatch did not match the source string (can happen when you have the submatch inside an {{or}} alternative, for example).
+
 ==== irregex-match-subchunk
 ==== irregex-match-start-chunk
 ==== irregex-match-end-chunk
@@ -198,6 +200,8 @@ Access the chunks delimiting the submatch index, or named submatch.
 match item, of the same type as the underlying chunk type (see Chunked
 String Matching below).  This is only available if the chunk type
 specifies the get-subchunk API, otherwise an error is raised.
+
+Returns {{#f}} if the given submatch did not match the source string (can happen when you have the submatch inside an {{or}} alternative, for example).
 
 ==== irregex-replace
 ==== irregex-replace/all

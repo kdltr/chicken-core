@@ -218,7 +218,7 @@ for information about how to obtain them.
 The simplest development environment is a text editor and terminal
 window (Windows: Command Prompt, OSX: Terminal, Linux/Unix: xterm) for
 using the interpreter and/or invoking the compiler.  If you install one
-of the line editing extensions (e.g., [[/egg/readline|readline]],
+of the line editing extensions (e.g., [[/egg/breadline|breadline]],
 [[/egg/parley|parley]], [[/egg/linenoise|linenoise]]), you have some
 useful command line editing features in the interpreter (e.g., Emacs
 or vi-compatible line editing, customization).

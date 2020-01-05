@@ -1095,6 +1095,12 @@ interpreted.
 
 === Conditional forms
 
+==== select
+
+<macro>(select EXP ((KEY ...) EXP1 ...) ... [(else EXPn ...)])</macro>
+
+This is similar to {{case}}, but the keys are evaluated.
+
 ==== unless
 
 <macro>(unless TEST EXP1 EXP2 ...)</macro>
@@ -1441,9 +1447,9 @@ Any other value disables the alternative syntaxes.  In the interpreter
 the default is {{#:suffix}}.
 
 
-==== parenthesis-synonyms
+==== parentheses-synonyms
 
-<parameter>(parenthesis-synonyms)</parameter>
+<parameter>(parentheses-synonyms)</parameter>
 
 If true, then the list delimiter synonyms {{#\[}} {{#\]}} and {{#\{}} {{#\}}} are enabled. Defaults to {{#t}}.
 

@@ -195,7 +195,7 @@ by the startup code and will not be contained in the result of
 
 ; {{-:aNUMBER}} : Specifies the length of the buffer for recording a trace of the last invoked procedures. Defaults to 16.
 
-; {{-:ANUMBER}} : Specifies fixed ''temporary stack'' size. This is used mostly for {{apply}}. If you supply a zero size (the default), the temorary stack will be dynamically reallocated as needed.
+; {{-:ANUMBER}} : Specifies fixed ''temporary stack'' size. This is used mostly for {{apply}}. If you supply a zero size (the default), the temporary stack will be dynamically reallocated as needed.
 
 ; {{-:b}} : Enter a read-eval-print-loop when an error is encountered.
 
