@@ -223,6 +223,8 @@ by the startup code and will not be contained in the result of
 
 ; {{-:hmNUMBER}} : Specifies a maximal heap size (including both semispaces). The default is (2GB - 15).
 
+; {{-:hfNUMBER}} : If the free heap space is less than this number (8M by default), then the heap is grown. This is approximately the amount of generated heap garbage in bytes after which a major garbage collection will happen.
+
 ; {{-:hsPERCENTAGE}} : Sets the shrink rate of the heap in percent. The heap is shrunk to {{PERCENTAGE}} when the watermark is reached. The default is 50.  Note: If you want to make sure that the heap never shrinks, specify a value of {{0}}.  (this can be useful in situations where an optimal heap-size is known in advance). 
 
 ; {{-:huPERCENTAGE}} : Sets the memory usage watermark below which heap shrinking is triggered. The default is 25.

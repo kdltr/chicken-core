@@ -163,6 +163,7 @@ static C_TLS int timezone;
 #define DEFAULT_HEAP_GROWTH            200
 #define DEFAULT_HEAP_SHRINKAGE         50
 #define DEFAULT_HEAP_SHRINKAGE_USED    25
+#define DEFAULT_HEAP_MIN_FREE          (4 * 1024 * 1024)
 #define DEFAULT_FORWARDING_TABLE_SIZE  32
 #define DEFAULT_LOCATIVE_TABLE_SIZE    32
 #define DEFAULT_COLLECTIBLES_SIZE      1024
@@ -360,6 +361,7 @@ C_TLS C_uword
   C_heap_growth = DEFAULT_HEAP_GROWTH,
   C_heap_shrinkage = DEFAULT_HEAP_SHRINKAGE,
   C_heap_shrinkage_used = DEFAULT_HEAP_SHRINKAGE_USED,
+  C_heap_half_min_free = DEFAULT_HEAP_MIN_FREE,
   C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
 C_TLS time_t
   C_startup_time_sec,
@@ -1368,6 +1370,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:o              disable stack overflow checks\n"
 		 " -:hiSIZE         set initial heap size\n"
 		 " -:hmSIZE         set maximal heap size\n"
+                 " -:hfSIZE         set minimum unused heap size\n"
 		 " -:hgPERCENTAGE   set heap growth percentage\n"
 		 " -:hsPERCENTAGE   set heap shrink percentage\n"
 		 " -:huPERCENTAGE   set percentage of memory used at which heap will be shrunk\n"
@@ -1395,6 +1398,9 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 	  case 'i':
 	    *heap = arg_val(ptr + 1); 
 	    heap_size_changed = 1;
+	    goto next;
+          case 'f':
+	    C_heap_half_min_free = arg_val(ptr + 1);
 	    goto next;
 	  case 'g':
 	    C_heap_growth = arg_val(ptr + 1);
@@ -3565,23 +3571,40 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     }
 
     update_locative_table(gc_mode);
-    count = (C_uword)tospace_top - (C_uword)tospace_start;
+    count = (C_uword)tospace_top - (C_uword)tospace_start; // Actual used, < heap_size/2
 
-    /*** isn't gc_mode always GC_MAJOR here? */
-    /* NOTE: count is actual usage, heap_size is both halves */
-    if(gc_mode == GC_MAJOR && 
-       count < percentage(heap_size/2, C_heap_shrinkage_used) &&
-       C_heap_shrinkage > 0 && 
-       heap_size > MINIMAL_HEAP_SIZE && !C_heap_size_is_fixed)
-      C_rereclaim2(percentage(heap_size, C_heap_shrinkage), 0);
-    else {
-      C_fromspace_top = tospace_top;
-      tmp = fromspace_start;
-      fromspace_start = tospace_start;
-      tospace_start = tospace_top = tmp;
-      tmp = C_fromspace_limit;
-      C_fromspace_limit = tospace_limit;
-      tospace_limit = tmp;
+    {
+      C_uword min_half = count + C_heap_half_min_free;
+      C_uword low_half = percentage(heap_size/2, C_heap_shrinkage_used);
+      C_uword grown    = percentage(heap_size, C_heap_growth);
+      C_uword shrunk   = percentage(heap_size, C_heap_shrinkage);
+
+      /*** isn't gc_mode always GC_MAJOR here? */
+      if(gc_mode == GC_MAJOR && !C_heap_size_is_fixed &&
+         C_heap_shrinkage > 0 &&
+         count < low_half &&
+         (min_half * 2) <= shrunk && // Min. size trumps shrinkage
+         heap_size > MINIMAL_HEAP_SIZE) {
+        if(gc_report_flag) {
+          C_dbg(C_text("GC"), C_text("Heap low water mark hit (%d%%), shrinking...\n"),
+                C_heap_shrinkage_used);
+        }
+        C_rereclaim2(shrunk, 0);
+      } else if (gc_mode == GC_MAJOR && !C_heap_size_is_fixed &&
+                 (heap_size / 2) < min_half) {
+        if(gc_report_flag) {
+          C_dbg(C_text("GC"), C_text("Heap high water mark hit, growing...\n"));
+        }
+        C_rereclaim2(grown, 0);
+      } else {
+        C_fromspace_top = tospace_top;
+        tmp = fromspace_start;
+        fromspace_start = tospace_start;
+        tospace_start = tospace_top = tmp;
+        tmp = C_fromspace_limit;
+        C_fromspace_limit = tospace_limit;
+        tospace_limit = tmp;
+      }
     }
 
   never_mind_edsger:
