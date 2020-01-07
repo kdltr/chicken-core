@@ -164,6 +164,7 @@ static C_TLS int timezone;
 #define DEFAULT_HEAP_SHRINKAGE         50
 #define DEFAULT_HEAP_SHRINKAGE_USED    25
 #define DEFAULT_HEAP_MIN_FREE          (4 * 1024 * 1024)
+#define HEAP_SHRINK_COUNTS             10
 #define DEFAULT_FORWARDING_TABLE_SIZE  32
 #define DEFAULT_LOCATIVE_TABLE_SIZE    32
 #define DEFAULT_COLLECTIBLES_SIZE      1024
@@ -362,7 +363,8 @@ C_TLS C_uword
   C_heap_shrinkage = DEFAULT_HEAP_SHRINKAGE,
   C_heap_shrinkage_used = DEFAULT_HEAP_SHRINKAGE_USED,
   C_heap_half_min_free = DEFAULT_HEAP_MIN_FREE,
-  C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
+  C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE,
+  heap_shrink_counter = 0;
 C_TLS time_t
   C_startup_time_sec,
   C_startup_time_msec,
@@ -3579,22 +3581,31 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
       C_uword grown    = percentage(heap_size, C_heap_growth);
       C_uword shrunk   = percentage(heap_size, C_heap_shrinkage);
 
+      if (count < low_half) {
+        heap_shrink_counter++;
+      } else {
+        heap_shrink_counter = 0;
+      }
+
       /*** isn't gc_mode always GC_MAJOR here? */
       if(gc_mode == GC_MAJOR && !C_heap_size_is_fixed &&
          C_heap_shrinkage > 0 &&
-         count < low_half &&
+         // This prevents grow, shrink, grow, shrink... spam
+         HEAP_SHRINK_COUNTS < heap_shrink_counter &&
          (min_half * 2) <= shrunk && // Min. size trumps shrinkage
          heap_size > MINIMAL_HEAP_SIZE) {
         if(gc_report_flag) {
           C_dbg(C_text("GC"), C_text("Heap low water mark hit (%d%%), shrinking...\n"),
                 C_heap_shrinkage_used);
         }
+        heap_shrink_counter = 0;
         C_rereclaim2(shrunk, 0);
       } else if (gc_mode == GC_MAJOR && !C_heap_size_is_fixed &&
                  (heap_size / 2) < min_half) {
         if(gc_report_flag) {
           C_dbg(C_text("GC"), C_text("Heap high water mark hit, growing...\n"));
         }
+        heap_shrink_counter = 0;
         C_rereclaim2(grown, 0);
       } else {
         C_fromspace_top = tospace_top;
