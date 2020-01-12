@@ -5,7 +5,7 @@
 ;
 ;
 ;--------------------------------------------------------------------------------------------
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -54,6 +54,7 @@
 ; (foreign-declare {<string>})
 ; (hide {<name>})
 ; (inline-limit <limit>)
+; (unroll-limit <limit>)
 ; (keep-shadowed-macros)
 ; (no-argc-checks)
 ; (no-bound-checks)
@@ -149,6 +150,7 @@
 ; (##core#the <type> <strict?> <exp>)
 ; (##core#typecase <info> <exp> (<type> <body>) ... [(else <body>)])
 ; (##core#debug-event {<event> <loc>})
+; (##core#with-forbidden-refs (<var> ...) <loc> <expr>)
 ; (<exp> {<exp>})
 
 ; - Core language:
@@ -176,6 +178,10 @@
 ; [##core#call {<safe-flag> [<debug-info>]} <exp-f> <exp>...]
 ; [##core#callunit {<unitname>} <exp>...]
 ; [##core#switch {<count>} <exp> <const1> <body1> ... <defaultbody>]
+; [##core#rest-car {restvar depth [<debug-info>]}]
+; [##core#rest-cdr {restvar depth [<debug-info>]}]
+; [##core#rest-null? {restvar depth [<debug-info>]}]
+; [##core#rest-length {restvar depth [<debug-info>]}]
 ; [##core#cond <exp> <exp> <exp>]
 ; [##core#provide <id>]
 ; [##core#recurse {<tail-flag>} <exp1> ...]
@@ -255,6 +261,9 @@
 ;   extended-binding -> <boolean>            If true: variable names an extended binding
 ;   unused -> <boolean>                      If true: variable is a formal parameter that is never used
 ;   rest-parameter -> #f | 'list             If true: variable holds rest-argument list
+;   rest-cdr -> (rvar . n)                   Variable references the cdr of rest list rvar after n cdrs (0 = rest list itself)
+;   rest-null? -> (rvar . n)                 Variable checks if the cdr of rest list rvar after n cdrs is empty (0 = rest list itself)
+;   derived-rest-vars -> (v1 v2 ...)         Other variables aliasing or referencing cdrs of a rest variable
 ;   constant -> <boolean>                    If true: variable has fixed value
 ;   hidden-refs -> <boolean>                 If true: procedure that refers to hidden global variables
 ;   inline-transient -> <boolean>            If true: was introduced during inlining
@@ -290,7 +299,7 @@
      all-import-libraries preserve-unchanged-import-libraries
      bootstrap-mode compiler-syntax-enabled
      emit-closure-info emit-profile enable-inline-files explicit-use-flag
-     first-analysis no-bound-checks enable-module-registration
+     first-analysis no-bound-checks compile-module-registration
      optimize-leaf-routines standalone-executable undefine-shadowed-macros
      verbose-mode local-definitions enable-specialization block-compilation
      inline-locally inline-substitutions-enabled strict-variable-types
@@ -304,6 +313,7 @@
 
      ;; Other, non-boolean, flags set by (batch) driver
      profiled-procedures import-libraries inline-max-size
+     unroll-limit
      extended-bindings standard-bindings
 
      ;; non-booleans set by the (batch) driver, and read by the (c) backend
@@ -369,6 +379,7 @@
 (define-constant constant-table-size 301)
 (define-constant file-requirements-size 301)
 (define-constant default-inline-max-size 20)
+(define-constant default-unroll-limit 1)
 
 
 ;;; Global variables containing compilation parameters:
@@ -396,13 +407,14 @@
 (define disable-stack-overflow-checking #f)
 (define external-protos-first #f)
 (define inline-max-size default-inline-max-size)
+(define unroll-limit default-unroll-limit)
 (define emit-closure-info #t)
 (define undefine-shadowed-macros #t)
 (define profiled-procedures #f)
 (define import-libraries '())
 (define all-import-libraries #f)
 (define preserve-unchanged-import-libraries #t)
-(define enable-module-registration #t)
+(define compile-module-registration #f) ; 'no | 'yes
 (define standalone-executable #t)
 (define local-definitions #f)
 (define inline-locally #f)
@@ -513,10 +525,7 @@
 
 (define (canonicalize-expression exp)
   (let ((compiler-syntax '())
-	;; Not sure this is correct, given that subsequent expressions
-	;; to be canonicalized will mutate the current environment.
-	;; Used to reset the environment for ##core#module forms.
-	(initial-environment (##sys#current-environment)))
+        (forbidden-refs '()))
 
   (define (find-id id se)		; ignores macro bindings
     (cond ((null? se) #f)
@@ -563,11 +572,9 @@
 	x) )
 
   (define (resolve-variable x0 e dest ldest h)
-
     (when (memq x0 unlikely-variables)
       (warning
        (sprintf "reference to variable `~s' possibly unintended" x0) ))
-
     (let ((x (lookup x0)))
       (d `(RESOLVE-VARIABLE: ,x0 ,x ,(map (lambda (x) (car x)) (##sys#current-environment))))
       (cond ((not (symbol? x)) x0)	; syntax?
@@ -596,6 +603,13 @@
 		      t)
 		     e dest ldest h #f #f))))
 	    ((not (memq x e)) (##sys#alias-global-hook x #f h)) ; only if global
+            ((assq x forbidden-refs) =>
+             (lambda (a)
+               (let ((ln (cdr a)))
+                 (quit-compiling
+                   "~acyclical reference in LETREC binding for variable `~a'"
+                   (if ln (sprintf "(~a) - " ln) "")
+                   (get-real-name x)))))
 	    (else x))))
 
   (define (emit-import-lib name il)
@@ -770,12 +784,26 @@
 				      (list (car b) '(##core#undefined)))
 				    bindings)
 			      (##core#let
-			       ,(map (lambda (t b) (list t (cadr b))) tmps bindings)
+			       ,(map (lambda (t b)
+                                       (list t `(##core#with-forbidden-refs
+                                                  ,vars ,ln ,(cadr b))))
+                                     tmps bindings)
 			       ,@(map (lambda (v t)
 					`(##core#set! ,v ,t))
 				      vars tmps)
 			       (##core#let () ,@body) ) )
 			    e dest ldest h ln #f)))
+          
+                        ((##core#with-forbidden-refs)
+                         (let* ((loc (caddr x))
+                                (vars (map (lambda (v)
+                                             (cons (resolve-variable v e dest
+                                                                     ldest h) 
+                                                   loc))
+                                        (cadr x))))
+                           (fluid-let ((forbidden-refs 
+                                         (append vars forbidden-refs)))
+                             (walk (cadddr x) e dest ldest h ln #f))))
 
 			((##core#lambda)
 			 (let ((llist (cadr x))
@@ -794,13 +822,15 @@
 				     (body (parameterize ((##sys#current-environment se2))
 					     (let ((body0 (canonicalize-body/ln
 							   ln obody compiler-syntax-enabled)))
-					       (walk
-						(if emit-debug-info
-						    `(##core#begin
-						      (##core#debug-event C_DEBUG_ENTRY (##core#quote ,dest))
-						      ,body0)
-						    body0)
-						(append aliases e) #f #f dest ln #f))))
+                                               (fluid-let ((forbidden-refs '()))
+                                                 (walk
+                                                   (if emit-debug-info
+                                                       `(##core#begin
+                                                          (##core#debug-event C_DEBUG_ENTRY (##core#quote ,dest))
+                                                         ,body0)
+                                                       body0)
+                                                   (append aliases e)
+                                                   #f #f dest ln #f)))))
 				     (llist2
 				      (build-lambda-list
 				       aliases argc
@@ -1019,22 +1049,33 @@
 						       ;; avoid backtrace
 						       (print-error-message ex (current-error-port))
 						       (exit 1))
-						   (##sys#finalize-module (##sys#current-module)))
-						 (cond ((or (assq name import-libraries) all-import-libraries)
-							=> (lambda (il)
-							     (emit-import-lib name il)
-							     ;; Remove from list to avoid error
-							     (when (pair? il)
-							       (set! import-libraries
-								 (delete il import-libraries equal?)))
-							     (values (reverse xs) '())))
-						       ((not enable-module-registration)
-							(values (reverse xs) '()))
-						       (else
-							(values
-							 (reverse xs)
-							 (##sys#compiled-module-registration
-							  (##sys#current-module))))))
+						   (##sys#finalize-module
+                                                     (##sys#current-module)
+                                                     (lambda (id)
+						       (cond
+							((assq id foreign-variables)
+							 "a foreign variable")
+							((hash-table-ref inline-table id)
+							 "an inlined function")
+							((hash-table-ref constant-table id)
+							 "a constant")
+							((##sys#get id '##compiler#type-abbreviation)
+							 "a type abbreviation")
+							(else #f)))))
+						 (let ((il (or (assq name import-libraries) all-import-libraries)))
+						   (when il
+						     (emit-import-lib name il)
+						     ;; Remove from list to avoid error
+						     (when (pair? il)
+						       (set! import-libraries
+							 (delete il import-libraries equal?))))
+						   (values
+						    (reverse xs)
+						    (if (or (eq? compile-module-registration 'yes)
+							    (and (not il) ; default behaviour
+								 (not compile-module-registration)))
+							(##sys#compiled-module-registration (##sys#current-module))
+							'()))))
 						(else
 						 (loop
 						  (cdr body)
@@ -1677,6 +1718,14 @@
 	      (warning
 	       "invalid argument to `inline-limit' declaration"
 	       spec) ) ) )
+       ((unroll-limit)
+	(check-decl spec 1 1)
+	(let ((n (cadr spec)))
+	  (if (number? n)
+	      (set! unroll-limit n)
+	      (warning
+	       "invalid argument to `unroll-limit' declaration"
+	       spec) ) ) )
        ((pure)
 	(let ((syms (cdr spec)))
 	  (if (every symbol? syms)
@@ -2054,7 +2103,8 @@
 	(case class
 	  ((quote ##core#undefined ##core#provide ##core#proc) #f)
 
-	  ((##core#variable)
+	  ;; Uneliminated rest-cdr calls need to hang on to rest var
+	  ((##core#variable ##core#rest-cdr)
 	   (let ((var (first params)))
 	     (ref var n)
 	     (unless (memq var localenv)
@@ -2118,7 +2168,8 @@
 		   (db-put! db var 'unknown #t) )
 		 vars)
 		(when rest
-		  (db-put! db rest 'rest-parameter 'list) )
+		  (db-put! db rest 'rest-parameter 'list)
+		  (db-put! db rest 'rest-cdr (cons rest 0)))
 		(when (simple-lambda-node? n) (db-put! db id 'simple #t))
 		(let ([tl toplevel-scope])
 		  (unless toplevel-lambda-id (set! toplevel-lambda-id id))
@@ -2161,11 +2212,53 @@
     (define (walkeach xs env lenv fenv here)
       (for-each (lambda (x) (walk x env lenv fenv here)) xs) )
 
+    (define (mark-rest-cdr var rvar depth)
+      (db-put! db var 'rest-cdr (cons rvar depth))
+      (collect! db rvar 'derived-rest-vars var))
+
+    (define (mark-rest-null? var rvar depth)
+      (db-put! db var 'rest-null? (cons rvar depth))
+      (collect! db rvar 'derived-rest-vars var))
+
     (define (assign var val env here)
+      ;; Propagate rest-cdr and rest-null? onto aliased variables
+      (and-let* (((eq? '##core#variable (node-class val)))
+		 (v (db-get db (first (node-parameters val)) 'rest-cdr)))
+	(mark-rest-cdr var (car v) (cdr v)) )
+
+      (and-let* (((eq? '##core#variable (node-class val)))
+		 (v (db-get db (first (node-parameters val)) 'rest-null?)))
+	(mark-rest-null? var (car v) (cdr v)) )
+
       (cond ((eq? '##core#undefined (node-class val))
 	     (db-put! db var 'undefined #t) )
 	    ((and (eq? '##core#variable (node-class val)) ; assignment to itself
 		  (eq? var (first (node-parameters val))) ) )
+
+	    ;; Propagate info from ##core#rest-{cdr,null?} nodes to var
+	    ((eq? '##core#rest-cdr (node-class val))
+	     (let ((restvar (car (node-parameters val)))
+		   (depth (cadr (node-parameters val))))
+	       (mark-rest-cdr var restvar (add1 depth)) ) )
+
+	    ((eq? '##core#rest-null? (node-class val))
+	     (let ((restvar (car (node-parameters val)))
+		   (depth (cadr (node-parameters val))))
+	       (mark-rest-null? var restvar depth) ) )
+
+	    ;; (##core#cond (null? r) '() (cdr r)) => result is tagged as a rest-cdr var
+	    ((and-let* ((env (match-node val '(##core#cond ()
+							   (##core#variable (test-var))
+							   (quote (()))
+							   (##core#rest-cdr (rvar depth)))
+					 '(test-var rvar depth)))
+			((db-get db (alist-ref 'test-var env) 'rest-null?)))
+	       env)
+	     => (lambda (env)
+		  (let ((rvar (alist-ref 'rvar env))
+			(depth (alist-ref 'depth env)))
+		    (mark-rest-cdr var rvar (add1 depth)) ) ) )
+
 	    ((or (memq var env)
 		 (variable-mark var '##compiler#constant)
 		 (not (variable-visible? var block-compilation)))
@@ -2215,8 +2308,8 @@
 	     [assigned-locally #f]
 	     [undefined #f]
 	     [global #f]
-	     [rest-parameter #f]
 	     [nreferences 0]
+	     [rest-cdr #f]
 	     [ncall-sites 0] )
 
 	 (set! current-analysis-database-size (fx+ current-analysis-database-size 1))
@@ -2240,7 +2333,7 @@
 	      [(global) (set! global #t)]
 	      [(value) (set! value (cdr prop))]
 	      [(local-value) (set! local-value (cdr prop))]
-	      [(rest-parameter) (set! rest-parameter #t)] ) )
+	      [(rest-cdr) (set! rest-cdr (cdr prop))] ) )
 	  plist)
 
 	 (set! value (and (not unknown) value))
@@ -2317,11 +2410,9 @@
 			     (quick-put! plist 'inlinable #t)
 			     (quick-put! plist 'local-value n))))))))
 
-	 ;; Make 'collapsable, if it has a known constant value which is either collapsable or is only
-	 ;;  referenced once and if no assignments are made:
-	 (when (and value
-		    ;; (not (assq 'assigned plist)) - If it has a known value, it's assigned just once!
-		    (eq? 'quote (node-class value)) )
+	 ;; Make 'collapsable, if it has a known constant value which
+	 ;; is either collapsable or is only referenced once:
+	 (when (and value (eq? 'quote (node-class value)) )
 	   (let ((val (first (node-parameters value))))
 	     (when (or (collapsable-literal? val)
 		       (= 1 nreferences) )
@@ -2357,8 +2448,10 @@
 			    (rest
 			     (db-put! db (first lparams) 'explicit-rest #t) ) ) ) ) ) ) ) ) )
 
-	 ;; Make 'removable, if it has no references and is not assigned to, and if it
-	 ;; has either a value that does not cause any side-effects or if it is 'undefined:
+	 ;; Make 'removable, if it has no references and is not assigned to, and one of the following:
+	 ;; - it has either a value that does not cause any side-effects
+	 ;; - it is 'undefined
+	 ;; - it holds only a 'rest-cdr reference (strictly speaking, it may bomb but we don't care)
 	 (when (and (not assigned)
 		    (null? references)
 		    (or (and value
@@ -2368,28 +2461,28 @@
 				       (variable-mark varname '##core#always-bound)
 				       (intrinsic? varname)))
 				 (not (expression-has-side-effects? value db)) ))
-			undefined) )
+			undefined
+			rest-cdr) )
 	   (quick-put! plist 'removable #t) )
 
-	 ;; Make 'replacable, if it has a variable as known value and if either that variable has
-	 ;;  a known value itself, or if it is not captured and referenced only once, the target and
-	 ;;  the source are never assigned and the source is non-global or we are in block-mode:
-	 ;;  - The target-variable is not allowed to be global.
+	 ;; Make 'replacable, if
+	 ;; - it has a variable as known value and
+	 ;; - it is not a global
+	 ;; - it is never assigned to and
+	 ;; - if either the substitute has a known value itself or
+	 ;;   * the substitute is never assigned to and
+	 ;;   * we are in block-mode or the substitute is non-global
+	 ;;
 	 ;;  - The variable that can be substituted for the current one is marked as 'replacing.
 	 ;;    This is done to prohibit beta-contraction of the replacing variable (It wouldn't be there, if
 	 ;;    it was contracted).
 	 (when (and value (not global))
 	   (when (eq? '##core#variable (node-class value))
-	     (let* ((name (first (node-parameters value)))
-		    (nrefs (db-get db name 'references)) )
-	       (when (and (not captured)
+	     (let ((name (first (node-parameters value))) )
+	       (when (and (not assigned)
 			  (or (and (not (db-get db name 'unknown))
 				   (db-get db name 'value))
-			      (and (not (db-get db name 'captured))
-				   nrefs
-				   (= 1 (length nrefs))
-				   (not assigned)
-				   (not (db-get db name 'assigned))
+			      (and (not (db-get db name 'assigned))
 				   (or (not (variable-visible?
 					     name block-compilation))
 				       (not (db-get db name 'global))) ) ))
@@ -2455,7 +2548,7 @@
 	    (params (node-parameters n)) )
 	(case (node-class n)
 
-	  ((##core#variable)
+	  ((##core#variable ##core#rest-cdr)
 	   (let ((var (first params)))
 	     (if (memq var lexicals)
 		 (list var)
@@ -2508,15 +2601,13 @@
 						     (= (length refs) (length sites))
 						     (test varname 'value)
 						     (list? llist) ) ] )
-					  (when (and name
-						     (not (llist-match? llist (cdr subs))))
-					    (quit-compiling
-					     "~a: procedure `~a' called with wrong number of arguments"
-					     (source-info->string name)
-					     (if (pair? name) (cadr name) name)))
-					  (register-direct-call! id)
-					  (when custom (register-customizable! varname id))
-					  (list id custom) )
+					  (cond ((and name
+                                                      (not (llist-match? llist (cdr subs))))
+                                                   '())
+                                                (else
+   					          (register-direct-call! id)
+					          (when custom (register-customizable! varname id))
+					          (list id custom) ) ) )
 					'() ) )
 				  '() ) )
 			'() ) ) )
@@ -2552,6 +2643,52 @@
 	     (if (test var 'boxed)
 		 (make-node '##core#unbox '() (list val))
 		 val) ) )
+
+	  ((##core#rest-cdr ##core#rest-car ##core#rest-null? ##core#rest-length)
+	   (let* ((val (ref-var n here closure))
+		  (rest-var (if (eq? val n) (varnode (first params)) val)))
+	     (unless (or (eq? val n)
+			 (match-node val `(##core#ref (i) (##core#variable (,here))) '(i)))
+	       ;; If it's captured, replacement in optimizer was incorrect
+	       (bomb "Saw rest op for captured variable.  This should not happen!" class) )
+	     ;; If rest-cdrs have not all been eliminated, restore
+	     ;; them as regular cdr calls on the rest list variable.
+	     ;; This can be improved, as it can actually introduce
+	     ;; many more cdr calls than necessary.
+	     (cond ((eq? class '##core#rest-cdr)
+		    (let lp ((cdr-calls (add1 (second params)))
+			     (var rest-var))
+		      (if (zero? cdr-calls)
+			  (transform var here closure)
+			  (lp (sub1 cdr-calls)
+			      (make-node '##core#inline (list "C_i_cdr") (list var))))))
+
+		   ;; If customizable, the list is consed up at the
+		   ;; call site and there is no argvector.  So convert
+		   ;; back to list-ref/list-tail calls.
+		   ;;
+		   ;; Alternatively, if n isn't val, this node was
+		   ;; processed and the variable got replaced by a
+		   ;; closure access.
+		   ((or (test here 'customizable)
+			(not (eq? val n)))
+		    (case class
+		      ((##core#rest-car)
+		       (transform (make-node '##core#inline
+					     (list "C_i_list_ref")
+					     (list rest-var (qnode (second params)))) here closure))
+		      ((##core#rest-null)
+		       (transform (make-node '##core#inline
+					     (list "C_i_greater_or_equal_p")
+					     (list (qnode (second params))
+						   (make-node '##core#inline (list "C_i_length") (list rest-var)))) here closure))
+		      ((##core#rest-length)
+		       (transform (make-node '##core#inline
+					     (list "C_i_length")
+					     (list rest-var (qnode (second params)))) here closure))
+		      (else (bomb "Unknown rest op node class in while converting to closure. This shouldn't happen!" class))))
+
+		   (else val)) ) )
 
 	  ((if ##core#call ##core#inline ##core#inline_allocate ##core#callunit
 	       ##core#inline_ref ##core#inline_update ##core#debug-event
@@ -2678,6 +2815,8 @@
 		  (if emit-closure-info
 		      (list (qnode (##sys#make-lambda-info (car params))))
 		      '() ) ) ) )
+
+	  ((##core#ref) n)
 
 	  (else (bomb "bad node (closure2)")) ) ) )
 

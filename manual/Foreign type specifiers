@@ -214,7 +214,7 @@ value will raise an exception.
 <type>nonnull-f32vector</type><br>
 <type>nonnull-f64vector</type><br>
 
-A [[Unit srfi-4|SRFI-4]] number-vector object, passed as a pointer to its contents.
+A [[Module srfi-4|SRFI-4]] number-vector object, passed as a pointer to its contents.
 These are allowed only as argument types, not as return types.
 
 The value {{#f}} is also allowed and is passed to C as a NULL pointer.
@@ -242,7 +242,7 @@ e.g. via {{(address->pointer 0)}}.)
 <type>pointer-vector</type><br>
 <type>nonnull-pointer-vector</type>
 
-A vector of foreign pointer objects; see [[Unit lolevel#Pointer vectors|Pointer vectors]].
+A vector of foreign pointer objects; see [[Module (chicken memory)#pointer-vectors|Pointer vectors]].
 Permitted only as an argument type, not as return type.  This type was introduced in CHICKEN 4.6.3.
 
 A pointer vector contains a C array of void pointers, and the argument

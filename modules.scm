@@ -1,6 +1,6 @@
 ;;;; modules.scm - module-system support
 ;
-; Copyright (c) 2011-2019, The CHICKEN Team
+; Copyright (c) 2011-2020, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -317,45 +317,47 @@
 	(ifs (module-import-forms mod))
 	(sexports (module-sexports mod))
 	(mifs (module-meta-import-forms mod)))
-    `(,@(if (and (pair? ifs) (pair? sexports))
-	    `((scheme#eval '(import-syntax ,@(strip-syntax ifs))))
-	    '())
-      ,@(if (and (pair? mifs) (pair? sexports))
-	    `((import-syntax ,@(strip-syntax mifs)))
-	    '())
-      ,@(if (or (getp mname '##core#functor) (pair? sexports))
-	    (##sys#fast-reverse (strip-syntax (module-meta-expressions mod)))
-	    '())
-      (##sys#register-compiled-module
-       ',(module-name mod)
-       ',(module-library mod)
-       (scheme#list			; iexports
-	,@(map (lambda (ie)
-		 (if (symbol? (cdr ie))
-		     `'(,(car ie) . ,(cdr ie))
-		     `(scheme#list ',(car ie) '() ,(cdr ie))))
-	       (module-iexports mod)))
-       ',(module-vexports mod)		; vexports
-       (scheme#list			; sexports
-	,@(map (lambda (sexport)
-		 (let* ((name (car sexport))
-			(a (assq name dlist)))
-		   (cond ((pair? a) 
-			  `(scheme#cons ',(car sexport) ,(strip-syntax (cdr a))))
-			 (else
-			  (dm "re-exported syntax" name mname)
+    `((##sys#with-environment
+        (lambda ()
+          ,@(if (and (pair? ifs) (pair? sexports))
+   	        `((scheme#eval '(import-syntax ,@(strip-syntax ifs))))
+  	        '())
+          ,@(if (and (pair? mifs) (pair? sexports))
+     	        `((import-syntax ,@(strip-syntax mifs)))
+	        '())
+          ,@(if (or (getp mname '##core#functor) (pair? sexports))
+ 	        (##sys#fast-reverse (strip-syntax (module-meta-expressions mod)))
+	        '())
+          (##sys#register-compiled-module
+            ',(module-name mod)
+            ',(module-library mod)
+            (scheme#list			; iexports
+	      ,@(map (lambda (ie)
+                       (if (symbol? (cdr ie))
+                           `'(,(car ie) . ,(cdr ie))
+                           `(scheme#list ',(car ie) '() ,(cdr ie))))
+                 (module-iexports mod)))
+            ',(module-vexports mod)		; vexports
+            (scheme#list			; sexports
+	    ,@(map (lambda (sexport)
+	  	     (let* ((name (car sexport))
+                            (a (assq name dlist)))
+                       (cond ((pair? a) 
+                              `(scheme#cons ',(car sexport) ,(strip-syntax (cdr a))))
+                             (else
+                               (dm "re-exported syntax" name mname)
 			  `',name))))
-	       sexports))
-       (scheme#list			; sdefs
-	,@(if (null? sexports)
-	      '() 			; no syntax exported - no more info needed
-	      (let loop ((sd (module-defined-syntax-list mod)))
-		(cond ((null? sd) '())
-		      ((assq (caar sd) sexports) (loop (cdr sd)))
-		      (else
-		       (let ((name (caar sd)))
-			 (cons `(scheme#cons ',(caar sd) ,(strip-syntax (cdar sd)))
-			       (loop (cdr sd)))))))))))))
+	        sexports))
+            (scheme#list			; sdefs
+	      ,@(if (null? sexports)
+	            '() 			; no syntax exported - no more info needed
+                    (let loop ((sd (module-defined-syntax-list mod)))
+                      (cond ((null? sd) '())
+                            ((assq (caar sd) sexports) (loop (cdr sd)))
+                            (else
+                              (let ((name (caar sd)))
+                                (cons `(scheme#cons ',(caar sd) ,(strip-syntax (cdar sd)))
+                                      (loop (cdr sd)))))))))))))))
 
 ;; iexports = indirect exports (syntax dependencies on value idents, explicitly included in module export list)
 ;; vexports = value (non-syntax) exports
@@ -444,7 +446,10 @@
 (define ##sys#finalize-module 
   (let ((display display)
 	(write-char write-char))
-    (lambda (mod)
+    (lambda (mod #!optional (invalid-export (lambda _ #f)))
+      ;; invalid-export: Returns a string if given identifier names a
+      ;; non-exportable object. The string names the type (e.g. "an
+      ;; inline function"). Returns #f otherwise.
       (let* ((explist (module-export-list mod))
 	     (name (module-name mod))
 	     (dlist (module-defined-list mod))
@@ -466,30 +471,37 @@
 		    '()
 		    (let* ((h (car xl))
 			   (id (if (symbol? h) h (car h))))
-		      (if (assq id sexports) 
-			  (loop (cdr xl))
-			  (cons 
-			   (cons 
-			    id
-			    (let ((def (assq id dlist)))
-			      (if (and def (symbol? (cdr def))) 
-				  (cdr def)
-				  (let ((a (assq id (##sys#current-environment))))
-				    (cond ((and a (symbol? (cdr a))) 
-					   (dm "reexporting: " id " -> " (cdr a))
-					   (cdr a)) 
-					  ((not def)
-					   (set! missing #t)
-					   (##sys#warn 
-					    (string-append 
-					     "exported identifier of module `" 
-					     (symbol->string name)
-					     "' has not been defined")
-					    id)
-					   #f)
-					  (else (module-rename id name)))))))
-			   (loop (cdr xl)))))))))
-	(for-each
+		      (cond ((assq id sexports) (loop (cdr xl)))
+                            (else 
+                              (cons 
+                                (cons 
+			          id
+                                  (let ((def (assq id dlist)))
+                                    (if (and def (symbol? (cdr def))) 
+                                        (cdr def)
+                                        (let ((a (assq id (##sys#current-environment))))
+					  (define (fail msg)
+					    (##sys#warn msg)
+					    (set! missing #t))
+					  (define (id-string)
+					    (string-append "`" (symbol->string id) "'"))
+                                          (cond ((and a (symbol? (cdr a)))
+                                                 (dm "reexporting: " id " -> " (cdr a))
+                                                 (cdr a))
+						(def (module-rename id name))
+						((invalid-export id)
+						 =>
+						 (lambda (type)
+						   (fail (string-append
+							  "Cannot export " (id-string)
+							  " because it is " type "."))))
+                                                ((not def)
+						 (fail (string-append
+							"Exported identifier " (id-string)
+							" has not been defined.")))
+                                                (else (bomb "fail")))))))
+                              (loop (cdr xl))))))))))
+        (for-each
 	 (lambda (u)
 	   (let* ((where (cdr u))
 		  (u (car u)))
@@ -520,7 +532,7 @@
 			     (write-char #\) out))
 			   a))))
 		 (##sys#warn (get-output-string out))))))
-	 (module-undefined-list mod))
+	 (reverse (module-undefined-list mod)))
 	(when missing
 	  (##sys#error "module unresolved" name))
 	(let* ((iexports 
@@ -561,19 +573,24 @@
 
 ;;; Import-expansion
 
+(define (##sys#with-environment thunk)
+  (parameterize ((##sys#current-module #f)
+                 (##sys#current-environment '())
+                 (##sys#current-meta-environment
+                   (##sys#current-meta-environment))
+                 (##sys#macro-environment
+		   (##sys#meta-macro-environment)))
+    (thunk)))
+
 (define (##sys#import-library-hook mname)
   (and-let* ((il (chicken.load#find-dynamic-extension
 		  (string-append (symbol->string mname) ".import")
 		  #t)))
-     (parameterize ((##sys#current-module #f)
-		    (##sys#current-environment '())
-		    (##sys#current-meta-environment
-		     (##sys#current-meta-environment))
-		      (##sys#macro-environment
-		       (##sys#meta-macro-environment)))
-	(fluid-let ((##sys#notices-enabled #f)) ; to avoid re-import warnings
-	  (load il)
-	  (##sys#find-module mname 'import)))))
+     (##sys#with-environment
+       (lambda ()
+         (fluid-let ((##sys#notices-enabled #f)) ; to avoid re-import warnings
+           (load il)
+           (##sys#find-module mname 'import))))))
 
 (define (find-module/import-library lib loc)
   (let ((mname (##sys#resolve-module-name lib loc)))
@@ -1108,6 +1125,12 @@
 
 (##sys#register-primitive-module
  'srfi-55 '() (se-subset '(require-extension) ##sys#chicken.base-macro-environment))
+
+(##sys#register-core-module
+ 'srfi-88 'library
+ '((keyword? . chicken.keyword#keyword?)
+   (keyword->string chicken.keyword#keyword->string)
+   (string->keyword chicken.keyword#string->keyword)))
 
 (##sys#register-core-module
  'srfi-98 'posix

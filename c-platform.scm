@@ -1,6 +1,6 @@
 ;;;; c-platform.scm - Platform specific parameters and definitions
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -78,6 +78,7 @@
 (define default-units '(library eval))
 
 (define words-per-flonum 4)
+(define min-words-per-bignum 5)
 
 (eq-inline-operator "C_eqp")
 (membership-test-operators
@@ -102,13 +103,15 @@
     no-bound-checks no-procedure-checks-for-usual-bindings no-compiler-syntax
     no-parentheses-synonyms no-symbol-escape r5rs-syntax emit-all-import-libraries
     strict-types clustering lfa2 debug-info
-    regenerate-import-libraries setup-mode no-module-registration))
+    regenerate-import-libraries setup-mode
+    module-registration no-module-registration))
 
 (define valid-compiler-options-with-argument
   '(debug emit-link-file
     output-file include-path heap-size stack-size unit uses module
     keyword-style require-extension inline-limit profile-name
     prelude postlude prologue epilogue nursery extend feature no-feature
+    unroll-limit
     emit-inline-file consult-inline-file
     emit-types-file consult-types-file
     emit-import-library))
@@ -261,7 +264,7 @@
   '(##sys#slot ##sys#setslot ##sys#block-ref ##sys#block-set! ##sys#/-2
     ##sys#call-with-current-continuation ##sys#size ##sys#byte ##sys#setbyte
     ##sys#pointer? ##sys#generic-structure? ##sys#structure? ##sys#check-structure
-    ##sys#check-exact ##sys#check-number ##sys#check-list ##sys#check-pair ##sys#check-string
+    ##sys#check-number ##sys#check-list ##sys#check-pair ##sys#check-string
     ##sys#check-symbol ##sys#check-boolean ##sys#check-locative
     ##sys#check-port ##sys#check-input-port ##sys#check-output-port
     ##sys#check-open-port
@@ -500,7 +503,7 @@
 (rewrite 'scheme#cdddr 2 1 "C_i_cdddr" #t)
 (rewrite 'scheme#cddddr 2 1 "C_i_cddddr" #t)
 
-(rewrite 'scheme#cdr 7 1 "C_slot" 1 #f)
+(rewrite 'scheme#cdr 2 1 "C_u_i_cdr" #f)
 (rewrite 'scheme#cdr 2 1 "C_i_cdr" #t)
 
 (rewrite 'scheme#eq? 1 2 "C_eqp")
@@ -649,7 +652,7 @@
 (rewrite 'chicken.flonum#fpgcd 16 2 "C_a_i_flonum_gcd" #f words-per-flonum)
 
 (rewrite 'scheme#zero? 5 "C_eqp" 0 'fixnum)
-(rewrite 'scheme#zero? 2 1 "C_u_i_zerop" #f)
+(rewrite 'scheme#zero? 2 1 "C_u_i_zerop2" #f)
 (rewrite 'scheme#zero? 2 1 "C_i_zerop" #t)
 (rewrite 'scheme#positive? 5 "C_fixnum_greaterp" 0 'fixnum)
 (rewrite 'scheme#positive? 5 "C_flonum_greaterp" 0 'flonum)
@@ -667,7 +670,6 @@
 (rewrite '##sys#vector-length 2 1 "C_i_vector_length" #t)
 (rewrite 'scheme#string-length 2 1 "C_i_string_length" #t)
 
-(rewrite '##sys#check-exact 2 1 "C_i_check_exact" #t)
 (rewrite '##sys#check-fixnum 2 1 "C_i_check_fixnum" #t)
 (rewrite '##sys#check-number 2 1 "C_i_check_number" #t)
 (rewrite '##sys#check-list 2 1 "C_i_check_list" #t)
@@ -680,7 +682,6 @@
 (rewrite '##sys#check-vector 2 1 "C_i_check_vector" #t)
 (rewrite '##sys#check-structure 2 2 "C_i_check_structure" #t)
 (rewrite '##sys#check-char 2 1 "C_i_check_char" #t)
-(rewrite '##sys#check-exact 2 2 "C_i_check_exact_2" #t)
 (rewrite '##sys#check-fixnum 2 2 "C_i_check_fixnum_2" #t)
 (rewrite '##sys#check-number 2 2 "C_i_check_number_2" #t)
 (rewrite '##sys#check-list 2 2 "C_i_check_list_2" #t)
@@ -968,8 +969,11 @@
 (rewrite 'chicken.memory#pointer-f32-set! 2 2 "C_u_i_pointer_f32_set" #f)
 (rewrite 'chicken.memory#pointer-f64-set! 2 2 "C_u_i_pointer_f64_set" #f)
 
-(rewrite 'chicken.memory#pointer-u32-ref 16 1 "C_a_u_i_pointer_u32_ref" #f words-per-flonum)
-(rewrite 'chicken.memory#pointer-s32-ref 16 1 "C_a_u_i_pointer_s32_ref" #f words-per-flonum)
+;; on 32-bit platforms, 32-bit integers do not always fit in a word,
+;; bignum1 and bignum wrapper (5 words) may be used instead
+(rewrite 'chicken.memory#pointer-u32-ref 16 1 "C_a_u_i_pointer_u32_ref" #f min-words-per-bignum)
+(rewrite 'chicken.memory#pointer-s32-ref 16 1 "C_a_u_i_pointer_s32_ref" #f min-words-per-bignum)
+
 (rewrite 'chicken.memory#pointer-f32-ref 16 1 "C_a_u_i_pointer_f32_ref" #f words-per-flonum)
 (rewrite 'chicken.memory#pointer-f64-ref 16 1 "C_a_u_i_pointer_f64_ref" #f words-per-flonum)
 
@@ -1074,8 +1078,8 @@
 (rewrite 'srfi-4#s16vector-ref 2 2 "C_u_i_s16vector_ref" #f)
 (rewrite 'srfi-4#s16vector-ref 2 2 "C_i_s16vector_ref" #t)
 
-(rewrite 'srfi-4#u32vector-ref 16 2 "C_a_i_u32vector_ref" #t words-per-flonum)
-(rewrite 'srfi-4#s32vector-ref 16 2 "C_a_i_s32vector_ref" #t words-per-flonum)
+(rewrite 'srfi-4#u32vector-ref 16 2 "C_a_i_u32vector_ref" #t min-words-per-bignum)
+(rewrite 'srfi-4#s32vector-ref 16 2 "C_a_i_s32vector_ref" #t min-words-per-bignum)
 
 (rewrite 'srfi-4#f32vector-ref 16 2 "C_a_u_i_f32vector_ref" #f words-per-flonum)
 (rewrite 'srfi-4#f32vector-ref 16 2 "C_a_i_f32vector_ref" #t words-per-flonum)

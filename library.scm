@@ -1,6 +1,6 @@
 ;;;; library.scm - R5RS library for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -592,6 +592,7 @@ EOF
    notice procedure-information setter signum string->uninterned-symbol
    subvector symbol-append vector-copy! vector-resize
    warning quotient&remainder quotient&modulo
+   record-printer set-record-printer!
    alist-ref alist-update alist-update! rassoc atom? butlast chop
    compress flatten intersperse join list-of? tail? constantly
    complement compose conjoin disjoin each flip identity o
@@ -660,6 +661,8 @@ EOF
 (define procedure-information)
 (define setter)
 (define string->uninterned-symbol)
+(define record-printer)
+(define set-record-printer!)
 
 (define gensym)
 
@@ -1141,7 +1144,7 @@ EOF
       (##core#inline "C_i_check_fixnum_2" x (car loc))
       (##core#inline "C_i_check_fixnum" x) ) )
 
-(define (##sys#check-exact x . loc) 
+(define (##sys#check-exact x . loc) ;; DEPRECATED
   (if (pair? loc)
       (##core#inline "C_i_check_exact_2" x (car loc))
       (##core#inline "C_i_check_exact" x) ) )
@@ -2398,9 +2401,13 @@ EOF
 ;; Shorthand for readability.  TODO: Replace other C_subchar calls with this
 (define-inline (%subchar s i) (##core#inline "C_subchar" s i))
 (define (##sys#string->compnum radix str offset exactness)
-  (define (go-inexact!)
-    ;; Go inexact unless exact was requested (with #e prefix)
-    (unless (eq? exactness 'e) (set! exactness 'i)))
+  ;; Flipped when a sign is encountered (for inexact numbers only)
+  (define negative #f)
+  ;; Go inexact unless exact was requested (with #e prefix)
+  (define (go-inexact! neg?)
+    (unless (eq? exactness 'e)
+      (set! exactness 'i)
+      (set! negative (or negative neg?))))
   (define (safe-exponent value e)
     (and e (cond
             ((not value) 0)
@@ -2461,11 +2468,11 @@ EOF
                    (end (or hashes digits)))
               (and-let* ((end)
                          (num (##core#inline_allocate
-			       ("C_s_a_i_digits_to_integer" 5)
+			       ("C_s_a_i_digits_to_integer" 6)
 			       str start (car end) radix neg?)))
                 (when hashes            ; Eeewww. Feeling dirty yet?
                   (set! seen-hashes? #t)
-                  (go-inexact!))
+                  (go-inexact! neg?))
                 (cons num (cdr end))))))
          (scan-exponent
           (lambda (start)
@@ -2474,9 +2481,8 @@ EOF
                                ((#\+) 'pos) ((#\-) 'neg) (else #f))))
                    (and-let* ((start (if sign (fx+ start 1) start))
                               (end (scan-digits start)))
-                     (go-inexact!)
                      (cons (##core#inline_allocate
-			    ("C_s_a_i_digits_to_integer" 5)
+			    ("C_s_a_i_digits_to_integer" 6)
 			    str start (car end) radix (eq? sign 'neg))
                            (cdr end)))))))
          (scan-decimal-tail             ; The part after the decimal dot
@@ -2508,18 +2514,19 @@ EOF
             (if (and (fx> len (fx+ start 1)) (eq? radix 10)
                      (eq? (%subchar str start) #\.))
                 (begin
-                  (go-inexact!)
+                  (go-inexact! neg?)
                   (scan-decimal-tail (fx+ start 1) neg? #f))
                 (and-let* ((end (scan-digits+hashes start neg? #f)))
                   (case (and (cdr end) (%subchar str (cdr end)))
                     ((#\.)
-                     (go-inexact!)
+                     (go-inexact! neg?)
                      (and (eq? radix 10)
                           (if (fx> len (fx+ (cdr end) 1))
                               (scan-decimal-tail (fx+ (cdr end) 1) neg? (car end))
                               (cons (car end) #f))))
                     ((#\e #\s #\f #\d #\l
                       #\E #\S #\F #\D #\L)
+                     (go-inexact! neg?)
                      (and-let* (((eq? radix 10))
                                 ((fx> len (cdr end)))
                                 (ee (scan-exponent (fx+ (cdr end) 1)))
@@ -2557,7 +2564,7 @@ EOF
                                       (cons (if (eq? sign 'neg) -1 1) next))
                                      ((and (fx<= (fx+ next 5) len)
                                            (string-ci=? (substring str next (fx+ next 5)) "inf.0"))
-                                      (go-inexact!)
+                                      (go-inexact! (eq? sign 'neg))
                                       (cons (if (eq? sign 'neg) -inf.0 +inf.0)
                                             (and (fx< (fx+ next 5) len)
                                                  (fx+ next 5))))
@@ -2567,7 +2574,7 @@ EOF
                            (or (and sign
                                     (fx<= (fx+ next 5) len)
                                     (string-ci=? (substring str next (fx+ next 5)) "nan.0")
-                                    (begin (go-inexact!)
+                                    (begin (go-inexact! (eq? sign 'neg))
                                            (cons (make-nan)
                                                  (and (fx< (fx+ next 5) len)
                                                       (fx+ next 5)))))
@@ -2595,7 +2602,10 @@ EOF
                         (make-polar (car r1) (car r2))))
                      (else #f)))))
     (and number (if (eq? exactness 'i)
-                    (exact->inexact number)
+                    (let ((r (exact->inexact number)))
+                      ;; Stupid hack because flonums can represent negative zero,
+                      ;; but we're coming from an exact which has no such thing.
+                      (if (and negative (zero? r)) (fpneg r) r))
                     ;; Ensure we didn't encounter +inf.0 or +nan.0 with #e
                     (and (finite? number) number)))))
 
@@ -3005,46 +3015,40 @@ EOF
 	  (else (##sys#error-not-a-proper-list lst0 'map)) ) ))
 
 (letrec ((mapsafe
-	  (lambda (p lsts start loc)
-	    (if (eq? lsts '())
-		lsts
-		(let ((item (##sys#slot lsts 0)))
-		  (cond ((eq? item '())
-			 (check lsts start loc))
-			((pair? item)
-			 (cons (p item) (mapsafe p (##sys#slot lsts 1) #f loc)) )
-			(else (##sys#error-not-a-proper-list item loc)) ) ) ) ) )
-	 (check 
-	  (lambda (lsts start loc)
-	    (if (or (not start)
-		    (let loop ((lsts lsts))
-		      (and (not (eq? lsts '()))
-			   (not (eq? (##sys#slot lsts 0) '()))
-			   (loop (##sys#slot lsts 1)) ) ) )
-		(##sys#error loc "lists are not of same length" lsts) ) ) ) )
+	  (lambda (p lsts loc)
+	    (call-with-current-continuation
+	     (lambda (empty)
+	       (let lp ((lsts lsts))
+		 (if (eq? lsts '())
+		     lsts
+		     (let ((item (##sys#slot lsts 0)))
+		       (cond ((eq? item '()) (empty '()))
+			     ((pair? item)
+			      (cons (p item) (lp (##sys#slot lsts 1))))
+			     (else (##sys#error-not-a-proper-list item loc)))))))))))
 
   (set! scheme#for-each
     (lambda (fn lst1 . lsts)
       (if (null? lsts)
 	  (##sys#for-each fn lst1)
 	  (let loop ((all (cons lst1 lsts)))
-	    (let ((first (##sys#slot all 0)))
-	      (cond ((pair? first)
-		     (apply fn (mapsafe (lambda (x) (car x)) all #t 'for-each)) ; ensure inlining
-		     (loop (mapsafe (lambda (x) (cdr x)) all #t 'for-each)) )
-		    (else (check all #t 'for-each)) ) ) ) ) ) )
+	    (let* ((first (##sys#slot all 0))
+		   (safe-args (mapsafe (lambda (x) (car x)) all 'for-each))) ; ensure inlining
+	      (when (pair? safe-args)
+		(apply fn safe-args)
+		(loop (mapsafe (lambda (x) (cdr x)) all 'for-each))))))))
 
   (set! scheme#map
     (lambda (fn lst1 . lsts)
       (if (null? lsts)
 	  (##sys#map fn lst1)
 	  (let loop ((all (cons lst1 lsts)))
-	    (let ((first (##sys#slot all 0)))
-	      (cond ((pair? first)
-		     (cons (apply fn (mapsafe (lambda (x) (car x)) all #t 'map))
-			   (loop (mapsafe (lambda (x) (cdr x)) all #t 'map)) ) )
-		    (else (check (##core#inline "C_i_cdr" all) #t 'map)
-			  '() ) ) ) ) ) ) ) )
+	    (let* ((first (##sys#slot all 0))
+		   (safe-args (mapsafe (lambda (x) (car x)) all 'map)))
+	      (if (pair? safe-args)
+		  (cons (apply fn safe-args)
+			(loop (mapsafe (lambda (x) (cdr x)) all 'map)))
+		  '())))))))
 
 
 ;;; dynamic-wind:
@@ -3677,9 +3681,11 @@ EOF
   (##sys#read-error port "invalid `#...' read syntax" n) )
 
 (set! chicken.base#case-sensitive (make-parameter #t))
-(set! chicken.base#keyword-style (make-parameter #:suffix))
 (set! chicken.base#parentheses-synonyms (make-parameter #t))
 (set! chicken.base#symbol-escape (make-parameter #t))
+
+(set! chicken.base#keyword-style
+  (make-parameter #:suffix (lambda (x) (when x (##sys#check-keyword x 'keyword-style)) x)))
 
 (define ##sys#current-read-table (make-parameter (##sys#make-structure 'read-table #f #f #f)))
 
@@ -4014,49 +4020,51 @@ EOF
 		 (info 'symbol-info s (##sys#port-line port)) ) )))
 
 	  (define (r-xtoken k)
-	    (let ((pkw #f))
-	      (let loop ((lst '()) (skw #f))
-		(let ((c (##sys#peek-char-0 port)))
-		  (cond ((or (eof-object? c) 
-			     (char-whitespace? c)
-			     (memq c terminating-characters))
-			 ;; The not null? checks here ensure we read a
-			 ;; plain ":" as a symbol, not as a keyword.
-			 (if (and skw (eq? ksp #:suffix)
-				  (not (null? (cdr lst))))
-			     (k (##sys#reverse-list->string (cdr lst)) #t)
-			     (k (##sys#reverse-list->string lst)
-				(and pkw (not (null? lst))))))
-                        ((memq c reserved-characters)
-			  (reserved-character c))
-			(else
-			 (let ((c (##sys#read-char-0 port)))
-			   (case c
-			     ((#\|) 
-			      (let ((part (r-string #\|)))
-				(loop (append (##sys#fast-reverse (##sys#string->list part)) lst)
-				      #f)))
-			     ((#\newline)
-			      (##sys#read-warning
-			       port "escaped symbol syntax spans multiple lines"
-			       (##sys#reverse-list->string lst))
-			      (loop (cons #\newline lst) #f))
-			     ((#\:)
-			      (cond ((and (null? lst) (eq? ksp #:prefix))
-				     (set! pkw #t)
-				     (loop '() #f))
-				    (else (loop (cons #\: lst) #t))))
-			     ((#\\)
-			      (let ((c (##sys#read-char-0 port)))
-				(if (eof-object? c)
-				    (##sys#read-error
-				     port
-				     "unexpected end of file while reading escaped character")
-				    (loop (cons c lst) #f))))
-			     (else 
-			      (loop 
-			       (cons (if csp c (char-downcase c)) lst)
-			       #f))))))))))
+	    (let loop ((lst '()) (pkw #f) (skw #f) (qtd #f))
+	      (let ((c (##sys#peek-char-0 port)))
+		(cond ((or (eof-object? c)
+			   (char-whitespace? c)
+			   (memq c terminating-characters))
+		       ;; The not null? checks here ensure we read a
+		       ;; plain ":" as a symbol, not as a keyword.
+		       ;; However, when the keyword is quoted like ||:,
+		       ;; it _should_ be read as a keyword.
+		       (if (and skw (eq? ksp #:suffix)
+				(or qtd (not (null? (cdr lst)))))
+			   (k (##sys#reverse-list->string (cdr lst)) #t)
+			   (k (##sys#reverse-list->string lst)
+			      (and pkw (or qtd (not (null? lst)))))))
+		      ((memq c reserved-characters)
+		       (reserved-character c))
+		      (else
+		       (let ((c (##sys#read-char-0 port)))
+			 (case c
+			   ((#\|)
+			    (let ((part (r-string #\|)))
+			      (loop (append (##sys#fast-reverse (##sys#string->list part)) lst)
+				    pkw #f #t)))
+			   ((#\newline)
+			    (##sys#read-warning
+			     port "escaped symbol syntax spans multiple lines"
+			     (##sys#reverse-list->string lst))
+			    (loop (cons #\newline lst) pkw #f qtd))
+			   ((#\:)
+			    (cond ((and (null? lst)
+					(not qtd)
+					(eq? ksp #:prefix))
+				   (loop '() #t #f qtd))
+				  (else (loop (cons #\: lst) pkw #t qtd))))
+			   ((#\\)
+			    (let ((c (##sys#read-char-0 port)))
+			      (if (eof-object? c)
+				  (##sys#read-error
+				   port
+				   "unexpected end of file while reading escaped character")
+				  (loop (cons c lst) pkw #f qtd))))
+			   (else
+			    (loop
+			     (cons (if csp c (char-downcase c)) lst)
+			     pkw #f qtd)))))))))
 	  
 	  (define (r-char)
 	    ;; Code contributed by Alex Shinn
@@ -4649,12 +4657,27 @@ EOF
 
 (define ##sys#record-printers '())
 
-(define (##sys#register-record-printer type proc)
-  (let ([a (assq type ##sys#record-printers)])
-    (if a 
-	(##sys#setslot a 1 proc)
-	(set! ##sys#record-printers (cons (cons type proc) ##sys#record-printers)) )
-    (##core#undefined) ) )
+(set! chicken.base#record-printer
+  (lambda (type)
+    (##sys#check-symbol type 'record-printer)
+    (let ((a (assq type ##sys#record-printers)))
+      (and a (cdr a)))))
+
+(set! chicken.base#set-record-printer!
+  (lambda (type proc)
+    (##sys#check-symbol type 'set-record-printer!)
+    (##sys#check-closure proc 'set-record-printer!)
+    (let ((a (assq type ##sys#record-printers)))
+      (if a
+	  (##sys#setslot a 1 proc)
+	  (set! ##sys#record-printers (cons (cons type proc) ##sys#record-printers)))
+      (##core#undefined))))
+
+;; OBSOLETE can be removed after bootstrapping
+(set! ##sys#register-record-printer chicken.base#set-record-printer!)
+
+(set! chicken.base#record-printer
+  (getter-with-setter record-printer set-record-printer!))
 
 (define (##sys#user-print-hook x readable port)
   (let* ((type (##sys#slot x 0))
@@ -5430,6 +5453,15 @@ EOF
 	((53) (apply ##sys#signal-hook #:type-error loc "bad argument type - not an exact integer" args))
 	((54) (apply ##sys#signal-hook #:type-error loc "number does not fit in foreign type" args))
 	((55) (apply ##sys#signal-hook #:type-error loc "cannot compute absolute value of complex number" args))
+	((56) (let ((c (car args))
+		    (n (cadr args))
+		    (fn (caddr args)))
+	        (apply
+		 ##sys#signal-hook
+		 #:bounds-error loc
+		 (string-append "attempted rest argument access at index " (##sys#number->string n)
+                                " but rest list length is " (##sys#number->string c) )
+		 (if fn (list fn) '()))))
 	(else (apply ##sys#signal-hook #:runtime-error loc "unknown internal error" args)) ) ) ) )
 
 ) ; chicken.condition
@@ -6020,8 +6052,8 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define (memory-statistics)
   (let* ((free (##sys#gc #t))
 	 (info (##sys#memory-info))
-	 (hsize (##sys#slot info 0)))
-    (vector hsize (fx- hsize free) (##sys#slot info 1))))
+	 (half-size (fx/ (##sys#slot info 0) 2)))
+    (vector half-size (fx- half-size free) (##sys#slot info 1))))
 
 ;;; Finalization:
 
@@ -6067,10 +6099,11 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define ##sys#run-pending-finalizers
   (let ((vector-fill! vector-fill!)
 	(string-append string-append)
-	(working #f) )
+	(working-thread #f) )
     (lambda (state)
-      (unless working
-	(set! working #t)
+      (cond
+       ((not working-thread)
+	(set! working-thread ##sys#current-thread)
 	(let* ((c (##sys#slot ##sys#pending-finalizers 0)) )
 	  (when (##sys#debug-mode?)
 	    (##sys#print 
@@ -6092,7 +6125,15 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 		 (##sys#slot ##sys#pending-finalizers i2)) ) ))
 	  (vector-fill! ##sys#pending-finalizers (##core#undefined))
 	  (##sys#setislot ##sys#pending-finalizers 0 0) 
-	  (set! working #f) ) )
+	  (set! working-thread #f)))
+       (state)         ; Got here due to interrupt; continue w/o error
+       ((eq? working-thread ##sys#current-thread)
+	 (##sys#signal-hook
+	  #:error '##sys#run-pending-finalizers
+	  "re-entry from finalizer thread (maybe (gc #t) was called from a finalizer)"))
+       (else
+	;; Give finalizer thread a change to run
+	(##sys#thread-yield!)))
       (cond ((not state))
 	    ((procedure? state) (state))
 	    (state (##sys#context-switch state) ) ) ) ))
@@ -6416,7 +6457,10 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define-foreign-variable installation-home c-string "C_INSTALL_SHARE_HOME")
 (define-foreign-variable install-egg-home c-string "C_INSTALL_EGG_HOME")
 
-(define (chicken-home) installation-home)
+(define (chicken-home)
+  (or (and-let* ((prefix (get-environment-variable "CHICKEN_INSTALL_PREFIX")))
+        (string-append prefix "/share"))
+      installation-home))
 
 (define path-list-separator
   (if ##sys#windows-platform #\; #\:))
@@ -6483,7 +6527,8 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 
 (define ##sys#features
   '(#:chicken
-    #:srfi-6 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30 #:srfi-39 #:srfi-62 #:full-numeric-tower))
+    #:srfi-6 #:srfi-8 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30
+    #:srfi-39 #:srfi-62 #:srfi-88 #:full-numeric-tower))
 
 ;; Add system features:
 

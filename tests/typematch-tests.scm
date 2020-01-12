@@ -427,4 +427,27 @@
 
 (infer true (= 3 (+ 1 2))) ; Constant folding should happen before / during scrutiny
 
+
+;; #1649; foreign types with retconv should not be inferred to have
+;; the foreign type's corresponding Scheme type, as the retconv may
+;; return a wildly different type.
+(define-foreign-type retconverted-foreign-int int identity ->string)
+(define-foreign-type argconverted-foreign-int int ->string)
+
+;; retconverted-type gets annotated with type (procedure () fixnum)
+;; when the return type should be whatever the retconvert argument
+;; to define-foreign-type returns (string in this case)
+(let ((retconverted (foreign-lambda retconverted-foreign-int "rand")))
+  (infer string (retconverted)))
+
+(let ((argconverted (foreign-lambda argconverted-foreign-int "rand")))
+  ;; Currently types with only argconvert get a retconvert as well,
+  ;; which is set to ##sys#values.  Ideally we should recognise this and
+  ;; know the type is unmodified.
+  ;(infer fixnum (argconverted))
+  (infer-not fixnum (argconverted)) )
+
+(let ((unconverted (foreign-lambda int "rand")))
+  (infer fixnum (unconverted)))
+
 (test-exit)

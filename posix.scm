@@ -1,6 +1,6 @@
 ;;;; posix.scm - Platform-specific routines
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;

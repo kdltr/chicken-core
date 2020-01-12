@@ -184,6 +184,8 @@ Fetches the matched substring (or its start or end offset) at the
 given submatch index, or named submatch.  The entire match is index 0,
 the first 1, etc.  The default is index 0.
 
+Returns {{#f}} if the given submatch did not match the source string (can happen when you have the submatch inside an {{or}} alternative, for example).
+
 ==== irregex-match-subchunk
 ==== irregex-match-start-chunk
 ==== irregex-match-end-chunk
@@ -198,6 +200,8 @@ Access the chunks delimiting the submatch index, or named submatch.
 match item, of the same type as the underlying chunk type (see Chunked
 String Matching below).  This is only available if the chunk type
 specifies the get-subchunk API, otherwise an error is raised.
+
+Returns {{#f}} if the given submatch did not match the source string (can happen when you have the submatch inside an {{or}} alternative, for example).
 
 ==== irregex-replace
 ==== irregex-replace/all
@@ -218,6 +222,8 @@ Examples:
 
 (irregex-replace/all "[aeiou]" "hello world" "*") => "h*ll* w*rld"
 
+(irregex-replace/all '(* "poo ") "poo poo platter" "*") => "**p*l*a*t*t*e*r"
+
 (irregex-replace "(.)(.)" "ab" 2 1 "*")  => "ba*"
 
 (irregex-replace "...bar" "xxfoobar" (lambda (m) 
@@ -237,6 +243,16 @@ Examples:
 by the pattern in {{<irx>}}.  {{irregex-extract}} does the opposite,
 returning a list of each instance of the pattern matched disregarding
 the substrings in between.
+
+Empty matches will result in subsequent single character string in
+{{irregex-split}}, or empty strings in {{irregex-extract}}.
+
+<enscript highlight="scheme">
+(irregex-split "[aeiou]*" "foobarbaz") => '("f" "b" "r" "b" "z")
+
+(irregex-extract "[aeiou]*" "foobarbaz") => '("" "oo" "" "a" "" "" "a" "")
+</enscript>
+
 
 ==== irregex-fold
 
@@ -284,6 +300,12 @@ To extract all instances of a match out of a string, you can use
 		   <str>
 		   (lambda (i s) (reverse s))))
 </enscript>
+
+Note if an empty match is found {{<kons>}} will be called on that
+empty string, and to avoid an infinite loop matching will resume at
+the next char.  It is up to the programmer to do something sensible
+with the skipped char in this case.
+
 
 === Extended SRE Syntax
 

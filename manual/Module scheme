@@ -2849,11 +2849,14 @@ arguments.
 <procedure>(map proc list[1] list[2] ...)</procedure><br>
 
 The lists must be lists, and proc must be a procedure taking as many
-arguments as there are lists and returning a single value. If more than
-one list is given, then they must all be the same length. Map applies
+arguments as there are lists and returning a single value. Map applies
 proc element-wise to the elements of the lists and returns a list of
 the results, in order. The dynamic order in which proc is applied to
 the elements of the lists is unspecified.
+
+Like in SRFI-1, this procedure allows the arguments to be of unequal
+length; it terminates when the shortest list runs out.  This is a
+CHICKEN extension to R5RS.
 
  (map cadr '((a b) (d e) (g h)))   
                  ===>  (b e h)
@@ -2883,6 +2886,10 @@ for-each is unspecified.
                (vector-set! v i (* i i)))
              '(0 1 2 3 4))
    v)                                        ===>  #(0 1 4 9 16)
+
+Like in SRFI-1, this procedure allows the arguments to be of unequal
+length; it terminates when the shortest list runs out.  This is a
+CHICKEN extension to R5RS.
 
 <procedure>(force promise)</procedure><br>
 

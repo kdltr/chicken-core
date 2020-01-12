@@ -1,6 +1,6 @@
 ;;;; csi.scm - Interpreter stub for CHICKEN
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -508,7 +508,7 @@ EOF
                     (installation-repository)
 		    (repository-path)
 		    ##sys#include-pathnames
-		    (symbol->string (keyword-style))
+		    (keyword->string (keyword-style))
 		    (shorten (vector-ref sinfo 0))
 		    (shorten (vector-ref sinfo 1))
 		    (vector-ref sinfo 2)
@@ -1080,7 +1080,8 @@ EOF
       (eval `(import ,@default-imports))
       (unless quiet
 	(load-verbose #t)
-	(print-banner))
+	(print-banner)
+	(print "Type ,? for help."))
       (unless (or (member* '("-n" "-no-init") args) script eval?)
 	(loadinit))
       (when batch

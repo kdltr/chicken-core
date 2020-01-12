@@ -1,6 +1,6 @@
 ;;;; chicken-ffi-syntax.scm
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -213,6 +213,34 @@
 
 ;;; Aliases for internal forms
 
+(define (annotate-foreign-procedure e argtypes rtype)
+  (let ((scrut-atypes (map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
+			   (chicken.syntax#strip-syntax argtypes)))
+	(scrut-rtype (and rtype
+			  (chicken.compiler.support#foreign-type->scrutiny-type
+			   (chicken.syntax#strip-syntax rtype) 'result))))
+    ;; Don't add type annotation if the scrutinizer can infer the same
+    ;; or better.
+    ;;
+    ;; At least these cases should work:
+    ;;
+    ;;   (-> <some-known-type>)	=> annotate
+    ;;   (-> *)			=> no annotation
+    ;;   (* ... -> *)		=> no annotation
+    ;;
+    (if (and (or (not rtype) (eq? scrut-rtype '*))
+	     (every (cut eq? '* <>) scrut-atypes))
+	e
+	`(##core#the
+	  (procedure ,scrut-atypes
+		     ,@(if rtype
+			   (list scrut-rtype)
+			   ;; Special case for C_values(...). Only
+			   ;; triggered by foreign-primitive.
+			   '*))
+	  #f
+	  ,e))))
+
 (##sys#extend-macro-environment
  'define-foreign-type
  '()
@@ -236,17 +264,12 @@
   (lambda (form r c)
     (##sys#check-syntax 'foreign-primitive form '(_ _ . _))
     (let* ((hasrtype (and (pair? (cddr form)) (not (string? (caddr form)))))
-	   (rtype (and hasrtype (chicken.syntax#strip-syntax (cadr form))))
-	   (args (chicken.syntax#strip-syntax (if hasrtype (caddr form) (cadr form))))
+	   (rtype (and hasrtype (cadr form)))
+	   (args (if hasrtype (caddr form) (cadr form)))
 	   (argtypes (map car args)))
-      `(##core#the (procedure
-		    ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
-			  argtypes)
-		    ,@(if (not rtype)
-			  '* ; special case for C_values(...)
-			  (list (chicken.compiler.support#foreign-type->scrutiny-type rtype 'result))))
-		   #f
-		   (##core#foreign-primitive ,@(cdr form)))))))
+      (annotate-foreign-procedure `(##core#foreign-primitive ,@(cdr form))
+				  argtypes
+				  rtype)))))
 
 (##sys#extend-macro-environment
  'foreign-lambda
@@ -254,13 +277,9 @@
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-lambda form '(_ _ _ . _))
-    `(##core#the
-      (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
-		       (chicken.syntax#strip-syntax (cdddr form)))
-		 ,(chicken.compiler.support#foreign-type->scrutiny-type
-		   (chicken.syntax#strip-syntax (cadr form)) 'result))
-      #f
-      (##core#foreign-lambda ,@(cdr form))))))
+    (annotate-foreign-procedure `(##core#foreign-lambda ,@(cdr form))
+				(cdddr form)
+				(cadr form)))))
 
 (##sys#extend-macro-environment
  'foreign-lambda*
@@ -268,16 +287,9 @@
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-lambda* form '(_ _ _ _ . _))
-    `(##core#the
-      (procedure ,(map (lambda (a)
-			 (chicken.compiler.support#foreign-type->scrutiny-type
-			  (car a)
-			  'arg))
-			(chicken.syntax#strip-syntax (caddr form)))
-		  ,(chicken.compiler.support#foreign-type->scrutiny-type
-		    (chicken.syntax#strip-syntax (cadr form)) 'result))
-      #f
-      (##core#foreign-lambda* ,@(cdr form))))))
+    (annotate-foreign-procedure `(##core#foreign-lambda* ,@(cdr form))
+				(map car (caddr form))
+				(cadr form)))))
 
 (##sys#extend-macro-environment
  'foreign-safe-lambda
@@ -285,13 +297,9 @@
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-safe-lambda form '(_ _ _ . _))
-    `(##core#the
-      (procedure ,(map (cut chicken.compiler.support#foreign-type->scrutiny-type <> 'arg)
-			(chicken.syntax#strip-syntax (cdddr form)))
-		  ,(chicken.compiler.support#foreign-type->scrutiny-type
-		    (chicken.syntax#strip-syntax (cadr form)) 'result))
-      #f
-      (##core#foreign-safe-lambda ,@(cdr form))))))
+    (annotate-foreign-procedure `(##core#foreign-safe-lambda ,@(cdr form))
+				(cdddr form)
+				(cadr form)))))
 
 (##sys#extend-macro-environment
  'foreign-safe-lambda*
@@ -299,14 +307,9 @@
  (compiler-only-er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'foreign-safe-lambda* form '(_ _ _ _ . _))
-    `(##core#the
-      (procedure ,(map (lambda (a)
-			 (chicken.compiler.support#foreign-type->scrutiny-type (car a) 'arg))
-			(chicken.syntax#strip-syntax (caddr form)))
-		  ,(chicken.compiler.support#foreign-type->scrutiny-type
-		    (chicken.syntax#strip-syntax (cadr form)) 'result))
-      #f
-      (##core#foreign-safe-lambda* ,@(cdr form))))))
+    (annotate-foreign-procedure `(##core#foreign-safe-lambda* ,@(cdr form))
+				(map car (caddr form))
+				(cadr form)))))
 
 (##sys#extend-macro-environment
  'foreign-type-size

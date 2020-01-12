@@ -1,6 +1,6 @@
 ;;;; lfa2.scm - a lightweight "secondary" flow analysis
 ;
-; Copyright (c) 2012-2019, The CHICKEN Team
+; Copyright (c) 2012-2020, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -56,7 +56,7 @@
 
 (define +type-check-map+
   '(("C_i_check_closure" procedure)
-    ("C_i_check_exact" fixnum bignum integer ratnum)
+    ("C_i_check_exact" fixnum bignum integer ratnum) ;; DEPRECATED
     ("C_i_check_inexact" float)	; Or an inexact cplxnum...
     ("C_i_check_number" fixnum integer bignum ratnum float cplxnum number)
     ("C_i_check_string" string)
@@ -71,7 +71,7 @@
     ("C_i_check_structure" *struct*)	; special case
     ("C_i_check_char" char)
     ("C_i_check_closure_2" procedure)
-    ("C_i_check_exact_2" fixnum bignum integer ratnum)
+    ("C_i_check_exact_2" fixnum bignum integer ratnum) ;; DEPRECATED
     ("C_i_check_inexact_2" float)	; Or an inexact cplxnum...
     ("C_i_check_number_2" fixnum integer bignum ratnum float cplxnum number)
     ("C_i_check_string_2" string)
@@ -208,7 +208,7 @@
     ("C_flonum_greater_or_equal_p" "C_ub_i_flonum_greater_or_equal_p" pred)
     ("C_flonum_less_or_equal_p" "C_ub_i_flonum_less_or_equal_p" pred)
     ("C_u_i_flonum_nanp" "C_ub_i_flonum_nanp" pred)
-    ("C_u_i_flonum_infinitep" "C_ub_i_flonum_infnitep" pred)
+    ("C_u_i_flonum_infinitep" "C_ub_i_flonum_infinitep" pred)
     ("C_u_i_flonum_finitepp" "C_ub_i_flonum_finitep" pred)
     ("C_a_i_flonum_sin" "C_sin" op)
     ("C_a_i_flonum_cos" "C_cos" op)
@@ -258,6 +258,15 @@
 	     `(struct ,(##sys#slot lit 0)))
 	    ((char? lit) 'char)
 	    (else '*)))
+    
+    (define (merge t1 t2)
+      (cond ((eq? t1 t2) t1)
+            ((and (pair? t1) (pair? t2)
+                  (eq? (car t1) 'struct)
+                  (eq? (car t2) 'struct)
+                  (eq? (cadr t1) (cadr t2)))
+             t1)
+            (else '*)))
 
     (define (report elim)
       (cond ((assoc elim stats) =>
@@ -348,16 +357,15 @@
 	   (vartype (first params) te ae))
 	  ((if ##core#cond) 
 	   (let ((tr (walk (first subs) te ae)))
-	     (cond ((and (pair? tr) (eq? 'boolean (car tr)))
-		    (walk (second subs)
-			  (append (second tr) te)
-			  ae)
-		    (walk (third subs)
-			  (append (third tr) te)
-			  ae))
-		   (else
-		    (walk (second subs) te ae)
-		    (walk (third subs) te ae)))))
+	     (if (and (pair? tr) (eq? 'boolean (car tr)))
+                 (merge (walk (second subs)
+                              (append (second tr) te)
+                              ae)
+                        (walk (third subs)
+                              (append (third tr) te)
+                              ae)))
+                 (merge (walk (second subs) te ae)
+                        (walk (third subs) te ae))))
 	  ((quote) (constant-result (first params)))
 	  ((let)
 	   (let* ((val (first subs))

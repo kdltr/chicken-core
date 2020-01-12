@@ -16,7 +16,19 @@ Note: Predicate is always true
 
   The given argument has this type:
 
-    pair
+    (pair fixnum fixnum)
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(pair? p)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
@@ -35,6 +47,18 @@ Note: Predicate is always false
 
     null
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -51,6 +75,18 @@ Note: Predicate is always false
   The given argument has this type:
 
     null
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
@@ -69,6 +105,18 @@ Note: Predicate is always false
 
     fixnum
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -85,6 +133,18 @@ Note: Predicate is always false
   The given argument has this type:
 
     float
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
@@ -103,6 +163,18 @@ Note: Predicate is always true
 
     null
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(list? l)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -119,6 +191,47 @@ Note: Predicate is always true
   The given argument has this type:
 
     null
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(list? n)))
+
+  Test condition has always true value of type:
+
+    true
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (scheme#list? p)
+
+  The predicate will always return false.
+
+  Procedure `list?' from module `scheme' is a predicate for:
+
+    list
+
+  The given argument has this type:
+
+    (pair fixnum fixnum)
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
@@ -137,6 +250,18 @@ Note: Predicate is always false
 
     fixnum
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -153,6 +278,18 @@ Note: Predicate is always false
   The given argument has this type:
 
     float
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
@@ -171,6 +308,18 @@ Note: Predicate is always true
 
     null
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(null? n)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -188,6 +337,18 @@ Note: Predicate is always true
 
     null
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(null? l)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -203,7 +364,19 @@ Note: Predicate is always false
 
   The given argument has this type:
 
-    pair
+    (pair fixnum fixnum)
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
@@ -222,6 +395,18 @@ Note: Predicate is always false
 
     fixnum
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -238,6 +423,18 @@ Note: Predicate is always false
   The given argument has this type:
 
     float
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
@@ -256,6 +453,18 @@ Note: Predicate is always true
 
     fixnum
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(fixnum? i)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -272,6 +481,47 @@ Note: Predicate is always false
   The given argument has this type:
 
     float
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
+
+Note: Predicate is always false
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (chicken.base#fixnum? u)
+
+  The predicate will always return false.
+
+  Procedure `fixnum?' from module `chicken.base' is a predicate for:
+
+    fixnum
+
+  The given argument has this type:
+
+    float
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
@@ -290,6 +540,47 @@ Note: Predicate is always true
 
     float
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(flonum? f)))
+
+  Test condition has always true value of type:
+
+    true
+
+Note: Predicate is always true
+  In file `scrutiny-tests-2.scm:XXX',
+  At the toplevel,
+  In procedure call:
+
+    (chicken.base#flonum? u)
+
+  The predicate will always return true.
+
+  Procedure `flonum?' from module `chicken.base' is a predicate for:
+
+    float
+
+  The given argument has this type:
+
+    float
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(flonum? u)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -306,6 +597,18 @@ Note: Predicate is always false
   The given argument has this type:
 
     fixnum
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
@@ -324,6 +627,18 @@ Note: Predicate is always true
 
     fixnum
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(number? i)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -341,6 +656,18 @@ Note: Predicate is always true
 
     float
 
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(number? f)))
+
+  Test condition has always true value of type:
+
+    true
+
 Note: Predicate is always true
   In file `scrutiny-tests-2.scm:XXX',
   At the toplevel,
@@ -356,7 +683,19 @@ Note: Predicate is always true
 
   The given argument has this type:
 
-    number
+    float
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(number? u)))
+
+  Test condition has always true value of type:
+
+    true
 
 Note: Predicate is always false
   In file `scrutiny-tests-2.scm:XXX',
@@ -374,3 +713,15 @@ Note: Predicate is always false
   The given argument has this type:
 
     null
+
+Note: Test is always true
+  At the toplevel,
+  In conditional expression:
+
+    (if tmp
+      tmp
+      (##sys#error "(scrutiny-tests-2.scm:XXX) assertion failed" '(not ...)))
+
+  Test condition has always true value of type:
+
+    true

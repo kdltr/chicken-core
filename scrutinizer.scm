@@ -1,6 +1,6 @@
 ;;;; scrutinizer.scm - The CHICKEN Scheme compiler (local flow analysis)
 ;
-; Copyright (c) 2009-2019, The CHICKEN Team
+; Copyright (c) 2009-2020, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -175,6 +175,7 @@
 	(else #f)))
 
 (define (scrutinize node db complain specialize strict block-compilation)
+  (d "################################## SCRUTINIZE ##################################")
   (define (report loc msg . args)
     (when *complain?*
       (warning
@@ -277,11 +278,6 @@
 	(r-cond-test-always-false loc if-node test-node)
 	#t))
 
-    (define (always-immediate var t loc)
-      (and-let* ((_ (type-always-immediate? t)))
-	(d "assignment to var ~a in ~a is always immediate" var loc)
-	#t))
-
     (define (single tv r-value-count-mismatch)
       (if (eq? '* tv)
 	  '*
@@ -302,7 +298,7 @@
 	     (c (append (or a '()) (or b '()))))
 	(and (pair? c) c)))
 
-    (define (call-result node args e loc params typeenv)
+    (define (call-result node args loc typeenv)
       (let* ((actualtypes (map walked-result args))
 	     (ptype (car actualtypes))
 	     (pptype? (procedure-type? ptype))
@@ -435,14 +431,14 @@
 		(make-list argc '*)))
 	  (make-list argc '*)))
 
-    (define (walk n e loc dest tail flow ctags) ; returns result specifier
+    (define (walk n e loc dest flow ctags) ; returns result specifier
       (let ((subs (node-subexpressions n))
 	    (params (node-parameters n)) 
 	    (class (node-class n)) )
-	(dd "walk: ~a ~s (loc: ~a, dest: ~a, tail: ~a, flow: ~a)"
-	    class params loc dest tail flow)
-	#;(dd "walk: ~a ~s (loc: ~a, dest: ~a, tail: ~a, flow: ~a, blist: ~a, e: ~a)"
-	    class params loc dest tail flow blist e)
+	(dd "walk: ~a ~s (loc: ~a, dest: ~a, flow: ~a)"
+	    class params loc dest flow)
+	#;(dd "walk: ~a ~s (loc: ~a, dest: ~a, flow: ~a, blist: ~a, e: ~a)"
+	    class params loc dest flow blist e)
 	(set! d-depth (add1 d-depth))
 	(let ((results
 	       (case class
@@ -460,7 +456,7 @@
 			(tst (first subs))
 			(nor-1 noreturn))
 		    (set! noreturn #f)
-		    (let* ((rt (single (walk tst e loc #f #f flow tags)
+		    (let* ((rt (single (walk tst e loc #f flow tags)
 				       (cut r-conditional-value-count-invalid loc n tst <>)))
 			   (c (second subs))
 			   (a (third subs))
@@ -469,16 +465,16 @@
 			((and (always-true n tst rt loc) specialize)
 			 (set! dropped-branches (add1 dropped-branches))
 			 (mutate-node! n `(let ((,(gensym) ,tst)) ,c))
-			 (walk n e loc dest tail flow ctags))
+			 (walk n e loc dest flow ctags))
 			((and (always-false n tst rt loc) specialize)
 			 (set! dropped-branches (add1 dropped-branches))
 			 (mutate-node! n `(let ((,(gensym) ,tst)) ,a))
-			 (walk n e loc dest tail flow ctags))
+			 (walk n e loc dest flow ctags))
 			(else
-			 (let* ((r1 (walk c e loc dest tail (cons (car tags) flow) #f))
+			 (let* ((r1 (walk c e loc dest (cons (car tags) flow) #f))
 				(nor1 noreturn))
 			   (set! noreturn #f)
-			   (let* ((r2 (walk a e loc dest tail (cons (cdr tags) flow) #f))
+			   (let* ((r2 (walk a e loc dest (cons (cdr tags) flow) #f))
 				 (nor2 noreturn))
 			     (set! noreturn (or nor-1 nor0 (and nor1 nor2)))
 			     ;; when only one branch is noreturn, add blist entries for
@@ -511,10 +507,10 @@
 		  ;; before CPS-conversion, `let'-nodes may have multiple bindings
 		  (let loop ((vars params) (body subs) (e2 '()))
 		    (if (null? vars)
-			(walk (car body) (append e2 e) loc dest tail flow ctags)
+			(walk (car body) (append e2 e) loc dest flow ctags)
 			(let* ((var (car vars))
 			       (val (car body))
-			       (t (single (walk val e loc var #f flow #f)
+			       (t (single (walk val e loc var flow #f)
 					  (cut r-let-value-count-invalid loc var n val <>))))
 			  (when (and (eq? (node-class val) '##core#variable)
 				     (not (db-get db var 'assigned)))
@@ -542,7 +538,7 @@
 				(r (walk (first subs)
 					 (if rest (alist-cons rest 'list e2) e2)
 					 (add-loc dest loc)
-					 #f #t (list initial-tag) #f)))
+					 #f (list initial-tag) #f)))
 			   #;(when (and specialize
 				      dest
 				      (variable-mark dest '##compiler#type-source)
@@ -579,7 +575,7 @@
 		 ((set! ##core#set!)
 		  (let* ((var (first params))
 			 (type (variable-mark var '##compiler#type))
-			 (rt (single (walk (first subs) e loc var #f flow #f)
+			 (rt (single (walk (first subs) e loc var flow #f)
 				     (cut r-assignment-value-count-invalid
 					  loc var n (first subs) <>)))
 			 (typeenv (append 
@@ -624,24 +620,42 @@
 				  loc
 				  "variable `~a' of type `~a' was modified to a value of type `~a'"
 				  var ot rt)))))
-		      ;; don't use "add-to-blist" since the current operation does not affect aliases
 		      (let ((t (if (or strict (not (db-get db var 'captured)))
 				   rt 
 				   '*))
 			    (fl (car flow)))
-			(let loop ((bl blist) (f #f))
+			;; For each outer flow F, change the var's
+			;; type to (or t <old-type@F>). Add a new
+			;; entry for current flow if it's missing.
+			;;
+			;; Motivating example:
+			;;
+			;;   (let* ((x 1)
+			;;          (y x))      ; y x : fixnum @ flow f_1
+			;;     (if foo
+			;;         (set! y 'a)) ; y : symbol   @ flow f_2
+			;;     y)               ; (1)          @ flow f_1
+			;;
+			;; At point (1) the type of y can be inferred
+			;; to be (or fixnum symbol). The type of x
+			;; should stay unchanged, however.
+			(let loop ((bl blist) (fl-found? #f))
 			  (cond ((null? bl)
-				 (unless f
+				 (unless fl-found?
+				   (dd "set! ~a in ~a (new) --> ~a" var fl t)
 				   (set! blist (alist-cons (cons var fl) t blist))))
-				((eq? (caaar bl) var)
-				 (let ((t (simplify-type `(or ,t ,(cdar bl)))))
-				   (dd "assignment modifies blist entry ~s -> ~a"
-				       (caar bl) t)
-				   (set-cdr! (car bl) t)
-				   (loop (cdr bl) (eq? fl (cdaar bl)))))
-				(else (loop (cdr bl) f))))))
+				((eq? var (ble-id (car bl)))
+				 (let* ((ble (car bl))
+					(old-type (ble-type ble))
+					(t2 (simplify-type `(or ,t ,old-type))))
+				   (dd "set! ~a in ~a, or old ~a with ~a --> ~a"
+				       var tag old-type t t2)
+				   (ble-type-set! ble t2)
+				   (loop (cdr bl) (or fl-found? (eq? fl (ble-tag ble))))))
+				(else (loop (cdr bl) fl-found?))))))
 
-		    (when (always-immediate var rt loc)
+		    (when (type-always-immediate? rt)
+		      (d "  assignment to var ~a in ~a is always immediate" var loc)
 		      (set! assigned-immediates (add1 assigned-immediates))
 		      (set-cdr! params '(#t)))
 
@@ -655,7 +669,7 @@
 				       '##core#the/result
 				       (list
 					(single
-					 (walk n2 e loc #f #f flow #f)
+					 (walk n2 e loc #f flow #f)
 					 (cut r-proc-call-argument-value-count loc n i n2 <>)))
 				       (list n2)))
 				    subs
@@ -668,7 +682,7 @@
 			  (and pn (variable-mark pn '##compiler#enforce)))
 			 (pt (and pn (variable-mark pn '##compiler#predicate))))
 		    (let-values (((r specialized?) 
-				  (call-result n args e loc params typeenv)))
+				  (call-result n args loc typeenv)))
 		      (define (smash)
 			(when (and (not strict)
 				   (or (not pn)
@@ -678,7 +692,7 @@
 			  (smash-component-types! e "env")
 			  (smash-component-types! blist "blist")))
 		      (cond (specialized?
-			     (walk n e loc dest tail flow ctags)
+			     (walk n e loc dest flow ctags)
 			     (smash)
 			     ;; keep type, as the specialization may contain icky stuff
 			     ;; like "##core#inline", etc.
@@ -686,7 +700,7 @@
 				 r
 				 (map (cut resolve <> typeenv) r)))
 			    ((eq? 'quote (node-class n)) ; Call got constant folded
-			     (walk n e loc dest tail flow ctags))
+			     (walk n e loc dest flow ctags))
 			    (else
 			     (for-each
 			      (lambda (arg argr)
@@ -748,7 +762,7 @@
 				 (map (cut resolve <> typeenv) r)))))))
 		 ((##core#the)
 		  (let ((t (first params))
-			(rt (walk (first subs) e loc dest tail flow ctags)))
+			(rt (walk (first subs) e loc dest flow ctags)))
 		    (cond ((eq? rt '*))
 			  ((null? rt) (r-zero-values-for-the loc (first subs) t))
 			  (else
@@ -760,7 +774,7 @@
 			     (r-type-mismatch-in-the loc (first subs) (first rt) t))))
 		    (list t)))
 		 ((##core#typecase)
-		  (let* ((ts (walk (first subs) e loc #f #f flow ctags))
+		  (let* ((ts (walk (first subs) e loc #f flow ctags))
 			 (trail0 trail)
 			 (typeenv0 (type-typeenv (car ts))))
 		    ;; first exp is always a variable so ts must be of length 1
@@ -771,20 +785,20 @@
 			    (if (match-types (car types) (car ts) typeenv #t)
 				(begin ; drops exp
 				  (mutate-node! n (car subs))
-				  (walk n e loc dest tail flow ctags))
+				  (walk n e loc dest flow ctags))
 				(begin
 				  (trail-restore trail0 typeenv)
 				  (loop (cdr types) (cdr subs)))))))))
 		 ((##core#switch ##core#cond)
 		  (bomb "scrutinize: unexpected node class" class))
 		 (else
-		  (for-each (lambda (n) (walk n e loc #f #f flow #f)) subs)
+		  (for-each (lambda (n) (walk n e loc #f flow #f)) subs)
 		  '*))))
 	  (set! d-depth (sub1 d-depth))
-	  (dd "  ~a -> ~a" class results)
+	  (dd "walked ~a -> ~a flow: ~a" class results flow)
 	  results)))
 
-    (let ((rn (walk (first (node-subexpressions node)) '() '() #f #f (list (tag)) #f)))
+    (let ((rn (walk (first (node-subexpressions node)) '() '() #f (list (tag)) #f)))
       (when (pair? specialization-statistics)
 	(with-debugging-output
 	 '(o e)
@@ -800,6 +814,7 @@
 	(debugging '(o e) "dropped branches" dropped-branches))
       (when (positive? assigned-immediates)
 	(debugging '(o e) "assignments to immediate values" assigned-immediates))
+      (d "############################### SCRUTINIZE FINISH ##############################")
       (when errors
 	(quit-compiling "some variable types do not satisfy strictness"))
       rn)))
@@ -837,6 +852,16 @@
 	  ((forall)
 	   (loop (third t)
 		 (cute set-car! (cddr t) <>))))))))
+
+
+;;; blist (binding list) helpers
+;;
+;; - Entries (ble) in blist have type ((symbol . fixnum) . type)
+
+(define ble-id caar)		; variable name : symbol
+(define ble-tag cdar)		; block tag     : fixnum
+(define ble-type cdr)		; variable type : valid type sexp
+(define ble-type-set! set-cdr!)
 
 
 ;;; Type-matching
@@ -1587,10 +1612,6 @@
 
 (define (load-type-database name specialize #!optional
                             (path (repository-path)))
-  (define (clean! name)
-    (when specialize (mark-variable name '##compiler#clean #t)))
-  (define (pure! name)
-    (when specialize (mark-variable name '##compiler#pure #t)))
   (and-let* ((dbfile (if (not path)
 			 (and (##sys#file-exists? name #t #f #f) name)
 			 (chicken.load#find-file name path))))
@@ -1610,10 +1631,10 @@
 				(unless (null? props)
 				  (case (car props)
 				    ((#:pure)
-				     (pure! name)
+                                     (mark-variable name '##compiler#pure #t)
 				     (loop (cdr props)))
 				    ((#:clean)
-				     (clean! name)
+				     (mark-variable name '##compiler#clean #t)
 				     (loop (cdr props)))
 				    ((#:enforce)
 				     (mark-variable name '##compiler#enforce #t)

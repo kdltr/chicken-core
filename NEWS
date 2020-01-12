@@ -1,3 +1,73 @@
+5.1.1
+
+- Core libraries
+  - Fix `memory-statistics` by returning semi-space bytes and used
+    semi-space bytes like the documentation says. Old implementation
+    returned full-heap size and (full-heap - used-semi-space).
+  - for-each and map now behave consistently in compiled and interpreted
+    mode, like in SRFI-1.  They now stop when the shortest list is
+    exhausted instead of raising an exception (fixes #1422).
+  - There is now a srfi-88 module which contains just the three
+    procedures from the (chicken keyword) module defined by the SRFI.
+  - A feature identifier named "srfi-88" is now registered.
+  - The procedures `record-printer` and `set-record-printer!` and a
+    corresponding SRFI-17 setter have been added. These deprecate
+    `define-record-printer` which isn't a "real" definition (see #1294).
+  - On Windows, `decompose-directory` no longer crashes when a drive
+    letter is present in the supplied path string.
+  - irregex-replace[/all] have been fixed for empty matches, so they
+    will no longer drop characters and ignore the replacement (#1661).
+  - Irregex has been updated to upstream 0.9.7, which also improves
+    how empty matches are treated in irregex-fold and irregex-split.
+
+- Runtime system
+  - Quoted empty keywords like ||: and :|| are now read like prescribed
+    by SRFI-88 in the corresponding keyword mode.  Symbols containing
+    quoted empty prefixes or suffixes like ||:abc and abc:|| will be
+    read correctly as symbols now (fixes #1625, thanks to Andy Bennett).
+  - IEEE floating point negative zero is now properly handled: it can
+    be read, written and distinguished by eqv? and equal?, but not =
+    (fixes #1627, thanks to John Cowan).
+  - ##sys#check-exact and its C implementations C_i_check_exact and
+    C_i_check_exact_2 have been deprecated (see also #1631).
+  - When garbage collector is manually invoked from a finalizer, raise
+    an error instead of hanging forever (fixes #1586).
+  - define-record-type will now give an error if the constructor
+    definition refers to field that's not listed elsewhere (see #1633)
+  - Added new -:hu option to set the memory usage low watermark
+    percentage at which the heap should be shrunk, and changed the
+    calculation to actually reflect this (see #1379).
+
+- Compiler
+  - Fixed a bug in lfa2 pass which caused "if" or "cond" nodes to be
+    incorrectly unboxed if the "else" branch had a flonum result type
+    (#1624, thanks to Sven Hartrumpf)
+  - Inline files no longer refer to unexported foreign stub functions
+    (fixes #1440, thanks to "megane").
+  - In some cases, rest argument lists do not need to be reified, which
+    should make using optional arguments and case-lambda faster (#1623).
+  - Values from foreign types which have an argument or return value
+    converter are no longer inferred to have the Scheme type which
+    corresponds to the raw foreign type, which was incorrect (#1649).
+
+- Module system
+  - Trying to export a foreign variable, define-inlined procedure or
+    define-constant variable gives a friendly error instead of saying
+    the variable doesn't exist (fixes #1346).
+  - When modules are registered, they no longer pollute the global
+    environment with imports made in that module (fixes #1548)
+
+- Tools
+  - The new "-module-registration" options causes module registration
+    code to always be included in the program, even when it has also
+    been emitted as a separate file (for example with "-J").
+  - chicken-install now correctly checks server response code to avoid
+    interpreting error response bodies (like 404, 500) as Scheme code.
+  - chicken-install now follows HTTP redirects when downloading eggs.
+  - chicken-install will now change to the correct drive before
+    attempting to change to the egg directory (fixes #1647).
+
+
 5.1.0
 
 - Core libraries

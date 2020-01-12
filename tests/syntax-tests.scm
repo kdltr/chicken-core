@@ -864,6 +864,11 @@
 
 (assert (equal? '(3 4 5 (6 7)) (test-optional&rest 3 4 5 6 7)))
 
+(define (test-optional&rest-cdrs x y #!optional z #!rest r)
+  (list x y z (cdr (cdr r))))
+
+(assert (equal? '(3 4 5 ()) (test-optional&rest-cdrs 3 4 5 6 7)))
+
 (define (test-optional&key x y #!optional z #!key i (j 1))
   (list x y z i: i j: j))
 
@@ -1280,10 +1285,6 @@ other-eval
 
 ;;XXX this fails - the optimizer substitutes "foo" for it's known constant value
 #;(t (void) (letrec ((foo 1)
-		   (bar foo))
-	    bar))
-
-(t (void) (letrec ((foo (gc))
 		   (bar foo))
 	    bar))
 

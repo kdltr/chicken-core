@@ -1,6 +1,6 @@
 ;;;; csc.scm - Driver program for the CHICKEN compiler - felix -*- Scheme -*-
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -151,7 +151,7 @@
     -analyze-only -keep-shadowed-macros -inline-global -ignore-repository
     -no-symbol-escape -no-parentheses-synonyms -r5rs-syntax
     -no-argc-checks -no-bound-checks -no-procedure-checks -no-compiler-syntax
-    -emit-all-import-libraries -no-elevation -no-module-registration
+    -emit-all-import-libraries -no-elevation -module-registration -no-module-registration
     -no-procedure-checks-for-usual-bindings -regenerate-import-libraries
     -specialize -strict-types -clustering -lfa2 -debug-info
     -no-procedure-checks-for-toplevel-bindings))
@@ -159,7 +159,7 @@
 (define-constant complex-options
   '(-debug -heap-size -nursery -stack-size -compiler -unit -uses -keyword-style
     -optimize-level -include-path -database-size -extend -prelude -postlude -prologue -epilogue -emit-link-file
-    -inline-limit -profile-name
+    -inline-limit -profile-name -unroll-limit
     -emit-inline-file -consult-inline-file
     -emit-types-file -consult-types-file
     -feature -debug-level
@@ -178,6 +178,7 @@
     (|-K| "-keyword-style")
     (|-X| "-extend")
     (|-J| "-emit-all-import-libraries")
+    (|-M| "-module-registration")
     (|-N| "-no-module-registration")
     (-x "-explicit-use")
     (-u "-unsafe")
@@ -185,6 +186,7 @@
     (-b "-block")
     (-types "-consult-types-file")))
 
+;; TODO is this up-to-date?
 (define short-options
   (string->list "PHhsfiENxubvwAOeWkctgSJM") )
 
@@ -365,9 +367,11 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
     -j -emit-import-library MODULE write compile-time module information into
                                     separate file
     -J -emit-all-import-libraries  emit import-libraries for all defined modules
-    -no-module-registration        do not generate module registration code
     -no-compiler-syntax            disable expansion of compiler-macros
     -m -module NAME                wrap compiled code in a module
+    -M -module-registration        always generate module registration code
+    -N -no-module-registration     never generate module registration code
+                                    (overrides `-M')
 
   Translation options:
 
@@ -425,6 +429,7 @@ Usage: #{csc} [OPTION ...] [FILENAME ...]
     -clustering                    combine groups of local procedures into dispatch
                                      loop
     -lfa2                          perform additional lightweight flow-analysis pass
+    -unroll-limit LIMIT          specifies inlining limit for self-recursive calls
 
   Configuration options:
 
@@ -565,6 +570,11 @@ EOF
 	     (when show-libs (print* (linker-libraries) #\space))
 	     (newline)
 	     (exit) )
+	   (when (and compile-only
+		      (> (+ (length scheme-files)
+			    (length c-files))
+			 1))
+	     (stop "the `-c' option cannot be used in combination with multiple input files"))
 	   (cond ((null? scheme-files)
 		  (when (and (null? c-files)
 			     (null? object-files))

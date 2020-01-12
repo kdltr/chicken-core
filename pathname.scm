@@ -1,6 +1,6 @@
 ;;;; pathname.scm - Pathname operations
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -318,7 +318,7 @@
                 ; else is a prefix
                 (let ((rst (cdr decomp))
                       (elen (##sys#size 1st)))
-                  (if (fx= olen (##sys#size elen))
+                  (if (fx= olen elen)
                       ; then origin is a list prefix
                       rst
                       ; else origin is a string prefix

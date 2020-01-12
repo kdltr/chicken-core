@@ -1,6 +1,6 @@
 /* runtime.c - Runtime code for compiler generated executables
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -357,9 +357,10 @@ C_TLS int
   C_debugging = 0,
   C_main_argc;
 C_TLS C_uword 
-  C_heap_growth,
-  C_heap_shrinkage;
-C_TLS C_uword C_maximal_heap_size;
+  C_heap_growth = DEFAULT_HEAP_GROWTH,
+  C_heap_shrinkage = DEFAULT_HEAP_SHRINKAGE,
+  C_heap_shrinkage_used = DEFAULT_HEAP_SHRINKAGE_USED,
+  C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
 C_TLS time_t
   C_startup_time_seconds,
   profile_frequency = 10000;
@@ -777,13 +778,6 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   collectibles_limit = collectibles + DEFAULT_COLLECTIBLES_SIZE;
   gc_root_list = NULL;
  
-  /* Initialize global variables: */
-  if(C_heap_growth <= 0) C_heap_growth = DEFAULT_HEAP_GROWTH;
-
-  if(C_heap_shrinkage <= 0) C_heap_shrinkage = DEFAULT_HEAP_SHRINKAGE;
-
-  if(C_maximal_heap_size <= 0) C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
-
 #if !defined(NO_DLOAD2) && defined(HAVE_DLFCN_H)
   dlopen_flags = RTLD_LAZY | RTLD_GLOBAL;
 #else
@@ -1370,6 +1364,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:hmSIZE         set maximal heap size\n"
 		 " -:hgPERCENTAGE   set heap growth percentage\n"
 		 " -:hsPERCENTAGE   set heap shrink percentage\n"
+		 " -:huPERCENTAGE   set percentage of memory used at which heap will be shrunk\n"
 		 " -:hSIZE          set fixed heap size\n"
 		 " -:r              write trace output to stderr\n"
 		 " -:p              collect statistical profile and write to file at exit\n"
@@ -1403,6 +1398,9 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 	    goto next;
 	  case 's':
 	    C_heap_shrinkage = arg_val(ptr + 1);
+	    goto next;
+	  case 'u':
+	    C_heap_shrinkage_used = arg_val(ptr + 1);
 	    goto next;
 	  default:
 	    *heap = arg_val(ptr); 
@@ -1946,6 +1944,11 @@ void barf(int code, char *loc, ...)
   case C_BAD_ARGUMENT_TYPE_COMPLEX_ABS:
     msg = C_text("cannot compute absolute value of complex number");
     c = 1;
+    break;
+
+  case C_REST_ARG_OUT_OF_BOUNDS_ERROR:
+    msg = C_text("attempted rest argument access beyond end of list");
+    c = 3;
     break;
 
   default: panic(C_text("illegal internal error code"));
@@ -2706,6 +2709,16 @@ void C_not_an_integer_error(char *loc, C_word x)
 void C_not_an_uinteger_error(char *loc, C_word x)
 {
   barf(C_BAD_ARGUMENT_TYPE_NO_UINTEGER_ERROR, loc, x);
+}
+
+void C_rest_arg_out_of_bounds_error(C_word c, C_word n, C_word ka)
+{
+  C_rest_arg_out_of_bounds_error_2(c, n, ka, C_SCHEME_FALSE);
+}
+
+void C_rest_arg_out_of_bounds_error_2(C_word c, C_word n, C_word ka, C_word closure)
+{
+  barf(C_REST_ARG_OUT_OF_BOUNDS_ERROR, NULL, C_u_fixnum_difference(c, ka), C_u_fixnum_difference(n, ka), closure);
 }
 
 /* Allocate and initialize record: */
@@ -3590,8 +3603,10 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     count = (C_uword)tospace_top - (C_uword)tospace_start;
 
     /*** isn't gc_mode always GC_MAJOR here? */
+    /* NOTE: count is actual usage, heap_size is both halves */
     if(gc_mode == GC_MAJOR && 
-       count < percentage(percentage(heap_size, C_heap_shrinkage), DEFAULT_HEAP_SHRINKAGE_USED) &&
+       count < percentage(heap_size/2, C_heap_shrinkage_used) &&
+       C_heap_shrinkage > 0 && 
        heap_size > MINIMAL_HEAP_SIZE && !C_heap_size_is_fixed)
       C_rereclaim2(percentage(heap_size, C_heap_shrinkage), 0);
     else {
@@ -4791,7 +4806,8 @@ C_regparm C_word C_fcall C_equalp(C_word x, C_word y)
   if((header = C_block_header(x)) != C_block_header(y)) return 0;
   else if((bits = header & C_HEADER_BITS_MASK) & C_BYTEBLOCK_BIT) {
     if(header == C_FLONUM_TAG && C_block_header(y) == C_FLONUM_TAG)
-      return C_flonum_magnitude(x) == C_flonum_magnitude(y);
+      return C_ub_i_flonum_eqvp(C_flonum_magnitude(x),
+                                C_flonum_magnitude(y));
     else return !C_memcmp(C_data_pointer(x), C_data_pointer(y), header & C_HEADER_SIZE_MASK);
   }
   else if(header == C_SYMBOL_TAG) return 0;
@@ -5490,7 +5506,7 @@ C_regparm C_word C_fcall C_i_zerop(C_word x)
   }
 }
 
-/* I */
+/* DEPRECATED */
 C_regparm C_word C_fcall C_u_i_zerop(C_word x)
 {
   return C_mk_bool(x == C_fix(0) ||
@@ -7049,7 +7065,6 @@ C_s_a_i_arithmetic_shift(C_word **ptr, C_word n, C_word x, C_word y)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_exp(C_word **a, int c, C_word n)
 {
   double f;
@@ -7059,7 +7074,6 @@ C_regparm C_word C_fcall C_a_i_exp(C_word **a, int c, C_word n)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_log(C_word **a, int c, C_word n)
 {
   double f;
@@ -7069,7 +7083,6 @@ C_regparm C_word C_fcall C_a_i_log(C_word **a, int c, C_word n)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_sin(C_word **a, int c, C_word n)
 {
   double f;
@@ -7079,7 +7092,6 @@ C_regparm C_word C_fcall C_a_i_sin(C_word **a, int c, C_word n)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_cos(C_word **a, int c, C_word n)
 {
   double f;
@@ -7089,7 +7101,6 @@ C_regparm C_word C_fcall C_a_i_cos(C_word **a, int c, C_word n)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_tan(C_word **a, int c, C_word n)
 {
   double f;
@@ -7099,7 +7110,6 @@ C_regparm C_word C_fcall C_a_i_tan(C_word **a, int c, C_word n)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_asin(C_word **a, int c, C_word n)
 {
   double f;
@@ -7109,7 +7119,6 @@ C_regparm C_word C_fcall C_a_i_asin(C_word **a, int c, C_word n)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_acos(C_word **a, int c, C_word n)
 {
   double f;
@@ -7119,7 +7128,6 @@ C_regparm C_word C_fcall C_a_i_acos(C_word **a, int c, C_word n)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_atan(C_word **a, int c, C_word n)
 {
   double f;
@@ -7129,7 +7137,6 @@ C_regparm C_word C_fcall C_a_i_atan(C_word **a, int c, C_word n)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_atan2(C_word **a, int c, C_word n1, C_word n2)
 {
   double f1, f2;
@@ -7140,7 +7147,6 @@ C_regparm C_word C_fcall C_a_i_atan2(C_word **a, int c, C_word n1, C_word n2)
 }
 
 
-/* I */
 C_regparm C_word C_fcall C_a_i_sqrt(C_word **a, int c, C_word n)
 {
   double f;
@@ -7291,6 +7297,7 @@ C_regparm C_word C_fcall C_i_check_fixnum_2(C_word x, C_word loc)
   return C_SCHEME_UNDEFINED;
 }
 
+/* DEPRECATED */
 C_regparm C_word C_fcall C_i_check_exact_2(C_word x, C_word loc)
 {
   if(C_u_i_exactp(x) == C_SCHEME_FALSE) {
@@ -7780,7 +7787,6 @@ void C_ccall call_cc_values_wrapper(C_word c, C_word *av)
 }
 
 
-/* I */
 void C_ccall C_continuation_graft(C_word c, C_word *av)
 {
   C_word
@@ -8072,7 +8078,7 @@ cplx_times(C_word **ptr, C_word rx, C_word ix, C_word ry, C_word iy)
   clear_buffer_object(ab, i1);
   clear_buffer_object(ab, i2);
 
-  if (C_truep(C_u_i_zerop(i))) return r;
+  if (C_truep(C_u_i_zerop2(i))) return r;
   else return C_cplxnum(ptr, r, i);
 }
 
@@ -8567,7 +8573,7 @@ C_s_a_i_plus(C_word **ptr, C_word n, C_word x, C_word y)
       C_word real_sum, imag_sum;
       real_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_real(x), C_u_i_cplxnum_real(y));
       imag_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_imag(x), C_u_i_cplxnum_imag(y));
-      if (C_truep(C_u_i_zerop(imag_sum))) return real_sum;
+      if (C_truep(C_u_i_zerop2(imag_sum))) return real_sum;
       else return C_cplxnum(ptr, real_sum, imag_sum);
     } else {
       C_word real_sum = C_s_a_i_plus(ptr, 2, C_u_i_cplxnum_real(x), y),
@@ -8778,7 +8784,7 @@ C_s_a_i_minus(C_word **ptr, C_word n, C_word x, C_word y)
       C_word real_diff, imag_diff;
       real_diff = C_s_a_i_minus(ptr,2,C_u_i_cplxnum_real(x),C_u_i_cplxnum_real(y));
       imag_diff = C_s_a_i_minus(ptr,2,C_u_i_cplxnum_imag(x),C_u_i_cplxnum_imag(y));
-      if (C_truep(C_u_i_zerop(imag_diff))) return real_diff;
+      if (C_truep(C_u_i_zerop2(imag_diff))) return real_diff;
       else return C_cplxnum(ptr, real_diff, imag_diff);
     } else {
       C_word real_diff = C_s_a_i_minus(ptr, 2, C_u_i_cplxnum_real(x), y),
@@ -11179,7 +11185,7 @@ void C_ccall C_flonum_to_string(C_word c, C_word *av)
   }
 
   if(f == 0.0 || (C_modf(f, &m) == 0.0 && log2(fa) < C_WORD_SIZE)) { /* Use fast int code */
-    if(f < 0) {
+    if(signbit(f)) {
       p = to_n_nary((C_uword)-f, radix, 1, 1);
     } else {
       p = to_n_nary((C_uword)f, radix, 0, 1);

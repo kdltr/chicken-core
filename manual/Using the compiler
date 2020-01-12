@@ -166,6 +166,8 @@ the source text should be read from standard input.
 
 ; -no-usual-integrations : Specifies that standard procedures and certain internal procedures may be redefined, and can not be inlined. This is equivalent to declaring {{(not usual-integrations)}}.
 
+; -unroll-limit LIMIT : Specifies how often direct recursive calls should be "unrolled" by inlining the procedure body at the call site. The default limit is 1.
+
 ; -version : Prints the version and some copyright information and exit the compiler.
 
 ; -verbose : enables output of notes that are not necessarily warnings but might be of interest.
@@ -193,7 +195,7 @@ by the startup code and will not be contained in the result of
 
 ; {{-:aNUMBER}} : Specifies the length of the buffer for recording a trace of the last invoked procedures. Defaults to 16.
 
-; {{-:ANUMBER}} : Specifies fixed ''temporary stack'' size. This is used mostly for {{apply}}. If you supply a zero size (the default), the temorary stack will be dynamically reallocated as needed.
+; {{-:ANUMBER}} : Specifies fixed ''temporary stack'' size. This is used mostly for {{apply}}. If you supply a zero size (the default), the temporary stack will be dynamically reallocated as needed.
 
 ; {{-:b}} : Enter a read-eval-print-loop when an error is encountered.
 
@@ -217,11 +219,13 @@ by the startup code and will not be contained in the result of
 
 ; {{-:hgPERCENTAGE}} : Sets the growth rate of the heap in percent. If the heap is exhausted, then it will grow by {{PERCENTAGE}}. The default is 200.
 
-; {{-:hiNUMBER}} : Specifies the initial heap size
+; {{-:hiNUMBER}} : Specifies the initial heap size (this number includes both heap semispaces, therefore only half of it is actually available to the program).
 
-; {{-:hmNUMBER}} : Specifies a maximal heap size. The default is (2GB - 15).
+; {{-:hmNUMBER}} : Specifies a maximal heap size (including both semispaces). The default is (2GB - 15).
 
-; {{-:hsPERCENTAGE}} : Sets the shrink rate of the heap in percent. If no more than a quarter of {{PERCENTAGE}} of the heap is used, then it will shrink to {{PERCENTAGE}}. The default is 50.  Note: If you want to make sure that the heap never shrinks, specify a value of {{0}}.  (this can be useful in situations where an optimal heap-size is known in advance). 
+; {{-:hsPERCENTAGE}} : Sets the shrink rate of the heap in percent. The heap is shrunk to {{PERCENTAGE}} when the watermark is reached. The default is 50.  Note: If you want to make sure that the heap never shrinks, specify a value of {{0}}.  (this can be useful in situations where an optimal heap-size is known in advance). 
+
+; {{-:huPERCENTAGE}} : Sets the memory usage watermark below which heap shrinking is triggered. The default is 25.
 
 ; {{-:o}} : Disables detection of stack overflows at run-time.
 

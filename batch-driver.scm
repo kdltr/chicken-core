@@ -1,6 +1,6 @@
 ;;;; batch-driver.scm - Driver procedure for the compiler
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -122,11 +122,12 @@
 		  internal-bindings) ) )
       (hash-table-for-each
        (lambda (sym plist)
-	 (let ([val #f]
+	 (let ((val #f)
 	       (lval #f)
-	       [pvals #f]
-	       [csites '()]
-	       [refs '()] )
+	       (pvals #f)
+	       (csites '())
+	       (refs '())
+	       (derived-rvars '()))
 	   (unless (memq sym omit)
 	     (write sym)
 	     (let loop ((es plist))
@@ -146,8 +147,10 @@
 		       ((potential-values)
 			(set! pvals (cdar es)))
 		       ((replacable home contains contained-in use-expr closure-size rest-parameter
-				    captured-variables explicit-rest)
+				    captured-variables explicit-rest rest-cdr rest-null?)
 			(printf "\t~a=~s" (caar es) (cdar es)) )
+		       ((derived-rest-vars)
+			(set! derived-rvars (cdar es)))
 		       ((references)
 			(set! refs (cdar es)) )
 		       ((call-sites)
@@ -155,6 +158,7 @@
 		       (else (bomb "Illegal property" (car es))) )
 		     (loop (cdr es)) ) ) )
 	     (when (pair? refs) (printf "\trefs=~s" (length refs)))
+	     (when (pair? derived-rvars) (printf "\tdrvars=~s" (length derived-rvars)))
 	     (when (pair? csites) (printf "\tcss=~s" (length csites)))
 	     (cond [(and val (not (eq? val 'unknown)))
 		    (printf "\tval=~s" (cons (node-class val) (node-parameters val))) ]
@@ -181,8 +185,10 @@
   (initialize-compiler)
   (set! explicit-use-flag (memq 'explicit-use options))
   (set! emit-debug-info (memq 'debug-info options))
-  (set! enable-module-registration
-    (not (memq 'no-module-registration options)))
+  (when (memq 'module-registration options)
+    (set! compile-module-registration 'yes))
+  (when (memq 'no-module-registration options)
+    (set! compile-module-registration 'no))
   (when (memq 'static options)
     (set! static-extensions #t)
     (register-feature! 'chicken-compile-static))
@@ -199,10 +205,11 @@
 			     '()
 			     `((uses ,@default-units)))
 			 (if (and static-extensions
-				  enable-module-registration
 				  (not dynamic)
 				  (not unit)
-				  (not explicit-use-flag))
+				  (not explicit-use-flag)
+				  (or (not compile-module-registration)
+				      (eq? compile-module-registration 'yes)))
 			     '((uses eval-modules))
 			     '())))
 		     ,@(if explicit-use-flag
@@ -392,6 +399,12 @@
 	  (or (string->number arg)
 	      (quit-compiling
 	       "invalid argument to `-inline-limit' option: `~A'" arg) ) ) ) )
+    (and-let* ((ulimit (memq 'unroll-limit options)))
+      (set! unroll-limit
+	(let ((arg (option-arg ulimit)))
+	  (or (string->number arg)
+	      (quit-compiling
+	       "invalid argument to `-unroll-limit' option: `~A'" arg) ) ) ) )
     (when (memq 'case-insensitive options) 
       (dribble "Identifiers and symbols are case insensitive")
       (register-feature! 'case-insensitive)
@@ -771,6 +784,7 @@
 				    (perform-high-level-optimizations
 				     node2 db block-compilation
 				     inline-locally inline-max-size
+                                     unroll-limit
 				     inline-substitutions-enabled))
 			      (end-time "optimization")
 			      (print-node "optimized-iteration" '|5| node2)
@@ -819,7 +833,8 @@
 				(dribble "generating global inline file `~a' ..." f)
 				(emit-global-inline-file
 				 filename f db block-compilation
-				 inline-max-size) ) )
+				 inline-max-size
+				 (map foreign-stub-id foreign-lambda-stubs)) ) )
 			    (begin-time)
 			    ;; Closure conversion
 			    (set! node2 (perform-closure-conversion node2 db))

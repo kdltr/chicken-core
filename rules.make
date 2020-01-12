@@ -1,6 +1,6 @@
 # rules.make - basic build rules -*- Makefile -*-
 #
-# Copyright (c) 2008-2019, The CHICKEN Team
+# Copyright (c) 2008-2020, The CHICKEN Team
 # Copyright (c) 2000-2007, Felix L. Winkelmann
 # All rights reserved.
 #
@@ -953,6 +953,7 @@ testclean:
 	  $(SRCDIR)tests$(SEP)*.obj \
 	  $(SRCDIR)tests$(SEP)*.out \
 	  $(SRCDIR)tests$(SEP)*.profile \
+	  $(SRCDIR)tests$(SEP)*.redacted \
 	  $(SRCDIR)tests$(SEP)*.so \
 	  $(SRCDIR)tests$(SEP)tmp \
 	  $(SRCDIR)tests$(SEP)tmp.c \
@@ -960,7 +961,8 @@ testclean:
 	  $(SRCDIR)tests$(SEP)null \
 	  $(SRCDIR)tests$(SEP)null.c \
 	  $(SRCDIR)tests$(SEP)null.exe \
-	  $(SRCDIR)tests$(SEP)test-repository
+	  $(SRCDIR)tests$(SEP)test-repository \
+	  $(SRCDIR)tests$(SEP)redact-gensyms
 
 # run tests
 

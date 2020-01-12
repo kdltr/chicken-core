@@ -1,6 +1,6 @@
 ;;;; support.scm - Miscellaneous support code for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -192,7 +192,6 @@
 
 (set! syntax-error ##sys#syntax-error-hook)
 
-;; Move to C-platform?
 (define (emit-syntax-trace-info info cntr) 
   (define (thread-id t) (##sys#slot t 14))
   (##core#inline "C_emit_syntax_trace_info" info cntr
@@ -204,18 +203,12 @@
 	  [(symbol? llist) (proc llist)]
 	  [else (cons (proc (car llist)) (loop (cdr llist)))] ) ) )
 
-;; XXX: Shouldn't this be in optimizer.scm?
 (define (check-signature var args llist)
-  (define (err)
-    (quit-compiling
-     "Arguments to inlined call of `~A' do not match parameter-list ~A" 
-     (real-name var)
-     (map-llist real-name (cdr llist)) ) )
-  (let loop ([as args] [ll llist])
-    (cond [(null? ll) (unless (null? as) (err))]
-	  [(symbol? ll)]
-	  [(null? as) (err)]
-	  [else (loop (cdr as) (cdr ll))] ) ) )
+  (let loop ((as args) (ll llist))
+    (cond ((null? ll) (null? as))
+          ((symbol? ll))
+          ((null? as) #f)
+          (else (loop (cdr as) (cdr ll))) ) ) )
 
 
 ;;; Generic utility routines:
@@ -657,20 +650,43 @@
        (let* ((rlist (if copy? (map gensym vars) vars))
 	      (body (if copy? 
 			(copy-node-tree-and-rename body vars rlist db cfk)
-			body) ) )
+			body) )
+	      (rarg-aliases (map (lambda (r) (gensym 'rarg)) rargs)) )
+	 (replace-rest-ops-in-known-call! db body rest (last rlist) rarg-aliases)
+
+	 ;; Make sure rest ops aren't replaced after inlining (#1658)
+	 ;; argvector does not belong to the same procedure anymore.
+	 (when rest
+	   (for-each (lambda (v)
+		       (db-put! db v 'rest-cdr #f)
+		       (db-put! db v 'rest-null? #f) )
+		     (db-get-list db rest 'derived-rest-vars) )
+	   (db-put! db rest 'rest-cdr #f)
+	   (db-put! db rest 'derived-rest-vars '()) )
+
 	 (let loop ((vars (take rlist argc))
 		    (vals largs))
 	   (if (null? vars)
 	       (if rest
-		   (make-node
-		    'let (list (last rlist))
-		    (list (if (null? rargs)
-			      (qnode '())
-			      (make-node
-			       '##core#inline_allocate
-			       (list "C_a_i_list" (* 3 (length rargs))) 
-			       rargs) )
-			  body) )
+		   ;; NOTE: If contraction happens before rest-op
+		   ;; detection, we might needlessly build a list.
+		   (let loop2 ((rarg-values rargs)
+			       (rarg-aliases rarg-aliases))
+		     (if (null? rarg-aliases)
+			 (if (null? (db-get-list db rest 'references))
+			     body
+			     (make-node
+			      'let (list (last rlist))
+			      (list (if (null? rargs)
+					(qnode '())
+					(make-node
+					 '##core#inline_allocate
+					 (list "C_a_i_list" (* 3 (length rargs))) 
+					 rargs) )
+				    body) ))
+			 (make-node 'let (list (car rarg-aliases))
+				    (list (car rarg-values)
+					  (loop2 (cdr rarg-values) (cdr rarg-aliases))))))
 		   body)
 	       (make-node 'let (list (car vars))
 			  (list (car vals)
@@ -725,6 +741,43 @@
 			   (map (cut walk <> rl) subs))) ) ) )
     (walk node rlist) ) )
 
+;; Replace rest-{car,cdr,null?} with equivalent code which accesses
+;; the rest argument directly.
+(define (replace-rest-ops-in-known-call! db node rest-var rest-alias rest-args)
+  (define (walk n)
+    (let ((subs (node-subexpressions n))
+	  (params (node-parameters n))
+	  (class (node-class n)) )
+      (case class
+	((##core#rest-null?)
+	 (if (eq? rest-var (first params))
+	     (copy-node! (qnode (<= (length rest-args) (second params))) n)
+	     n))
+	((##core#rest-car)
+	 (if (eq? rest-var (first params))
+	     (let ((depth (second params))
+		   (len (length rest-args)))
+	       (if (> len depth)
+		   (copy-node! (varnode (list-ref rest-args depth)) n)
+		   (copy-node! (make-node '##core#inline
+					  (list "C_rest_arg_out_of_bounds_error")
+					  (list (qnode len) (qnode depth) (qnode 0)))
+			       n)))
+	     n))
+	((##core#rest-cdr)
+	 (cond ((eq? rest-var (first params))
+		(collect! db rest-var 'references n) ; Restore this reference
+		(let lp ((i (add1 (second params)))
+			 (new-node (varnode rest-alias)))
+		  (if (zero? i)
+		      (copy-node! new-node n)
+		      (lp (sub1 i)
+			  (make-node '##core#inline (list "C_i_cdr") (list new-node))))))
+	       (else n)))
+	(else (for-each walk subs)) ) ) )
+
+  (walk node)  )
+
 ;; Maybe move to scrutinizer.  It's generic enough to keep it here though
 (define (tree-copy t)
   (let rec ([t t])
@@ -755,7 +808,15 @@
 
 ;; Only used in batch-driver.scm
 (define (emit-global-inline-file source-file inline-file db
-				 block-compilation inline-limit)
+				 block-compilation inline-limit
+				 foreign-stubs)
+  (define (uses-foreign-stubs? node)
+    (let walk ((n node))
+      (case (node-class n)
+	((##core#inline)
+	 (memq (car (node-parameters n)) foreign-stubs))
+	(else
+	 (any walk (node-subexpressions n))))))
   (let ((lst '())
 	(out '()))
     (hash-table-for-each
@@ -772,8 +833,10 @@
 		    ((case (variable-mark sym '##compiler#inline)
 		       ((yes) #t)
 		       ((no) #f)
-		       (else 
-			(< (fourth lparams) inline-limit) ) ) ) )
+		       (else
+			(< (fourth lparams) inline-limit))))
+		    ;; See #1440
+		    ((not (uses-foreign-stubs? (cdr val)))))
 	   (set! lst (cons sym lst))
 	   (set! out (cons (list sym (node->sexpr (cdr val))) out)))))
      db)
@@ -1120,17 +1183,25 @@
 
 ;;; Compute foreign-type conversions:
 
+(define (foreign-type-result-converter t)
+  (and-let* (((symbol? t))
+	     (ft (lookup-foreign-type t))
+	     (retconv (vector-ref ft 2)) )
+    retconv))
+
+(define (foreign-type-argument-converter t)
+  (and-let* (((symbol? t))
+	     (ft (lookup-foreign-type t))
+	     (argconv (vector-ref ft 1)) )
+    argconv))
+
 (define (foreign-type-convert-result r t) ; Used only in compiler.scm
-  (or (and-let* (((symbol? t))
-		 (ft (lookup-foreign-type t)) 
-		 (retconv (vector-ref ft 2)) )
+  (or (and-let* ((retconv (foreign-type-result-converter t)))
 	(list retconv r) )
       r) )
 
 (define (foreign-type-convert-argument a t) ; Used only in compiler.scm
-  (or (and-let* (((symbol? t))
-		 (ft (lookup-foreign-type t))
-		 (argconv (vector-ref ft 1)) )
+  (or (and-let* ((argconv (foreign-type-argument-converter t)) )
 	(list argconv a) )
       a) )
 
@@ -1249,63 +1320,70 @@
 
 ;; Used in chicken-ffi-syntax.scm and scrutinizer.scm
 (define (foreign-type->scrutiny-type t mode) ; MODE = 'arg | 'result
-  (let ((ft (final-foreign-type t)))
-    (case ft
-      ((void) 'undefined)
-      ((char unsigned-char) 'char)
-      ((int unsigned-int short unsigned-short byte unsigned-byte int32 unsigned-int32)
-       'fixnum)
-      ((float double)
-       (case mode
-	 ((arg) 'number)
-	 (else 'float)))
-      ((scheme-pointer nonnull-scheme-pointer) '*)
-      ((blob) 
-       (case mode
-	 ((arg) '(or boolean blob))
-	 (else 'blob)))
-      ((nonnull-blob) 'blob)
-      ((pointer-vector) 
-       (case mode
-	 ((arg) '(or boolean pointer-vector))
-	 (else 'pointer-vector)))
-      ((nonnull-pointer-vector) 'pointer-vector)
-      ((u8vector u16vector s8vector s16vector u32vector s32vector u64vector s64vector f32vector f64vector)
-       (case mode
-	 ((arg) `(or boolean (struct ,ft)))
-	 (else `(struct ,ft))))
-      ((nonnull-u8vector) '(struct u8vector))
-      ((nonnull-s8vector) '(struct s8vector))
-      ((nonnull-u16vector) '(struct u16vector))
-      ((nonnull-s16vector) '(struct s16vector))
-      ((nonnull-u32vector) '(struct u32vector))
-      ((nonnull-s32vector) '(struct s32vector))
-      ((nonnull-u64vector) '(struct u64vector))
-      ((nonnull-s64vector) '(struct s64vector))
-      ((nonnull-f32vector) '(struct f32vector))
-      ((nonnull-f64vector) '(struct f64vector))
-      ((integer long size_t ssize_t integer32 unsigned-integer32 integer64 unsigned-integer64
-		unsigned-long) 
-       'integer)
-      ((c-pointer)
-       '(or boolean pointer locative))
-      ((nonnull-c-pointer) 'pointer)
-      ((c-string c-string* unsigned-c-string unsigned-c-string*)
-       '(or boolean string))
-      ((c-string-list c-string-list*)
-       '(list-of string))
-      ((nonnull-c-string nonnull-c-string* nonnull-unsigned-c-string*) 'string)
-      ((symbol) 'symbol)
-      (else
-       (cond ((pair? t)
-	      (case (car t)
-		((ref pointer function c-pointer)
-		 '(or boolean pointer locative))
-		((const) (foreign-type->scrutiny-type (cadr t) mode))
-		((enum) 'integer)
-		((nonnull-pointer nonnull-c-pointer) 'pointer)
-		(else '*)))
-	     (else '*))))))
+  ;; If the foreign type has a converter, it can return a different
+  ;; type from the native type matching the foreign type (see #1649)
+  (if (or (and (eq? mode 'arg) (foreign-type-argument-converter t))
+	  (and (eq? mode 'result) (foreign-type-result-converter t)))
+      ;; Here we just punt on the type, but it would be better to
+      ;; find out the result type of the converter procedure.
+      '*
+      (let ((ft (final-foreign-type t)))
+	(case ft
+	  ((void) 'undefined)
+	  ((char unsigned-char) 'char)
+	  ((int unsigned-int short unsigned-short byte unsigned-byte int32 unsigned-int32)
+	   'fixnum)
+	  ((float double)
+	   (case mode
+	     ((arg) 'number)
+	     (else 'float)))
+	  ((scheme-pointer nonnull-scheme-pointer) '*)
+	  ((blob)
+	   (case mode
+	     ((arg) '(or boolean blob))
+	     (else 'blob)))
+	  ((nonnull-blob) 'blob)
+	  ((pointer-vector)
+	   (case mode
+	     ((arg) '(or boolean pointer-vector))
+	     (else 'pointer-vector)))
+	  ((nonnull-pointer-vector) 'pointer-vector)
+	  ((u8vector u16vector s8vector s16vector u32vector s32vector u64vector s64vector f32vector f64vector)
+	   (case mode
+	     ((arg) `(or boolean (struct ,ft)))
+	     (else `(struct ,ft))))
+	  ((nonnull-u8vector) '(struct u8vector))
+	  ((nonnull-s8vector) '(struct s8vector))
+	  ((nonnull-u16vector) '(struct u16vector))
+	  ((nonnull-s16vector) '(struct s16vector))
+	  ((nonnull-u32vector) '(struct u32vector))
+	  ((nonnull-s32vector) '(struct s32vector))
+	  ((nonnull-u64vector) '(struct u64vector))
+	  ((nonnull-s64vector) '(struct s64vector))
+	  ((nonnull-f32vector) '(struct f32vector))
+	  ((nonnull-f64vector) '(struct f64vector))
+	  ((integer long size_t ssize_t integer32 unsigned-integer32 integer64 unsigned-integer64
+		    unsigned-long)
+	   'integer)
+	  ((c-pointer)
+	   '(or boolean pointer locative))
+	  ((nonnull-c-pointer) 'pointer)
+	  ((c-string c-string* unsigned-c-string unsigned-c-string*)
+	   '(or boolean string))
+	  ((c-string-list c-string-list*)
+	   '(list-of string))
+	  ((nonnull-c-string nonnull-c-string* nonnull-unsigned-c-string*) 'string)
+	  ((symbol) 'symbol)
+	  (else
+	   (cond ((pair? t)
+		  (case (car t)
+		    ((ref pointer function c-pointer)
+		     '(or boolean pointer locative))
+		    ((const) (foreign-type->scrutiny-type (cadr t) mode))
+		    ((enum) 'integer)
+		    ((nonnull-pointer nonnull-c-pointer) 'pointer)
+		    (else '*)))
+		 (else '*)))))))
 
 
 ;;; Scan expression-node for variable usage:
@@ -1723,9 +1801,11 @@ Usage: chicken FILENAME [OPTION ...]
     -emit-import-library MODULE  write compile-time module information into
                                   separate file
     -emit-all-import-libraries   emit import-libraries for all defined modules
-    -no-module-registration      do not generate module registration code
     -no-compiler-syntax          disable expansion of compiler-macros
     -module NAME                 wrap compiled code in a module
+    -module-registration         always generate module registration code
+    -no-module-registration      never generate module registration code
+                                  (overrides `-module-registration')
 
   Translation options:
 
@@ -1781,6 +1861,7 @@ Usage: chicken FILENAME [OPTION ...]
     -clustering                  combine groups of local procedures into dispatch
                                    loop
     -lfa2                        perform additional lightweight flow-analysis pass
+    -unroll-limit LIMIT          specifies inlining limit for self-recursive calls
 
   Configuration options:
 
