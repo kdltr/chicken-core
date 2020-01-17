@@ -1246,6 +1246,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_do_apply(c, av)               ((C_proc)(void *)C_block_item((av)[0], 0))((c), (av))
 #define C_kontinue(k, r)                do { C_word avk[ 2 ]; avk[ 0 ] = (k); avk[ 1 ] = (r); ((C_proc)(void *)C_block_item((k),0))(2, avk); } while(0)
 #define C_get_rest_arg(c, n, av, ka, cl)((n) >= (c) ? (C_rest_arg_out_of_bounds_error_2(C_fix(c), C_fix(n), C_fix(ka), (cl)), C_SCHEME_UNDEFINED) : (av)[(n)])
+#define C_rest_arg_out_of_bounds_error_value(c, n, ka) (C_rest_arg_out_of_bounds_error((c),(n),(ka)), C_SCHEME_UNDEFINED)
 #define C_rest_nullp(c, n)              (C_mk_bool((n) >= (c)))
 #define C_fetch_byte(x, p)              (((unsigned C_byte *)C_data_pointer(x))[ p ])
 #define C_poke_integer(x, i, n)         (C_set_block_item(x, C_unfix(i), C_num_to_int(n)), C_SCHEME_UNDEFINED)
