@@ -160,7 +160,7 @@ static C_TLS int C_uw;
 #endif
 
 #ifdef __CYGWIN__
-# define C_mkfifo(fn, m)    C_fix(-1);
+# define C_mkfifo(fn, m)    C_fix(-1)
 #else
 # define C_mkfifo(fn, m)    C_fix(mkfifo(C_c_string(fn), C_unfix(m)))
 #endif
