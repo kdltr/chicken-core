@@ -28,7 +28,6 @@
 (declare
   (usual-integrations)
   (disable-interrupts)
-  (fixnum-arithmetic)
   (always-bound ##sys#windows-platform)
   (foreign-declare #<<EOF
 #include <signal.h>
