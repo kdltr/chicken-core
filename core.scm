@@ -2588,6 +2588,8 @@
 							 'no
 							 (variable-mark
 							  varname '##compiler#inline)))
+						   ;; May not be external, see #1665
+						   (not (node? (variable-mark varname '##compiler#inline-global)))
 						   (or (test varname 'value)
 						       (test varname 'local-value)))] )
 				    (if (and val (eq? '##core#lambda (node-class val)))

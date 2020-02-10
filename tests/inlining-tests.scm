@@ -28,3 +28,23 @@
 
 (import inline-me)
 (assert (= 42 (foreign-foo 41)))
+
+;; #1665, don't replace calls to inlinable procedures with direct
+;; calls when those procedures are external (via an inline file).
+(module test-1665
+    ()
+
+  (import scheme inline-me)
+
+  (define (inline-external-with-unroll-limit-test x)
+    (lambda (x)
+      (lambda (a)
+	(if a
+            (external-foo x 'xxx)
+            (if x
+		(external-foo x 'yyy)
+		(external-foo x 'zzz)))
+	1)))
+
+  (inline-external-with-unroll-limit-test 'yo)
+  (inline-external-with-unroll-limit-test 'yo2))
