@@ -262,7 +262,7 @@
    (cond (elf
 	  (list
 	   (conc "-L" library-dir)
-	   (conc "-Wl,-R"
+	   (conc "-Wl,-rpath="
 		 (if deployed
 		     "$ORIGIN"
 		     (if host-mode
@@ -776,7 +776,7 @@ EOF
 		(set! rpath (car rest))
 		(when (and (memq (build-platform) '(gnu clang))
 			   (not mingw) (not osx))
-		  (set! link-options (append link-options (list (string-append "-Wl,-R" rpath)))) )
+		  (set! link-options (append link-options (list (string-append "-Wl,-rpath=" rpath)))) )
 	  	(set! rest (cdr rest)) ]
 	       [(-host) #f]
 	       ((-oi) 
