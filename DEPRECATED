@@ -1,6 +1,16 @@
 Deprecated functions and variables
 ==================================
 
+5.1.1
+
+- ##sys#check-exact and its C implementations C_i_check_exact and
+  C_i_check_exact_2 have been deprecated (see also #1631).
+- "C_u_i_zerop" has been turned into an inline operation and is
+  deprecated in favor of "C_u_i_zerop2".
+- The define-record-printer macro has been deprecated in favour of
+  record-printer and set-record-printer! procedures, and a SRFI-17
+  setter for the former.
+
 
 5.0.0
 

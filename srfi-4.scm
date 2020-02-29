@@ -1,6 +1,6 @@
 ;;;; srfi-4.scm - Homogeneous numeric vectors
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -209,13 +209,13 @@ EOF
    
 (define u32vector-ref
   (getter-with-setter
-   (lambda (x i) (##core#inline_allocate ("C_a_i_u32vector_ref" 4) x i))
+   (lambda (x i) (##core#inline_allocate ("C_a_i_u32vector_ref" 5) x i))
    u32vector-set!
    "(chicken.srfi-4#u32vector-ref v i)"))
 
 (define s32vector-ref
   (getter-with-setter
-   (lambda (x i) (##core#inline_allocate ("C_a_i_s32vector_ref" 4) x i))
+   (lambda (x i) (##core#inline_allocate ("C_a_i_s32vector_ref" 5) x i))
    s32vector-set!
    "(chicken.srfi-4#s32vector-ref v i)"))
 

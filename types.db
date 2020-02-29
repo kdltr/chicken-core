@@ -1,6 +1,6 @@
 ;;;; types.db - Type-information for core library functions -*- Scheme -*-
 ;
-; Copyright (c) 2009-2019, The CHICKEN Team
+; Copyright (c) 2009-2020, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -260,7 +260,7 @@
 (scheme#zero? (#(procedure #:clean #:enforce #:foldable) scheme#zero? (number) boolean)
 	      ((integer) (scheme#eq? #(1) '0))
 	      (((or cplxnum ratnum)) (let ((#(tmp) #(1))) '#f))
-	      ((number) (##core#inline "C_u_i_zerop" #(1)))
+	      ((number) (##core#inline "C_u_i_zerop2" #(1)))
 	      ((*) (##core#inline "C_i_zerop" #(1))))
 
 (scheme#odd? (#(procedure #:clean #:enforce #:foldable) scheme#odd? (number) boolean)
@@ -283,12 +283,12 @@
 		  ((*) (##core#inline "C_i_negativep" #(1))))
 
 (scheme#max (#(procedure #:clean #:enforce #:foldable) scheme#max (#!rest number) number)
-	    ((fixnum fixnum) (chicken.fixnum#fxmax #(1) #(2)))
-	    ((float float) (##core#inline "C_i_flonum_max" #(1) #(2))))
+	    ((fixnum fixnum) (fixnum) (chicken.fixnum#fxmax #(1) #(2)))
+	    ((float float) (float) (##core#inline "C_i_flonum_max" #(1) #(2))))
 
 (scheme#min (#(procedure #:clean #:enforce #:foldable) scheme#min (#!rest number) number)
-	    ((fixnum fixnum) (chicken.fixnum#fxmin #(1) #(2)))
-	    ((float float) (##core#inline "C_i_flonum_min" #(1) #(2))))
+	    ((fixnum fixnum) (fixnum) (chicken.fixnum#fxmin #(1) #(2)))
+	    ((float float) (float) (##core#inline "C_i_flonum_min" #(1) #(2))))
 
 (scheme#+ (#(procedure #:clean #:enforce #:foldable) scheme#+ (#!rest number) number)
 	  (() (fixnum) '0)
@@ -977,7 +977,7 @@
 (chicken.base#symbol-append (#(procedure #:clean #:enforce #:foldable) chicken.base#symbol-append (#!rest symbol) symbol))
 
 (chicken.base#case-sensitive (#(procedure #:clean) chicken.base#case-sensitive (#!optional *) *))
-(chicken.base#keyword-style (#(procedure #:clean) chicken.base#keyword-style (#!optional keyword) *))
+(chicken.base#keyword-style (#(procedure #:clean) chicken.base#keyword-style (#!optional (or keyword false)) *))
 (chicken.base#parentheses-synonyms (#(procedure #:clean) chicken.base#parentheses-synonyms (#!optional *) *))
 (chicken.base#symbol-escape (#(procedure #:clean) chicken.base#symbol-escape (#!optional *) *))
 
@@ -1004,6 +1004,9 @@
 
 ;; TODO: Add nonspecializing type specific entries, to help flow analysis?
 (chicken.base#quotient&modulo (#(procedure #:clean #:enforce #:foldable) chicken.base#quotient&modulo ((or integer float) (or integer float)) (or integer float) (or integer float)))
+
+(chicken.base#record-printer (#(procedure #:enforce) chicken.base#record-printer (symbol) (or false procedure)))
+(chicken.base#set-record-printer! (#(procedure #:enforce) chicken.base#set-record-printer! (symbol procedure) undefined))
 
 (chicken.base#alist-ref
  (forall (a b c d)

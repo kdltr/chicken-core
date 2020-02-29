@@ -218,7 +218,7 @@ for information about how to obtain them.
 The simplest development environment is a text editor and terminal
 window (Windows: Command Prompt, OSX: Terminal, Linux/Unix: xterm) for
 using the interpreter and/or invoking the compiler.  If you install one
-of the line editing extensions (e.g., [[/egg/readline|readline]],
+of the line editing extensions (e.g., [[/egg/breadline|breadline]],
 [[/egg/parley|parley]], [[/egg/linenoise|linenoise]]), you have some
 useful command line editing features in the interpreter (e.g., Emacs
 or vi-compatible line editing, customization).
@@ -237,11 +237,12 @@ To invoke the CHICKEN interpreter, you use the {{csi}} command.
 
  $ csi
  CHICKEN
- (c) 2008-2019, The CHICKEN Team
+ (c) 2008-2020, The CHICKEN Team
  (c) 2000-2007, Felix L. Winkelmann
  Version 5.0.0 (rev 6653dce)
  linux-unix-gnu-x86-64 [ 64bit dload ptables ]
 
+ Type ,? for help.
  #;1>
 
 This brings up a brief banner, and then the prompt. You can use this

@@ -1,6 +1,6 @@
 ;;;; posixunix.scm - Miscellaneous file- and process-handling routines
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -160,7 +160,7 @@ static C_TLS int C_uw;
 #endif
 
 #ifdef __CYGWIN__
-# define C_mkfifo(fn, m)    C_fix(-1);
+# define C_mkfifo(fn, m)    C_fix(-1)
 #else
 # define C_mkfifo(fn, m)    C_fix(mkfifo(C_c_string(fn), C_unfix(m)))
 #endif

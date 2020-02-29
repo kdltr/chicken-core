@@ -1,6 +1,6 @@
 ;;;; egg-info processing and compilation
 ;
-; Copyright (c) 2017-2019, The CHICKEN Team
+; Copyright (c) 2017-2020, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -98,7 +98,10 @@
     ((unix) "rm -f")
     ((windows) "del /f /q")))
 
-(define (cd-command platform) "cd")
+(define (cd-command platform)
+  (case platform
+    ((unix) "cd")
+    ((windows) "cd /d")))
 
 (define (uses-compiled-import-library? mode)
   (not (and (eq? mode 'host) staticbuild)))
@@ -475,12 +478,13 @@
                                    '())
                                (if (memq 'static link) 
                                    ;; if compiling both static + dynamic, override
-                                   ;; types-file: + inline-file: properties to
+                                   ;; modules/types-file/inline-file properties to
                                    ;; avoid generating things twice:
                                    (list (apply compile-static-extension
                                                 (if (memq 'dynamic link)
                                                     (cons (car data)
-                                                          (append '(types-file: #f
+                                                          (append '(modules: #f
+                                                                    types-file: #f
                                                                     inline-file: #f)
                                                                   (cdr data)))
                                                     data)))
@@ -559,7 +563,7 @@
                                    source-dependencies
                                    source (options '())
                                    predefined-types eggfile
-                                   link-objects
+                                   link-objects modules
                                    custom types-file inline-file)
          srcdir platform)
   (let* ((cmd (qs* (or (custom-cmd custom srcdir platform)
@@ -594,7 +598,11 @@
                         platform)))
          (targets (append (list out3 lfile)
                           (maybe types-file tfile)
-                          (maybe inline-file ifile)))
+                          (maybe inline-file ifile)
+                          (map (lambda (m)
+                                 (qs* (prefix srcdir (conc m ".import.scm"))
+                                      platform))
+                               (or modules '()))))
          (src (qs* (or source (conc name ".scm")) platform)))
     (when custom
       (prepare-custom-command cmd platform))
@@ -606,6 +614,7 @@
            " : " cmd
            (if keep-generated-files " -k" "")
            " -regenerate-import-libraries"
+           (if modules " -J" "") " -M"
            " -setup-mode -static -I " srcdir 
            " -emit-link-file " lfile
            (if (eq? mode 'host) " -host" "")
@@ -744,7 +753,7 @@
     (print "\n" (slashify default-builder platform) " "
            out
            " : "
-           (filelist srcdir source-dependencies platform)
+           (filelist srcdir source-dependencies platform) " "
            src " "
            (qs* eggfile platform) " "
            (if custom cmd "")
@@ -790,7 +799,7 @@
            cmd
            (if (eq? mode 'host) " -host" "")
            " -setup-mode -I " srcdir
-           " -c -C -I" srcdir
+           " -s -c -C -I" srcdir
            (arglist opts platform)
            " " src
            " -o " out)
@@ -1084,7 +1093,7 @@
           (lambda (cmd) (cmd srcdir platform))
           cmds)
         (suffix platform)))))
-                        
+
 
 ;;; affixes for build- and install-scripts
 

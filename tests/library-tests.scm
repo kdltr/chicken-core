@@ -58,6 +58,20 @@
 (assert (not (integer? "foo")))
 ; XXX number missing
 
+;; Negative vs positive zero (see #1627)
+(assert (not (eqv? 0.0 -0.0)))
+(assert (not (equal? 0.0 -0.0)))
+(assert (= 0.0 -0.0))
+
+(assert (not (positive? 0.0)))
+(assert (not (negative? 0.0)))
+(assert (zero? 0.0))
+
+(assert (not (positive? -0.0)))
+(assert (not (negative? -0.0)))
+(assert (zero? -0.0))
+
+;; Exactness
 (assert (exact? 1))
 (assert (not (exact? 1.0)))
 (assert (not (exact? 1.1)))
@@ -243,6 +257,17 @@
   (map (lambda (n) (number->string 32 n)) (list-tabulate 15 (cut + 2 <>)))
   '("100000" "1012" "200" "112" "52" "44" "40" "35" "32" "2a" "28" "26" "24" "22" "20")))
 
+;; #1422
+(assert (equal? (map + '(1 2 3) '(1 2)) '(2 4)))
+(assert (equal? (map + '(1 2) '(1 2 3)) '(2 4)))
+(let ((result '()))
+  (for-each (lambda (x y) (set! result (cons (+ x y) result)))
+            '(1 2) '(1 2 3))
+  (assert (equal? result '(4 2))))
+(let ((result '()))
+  (for-each (lambda (x y) (set! result (cons (+ x y) result)))
+            '(1 2 3) '(1 2))
+  (assert (equal? result '(4 2))))
 
 ;; string->number conversion
 
@@ -449,6 +474,7 @@
 (parameterize ((keyword-style #:suffix))
   (assert (keyword? (with-input-from-string "abc:" read)))
   (assert (keyword? (with-input-from-string "|abc|:" read)))
+  (assert (keyword? (with-input-from-string "a|bc|d:" read)))
   (assert (not (keyword? (with-input-from-string "abc:||" read))))
   (assert (not (keyword? (with-input-from-string "abc\\:" read))))
   (assert (not (keyword? (with-input-from-string "abc|:|" read))))
@@ -457,12 +483,15 @@
 (parameterize ((keyword-style #:prefix))
   (assert (keyword? (with-input-from-string ":abc" read)))
   (assert (keyword? (with-input-from-string ":|abc|" read)))
-  (assert (keyword? (with-input-from-string "||:abc" read))) ;XXX should be not
+  (assert (keyword? (with-input-from-string ":a|bc|d" read)))
+  (assert (not (keyword? (with-input-from-string "||:abc" read))))
   (assert (not (keyword? (with-input-from-string "\\:abc" read))))
   (assert (not (keyword? (with-input-from-string "|:|abc" read))))
   (assert (not (keyword? (with-input-from-string "|:abc|" read)))))
 
 (parameterize ((keyword-style #f))
+  (assert (not (keyword? (with-input-from-string ":||" read))))
+  (assert (not (keyword? (with-input-from-string "||:" read))))
   (assert (not (keyword? (with-input-from-string ":abc" read))))
   (assert (not (keyword? (with-input-from-string ":abc:" read))))
   (assert (not (keyword? (with-input-from-string "abc:" read)))))
@@ -472,17 +501,29 @@
   (assert (not (keyword? colon-sym)))
   (assert (string=? ":" (symbol->string colon-sym))))
 
-;; The next two cases are a bit dubious.  These could also be read as
-;; keywords due to the literal quotation.
-(let ((colon-sym (with-input-from-string ":||" read)))
-  (assert (symbol? colon-sym))
-  (assert (not (keyword? colon-sym)))
-  (assert (string=? ":" (symbol->string colon-sym))))
+;; The next two cases are a bit dubious, but we follow SRFI-88 (see
+;; also #1625).
+(parameterize ((keyword-style #:suffix))
+  (let ((colon-sym (with-input-from-string ":||" read)))
+    (assert (symbol? colon-sym))
+    (assert (not (keyword? colon-sym)))
+    (assert (string=? ":" (symbol->string colon-sym))))
 
-(let ((colon-sym (with-input-from-string "||:" read)))
-  (assert (symbol? colon-sym))
-  (assert (not (keyword? colon-sym)))
-  (assert (string=? ":" (symbol->string colon-sym))))
+  (let ((empty-kw (with-input-from-string "||:" read)))
+    (assert (not (symbol? empty-kw)))
+    (assert (keyword? empty-kw))
+    (assert (string=? "" (keyword->string empty-kw)))))
+
+(parameterize ((keyword-style #:prefix))
+  (let ((empty-kw (with-input-from-string ":||" read)))
+    (assert (not (symbol? empty-kw)))
+    (assert (keyword? empty-kw))
+    (assert (string=? "" (keyword->string empty-kw))))
+
+  (let ((colon-sym (with-input-from-string "||:" read)))
+    (assert (symbol? colon-sym))
+    (assert (not (keyword? colon-sym)))
+    (assert (string=? ":" (symbol->string colon-sym)))))
 
 (assert-fail (with-input-from-string "#:" read))
 

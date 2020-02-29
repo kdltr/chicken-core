@@ -1,6 +1,6 @@
 ;;; c-backend.scm - C-generating backend for the CHICKEN compiler
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -127,7 +127,13 @@
 		   (gen "lf[" (first params) #\])) ) )
 
             ((##core#float)
-             (gen (first params)))
+	     (let ((n (first params)))
+	       (gen "(double)")
+	       (cond ((nan? n) (gen "NAN"))
+		     ((infinite? n)
+		      (when (negative? n) (gen #\-))
+		      (gen "INFINITY"))
+		     (else (gen n)))))
 
 	    ((if)
 	     (gen #t "if(C_truep(")
@@ -174,6 +180,33 @@
 	     (gen "((C_word*)")
 	     (expr (car subs) i)
 	     (gen ")[" (+ (first params) 1) #\]) )
+
+	    ((##core#rest-car)
+	     (let* ((n (lambda-literal-argument-count ll))
+		    (depth (second params))
+		    (have-av? (not (or (lambda-literal-customizable ll)
+				       (lambda-literal-direct ll)))))
+	       (if have-av?
+		   (gen "C_get_rest_arg(c," (+ depth n) ",av," n ",t0)")
+		   (gen "C_u_i_list_ref(t" (sub1 n) "," depth ")"))))
+
+	    ((##core#rest-null?)
+	     (let* ((n (lambda-literal-argument-count ll))
+		    (depth (second params))
+		    (have-av? (not (or (lambda-literal-customizable ll)
+				       (lambda-literal-direct ll)))))
+	       (if have-av?
+		   (gen "C_rest_nullp(c," (+ depth n) ")")
+		   (gen "C_mk_bool(C_unfix(C_i_length(t" (sub1 n) ")) >= " depth ")"))))
+
+	    ((##core#rest-length)
+	     (let* ((n (lambda-literal-argument-count ll))
+		    (depth (second params))
+		    (have-av? (not (or (lambda-literal-customizable ll)
+				       (lambda-literal-direct ll)))))
+	       (if have-av?
+		   (gen "C_fix(c - " (+ depth n) ")")
+		   (gen "C_u_i_length(t" (sub1 n) ")"))))
 
 	    ((##core#unbox) 
 	     (gen "((C_word*)")
@@ -626,8 +659,6 @@
 		(customizable (lambda-literal-customizable ll))
 		(empty-closure (and customizable (zero? (lambda-literal-closure-size ll))))
 		(varlist (intersperse (make-variable-list (if empty-closure (sub1 n) n) "t") #\,))
-		(rest (lambda-literal-rest-argument ll))
-		(rest-mode (lambda-literal-rest-argument-mode ll))
 		(direct (lambda-literal-direct ll))
 		(allocated (lambda-literal-allocated ll)) )
 	   (gen #t)
@@ -673,8 +704,6 @@
 	   (let* ([id (car p)]
 		  [ll (cdr p)]
 		  [argc (lambda-literal-argument-count ll)]
-		  [rest (lambda-literal-rest-argument ll)]
-		  [rest-mode (lambda-literal-rest-argument-mode ll)]
 		  [customizable (lambda-literal-customizable ll)]
 		  [empty-closure (and customizable (zero? (lambda-literal-closure-size ll)))] )
 	     (when empty-closure (set! argc (sub1 argc)))
@@ -917,7 +946,7 @@
 				(apply gen arglist)
 				(gen ");}"))
 			       (else
-				(gen #t "C_save_and_reclaim((void *)" id #\, n ",av);}")))
+				(gen #t "C_save_and_reclaim((void *)" id ",c,av);}")))
 			 (when (> demand 0)
 			   (gen #t "a=C_alloc(" demand ");")))))
 		 (else (gen #\})))

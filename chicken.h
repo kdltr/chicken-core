@@ -1,6 +1,6 @@
 /* chicken.h - General headerfile for compiler generated executables
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -31,7 +31,7 @@
 #define ___CHICKEN
 
 #define C_MAJOR_VERSION   5
-#define C_MINOR_VERSION   1
+#define C_MINOR_VERSION   2
 
 #ifndef _ISOC99_SOURCE
 # define _ISOC99_SOURCE
@@ -634,6 +634,7 @@ void *alloca ();
 #define C_BAD_ARGUMENT_TYPE_NO_EXACT_INTEGER_ERROR    53
 #define C_BAD_ARGUMENT_TYPE_FOREIGN_LIMITATION        54
 #define C_BAD_ARGUMENT_TYPE_COMPLEX_ABS               55
+#define C_REST_ARG_OUT_OF_BOUNDS_ERROR                56
 
 /* Platform information */
 #if defined(C_BIG_ENDIAN)
@@ -1244,6 +1245,9 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_offset_pointer(x, y)          (C_pointer_address(x) + (y))
 #define C_do_apply(c, av)               ((C_proc)(void *)C_block_item((av)[0], 0))((c), (av))
 #define C_kontinue(k, r)                do { C_word avk[ 2 ]; avk[ 0 ] = (k); avk[ 1 ] = (r); ((C_proc)(void *)C_block_item((k),0))(2, avk); } while(0)
+#define C_get_rest_arg(c, n, av, ka, cl)((n) >= (c) ? (C_rest_arg_out_of_bounds_error_2(C_fix(c), C_fix(n), C_fix(ka), (cl)), C_SCHEME_UNDEFINED) : (av)[(n)])
+#define C_rest_arg_out_of_bounds_error_value(c, n, ka) (C_rest_arg_out_of_bounds_error((c),(n),(ka)), C_SCHEME_UNDEFINED)
+#define C_rest_nullp(c, n)              (C_mk_bool((n) >= (c)))
 #define C_fetch_byte(x, p)              (((unsigned C_byte *)C_data_pointer(x))[ p ])
 #define C_poke_integer(x, i, n)         (C_set_block_item(x, C_unfix(i), C_num_to_int(n)), C_SCHEME_UNDEFINED)
 #define C_pointer_to_block(p, x)        (C_set_block_item(p, 0, (C_word)C_data_pointer(x)), C_SCHEME_UNDEFINED)
@@ -1382,7 +1386,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #endif
 
 #define C_i_check_closure(x)            C_i_check_closure_2(x, C_SCHEME_FALSE)
-#define C_i_check_exact(x)              C_i_check_exact_2(x, C_SCHEME_FALSE)
+#define C_i_check_exact(x)              C_i_check_exact_2(x, C_SCHEME_FALSE) /* DEPRECATED */
 #define C_i_check_fixnum(x)             C_i_check_fixnum_2(x, C_SCHEME_FALSE)
 #define C_i_check_inexact(x)            C_i_check_inexact_2(x, C_SCHEME_FALSE)
 #define C_i_check_number(x)             C_i_check_number_2(x, C_SCHEME_FALSE)
@@ -1421,7 +1425,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 
 /* these assume fixnum mode */
 #define C_u_i_u32vector_ref(x, i)       C_fix(((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
-#define C_u_i_s32vector_ref(x, i)       C_fix(((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
+#define C_u_i_s32vector_ref(x, i)       C_fix(((C_s32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
 
 #define C_a_u_i_u32vector_ref(ptr, c, x, i)  C_unsigned_int_to_num(ptr, ((C_u32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
 #define C_a_u_i_s32vector_ref(ptr, c, x, i)  C_int_to_num(ptr, ((C_s32 *)C_data_pointer(C_block_item((x), 1)))[ C_unfix(i) ])
@@ -1629,7 +1633,6 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_i_true2(dummy1, dummy2)      ((dummy1), (dummy2), C_SCHEME_TRUE)
 #define C_i_true3(dummy1, dummy2, dummy3)  ((dummy1), (dummy2), (dummy3), C_SCHEME_TRUE)
 
-
 /* debug client interface */
 
 typedef struct C_DEBUG_INFO {
@@ -1781,6 +1784,8 @@ C_fctexport void C_no_closure_error(C_word x) C_noret;
 C_fctexport void C_div_by_zero_error(char *loc) C_noret;
 C_fctexport void C_not_an_integer_error(char *loc, C_word x) C_noret;
 C_fctexport void C_not_an_uinteger_error(char *loc, C_word x) C_noret;
+C_fctexport void C_rest_arg_out_of_bounds_error(C_word c, C_word n, C_word ka) C_noret;
+C_fctexport void C_rest_arg_out_of_bounds_error_2(C_word c, C_word n, C_word ka, C_word closure) C_noret;
 C_fctexport C_word C_closure(C_word **ptr, int cells, C_word proc, ...);
 C_fctexport C_word C_fcall C_pair(C_word **ptr, C_word car, C_word cdr) C_regparm;
 C_fctexport C_word C_fcall C_number(C_word **ptr, double n) C_regparm;
@@ -1946,7 +1951,7 @@ C_fctexport C_word C_fcall C_i_nanp(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_finitep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_infinitep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_zerop(C_word x) C_regparm;
-C_fctexport C_word C_fcall C_u_i_zerop(C_word x) C_regparm;
+C_fctexport C_word C_fcall C_u_i_zerop(C_word x) C_regparm;  /* DEPRECATED */
 C_fctexport C_word C_fcall C_i_positivep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_integer_positivep(C_word x) C_regparm;
 C_fctexport C_word C_fcall C_i_negativep(C_word x) C_regparm;
@@ -2003,7 +2008,7 @@ C_fctexport C_word C_fcall C_i_length(C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_u_i_length(C_word lst) C_regparm;
 C_fctexport C_word C_fcall C_i_check_closure_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_fixnum_2(C_word x, C_word loc) C_regparm;
-C_fctexport C_word C_fcall C_i_check_exact_2(C_word x, C_word loc) C_regparm;
+C_fctexport C_word C_fcall C_i_check_exact_2(C_word x, C_word loc) C_regparm; /* DEPRECATED */
 C_fctexport C_word C_fcall C_i_check_inexact_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_number_2(C_word x, C_word loc) C_regparm;
 C_fctexport C_word C_fcall C_i_check_string_2(C_word x, C_word loc) C_regparm;
@@ -2214,6 +2219,15 @@ inline static C_word C_flonum(C_word **ptr, double n)
   *((double *)p) = n;
   *ptr = p + sizeof(double) / sizeof(C_word);
   return (C_word)p0;
+}
+
+
+inline static C_word C_fcall C_u_i_zerop2(C_word x)
+{
+  return C_mk_bool(x == C_fix(0) ||
+                   (!C_immediatep(x) &&
+                    C_block_header(x) == C_FLONUM_TAG &&
+                    C_flonum_magnitude(x) == 0.0));
 }
 
 
@@ -2622,15 +2636,22 @@ inline static int C_memcasecmp(const char *x, const char *y, unsigned int len)
   return 0;
 }
 
+inline static C_word C_ub_i_flonum_eqvp(double x, double y)
+{
+  /* This can distinguish between -0.0 and +0.0 */
+  return x == y && signbit(x) == signbit(y);
+}
+
 inline static C_word basic_eqvp(C_word x, C_word y)
 {
   return (x == y ||
 
           (!C_immediatep(x) && !C_immediatep(y) &&
            C_block_header(x) == C_block_header(y) &&
-           
+
            ((C_block_header(x) == C_FLONUM_TAG &&
-             C_flonum_magnitude(x) == C_flonum_magnitude(y)) ||
+             C_ub_i_flonum_eqvp(C_flonum_magnitude(x),
+                                C_flonum_magnitude(y))) ||
 
             (C_block_header(x) == C_BIGNUM_TAG &&
              C_block_header(y) == C_BIGNUM_TAG &&

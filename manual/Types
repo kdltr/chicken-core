@@ -5,7 +5,7 @@
 === Types
 
 A dynamically typed language like Scheme does not restrict the type of
-values bound or assigned to variables to be constant troughout the
+values bound or assigned to variables to be constant throughout the
 run-time of a program. This provides a lot of flexibility and makes it
 easy to get code up and running quickly, but can make maintenance of
 larger code bases more difficult as the implicit assignment of types

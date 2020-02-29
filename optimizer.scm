@@ -1,6 +1,6 @@
 ;;;; optimizer.scm - The CHICKEN Scheme compiler (optimizations)
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -150,9 +150,12 @@
 (define simplifications (make-vector 301 '()))
 (define simplified-ops '())
 (define broken-constant-nodes '())
+;; Holds a-list mapping inlined fid's to inline-target-fid for catching runaway
+;; unrolling:
+(define inline-history '())
 
 (define (perform-high-level-optimizations
-	 node db block-compilation may-inline inline-limit may-rewrite)
+	 node db block-compilation may-inline inline-limit max-unrolls may-rewrite)
   (let ((removed-lets 0)
 	(removed-ifs 0)
 	(replaced-vars 0)
@@ -186,6 +189,36 @@
 		 entry) )
 	  n) )
 
+
+    (define (maybe-replace-rest-arg-calls node)
+      ;; Ugh, we need to match on the core inlined string instead of
+      ;; the call to the intrinsic itself, because rewrites will have
+      ;; introduced this after the first iteration.
+      (or (and-let* (((eq? '##core#inline (node-class node)))
+                     (native (car (node-parameters node)))
+                     (replacement-op (cond
+                                      ((member native '("C_i_car" "C_u_i_car")) '##core#rest-car)
+                                      ((member native '("C_i_cdr" "C_u_i_cdr")) '##core#rest-cdr)
+                                      ((member native '("C_i_nullp")) '##core#rest-null?)
+                                      ((member native '("C_i_length" "C_u_i_length")) '##core#rest-length)
+                                      (else #f)))
+                     (arg (first (node-subexpressions node)))
+                     ((eq? '##core#variable (node-class arg)))
+                     (var (first (node-parameters arg)))
+                     ((not (db-get db var 'captured)))
+                     (info (db-get db var 'rest-cdr))
+                     (restvar (car info))
+                     (depth (cdr info))
+                     ((not (test var 'assigned))))
+            ;; callee is intrinsic and accesses rest arg sublist
+	    (debugging '(o x) "known list op on rest arg sublist"
+		       (call-info (node-parameters node) replacement-op) var depth)
+            (touch)
+            (make-node replacement-op
+	               (cons* restvar depth (cdr (node-parameters node)))
+	               (list) ) )
+          node) )
+
     (define (walk n fids gae)
       (if (memq n broken-constant-nodes)
 	  n
@@ -204,6 +237,9 @@
 				 (caddr subs) )
 			     fids gae) )
 		      (else n1) ) )
+
+               ((##core#inline)
+                (maybe-replace-rest-arg-calls n1))
 
 	       ((##core#call)
 		(maybe-constant-fold-call
@@ -335,15 +371,23 @@
 			 ;; only called once
 			 (let* ([lparams (node-parameters lval)]
 				[llist (third lparams)] )
-			   (check-signature var args llist)
-			   (debugging 'o "contracted procedure" info)
-			   (touch)
-			   (for-each (cut db-put! db <> 'inline-target #t) fids)
-			   (walk
-			    (inline-lambda-bindings
-			     llist args (first (node-subexpressions lval)) #f db
-			     void)
-			    fids gae) ) )
+			   (cond ((check-signature var args llist)
+                                   (debugging 'o "contracted procedure" info)
+                                   (touch)
+                       	           (for-each (cut db-put! db <> 'inline-target #t) 
+                                     fids)
+                                   (walk
+                                     (inline-lambda-bindings
+			               llist args (first (node-subexpressions lval)) 
+                                       #f db
+			               void)
+			             fids gae) )
+                                 (else
+                                   (debugging 
+                                     'i
+                                     "not contracting procedure because argument list does not match"
+                                     info)
+                                   (walk-generic n class params subs fids gae #t)))))
 			((and-let* (((variable-mark var '##compiler#pure))
 				    ((eq? '##core#variable (node-class (car args))))
 				    (kvar (first (node-parameters (car args))))
@@ -368,8 +412,8 @@
 			((and lval
 			      (eq? '##core#lambda (node-class lval)))
 			 ;; callee is a lambda
-			 (let* ([lparams (node-parameters lval)]
-				[llist (third lparams)] )
+			 (let* ((lparams (node-parameters lval))
+				(llist (third lparams)) )
 			   (##sys#decompose-lambda-list
 			    llist
 			    (lambda (vars argc rest)
@@ -382,30 +426,42 @@
 					    (case (variable-mark var '##compiler#inline) 
 					      ((no) #f)
 					      (else 
-					       (or external (< (fourth lparams) inline-limit)))))
-				       (debugging 
-					'i
-					(if external
-					    "global inlining" 	
-					    "inlining")
-					info ifid (fourth lparams))
-				       (for-each (cut db-put! db <> 'inline-target #t) fids)
-				       (check-signature var args llist)
-				       (debugging 'o "inlining procedure" info)
-				       (call/cc
-					(lambda (return)
-					  (define (cfk cvar)
-					    (debugging 
-					     'i
-					     "not inlining procedure because it refers to contractable"
-					     info cvar)
-					    (return 
-					     (walk-generic n class params subs fids gae #t)))
-					  (let ((n2 (inline-lambda-bindings
-						     llist args (first (node-subexpressions lval))
-						     #t db cfk)))
-					    (touch)
-					    (walk n2 fids gae)))))
+					       (or external (< (fourth lparams) inline-limit))))
+                                            (or (within-unrolling-limit ifid (car fids) max-unrolls)
+                                                (begin
+                                                  (debugging 'i "not inlining as unroll-limit is exceeded"
+                                                             info ifid (car fids))
+                                                  #f)))
+				       (cond ((check-signature var args llist)
+                                               (debugging 'i
+                                                          (if external
+                                                              "global inlining" 	
+                                                              "inlining")
+                                                          info ifid (fourth lparams))
+                                               (for-each (cut db-put! db <> 'inline-target #t) 
+                                                 fids)
+				               (debugging 'o "inlining procedure" info)
+				               (call/cc
+                                                 (lambda (return)
+                                                   (define (cfk cvar)
+                                                     (debugging 
+                                                       'i
+                                                       "not inlining procedure because it refers to contractable"
+                                                       info cvar)
+                                                     (return (walk-generic n class params subs fids gae #t)))
+                                                   (let ((n2 (inline-lambda-bindings
+                                                                llist args (first (node-subexpressions lval))
+                                                                #t db cfk)))
+                                                     (set! inline-history
+                                                       (alist-cons ifid (car fids) inline-history))
+                                                     (touch)
+                                                     (walk n2 fids gae)))))
+                                             (else
+                                               (debugging 
+                                                 'i
+                                                 "not inlining procedure because argument list does not match"
+                                                 info)
+                                               (walk-generic n class params subs fids gae #t))))
 				      ((test ifid 'has-unused-parameters)
 				       (if (< (length args) argc) ; Expression was already optimized (should this happen?)
 					   (walk-generic n class params subs fids gae #t)
@@ -554,6 +610,23 @@
 	    (values node2 dirty) ) ) ) ) )
 
 
+;; Check whether inlined procedure has already been inlined in the
+;; same target procedure and count occurrences.
+;;
+;; Note: This check takes O(n) time, where n is the total number of
+;; performed inlines. This can be optimized to O(1) if high number of
+;; inlines starts to slow down the compilation.
+
+(define (within-unrolling-limit fid tfid max-unrolls)
+  (let ((p (cons fid tfid)))
+    (let loop ((h inline-history) (n 0))
+      (cond ((null? h))
+            ((equal? p (car h))
+             (and (< n max-unrolls)
+                  (loop (cdr h) (add1 n))))
+            (else (loop (cdr h) n))))))
+
+
 ;;; Pre-optimization phase:
 ;
 ; - Transform expressions of the form '(if (not <x>) <y> <z>)' into '(if <x> <z> <y>)'.
@@ -580,7 +653,7 @@
 		  (krefs (db-get-list db kont 'references)) )
 	     ;; Call-site has one argument and a known continuation (which is a ##core#lambda)
 	     ;;  that has only one use:
-	     (when (and lnode krefs (= 1 (length krefs)) (= 3 (length subs))
+	     (when (and lnode (= 1 (length krefs)) (= 3 (length subs))
 			(eq? '##core#lambda (node-class lnode)) )
 	       (let* ((llist (third (node-parameters lnode)))
 		      (body (first (node-subexpressions lnode))) 
@@ -590,7 +663,7 @@
 		     (let* ((var (car llist))
 			    (refs (db-get-list db var 'references)) )
 		       ;; Parameter is only used once?
-		       (if (and refs (= 1 (length refs)) (eq? 'if (node-class body)))
+		       (if (and (= 1 (length refs)) (eq? 'if (node-class body)))
 			   ;; Continuation contains an 'if' node?
 			   (let ((iftest (first (node-subexpressions body))))
 			     ;; Parameter is used only once and is the test-argument?
@@ -779,7 +852,79 @@
 	   (make-node
 	    'if d
 	    (list (make-node '##core#inline (list op) args)
-		  x y) ) ) ) ) )
+		  x y) ) ) ) )
+          
+ ;; (let ((<var1> (##core#inline <op1> ...)))
+ ;;   (<var2> (##core#inline <op2> ... <var1> ...)))
+ ;; -> (<var2> (##core#inline <op2> ... (##core#inline <op2> ...)
+ ;;                                  ...))
+ ;; - <var1> is used only once.
+ `((let (var) (##core#inline (op1) . args1)
+      (##core#call p 
+                   (##core#variable (kvar))
+                   (##core#inline (op2) . args2)))
+    (var op1 args1 p kvar op2 args2)
+    ,(lambda (db may-rewrite var op1 args1 p kvar op2 args2)
+       (and may-rewrite   ; give other optimizations a chance first
+            (not (eq? var kvar))
+            (not (db-get db kvar 'contractable))
+            (= 1 (length (db-get-list db var 'references)))
+            (let loop ((args args2) (nargs '()) (ok #f))
+              (cond ((null? args)
+                     (and ok
+                          (make-node 
+                           '##core#call p
+                           (list (varnode kvar)
+                                 (make-node 
+                                   '##core#inline 
+                                   (list op2)
+                                 (reverse nargs))))))
+                    ((and (eq? '##core#variable
+                               (node-class (car args)))
+                          (eq? var
+                               (car (node-parameters (car args)))))
+                     (loop (cdr args)
+                           (cons (make-node
+                                   '##core#inline
+                                   (list op1)
+                                   args1)
+                                 nargs)
+                           #t))
+                    (else (loop (cdr args)
+                                (cons (car args) nargs)
+                                ok)))))))
+
+ ;; (let ((<var1> (##core#inline <op> ...)))
+ ;;   (<var2> ... <var1> ...))
+ ;; -> (<var2> ... (##core#inline <op> ...) ...)
+ ;;                                  ...))
+ ;; - <var1> is used only once.
+ `((let (var) (##core#inline (op) . args1)
+      (##core#call p . args2))
+    (var op args1 p args2)
+    ,(lambda (db may-rewrite var op args1 p args2)
+       (and may-rewrite   ; give other optimizations a chance first
+            (= 1 (length (db-get-list db var 'references)))
+            (let loop ((args args2) (nargs '()) (ok #f))
+              (cond ((null? args)
+                     (and ok
+                          (make-node 
+                           '##core#call p
+                           (reverse nargs))))
+                    ((and (eq? '##core#variable
+                               (node-class (car args)))
+                          (eq? var
+                               (car (node-parameters (car args)))))
+                     (loop (cdr args)
+                           (cons (make-node
+                                   '##core#inline
+                                   (list op)
+                                   args1)
+                                 nargs)
+                           #t))
+                    (else (loop (cdr args)
+                                (cons (car args) nargs)
+                                ok))))))))
 
 
 (register-simplifications
@@ -1479,7 +1624,7 @@
       (let* ((params (node-parameters n))
 	     (argc (length (third params)))
 	     (klambdas '()) 
-	     (sites (or (db-get db fnvar 'call-sites) '()))
+	     (sites (db-get-list db fnvar 'call-sites))
 	     (ksites '()) )
 	(if (and (list? params) (= (length params) 4) (list? (caddr params)))
 	    (let ((id (car params))
@@ -1649,8 +1794,8 @@
 			       (svar (first (node-parameters val))))
 			   ;;XXX should we also accept "##core#direct_lambda" ?
 			   (and (eq? '##core#lambda (node-class sval))
-				(= (length (or (db-get db svar 'references) '()))
-				   (length (or (db-get db svar 'call-sites) '())))
+				(= (length (db-get-list db svar 'references))
+				   (length (db-get-list db svar 'call-sites)))
 				(memq svar e)
 				(user-lambda? sval))))
 		    ;; "(set! VAR (lambda ...))" - add to group

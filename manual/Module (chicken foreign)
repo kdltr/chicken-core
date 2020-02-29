@@ -336,7 +336,7 @@ is essentially equivalent to
 
  (make-locative X)
 
-(See the [[Unit lolevel#locatives|manual section on locatives]] for more
+(See the [[Module (chicken locative)|manual section on locatives]] for more
 information about locatives)
 
 Note that {{(location X)}} may be abbreviated as {{#$X}}.

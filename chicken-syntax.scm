@@ -1,6 +1,6 @@
 ;;;; chicken-syntax.scm - non-standard syntax extensions
 ;
-; Copyright (c) 2008-2019, The CHICKEN Team
+; Copyright (c) 2008-2020, The CHICKEN Team
 ; Copyright (c) 2000-2007, Felix L. Winkelmann
 ; All rights reserved.
 ;
@@ -1040,7 +1040,7 @@
 ;;; Record printing:
 
 (##sys#extend-macro-environment
- 'define-record-printer '()
+ 'define-record-printer '() ;; DEPRECATED
  (##sys#er-transformer
   (lambda (form r c)
     (##sys#check-syntax 'define-record-printer form '(_ _ . _))
@@ -1097,6 +1097,14 @@
 	   (x (r 'x))
 	   (y (r 'y))
 	   (slotnames (map car slots)))
+      ;; Check for inconsistencies in slot names vs constructor args
+      (for-each (lambda (vname)
+		  (unless (memq vname slotnames)
+		    (syntax-error
+		     'define-record-type
+		     "unknown slot name in constructor definition"
+		     vname)))
+		vars)
       `(##core#begin
 	;; TODO: Maybe wrap this in an opaque object?
 	(,%define ,type-name (##core#quote ,tag))
