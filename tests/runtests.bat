@@ -104,13 +104,13 @@ if errorlevel 1 exit /b 1
 a.out
 if errorlevel 1 exit /b 1
 
-%compile% test-scrutinizer-message-format.scm -A -specialize 2>scrutinizer-message-format.out
+%compile% test-scrutinizer-message-format.scm -analyze-only -specialize 2>scrutinizer-message-format.out
 rem this is expected to fail, so no errorlevel check
-%compile% scrutiny-tests.scm -A 2>scrutiny.out
+%compile% scrutiny-tests.scm -analyze-only -specialize 2>scrutiny.out
 if errorlevel 1 exit /b 1
-%compile% scrutiny-tests-2.scm -A 2>scrutiny-2.out
+%compile% scrutiny-tests-2.scm -analyze-only -specialize 2>scrutiny-2.out
 if errorlevel 1 exit /b 1
-%compile% specialization-tests.scm -A -specialize 2>specialization.out
+%compile% specialization-tests.scm -analyze-only -specialize 2>specialization.out
 if errorlevel 1 exit /b 1
 
 rem Replace foo123 -> fooXX so gensyms don't trigger failures
