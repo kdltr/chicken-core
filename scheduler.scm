@@ -219,7 +219,9 @@ EOF
 		      (loop (cdr lst)) ) ) ) ) ) )
       ;; Unblock threads blocked by I/O:
       (if eintr
-	  (##sys#force-primordial)	; force it to handle user-interrupt
+          (begin
+	    (##sys#update-thread-state-buffer ct)
+	    (##sys#force-primordial))	; force it to handle user-interrupt
 	  (unless (null? ##sys#fd-list)
 	    (##sys#unblock-threads-for-i/o) ) )
       ;; Fetch and activate next ready thread:
