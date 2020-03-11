@@ -198,7 +198,7 @@ Looks good.
   arm-none-linux-gnueabi-gcc hello.c -o hello.o -c -fno-strict-aliasing -DHAVE_CHICKEN_CONFIG_H -g -Wall \
     -Wno-unused -I /home/felix/cross-chicken/arm-chicken/include
   rm hello.c
-  arm-none-linux-gnueabi-gcc hello.o -o hello -L/home/felix/cross-chicken/arm-chicken/lib  -Wl,-R/usr/lib -lm \
+  arm-none-linux-gnueabi-gcc hello.o -o hello -L/home/felix/cross-chicken/arm-chicken/lib  -Wl,-rpath=/usr/lib -lm \
     -ldl -lchicken
   rm hello.o
 

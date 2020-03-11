@@ -435,7 +435,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	    you add the following definitions to `Makefile.bsd':
 
 	      C_COMPILER_OPTIONS += -I/usr/pkg/lib
-	      LINKER_OPTIONS += -L/usr/pkg/lib -Wl,-R/usr/pkg/lib
+	      LINKER_OPTIONS += -L/usr/pkg/lib -Wl,-rpath=/usr/pkg/lib
 
 	    Note that this may cause build-problems, if you already have
 	    an existing CHICKEN installation in the /usr/pkg prefix.
