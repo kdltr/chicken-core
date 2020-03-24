@@ -10,7 +10,7 @@
     manually, but it is no longer required in the common case.
 
 
-5.1.1
+5.2.0
 
 - Core libraries
   - Fix `memory-statistics` by returning semi-space bytes and used
