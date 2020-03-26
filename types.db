@@ -1638,9 +1638,9 @@
 
 ;; A silly procedure, but at least we can "inline" it like this
 (chicken.irregex#irregex-match? (#(procedure #:clean #:enforce) chicken.irregex#irregex-match? (* string #!optional fixnum fixnum) boolean)
-                ((* string) (and (chicken.irregex#irregex-match #(1) #(2)) '#t))
-                ((* string fixnum) (and (chicken.irregex#irregex-match #(1) #(2) #(3)) '#t))
-                ((* string fixnum fixnum) (and (chicken.irregex#irregex-match #(1) #(2) #(3) #(4)) '#t)))
+                ((* string) (if (chicken.irregex#irregex-match #(1) #(2)) '#t '#f))
+                ((* string fixnum) (if (chicken.irregex#irregex-match #(1) #(2) #(3)) '#t '#f))
+                ((* string fixnum fixnum) (if (chicken.irregex#irregex-match #(1) #(2) #(3) #(4)) '#t '#f)))
 ;; These two return #f or a match object
 (chicken.irregex#irregex-match (#(procedure #:clean #:enforce) chicken.irregex#irregex-match (* string #!optional fixnum fixnum)
                 (or false (struct regexp-match))))
