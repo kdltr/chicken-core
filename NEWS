@@ -33,6 +33,10 @@
     been deprecated for years.
   - At program cleanup, finalizers are only forced when the live
     finalizer count is non-zero
+  - A new runtime flag `-:hf' was added, which controls the minimum
+    free heap space at which garbage collector will increase the heap
+    size.  This is set to 4M by default to prevent excessive
+    major GCs when the heap hovers around being almost full.
 
 - Build system
   - Auto-configure at build time on most platforms. Cross-compilation
