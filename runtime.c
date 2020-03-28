@@ -163,6 +163,7 @@ static C_TLS int timezone;
 #define DEFAULT_HEAP_GROWTH            200
 #define DEFAULT_HEAP_SHRINKAGE         50
 #define DEFAULT_HEAP_SHRINKAGE_USED    25
+#define DEFAULT_HEAP_MIN_FREE          (4 * 1024 * 1024)
 #define DEFAULT_FORWARDING_TABLE_SIZE  32
 #define DEFAULT_LOCATIVE_TABLE_SIZE    32
 #define DEFAULT_COLLECTIBLES_SIZE      1024
@@ -360,6 +361,7 @@ C_TLS C_uword
   C_heap_growth = DEFAULT_HEAP_GROWTH,
   C_heap_shrinkage = DEFAULT_HEAP_SHRINKAGE,
   C_heap_shrinkage_used = DEFAULT_HEAP_SHRINKAGE_USED,
+  C_heap_min_free = DEFAULT_HEAP_MIN_FREE,
   C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
 C_TLS time_t
   C_startup_time_seconds,
@@ -1362,6 +1364,7 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 		 " -:o              disable stack overflow checks\n"
 		 " -:hiSIZE         set initial heap size\n"
 		 " -:hmSIZE         set maximal heap size\n"
+                 " -:hfSIZE         set minimum unused heap size\n"
 		 " -:hgPERCENTAGE   set heap growth percentage\n"
 		 " -:hsPERCENTAGE   set heap shrink percentage\n"
 		 " -:huPERCENTAGE   set percentage of memory used at which heap will be shrunk\n"
@@ -1389,6 +1392,9 @@ void CHICKEN_parse_command_line(int argc, char *argv[], C_word *heap, C_word *st
 	  case 'i':
 	    *heap = arg_val(ptr + 1); 
 	    heap_size_changed = 1;
+	    goto next;
+          case 'f':
+	    C_heap_min_free = arg_val(ptr + 1);
 	    goto next;
 	  case 'g':
 	    C_heap_growth = arg_val(ptr + 1);
@@ -3605,7 +3611,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     /*** isn't gc_mode always GC_MAJOR here? */
     /* NOTE: count is actual usage, heap_size is both halves */
     if(gc_mode == GC_MAJOR && 
-       count < percentage(heap_size/2, C_heap_shrinkage_used) &&
+       C_heap_min_free + count < percentage(heap_size / 2, C_heap_shrinkage_used) &&
        C_heap_shrinkage > 0 && 
        heap_size > MINIMAL_HEAP_SIZE && !C_heap_size_is_fixed)
       C_rereclaim2(percentage(heap_size, C_heap_shrinkage), 0);
@@ -3809,7 +3815,8 @@ C_regparm void C_fcall really_mark(C_word *x)
     n = C_header_size(p);
     bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
 
-    if(((C_byte *)p2 + bytes + sizeof(C_word)) > tospace_limit) {
+    /* Check for needed size plus minimum unused block: */
+    if(((C_byte *)p2 + bytes + sizeof(C_word) + C_heap_min_free) > tospace_limit) {
       /* Detect impossibilities before GC_REALLOC to preserve state: */
       if (C_in_stackp((C_word)p) && bytes > stack_size)
         panic(C_text("Detected corrupted data in stack"));
