@@ -483,7 +483,7 @@ EOF
 			  (display (make-string pad #\space))))))
 	       fs))
 	    (printf "~%~%~
-                   Machine type:    \t~A ~A~%~
+                   Machine type:    \t~A (~A-bit)~%~
                    Software type:   \t~A~%~
                    Software version:\t~A~%~
                    Build platform:  \t~A~%~
@@ -499,7 +499,7 @@ EOF
                      nursery size is ~S bytes, stack grows ~A~%~
                    Command line:    \t~S~%"
 		    (machine-type)
-		    (if (feature? #:64bit) "(64-bit)" "")
+		    (foreign-value "C_WORD_SIZE" int)
 		    (software-type)
 		    (software-version)
 		    (build-platform)

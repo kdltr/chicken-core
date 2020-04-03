@@ -6435,7 +6435,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
       (string-append (str sv) (str st) (str bp) (##sys#symbol->string mt))))
   (if full
       (let ((spec (string-append
-		   (if (feature? #:64bit) " 64bit" "")
+		   " " (number->string (foreign-value "C_WORD_SIZE" int)) "bit"
 		   (if (feature? #:dload) " dload" "")
 		   (if (feature? #:ptables) " ptables" "")
 		   (if (feature? #:gchooks) " gchooks" "")
@@ -6549,8 +6549,14 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
   (set! ##sys#features (cons #:gchooks ##sys#features)))
 (when (foreign-value "IS_CROSS_CHICKEN" bool)
   (set! ##sys#features (cons #:cross-chicken ##sys#features)))
-(when (fx= (foreign-value "C_WORD_SIZE" int) 64)
-  (set! ##sys#features (cons #:64bit ##sys#features)))
+
+;; Register a feature to represent the word size (e.g., 32bit, 64bit)
+(set! ##sys#features
+      (cons (string->keyword
+             (string-append
+              (number->string (foreign-value "C_WORD_SIZE" int))
+              "bit"))
+            ##sys#features))
 
 (set! ##sys#features
   (let ((major (##sys#number->string (foreign-value "C_MAJOR_VERSION" int)))

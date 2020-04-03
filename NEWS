@@ -3,6 +3,8 @@
   - Sleeping primordial thread doesn't forget mutations made to
     parameters in interrupt handlers anymore. (See #1638. Fix
     contributed by Sebastien Marie)
+- A feature corresponding to the word size is available
+   regardless of the word size (#1693)
 
 
 5.1.1
