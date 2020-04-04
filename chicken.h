@@ -31,7 +31,7 @@
 #define ___CHICKEN
 
 #define C_MAJOR_VERSION   5
-#define C_MINOR_VERSION   1
+#define C_MINOR_VERSION   2
 
 #ifndef _ISOC99_SOURCE
 # define _ISOC99_SOURCE
@@ -1009,12 +1009,16 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_heaptop                  ((C_word **)(&C_fromspace_top))
 #define C_drop(n)                  (C_temporary_stack += (n))
 #define C_alloc(n)                 ((C_word *)C_alloca((n) * sizeof(C_word)))
-#if defined (__llvm__) && defined (__GNUC__)
+#if (defined (__llvm__) && defined (__GNUC__)) || defined (__TINYC__)
 # if defined (__i386__)
 #  define C_stack_pointer ({C_word *sp; __asm__ __volatile__("movl %%esp,%0":"=r"(sp):);sp;})
 # elif defined (__x86_64__)
 #  define C_stack_pointer ({C_word *sp; __asm__ __volatile__("movq %%rsp,%0":"=r"(sp):);sp;})
 # else
+/* Not alloca(0) because:
+ * - LLVM allocates anyways
+ * - TCC always returns NULL
+ */
 #  define C_stack_pointer ((C_word *)C_alloca(1))
 # endif
 #else

@@ -16,7 +16,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
   (c) 2008-2020, The CHICKEN Team
   (c) 2000-2007, Felix L. Winkelmann
 
-  version 5.1.1
+  version 5.2.1
 
 
  1. Introduction
@@ -78,8 +78,19 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         currently not supported, so you must be in the toplevel source
         directory to invoke "make".
 
-        Enter "make" without any options to see a list of supported 
-        platforms.
+        If you enter "make" without the PLATFORM option, CHICKEN will
+        attempt to figure out what platform you are using. If it cannot
+        do so, you will see a list of supported platforms. If you are
+        cross-building, you must specify PLATFORM; for example,
+        PLATFORM=cross-linux-mingw will build CHICKEN on Linux to
+        deploy on Windows.
+
+        If CHICKEN somehow detects the wrong platform, type
+
+            make PLATFORM=""
+
+        to get a list of available platforms, and re-run "make" using
+        the correct platform.
 
 	Note that parallel builds (using the "-j" make(1) option) are
 	*not* supported.
@@ -87,7 +98,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         If you invoke "make" later with different configuration parameters,
         it is advisable to run:
 
-            make PLATFORM=<platform> confclean
+            make confclean
 
         to remove old configuration files.
 
@@ -96,13 +107,14 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         If you build CHICKEN directly from the development sources out
         of the git repository, you will need a "chicken" executable to
         generate the compiled C files from the Scheme library sources.
+        See section 2.1 for platform detection issues.
 
         If you are building in a checkout where you have built other
         versions of chicken, you need to make sure that all traces of
         the previous build are removed. "make clean" is insufficient,
         and you should do the following:
 
-            make PLATFORM=<platform> spotless
+            make spotless
 
         You will need to have a "chicken" binary installed, ideally
         from the development snapshot tarball that is closest to the
@@ -114,7 +126,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 
         Then, to build you can run:
 
-            make PLATFORM=<platform> CHICKEN=<install-dir>/bin/chicken
+            make CHICKEN=<install-dir>/bin/chicken
 
         In some cases, the sources may have diverged enough to
         become unbuildable even with the snapshot.  Then you'll need
@@ -127,7 +139,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         If CHICKEN is built successfully, you can install it on your
         system by entering
 
-            make PLATFORM=<platform> PREFIX=<destination> install
+            make PREFIX=<destination> install
 
         "PREFIX" defaults to "/usr/local". Note that the PREFIX is
         compiled into several CHICKEN tools and must be the same
@@ -248,7 +260,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         To remove CHICKEN from your file-system, enter (probably as
         root):
 
-            make PLATFORM=<platform> PREFIX=<destination> uninstall
+            make PREFIX=<destination> uninstall
 
         (If you gave DESTDIR during installation, you have to pass
         the same setting to "make" when uninstalling)
@@ -423,7 +435,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	    you add the following definitions to `Makefile.bsd':
 
 	      C_COMPILER_OPTIONS += -I/usr/pkg/lib
-	      LINKER_OPTIONS += -L/usr/pkg/lib -Wl,-R/usr/pkg/lib
+	      LINKER_OPTIONS += -L/usr/pkg/lib -Wl,-rpath=/usr/pkg/lib
 
 	    Note that this may cause build-problems, if you already have
 	    an existing CHICKEN installation in the /usr/pkg prefix.
@@ -474,7 +486,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	  - CHICKEN will normally select a 32-bit or 64-bit build
 	    automatically when you use the normal build step:
 
-	      make PLATFORM=macosx
+	      make
 
 	    Specifically, the defaults are:
 
@@ -487,18 +499,18 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
 	    released in late 2006 or later (i.e. with a Core 2 Duo or Xeon
 	    CPU), by specifying ARCH=x86-64:
 
-	      make PLATFORM=macosx ARCH=x86-64
+	      make ARCH=x86-64
 
 	  - Universal binaries: On 10.4 and 10.5 only, CHICKEN and its eggs
 	    can be built as universal binaries which will work on either
 	    Intel or PowerPC.  Most users will not want to do this.
 
 	    For 10.4 universal build:
-	      make PLATFORM=macosx ARCH=universal
+	      make ARCH=universal
 
 	    For 10.5 universal build:
 	      export MACOSX_DEPLOYMENT_TARGET=10.4
-	      make C_COMPILER=gcc-4.0 PLATFORM=macosx ARCH=universal
+	      make C_COMPILER=gcc-4.0 ARCH=universal
 
 	    For 10.6 and later, universal builds are not supported.
 
@@ -642,7 +654,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         http://code.call-cc.org, unpack it, build and install it.
         Then change to the directory containing the git code and run:
 
-            make PLATFORM=<platform> CHICKEN=<path-to-existing-chicken> \
+            make CHICKEN=<path-to-existing-chicken> \
               boot-chicken
 
         This will produce a statically linked binary with the name
@@ -657,7 +669,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
         builds the boot-chicken that you can use to compile the
         development sources. The invocation is:
 
-            scripts/bootstrap.sh PLATFORM=<platform> ...
+            scripts/bootstrap.sh ...
 
         You can add additional parameters if you like to customize the
         build, but this should not be necessary. Note that your current

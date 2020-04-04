@@ -37,6 +37,8 @@ include $(CONFIG)
 endif
 endif
 
+include Makefile.detect
+
 ifndef PLATFORM
 $(info Please select your target platform by running one of the following commands:)
 $(info )

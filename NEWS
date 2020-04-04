@@ -1,4 +1,10 @@
 5.2.1
+
+- Core libraries
+  - Fixed a bug where optimisations for `irregex-match?` would cause
+    runtime errors due to the inlined specialisations not being
+    fully-expanded (see #1690).
+
 - Runtime system
   - Sleeping primordial thread doesn't forget mutations made to
     parameters in interrupt handlers anymore. (See #1638. Fix
@@ -6,8 +12,13 @@
 - A feature corresponding to the word size is available
    regardless of the word size (#1693)
 
+- Build system
+  - Auto-configure at build time on most platforms. Cross-compilation
+    still requires PLATFORM to be set, and it can still be provided
+    manually, but it is no longer required in the common case.
 
-5.1.1
+
+5.2.0
 
 - Core libraries
   - Fix `memory-statistics` by returning semi-space bytes and used

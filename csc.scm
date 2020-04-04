@@ -68,6 +68,7 @@
 (define osx (eq? (software-version) 'macosx))
 (define cygwin (eq? (software-version) 'cygwin))
 (define aix (eq? (build-platform) 'aix))
+(define solaris (memq (software-version) '(solaris sunos)))
 
 (define elf
   (memq (software-version) '(linux netbsd freebsd solaris openbsd hurd haiku)))
@@ -256,20 +257,21 @@
 (define linking-optimization-options default-linking-optimization-options)
 
 (define link-options '())
+(define rpath-option (if solaris "-R" "-rpath="))
 
 (define (builtin-link-options)
   (append
    (cond (elf
 	  (list
 	   (conc "-L" library-dir)
-	   (conc "-Wl,-R"
+	   (conc "-Wl," rpath-option
 		 (if deployed
 		     "$ORIGIN"
 		     (if host-mode
 			 host-libdir
 			 TARGET_RUN_LIB_HOME)))))
 	 (aix
-	  (list (conc "-Wl,-R\"" library-dir "\"")))
+	  (list (conc "-Wl," rpath-option "\"" library-dir "\"")))
 	 (else
 	  (list (conc "-L" library-dir))))
    (if (and deployed (memq (software-version) '(freebsd openbsd netbsd)))
@@ -776,7 +778,8 @@ EOF
 		(set! rpath (car rest))
 		(when (and (memq (build-platform) '(gnu clang))
 			   (not mingw) (not osx))
-		  (set! link-options (append link-options (list (string-append "-Wl,-R" rpath)))) )
+		  (set! link-options
+                    (append link-options (list (string-append "-Wl," rpath-option rpath)))) )
 	  	(set! rest (cdr rest)) ]
 	       [(-host) #f]
 	       ((-oi) 
