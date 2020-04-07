@@ -1649,10 +1649,6 @@
 		      (cond [(eq? fnvar (first fnp))
 			     (set! ksites (alist-cons #f n ksites))
 			     (cond [(eq? kvar (first arg0p))
-				    (unless (= argc (length (cdr subs)))
-				      (quit-compiling
-				       "known procedure called recursively with wrong number of arguments: `~A'" 
-				       fnvar) )
 				    (node-class-set! n '##core#recurse)
 				    (node-parameters-set! n (list #t id))
 				    (node-subexpressions-set! n (cddr subs)) ]
@@ -1660,10 +1656,6 @@
 				    => (lambda (a)
 					 (let* ([klam (cdr a)]
 						[kbody (first (node-subexpressions klam))] )
-					   (unless (= argc (length (cdr subs)))
-					     (quit-compiling
-					      "known procedure called recursively with wrong number of arguments: `~A'" 
-					      fnvar) )
 					   (node-class-set! n 'let)
 					   (node-parameters-set! n (take (third (node-parameters klam)) 1))
 					   (node-subexpressions-set!

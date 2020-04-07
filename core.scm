@@ -2122,7 +2122,17 @@
 	   (grow 1)
 	   (let ([fun (car subs)])
 	     (when (eq? '##core#variable (node-class fun))
-	       (let ((name (first (node-parameters fun))))
+	       (let* ((name (first (node-parameters fun)))
+                      (val (db-get db name 'value)))
+                 (when (and first-analysis
+                            val
+                            (not (db-get db name 'unknown))
+                            (eq? '##core#lambda (node-class val))
+                            (not (llist-match? (third (node-parameters val)) 
+                                               (cdr subs))))
+                    (quit-compiling
+		      "known procedure called with wrong number of arguments: `~A'" 
+	              (real-name name)))
 		 (collect! db name 'call-sites (cons here n))))
 	     (walk (first subs) env localenv fullenv here)
 	     (walkeach (cdr subs) env localenv fullenv here)))
