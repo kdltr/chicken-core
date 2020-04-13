@@ -9,12 +9,8 @@
   - Sleeping primordial thread doesn't forget mutations made to
     parameters in interrupt handlers anymore. (See #1638. Fix
     contributed by Sebastien Marie)
-  - A feature corresponding to the word size is available
-    regardless of the word size (#1693)
-  - A new runtime flag `-:hf' was added, which controls the minimum
-    free heap space at which garbage collector will increase the heap
-    size.  This is set to 4M by default to prevent excessive
-    major GCs when the heap hovers around being almost full.
+- A feature corresponding to the word size is available
+   regardless of the word size (#1693)
 
 - Build system
   - Auto-configure at build time on most platforms. Cross-compilation
