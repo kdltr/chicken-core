@@ -512,7 +512,7 @@ static void try_extended_number(char *ext_proc_name, C_word c, C_word k, ...) C_
 static void panic(C_char *msg) C_noret;
 static void usual_panic(C_char *msg) C_noret;
 static void horror(C_char *msg) C_noret;
-static void C_fcall really_mark(C_word *x) C_regparm;
+static void C_fcall really_mark(C_word *x, C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
 static C_cpsproc(values_continuation) C_noret;
 static C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stable);
 static C_regparm int C_fcall C_in_new_heapp(C_word x);
@@ -548,7 +548,7 @@ static C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable) C_regpar
 static double compute_symbol_table_load(double *avg_bucket_len, int *total);
 static double C_fcall decode_flonum_literal(C_char *str) C_regparm;
 static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
-static void C_fcall mark_system_globals(void) C_regparm;
+static void C_fcall mark_system_globals(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
 static void C_fcall remark_system_globals(void) C_regparm;
 static void C_fcall really_remark(C_word *x) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
@@ -3349,15 +3349,15 @@ void C_save_and_reclaim_args(void *trampoline, int n, ...)
 
 
 #ifdef __SUNPRO_C
-static void mark(C_word *x) { \
-  C_word *_x = (x), _val = *_x; \
-  if(!C_immediatep(_val)) really_mark(_x); \
+static void _mark(C_word *x, C_byte *s, C_byte **t, C_byte *l) {   \
+  C_word *_x = (x), _val = *_x;                                   \
+  if(!C_immediatep(_val)) really_mark(_x,s,t,l);                  \
 }
 #else
-# define mark(x)				\
+# define _mark(x,s,t,l)                                  \
   C_cblock						\
   C_word *_x = (x), _val = *_x;				\
-  if(!C_immediatep(_val)) really_mark(_x);		\
+  if(!C_immediatep(_val)) really_mark(_x,s,t,l);	\
   C_cblockend
 #endif
 
@@ -3365,7 +3365,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 {
   int i, j, n, fcount;
   C_uword count, bytes;
-  C_word *p, **msp, bucket, last;
+  C_word *p, **msp, last;
   C_header h;
   C_byte *tmp, *start;
   LF_LIST *lfn;
@@ -3377,6 +3377,9 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
   FINALIZER_NODE *flist;
   TRACE_INFO *tinfo;
   C_DEBUG_INFO cell;
+  C_byte *tgt_space_start, **tgt_space_top, *tgt_space_limit;
+  
+#define mark(x) _mark(x, tgt_space_start, tgt_space_top, tgt_space_limit)
 
   /* assert(C_timer_interrupt_counter >= 0); */
 
@@ -3399,6 +3402,10 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
   C_restart_c = c;
   heap_scan_top = (C_byte *)C_align((C_uword)C_fromspace_top);
   gc_mode = GC_MINOR;
+  tgt_space_start = fromspace_start;
+  tgt_space_top = &C_fromspace_top;
+  tgt_space_limit = C_fromspace_limit;
+
   start = C_fromspace_top;
 
   /* Entry point for second-level GC (on explicit request or because of full fromspace): */
@@ -3419,12 +3426,21 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
       C_debugger(&cell, 0, NULL);
       C_rereclaim2(percentage(heap_size, C_heap_growth), 0);
       gc_mode = GC_MAJOR;
+
+      tgt_space_start = tospace_start;
+      tgt_space_top = &tospace_top;
+      tgt_space_limit= tospace_limit;
+
       count = (C_uword)tospace_top - (C_uword)tospace_start;
       goto i_like_spaghetti;
     }
 
     heap_scan_top = (C_byte *)C_align((C_uword)tospace_top);    
     gc_mode = GC_MAJOR;
+    tgt_space_start = tospace_start;
+    tgt_space_top = &tospace_top;
+    tgt_space_limit= tospace_limit;
+
     cell.val = "GC_MAJOR";
     C_debugger(&cell, 0, NULL);
 
@@ -3454,7 +3470,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
       if(!gcrp->finalizable) mark(&gcrp->value);
     }
 
-    mark_system_globals();
+    mark_system_globals(tgt_space_start, tgt_space_top, tgt_space_limit);
   }
   else {
     /* Mark mutated slots: */
@@ -3480,7 +3496,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 
  rescan:
   /* Mark nested values in already moved (marked) blocks in breadth-first manner: */
-  while(heap_scan_top < (gc_mode == GC_MINOR ? C_fromspace_top : tospace_top)) {
+  while(heap_scan_top < *tgt_space_top) {
     bp = (C_SCHEME_BLOCK *)heap_scan_top;
 
     if(*((C_word *)bp) == ALIGNMENT_HOLE_MARKER) 
@@ -3690,7 +3706,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 }
 
 
-C_regparm void C_fcall mark_system_globals(void)
+C_regparm void C_fcall mark_system_globals(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
 {
   mark(&core_provided_symbol);
   mark(&interrupt_hook_symbol);
@@ -3712,7 +3728,7 @@ C_regparm void C_fcall mark_system_globals(void)
 }
 
 
-C_regparm void C_fcall really_mark(C_word *x)
+static C_regparm void C_fcall really_mark(C_word *x, C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
 {
   C_word val;
   C_uword n, bytes;
@@ -3723,112 +3739,64 @@ C_regparm void C_fcall really_mark(C_word *x)
 
   if (!C_in_stackp(val) && !C_in_heapp(val) && !C_in_scratchspacep(val)) {
 #ifdef C_GC_HOOKS
-      if(C_gc_trace_hook != NULL) 
-	C_gc_trace_hook(x, gc_mode);
+    if(C_gc_trace_hook != NULL) 
+      C_gc_trace_hook(x, gc_mode);
 #endif
-
-      return;
+    return;
   }
 
   p = (C_SCHEME_BLOCK *)val;
-  
   h = p->header;
 
-  if(gc_mode == GC_MINOR) {
-    if(is_fptr(h)) {
-      *x = val = fptr_to_ptr(h);
-      return;
-    }
-
-    if((C_uword)val >= (C_uword)fromspace_start && (C_uword)val < (C_uword)C_fromspace_top)
-      return;
-
-    p2 = (C_SCHEME_BLOCK *)C_align((C_uword)C_fromspace_top);
-
-#ifndef C_SIXTY_FOUR
-    if((h & C_8ALIGN_BIT) && C_aligned8(p2) && (C_byte *)p2 < C_fromspace_limit) {
-      *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
-      p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
-    }
-#endif
-
-    n = C_header_size(p);
-    bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
-
-    if(((C_byte *)p2 + bytes + sizeof(C_word)) > C_fromspace_limit)
-#ifdef HAVE_SIGSETJMP
-      C_siglongjmp(gc_restart, 1);
-#else
-      C_longjmp(gc_restart, 1);
-#endif
-
-    C_fromspace_top = (C_byte *)p2 + C_align(bytes) + sizeof(C_word);
-
-  scavenge:
-    *x = (C_word)p2;
-    p2->header = h;
-    p->header = ptr_to_fptr((C_uword)p2);
-    C_memcpy(p2->data, p->data, bytes);
+  while(is_fptr(h)) { /* TODO: Pass in fptr chain limit? */
+    val = fptr_to_ptr(h);
+    p = (C_SCHEME_BLOCK *)val;
+    h = p->header;
   }
-  else { /* (major GC) */
-    if(is_fptr(h)) {
-      val = fptr_to_ptr(h);
 
-      if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
-	*x = val;
-	return;
-      }
+  /* Already in target space, probably as result of chasing fptrs */
+  if ((C_uword)val >= (C_uword)tgt_space_start && (C_uword)val < (C_uword)*tgt_space_top) {
+    *x = val;
+    return;
+  }
 
-      /* Link points into fromspace: fetch new pointer + header and copy... */
-      p = (C_SCHEME_BLOCK *)val;
-      h = p->header;
-
-      if(is_fptr(h)) {
-	/* Link points into fromspace and into a link which points into from- or tospace: */
-	val = fptr_to_ptr(h);
-	
-	if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
-	  *x = val;
-	  return;
-	}
-
-	p = (C_SCHEME_BLOCK *)val;
-	h = p->header;
-      }
-    }
-
-    p2 = (C_SCHEME_BLOCK *)C_align((C_uword)tospace_top);
+  p2 = (C_SCHEME_BLOCK *)C_align((C_uword)*tgt_space_top);
 
 #ifndef C_SIXTY_FOUR
-    if((h & C_8ALIGN_BIT) && C_aligned8(p2) && (C_byte *)p2 < tospace_limit) {
-      *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
-      p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
-    }
+  if((h & C_8ALIGN_BIT) && C_aligned8(p2) && (C_byte *)p2 < tgt_space_limit) {
+    *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
+    p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
+  }
 #endif
 
-    n = C_header_size(p);
-    bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
+  n = C_header_size(p);
+  bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
 
-    if(((C_byte *)p2 + bytes + sizeof(C_word)) > tospace_limit) {
+  if(C_unlikely(((C_byte *)p2 + bytes + sizeof(C_word)) > tgt_space_limit)) {
+    if (gc_mode == GC_MAJOR) {
       /* Detect impossibilities before GC_REALLOC to preserve state: */
       if (C_in_stackp((C_word)p) && bytes > stack_size)
         panic(C_text("Detected corrupted data in stack"));
       if (C_in_heapp((C_word)p) && bytes > (heap_size / 2))
         panic(C_text("Detected corrupted data in heap"));
       if(C_heap_size_is_fixed)
-	panic(C_text("out of memory - heap full"));
+        panic(C_text("out of memory - heap full"));
       
       gc_mode = GC_REALLOC;
-#ifdef HAVE_SIGSETJMP
-      C_siglongjmp(gc_restart, 1);
-#else
-      C_longjmp(gc_restart, 1);
-#endif
     }
-
-    tospace_top = (C_byte *)p2 + C_align(bytes) + sizeof(C_word);
-    goto scavenge;
+#ifdef HAVE_SIGSETJMP
+    C_siglongjmp(gc_restart, 1);
+#else
+    C_longjmp(gc_restart, 1);
+#endif
   }
+
+  *tgt_space_top = (C_byte *)p2 + C_align(bytes) + sizeof(C_word);
+
+  *x = (C_word)p2;
+  p2->header = h;
+  p->header = ptr_to_fptr((C_uword)p2);
+  C_memcpy(p2->data, p->data, bytes);
 }
 
 
