@@ -549,7 +549,6 @@ static double compute_symbol_table_load(double *avg_bucket_len, int *total);
 static double C_fcall decode_flonum_literal(C_char *str) C_regparm;
 static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
 static void C_fcall mark_system_globals(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
-static void C_fcall remark_system_globals(void) C_regparm;
 static void C_fcall really_remark(C_word *x) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
 static void C_fcall update_locative_table(int mode) C_regparm;
@@ -3783,6 +3782,10 @@ static C_regparm void C_fcall really_mark(C_word *x, C_byte *tgt_space_start, C_
         panic(C_text("out of memory - heap full"));
       
       gc_mode = GC_REALLOC;
+    } else if (gc_mode == GC_REALLOC) {
+      if (new_tospace_top > new_tospace_limit) {
+        panic(C_text("out of memory - heap full while resizing"));
+      }
     }
 #ifdef HAVE_SIGSETJMP
     C_siglongjmp(gc_restart, 1);
@@ -3799,19 +3802,6 @@ static C_regparm void C_fcall really_mark(C_word *x, C_byte *tgt_space_start, C_
   C_memcpy(p2->data, p->data, bytes);
 }
 
-
-#ifdef __SUNPRO_C
-static void remark(C_word *x) { \
-  C_word *_x = (x), _val = *_x;		     \
-  if(!C_immediatep(_val)) really_remark(_x); \
-}
-#else
-#define remark(x)				\
-  C_cblock					\
-  C_word *_x = (x), _val = *_x;			\
-  if(!C_immediatep(_val)) really_remark(_x);	\
-  C_cblockend
-#endif
 
 /* Do a major GC into a freshly allocated heap: */
 
@@ -3830,6 +3820,8 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
   TRACE_INFO *tinfo;
   C_byte *new_heapspace;
   size_t  new_heapspace_size;
+
+#define remark(x)  _mark(x, new_tospace_start, &new_tospace_top, new_tospace_limit)
 
   if(C_pre_gc_hook != NULL) C_pre_gc_hook(GC_REALLOC);
 
@@ -3924,7 +3916,7 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
   for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next)
     remark(&gcrp->value);
 
-  remark_system_globals();
+  mark_system_globals(new_tospace_start, &new_tospace_top, new_tospace_limit);
 
   /* Clear the mutated slot stack: */
   mutation_stack_top = mutation_stack_bottom;
@@ -4005,108 +3997,6 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
   }
 
   if(C_post_gc_hook != NULL) C_post_gc_hook(GC_REALLOC, 0);
-}
-
-
-C_regparm void C_fcall remark_system_globals(void)
-{
-  remark(&core_provided_symbol);
-  remark(&interrupt_hook_symbol);
-  remark(&error_hook_symbol);
-  remark(&callback_continuation_stack_symbol);
-  remark(&pending_finalizers_symbol);
-  remark(&current_thread_symbol);
-
-  remark(&u8vector_symbol);
-  remark(&s8vector_symbol);
-  remark(&u16vector_symbol);
-  remark(&s16vector_symbol);
-  remark(&u32vector_symbol);
-  remark(&s32vector_symbol);
-  remark(&u64vector_symbol);
-  remark(&s64vector_symbol);
-  remark(&f32vector_symbol);
-  remark(&f64vector_symbol);
-}
-
-
-C_regparm void C_fcall really_remark(C_word *x)
-{
-  C_word val, item;
-  C_uword n, bytes;
-  C_header h;
-  C_SCHEME_BLOCK *p, *p2;
-
-  val = *x;
-
-  if (!C_in_stackp(val) && !C_in_heapp(val) &&
-      !C_in_new_heapp(val) && !C_in_scratchspacep(val)) {
-#ifdef C_GC_HOOKS
-      if(C_gc_trace_hook != NULL) 
-	C_gc_trace_hook(x, gc_mode);
-#endif
-
-      return;
-  }
-
-  p = (C_SCHEME_BLOCK *)val;
-  
-  h = p->header;
-
-  if(is_fptr(h)) {
-    val = fptr_to_ptr(h);
-
-    if((C_uword)val >= (C_uword)new_tospace_start && (C_uword)val < (C_uword)new_tospace_top) {
-      *x = val;
-      return;
-    }
-
-    /* Link points into nursery, fromspace or the old tospace:
-    * fetch new pointer + header and copy... */
-    p = (C_SCHEME_BLOCK *)val;
-    h = p->header;
-    n = 1;
-
-    while(is_fptr(h)) {
-      /* Link points into fromspace or old tospace and into a link which
-       * points into tospace or new-tospace: */
-      val = fptr_to_ptr(h);
-	
-      if((C_uword)val >= (C_uword)new_tospace_start && (C_uword)val < (C_uword)new_tospace_top) {
-	*x = val;
-	return;
-      }
-
-      p = (C_SCHEME_BLOCK *)val;
-      h = p->header;
-
-      if(++n > 3)
-	panic(C_text("forwarding chain during re-reclamation is longer than 3. somethings fishy."));
-    }
-  }
-
-  p2 = (C_SCHEME_BLOCK *)C_align((C_uword)new_tospace_top);
-
-#ifndef C_SIXTY_FOUR
-  if((h & C_8ALIGN_BIT) && C_aligned8(p2) && (C_byte *)p2 < new_tospace_limit) {
-    *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
-    p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
-  }
-#endif
-
-  n = C_header_size(p);
-  bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
-
-  new_tospace_top = ((C_byte *)p2 + C_align(bytes) + sizeof(C_word));
-  if(new_tospace_top > new_tospace_limit) {
-    panic(C_text("out of memory - heap full while resizing"));
-  }
-
-  *x = (C_word)p2;
-  p2->header = h;
-  assert(!is_fptr(h));
-  p->header = ptr_to_fptr((C_word)p2);
-  C_memcpy(p2->data, p->data, bytes);
 }
 
 
