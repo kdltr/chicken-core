@@ -3807,11 +3807,10 @@ static C_regparm void C_fcall really_mark(C_word *x, C_byte *tgt_space_start, C_
 
 C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 {
-  int i, j;
-  C_uword count, n, bytes;
-  C_word *p, **msp, bucket, last;
+  int i;
+  C_uword n, bytes;
+  C_word *p, **msp, last;
   C_header h;
-  C_byte *tmp, *start;
   LF_LIST *lfn;
   C_SCHEME_BLOCK *bp;
   C_GC_ROOT *gcrp;
