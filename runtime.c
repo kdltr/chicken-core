@@ -548,8 +548,8 @@ static C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable) C_regpar
 static double compute_symbol_table_load(double *avg_bucket_len, int *total);
 static double C_fcall decode_flonum_literal(C_char *str) C_regparm;
 static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
-static void C_fcall mark_system_globals(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
-static void C_fcall really_remark(C_word *x) C_regparm;
+static void C_fcall mark_live_objects(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
+static void C_fcall mark_live_heap_only_objects(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
 static void C_fcall update_locative_table(int mode) C_regparm;
 static void C_fcall update_symbol_tables(int mode) C_regparm;
@@ -3360,6 +3360,9 @@ static void _mark(C_word *x, C_byte *s, C_byte **t, C_byte *l) {   \
   C_cblockend
 #endif
 
+/* NOTE: This macro is particularly unhygienic! */
+#define mark(x) _mark(x, tgt_space_start, tgt_space_top, tgt_space_limit)
+
 C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 {
   int i, j, n, fcount;
@@ -3367,19 +3370,14 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
   C_word *p, **msp, last;
   C_header h;
   C_byte *tmp, *start;
-  LF_LIST *lfn;
   C_SCHEME_BLOCK *bp;
   C_GC_ROOT *gcrp;
   double tgc = 0;
-  C_SYMBOL_TABLE *stp;
   volatile int finalizers_checked;
   FINALIZER_NODE *flist;
-  TRACE_INFO *tinfo;
   C_DEBUG_INFO cell;
   C_byte *tgt_space_start, **tgt_space_top, *tgt_space_limit;
   
-#define mark(x) _mark(x, tgt_space_start, tgt_space_top, tgt_space_limit)
-
   /* assert(C_timer_interrupt_counter >= 0); */
 
   if(pending_interrupts_count > 0 && C_interrupts_enabled) {
@@ -3443,33 +3441,12 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     cell.val = "GC_MAJOR";
     C_debugger(&cell, 0, NULL);
 
-    /* Mark items in forwarding table: */
-    for(p = forwarding_table; *p != 0; p += 2) {
-      last = p[ 1 ];
-      mark(&p[ 1 ]);
-      C_block_header(p[ 0 ]) = C_block_header(last);
-    }
+    mark_live_heap_only_objects(tgt_space_start, tgt_space_top, tgt_space_limit);
 
-    /* Mark literal frames: */
-    for(lfn = lf_list; lfn != NULL; lfn = lfn->next)
-      for(i = 0; i < lfn->count; ++i)
-        mark(&lfn->lf[i]);
-
-    /* Mark symbol tables: */
-    for(stp = symbol_table_list; stp != NULL; stp = stp->next)
-      for(i = 0; i < stp->size; ++i)
-        mark(&stp->table[i]);
-
-    /* Mark collectibles: */
-    for(msp = collectibles; msp < collectibles_top; ++msp)
-      if(*msp != NULL) mark(*msp);
-
-    /* mark normal GC roots: */
+    /* mark normal GC roots (see below for finalizer handling): */
     for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next) {
       if(!gcrp->finalizable) mark(&gcrp->value);
     }
-
-    mark_system_globals(tgt_space_start, tgt_space_top, tgt_space_limit);
   }
   else {
     /* Mark mutated slots: */
@@ -3477,21 +3454,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
       mark(*msp);
   }
 
-  assert(C_temporary_stack >= C_temporary_stack_limit);
-
-  /* Clear the mutated slot stack: */
-  mutation_stack_top = mutation_stack_bottom;
-
-  /* Mark live values: */
-  for(p = C_temporary_stack; p < C_temporary_stack_bottom; ++p)
-    mark(p);
-
-  /* Mark trace-buffer: */
-  for(tinfo = trace_buffer; tinfo < trace_buffer_limit; ++tinfo) {
-    mark(&tinfo->cooked1);
-    mark(&tinfo->cooked2);
-    mark(&tinfo->thread);
-  }
+  mark_live_objects(tgt_space_start, tgt_space_top, tgt_space_limit);
 
  rescan:
   /* Mark nested values in already moved (marked) blocks in breadth-first manner: */
@@ -3705,8 +3668,73 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 }
 
 
-C_regparm void C_fcall mark_system_globals(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
+/* Mark live objects which can exist in the nursery and/or the heap */
+static C_regparm void C_fcall mark_live_objects(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
 {
+  C_word *p;
+  TRACE_INFO *tinfo;
+
+  assert(C_temporary_stack >= C_temporary_stack_limit);
+
+  /* Mark live values from the currently running closure: */
+  for(p = C_temporary_stack; p < C_temporary_stack_bottom; ++p)
+    mark(p);
+
+  /* Clear the mutated slot stack: */
+  mutation_stack_top = mutation_stack_bottom;
+
+  /* Mark trace-buffer: */
+  for(tinfo = trace_buffer; tinfo < trace_buffer_limit; ++tinfo) {
+    mark(&tinfo->cooked1);
+    mark(&tinfo->cooked2);
+    mark(&tinfo->thread);
+  }
+}
+
+
+/*
+ * Mark all live *heap* objects that don't need GC mode-specific
+ * treatment.  Thus, no finalizers, GC roots or locative tables.
+ *
+ * Locative tables are excluded because these need to chase forwarding
+ * chains to update the corresponding pointer, while dead objects must
+ * be zeroed out with NULL pointers.
+ *
+ * Finalizers are excluded because these need special handling:
+ * finalizers referring to dead objects must be marked and queued.
+ *
+ * This function does not need to be called on a minor GC, since these
+ * objects won't ever exist in the nursery.
+ */
+static C_regparm void C_fcall mark_live_heap_only_objects(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
+{
+  LF_LIST *lfn;
+  C_word *p, **msp, last;
+  unsigned int i;
+  C_SYMBOL_TABLE *stp;
+  
+  /* Mark items in forwarding table: */
+  for(p = forwarding_table; *p != 0; p += 2) {
+    last = p[ 1 ];
+    mark(&p[ 1 ]);
+    C_block_header(p[ 0 ]) = C_block_header(last);
+  }
+
+  /* Mark literal frames: */
+  for(lfn = lf_list; lfn != NULL; lfn = lfn->next)
+    for(i = 0; i < (unsigned int)lfn->count; ++i)
+      mark(&lfn->lf[i]);
+
+  /* Mark symbol tables: */
+  for(stp = symbol_table_list; stp != NULL; stp = stp->next)
+    for(i = 0; i < stp->size; ++i)
+      mark(&stp->table[i]);
+
+  /* Mark collectibles: */
+  for(msp = collectibles; msp < collectibles_top; ++msp)
+    if(*msp != NULL) mark(*msp);
+
+  /* Mark system globals */
   mark(&core_provided_symbol);
   mark(&interrupt_hook_symbol);
   mark(&error_hook_symbol);
@@ -3805,22 +3833,19 @@ static C_regparm void C_fcall really_mark(C_word *x, C_byte *tgt_space_start, C_
 
 /* Do a major GC into a freshly allocated heap: */
 
+#define remark(x)  _mark(x, new_tospace_start, &new_tospace_top, new_tospace_limit)
+
 C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 {
   int i;
   C_uword n, bytes;
-  C_word *p, **msp, last;
+  C_word *p;
   C_header h;
-  LF_LIST *lfn;
   C_SCHEME_BLOCK *bp;
   C_GC_ROOT *gcrp;
-  C_SYMBOL_TABLE *stp;
   FINALIZER_NODE *flist;
-  TRACE_INFO *tinfo;
   C_byte *new_heapspace;
   size_t  new_heapspace_size;
-
-#define remark(x)  _mark(x, new_tospace_start, &new_tospace_top, new_tospace_limit)
 
   if(C_pre_gc_hook != NULL) C_pre_gc_hook(GC_REALLOC);
 
@@ -3891,42 +3916,9 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
   new_tospace_limit = new_tospace_start + size;
   heap_scan_top = new_tospace_top;
 
-  /* Mark items in forwarding table: */
-  for(p = forwarding_table; *p != 0; p += 2) {
-    last = p[ 1 ];
-    remark(&p[ 1 ]);
-    C_block_header(p[ 0 ]) = C_block_header(last);
-  }
-
-  /* Mark literal frames: */
-  for(lfn = lf_list; lfn != NULL; lfn = lfn->next)
-    for(i = 0; i < lfn->count; ++i)
-      remark(&lfn->lf[i]);
-
-  /* Mark symbol table: */
-  for(stp = symbol_table_list; stp != NULL; stp = stp->next)
-    for(i = 0; i < stp->size; ++i)
-      remark(&stp->table[i]);
-
-  /* Mark collectibles: */
-  for(msp = collectibles; msp < collectibles_top; ++msp)
-    if(*msp != NULL) remark(*msp);
-
-  for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next)
-    remark(&gcrp->value);
-
-  mark_system_globals(new_tospace_start, &new_tospace_top, new_tospace_limit);
-
-  /* Clear the mutated slot stack: */
-  mutation_stack_top = mutation_stack_bottom;
-
-  /* Mark live values: */
-  for(p = C_temporary_stack; p < C_temporary_stack_bottom; ++p)
-    remark(p);
-
-  /* Mark locative table: */
-  for(i = 0; i < locative_table_count; ++i)
-    remark(&locative_table[ i ]);
+  /* Mark standard live objects in nursery and heap */
+  mark_live_objects(new_tospace_start, &new_tospace_top, new_tospace_limit);
+  mark_live_heap_only_objects(new_tospace_start, &new_tospace_top, new_tospace_limit);
 
   /* Mark finalizer table: */
   for(flist = finalizer_list; flist != NULL; flist = flist->next) {
@@ -3934,12 +3926,14 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
     remark(&flist->finalizer);
   }
 
-  /* Mark trace-buffer: */
-  for(tinfo = trace_buffer; tinfo < trace_buffer_limit; ++tinfo) {
-    remark(&tinfo->cooked1);
-    remark(&tinfo->cooked2);
-    remark(&tinfo->thread);
+  /* Mark *all* GC roots */
+  for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next) {
+    remark(&gcrp->value);
   }
+
+  /* Mark locative table (like finalizers, all objects are kept alive in GC_REALLOC): */
+  for(i = 0; i < locative_table_count; ++i)
+    remark(&locative_table[ i ]);
 
   update_locative_table(GC_REALLOC);
 
