@@ -1812,7 +1812,7 @@ void barf(int code, char *loc, ...)
     break;
 
   case C_BAD_ARGUMENT_TYPE_NO_BLOCK_ERROR:
-    msg = C_text("bad argument type - not a non-immediate value");
+    msg = C_text("bad argument type - not a object");
     c = 1;
     break;
 

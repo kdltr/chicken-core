@@ -98,7 +98,7 @@ EOF
 	  [else
 	   (##sys#signal-hook
 	    #:type-error loc
-	    "bad argument type - not an a-list of non-immediate objects" x) ] ) ) )
+	    "bad argument type - not an a-list of block objects" x) ] ) ) )
 
 (define (##sys#check-generic-structure x . loc)
   (unless (%record-structure? x)

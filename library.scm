@@ -4644,7 +4644,7 @@ EOF
 			       (outchr port #\)) )
 			    (outchr port #\space)
 			    (out (##sys#slot x i)) ) ) ) ) )
-		(else (##sys#error "unprintable non-immediate object encountered")))))
+		(else (##sys#error "unprintable block object encountered")))))
       (##sys#void))))
 
 (define ##sys#procedure->string 
@@ -5424,7 +5424,7 @@ EOF
 	((24) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a structure of the required type" args))
 	((25) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a blob" args))
 	((26) (apply ##sys#signal-hook #:type-error loc "locative refers to reclaimed object" args))
-	((27) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a non-immediate value" args))
+	((27) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a block object" args))
 	((28) (apply ##sys#signal-hook #:type-error loc "bad argument type - not a number vector" args))
 	((29) (apply ##sys#signal-hook #:type-error loc "bad argument type - not an integer" args))
 	((30) (apply ##sys#signal-hook #:type-error loc "bad argument type - not an unsigned integer" args))
