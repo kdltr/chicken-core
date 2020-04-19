@@ -940,7 +940,6 @@
                                     output-file)
          srcdir platform)
   (let* ((cmd (install-executable-command platform))
-         (dcmd (remove-file-command platform))
          (mkdir (mkdir-command platform))
          (sname (prefix srcdir name))
          (out (qs* (target-file (conc sname ext) mode) platform #t))
@@ -949,8 +948,6 @@
          (ddir (shell-variable "DESTDIR" platform))
          (destf (qs* (conc dest "/" output-file ext) platform #t)))
     (print "\n" mkdir " " ddir dfile)
-    (when (eq? platform 'unix)
-      (print dcmd " " ddir destf))
     (print cmd " " out " " ddir destf)
     (print-end-command platform)))
 
@@ -1005,7 +1002,6 @@
 
 (define ((install-program name #!key mode output-file) srcdir platform)
   (let* ((cmd (install-executable-command platform))
-         (dcmd (remove-file-command platform))
          (mkdir (mkdir-command platform))
          (ext (executable-extension platform))
          (sname (prefix srcdir name))
@@ -1017,8 +1013,6 @@
          (ddir (shell-variable "DESTDIR" platform))
          (destf (qs* (conc dest "/" output-file ext) platform #t)))
     (print "\n" mkdir " " ddir dfile)
-    (when (eq? platform 'unix)
-      (print dcmd " " ddir destf))
     (print cmd " " out " " ddir destf)
     (print-end-command platform)))
 
