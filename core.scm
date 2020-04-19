@@ -2126,6 +2126,7 @@
                       (val (db-get db name 'value)))
                  (when (and first-analysis
                             val
+                            (not (db-get db name 'global))
                             (not (db-get db name 'unknown))
                             (eq? '##core#lambda (node-class val))
                             (not (llist-match? (third (node-parameters val)) 
