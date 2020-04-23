@@ -1071,7 +1071,7 @@
  'srfi-6 'library
  '((get-output-string . chicken.base#get-output-string)
    (open-input-string . chicken.base#open-input-string)
-   (open-output-string . chicken.base#open-input-string)))
+   (open-output-string . chicken.base#open-output-string)))
 
 (##sys#register-primitive-module
  'srfi-8 '() (se-subset '(receive) ##sys#chicken.base-macro-environment))
