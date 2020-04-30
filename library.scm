@@ -5008,10 +5008,13 @@ EOF
       (unless (null? tasks)
 	(for-each (lambda (t) (t)) tasks)
 	(loop))))
-  (when (##sys#debug-mode?)
-    (##sys#print "[debug] forcing finalizers...\n" #f ##sys#standard-error))
-  (when (chicken.gc#force-finalizers)
-    (##sys#force-finalizers)))
+  (when (fx> (##sys#slot ##sys#pending-finalizers 0) 0)
+    (##sys#run-pending-finalizers #f))
+  (when (fx> (##core#inline "C_i_live_finalizer_count") 0)
+    (when (##sys#debug-mode?)
+      (##sys#print "[debug] forcing finalizers...\n" #f ##sys#standard-error))
+    (when (chicken.gc#force-finalizers)
+      (##sys#force-finalizers))))
 
 (set! chicken.base#exit-handler
   (make-parameter

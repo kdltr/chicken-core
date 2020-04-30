@@ -31,6 +31,8 @@
     deprecation of current-milliseconds.
   - Officially deprecated C_pair() in favor of C_a_pair(); it has
     been deprecated for years.
+  - At program cleanup, finalizers are only forced when the live
+    finalizer count is non-zero
 
 - Build system
   - Auto-configure at build time on most platforms. Cross-compilation
