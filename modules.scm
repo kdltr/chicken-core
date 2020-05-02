@@ -638,7 +638,7 @@
 			     (cond ((null? ids)
 				    (for-each
 				     (lambda (id)
-				       (warn "imported identifier doesn't exist" spec id))
+				       (warn "imported identifier doesn't exist" name id))
 				     missing)
 				    (values name lib `(,head ,spec ,@imports) v s impi))
 				   ((assq (car ids) impv) =>
