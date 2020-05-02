@@ -72,8 +72,10 @@
 (define default-profiling-declarations
   '((##core#declare
      (uses profiler)
-     (bound-to-procedure
-       ##sys#profile-entry ##sys#profile-exit) ) ) )
+     (bound-to-procedure ##sys#profile-entry
+			 ##sys#profile-exit
+			 ##sys#register-profile-info
+			 ##sys#set-profile-info-vector!))))
 
 (define default-units '(library eval))
 
