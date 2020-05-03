@@ -2025,7 +2025,13 @@ C_word C_dbg_hook(C_word dummy)
 
 /* Timing routines: */
 
+/* DEPRECATED */
 C_regparm C_u64 C_fcall C_milliseconds(void)
+{
+  return C_current_process_milliseconds();
+}
+
+C_regparm C_u64 C_fcall C_current_process_milliseconds(void)
 {
 #ifdef C_NONUNIX
     if(CLOCKS_PER_SEC == 1000) return clock();

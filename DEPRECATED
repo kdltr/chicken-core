@@ -1,6 +1,12 @@
 Deprecated functions and variables
 ==================================
 
+5.2.1
+- current-milliseconds and its C implementations C_milliseconds and
+  C_a_i_current_milliseconds have been deprecated in favor of
+  current-process_milliseconds, C_current_process_milliseconds and
+  C_a_i_current_process_milliseconds
+
 5.1.1
 
 - ##sys#check-exact and its C implementations C_i_check_exact and

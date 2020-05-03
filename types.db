@@ -1157,7 +1157,8 @@
 
 (chicken.time#cpu-time (#(procedure #:clean) chicken.time#cpu-time () fixnum fixnum))
 (chicken.time#current-seconds (#(procedure #:clean) chicken.time#current-seconds () integer))
-(chicken.time#current-milliseconds (#(procedure #:clean) chicken.time#current-milliseconds () integer))
+(chicken.time#current-milliseconds deprecated)
+(chicken.time#current-process-milliseconds (#(procedure #:clean) chicken.time#current-process-milliseconds () integer))
 
 (##sys#error (procedure ##sys#error (* #!rest) noreturn))
 (##sys#signal-hook (procedure ##sys#signal-hook (* #!rest) noreturn))

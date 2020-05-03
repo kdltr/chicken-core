@@ -1084,13 +1084,17 @@ EOF
     ;; to be a hardcoded primitive module.
     ;;
     ;; [syntax] time
-    (cpu-time current-milliseconds current-seconds)
+    (cpu-time current-milliseconds current-process-milliseconds current-seconds)
 
 (import scheme)
 (import (only chicken.module reexport))
 
+;; Deprecated
 (define (current-milliseconds)
   (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f))
+
+(define (current-process-milliseconds)
+  (##core#inline_allocate ("C_a_i_current_process_milliseconds" 7) #f))
 
 (define (current-seconds) 
   (##core#inline_allocate ("C_a_get_current_seconds" 7) #f))

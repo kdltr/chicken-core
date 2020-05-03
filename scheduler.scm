@@ -185,7 +185,7 @@ EOF
     (let loop1 ()
       ;; Unblock threads waiting for timeout:
       (unless (null? ##sys#timeout-list)
-	(let ((now (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)))
+	(let ((now (##core#inline_allocate ("C_a_i_current_process_milliseconds" 7) #f)))
 	  (let loop ((lst ##sys#timeout-list))
 	    (if (null? lst)
 		(set! ##sys#timeout-list '())
@@ -460,7 +460,7 @@ EOF
 	 (tmo (if (and to? (not rq?)) ; no thread was unblocked by timeout, so wait
 		  (let* ((tmo1 (caar ##sys#timeout-list))
 			 (tmo1 (inexact->exact (round tmo1)))
-			 (now (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)))
+			 (now (##core#inline_allocate ("C_a_i_current_process_milliseconds" 7) #f)))
 		    (max 0 (- tmo1 now)) )
 		  0))) ; otherwise immediate timeout.
     (dbg "waiting for I/O with timeout " tmo)
@@ -603,7 +603,7 @@ EOF
 (set! chicken.base#sleep-hook
   (lambda (n)
     (##sys#thread-sleep!
-     (+ (##core#inline_allocate ("C_a_i_current_milliseconds" 7) #f)
+     (+ (##core#inline_allocate ("C_a_i_current_process_milliseconds" 7) #f)
 	(* 1000.0 n)))))
 
 

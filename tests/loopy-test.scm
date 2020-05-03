@@ -1,5 +1,5 @@
 (import (only chicken.format printf)
-        (only chicken.time current-milliseconds)
+        (only chicken.time current-process-milliseconds)
 	chicken.load)
 
 (load-relative "loopy-loop.scm")
@@ -35,7 +35,7 @@
 (define (test-begin . o)
   (set! *pass* 0)
   (set! *fail* 0)
-  (set! *start* (current-milliseconds)))
+  (set! *start* (current-process-milliseconds)))
 
 (define (format-float n prec)
   (let* ((str (number->string n))
@@ -61,7 +61,7 @@
     (format-float (* 100 x) 2)))
 
 (define (test-end . o)
-  (let ((end (current-milliseconds))
+  (let ((end (current-process-milliseconds))
         (total (+ *pass* *fail*)))
     (printf "  ~A tests completed in ~A seconds\n"
             total (format-float (exact->inexact (/ (- end *start*) 1000)) 3))

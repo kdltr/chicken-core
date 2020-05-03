@@ -4,13 +4,20 @@
   - Fixed a bug where optimisations for `irregex-match?` would cause
     runtime errors due to the inlined specialisations not being
     fully-expanded (see #1690).
+  - current-milliseconds has been deprecated in favor of the name
+    current-process-milliseconds, to avoid confusion due to naming
+    of current-milliseconds versus current-seconds, which do something
+    quite different.
 
 - Runtime system
   - Sleeping primordial thread doesn't forget mutations made to
     parameters in interrupt handlers anymore. (See #1638. Fix
     contributed by Sebastien Marie)
-- A feature corresponding to the word size is available
-   regardless of the word size (#1693)
+  - A feature corresponding to the word size is available
+    regardless of the word size (#1693)
+  - Deprecated C_(a_i_current_)milliseconds in favor of
+    C_(a_i_)current_process_milliseconds to match the Scheme-level
+    deprecation of current-milliseconds.
 
 - Build system
   - Auto-configure at build time on most platforms. Cross-compilation

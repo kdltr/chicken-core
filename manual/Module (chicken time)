@@ -19,9 +19,9 @@ code. On platforms where user and system time can not be differentiated,
 system time will be always be 0.
 
 
-==== current-milliseconds
+==== current-process-milliseconds
 
-<procedure>(current-milliseconds)</procedure>
+<procedure>(current-process-milliseconds)</procedure>
 
 Returns the number of milliseconds since process- or machine startup.
 

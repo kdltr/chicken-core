@@ -254,7 +254,7 @@
 	 (and-let* ((m (memq 'module options)))
 	   (option-arg m))))
 
-    (define (cputime) (current-milliseconds))
+    (define (cputime) (current-process-milliseconds))
 
     (define (dribble fstr . args)
       (debugging 'p (apply sprintf fstr args)))

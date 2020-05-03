@@ -28,6 +28,7 @@
   'library
   '((cpu-time . chicken.time#cpu-time)
     (current-milliseconds . chicken.time#current-milliseconds)
+    (current-process-milliseconds . chicken.time#current-process-milliseconds)
     (current-seconds . chicken.time#current-seconds))
  ;; OBSOLETE: This can be removed after bootstrapping
  (if (##sys#symbol-has-toplevel-binding? '##sys#chicken.time-macro-environment)

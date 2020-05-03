@@ -3,7 +3,7 @@
 ; by Alex Shinn, lifted from match-test by felix
 
 (import (only chicken.string ->string))
-(import (only chicken.time current-milliseconds))
+(import (only chicken.time current-process-milliseconds))
 
 (define *current-group-name* "")
 (define *pass* 0)
@@ -40,9 +40,9 @@
   (set! *total-fail* (+ *total-fail* *fail*))
   (set! *pass* 0)
   (set! *fail* 0)
-  (set! *start* (current-milliseconds))
+  (set! *start* (current-process-milliseconds))
   (when (= 0 *total-start*)
-    (set! *total-start* (current-milliseconds))))
+    (set! *total-start* (current-process-milliseconds))))
 
 (define (format-float n prec)
   (let* ((str (number->string n))
@@ -68,7 +68,7 @@
     (format-float (* 100 x) 2)))
 
 (define (test-end . o)
-  (let ((end (current-milliseconds))
+  (let ((end (current-process-milliseconds))
         (total (+ *pass* *fail*)))
     (print "  " total " tests completed in "
 	   (format-float (exact->inexact (/ (- end *start*) 1000)) 3)
@@ -85,7 +85,7 @@
   (print " TOTALS: ")
   (set! *total-pass* (+ *total-pass* *pass*)) ; should be 0
   (set! *total-fail* (+ *total-fail* *fail*)) ; should be 0
-  (let ((end (current-milliseconds))
+  (let ((end (current-process-milliseconds))
         (total (+ *total-pass* *total-fail*)))
     (print "  " total " tests completed in "
 	   (format-float (exact->inexact (/ (- end *total-start*) 1000)) 3)

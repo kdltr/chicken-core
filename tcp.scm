@@ -374,7 +374,7 @@ EOF
 	     (read-input
 	      (lambda ()
 		(let* ((tmr (tcp-read-timeout))
-		       (dlr (and tmr (+ (current-milliseconds) tmr))))
+		       (dlr (and tmr (+ (current-process-milliseconds) tmr))))
 		  (let loop ()
 		    (let ((n (recv fd buf +input-buffer-size+ 0)))
 		      (cond ((eq? _socket_error n)
@@ -484,7 +484,7 @@ EOF
 		(let ((tmw (tcp-write-timeout)))
 		  (let loop ((len (##sys#size s))
 			     (offset 0)
-			     (dlw (and tmw (+ (current-milliseconds) tmw))))
+			     (dlw (and tmw (+ (current-process-milliseconds) tmw))))
 		    (let* ((count (fxmin +output-chunk-size+ len))
 			   (n (send fd s offset count 0)))
 		      (cond ((eq? _socket_error n)
@@ -509,7 +509,7 @@ EOF
 				   (if (fx= n 0)
 				       tmw
 				       ;; If we wrote *something*, reset timeout
-				       (and tmw (+ (current-milliseconds) tmw)) )) ) ) ) )) ) )
+				       (and tmw (+ (current-process-milliseconds) tmw)) )) ) ) ) )) ) )
 	     (out
 	      (make-output-port
 	       (if outbuf
@@ -547,7 +547,7 @@ EOF
   (##sys#check-structure tcpl 'tcp-listener)
   (let* ((fd (##sys#slot tcpl 1))
 	 (tma (tcp-accept-timeout))
-	 (dla (and tma (+ tma (current-milliseconds)))))
+	 (dla (and tma (+ tma (current-process-milliseconds)))))
     (let loop ()
       (when dla
 	(##sys#thread-block-for-timeout! ##sys#current-thread dla) )
@@ -585,7 +585,7 @@ EOF
 (define (tcp-connect host . more)
   (let* ((port (optional more #f))
 	 (tmc (tcp-connect-timeout))
-	 (dlc (and tmc (+ (current-milliseconds) tmc)))
+	 (dlc (and tmc (+ (current-process-milliseconds) tmc)))
 	 (addr (make-string _sockaddr_in_size)))
     (##sys#check-string host)
     (unless port

@@ -1628,7 +1628,9 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_u_i_flonum_infinitep(x)       C_mk_bool(C_isinf(C_flonum_magnitude(x)))
 #define C_u_i_flonum_finitep(x)         C_mk_bool(C_isfinite(C_flonum_magnitude(x)))
 
+/* DEPRECATED */
 #define C_a_i_current_milliseconds(ptr, c, dummy) C_uint64_to_num(ptr, C_milliseconds())
+#define C_a_i_current_process_milliseconds(ptr, c, dummy) C_uint64_to_num(ptr, C_current_process_milliseconds())
 
 #define C_i_noop1(dummy)               ((dummy), C_SCHEME_UNDEFINED)
 #define C_i_noop2(dummy1, dummy2)      ((dummy1), (dummy2), C_SCHEME_UNDEFINED)
@@ -2079,7 +2081,8 @@ C_fctexport C_word C_fcall C_i_persist_symbol(C_word sym) C_regparm;
 C_fctexport C_word C_fcall C_i_unpersist_symbol(C_word sym) C_regparm;
 C_fctexport C_word C_fcall C_i_get_keyword(C_word key, C_word args, C_word def) C_regparm;
 C_fctexport C_word C_fcall C_i_process_sleep(C_word n) C_regparm;
-C_fctexport C_u64 C_fcall C_milliseconds(void) C_regparm;
+C_fctexport C_u64 C_fcall C_milliseconds(void) C_regparm; /* DEPRECATED */
+C_fctexport C_u64 C_fcall C_current_process_milliseconds(void) C_regparm;
 C_fctexport C_u64 C_fcall C_cpu_milliseconds(void) C_regparm;
 C_fctexport double C_fcall C_bignum_to_double(C_word bignum) C_regparm;
 C_fctexport C_word C_fcall C_i_debug_modep(void) C_regparm;
