@@ -23,7 +23,7 @@ system time will be always be 0.
 
 <procedure>(current-process-milliseconds)</procedure>
 
-Returns the number of milliseconds since process- or machine startup.
+Returns the number of milliseconds since process startup.
 
 
 ==== current-seconds

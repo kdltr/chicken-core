@@ -7,7 +7,12 @@
   - current-milliseconds has been deprecated in favor of the name
     current-process-milliseconds, to avoid confusion due to naming
     of current-milliseconds versus current-seconds, which do something
-    quite different.
+    quite different.  Also, its definition has been tweaked to
+    guarantee that it returns the time since process startup.  On
+    Windows, it will now return sane values after 24 days of uptime.
+    On UNIX, the values returned will be precise to the millisecond
+    instead of rounded down to the nearest second at startup (which
+    would result in erratic startup times).
 
 - Runtime system
   - Sleeping primordial thread doesn't forget mutations made to

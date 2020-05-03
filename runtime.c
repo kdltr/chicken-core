@@ -362,7 +362,8 @@ C_TLS C_uword
   C_heap_shrinkage_used = DEFAULT_HEAP_SHRINKAGE_USED,
   C_maximal_heap_size = DEFAULT_MAXIMAL_HEAP_SIZE;
 C_TLS time_t
-  C_startup_time_seconds,
+  C_startup_time_sec,
+  C_startup_time_msec,
   profile_frequency = 10000;
 C_TLS char 
   **C_main_argv,
@@ -684,17 +685,23 @@ int CHICKEN_initialize(int heap, int stack, int symbols, void *toplevel)
   struct sigaction sa;
 #endif
 
-  /*FIXME Should have C_tzset in chicken.h? */
-#ifdef C_NONUNIX
-  C_startup_time_seconds = (time_t)0;
-# if defined(__MINGW32__)
+  /* FIXME Should have C_tzset in chicken.h? */
+#if defined(__MINGW32__)
+# if defined(__MINGW64_VERSION_MAJOR)
+    ULONGLONG tick_count = GetTickCount64();
+# else
+    /* mingw32 doesn't yet have GetTickCount64 support */
+    ULONGLONG tick_count = GetTickCount();
+# endif
+  C_startup_time_sec = tick_count / 1000;
+  C_startup_time_msec = tick_count % 1000;
   /* Make sure _tzname, _timezone, and _daylight are set */
   _tzset();
-# endif
 #else
   struct timeval tv;
   C_gettimeofday(&tv, NULL);
-  C_startup_time_seconds = tv.tv_sec;
+  C_startup_time_sec = tv.tv_sec;
+  C_startup_time_msec = tv.tv_usec / 1000;
   /* Make sure tzname, timezone, and daylight are set */
   tzset();
 #endif
@@ -2033,14 +2040,18 @@ C_regparm C_u64 C_fcall C_milliseconds(void)
 
 C_regparm C_u64 C_fcall C_current_process_milliseconds(void)
 {
-#ifdef C_NONUNIX
-    if(CLOCKS_PER_SEC == 1000) return clock();
-    else return (C_u64)clock() / (C_u64)CLOCKS_PER_SEC * 1000;
+#if defined(__MINGW32__)
+# if defined(__MINGW64_VERSION_MAJOR)
+    ULONGLONG tick_count = GetTickCount64();
+# else
+    ULONGLONG tick_count = GetTickCount();
+# endif
+    return tick_count - (C_startup_time_sec * 1000) - C_startup_time_msec;
 #else
     struct timeval tv;
 
     if(C_gettimeofday(&tv, NULL) == -1) return 0;
-    else return (tv.tv_sec - C_startup_time_seconds) * 1000 + tv.tv_usec / 1000;
+    else return (tv.tv_sec - C_startup_time_sec) * 1000 + tv.tv_usec / 1000 - C_startup_time_msec;
 #endif
 }
 
