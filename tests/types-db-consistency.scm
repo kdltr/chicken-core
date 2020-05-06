@@ -8,6 +8,7 @@
   (chicken irregex)
   (chicken memory)
   (chicken port)
+  (chicken format)
   (chicken process-context)
   (chicken process-context posix)
   (chicken tcp)
@@ -52,6 +53,7 @@
     ((symbol) symbol?)
     ((input-port) input-port?)
     ((output-port) output-port?)
+    ((deprecated) (constantly #t))
     (else (unknown sym))))
 
 (define (run-checks file checker)
