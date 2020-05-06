@@ -1084,7 +1084,9 @@ EOF
     ;; to be a hardcoded primitive module.
     ;;
     ;; [syntax] time
-    (cpu-time current-milliseconds current-process-milliseconds current-seconds)
+    (cpu-time 
+     current-milliseconds ; DEPRECATED
+     current-process-milliseconds current-seconds)
 
 (import scheme)
 (import (only chicken.module reexport))

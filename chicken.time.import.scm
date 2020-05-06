@@ -27,7 +27,7 @@
   'chicken.time
   'library
   '((cpu-time . chicken.time#cpu-time)
-    (current-milliseconds . chicken.time#current-milliseconds)
+    (current-milliseconds . chicken.time#current-milliseconds) ; DEPRECATED
     (current-process-milliseconds . chicken.time#current-process-milliseconds)
     (current-seconds . chicken.time#current-seconds))
  ;; OBSOLETE: This can be removed after bootstrapping
