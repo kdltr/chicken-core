@@ -673,7 +673,7 @@ EOF
 		(set! compile-options (cons "-DC_EMBEDDED" compile-options)) ]
 	       [(-link)
 		(check s rest)
-		(t-options "-uses" (car rest))
+		(t-options "-link" (car rest))
 		(set! linked-extensions
 		  (append linked-extensions (string-split (car rest) ", ")))
 		(set! rest (cdr rest))]

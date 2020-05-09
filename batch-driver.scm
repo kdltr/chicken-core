@@ -194,8 +194,7 @@
     (register-feature! 'chicken-compile-static))
   (let* ((dynamic (memq 'dynamic options))
 	(unit (memq 'unit options))
-        (initforms `((import-for-syntax ,@default-syntax-imports)
-		     (##core#declare
+	(init-forms `((##core#declare
 		      ,@(append 
 			 default-declarations
 			 (if emit-debug-info
@@ -211,11 +210,12 @@
 				  (or (not compile-module-registration)
 				      (eq? compile-module-registration 'yes)))
 			     '((uses eval-modules))
-			     '())))
-		     ,@(if explicit-use-flag
-			   '()
-			   `((import ,@default-imports)))))
-        (verbose (memq 'verbose options))
+			     '())))))
+	(import-forms `((import-for-syntax ,@default-syntax-imports)
+			,@(if explicit-use-flag
+			      '()
+			      `((import-syntax ,@default-imports)))))
+	(cleanup-forms '(((chicken.base#implicit-exit-handler))))
 	(outfile (cond ((memq 'output-file options) 
 			=> (lambda (node)
 			     (let ((oname (option-arg node)))
@@ -227,14 +227,12 @@
 	(ipath (map chop-separator
 		    (##sys#split-path
 		     (or (get-environment-variable "CHICKEN_INCLUDE_PATH") "")))) 
-
 	(opasses (default-optimization-passes))
 	(time0 #f)
 	(time-breakdown #f)
 	(forms '())
 	(inline-output-file #f)
 	(type-output-file #f)
-	(cleanup-forms '(((chicken.base#implicit-exit-handler))))
 	(profile (or (memq 'profile options)
 		     (memq 'accumulate-profile options) 
 		     (memq 'profile-name options)))
@@ -352,8 +350,9 @@
     (when (memq 'b debugging-chicken) (set! time-breakdown #t))
     (when (memq 'raw options)
       (set! explicit-use-flag #t)
-      (set! cleanup-forms '())
-      (set! initforms '()) )
+      (set! init-forms '())
+      (set! import-forms '())
+      (set! cleanup-forms '()))
     (when (memq 'no-lambda-info options)
       (set! emit-closure-info #f) )
     (when (memq 'no-compiler-syntax options)
@@ -363,7 +362,8 @@
     (when (memq 'inline-global options)
       (set! enable-inline-files #t)
       (set! inline-locally #t))
-    (when verbose
+    (when (memq 'verbose options)
+      (set! verbose-mode #t)
       (set! ##sys#notices-enabled #t))
     (when (memq 'strict-types options)
       (set! strict-variable-types #t)
@@ -428,7 +428,6 @@
       (keyword-style #:none)
       (parentheses-synonyms #f)
       (symbol-escape #f) )
-    (set! verbose-mode verbose)
     (set! ##sys#read-error-with-line-number #t)
     (set! ##sys#include-pathnames
       (append (map chop-separator (collect-options 'include-path))
@@ -486,13 +485,19 @@
 		 (lambda (u) (map string->symbol (string-split u ", ")))
 		 (collect-options 'uses))))
       (unless (null? uses)
-	(set! forms
-	  (cons `(##core#declare (uses . ,uses)) forms))))
+	(set! init-forms
+	  (append init-forms `((##core#declare (uses . ,uses)))))))
 
-    ;; Append required extensions to initforms:
-    (set! initforms
+    ;; Mark linked libraries so they will be compiled as unit dependencies.
+    (let ((link (append-map
+		 (lambda (l) (map string->symbol (string-split l ", ")))
+		 (collect-options 'link))))
+      (set! linked-libraries (lset-union/eq? linked-libraries link)))
+
+    ;; Append required extensions to imports:
+    (set! import-forms
       (append
-       initforms
+       import-forms
        (map (lambda (r) `(import ,(string->symbol r)))
 	    (collect-options 'require-extension))))
 
@@ -524,9 +529,9 @@
 	   "you need to specify -profile-name if using accumulated profiling runs"))
 	(set! emit-profile #t)
 	(set! profiled-procedures 'all)
-	(set! initforms
+	(set! init-forms
 	  (append
-	   initforms
+	   init-forms
 	   default-profiling-declarations
 	   (if acc
 	       '((set! ##sys#profile-append-mode #t))
@@ -599,18 +604,23 @@
 	   (print-expr "source" '|1| forms)
 	   (begin-time)
 	   ;; Canonicalize s-expressions
-	   (let* ((exps0 (map (lambda (x)
+	   (let* ((init0 (map canonicalize-expression init-forms))
+		  (exps0 (map (lambda (x)
 				(fluid-let ((##sys#current-source-filename filename))
 				  (canonicalize-expression x)))
-			      (let ((forms (append initforms forms)))
+			      (let ((forms (append import-forms forms)))
 				(if (not module-name)
 				    forms
 				    `((##core#module
 				       ,(string->symbol module-name) ()
 				       ,@forms))))))
+		  (uses0 (map (lambda (u)
+				(canonicalize-expression `(##core#require ,u)))
+			      (##sys#fast-reverse used-libraries)))
 		  (exps (append
 			 (map (lambda (ic) `(set! ,(cdr ic) ',(car ic))) immutable-constants)
-			 (map (lambda (uu) `(##core#callunit ,uu)) used-units)
+			 init0
+			 uses0
 			 (if unit-name `((##core#provide ,unit-name)) '())
 			 (if emit-profile
 			     (profiling-prelude-exps (and (not unit-name)
@@ -628,18 +638,6 @@
 		(string-intersperse
 		 (map (lambda (il) (->string (car il)))
 		      import-libraries) ", ")))
-
-	     (and-let* ((reqs (hash-table-ref file-requirements 'dynamic))
-			(missing (remove (cut chicken.load#find-dynamic-extension <> #f) reqs)))
-	       (when (null? (lset-intersection/eq? '(eval repl) used-units))
-		 (notice ; XXX only issued when "-verbose" is used
-		  (sprintf "~A has dynamic requirements but doesn't load (chicken eval): ~A"
-			   (cond (unit-name "unit") (dynamic "library") (else "program"))
-			   (string-intersperse (map ->string reqs) ", "))))
-	       (when (pair? missing)
-		 (warning
-		  (sprintf "the following extensions are not currently installed: ~A"
-			   (string-intersperse (map ->string missing) ", ")))))
 
 	     (when (pair? compiler-syntax-statistics)
 	       (with-debugging-output
@@ -679,10 +677,7 @@
 	       (initialize-analysis-database)
 
 	       ;; collect requirements and load inline files
-	       (let* ((req (concatenate (vector->list file-requirements)))
-		      (mreq (concatenate (map cdr req))))
-		 (when (debugging 'M "; requirements:")
-		   (pp req))
+	       (let ((extensions (remove chicken.load#core-unit? required-libraries)))
 		 (when enable-inline-files
 		   (for-each
 		    (lambda (id)
@@ -690,7 +685,7 @@
 					 (symbol->string id) '(".inline") #t #f)))
 			(dribble "Loading inline file ~a ..." ifile)
 			(load-inline-file ifile)))
-		    mreq))
+		    extensions))
 		 (let ((ifs (collect-options 'consult-inline-file)))
 		   (unless (null? ifs)
 		     (set! inline-locally #t)
@@ -717,7 +712,7 @@
 		      (load-type-database
 		       (make-pathname #f (symbol->string id) "types")
 		       enable-specialization))
-		    mreq)
+		    extensions)
 		   (begin-time)
 		   (set! first-analysis #f)
 		   (set! db (analyze 'scrutiny node0))
@@ -853,12 +848,11 @@
 			      (begin-time)
 
                               ;; generate link file
-                              (when emit-link-file
-                                (dribble "generating link file `~a' ..." emit-link-file)
-                                (with-output-to-file
-                                  emit-link-file
-                                  (cut pp linked-static-extensions)))
-                                
+			      (when emit-link-file
+				(let ((exts (remove chicken.load#core-unit? required-libraries)))
+				  (dribble "generating link file `~a' ..." emit-link-file)
+				  (with-output-to-file emit-link-file (cut pp exts))))
+
                                ;; Code generation
 			      (let ((out (if outfile (open-output-file outfile) (current-output-port))) )
 				(dribble "generating `~A' ..." outfile)

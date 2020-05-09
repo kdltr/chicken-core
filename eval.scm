@@ -591,14 +591,13 @@
 			  (compile `(##sys#provide (##core#quote ,(cadr x))) e #f tf cntr #f)]
 
 			 [(##core#require-for-syntax)
-			  (chicken.load#load-extension (cadr x) '() 'require)
+			  (chicken.load#load-extension (cadr x) #f #f)
 			  (compile '(##core#undefined) e #f tf cntr #f)]
 
 			 [(##core#require)
-			  (let ((id         (cadr x))
-				(alternates (cddr x)))
-			    (let-values (((exp _) (##sys#process-require id #f alternates)))
-			      (compile exp e #f tf cntr #f)))]
+			  (let ((lib (cadr x))
+				(mod (and (pair? (cddr x)) (caddr x))))
+			    (compile (##sys#process-require lib mod #f) e #f tf cntr #f))]
 
 			 [(##core#elaborationtimeonly ##core#elaborationtimetoo) ; <- Note this!
 			  (##sys#eval/meta (cadr x))
@@ -934,6 +933,10 @@
 
 (define ##sys#load-dynamic-extension default-load-library-extension)
 
+(define (chicken.load#core-unit? id) ; used by batch-driver.scm
+  (or (memq id core-units)
+      (assq id core-unit-requirements)))
+
 ; these are actually in unit extras, but that is used by default
 
 (define-constant builtin-features
@@ -1122,36 +1125,31 @@
        (##sys#check-list x)
        x) ) ) )
 
-(define load-library/internal
-  (let ((display display))
-    (lambda (uname lib loc)
-      (let ((libs
-	     (if lib
-		 (##sys#list lib)
-		 (cons (##sys#string-append (##sys#slot uname 1) load-library-extension)
-		       (dynamic-load-libraries))))
-	    (top
-	     (c-toplevel uname loc)))
-	(when (load-verbose)
-	  (display "; loading library ")
-	  (display uname)
-	  (display " ...\n") )
-	(let loop ((libs libs))
-	  (cond ((null? libs)
-		 (##sys#error loc "unable to load library" uname _dlerror))
-		((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top))
-		(else
-		 (loop (##sys#slot libs 1)))))))))
+(define (load-unit unit-name lib loc)
+  (unless (##sys#provided? unit-name)
+    (let ((libs
+	   (if lib
+	       (##sys#list lib)
+	       (cons (##sys#string-append (##sys#slot unit-name 1) load-library-extension)
+		     (dynamic-load-libraries))))
+	  (top
+	   (c-toplevel unit-name loc)))
+      (when (load-verbose)
+	(display "; loading library ")
+	(display unit-name)
+	(display " ...\n"))
+      (let loop ((libs libs))
+	(cond ((null? libs)
+	       (##sys#error loc "unable to load library" unit-name (or _dlerror "library not found")))
+	      ((##sys#dload (##sys#make-c-string (##sys#slot libs 0) 'load-library) top)
+	       (##core#undefined))
+	      (else
+	       (loop (##sys#slot libs 1))))))))
 
-(define (##sys#load-library uname #!optional lib loc)
-  (unless (##sys#provided? uname)
-    (load-library/internal uname lib loc)
-    (##core#undefined)))
-
-(define (load-library uname #!optional lib)
-  (##sys#check-symbol uname 'load-library)
+(define (load-library unit-name #!optional lib)
+  (##sys#check-symbol unit-name 'load-library)
   (unless (not lib) (##sys#check-string lib 'load-library))
-  (##sys#load-library uname lib 'load-library))
+  (load-unit unit-name lib 'load-library))
 
 (define ##sys#include-forms-from-file
   (let ((with-input-from-file with-input-from-file)
@@ -1208,25 +1206,29 @@
 		 (or (check pa)
 		     (loop (##sys#slot paths 1)) ) ) ) ) ) ) ))
 
-(define (load-extension/internal id alternates loc)
-  (cond ((##sys#provided? id))
-	((any ##sys#provided? alternates))
-	((memq id core-units)
-         (load-library/internal id #f loc))
-	((find-dynamic-extension id #f) =>
-	 (lambda (ext)
-	   (load/internal ext #f #f #f #f id)
-	   (##sys#provide id)))
-	(else
-	 (##sys#error loc "cannot load extension" id))))
+(define-inline (extension-loaded? lib mod)
+  (cond ((##sys#provided? lib))
+	((eq? mod #t)
+	 (##sys#provided? (module-requirement lib)))
+	((symbol? mod)
+	 (##sys#provided? (module-requirement mod)))
+	(else #f)))
 
-(define (chicken.load#load-extension id alternates loc)
-  (load-extension/internal id alternates loc)
-  (##core#undefined))
+(define (load-extension lib mod loc)
+  (unless (extension-loaded? lib mod)
+    (cond ((memq lib core-units)
+	   (load-unit lib #f loc))
+	  ((find-dynamic-extension lib #f) =>
+	   (lambda (ext)
+	     (load/internal ext #f #f #f #f lib)
+	     (##sys#provide lib)
+	     (##core#undefined)))
+	  (else
+	   (##sys#error loc "cannot load extension" lib)))))
 
 (define (require . ids)
   (for-each (cut ##sys#check-symbol <> 'require) ids)
-  (for-each (cut chicken.load#load-extension <> '() 'require) ids))
+  (for-each (cut load-extension <> #f 'require) ids))
 
 (define (provide . ids)
   (for-each (cut ##sys#check-symbol <> 'provide) ids)
@@ -1236,40 +1238,32 @@
   (for-each (cut ##sys#check-symbol <> 'provided?) ids)
   (every ##sys#provided? ids))
 
+;; Export for internal use in the expansion of `##core#require':
+(define chicken.load#load-unit load-unit)
+(define chicken.load#load-extension load-extension)
+
 ;; Export for internal use in csc, modules and batch-driver:
 (define chicken.load#find-file find-file)
 (define chicken.load#find-dynamic-extension find-dynamic-extension)
 
-;;
-;; Given a library specification, returns three values:
-;;
-;;   - an expression for loading the library, if required
-;;   - a requirement type (e.g. 'dynamic) or #f if provided in core
-;;
-(define (##sys#process-require lib #!optional compiling? (alternates '()) (provided '()) static? mark-static)
-  (let ((id (library-id lib)))
+;; Do the right thing with a `##core#require' form.
+(define (##sys#process-require lib mod compile-mode)
+  (let ((mod (or (eq? lib mod) mod)))
     (cond
-      ((assq id core-unit-requirements) =>
-       (lambda (x) (values (cdr x) #f)))
-      ((memq id builtin-features)
-       (values '(##core#undefined) #f))
-      ((memq id provided)
-       (values '(##core#undefined) #f))
-      ((any (cut memq <> provided) alternates)
-       (values '(##core#undefined) #f))
-      ((memq id core-units)
-       (if compiling?
-	   (values `(##core#declare (uses ,id)) #f)
-	   (values `(##sys#load-library (##core#quote ,id)) #f)))
-      ((and compiling? static?)
-       (mark-static id)
-       (values `(##core#declare (uses ,id)) 'static))
+      ((assq lib core-unit-requirements) => cdr)
+      ((memq lib builtin-features) '(##core#undefined))
+      ((memq lib core-units)
+       (if compile-mode
+	   `(##core#callunit ,lib)
+	   `(chicken.load#load-unit (##core#quote ,lib)
+				    (##core#quote #f)
+				    (##core#quote #f))))
+      ((eq? compile-mode 'static)
+       `(##core#callunit ,lib))
       (else
-       (values `(chicken.load#load-extension
-		 (##core#quote ,id)
-		 (##core#quote ,alternates)
-		 (##core#quote require))
-	       'dynamic)))))
+       `(chicken.load#load-extension (##core#quote ,lib)
+				     (##core#quote ,mod)
+				     (##core#quote #f))))))
 
 ;;; Find included file:
 

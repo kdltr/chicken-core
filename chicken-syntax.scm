@@ -541,7 +541,7 @@
 	       (let-values (((name lib _ _ _ _) (##sys#decompose-import x r c 'import)))
 		 (if (not lib)
 		     '(##core#undefined)
-		     `(##core#require ,lib ,(module-requirement name)))))
+		     `(##core#require ,lib ,name))))
 	     (cdr x))))))
 
 (##sys#extend-macro-environment

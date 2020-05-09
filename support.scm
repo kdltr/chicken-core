@@ -1915,7 +1915,6 @@ Available debugging options:
      x          display information about experimental features
      D          when printing nodes, use node-tree output
      I          show inferred type information for unexported globals
-     M          show syntax-/runtime-requirements
      N          show the real-name mapping table
      P          show expressions after specialization
      S          show applications of compiler syntax

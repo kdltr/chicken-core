@@ -139,8 +139,8 @@
 ; (##core#foreign-callback-wrapper '<name> <qualifiers> '<type> '({<type>}) <exp>)
 ; (##core#define-external-variable <name> <type> <bool> [<symbol>])
 ; (##core#check <exp>)
-; (##core#require-for-syntax <id> ...)
-; (##core#require <id> <id> ...)
+; (##core#require-for-syntax <id>)
+; (##core#require <id> [<id>])
 ; (##core#app <exp> {<exp>})
 ; (##core#define-syntax <symbol> <expr>)
 ; (##core#define-compiler-syntax <symbol> <expr>)
@@ -291,10 +291,6 @@
      initialize-compiler perform-closure-conversion perform-cps-conversion
      prepare-for-code-generation build-toplevel-procedure
 
-     ;; These are both exported for use in eval.scm (which is a bit of
-     ;; a hack). file-requirements is also used by batch-driver
-     process-declaration file-requirements
-
      ;; Various ugly global boolean flags that get set by the (batch) driver
      all-import-libraries preserve-unchanged-import-libraries
      bootstrap-mode compiler-syntax-enabled
@@ -309,15 +305,17 @@
      disable-stack-overflow-checking emit-trace-info external-protos-first
      external-variables insert-timer-checks no-argc-checks
      no-global-procedure-checks no-procedure-checks emit-debug-info
-     linked-static-extensions
 
      ;; Other, non-boolean, flags set by (batch) driver
      profiled-procedures import-libraries inline-max-size
      unroll-limit
      extended-bindings standard-bindings
 
+     ;; Non-booleans set and read by the (batch) driver
+     required-libraries linked-libraries used-libraries
+
      ;; non-booleans set by the (batch) driver, and read by the (c) backend
-     target-heap-size target-stack-size unit-name used-units provided
+     target-heap-size target-stack-size unit-name used-units
 
      ;; bindings, set by the (c) platform
      default-extended-bindings default-standard-bindings internal-bindings
@@ -377,7 +375,6 @@
 (define-constant default-line-number-database-size 997)
 (define-constant inline-table-size 301)
 (define-constant constant-table-size 301)
-(define-constant file-requirements-size 301)
 (define-constant default-inline-max-size 20)
 (define-constant default-unroll-limit 1)
 
@@ -449,9 +446,9 @@
 (define callback-names '())
 (define toplevel-scope #t)
 (define toplevel-lambda-id #f)
-(define file-requirements #f)
-(define provided '())
-(define linked-static-extensions '())
+(define required-libraries '())
+(define linked-libraries '())
+(define used-libraries '())
 
 (define unlikely-variables '(unquote unquote-splicing))
 
@@ -474,9 +471,6 @@
       (set! constant-table (make-vector constant-table-size '())) )
   (reset-profile-info-vector-name!)
   (clear-real-name-table!)
-  (if file-requirements
-      (vector-fill! file-requirements '())
-      (set! file-requirements (make-vector file-requirements-size '())) )
   (clear-foreign-type-table!) )
 
 
@@ -612,11 +606,11 @@
                    (get-real-name x)))))
 	    (else x))))
 
-  (define (emit-import-lib name il)
+  (define (emit-import-lib name mod il)
     (let* ((fname (if all-import-libraries
 		      (string-append (symbol->string name) ".import.scm")
 		      (cdr il)))
-	   (imps (##sys#compiled-module-registration (##sys#current-module)))
+	   (imps (##sys#compiled-module-registration mod #f))
 	   (oldimps
 	    (and (file-exists? fname)
 		 (call-with-input-file fname read-expressions))))
@@ -706,12 +700,12 @@
 				    (hide-variable var)
 				    var) ] ) ) )
 
-			((##core#callunit ##core#primitive ##core#undefined) x)
+			((##core#provide ##core#primitive ##core#undefined) x)
 
-			((##core#provide)
-			 (let ((id (cadr x)))
-			   (set! provided (lset-adjoin/eq? provided id))
-			   `(##core#provide ,id)))
+			((##core#callunit)
+			 (let ((unit (cadr x)))
+			   (set! used-units (lset-adjoin/eq? used-units unit))
+			   `(##core#callunit ,unit)))
 
 			((##core#inline_ref)
 			 `(##core#inline_ref
@@ -723,24 +717,19 @@
 			   ,(walk (caddr x) e dest ldest h ln #f)))
 
 			((##core#require-for-syntax)
-			 (chicken.load#load-extension (cadr x) '() 'require)
+			 (chicken.load#load-extension (cadr x) #f #f)
 			 '(##core#undefined))
 
 			((##core#require)
-			 (let ((id         (cadr x))
-			       (alternates (cddr x)))
-			   (let-values (((exp type)
-					 (##sys#process-require
-					  id #t
-					  alternates provided
-					  static-extensions
-					  register-static-extension)))
-			     (unless (not type)
-			       (hash-table-update!
-				file-requirements type
-				(cut lset-adjoin/eq? <> id)
-				(cut list id)))
-			     (walk exp e dest ldest h ln #f))))
+			 (let ((lib (cadr x))
+			       (mod (and (pair? (cddr x)) (caddr x))))
+			   (set! required-libraries (lset-adjoin/eq? required-libraries lib))
+			   (walk (##sys#process-require
+				  lib mod
+				  (if (or (memq lib linked-libraries) static-extensions)
+				      'static
+				      'dynamic))
+				 e dest ldest h ln #f)))
 
 			((##core#let)
 			 (let* ((bindings (cadr x))
@@ -1010,49 +999,47 @@
 
 		       ((##core#module)
 			(let* ((name (strip-syntax (cadr x)))
-			       (lib  (or unit-name name))
-			       (req  (module-requirement name))
-			       (exports
-				(or (eq? #t (caddr x))
-				    (map (lambda (exp)
-					   (cond ((symbol? exp) exp)
-						 ((and (pair? exp)
-						       (let loop ((exp exp))
-							 (or (null? exp)
-							     (and (symbol? (car exp))
-								  (loop (cdr exp))))))
-						  exp)
-						 (else
-						  (##sys#syntax-error-hook
-						   'module
-						   "invalid export syntax" exp name))))
-					 (strip-syntax (caddr x)))))
+			       (il  (or (assq name import-libraries) all-import-libraries))
+			       (lib (and (not standalone-executable) il (or unit-name name)))
+			       (mod (##sys#register-module
+				     name lib
+				     (or (eq? #t (caddr x))
+					 (map (lambda (exp)
+						(cond ((symbol? exp) exp)
+						      ((and (pair? exp)
+							    (let loop ((exp exp))
+							      (or (null? exp)
+								  (and (symbol? (car exp))
+								       (loop (cdr exp))))))
+						       exp)
+						      (else
+						       (##sys#syntax-error-hook
+							'module
+							"invalid export syntax" exp name))))
+					      (strip-syntax (caddr x))))))
 			       (csyntax compiler-syntax))
 			  (when (##sys#current-module)
 			    (##sys#syntax-error-hook
 			     'module "modules may not be nested" name))
-			  (let-values (((body module-registration)
-					(parameterize ((##sys#current-module
-							(##sys#register-module name lib exports))
-						       (##sys#current-environment '())
-						       (##sys#macro-environment
-							##sys#initial-macro-environment)
-						       (##sys#module-alias-environment
-							(##sys#module-alias-environment)))
-					  (##sys#with-property-restore
-					   (lambda ()
-					     (let loop ((body (cdddr x)) (xs '()))
-					       (cond
-						((null? body)
+			  (let ((body (parameterize ((##sys#current-module mod)
+						     (##sys#current-environment '())
+						     (##sys#macro-environment
+						      ##sys#initial-macro-environment)
+						     (##sys#module-alias-environment
+						      (##sys#module-alias-environment)))
+					(##sys#with-property-restore
+					 (lambda ()
+					   (let loop ((body (cdddr x)) (xs '()))
+					     (if (null? body)
 						 (handle-exceptions ex
 						     (begin
 						       ;; avoid backtrace
 						       (print-error-message ex (current-error-port))
 						       (exit 1))
 						   (##sys#finalize-module
-                                                     (##sys#current-module)
-                                                     (lambda (id)
-						       (cond
+						    mod
+						    (lambda (id)
+						      (cond
 							((assq id foreign-variables)
 							 "a foreign variable")
 							((hash-table-ref inline-table id)
@@ -1061,50 +1048,38 @@
 							 "a constant")
 							((##sys#get id '##compiler#type-abbreviation)
 							 "a type abbreviation")
-							(else #f)))))
-						 (let ((il (or (assq name import-libraries) all-import-libraries)))
-						   (when il
-						     (emit-import-lib name il)
-						     ;; Remove from list to avoid error
-						     (when (pair? il)
-						       (set! import-libraries
-							 (delete il import-libraries equal?))))
-						   (values
-						    (reverse xs)
-						    (if (or (eq? compile-module-registration 'yes)
-							    (and (not il) ; default behaviour
-								 (not compile-module-registration)))
-							(##sys#compiled-module-registration (##sys#current-module))
-							'()))))
-						(else
+							(else #f))))
+						   (reverse xs))
 						 (loop
 						  (cdr body)
-						  (cons (walk
-							 (car body)
-							 e ;?
-							 #f #f h ln #t)	; reset to toplevel!
-							xs))))))))))
-			    (let ((body
-				   (canonicalize-begin-body
-				    (append
-				     (parameterize ((##sys#current-module #f)
-						    (##sys#macro-environment
-						     (##sys#meta-macro-environment))
-						    (##sys#current-environment ; ???
-						     (##sys#current-meta-environment)))
-				       (map
-					(lambda (x)
-					  (walk
-					   x
-					   e ;?
-					   #f #f h ln tl?) )
-					(cons `(##core#provide ,req) module-registration)))
-				      body))))
-			      (do ((cs compiler-syntax (cdr cs)))
-				  ((eq? cs csyntax))
-				(##sys#put! (caar cs) '##compiler#compiler-syntax (cdar cs)))
-			      (set! compiler-syntax csyntax)
-			      body))))
+						  (cons (walk (car body)
+							      e #f #f
+							      h ln #t) ; reset to toplevel!
+							xs)))))))))
+			    (do ((cs compiler-syntax (cdr cs)))
+				((eq? cs csyntax) (set! compiler-syntax csyntax))
+			      (##sys#put! (caar cs) '##compiler#compiler-syntax (cdar cs)))
+			    (when il
+			      (emit-import-lib name mod il)
+			      (when (pair? il)
+				(set! import-libraries
+				  (delete il import-libraries equal?))))
+			    (canonicalize-begin-body
+			     (append
+			      (list (list '##core#provide (module-requirement name)))
+			      (if (or (eq? compile-module-registration 'yes)
+				      (and (not il) ; default behaviour
+					   (not compile-module-registration)))
+				  (parameterize ((##sys#macro-environment
+						  (##sys#meta-macro-environment))
+						 (##sys#current-environment ; ???
+						  (##sys#current-meta-environment)))
+				    (map (lambda (x) (walk x e #f #f h ln tl?))
+					 (##sys#compiled-module-registration
+					  mod
+					  (if static-extensions 'static 'dynamic))))
+			          '())
+			      body)))))
 
 		       ((##core#loop-lambda) ;XXX is this really needed?
 			(let* ((vars (cadr x))
@@ -1560,7 +1535,6 @@
 	  (syntax-error "invalid declaration" spec) ) ) )
   (define (stripa x)			; global aliasing
     (##sys#globalize x se))
-  (define stripu strip-syntax)
   (define (globalize-all syms)
     (filter-map
      (lambda (var)
@@ -1578,17 +1552,12 @@
        (syntax-error "invalid declaration specification" spec) )
      (case (strip-syntax (car spec)) ; no global aliasing
        ((uses)
-	(let ((us (lset-difference/eq? (stripu (cdr spec)) used-units)))
-	  (when (pair? us)
-	    (set! provided (append provided us))
-	    (set! used-units (append used-units us))
-	    (hash-table-update!
-	     file-requirements 'static
-	     (cut lset-union/eq? us <>)
-	     (lambda () us)))))
+	(let ((units (strip-syntax (cdr spec))))
+	  (set! used-libraries (lset-union/eq? used-libraries units))
+	  (set! linked-libraries (lset-union/eq? linked-libraries units))))
        ((unit)
 	(check-decl spec 1 1)
-	(let ((u (stripu (cadr spec))))
+	(let ((u (strip-syntax (cadr spec))))
 	  (when (and unit-name (not (eq? unit-name u)))
 	    (warning "unit was already given a name (new name is ignored)"))
 	  (set! unit-name u)
@@ -1830,12 +1799,6 @@
      '(##core#undefined) ) ) )
 
 
-;;; Register statically linked extension
-
-(define (register-static-extension id)
-  (set! linked-static-extensions (cons id linked-static-extensions)))
-
-
 ;;; Create entry procedure:
 
 (define (build-toplevel-procedure node)
@@ -1954,6 +1917,7 @@
 ;;; Convert canonicalized node-graph into continuation-passing-style:
 
 (define (perform-cps-conversion node)
+  (let ((called-units '()))
 
   (define (cps-lambda id llist subs k)
     (let ([t1 (gensym 'k)])
@@ -2017,7 +1981,12 @@
 			##core#inline_loc_update ##core#debug-event)
 	 (walk-inline-call class params subs k) )
 	((##core#call) (walk-call (car subs) (cdr subs) params k))
-	((##core#callunit) (walk-call-unit (first params) k))
+	((##core#callunit)
+	 (let ((unit (first params)))
+	   (if (memq unit called-units)
+	       (walk (make-node '##core#undefined '() '()) k)
+	       (fluid-let ((called-units (cons unit called-units)))
+		 (walk-call-unit unit k)))))
 	((##core#the ##core#the/result)
 	 ;; remove "the" nodes, as they are not used after scrutiny
 	 (walk (car subs) k))
@@ -2080,7 +2049,7 @@
 			     ##core#inline_loc_ref ##core#inline_loc_update))
 	       (every atomic? (node-subexpressions n)) ) ) ) )
 
-  (walk node values) )
+  (walk node values)))
 
 
 ;;; Perform source-code analysis:

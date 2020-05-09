@@ -1,5 +1,6 @@
 ;;;; test eval in statically compiled code
 
+(declare (uses lolevel))
 
 (eval '(import (chicken memory representation)))
 (assert (eval '(= 1 (block-ref #(1) 0))))

@@ -986,7 +986,7 @@
 			##sys#current-environment ##sys#macro-environment #f #f 'import))
 		   (if (not lib)
 		       '(##core#undefined)
-		       `(##core#require ,lib ,(module-requirement name)))))
+		       `(##core#require ,lib ,name))))
 	       (cdr x)))))))
 
 (##sys#extend-macro-environment

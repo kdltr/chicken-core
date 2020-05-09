@@ -469,3 +469,10 @@
 
 (define fold- (lambda xs (reduce xs (car xs))))
 (print (fold- 1 2 3))
+
+; libraries are only loaded when entry point is called
+(let ()
+  (if #f (require-library (chicken repl)))
+  (assert (not (##sys#symbol-has-toplevel-binding? 'chicken.repl#repl)))
+  (if #t (require-library (chicken repl)))
+  (assert (##sys#symbol-has-toplevel-binding? 'chicken.repl#repl)))
