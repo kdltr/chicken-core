@@ -985,6 +985,7 @@ testclean:
 	-$(REMOVE_COMMAND) $(REMOVE_COMMAND_RECURSIVE_OPTIONS) \
 	  $(SRCDIR)tests$(SEP)*.dll \
 	  $(SRCDIR)tests$(SEP)*.import.scm \
+	  $(SRCDIR)tests$(SEP)*.inline \
 	  $(SRCDIR)tests$(SEP)*.link \
 	  $(SRCDIR)tests$(SEP)*.o \
 	  $(SRCDIR)tests$(SEP)*.obj \
