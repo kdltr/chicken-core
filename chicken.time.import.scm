@@ -30,7 +30,4 @@
     (current-milliseconds . chicken.time#current-milliseconds) ; DEPRECATED
     (current-process-milliseconds . chicken.time#current-process-milliseconds)
     (current-seconds . chicken.time#current-seconds))
- ;; OBSOLETE: This can be removed after bootstrapping
- (if (##sys#symbol-has-toplevel-binding? '##sys#chicken.time-macro-environment)
-     ##sys#chicken.time-macro-environment
-     ##sys#chicken.base-macro-environment))
+ ##sys#chicken.time-macro-environment)

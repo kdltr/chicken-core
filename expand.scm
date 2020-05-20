@@ -163,7 +163,6 @@
 
 (define ##sys#scheme-macro-environment '()) ; reassigned below
 ;; These are all re-assigned by chicken-syntax.scm:
-(define ##sys#chicken-macro-environment '()) ; used later in chicken.import.scm [OBSOLETE]
 (define ##sys#chicken-ffi-macro-environment '()) ; used later in foreign.import.scm
 (define ##sys#chicken.condition-macro-environment '()) ; used later in chicken.condition.import.scm
 (define ##sys#chicken.time-macro-environment '()) ; used later in chicken.time.import.scm
