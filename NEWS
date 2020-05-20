@@ -26,6 +26,8 @@
   - Deprecated C_(a_i_current_)milliseconds in favor of
     C_(a_i_)current_process_milliseconds to match the Scheme-level
     deprecation of current-milliseconds.
+  - Officially deprecated C_pair() in favor of C_a_pair(); it has
+    been deprecated for years.
 
 - Build system
   - Auto-configure at build time on most platforms. Cross-compilation

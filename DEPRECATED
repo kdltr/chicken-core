@@ -6,6 +6,8 @@ Deprecated functions and variables
   C_a_i_current_milliseconds have been deprecated in favor of
   current-process_milliseconds, C_current_process_milliseconds and
   C_a_i_current_process_milliseconds
+- C_pair() is now officially deprecated in favor of C_a_pair(), which
+  should also be faster.
 
 5.1.1
 

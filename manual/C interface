@@ -373,9 +373,9 @@ accessor macros instead).
 
  [C function] C_word C_intern3 (C_word **ptr, char *zero_terminated_string, C_word initial_value)
 
-===== C_pair
+===== C_a_pair
 
- [C function] C_word C_pair (C_word **ptr, C_word car, C_word cdr)
+ [C function] C_word C_a_pair (C_word **ptr, C_word car, C_word cdr)
 
 ===== C_flonum
 
