@@ -3443,7 +3443,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
       tgt_space_limit= tospace_limit;
 
       count = (C_uword)tospace_top - (C_uword)tospace_start;
-      goto i_like_spaghetti;
+      goto never_mind_edsgar;
     }
 
     start = (C_byte *)C_align((C_uword)tospace_top);    
@@ -3584,7 +3584,7 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
       tospace_limit = tmp;
     }
 
-  i_like_spaghetti:
+  never_mind_edsgar:
     ++gc_count_2;
   }
 
