@@ -386,8 +386,7 @@ static C_TLS C_byte
   *tospace_limit,
   *new_tospace_start,
   *new_tospace_top,
-  *new_tospace_limit,
-  *heap_scan_top;
+  *new_tospace_limit;
 static C_TLS C_uword
   heapspace1_size,
   heapspace2_size,
@@ -513,7 +512,7 @@ static void try_extended_number(char *ext_proc_name, C_word c, C_word k, ...) C_
 static void panic(C_char *msg) C_noret;
 static void usual_panic(C_char *msg) C_noret;
 static void horror(C_char *msg) C_noret;
-static void C_fcall really_mark(C_word *x) C_regparm;
+static void C_fcall really_mark(C_word *x, C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
 static C_cpsproc(values_continuation) C_noret;
 static C_word add_symbol(C_word **ptr, C_word key, C_word string, C_SYMBOL_TABLE *stable);
 static C_regparm int C_fcall C_in_new_heapp(C_word x);
@@ -549,9 +548,9 @@ static C_word C_fcall lookup_bucket(C_word sym, C_SYMBOL_TABLE *stable) C_regpar
 static double compute_symbol_table_load(double *avg_bucket_len, int *total);
 static double C_fcall decode_flonum_literal(C_char *str) C_regparm;
 static C_regparm C_word str_to_bignum(C_word bignum, char *str, char *str_end, int radix);
-static void C_fcall mark_system_globals(void) C_regparm;
-static void C_fcall remark_system_globals(void) C_regparm;
-static void C_fcall really_remark(C_word *x) C_regparm;
+static void C_fcall mark_nested_objects(C_byte *heap_scan_top, C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
+static void C_fcall mark_live_objects(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
+static void C_fcall mark_live_heap_only_objects(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit) C_regparm;
 static C_word C_fcall intern0(C_char *name) C_regparm;
 static void C_fcall update_locative_table(int mode) C_regparm;
 static void C_fcall update_symbol_tables(int mode) C_regparm;
@@ -3366,35 +3365,34 @@ void C_save_and_reclaim_args(void *trampoline, int n, ...)
 
 
 #ifdef __SUNPRO_C
-static void mark(C_word *x) { \
-  C_word *_x = (x), _val = *_x; \
-  if(!C_immediatep(_val)) really_mark(_x); \
+static void _mark(C_word *x, C_byte *s, C_byte **t, C_byte *l) {   \
+  C_word *_x = (x), _val = *_x;                                   \
+  if(!C_immediatep(_val)) really_mark(_x,s,t,l);                  \
 }
 #else
-# define mark(x)				\
+# define _mark(x,s,t,l)                                  \
   C_cblock						\
   C_word *_x = (x), _val = *_x;				\
-  if(!C_immediatep(_val)) really_mark(_x);		\
+  if(!C_immediatep(_val)) really_mark(_x,s,t,l);	\
   C_cblockend
 #endif
 
+/* NOTE: This macro is particularly unhygienic! */
+#define mark(x) _mark(x, tgt_space_start, tgt_space_top, tgt_space_limit)
+
 C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 {
-  int i, j, n, fcount;
-  C_uword count, bytes;
-  C_word *p, **msp, bucket, last;
-  C_header h;
+  int i, j, fcount;
+  C_uword count;
+  C_word **msp, last;
   C_byte *tmp, *start;
-  LF_LIST *lfn;
-  C_SCHEME_BLOCK *bp;
   C_GC_ROOT *gcrp;
   double tgc = 0;
-  C_SYMBOL_TABLE *stp;
   volatile int finalizers_checked;
   FINALIZER_NODE *flist;
-  TRACE_INFO *tinfo;
   C_DEBUG_INFO cell;
-
+  C_byte *tgt_space_start, **tgt_space_top, *tgt_space_limit;
+  
   /* assert(C_timer_interrupt_counter >= 0); */
 
   if(pending_interrupts_count > 0 && C_interrupts_enabled) {
@@ -3414,8 +3412,11 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
   finalizers_checked = 0;
   C_restart_trampoline = trampoline;
   C_restart_c = c;
-  heap_scan_top = (C_byte *)C_align((C_uword)C_fromspace_top);
   gc_mode = GC_MINOR;
+  tgt_space_start = fromspace_start;
+  tgt_space_top = &C_fromspace_top;
+  tgt_space_limit = C_fromspace_limit;
+
   start = C_fromspace_top;
 
   /* Entry point for second-level GC (on explicit request or because of full fromspace): */
@@ -3436,42 +3437,30 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
       C_debugger(&cell, 0, NULL);
       C_rereclaim2(percentage(heap_size, C_heap_growth), 0);
       gc_mode = GC_MAJOR;
+
+      tgt_space_start = tospace_start;
+      tgt_space_top = &tospace_top;
+      tgt_space_limit= tospace_limit;
+
       count = (C_uword)tospace_top - (C_uword)tospace_start;
       goto i_like_spaghetti;
     }
 
-    heap_scan_top = (C_byte *)C_align((C_uword)tospace_top);    
+    start = (C_byte *)C_align((C_uword)tospace_top);    
     gc_mode = GC_MAJOR;
+    tgt_space_start = tospace_start;
+    tgt_space_top = &tospace_top;
+    tgt_space_limit= tospace_limit;
+
     cell.val = "GC_MAJOR";
     C_debugger(&cell, 0, NULL);
 
-    /* Mark items in forwarding table: */
-    for(p = forwarding_table; *p != 0; p += 2) {
-      last = p[ 1 ];
-      mark(&p[ 1 ]);
-      C_block_header(p[ 0 ]) = C_block_header(last);
-    }
+    mark_live_heap_only_objects(tgt_space_start, tgt_space_top, tgt_space_limit);
 
-    /* Mark literal frames: */
-    for(lfn = lf_list; lfn != NULL; lfn = lfn->next)
-      for(i = 0; i < lfn->count; ++i)
-        mark(&lfn->lf[i]);
-
-    /* Mark symbol tables: */
-    for(stp = symbol_table_list; stp != NULL; stp = stp->next)
-      for(i = 0; i < stp->size; ++i)
-        mark(&stp->table[i]);
-
-    /* Mark collectibles: */
-    for(msp = collectibles; msp < collectibles_top; ++msp)
-      if(*msp != NULL) mark(*msp);
-
-    /* mark normal GC roots: */
+    /* mark normal GC roots (see below for finalizer handling): */
     for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next) {
       if(!gcrp->finalizable) mark(&gcrp->value);
     }
-
-    mark_system_globals();
   }
   else {
     /* Mark mutated slots: */
@@ -3479,49 +3468,10 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
       mark(*msp);
   }
 
-  assert(C_temporary_stack >= C_temporary_stack_limit);
+  mark_live_objects(tgt_space_start, tgt_space_top, tgt_space_limit);
 
-  /* Clear the mutated slot stack: */
-  mutation_stack_top = mutation_stack_bottom;
-
-  /* Mark live values: */
-  for(p = C_temporary_stack; p < C_temporary_stack_bottom; ++p)
-    mark(p);
-
-  /* Mark trace-buffer: */
-  for(tinfo = trace_buffer; tinfo < trace_buffer_limit; ++tinfo) {
-    mark(&tinfo->cooked1);
-    mark(&tinfo->cooked2);
-    mark(&tinfo->thread);
-  }
-
- rescan:
-  /* Mark nested values in already moved (marked) blocks in breadth-first manner: */
-  while(heap_scan_top < (gc_mode == GC_MINOR ? C_fromspace_top : tospace_top)) {
-    bp = (C_SCHEME_BLOCK *)heap_scan_top;
-
-    if(*((C_word *)bp) == ALIGNMENT_HOLE_MARKER) 
-      bp = (C_SCHEME_BLOCK *)((C_word *)bp + 1);
-
-    n = C_header_size(bp);
-    h = bp->header;
-    bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
-    p = bp->data;
-
-    if(n > 0 && (h & C_BYTEBLOCK_BIT) == 0) {
-      if(h & C_SPECIALBLOCK_BIT) {
-        /* Minor GC needs to be fast; always mark weakly held symbols */
-        if (gc_mode != GC_MINOR || h != C_WEAK_PAIR_TAG) {
-	  --n;
-	  ++p;
-        }
-      }
-
-      while(n--) mark(p++);
-    }
-
-    heap_scan_top = (C_byte *)bp + C_align(bytes) + sizeof(C_word);
-  }
+  mark_nested_objects(start, tgt_space_start, tgt_space_top, tgt_space_limit);
+  start = *tgt_space_top;
 
   if(gc_mode == GC_MINOR) {
     count = (C_uword)C_fromspace_top - (C_uword)start;
@@ -3530,89 +3480,87 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
     update_locative_table(GC_MINOR);
   }
   else {
-    if(!finalizers_checked) {
-      /* Mark finalizer list and remember pointers to non-forwarded items: */
-      last = C_block_item(pending_finalizers_symbol, 0);
+    /* Mark finalizer list and remember pointers to non-forwarded items: */
+    last = C_block_item(pending_finalizers_symbol, 0);
 
-      if(!C_immediatep(last) && (j = C_unfix(C_block_item(last, 0))) != 0) { 
-	/* still finalizers pending: just mark table items... */
-	if(gc_report_flag)
-	  C_dbg(C_text("GC"), C_text("%d finalized item(s) still pending\n"), j);
+    if(!C_immediatep(last) && (j = C_unfix(C_block_item(last, 0))) != 0) { 
+      /* still finalizers pending: just mark table items... */
+      if(gc_report_flag)
+        C_dbg(C_text("GC"), C_text("%d finalized item(s) still pending\n"), j);
 
-	j = fcount = 0;
+      j = fcount = 0;
 
-	for(flist = finalizer_list; flist != NULL; flist = flist->next) {
-	  mark(&flist->item);
-	  mark(&flist->finalizer);
-	  ++fcount;
-	}
-
-	/* mark finalizable GC roots: */
-	for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next) {
-	  if(gcrp->finalizable) mark(&gcrp->value);
-	}
-
-	if(gc_report_flag && fcount > 0)
-	  C_dbg(C_text("GC"), C_text("%d finalizer value(s) marked\n"), fcount);
-      }
-      else {
-	j = fcount = 0;
-
-	/* move into pending */
-	for(flist = finalizer_list; flist != NULL; flist = flist->next) {
-	  if(j < C_max_pending_finalizers) {
-	    if(!is_fptr(C_block_header(flist->item))) 
-	      pending_finalizer_indices[ j++ ] = flist;
-	  }
-	}
-
-	/* mark */
-	for(flist = finalizer_list; flist != NULL; flist = flist->next) {
-	  mark(&flist->item);
-	  mark(&flist->finalizer);
-	}
-
-	/* mark finalizable GC roots: */
-	for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next) {
-	  if(gcrp->finalizable) mark(&gcrp->value);
-	}
+      for(flist = finalizer_list; flist != NULL; flist = flist->next) {
+        mark(&flist->item);
+        mark(&flist->finalizer);
+        ++fcount;
       }
 
-      pending_finalizer_count = j;
-      finalizers_checked = 1;
+      /* mark finalizable GC roots: */
+      for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next) {
+        if(gcrp->finalizable) mark(&gcrp->value);
+      }
 
-      if(pending_finalizer_count > 0 && gc_report_flag)
-	C_dbg(C_text("GC"), C_text("%d finalizer(s) pending (%d live)\n"), 
-	      pending_finalizer_count, live_finalizer_count);
-
-      goto rescan;
+      if(gc_report_flag && fcount > 0)
+        C_dbg(C_text("GC"), C_text("%d finalizer value(s) marked\n"), fcount);
     }
     else {
-      /* Copy finalized items with remembered indices into `##sys#pending-finalizers' 
-	 (and release finalizer node): */
-      if(pending_finalizer_count > 0) {
-	if(gc_report_flag)
-	  C_dbg(C_text("GC"), C_text("queueing %d finalizer(s)\n"), pending_finalizer_count);
+      j = fcount = 0;
 
-	last = C_block_item(pending_finalizers_symbol, 0);
-	assert(C_block_item(last, 0) == C_fix(0));
-	C_set_block_item(last, 0, C_fix(pending_finalizer_count));
+      /* move into pending */
+      for(flist = finalizer_list; flist != NULL; flist = flist->next) {
+        if(j < C_max_pending_finalizers) {
+          if(!is_fptr(C_block_header(flist->item))) 
+            pending_finalizer_indices[ j++ ] = flist;
+        }
+      }
 
-	for(i = 0; i < pending_finalizer_count; ++i) {
-	  flist = pending_finalizer_indices[ i ];
-	  C_set_block_item(last, 1 + i * 2, flist->item);
-	  C_set_block_item(last, 2 + i * 2, flist->finalizer);
+      /* mark */
+      for(flist = finalizer_list; flist != NULL; flist = flist->next) {
+        mark(&flist->item);
+        mark(&flist->finalizer);
+      }
+
+      /* mark finalizable GC roots: */
+      for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next) {
+        if(gcrp->finalizable) mark(&gcrp->value);
+      }
+    }
+
+    pending_finalizer_count = j;
+    finalizers_checked = 1;
+
+    if(pending_finalizer_count > 0 && gc_report_flag)
+      C_dbg(C_text("GC"), C_text("%d finalizer(s) pending (%d live)\n"), 
+            pending_finalizer_count, live_finalizer_count);
+
+    /* Once more mark nested objects after (maybe) copying finalizer objects: */
+    mark_nested_objects(start, tgt_space_start, tgt_space_top, tgt_space_limit);
+
+    /* Copy finalized items with remembered indices into `##sys#pending-finalizers' 
+       (and release finalizer node): */
+    if(pending_finalizer_count > 0) {
+      if(gc_report_flag)
+        C_dbg(C_text("GC"), C_text("queueing %d finalizer(s)\n"), pending_finalizer_count);
+
+      last = C_block_item(pending_finalizers_symbol, 0);
+      assert(C_block_item(last, 0) == C_fix(0));
+      C_set_block_item(last, 0, C_fix(pending_finalizer_count));
+
+      for(i = 0; i < pending_finalizer_count; ++i) {
+        flist = pending_finalizer_indices[ i ];
+        C_set_block_item(last, 1 + i * 2, flist->item);
+        C_set_block_item(last, 2 + i * 2, flist->finalizer);
 	  
-	  if(flist->previous != NULL) flist->previous->next = flist->next;
-	  else finalizer_list = flist->next;
+        if(flist->previous != NULL) flist->previous->next = flist->next;
+        else finalizer_list = flist->next;
 
-	  if(flist->next != NULL) flist->next->previous = flist->previous;
+        if(flist->next != NULL) flist->next->previous = flist->previous;
 
-	  flist->next = finalizer_free_list;
-	  flist->previous = NULL;
-	  finalizer_free_list = flist;
-	  --live_finalizer_count;
-	}
+        flist->next = finalizer_free_list;
+        flist->previous = NULL;
+        finalizer_free_list = flist;
+        --live_finalizer_count;
       }
     }
 
@@ -3707,8 +3655,73 @@ C_regparm void C_fcall C_reclaim(void *trampoline, C_word c)
 }
 
 
-C_regparm void C_fcall mark_system_globals(void)
+/* Mark live objects which can exist in the nursery and/or the heap */
+static C_regparm void C_fcall mark_live_objects(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
 {
+  C_word *p;
+  TRACE_INFO *tinfo;
+
+  assert(C_temporary_stack >= C_temporary_stack_limit);
+
+  /* Mark live values from the currently running closure: */
+  for(p = C_temporary_stack; p < C_temporary_stack_bottom; ++p)
+    mark(p);
+
+  /* Clear the mutated slot stack: */
+  mutation_stack_top = mutation_stack_bottom;
+
+  /* Mark trace-buffer: */
+  for(tinfo = trace_buffer; tinfo < trace_buffer_limit; ++tinfo) {
+    mark(&tinfo->cooked1);
+    mark(&tinfo->cooked2);
+    mark(&tinfo->thread);
+  }
+}
+
+
+/*
+ * Mark all live *heap* objects that don't need GC mode-specific
+ * treatment.  Thus, no finalizers, GC roots or locative tables.
+ *
+ * Locative tables are excluded because these need to chase forwarding
+ * chains to update the corresponding pointer, while dead objects must
+ * be zeroed out with NULL pointers.
+ *
+ * Finalizers are excluded because these need special handling:
+ * finalizers referring to dead objects must be marked and queued.
+ *
+ * This function does not need to be called on a minor GC, since these
+ * objects won't ever exist in the nursery.
+ */
+static C_regparm void C_fcall mark_live_heap_only_objects(C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
+{
+  LF_LIST *lfn;
+  C_word *p, **msp, last;
+  unsigned int i;
+  C_SYMBOL_TABLE *stp;
+  
+  /* Mark items in forwarding table: */
+  for(p = forwarding_table; *p != 0; p += 2) {
+    last = p[ 1 ];
+    mark(&p[ 1 ]);
+    C_block_header(p[ 0 ]) = C_block_header(last);
+  }
+
+  /* Mark literal frames: */
+  for(lfn = lf_list; lfn != NULL; lfn = lfn->next)
+    for(i = 0; i < (unsigned int)lfn->count; ++i)
+      mark(&lfn->lf[i]);
+
+  /* Mark symbol tables: */
+  for(stp = symbol_table_list; stp != NULL; stp = stp->next)
+    for(i = 0; i < stp->size; ++i)
+      mark(&stp->table[i]);
+
+  /* Mark collectibles: */
+  for(msp = collectibles; msp < collectibles_top; ++msp)
+    if(*msp != NULL) mark(*msp);
+
+  /* Mark system globals */
   mark(&core_provided_symbol);
   mark(&interrupt_hook_symbol);
   mark(&error_hook_symbol);
@@ -3729,7 +3742,47 @@ C_regparm void C_fcall mark_system_globals(void)
 }
 
 
-C_regparm void C_fcall really_mark(C_word *x)
+/*
+ * Mark nested values in already moved (i.e., marked) blocks in
+ * breadth-first manner (Cheney's algorithm).
+ */
+static C_regparm void C_fcall mark_nested_objects(C_byte *heap_scan_top, C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
+{
+  int n;
+  C_word bytes;
+  C_word *p;
+  C_header h;
+  C_SCHEME_BLOCK *bp;
+
+  while(heap_scan_top < *tgt_space_top) {
+    bp = (C_SCHEME_BLOCK *)heap_scan_top;
+
+    if(*((C_word *)bp) == ALIGNMENT_HOLE_MARKER) 
+      bp = (C_SCHEME_BLOCK *)((C_word *)bp + 1);
+
+    n = C_header_size(bp);
+    h = bp->header;
+    bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
+    p = bp->data;
+
+    if(n > 0 && (h & C_BYTEBLOCK_BIT) == 0) {
+      if(h & C_SPECIALBLOCK_BIT) {
+        /* Minor GC needs to be fast; always mark weakly held symbols */
+        if (gc_mode != GC_MINOR || h != C_WEAK_PAIR_TAG) {
+	  --n;
+	  ++p;
+        }
+      }
+
+      while(n--) mark(p++);
+    }
+
+    heap_scan_top = (C_byte *)bp + C_align(bytes) + sizeof(C_word);
+  }
+}
+
+
+static C_regparm void C_fcall really_mark(C_word *x, C_byte *tgt_space_start, C_byte **tgt_space_top, C_byte *tgt_space_limit)
 {
   C_word val;
   C_uword n, bytes;
@@ -3740,144 +3793,81 @@ C_regparm void C_fcall really_mark(C_word *x)
 
   if (!C_in_stackp(val) && !C_in_heapp(val) && !C_in_scratchspacep(val)) {
 #ifdef C_GC_HOOKS
-      if(C_gc_trace_hook != NULL) 
-	C_gc_trace_hook(x, gc_mode);
+    if(C_gc_trace_hook != NULL) 
+      C_gc_trace_hook(x, gc_mode);
 #endif
-
-      return;
+    return;
   }
 
   p = (C_SCHEME_BLOCK *)val;
-  
   h = p->header;
 
-  if(gc_mode == GC_MINOR) {
-    if(is_fptr(h)) {
-      *x = val = fptr_to_ptr(h);
-      return;
-    }
-
-    if((C_uword)val >= (C_uword)fromspace_start && (C_uword)val < (C_uword)C_fromspace_top)
-      return;
-
-    p2 = (C_SCHEME_BLOCK *)C_align((C_uword)C_fromspace_top);
-
-#ifndef C_SIXTY_FOUR
-    if((h & C_8ALIGN_BIT) && C_aligned8(p2) && (C_byte *)p2 < C_fromspace_limit) {
-      *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
-      p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
-    }
-#endif
-
-    n = C_header_size(p);
-    bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
-
-    if(((C_byte *)p2 + bytes + sizeof(C_word)) > C_fromspace_limit)
-#ifdef HAVE_SIGSETJMP
-      C_siglongjmp(gc_restart, 1);
-#else
-      C_longjmp(gc_restart, 1);
-#endif
-
-    C_fromspace_top = (C_byte *)p2 + C_align(bytes) + sizeof(C_word);
-
-  scavenge:
-    *x = (C_word)p2;
-    p2->header = h;
-    p->header = ptr_to_fptr((C_uword)p2);
-    C_memcpy(p2->data, p->data, bytes);
+  while(is_fptr(h)) { /* TODO: Pass in fptr chain limit? */
+    val = fptr_to_ptr(h);
+    p = (C_SCHEME_BLOCK *)val;
+    h = p->header;
   }
-  else { /* (major GC) */
-    if(is_fptr(h)) {
-      val = fptr_to_ptr(h);
 
-      if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
-	*x = val;
-	return;
-      }
+  /* Already in target space, probably as result of chasing fptrs */
+  if ((C_uword)val >= (C_uword)tgt_space_start && (C_uword)val < (C_uword)*tgt_space_top) {
+    *x = val;
+    return;
+  }
 
-      /* Link points into fromspace: fetch new pointer + header and copy... */
-      p = (C_SCHEME_BLOCK *)val;
-      h = p->header;
-
-      if(is_fptr(h)) {
-	/* Link points into fromspace and into a link which points into from- or tospace: */
-	val = fptr_to_ptr(h);
-	
-	if((C_uword)val >= (C_uword)tospace_start && (C_uword)val < (C_uword)tospace_top) {
-	  *x = val;
-	  return;
-	}
-
-	p = (C_SCHEME_BLOCK *)val;
-	h = p->header;
-      }
-    }
-
-    p2 = (C_SCHEME_BLOCK *)C_align((C_uword)tospace_top);
+  p2 = (C_SCHEME_BLOCK *)C_align((C_uword)*tgt_space_top);
 
 #ifndef C_SIXTY_FOUR
-    if((h & C_8ALIGN_BIT) && C_aligned8(p2) && (C_byte *)p2 < tospace_limit) {
-      *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
-      p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
-    }
+  if((h & C_8ALIGN_BIT) && C_aligned8(p2) && (C_byte *)p2 < tgt_space_limit) {
+    *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
+    p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
+  }
 #endif
 
-    n = C_header_size(p);
-    bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
+  n = C_header_size(p);
+  bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
 
-    if(((C_byte *)p2 + bytes + sizeof(C_word)) > tospace_limit) {
+  if(C_unlikely(((C_byte *)p2 + bytes + sizeof(C_word)) > tgt_space_limit)) {
+    if (gc_mode == GC_MAJOR) {
       /* Detect impossibilities before GC_REALLOC to preserve state: */
       if (C_in_stackp((C_word)p) && bytes > stack_size)
         panic(C_text("Detected corrupted data in stack"));
       if (C_in_heapp((C_word)p) && bytes > (heap_size / 2))
         panic(C_text("Detected corrupted data in heap"));
       if(C_heap_size_is_fixed)
-	panic(C_text("out of memory - heap full"));
+        panic(C_text("out of memory - heap full"));
       
       gc_mode = GC_REALLOC;
-#ifdef HAVE_SIGSETJMP
-      C_siglongjmp(gc_restart, 1);
-#else
-      C_longjmp(gc_restart, 1);
-#endif
+    } else if (gc_mode == GC_REALLOC) {
+      if (new_tospace_top > new_tospace_limit) {
+        panic(C_text("out of memory - heap full while resizing"));
+      }
     }
-
-    tospace_top = (C_byte *)p2 + C_align(bytes) + sizeof(C_word);
-    goto scavenge;
-  }
-}
-
-
-#ifdef __SUNPRO_C
-static void remark(C_word *x) { \
-  C_word *_x = (x), _val = *_x;		     \
-  if(!C_immediatep(_val)) really_remark(_x); \
-}
+#ifdef HAVE_SIGSETJMP
+    C_siglongjmp(gc_restart, 1);
 #else
-#define remark(x)				\
-  C_cblock					\
-  C_word *_x = (x), _val = *_x;			\
-  if(!C_immediatep(_val)) really_remark(_x);	\
-  C_cblockend
+    C_longjmp(gc_restart, 1);
 #endif
+  }
+
+  *tgt_space_top = (C_byte *)p2 + C_align(bytes) + sizeof(C_word);
+
+  *x = (C_word)p2;
+  p2->header = h;
+  p->header = ptr_to_fptr((C_uword)p2);
+  C_memcpy(p2->data, p->data, bytes);
+}
+
 
 /* Do a major GC into a freshly allocated heap: */
 
+#define remark(x)  _mark(x, new_tospace_start, &new_tospace_top, new_tospace_limit)
+
 C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 {
-  int i, j;
-  C_uword count, n, bytes;
-  C_word *p, **msp, bucket, last;
-  C_header h;
-  C_byte *tmp, *start;
-  LF_LIST *lfn;
-  C_SCHEME_BLOCK *bp;
+  int i;
   C_GC_ROOT *gcrp;
-  C_SYMBOL_TABLE *stp;
   FINALIZER_NODE *flist;
-  TRACE_INFO *tinfo;
-  C_byte *new_heapspace;
+  C_byte *new_heapspace, *start;
   size_t  new_heapspace_size;
 
   if(C_pre_gc_hook != NULL) C_pre_gc_hook(GC_REALLOC);
@@ -3947,44 +3937,11 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
 
   new_tospace_top = new_tospace_start;
   new_tospace_limit = new_tospace_start + size;
-  heap_scan_top = new_tospace_top;
+  start = new_tospace_top;
 
-  /* Mark items in forwarding table: */
-  for(p = forwarding_table; *p != 0; p += 2) {
-    last = p[ 1 ];
-    remark(&p[ 1 ]);
-    C_block_header(p[ 0 ]) = C_block_header(last);
-  }
-
-  /* Mark literal frames: */
-  for(lfn = lf_list; lfn != NULL; lfn = lfn->next)
-    for(i = 0; i < lfn->count; ++i)
-      remark(&lfn->lf[i]);
-
-  /* Mark symbol table: */
-  for(stp = symbol_table_list; stp != NULL; stp = stp->next)
-    for(i = 0; i < stp->size; ++i)
-      remark(&stp->table[i]);
-
-  /* Mark collectibles: */
-  for(msp = collectibles; msp < collectibles_top; ++msp)
-    if(*msp != NULL) remark(*msp);
-
-  for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next)
-    remark(&gcrp->value);
-
-  remark_system_globals();
-
-  /* Clear the mutated slot stack: */
-  mutation_stack_top = mutation_stack_bottom;
-
-  /* Mark live values: */
-  for(p = C_temporary_stack; p < C_temporary_stack_bottom; ++p)
-    remark(p);
-
-  /* Mark locative table: */
-  for(i = 0; i < locative_table_count; ++i)
-    remark(&locative_table[ i ]);
+  /* Mark standard live objects in nursery and heap */
+  mark_live_objects(new_tospace_start, &new_tospace_top, new_tospace_limit);
+  mark_live_heap_only_objects(new_tospace_start, &new_tospace_top, new_tospace_limit);
 
   /* Mark finalizer table: */
   for(flist = finalizer_list; flist != NULL; flist = flist->next) {
@@ -3992,40 +3949,19 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
     remark(&flist->finalizer);
   }
 
-  /* Mark trace-buffer: */
-  for(tinfo = trace_buffer; tinfo < trace_buffer_limit; ++tinfo) {
-    remark(&tinfo->cooked1);
-    remark(&tinfo->cooked2);
-    remark(&tinfo->thread);
+  /* Mark *all* GC roots */
+  for(gcrp = gc_root_list; gcrp != NULL; gcrp = gcrp->next) {
+    remark(&gcrp->value);
   }
+
+  /* Mark locative table (like finalizers, all objects are kept alive in GC_REALLOC): */
+  for(i = 0; i < locative_table_count; ++i)
+    remark(&locative_table[ i ]);
 
   update_locative_table(GC_REALLOC);
 
   /* Mark nested values in already moved (marked) blocks in breadth-first manner: */
-  while(heap_scan_top < new_tospace_top) {
-    bp = (C_SCHEME_BLOCK *)heap_scan_top;
-
-    if(*((C_word *)bp) == ALIGNMENT_HOLE_MARKER) 
-      bp = (C_SCHEME_BLOCK *)((C_word *)bp + 1);
-
-    n = C_header_size(bp);
-    h = bp->header;
-    assert(!is_fptr(h));
-    bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
-    p = bp->data;
-
-    if(n > 0 && (h & C_BYTEBLOCK_BIT) == 0) {
-      if(h & C_SPECIALBLOCK_BIT) {
-	--n;
-	++p;
-      }
-
-      while(n--) remark(p++);
-    }
-
-    heap_scan_top = (C_byte *)bp + C_align(bytes) + sizeof(C_word);
-  }
-
+  mark_nested_objects(start, new_tospace_start, &new_tospace_top, new_tospace_limit);
   update_symbol_tables(GC_REALLOC);
 
   heap_free (heapspace1, heapspace1_size);
@@ -4054,108 +3990,6 @@ C_regparm void C_fcall C_rereclaim2(C_uword size, int relative_resize)
   }
 
   if(C_post_gc_hook != NULL) C_post_gc_hook(GC_REALLOC, 0);
-}
-
-
-C_regparm void C_fcall remark_system_globals(void)
-{
-  remark(&core_provided_symbol);
-  remark(&interrupt_hook_symbol);
-  remark(&error_hook_symbol);
-  remark(&callback_continuation_stack_symbol);
-  remark(&pending_finalizers_symbol);
-  remark(&current_thread_symbol);
-
-  remark(&u8vector_symbol);
-  remark(&s8vector_symbol);
-  remark(&u16vector_symbol);
-  remark(&s16vector_symbol);
-  remark(&u32vector_symbol);
-  remark(&s32vector_symbol);
-  remark(&u64vector_symbol);
-  remark(&s64vector_symbol);
-  remark(&f32vector_symbol);
-  remark(&f64vector_symbol);
-}
-
-
-C_regparm void C_fcall really_remark(C_word *x)
-{
-  C_word val, item;
-  C_uword n, bytes;
-  C_header h;
-  C_SCHEME_BLOCK *p, *p2;
-
-  val = *x;
-
-  if (!C_in_stackp(val) && !C_in_heapp(val) &&
-      !C_in_new_heapp(val) && !C_in_scratchspacep(val)) {
-#ifdef C_GC_HOOKS
-      if(C_gc_trace_hook != NULL) 
-	C_gc_trace_hook(x, gc_mode);
-#endif
-
-      return;
-  }
-
-  p = (C_SCHEME_BLOCK *)val;
-  
-  h = p->header;
-
-  if(is_fptr(h)) {
-    val = fptr_to_ptr(h);
-
-    if((C_uword)val >= (C_uword)new_tospace_start && (C_uword)val < (C_uword)new_tospace_top) {
-      *x = val;
-      return;
-    }
-
-    /* Link points into nursery, fromspace or the old tospace:
-    * fetch new pointer + header and copy... */
-    p = (C_SCHEME_BLOCK *)val;
-    h = p->header;
-    n = 1;
-
-    while(is_fptr(h)) {
-      /* Link points into fromspace or old tospace and into a link which
-       * points into tospace or new-tospace: */
-      val = fptr_to_ptr(h);
-	
-      if((C_uword)val >= (C_uword)new_tospace_start && (C_uword)val < (C_uword)new_tospace_top) {
-	*x = val;
-	return;
-      }
-
-      p = (C_SCHEME_BLOCK *)val;
-      h = p->header;
-
-      if(++n > 3)
-	panic(C_text("forwarding chain during re-reclamation is longer than 3. somethings fishy."));
-    }
-  }
-
-  p2 = (C_SCHEME_BLOCK *)C_align((C_uword)new_tospace_top);
-
-#ifndef C_SIXTY_FOUR
-  if((h & C_8ALIGN_BIT) && C_aligned8(p2) && (C_byte *)p2 < new_tospace_limit) {
-    *((C_word *)p2) = ALIGNMENT_HOLE_MARKER;
-    p2 = (C_SCHEME_BLOCK *)((C_word *)p2 + 1);
-  }
-#endif
-
-  n = C_header_size(p);
-  bytes = (h & C_BYTEBLOCK_BIT) ? n : n * sizeof(C_word);
-
-  new_tospace_top = ((C_byte *)p2 + C_align(bytes) + sizeof(C_word));
-  if(new_tospace_top > new_tospace_limit) {
-    panic(C_text("out of memory - heap full while resizing"));
-  }
-
-  *x = (C_word)p2;
-  p2->header = h;
-  assert(!is_fptr(h));
-  p->header = ptr_to_fptr((C_word)p2);
-  C_memcpy(p2->data, p->data, bytes);
 }
 
 
