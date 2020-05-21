@@ -819,10 +819,11 @@
   (let ((e (##sys#make-structure 'environment 'interaction-environment #f #f)))
     (lambda () e)))
 
-(define-record-printer (environment e p)
-  (##sys#print "#<environment " #f p)
-  (##sys#print (##sys#slot e 1) #f p)
-  (##sys#write-char-0 #\> p))
+(set-record-printer! 'environment
+  (lambda (e p)
+    (##sys#print "#<environment " #f p)
+    (##sys#print (##sys#slot e 1) #f p)
+    (##sys#write-char-0 #\> p)))
 
 (let* ((r4s (chicken.module#module-environment 'r4rs 'scheme-report-environment/4))
        (r5s (chicken.module#module-environment 'scheme 'scheme-report-environment/5))

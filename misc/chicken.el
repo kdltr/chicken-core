@@ -165,12 +165,13 @@
 	(select 1)
 	(functor 3)
 	(define-interface 1)
-	(module 2) ) )
+	(module 2)) )
 
 (setq chicken-indent-list
       '((printf 1)
 	(fprintf 2)
-	(sprintf 1)))
+	(sprintf 1)
+	(set-record-printer! 1)))
 
 ;(put 'module 'scheme-indent-function 'chicken-module-indent)
 ;(defun chicken-module-indent (state indent-point normal-indent) 0)

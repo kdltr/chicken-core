@@ -472,8 +472,9 @@
   (parameters node-parameters node-parameters-set!) ; (value...)
   (subexpressions node-subexpressions node-subexpressions-set!)) ; (node...)
 
-(define-record-printer (node n out)
-  (fprintf out "#<node ~a ~a>" (node-class n) (node-parameters n)))
+(set-record-printer! node
+  (lambda (n out)
+    (fprintf out "#<node ~a ~a>" (node-class n) (node-parameters n))))
 
 (define (make-node c p s)
   (##sys#make-structure 'chicken.compiler.support#node c p s))
