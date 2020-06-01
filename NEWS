@@ -13,6 +13,9 @@
     On UNIX, the values returned will be precise to the millisecond
     instead of rounded down to the nearest second at startup (which
     would result in erratic startup times).
+  - The default mode for files created by `file-open' has been changed
+    to 0666 (plus whatever change the effective umask applies), rather
+    than 0744 (see #1698).
 
 - Runtime system
   - Sleeping primordial thread doesn't forget mutations made to
