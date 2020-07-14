@@ -4,6 +4,9 @@
   - Fixed a bug where optimisations for `irregex-match?` would cause
     runtime errors due to the inlined specialisations not being
     fully-expanded (see #1690).
+  - Irregex has been updated to upstream 0.9.8, which fixes behaviour
+    of irregex-replace/all with positive lookbehind so all matches are
+    replaced instead of only the first (reported by Kay Rhodes).
   - current-milliseconds has been deprecated in favor of the name
     current-process-milliseconds, to avoid confusion due to naming
     of current-milliseconds versus current-seconds, which do something
