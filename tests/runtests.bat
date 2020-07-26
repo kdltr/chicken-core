@@ -484,6 +484,10 @@ echo ======================================== port tests ...
 %interpret% -s port-tests.scm
 if errorlevel 1 exit /b 1
 
+echo ======================================== read-lines tests ...
+%interpret% -s read-lines-tests.scm
+if errorlevel 1 exit /b 1
+
 echo ======================================== fixnum tests ...
 %compile% fixnum-tests.scm
 if errorlevel 1 exit /b 1

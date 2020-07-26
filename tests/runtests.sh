@@ -362,6 +362,9 @@ $compile_r -static module-static-link.scm -o a.out
 echo "======================================== port tests ..."
 $interpret -s port-tests.scm
 
+echo "======================================== read-lines tests ..."
+$interpret -s read-lines-tests.scm
+
 echo "======================================== fixnum tests ..."
 $compile fixnum-tests.scm
 ./a.out

@@ -131,6 +131,7 @@ tests/inline-unroll.scm
 tests/compiler-tests.scm
 tests/inlining-tests.scm
 tests/locative-stress-test.scm
+tests/read-lines-tests.scm
 tests/record-rename-test.scm
 tests/record-printer-test.scm
 tests/r4rstest.scm

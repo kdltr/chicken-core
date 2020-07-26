@@ -52,9 +52,10 @@ characters per line. {{read-line}} returns a string without the terminating newl
 
 <procedure>(read-lines [PORT [MAX]])</procedure>
 
-Read {{MAX}} or fewer lines from {{PORT}}. {{PORT}} defaults to the
-value of {{(current-input-port)}}. Returns a list of strings, each
-string representing a line read, not including any line separation
+Read {{MAX}} or fewer lines from {{PORT}}. {{MAX}} defaults to
+{{most-positive-fixnum}} and {{PORT}} defaults to the value of
+{{(current-input-port)}}. Returns a list of strings, each string
+representing a line read, not including any line separation
 character(s).
 
 

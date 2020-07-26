@@ -90,11 +90,12 @@
 				(loop (fx+ i 1)) ] ) ) ) ) ) ) ) ) ) ) ) )
 
 (define read-lines
-  (lambda (#!optional (port ##sys#standard-input) (max most-positive-fixnum))
+  (lambda (#!optional (port ##sys#standard-input) max)
     (##sys#check-input-port port #t 'read-lines)
+    (when max (##sys#check-fixnum max 'read-lines))
     (let loop ((lns '())
-	       (n (or max 1000000000))) ; this is silly
-      (if (or (eq? n 0))
+	       (n (or max most-positive-fixnum)))
+      (if (eq? n 0)
 	  (##sys#fast-reverse lns)
 	  (let ((ln (read-line port)))
 	    (if (eof-object? ln)
