@@ -6,7 +6,7 @@ set -e
 
 mkdir -p boot/snapshot
 cd boot
-wget https://code.call-cc.org/releases/5.2.0/chicken-5.2.0.tar.gz
+wget -c https://code.call-cc.org/releases/5.2.0/chicken-5.2.0.tar.gz
 tar -xzf chicken-5.2.0.tar.gz
 cd chicken-5.2.0
 make "$@" PREFIX="$(pwd)"/../snapshot
