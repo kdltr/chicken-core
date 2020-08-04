@@ -65,6 +65,8 @@ a fix that unfortunately disables finalizers in the interpreter
 (set-finalizer! x bump)
 (set-finalizer! x bump)
 (set! x #f)
+(define vec (make-vector 500000))
+(print "FORCING GC")
 (gc #t)
 (print n)
 (assert (= 2 n))
