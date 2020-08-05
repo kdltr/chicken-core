@@ -496,10 +496,17 @@
   (assert (not (keyword? (with-input-from-string ":abc:" read))))
   (assert (not (keyword? (with-input-from-string "abc:" read)))))
 
-(let ((colon-sym (with-input-from-string ":" read)))
-  (assert (symbol? colon-sym))
-  (assert (not (keyword? colon-sym)))
-  (assert (string=? ":" (symbol->string colon-sym))))
+(parameterize ((keyword-style #:suffix))
+  (let ((colon-sym (with-input-from-string ":" read)))
+    (assert (symbol? colon-sym))
+    (assert (not (keyword? colon-sym)))
+    (assert (string=? ":" (symbol->string colon-sym)))))
+
+(parameterize ((keyword-style #:prefix))
+  (let ((colon-sym (with-input-from-string ":" read)))
+    (assert (symbol? colon-sym))
+    (assert (not (keyword? colon-sym)))
+    (assert (string=? ":" (symbol->string colon-sym)))))
 
 ;; The next two cases are a bit dubious, but we follow SRFI-88 (see
 ;; also #1625).

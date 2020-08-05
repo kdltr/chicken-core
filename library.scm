@@ -4031,15 +4031,18 @@ EOF
 		(cond ((or (eof-object? c)
 			   (char-whitespace? c)
 			   (memq c terminating-characters))
-		       ;; The not null? checks here ensure we read a
-		       ;; plain ":" as a symbol, not as a keyword.
-		       ;; However, when the keyword is quoted like ||:,
-		       ;; it _should_ be read as a keyword.
-		       (if (and skw (eq? ksp #:suffix)
-				(or qtd (not (null? (cdr lst)))))
-			   (k (##sys#reverse-list->string (cdr lst)) #t)
-			   (k (##sys#reverse-list->string lst)
-			      (and pkw (or qtd (not (null? lst)))))))
+		       ;; The various cases here cover:
+		       ;; - Nonempty keywords formed with colon in the ksp position
+		       ;; - Empty keywords formed explicitly with vbar quotes
+		       ;; - Bare colon, which should always be a symbol
+		       (cond ((and skw (eq? ksp #:suffix) (or qtd (not (null? (cdr lst)))))
+			      (k (##sys#reverse-list->string (cdr lst)) #t))
+			     ((and pkw (eq? ksp #:prefix) (or qtd (not (null? lst))))
+			      (k (##sys#reverse-list->string lst) #t))
+			     ((and pkw (eq? ksp #:prefix) (not qtd) (null? lst))
+			      (k ":" #f))
+			     (else
+			      (k (##sys#reverse-list->string lst) #f))))
 		      ((memq c reserved-characters)
 		       (reserved-character c))
 		      (else
@@ -4056,6 +4059,7 @@ EOF
 			    (loop (cons #\newline lst) pkw #f qtd))
 			   ((#\:)
 			    (cond ((and (null? lst)
+					(not pkw)
 					(not qtd)
 					(eq? ksp #:prefix))
 				   (loop '() #t #f qtd))
