@@ -4026,7 +4026,11 @@ EOF
 		 (info 'symbol-info s (##sys#port-line port)) ) )))
 
 	  (define (r-xtoken k)
-	    (let loop ((lst '()) (pkw #f) (skw #f) (qtd #f))
+	    (define pkw ; check for prefix keyword immediately
+	      (and (eq? ksp #:prefix)
+		   (eq? #\: (##sys#peek-char-0 port))
+		   (begin (##sys#read-char-0 port) #t)))
+	    (let loop ((lst '()) (skw #f) (qtd #f))
 	      (let ((c (##sys#peek-char-0 port)))
 		(cond ((or (eof-object? c)
 			   (char-whitespace? c)
@@ -4037,9 +4041,9 @@ EOF
 		       ;; - Bare colon, which should always be a symbol
 		       (cond ((and skw (eq? ksp #:suffix) (or qtd (not (null? (cdr lst)))))
 			      (k (##sys#reverse-list->string (cdr lst)) #t))
-			     ((and pkw (eq? ksp #:prefix) (or qtd (not (null? lst))))
+			     ((and pkw (or qtd (not (null? lst))))
 			      (k (##sys#reverse-list->string lst) #t))
-			     ((and pkw (eq? ksp #:prefix) (not qtd) (null? lst))
+			     ((and pkw (not qtd) (null? lst))
 			      (k ":" #f))
 			     (else
 			      (k (##sys#reverse-list->string lst) #f))))
@@ -4051,30 +4055,25 @@ EOF
 			   ((#\|)
 			    (let ((part (r-string #\|)))
 			      (loop (append (##sys#fast-reverse (##sys#string->list part)) lst)
-				    pkw #f #t)))
+				    #f #t)))
 			   ((#\newline)
 			    (##sys#read-warning
 			     port "escaped symbol syntax spans multiple lines"
 			     (##sys#reverse-list->string lst))
-			    (loop (cons #\newline lst) pkw #f qtd))
+			    (loop (cons #\newline lst) #f qtd))
 			   ((#\:)
-			    (cond ((and (null? lst)
-					(not pkw)
-					(not qtd)
-					(eq? ksp #:prefix))
-				   (loop '() #t #f qtd))
-				  (else (loop (cons #\: lst) pkw #t qtd))))
+			    (loop (cons #\: lst) #t qtd))
 			   ((#\\)
 			    (let ((c (##sys#read-char-0 port)))
 			      (if (eof-object? c)
 				  (##sys#read-error
 				   port
 				   "unexpected end of file while reading escaped character")
-				  (loop (cons c lst) pkw #f qtd))))
+				  (loop (cons c lst) #f qtd))))
 			   (else
 			    (loop
 			     (cons (if csp c (char-downcase c)) lst)
-			     pkw #f qtd)))))))))
+			     #f qtd)))))))))
 	  
 	  (define (r-char)
 	    ;; Code contributed by Alex Shinn
