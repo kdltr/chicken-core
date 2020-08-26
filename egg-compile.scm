@@ -128,6 +128,19 @@
       (list (implib rtarget))))
 
 
+;;; normalize target path for "random files" (data, c-include, scheme-include)
+
+(define (normalize-destination dest mode)
+  (let ((dest* (normalize-pathname dest)))
+    (if (irregex-search '(: bos ".." ("\\/")) dest*)
+        (error "destination must be relative to CHICKEN install prefix" dest)
+        (normalize-pathname
+         (make-pathname (if (eq? mode 'target)
+                            default-prefix    ; XXX wrong!
+                            (override-prefix "/" host-prefix))
+                        dest*)))))
+
+
 ;;; check condition in conditional clause
 
 (define (check-condition tst mode link)
@@ -264,7 +277,7 @@
                       (dest #f)
                       (files '()))
             (for-each compile-data/include (cddr info))
-            (let* ((dest (or dest 
+            (let* ((dest (or (and dest (normalize-destination dest mode))
                              (if (eq? mode 'target)
                                  default-sharedir    ; XXX wrong!
                                  (override-prefix "/share" host-sharedir))))
@@ -293,8 +306,8 @@
                       (dest #f)
                       (files '()))
             (for-each compile-data/include (cddr info))
-            (let* ((dest (or dest 
-                             (if (eq? mode 'target) 
+            (let* ((dest (or (and dest (normalize-destination dest mode))
+                             (if (eq? mode 'target)
                                  default-incdir   ; XXX wrong!
                                  (override-prefix "/include" host-incdir))))
                    (dest (normalize-pathname (conc dest "/"))))
@@ -308,8 +321,8 @@
                       (dest #f)
                       (files '()))
             (for-each compile-data/include (cddr info))
-            (let* ((dest (or dest
-                             (if (eq? mode 'target) 
+            (let* ((dest (or (and dest (normalize-destination dest mode))
+                             (if (eq? mode 'target)
                                  default-sharedir   ; XXX wrong!
                                  (override-prefix "/share" host-sharedir))))
                    (dest (normalize-pathname (conc dest "/"))))
@@ -1022,7 +1035,7 @@
          (root (string-append srcdir "/"))
          (mkdir (mkdir-command platform))
          (sfiles (map (cut prefix srcdir <>) files))
-         (dfile (qs* dest platform #t))
+         (dfile (qs* (normalize-destination dest mode) platform #t))
          (ddir (shell-variable "DESTDIR" platform)))
     (print "\n" mkdir " " ddir dfile)
     (let-values (((ds fs) (partition directory? sfiles)))

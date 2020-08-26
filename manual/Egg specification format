@@ -375,12 +375,13 @@ to this component and that the object components are dependencies.
 
  [egg property] (destination NAME)
 
-Specifies an alternative installation destination for the
-built component and only applies
-to components of type {{data}}, {{c-include}} and {{scheme-include}}.
-This property should only be used in extreme
-cases, as it is recommended to use the default installation 
-locations, which are:
+Specifies an alternative installation destination for the built
+component and only applies to components of type {{data}}, {{c-include}}
+and {{scheme-include}}. {{NAME}} must be a relative path and is
+considered relative to CHICKEN's installation prefix.
+
+This property should only be used in extreme cases, as it is recommended
+to use the default installation locations, which are:
 
 * for C include files: {{<PREFIX>/include/chicken/}}
 

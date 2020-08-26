@@ -183,6 +183,7 @@
     (custom-build #f #f #f)
     (linkage #f #f #f)
     (objects #f #f #f)
+    (destination #f #f #f ,list?)
     (install-name #f #f #f ,nameprop?)
     (target #f #t #f)
     (host #f #t #f)
