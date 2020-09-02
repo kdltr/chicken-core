@@ -471,6 +471,7 @@
         (else name)))
 
 (define (fetch-egg-sources name version dest lax)
+  (print "fetching " name)
   (let loop ((locs default-locations))
     (cond ((null? locs)
            (let ((tmpdir (create-temporary-directory)))
@@ -844,7 +845,7 @@
                       (run-script dir bscript platform)
                       (unless (if (member name requested-eggs) no-install no-install-dependencies)
                         (check-installed-files name info)
-                        (print "  installing " name)
+                        (print "installing " name)
                         (run-script dir iscript platform sudo: sudo-install))
                       (when (and (member name requested-eggs)
                                  run-tests
@@ -874,7 +875,7 @@
                       (print "building " name " (target)")
                       (run-script dir bscript platform)
                       (unless (if (member name requested-eggs) no-install no-install-dependencies)
-                        (print "  installing " name " (target)")
+                        (print "installing " name " (target)")
                         (run-script dir iscript platform)))))))))
     (order-installed-eggs)))
 
