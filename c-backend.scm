@@ -553,6 +553,16 @@
 	    (expr (car xs) i)
 	    (loop (cdr xs)))))
 
+      (define (contains-restop? args)
+	(let loop ((args args))
+	  (if (null? args)
+	      #f
+	      (let ((node (car args)))
+		;; Only rest-car accesses av
+		(or (eq? (node-class node) '##core#rest-car)
+		    (contains-restop? (node-subexpressions node))
+		    (loop (cdr args)))))))
+
       (define (push-args args i selfarg)
 	(let* ((n (length args))
 	       (avl (+ n (if selfarg 1 0)))
@@ -567,7 +577,8 @@
 	  (cond
 	   ((or (not caller-has-av?)	     ; Argvec missing or
 		(and (< caller-argcount avl) ; known to be too small?
-		     (eq? caller-rest-mode 'none)))
+		     (eq? caller-rest-mode 'none))
+		(contains-restop? args))     ; Restops work on original av
 	    (gen #t "C_word av2[" avl "];"))
 	   ((>= caller-argcount avl)   ; Argvec known to be re-usable?
 	    (gen #t "C_word *av2=av;")) ; Re-use our own argvector

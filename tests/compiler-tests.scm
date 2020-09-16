@@ -461,4 +461,11 @@
   (append-map (lambda (a b) (assert (and (= a 3) (= b 4))))
     x y))
 (outer 3 4)
-  
+
+; #1703: argvector re-use interfered with rest-arg optimization
+(define reduce (lambda (_l ini) (+ ini 1)))
+
+(print ((lambda xs (reduce xs (car xs))) 1 2 3)) ;; prints 2
+
+(define fold- (lambda xs (reduce xs (car xs))))
+(print (fold- 1 2 3))
