@@ -1487,17 +1487,17 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #ifdef C_BIG_ENDIAN
 # ifdef C_SIXTY_FOUR
 #  define C_lihdr(x, y, z)              ((C_LAMBDA_INFO_TYPE >> 56) & 0xff), \
-                                        0, 0, 0, 0, (x), (y), (z)
+                                        0, 0, 0, 0, (x), (y), ((C_char)(z))
 # else
 #  define C_lihdr(x, y, z)              ((C_LAMBDA_INFO_TYPE >> 24) & 0xff), \
-                                        (x), (y), (z)
+                                        (x), (y), ((C_char)(z))
 # endif
 #else
 # ifdef C_SIXTY_FOUR
-#  define C_lihdr(x, y, z)              (z), (y), (x), 0, 0, 0, 0, \
+#  define C_lihdr(x, y, z)              ((C_char)(z)), (y), (x), 0, 0, 0, 0, \
                                         ((C_LAMBDA_INFO_TYPE >> 56) & 0xff)
 # else
-#  define C_lihdr(x, y, z)              (z), (y), (x), \
+#  define C_lihdr(x, y, z)              ((C_char)(z)), (y), (x), \
                                         ((C_LAMBDA_INFO_TYPE >> 24) & 0xff)
 # endif
 #endif
