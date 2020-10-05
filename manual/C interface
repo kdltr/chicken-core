@@ -393,6 +393,10 @@ accessor macros instead).
 
  [C function] C_word C_vector (C_word **ptr, int length, ...)
 
+===== C_bytevector
+
+ [C function] C_word C_bytevector (C_word **ptr, int length, C_char *data)
+
 ===== C_structure
 
  [C function] C_word C_structure (C_word **ptr, int length, ...)
@@ -516,9 +520,19 @@ and can also be simulated by declaring a stack-allocated array of
 
  [C macro] int C_SIZEOF_LIST (int length)
 
+Returns the size in words needed for allocation of a list with ''length'' elements.
+
 ===== C_SIZEOF_STRING
 
  [C macro] int C_SIZEOF_STRING (int length)
+
+Returns the size in words needed for allocation of a string with ''length'' characters.
+
+===== C_SIZEOF_BYTEVECTOR
+
+ [C macro] int C_SIZEOF_BYTEVECTOR (int length)
+
+Returns the size in words needed for allocation of a bytevector with ''length'' bytes of data.
 
 ===== C_SIZEOF_VECTOR
 
