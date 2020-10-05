@@ -467,6 +467,7 @@ void *alloca ();
 #define C_SIZEOF_CPLXNUM          3
 #define C_SIZEOF_STRUCTURE(n)     ((n)+1)
 #define C_SIZEOF_CLOSURE(n)       ((n)+1)
+#define C_SIZEOF_BYTEVECTOR       C_SIZEOF_STRING
 #define C_SIZEOF_INTERNAL_BIGNUM_VECTOR(n) (C_SIZEOF_VECTOR((n)+1))
 #define C_internal_bignum_vector(b)        (C_block_item(b,0))
 
