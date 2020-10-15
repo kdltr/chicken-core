@@ -198,7 +198,7 @@ _/        _/    _/    _/    _/        _/  _/    _/        _/    _/_/
           A suffix to be appended to the names of all generated executables.
 
         HOSTSYSTEM=
-          A "<machine>-<platform>" name prefix to use for the C compiler to to
+          A "<machine>-<platform>" name prefix to use for the C compiler to
           use to compile the runtime system and executables. Set this variable
           if you want to compile CHICKEN for a different architecture than
           the one on which you are building it.
