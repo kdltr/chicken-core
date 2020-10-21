@@ -356,9 +356,9 @@
 					     (out (number->string code 16) col) ]
 					    [else (out (make-string 1 obj) col)] ) ) ) )
 	    ((##core#inline "C_undefinedp" obj) (out "#<unspecified>" col))
+	    ((##core#inline "C_unboundvaluep" obj) (out "#<unbound value>" col))
+	    ((##core#inline "C_immp" obj) (out "#<unprintable object>" col))
 	    ((##core#inline "C_anypointerp" obj) (out (##sys#pointer->string obj) col))
-	    ((##core#inline "C_unboundvaluep" obj)
-	     (out "#<unbound value>" col) )
 	    ((##sys#generic-structure? obj)
 	     (let ([o (open-output-string)])
 	       (##sys#user-print-hook obj #t o)
