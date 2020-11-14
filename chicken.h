@@ -1168,7 +1168,7 @@ typedef void (C_ccall *C_proc)(C_word, C_word *) C_noret;
 #define C_u_fixnum_and(n1, n2)          ((n1) & (n2))
 #define C_fixnum_and(n1, n2)            (C_u_fixnum_and(n1, n2) | C_FIXNUM_BIT)
 #define C_u_fixnum_or(n1, n2)           ((n1) | (n2))
-#define C_fixnum_or(n1, n2)             (C_u_fixnum_or(n1, n2) | C_FIXNUM_BIT)
+#define C_fixnum_or(n1, n2)             C_u_fixnum_or(n1, n2)
 #define C_fixnum_xor(n1, n2)            (((n1) ^ (n2)) | C_FIXNUM_BIT)
 #define C_fixnum_not(n)                 ((~(n)) | C_FIXNUM_BIT)
 #define C_fixnum_shift_left(n1, n2)     (C_fix(((C_uword)C_unfix(n1) << (C_uword)C_unfix(n2))))
