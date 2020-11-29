@@ -6540,7 +6540,7 @@ static C_word C_fcall C_setenv(C_word x, C_word y) {
 (define ##sys#features
   '(#:chicken
     #:srfi-6 #:srfi-8 #:srfi-12 #:srfi-17 #:srfi-23 #:srfi-30
-    #:srfi-39 #:srfi-62 #:srfi-88 #:full-numeric-tower))
+    #:srfi-39 #:srfi-62 #:srfi-87 #:srfi-88 #:full-numeric-tower))
 
 ;; Add system features:
 

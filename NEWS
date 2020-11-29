@@ -33,6 +33,8 @@
     been deprecated for years.
   - At program cleanup, finalizers are only forced when the live
     finalizer count is non-zero
+  - The symbol `srfi-87` has been added to the list of built-in
+    feature identifiers.
 
 - Compiler
   - Avoid re-using argvector when inline rest operations are being
