@@ -165,8 +165,7 @@
 	   (let ([out (open-output-string)]
 		 (buf (make-string read-string-buffer-size)))
 	     (let loop ()
-	       (let ((c (peek-char p))
-		     (n (read-string!/port read-string-buffer-size buf p 0)))
+	       (let ((n (read-string!/port read-string-buffer-size buf p 0)))
 		 (cond ((eq? n 0)
 			(get-output-string out))
 		       (else
