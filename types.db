@@ -512,10 +512,11 @@
 (scheme#exp (#(procedure #:clean #:enforce #:foldable) scheme#exp (number) (or float cplxnum))
 	    ((float) (float) (##core#inline_allocate ("C_a_i_flonum_exp" 4) #(1))))
 
-(scheme#log (#(procedure #:clean #:enforce #:foldable) scheme#log (number) (or float cplxnum))
+(scheme#log (#(procedure #:clean #:enforce #:foldable) scheme#log (number #!optional number) (or float cplxnum))
 	    ;; Unfortunately this doesn't work when the argument is negative
 	    ;;((float) (float) (##core#inline_allocate ("C_a_i_flonum_log" 4) #(1)))
-	    ((*) (##sys#log-1 #(1))))
+	    ((*) (##sys#log-1 #(1)))
+	    ((* *) (##sys#/-2 (##sys#log-1 #(1)) (##sys#log-1 #(2)))))
 
 (scheme#expt (#(procedure #:clean #:enforce #:foldable) scheme#expt (number number) number)
 	     ;; This breaks in some extreme edge cases... Worth disabling?

@@ -19,6 +19,7 @@
   - The default mode for files created by `file-open' has been changed
     to 0666 (plus whatever change the effective umask applies), rather
     than 0744 (see #1698).
+  - Fixed type database entry for "log" with second arg (fixes #1725).
 
 - Runtime system
   - Sleeping primordial thread doesn't forget mutations made to
