@@ -1,6 +1,6 @@
 ;;;; posix-common.scm - common code for UNIX and Windows versions of the posix unit
 ;
-; Copyright (c) 2010-2020, The CHICKEN Team
+; Copyright (c) 2010-2021, The CHICKEN Team
 ; All rights reserved.
 ;
 ; Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
