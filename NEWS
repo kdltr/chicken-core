@@ -35,6 +35,9 @@
     finalizer count is non-zero
   - The symbol `srfi-87` has been added to the list of built-in
     feature identifiers.
+  - Garbage collection algorithm has been changed to reduce thrashing
+    when heap is almost full, by growing the heap sooner.  A new -:hf
+    option was added to tweak when heap growth should occur.
 
 - Compiler
   - Avoid re-using argvector when inline rest operations are being
