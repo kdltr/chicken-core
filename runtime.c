@@ -1269,7 +1269,7 @@ void C_set_or_change_heap_size(C_word heap, int reintern)
   if(fromspace_start && heap_size >= heap) return;
 
   if(debug_mode)
-    C_dbg(C_text("debug"), C_text("heap resized to %d bytes\n"), (int)heap);
+    C_dbg(C_text("debug"), C_text("heap resized to " UWORD_COUNT_FORMAT_STRING " bytes\n"), heap);
 
   heap_size = heap;
 
@@ -1306,7 +1306,7 @@ void C_do_resize_stack(C_word stack)
 
   if(diff != 0 && !stack_size_changed) {
     if(debug_mode) 
-      C_dbg(C_text("debug"), C_text("stack resized to %d bytes\n"), (int)stack);
+      C_dbg(C_text("debug"), C_text("stack resized to " UWORD_COUNT_FORMAT_STRING " bytes\n"), stack);
 
     stack_size = stack;
 
