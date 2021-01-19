@@ -429,7 +429,7 @@
     (cond ((or (not (probe-dir cached))
                (not (file-exists? eggfile)))
            (d "~a not cached~%" name)
-           (when cached-only (error "extension not cached"))
+           (when cached-only (error "extension not cached" name))
            (fetch #f))
           ((and (file-exists? status)
                 (not (equal? current-status 
@@ -1011,9 +1011,7 @@
         (purge-mode (purge-cache eggs))
         (print-repository (print (install-path)))
         ((null? eggs)
-         (cond (cached-only
-                 (error "`-cached' needs explicit egg list"))
-               (list-versions-only
+         (cond (list-versions-only
                  (print "no eggs specified"))
                (else
                  (let ((files (glob "*.egg" "chicken/*.egg")))
