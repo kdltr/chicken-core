@@ -1,6 +1,8 @@
 5.2.1
 
 - Core libraries
+  - Fixed an inadvertant error during error reporting in the `numerator`
+    and `denominator` procedures when passed non-finite flonums (#1730).
   - Fixed a bug where optimisations for `irregex-match?` would cause
     runtime errors due to the inlined specialisations not being
     fully-expanded (see #1690).
