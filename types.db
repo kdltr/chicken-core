@@ -1141,7 +1141,7 @@
 
 (chicken.read-syntax#set-parameterized-read-syntax!
  (#(procedure #:clean #:enforce) chicken.read-syntax#set-parameterized-read-syntax!
-  (char (or false (procedure (input-port fixnum) . *)))
+  ((or char symbol) (or false (procedure (input-port fixnum) . *)))
   undefined))
 
 (chicken.read-syntax#set-read-syntax!
@@ -1151,7 +1151,7 @@
 
 (chicken.read-syntax#set-sharp-read-syntax!
  (#(procedure #:clean #:enforce) chicken.read-syntax#set-sharp-read-syntax!
-  (char (or false (procedure (input-port) . *))) undefined))
+  ((or char symbol) (or false (procedure (input-port) . *))) undefined))
 
 
 ;; time
